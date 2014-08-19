@@ -126,7 +126,7 @@ public class IntersectDataGen extends Configured implements Tool {
   }
   
   private TezClient createTezSession(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezSession = new TezClient("IntersectDataGenSession", tezConf);
+    TezClient tezSession = TezClient.create("IntersectDataGenSession", tezConf);
     tezSession.start();
     return tezSession;
   }
@@ -200,9 +200,9 @@ public class IntersectDataGen extends Configured implements Tool {
 
     DAG dag = new DAG("IntersectDataGen");
 
-    Vertex genDataVertex = new Vertex("datagen", new ProcessorDescriptor(
+    Vertex genDataVertex = Vertex.create("datagen", ProcessorDescriptor.create(
         GenDataProcessor.class.getName()).setUserPayload(
-        new UserPayload(ByteBuffer.wrap(GenDataProcessor.createConfiguration(largeOutSizePerTask,
+        UserPayload.create(ByteBuffer.wrap(GenDataProcessor.createConfiguration(largeOutSizePerTask,
             smallOutSizePerTask)))), numTasks);
     genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
         MROutput.createConfigBuilder(new Configuration(tezConf),

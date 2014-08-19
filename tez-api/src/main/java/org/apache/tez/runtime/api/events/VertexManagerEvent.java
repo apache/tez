@@ -42,19 +42,23 @@ public class VertexManagerEvent extends Event {
    * User payload to be sent
    */
   private final byte[] userPayload;
-  
-  /**
-   * Create a new VertexManagerEvent
-   * @param vertexName
-   * @param userPayload This should not be modified since a reference is kept
-   */
-  public VertexManagerEvent(String vertexName, byte[] userPayload) {
+
+  private VertexManagerEvent(String vertexName, byte[] userPayload) {
     Preconditions.checkArgument(vertexName != null);
     Preconditions.checkArgument(userPayload != null);
     this.targetVertexName = vertexName;
     this.userPayload = userPayload;
   }
-  
+
+  /**
+   * Create a new VertexManagerEvent
+   * @param vertexName
+   * @param userPayload This should not be modified since a reference is kept
+   */
+  public static VertexManagerEvent create(String vertexName, byte[] userPayload) {
+    return new VertexManagerEvent(vertexName, userPayload);
+  }
+
   public String getTargetVertexName() {
     return targetVertexName;
   }

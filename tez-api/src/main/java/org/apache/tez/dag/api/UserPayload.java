@@ -35,13 +35,31 @@ public final class UserPayload {
   private final int version;
   private static final ByteBuffer EMPTY_BYTE = ByteBuffer.wrap(new byte[0]);
 
-  public UserPayload(@Nullable ByteBuffer payload) {
+  private UserPayload(@Nullable ByteBuffer payload) {
     this(payload, 0);
   }
 
-  public UserPayload(@Nullable ByteBuffer payload, int version) {
+  private UserPayload(@Nullable ByteBuffer payload, int version) {
     this.payload = payload == null ? EMPTY_BYTE : payload;
     this.version = version;
+  }
+
+  /**
+   * Create a UserPayload instance which encapsulates a {@link java.nio.ByteBuffer}. The version number used will be 0
+   * @param payload the {@link java.nio.ByteBuffer} payload
+   * @return an instance of {@link org.apache.tez.dag.api.UserPayload}
+   */
+  public static UserPayload create(@Nullable ByteBuffer payload) {
+    return new UserPayload(payload);
+  }
+
+  /**
+   * Create an explicitly versioned UserPayload instance which encapsulates a {@link java.nio.ByteBuffer}.
+   * @param payload the {@link java.nio.ByteBuffer} payload
+   * @return an instance of {@link org.apache.tez.dag.api.UserPayload}
+   */
+  public static UserPayload create(@Nullable ByteBuffer payload, int version) {
+    return new UserPayload(payload, version);
   }
 
   /**

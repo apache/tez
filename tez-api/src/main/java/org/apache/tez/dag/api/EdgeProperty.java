@@ -33,7 +33,8 @@ import com.google.common.base.Preconditions;
  */
 @Public
 public class EdgeProperty {
-  
+
+
   /**
    * Defines the manner of data movement between source and destination tasks.
    * Determines which destination tasks have access to data produced on this
@@ -112,9 +113,32 @@ public class EdgeProperty {
   final InputDescriptor inputDescriptor;
   final OutputDescriptor outputDescriptor;
   final EdgeManagerPluginDescriptor edgeManagerDescriptor;
-  
+
   /**
+   * Setup an EdgeProperty which makes use of one of the provided {@link
+   * org.apache.tez.dag.api.EdgeProperty.DataMovementType}s
+   *
    * @param dataMovementType
+   * @param dataSourceType
+   * @param schedulingType
+   * @param edgeSource       The {@link OutputDescriptor} that generates data on the edge.
+   * @param edgeDestination  The {@link InputDescriptor} which will consume data from the edge.
+   */
+  public static EdgeProperty create(DataMovementType dataMovementType,
+                                    DataSourceType dataSourceType,
+                                    SchedulingType schedulingType,
+                                    OutputDescriptor edgeSource,
+                                    InputDescriptor edgeDestination) {
+    return new EdgeProperty(dataMovementType, dataSourceType, schedulingType, edgeSource,
+        edgeDestination);
+  }
+
+  /**
+   * Setup an Edge which uses a custom EdgeManager
+   *
+   * @param edgeManagerDescriptor
+   *          the EdgeManager specifications. This can be null if the edge
+   *          manager will be setup at runtime
    * @param dataSourceType
    * @param schedulingType
    * @param edgeSource
@@ -122,7 +146,17 @@ public class EdgeProperty {
    * @param edgeDestination
    *          The {@link InputDescriptor} which will consume data from the edge.
    */
-  public EdgeProperty(DataMovementType dataMovementType, 
+  public static EdgeProperty create(EdgeManagerPluginDescriptor edgeManagerDescriptor,
+                                    DataSourceType dataSourceType,
+                                    SchedulingType schedulingType,
+                                    OutputDescriptor edgeSource,
+                                    InputDescriptor edgeDestination) {
+    return new EdgeProperty(edgeManagerDescriptor, dataSourceType, schedulingType, edgeSource,
+        edgeDestination);
+  }
+
+
+  private EdgeProperty(DataMovementType dataMovementType,
                        DataSourceType dataSourceType,
                        SchedulingType schedulingType,
                        OutputDescriptor edgeSource,
@@ -137,24 +171,12 @@ public class EdgeProperty {
     this.edgeManagerDescriptor = null;
   }
   
-  /**
-   * Setup an Edge which uses a custom EdgeManager
-   * 
-   * @param edgeManagerDescriptor
-   *          the EdgeManager specifications. This can be null if the edge
-   *          manager will be setup at runtime
-   * @param dataSourceType
-   * @param schedulingType
-   * @param edgeSource
-   *          The {@link OutputDescriptor} that generates data on the edge.
-   * @param edgeDestination
-   *          The {@link InputDescriptor} which will consume data from the edge.
-   */
-  public EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
-                      DataSourceType dataSourceType,
-                      SchedulingType schedulingType,
-                      OutputDescriptor edgeSource,
-                      InputDescriptor edgeDestination) {
+
+  private EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
+                       DataSourceType dataSourceType,
+                       SchedulingType schedulingType,
+                       OutputDescriptor edgeSource,
+                       InputDescriptor edgeDestination) {
     this.dataMovementType = DataMovementType.CUSTOM;
     this.edgeManagerDescriptor = edgeManagerDescriptor;
     this.dataSourceType = dataSourceType;

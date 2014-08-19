@@ -48,11 +48,11 @@ public class ThreeLevelsFailingDAG extends TwoLevelsFailingDAG {
     
     protected static void addDAGVerticesAndEdges() {
         TwoLevelsFailingDAG.addDAGVerticesAndEdges();
-        l3v1 = new Vertex("l3v1", TestProcessor.getProcDesc(payload), 4, defaultResource);
+        l3v1 = Vertex.create("l3v1", TestProcessor.getProcDesc(payload), 4, defaultResource);
         dag.addVertex(l3v1);
         addEdge(l2v1, l3v1, DataMovementType.SCATTER_GATHER);
         addEdge(l2v2, l3v1, DataMovementType.SCATTER_GATHER);
-        l3v2 = new Vertex("l3v2", TestProcessor.getProcDesc(payload), 4, defaultResource);
+        l3v2 = Vertex.create("l3v2", TestProcessor.getProcDesc(payload), 4, defaultResource);
         dag.addVertex(l3v2);
         addEdge(l2v2, l3v2, DataMovementType.BROADCAST);
         addEdge(l2v3, l3v2, DataMovementType.SCATTER_GATHER);

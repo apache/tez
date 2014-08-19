@@ -913,7 +913,7 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsTillSucceeded)).handle(arg.capture());
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
 
-    InputReadErrorEvent mockReEvent = new InputReadErrorEvent("", 0, 1);
+    InputReadErrorEvent mockReEvent = InputReadErrorEvent.create("", 0, 1);
     EventMetaData mockMeta = mock(EventMetaData.class);
     TezTaskAttemptID mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);

@@ -73,7 +73,7 @@ public class TestShuffleInputEventHandler {
     if (emptyPartitionByteString != null) {
       builder.setEmptyPartitions(emptyPartitionByteString);
     }
-    return new DataMovementEvent(srcIndex, targetIndex, 0, builder.build().toByteArray());
+    return DataMovementEvent.create(srcIndex, targetIndex, 0, builder.build().toByteArray());
   }
 
   @Before
@@ -106,7 +106,7 @@ public class TestShuffleInputEventHandler {
   public void testFailedEvent() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int targetIdx = 1;
-    InputFailedEvent failedEvent = new InputFailedEvent(targetIdx, 0);
+    InputFailedEvent failedEvent = InputFailedEvent.create(targetIdx, 0);
     events.add(failedEvent);
     handler.handleEvents(events);
     InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0);

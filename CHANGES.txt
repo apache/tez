@@ -75,6 +75,7 @@ INCOMPATIBLE CHANGES
   TEZ-1417. Rename Configurer* to Config/ConfigBuilder
   TEZ-1450. Documentation of TezConfiguration
   TEZ-1231. Clean up TezRuntimeConfiguration
+  TEZ-1246. Replace constructors with create() methods for DAG, Vertex, Edge etc in the API
 
 Release 0.4.0-incubating: 2014-04-05
 

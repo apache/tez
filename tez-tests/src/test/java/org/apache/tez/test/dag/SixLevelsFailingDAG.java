@@ -59,20 +59,20 @@ public class SixLevelsFailingDAG extends ThreeLevelsFailingDAG {
     
     protected static void addDAGVerticesAndEdges() {
         ThreeLevelsFailingDAG.addDAGVerticesAndEdges();
-        l4v1 = new Vertex("l4v1", TestProcessor.getProcDesc(payload), 10, defaultResource);
+        l4v1 = Vertex.create("l4v1", TestProcessor.getProcDesc(payload), 10, defaultResource);
         dag.addVertex(l4v1);
         addEdge(l3v1, l4v1, DataMovementType.SCATTER_GATHER);
         addEdge(l3v2, l4v1, DataMovementType.SCATTER_GATHER);
-        l5v1 = new Vertex("l5v1", TestProcessor.getProcDesc(payload), 2, defaultResource);
+        l5v1 = Vertex.create("l5v1", TestProcessor.getProcDesc(payload), 2, defaultResource);
         dag.addVertex(l5v1);
         addEdge(l4v1, l5v1, DataMovementType.SCATTER_GATHER);
-        l5v2 = new Vertex("l5v2", TestProcessor.getProcDesc(payload), 4, defaultResource);
+        l5v2 = Vertex.create("l5v2", TestProcessor.getProcDesc(payload), 4, defaultResource);
         dag.addVertex(l5v2);
         addEdge(l4v1, l5v2, DataMovementType.SCATTER_GATHER);
-        l5v3 = new Vertex("l5v3", TestProcessor.getProcDesc(payload), 1, defaultResource);
+        l5v3 = Vertex.create("l5v3", TestProcessor.getProcDesc(payload), 1, defaultResource);
         dag.addVertex(l5v3);
         addEdge(l4v1, l5v3, DataMovementType.SCATTER_GATHER);
-        l6v1 = new Vertex("l6v1", TestProcessor.getProcDesc(payload), 4, defaultResource);
+        l6v1 = Vertex.create("l6v1", TestProcessor.getProcDesc(payload), 4, defaultResource);
         dag.addVertex(l6v1);
         addEdge(l5v1, l6v1, DataMovementType.SCATTER_GATHER);
         addEdge(l5v2, l6v1, DataMovementType.SCATTER_GATHER);

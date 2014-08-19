@@ -487,12 +487,12 @@ public class ShuffleManager implements FetcherCallback {
       LOG.fatal(message);
       inputContext.fatalError(null, message);
     } else {
-    InputReadErrorEvent readError = new InputReadErrorEvent(
+    InputReadErrorEvent readError = InputReadErrorEvent.create(
         "Fetch failure while fetching from "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
-                inputContext.getSourceVertexName(),
-                srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
-                srcAttemptIdentifier.getAttemptNumber()),
+            inputContext.getSourceVertexName(),
+            srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
+            srcAttemptIdentifier.getAttemptNumber()),
         srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
         srcAttemptIdentifier.getAttemptNumber());
     

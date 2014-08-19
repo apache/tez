@@ -63,7 +63,7 @@ public class TestEdge {
   @Test (timeout = 5000)
   public void testCompositeEventHandling() {
     EventHandler eventHandler = mock(EventHandler.class);
-    EdgeProperty edgeProp = new EdgeProperty(DataMovementType.SCATTER_GATHER,
+    EdgeProperty edgeProp = EdgeProperty.create(DataMovementType.SCATTER_GATHER,
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, mock(OutputDescriptor.class),
         mock(InputDescriptor.class));
     Edge edge = new Edge(edgeProp, eventHandler);
@@ -87,7 +87,7 @@ public class TestEdge {
     EventMetaData srcMeta = new EventMetaData(EventProducerConsumerType.OUTPUT, "consumerVertex", "producerVertex", srcTAID);
     
     // Verification via a CompositeEvent
-    CompositeDataMovementEvent cdmEvent = new CompositeDataMovementEvent(0, destTasks.size(),
+    CompositeDataMovementEvent cdmEvent = CompositeDataMovementEvent.create(0, destTasks.size(),
         "bytes".getBytes());
     cdmEvent.setVersion(2); // AttemptNum
     TezEvent tezEvent = new TezEvent(cdmEvent, srcMeta);
@@ -104,7 +104,7 @@ public class TestEdge {
     // Same Verification via regular DataMovementEvents
     reset(eventHandler);
     for (int i = 0 ; i < destTasks.size() ; i++) {
-      DataMovementEvent dmEvent = new DataMovementEvent(i, "bytes".getBytes());
+      DataMovementEvent dmEvent = DataMovementEvent.create(i, "bytes".getBytes());
       dmEvent.setVersion(2);
       tezEvent = new TezEvent(dmEvent, srcMeta);
       edge.sendTezEventToDestinationTasks(tezEvent);

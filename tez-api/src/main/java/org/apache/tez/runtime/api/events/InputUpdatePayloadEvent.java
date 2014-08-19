@@ -38,9 +38,13 @@ public class InputUpdatePayloadEvent extends Event {
 
   private final byte[] userPayload;
 
-  public InputUpdatePayloadEvent(byte[] userPayload) {
+  private InputUpdatePayloadEvent(byte[] userPayload) {
     Preconditions.checkNotNull(userPayload);
     this.userPayload = userPayload;
+  }
+
+  public static InputUpdatePayloadEvent create(byte[] userPayload) {
+    return new InputUpdatePayloadEvent(userPayload);
   }
 
   public byte[] getUserPayload() {

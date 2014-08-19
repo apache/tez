@@ -691,8 +691,8 @@ public class TestTaskExecution {
     TezVertexID vertexId = TezVertexID.getInstance(dagId, 1);
     TezTaskID taskId = TezTaskID.getInstance(vertexId, 1);
     TezTaskAttemptID taskAttemptId = TezTaskAttemptID.getInstance(taskId, 1);
-    ProcessorDescriptor processorDescriptor = new ProcessorDescriptor(processorClass)
-        .setUserPayload(new UserPayload(ByteBuffer.wrap(processorConf)));
+    ProcessorDescriptor processorDescriptor = ProcessorDescriptor.create(processorClass)
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap(processorConf)));
     TaskSpec taskSpec = new TaskSpec(taskAttemptId, "dagName", "vertexName", processorDescriptor,
         new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
 

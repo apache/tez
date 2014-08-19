@@ -38,12 +38,17 @@ public class VertexLocationHint  {
   private final List<TaskLocationHint> taskLocationHints;
 
   
-  public VertexLocationHint(List<TaskLocationHint> taskLocationHints) {
+  private VertexLocationHint(List<TaskLocationHint> taskLocationHints) {
     if (taskLocationHints != null) {
       this.taskLocationHints = Collections.unmodifiableList(taskLocationHints);
     } else {
       this.taskLocationHints = null;
     }
+  }
+
+  public static VertexLocationHint create(
+      List<TaskLocationHint> taskLocationHints) {
+    return new VertexLocationHint(taskLocationHints);
   }
 
   public List<TaskLocationHint> getTaskLocationHints() {

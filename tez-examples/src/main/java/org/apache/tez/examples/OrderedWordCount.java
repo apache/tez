@@ -121,7 +121,7 @@ public class OrderedWordCount extends Configured implements Tool  {
     DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(tezConf),
         TextOutputFormat.class, outputPath).build();
 
-    Vertex tokenizerVertex = new Vertex("Tokenizer", new ProcessorDescriptor(
+    Vertex tokenizerVertex = Vertex.create("Tokenizer", ProcessorDescriptor.create(
         TokenProcessor.class.getName()));
     tokenizerVertex.addDataSource("MRInput", dataSource);
 
@@ -132,7 +132,7 @@ public class OrderedWordCount extends Configured implements Tool  {
 
     // This vertex will be reading intermediate data via an input edge and writing intermediate data
     // via an output edge.
-    Vertex summationVertex = new Vertex("Summation", new ProcessorDescriptor(
+    Vertex summationVertex = Vertex.create("Summation", ProcessorDescriptor.create(
         SumProcessor.class.getName()), numPartitions);
     
     // Use IntWritable key and Text value to bring all words with the same count in the same 
@@ -143,7 +143,7 @@ public class OrderedWordCount extends Configured implements Tool  {
 
     // Use 1 task to bring all the data in one place for global sorted order. Essentially the number
     // of partitions is 1. So the NoOpSorter can be used to produce the globally ordered output
-    Vertex sorterVertex = new Vertex("Sorter", new ProcessorDescriptor(
+    Vertex sorterVertex = Vertex.create("Sorter", ProcessorDescriptor.create(
         NoOpSorter.class.getName()), 1);
     sorterVertex.addDataSink("MROutput", dataSink);
 
@@ -154,9 +154,10 @@ public class OrderedWordCount extends Configured implements Tool  {
         .addVertex(summationVertex)
         .addVertex(sorterVertex)
         .addEdge(
-            new Edge(tokenizerVertex, summationVertex, summationEdgeConf.createDefaultEdgeProperty()))
+            Edge.create(tokenizerVertex, summationVertex,
+                summationEdgeConf.createDefaultEdgeProperty()))
         .addEdge(
-            new Edge(summationVertex, sorterVertex, sorterEdgeConf.createDefaultEdgeProperty()));
+            Edge.create(summationVertex, sorterVertex, sorterEdgeConf.createDefaultEdgeProperty()));
     return dag;  
   }
   
@@ -175,7 +176,7 @@ public class OrderedWordCount extends Configured implements Tool  {
       tezConf = new TezConfiguration();
     }
     
-    TezClient tezClient = new TezClient("OrderedWordCount", tezConf);
+    TezClient tezClient = TezClient.create("OrderedWordCount", tezConf);
     tezClient.start();
 
     try {

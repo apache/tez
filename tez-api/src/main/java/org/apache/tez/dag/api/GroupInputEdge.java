@@ -37,6 +37,20 @@ public class GroupInputEdge {
   private final InputDescriptor mergedInput;
 
   // InputVertex(EdgeInput) ----- Edge ----- OutputVertex(EdgeOutput)]
+  private GroupInputEdge(VertexGroup inputVertexGroup,
+                         Vertex outputVertex,
+                         EdgeProperty edgeProperty,
+                         InputDescriptor mergedInput) {
+    this.inputVertexGroup = inputVertexGroup;
+    this.outputVertex = outputVertex;
+    this.edgeProperty = edgeProperty;
+    if (mergedInput == null) {
+      throw new TezUncheckedException(
+          "Merged input must be specified when using GroupInputEdge");
+    }
+    this.mergedInput = mergedInput;
+  }
+
   /**
    * An Edge that connects a {@link VertexGroup} to a destination Vertex. The
    * framework takes care of connecting the {@link VertexGroup} members with the
@@ -44,7 +58,7 @@ public class GroupInputEdge {
    * named after the VertexGroup instead of individual inputs from group
    * members. These individual inputs are merged using the mergedInput before
    * presenting them to the destination task.
-   * 
+   *
    * @param inputVertexGroup
    *          source {@link VertexGroup}
    * @param outputVertex
@@ -56,18 +70,11 @@ public class GroupInputEdge {
    *          the data from the input vertex tasks to create a single input for
    *          the output vertex tasks
    */
-  public GroupInputEdge(VertexGroup inputVertexGroup, 
-      Vertex outputVertex, 
-      EdgeProperty edgeProperty,
-      InputDescriptor mergedInput) {
-    this.inputVertexGroup = inputVertexGroup;
-    this.outputVertex = outputVertex;
-    this.edgeProperty = edgeProperty;
-    if (mergedInput == null) {
-      throw new TezUncheckedException(
-          "Merged input must be specified when using GroupInputEdge");
-    }
-    this.mergedInput = mergedInput;
+  public static GroupInputEdge create(VertexGroup inputVertexGroup,
+                                      Vertex outputVertex,
+                                      EdgeProperty edgeProperty,
+                                      InputDescriptor mergedInput) {
+    return new GroupInputEdge(inputVertexGroup, outputVertex, edgeProperty, mergedInput);
   }
 
   public VertexGroup getInputVertexGroup() {

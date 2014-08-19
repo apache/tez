@@ -125,7 +125,7 @@ public class IntersectExample extends Configured implements Tool {
   }
   
   private TezClient createTezSession(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezSession = new TezClient("IntersectExampleSession", tezConf);
+    TezClient tezSession = TezClient.create("IntersectExampleSession", tezConf);
     tezSession.start();
     return tezSession;
   }
@@ -183,28 +183,28 @@ public class IntersectExample extends Configured implements Tool {
                 HashPartitioner.class.getName()).build();
 
     // Change the way resources are setup - no MRHelpers
-    Vertex streamFileVertex = new Vertex("partitioner1", new ProcessorDescriptor(
+    Vertex streamFileVertex = Vertex.create("partitioner1", ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource(
         "streamfile",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 streamPath.toUri().toString()).groupSplits(false).build());
 
-    Vertex hashFileVertex = new Vertex("partitioner2", new ProcessorDescriptor(
+    Vertex hashFileVertex = Vertex.create("partitioner2", ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource(
         "hashfile",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 hashPath.toUri().toString()).groupSplits(false).build());
 
-    Vertex intersectVertex = new Vertex("intersect", new ProcessorDescriptor(
+    Vertex intersectVertex = Vertex.create("intersect", ProcessorDescriptor.create(
         IntersectProcessor.class.getName()), numPartitions).addDataSink("finalOutput",
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, outPath.toUri().toString()).build());
 
-    Edge e1 = new Edge(streamFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e1 = Edge.create(streamFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
 
-    Edge e2 = new Edge(hashFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e2 = Edge.create(hashFileVertex, intersectVertex, edgeConf.createDefaultEdgeProperty());
 
     dag.addVertex(streamFileVertex).addVertex(hashFileVertex).addVertex(intersectVertex)
         .addEdge(e1).addEdge(e2);

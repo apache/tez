@@ -53,35 +53,53 @@ public final class DataMovementEvent extends Event {
    */
   private int version;
 
-  /**
-   * User Event constructor
-   * @param sourceIndex Index to identify the physical edge of the input/output
-   * that generated the event
-   * @param userPayload User Payload of the User Event
-   */
-  public DataMovementEvent(int sourceIndex,
-      byte[] userPayload) {
+
+  private DataMovementEvent(int sourceIndex,
+                            byte[] userPayload) {
     this.userPayload = userPayload;
     this.sourceIndex = sourceIndex;
   }
 
   @Private
-  public DataMovementEvent(int sourceIndex,
-      int targetIndex,
-      int version,
-      byte[] userPayload) {
+  private DataMovementEvent(int sourceIndex,
+                            int targetIndex,
+                            int version,
+                            byte[] userPayload) {
     this.userPayload = userPayload;
     this.sourceIndex = sourceIndex;
     this.version = version;
     this.targetIndex = targetIndex;
   }
 
+  private DataMovementEvent(byte[] userPayload) {
+    this(-1, userPayload);
+  }
+
+  /**
+   * User Event constructor
+   * @param sourceIndex Index to identify the physical edge of the input/output
+   * that generated the event
+   * @param userPayload User Payload of the User Event
+   */
+  public static DataMovementEvent create(int sourceIndex,
+                                         byte[] userPayload) {
+    return new DataMovementEvent(sourceIndex, userPayload);
+  }
+
   /**
    * Constructor for Processor-generated User Events
    * @param userPayload
    */
-  public DataMovementEvent(byte[] userPayload) {
-    this(-1, userPayload);
+  public static DataMovementEvent create(byte[] userPayload) {
+    return new DataMovementEvent(userPayload);
+  }
+
+  @Private
+  public static DataMovementEvent create(int sourceIndex,
+                                         int targetIndex,
+                                         int version,
+                                         byte[] userPayload) {
+    return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
   }
 
   public byte[] getUserPayload() {

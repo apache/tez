@@ -44,6 +44,12 @@ public class CompositeDataMovementEvent extends Event {
 
   protected final byte[] userPayload;
 
+  private CompositeDataMovementEvent(int srcIndexStart, int count, byte[] userPayload) {
+    this.sourceIndexStart = srcIndexStart;
+    this.count = count;
+    this.userPayload = userPayload;
+  }
+
   /**
    * @param srcIndexStart
    *          the startIndex of the physical source which generated the event
@@ -54,10 +60,9 @@ public class CompositeDataMovementEvent extends Event {
    * @param userPayload
    *          the common payload between all the events.
    */
-  public CompositeDataMovementEvent(int srcIndexStart, int count, byte[] userPayload) {
-    this.sourceIndexStart = srcIndexStart;
-    this.count = count;
-    this.userPayload = userPayload;
+  public static CompositeDataMovementEvent create(int srcIndexStart, int count,
+                                                  byte[] userPayload) {
+    return new CompositeDataMovementEvent(srcIndexStart, count, userPayload);
   }
 
   public int getSourceIndexStart() {
@@ -97,7 +102,7 @@ public class CompositeDataMovementEvent extends Event {
 
           @Override
           public DataMovementEvent next() {
-            DataMovementEvent dmEvent = new DataMovementEvent(currentPos, userPayload);
+            DataMovementEvent dmEvent = DataMovementEvent.create(currentPos, userPayload);
             currentPos++;
             dmEvent.setVersion(version);
             return dmEvent;

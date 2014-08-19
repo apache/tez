@@ -30,10 +30,10 @@ public class TestDagTypeConverters {
 
   @Test
   public void testTezEntityDescriptorSerialization() throws IOException {
-    UserPayload payload = new UserPayload(ByteBuffer.wrap(new String("Foobar").getBytes()), 100);
+    UserPayload payload = UserPayload.create(ByteBuffer.wrap(new String("Foobar").getBytes()), 100);
     String historytext = "Bar123";
     EntityDescriptor entityDescriptor =
-        new InputDescriptor("inputClazz").setUserPayload(payload)
+        InputDescriptor.create("inputClazz").setUserPayload(payload)
         .setHistoryText(historytext);
     TezEntityDescriptorProto proto =
         DagTypeConverters.convertToDAGPlan(entityDescriptor);

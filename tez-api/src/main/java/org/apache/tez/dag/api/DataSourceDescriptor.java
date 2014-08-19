@@ -44,8 +44,28 @@ public class DataSourceDescriptor {
   private final VertexLocationHint locationHint;
   private final Map<String, LocalResource> additionalLocalResources;
 
+  private DataSourceDescriptor(InputDescriptor inputDescriptor,
+                               @Nullable InputInitializerDescriptor initializerDescriptor,
+                               @Nullable Credentials credentials) {
+    this(inputDescriptor, initializerDescriptor, -1, credentials, null, null);
+  }
+
+  private DataSourceDescriptor(InputDescriptor inputDescriptor,
+                               @Nullable InputInitializerDescriptor initializerDescriptor,
+                               int numShards,
+                               @Nullable Credentials credentials,
+                               @Nullable VertexLocationHint locationHint,
+                               @Nullable Map<String, LocalResource> additionalLocalResources) {
+    this.inputDescriptor = inputDescriptor;
+    this.initializerDescriptor = initializerDescriptor;
+    this.numShards = numShards;
+    this.credentials = credentials;
+    this.locationHint = locationHint;
+    this.additionalLocalResources = additionalLocalResources;
+  }
+
   /**
-   * Create a {@link DataSourceDescriptor} when the data shard calculation 
+   * Create a {@link DataSourceDescriptor} when the data shard calculation
    * happens in the App Master at runtime
    * @param inputDescriptor
    *          An {@link InputDescriptor} for the Input
@@ -60,10 +80,10 @@ public class DataSourceDescriptor {
    *          meant to determine the parallelism of the vertex, the initial
    *          vertex parallelism should be set to -1. Can be null.
    */
-  public DataSourceDescriptor(InputDescriptor inputDescriptor,
-      @Nullable InputInitializerDescriptor initializerDescriptor, 
-      @Nullable Credentials credentials) {
-    this(inputDescriptor, initializerDescriptor, -1, credentials, null, null);
+  public static DataSourceDescriptor create(InputDescriptor inputDescriptor,
+                                            @Nullable InputInitializerDescriptor initializerDescriptor,
+                                            @Nullable Credentials credentials) {
+    return new DataSourceDescriptor(inputDescriptor, initializerDescriptor, credentials);
   }
 
   /**
@@ -89,16 +109,14 @@ public class DataSourceDescriptor {
    *                                 resources. If a name conflict occurs, a {@link
    *                                 org.apache.tez.dag.api.TezException} will be thrown
    */
-  public DataSourceDescriptor(InputDescriptor inputDescriptor,
-      @Nullable InputInitializerDescriptor initializerDescriptor, int numShards,
-      @Nullable Credentials credentials, @Nullable VertexLocationHint locationHint,
-      @Nullable Map<String, LocalResource> additionalLocalResources) {
-    this.inputDescriptor = inputDescriptor;
-    this.initializerDescriptor = initializerDescriptor;
-    this.numShards = numShards;
-    this.credentials = credentials;
-    this.locationHint = locationHint;
-    this.additionalLocalResources = additionalLocalResources;
+  public static DataSourceDescriptor create(InputDescriptor inputDescriptor,
+                                            @Nullable InputInitializerDescriptor initializerDescriptor,
+                                            int numShards,
+                                            @Nullable Credentials credentials,
+                                            @Nullable VertexLocationHint locationHint,
+                                            @Nullable Map<String, LocalResource> additionalLocalResources) {
+    return new DataSourceDescriptor(inputDescriptor, initializerDescriptor, numShards, credentials,
+        locationHint, additionalLocalResources);
   }
 
   public InputDescriptor getInputDescriptor() {

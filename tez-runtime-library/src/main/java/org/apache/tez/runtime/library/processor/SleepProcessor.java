@@ -21,7 +21,7 @@ package org.apache.tez.runtime.library.processor;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -115,7 +115,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
     }
 
     public UserPayload toUserPayload() {
-      return new UserPayload(ByteBuffer.wrap(Integer.toString(timeToSleepMS).getBytes()));
+      return UserPayload.create(ByteBuffer.wrap(Integer.toString(timeToSleepMS).getBytes()));
     }
 
     public void fromUserPayload(UserPayload userPayload) throws CharacterCodingException {

@@ -57,7 +57,7 @@ public class SimpleSessionExample extends Configured implements Tool {
     // session mode then it can do so in code directly using the appropriate constructor
     
     // tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true); // via config OR via code
-    TezClient tezClient = new TezClient("SimpleSessionExample", tezConf, true);
+    TezClient tezClient = TezClient.create("SimpleSessionExample", tezConf, true);
     tezClient.start();
     
     // Session pre-warming allows the user to hide initial startup, resource acquisition latency etc.

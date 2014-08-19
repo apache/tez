@@ -173,16 +173,16 @@ public class UnionExample {
         inputPath);
     DataSourceDescriptor dataSource = configurer.generateSplitsInAM(false).build();
 
-    Vertex mapVertex1 = new Vertex("map1", new ProcessorDescriptor(
+    Vertex mapVertex1 = Vertex.create("map1", ProcessorDescriptor.create(
         TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
 
-    Vertex mapVertex2 = new Vertex("map2", new ProcessorDescriptor(
+    Vertex mapVertex2 = Vertex.create("map2", ProcessorDescriptor.create(
         TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
 
-    Vertex mapVertex3 = new Vertex("map3", new ProcessorDescriptor(
+    Vertex mapVertex3 = Vertex.create("map3", ProcessorDescriptor.create(
         TokenProcessor.class.getName()), numMaps).addDataSource("MRInput", dataSource);
 
-    Vertex checkerVertex = new Vertex("checker", new ProcessorDescriptor(
+    Vertex checkerVertex = Vertex.create("checker", ProcessorDescriptor.create(
         UnionProcessor.class.getName()), 1);
 
     Configuration outputConf = new Configuration(tezConf);
@@ -211,10 +211,10 @@ public class UnionExample {
         .addVertex(mapVertex3)
         .addVertex(checkerVertex)
         .addEdge(
-            new Edge(mapVertex3, checkerVertex, edgeConf.createDefaultEdgeProperty()))
+            Edge.create(mapVertex3, checkerVertex, edgeConf.createDefaultEdgeProperty()))
         .addEdge(
-            new GroupInputEdge(unionVertex, checkerVertex, edgeConf.createDefaultEdgeProperty(),
-                new InputDescriptor(
+            GroupInputEdge.create(unionVertex, checkerVertex, edgeConf.createDefaultEdgeProperty(),
+                InputDescriptor.create(
                     ConcatenatedMergedKeyValuesInput.class.getName())));
     return dag;  
   }
@@ -251,7 +251,7 @@ public class UnionExample {
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
     
-    TezClient tezSession = new TezClient("UnionExampleSession", tezConf);
+    TezClient tezSession = TezClient.create("UnionExampleSession", tezConf);
     tezSession.start();
 
     DAGClient dagClient = null;

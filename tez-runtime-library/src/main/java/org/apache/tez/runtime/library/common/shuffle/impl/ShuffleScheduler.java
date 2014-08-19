@@ -291,10 +291,10 @@ class ShuffleScheduler {
               inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
               srcAttempt.getAttemptNumber()) + " to AM.");
       List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
-      failedEvents.add(new InputReadErrorEvent("Fetch failure for "
+      failedEvents.add(InputReadErrorEvent.create("Fetch failure for "
           + TezRuntimeUtils.getTaskAttemptIdentifier(
-              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
-              srcAttempt.getAttemptNumber()) + " to jobtracker.", srcAttempt.getInputIdentifier()
+          inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
+          srcAttempt.getAttemptNumber()) + " to jobtracker.", srcAttempt.getInputIdentifier()
           .getInputIndex(), srcAttempt.getAttemptNumber()));
 
       inputContext.sendEvents(failedEvents);      

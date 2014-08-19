@@ -59,12 +59,12 @@ public class TestInputReadyVertexManager {
     HashMap<String, EdgeProperty> mockInputVertices = 
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
-    EdgeProperty eProp1 = new EdgeProperty(
+    EdgeProperty eProp1 = EdgeProperty.create(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED,
-        SchedulingType.SEQUENTIAL, 
-        new OutputDescriptor("out"),
-        new InputDescriptor("in"));
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
     
     String mockManagedVertexId = "Vertex";
     
@@ -93,12 +93,12 @@ public class TestInputReadyVertexManager {
     HashMap<String, EdgeProperty> mockInputVertices = 
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
-    EdgeProperty eProp1 = new EdgeProperty(
+    EdgeProperty eProp1 = EdgeProperty.create(
         EdgeProperty.DataMovementType.ONE_TO_ONE,
         EdgeProperty.DataSourceType.PERSISTED,
-        SchedulingType.SEQUENTIAL, 
-        new OutputDescriptor("out"),
-        new InputDescriptor("in"));
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
     
     String mockManagedVertexId = "Vertex";
     Container mockContainer1 = mock(Container.class);
@@ -148,26 +148,26 @@ public class TestInputReadyVertexManager {
     HashMap<String, EdgeProperty> mockInputVertices = 
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
-    EdgeProperty eProp1 = new EdgeProperty(
+    EdgeProperty eProp1 = EdgeProperty.create(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED,
-        SchedulingType.SEQUENTIAL, 
-        new OutputDescriptor("out"),
-        new InputDescriptor("in"));
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
     String mockSrcVertexId2 = "Vertex2";
-    EdgeProperty eProp2 = new EdgeProperty(
+    EdgeProperty eProp2 = EdgeProperty.create(
         EdgeProperty.DataMovementType.ONE_TO_ONE,
         EdgeProperty.DataSourceType.PERSISTED,
-        SchedulingType.SEQUENTIAL, 
-        new OutputDescriptor("out"),
-        new InputDescriptor("in"));
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
     String mockSrcVertexId3 = "Vertex3";
-    EdgeProperty eProp3 = new EdgeProperty(
+    EdgeProperty eProp3 = EdgeProperty.create(
         EdgeProperty.DataMovementType.ONE_TO_ONE,
-        EdgeProperty.DataSourceType.PERSISTED, 
-        SchedulingType.SEQUENTIAL, 
-        new OutputDescriptor("out"),
-        new InputDescriptor("in"));
+        EdgeProperty.DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
     
     String mockManagedVertexId = "Vertex";
     Container mockContainer2 = mock(Container.class);

@@ -144,7 +144,7 @@ public class TestTezClient {
     }
     
     DAG dag = new DAG("DAG").addVertex(
-        new Vertex("Vertex", new ProcessorDescriptor("P"), 1, Resource.newInstance(1, 1)));
+        Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1, Resource.newInstance(1, 1)));
     DAGClient dagClient = client.submitDAG(dag);
     
     Assert.assertTrue(dagClient.getExecutionContext().contains(client.mockAppId.toString()));
@@ -178,7 +178,7 @@ public class TestTezClient {
         .thenReturn(appId2);
     
     dag = new DAG("DAG").addVertex(
-        new Vertex("Vertex", new ProcessorDescriptor("P"), 1, Resource.newInstance(1, 1)));
+        Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1, Resource.newInstance(1, 1)));
     dagClient = client.submitDAG(dag);
     
     if (isSession) {
@@ -227,7 +227,7 @@ public class TestTezClient {
 
     configure(client);
     client.start();
-    PreWarmVertex vertex = new PreWarmVertex("PreWarm", 1, Resource.newInstance(1, 1));
+    PreWarmVertex vertex = PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
     client.preWarm(vertex);
     
     ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);

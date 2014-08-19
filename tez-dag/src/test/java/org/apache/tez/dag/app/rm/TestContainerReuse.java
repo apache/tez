@@ -1109,11 +1109,11 @@ public class TestContainerReuse {
     }
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
       taID, capability, new TaskSpec(taID, "dagName", "vertexName",
-      new ProcessorDescriptor("processorClassName"),
+        ProcessorDescriptor.create("processorClassName"),
       Collections.singletonList(new InputSpec("vertexName",
-        new InputDescriptor("inputClassName"), 1)),
+          InputDescriptor.create("inputClassName"), 1)),
       Collections.singletonList(new OutputSpec("vertexName",
-        new OutputDescriptor("outputClassName"), 1)), null), ta, locationHint,
+          OutputDescriptor.create("outputClassName"), 1)), null), ta, locationHint,
       priority, containerContext);
     return lr;
   }

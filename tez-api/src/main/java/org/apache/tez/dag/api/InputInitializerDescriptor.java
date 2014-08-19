@@ -33,7 +33,11 @@ public class InputInitializerDescriptor extends EntityDescriptor<InputInitialize
     super();
   }
 
-  public InputInitializerDescriptor(String initializerClassName) {
+  private InputInitializerDescriptor(String initializerClassName) {
     super(initializerClassName);
+  }
+
+  public static InputInitializerDescriptor create(String initializerClassName) {
+    return new InputInitializerDescriptor(initializerClassName);
   }
 }

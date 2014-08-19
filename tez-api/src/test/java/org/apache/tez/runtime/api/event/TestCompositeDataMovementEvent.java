@@ -30,7 +30,7 @@ public class TestCompositeDataMovementEvent {
     int numPartitions = 2;
     int startIndex = 2;
     CompositeDataMovementEvent cdme1 =
-        new CompositeDataMovementEvent(startIndex, numPartitions, userPayload);
+        CompositeDataMovementEvent.create(startIndex, numPartitions, userPayload);
     Assert.assertEquals(numPartitions, cdme1.getCount());
     Assert.assertEquals(startIndex, cdme1.getSourceIndexStart());
   }
@@ -40,7 +40,7 @@ public class TestCompositeDataMovementEvent {
     int numOutputs = 0;
     int startIndex = 1;
     CompositeDataMovementEvent cdme2 =
-        new CompositeDataMovementEvent(startIndex, numOutputs, userPayload);
+        CompositeDataMovementEvent.create(startIndex, numOutputs, userPayload);
     for(DataMovementEvent dme: cdme2.getEvents()){
       numOutputs++;
     }

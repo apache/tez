@@ -246,11 +246,11 @@ public class MRInput extends MRInputBase {
       if (getCredentialsForSourceFilesystem && inputSplitInfo.getCredentials() != null) {
         credentials = inputSplitInfo.getCredentials();
       }
-      return new DataSourceDescriptor(
-          new InputDescriptor(inputClassName).setUserPayload(payload),
-          new InputInitializerDescriptor(MRInputSplitDistributor.class.getName()),
-          inputSplitInfo.getNumTasks(), credentials, 
-          new VertexLocationHint(inputSplitInfo.getTaskLocationHints()), null);
+      return DataSourceDescriptor.create(
+          InputDescriptor.create(inputClassName).setUserPayload(payload),
+          InputInitializerDescriptor.create(MRInputSplitDistributor.class.getName()),
+          inputSplitInfo.getNumTasks(), credentials,
+          VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()), null);
     }
 
     private DataSourceDescriptor createCustomDataSource() throws IOException {
@@ -267,8 +267,9 @@ public class MRInput extends MRInputBase {
         payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
 
-      return new DataSourceDescriptor(new InputDescriptor(inputClassName).setUserPayload(payload),
-          customInitializerDescriptor, credentials);
+      return DataSourceDescriptor
+          .create(InputDescriptor.create(inputClassName).setUserPayload(payload),
+              customInitializerDescriptor, credentials);
     }
 
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
@@ -283,9 +284,9 @@ public class MRInput extends MRInputBase {
       } else {
         payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
-      return new DataSourceDescriptor(
-          new InputDescriptor(inputClassName).setUserPayload(payload),
-          new InputInitializerDescriptor(MRInputAMSplitGenerator.class.getName()), credentials);
+      return DataSourceDescriptor.create(
+          InputDescriptor.create(inputClassName).setUserPayload(payload),
+          InputInitializerDescriptor.create(MRInputAMSplitGenerator.class.getName()), credentials);
     }
 
     private void setupBasicConf(Configuration inputConf) {

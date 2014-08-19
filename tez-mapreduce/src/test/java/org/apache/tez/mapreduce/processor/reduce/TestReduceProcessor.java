@@ -132,14 +132,14 @@ public class TestReduceProcessor {
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
-        new InputDescriptor(MRInputLegacy.class.getName())
-            .setUserPayload(new UserPayload(ByteBuffer.wrap(
+        InputDescriptor.create(MRInputLegacy.class.getName())
+            .setUserPayload(UserPayload.create(ByteBuffer.wrap(
                 MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
                     .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
                     .toByteArray()))),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
-        new OutputDescriptor(LocalOnFileSorterOutput.class.getName()).
+        OutputDescriptor.create(LocalOnFileSorterOutput.class.getName()).
           setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
     // Run a map
     LogicalIOProcessorRuntimeTask mapTask = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
@@ -159,15 +159,15 @@ public class TestReduceProcessor {
     jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     FileOutputFormat.setOutputPath(jobConf, new Path(workDir, "output"));
-    ProcessorDescriptor reduceProcessorDesc = new ProcessorDescriptor(
+    ProcessorDescriptor reduceProcessorDesc = ProcessorDescriptor.create(
         ReduceProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(jobConf));
     
     InputSpec reduceInputSpec = new InputSpec(mapVertexName,
-        new InputDescriptor(LocalMergedInput.class.getName())
+        InputDescriptor.create(LocalMergedInput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
     OutputSpec reduceOutputSpec = new OutputSpec("NullDestinationVertex",
-        new OutputDescriptor(MROutputLegacy.class.getName())
+        OutputDescriptor.create(MROutputLegacy.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
     // Now run a reduce

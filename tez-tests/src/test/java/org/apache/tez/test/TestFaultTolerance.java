@@ -89,7 +89,7 @@ public class TestFaultTolerance {
           remoteStagingDir.toString());
       tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
 
-      tezSession = new TezClient("TestFaultTolerance", tezConf, true);
+      tezSession = TezClient.create("TestFaultTolerance", tezConf, true);
       tezSession.start();
     }
   }
@@ -135,13 +135,15 @@ public class TestFaultTolerance {
   @Test (timeout=60000)
   public void testBasicSuccessBroadcast() throws Exception {
     DAG dag = new DAG("testBasicSuccessBroadcast");
-    Vertex v1 = new Vertex("v1", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
-    Vertex v2 = new Vertex("v2", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.BROADCAST, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            TestOutput.getOutputDesc(null), 
+    Vertex v1 =
+        Vertex.create("v1", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
+    Vertex v2 =
+        Vertex.create("v2", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
+    dag.addVertex(v1).addVertex(v2).addEdge(Edge.create(v1, v2,
+        EdgeProperty.create(DataMovementType.BROADCAST,
+            DataSourceType.PERSISTED,
+            SchedulingType.SEQUENTIAL,
+            TestOutput.getOutputDesc(null),
             TestInput.getInputDesc(null))));
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }

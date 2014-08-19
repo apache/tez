@@ -142,21 +142,21 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       }
     }
     byte[] procByte = {(byte) (doLocalityCheck ? 1 : 0), 1};
-    UserPayload procPayload = new UserPayload(ByteBuffer.wrap(procByte));
+    UserPayload procPayload = UserPayload.create(ByteBuffer.wrap(procByte));
 
     System.out.println("Using " + numOneToOneTasks + " 1-1 tasks");
 
-    Vertex broadcastVertex = new Vertex("Broadcast", new ProcessorDescriptor(
+    Vertex broadcastVertex = Vertex.create("Broadcast", ProcessorDescriptor.create(
         InputProcessor.class.getName()), numBroadcastTasks);
     
-    Vertex inputVertex = new Vertex("Input", new ProcessorDescriptor(
+    Vertex inputVertex = Vertex.create("Input", ProcessorDescriptor.create(
         InputProcessor.class.getName()).setUserPayload(procPayload), numOneToOneTasks);
 
-    Vertex oneToOneVertex = new Vertex("OneToOne",
-        new ProcessorDescriptor(
+    Vertex oneToOneVertex = Vertex.create("OneToOne",
+        ProcessorDescriptor.create(
             OneToOneProcessor.class.getName()).setUserPayload(procPayload));
     oneToOneVertex.setVertexManagerPlugin(
-            new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName()));
+        VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName()));
 
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
@@ -166,9 +166,9 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
         .addVertex(broadcastVertex)
         .addVertex(oneToOneVertex)
         .addEdge(
-            new Edge(inputVertex, oneToOneVertex, edgeConf.createDefaultOneToOneEdgeProperty()))
+            Edge.create(inputVertex, oneToOneVertex, edgeConf.createDefaultOneToOneEdgeProperty()))
         .addEdge(
-            new Edge(broadcastVertex, oneToOneVertex,
+            Edge.create(broadcastVertex, oneToOneVertex,
                 edgeConf.createDefaultBroadcastEdgeProperty()));
     return dag;
   }
@@ -202,7 +202,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     // is the same filesystem as the one used for Input/Output.
     TezClient tezSession = null;
     // needs session or else TaskScheduler does not hold onto containers
-    tezSession = new TezClient("broadcastAndOneToOneExample", tezConf);
+    tezSession = TezClient.create("broadcastAndOneToOneExample", tezConf);
     tezSession.start();
 
     DAGClient dagClient = null;

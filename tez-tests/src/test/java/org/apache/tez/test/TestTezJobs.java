@@ -189,7 +189,7 @@ public class TestTezJobs {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
     TezClient tezSession = null;
     try {
-      tezSession = new TezClient("IntersectExampleSession", tezConf);
+      tezSession = TezClient.create("IntersectExampleSession", tezConf);
       tezSession.start();
 
       IntersectDataGen dataGen = new IntersectDataGen();
@@ -391,7 +391,7 @@ public class TestTezJobs {
   @Test (timeout=60000)
   public void testVertexOrder() throws Exception {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
-    TezClient tezClient = new TezClient("TestVertexOrder", tezConf);
+    TezClient tezClient = TezClient.create("TestVertexOrder", tezConf);
     tezClient.start();
 
     try {

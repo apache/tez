@@ -26,8 +26,11 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 @Public
 public class EdgeManagerPluginDescriptor extends EntityDescriptor<EdgeManagerPluginDescriptor> {
 
-  public EdgeManagerPluginDescriptor(String edgeManagerPluginClassName) {
+  private EdgeManagerPluginDescriptor(String edgeManagerPluginClassName) {
     super(edgeManagerPluginClassName);
   }
 
+  public static EdgeManagerPluginDescriptor create(String edgeManagerPluginClassName) {
+    return new EdgeManagerPluginDescriptor(edgeManagerPluginClassName);
+  }
 }

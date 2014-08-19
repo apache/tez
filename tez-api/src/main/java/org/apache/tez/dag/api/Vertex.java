@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -68,71 +69,20 @@ public class Vertex {
   
   private String taskLaunchCmdOpts = "";
 
-  /**
-   * Create a new vertex with the given name.
-   * 
-   * @param vertexName
-   *          Name of the vertex
-   * @param processorDescriptor
-   *          Description of the processor that is executed in every task of
-   *          this vertex
-   * @param parallelism
-   *          Number of tasks in this vertex. Set to -1 if this is going to be
-   *          decided at runtime. Parallelism may change at runtime due to graph
-   *          reconfigurations.
-   * @param taskResource
-   *          Physical resources like memory/cpu thats used by each task of this
-   *          vertex.
-   */
-  public Vertex(String vertexName,
-      ProcessorDescriptor processorDescriptor,
-      int parallelism,
-      Resource taskResource) {
+  @InterfaceAudience.Private
+  Vertex(String vertexName,
+         ProcessorDescriptor processorDescriptor,
+         int parallelism,
+         Resource taskResource) {
     this(vertexName, processorDescriptor, parallelism, taskResource, false);
   }
-  
-  /**
-   * Create a new vertex with the given name and parallelism. <br>
-   * The vertex task resource will be picked from configuration
-   * {@link TezConfiguration#TEZ_TASK_RESOURCE_MEMORY_MB} &
-   * {@link TezConfiguration#TEZ_TASK_RESOURCE_CPU_VCORES} Applications that
-   * want more control over their task resource specification may create their
-   * own logic to determine task resources and use
-   * {@link Vertex#Vertex(String, ProcessorDescriptor, int, Resource)} to create
-   * the Vertex.
-   * 
-   * @param vertexName
-   *          Name of the vertex
-   * @param processorDescriptor
-   *          Description of the processor that is executed in every task of
-   *          this vertex
-   * @param parallelism
-   *          Number of tasks in this vertex. Set to -1 if this is going to be
-   *          decided at runtime. Parallelism may change at runtime due to graph
-   *          reconfigurations.
-   */
-  public Vertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism) {
+
+  private Vertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism) {
     this(vertexName, processorDescriptor, parallelism, null, true);
   }
   
-  /**
-   * Create a new vertex with the given name. <br>
-   * The vertex task resource will be picked from configuration <br>
-   * The vertex parallelism will be inferred. If it cannot be inferred then an
-   * error will be reported. This constructor may be used for vertices that have
-   * data sources, or connected via 1-1 edges or have runtime parallelism
-   * estimation via data source initializers or vertex managers. Calling this
-   * constructor is equivalent to calling
-   * {@link Vertex#Vertex(String, ProcessorDescriptor, int)} with the
-   * parallelism set to -1.
-   * 
-   * @param vertexName
-   *          Name of the vertex
-   * @param processorDescriptor
-   *          Description of the processor that is executed in every task of
-   *          this vertex
-   */
-  public Vertex(String vertexName, ProcessorDescriptor processorDescriptor) {
+
+  private Vertex(String vertexName, ProcessorDescriptor processorDescriptor) {
     this(vertexName, processorDescriptor, -1);
   }
   
@@ -153,7 +103,77 @@ public class Vertex {
     if (!allowIncomplete && taskResource == null) {
       throw new IllegalArgumentException("Resource cannot be null");
     }
-  }  
+  }
+
+  /**
+   * Create a new vertex with the given name.
+   *
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Description of the processor that is executed in every task of
+   *          this vertex
+   * @param parallelism
+   *          Number of tasks in this vertex. Set to -1 if this is going to be
+   *          decided at runtime. Parallelism may change at runtime due to graph
+   *          reconfigurations.
+   * @param taskResource
+   *          Physical resources like memory/cpu thats used by each task of this
+   *          vertex.
+   */
+  public static Vertex create(String vertexName,
+                              ProcessorDescriptor processorDescriptor,
+                              int parallelism,
+                              Resource taskResource) {
+    return new Vertex(vertexName, processorDescriptor, parallelism, taskResource);
+  }
+
+  /**
+   * Create a new vertex with the given name. <br>
+   * The vertex task resource will be picked from configuration <br>
+   * The vertex parallelism will be inferred. If it cannot be inferred then an
+   * error will be reported. This constructor may be used for vertices that have
+   * data sources, or connected via 1-1 edges or have runtime parallelism
+   * estimation via data source initializers or vertex managers. Calling this
+   * constructor is equivalent to calling
+   * {@link Vertex#Vertex(String, ProcessorDescriptor, int)} with the
+   * parallelism set to -1.
+   *
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Description of the processor that is executed in every task of
+   *          this vertex
+   */
+  public static Vertex create(String vertexName, ProcessorDescriptor processorDescriptor) {
+    return new Vertex(vertexName, processorDescriptor);
+  }
+
+  /**
+   * Create a new vertex with the given name and parallelism. <br>
+   * The vertex task resource will be picked from configuration
+   * {@link TezConfiguration#TEZ_TASK_RESOURCE_MEMORY_MB} &
+   * {@link TezConfiguration#TEZ_TASK_RESOURCE_CPU_VCORES} Applications that
+   * want more control over their task resource specification may create their
+   * own logic to determine task resources and use
+   * {@link Vertex#Vertex(String, ProcessorDescriptor, int, Resource)} to create
+   * the Vertex.
+   *
+   * @param vertexName
+   *          Name of the vertex
+   * @param processorDescriptor
+   *          Description of the processor that is executed in every task of
+   *          this vertex
+   * @param parallelism
+   *          Number of tasks in this vertex. Set to -1 if this is going to be
+   *          decided at runtime. Parallelism may change at runtime due to graph
+   *          reconfigurations.
+   */
+  public static Vertex create(String vertexName, ProcessorDescriptor processorDescriptor,
+                              int parallelism) {
+    return new Vertex(vertexName, processorDescriptor, parallelism);
+  }
+
 
   /**
    * Get the vertex name

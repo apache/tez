@@ -280,7 +280,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
 
     public UserPayload toUserPayload() {
-      return new UserPayload(
+      return UserPayload.create(
           ByteBuffer.wrap(ShuffleEdgeManagerConfigPayloadProto.newBuilder()
               .setNumSourceTaskOutputs(numSourceTaskOutputs)
               .setNumDestinationTasks(numDestinationTasks)
@@ -441,7 +441,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
                 ((remainderRangeForLastShuffler > 0) ?
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerPluginDescriptor edgeManagerDescriptor =
-            new EdgeManagerPluginDescriptor(CustomShuffleEdgeManager.class.getName());
+            EdgeManagerPluginDescriptor.create(CustomShuffleEdgeManager.class.getName());
         edgeManagerDescriptor.setUserPayload(edgeManagerConfig.toUserPayload());
         edgeManagers.put(vertex, edgeManagerDescriptor);
       }
@@ -660,7 +660,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
     public VertexManagerPluginDescriptor build() {
       VertexManagerPluginDescriptor desc =
-          new VertexManagerPluginDescriptor(ShuffleVertexManager.class.getName());
+          VertexManagerPluginDescriptor.create(ShuffleVertexManager.class.getName());
 
       try {
         return desc.setUserPayload(TezUtils.createUserPayloadFromConf(this.conf));

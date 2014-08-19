@@ -50,7 +50,7 @@ import org.apache.tez.test.TestProcessor;
 public class TwoLevelsFailingDAG {
     static Resource defaultResource = Resource.newInstance(100, 0);
     protected static DAG dag;
-    protected static UserPayload payload = new UserPayload(null);
+    protected static UserPayload payload = UserPayload.create(null);
     protected static Vertex l1v1, l1v2, l1v3, l1v4;
     protected static Vertex l2v1, l2v2, l2v3, l2v4;
 
@@ -65,17 +65,17 @@ public class TwoLevelsFailingDAG {
     }
     
     protected static void addDAGVerticesAndEdges() {
-        l1v1 = new Vertex("l1v1", TestProcessor.getProcDesc(payload), 1, defaultResource);
-        l2v1 = new Vertex("l2v1", TestProcessor.getProcDesc(payload), 1, defaultResource);
+        l1v1 = Vertex.create("l1v1", TestProcessor.getProcDesc(payload), 1, defaultResource);
+        l2v1 = Vertex.create("l2v1", TestProcessor.getProcDesc(payload), 1, defaultResource);
         addVerticesAndEdgeInternal(l1v1, l2v1, DataMovementType.SCATTER_GATHER);
-        l1v2 = new Vertex("l1v2", TestProcessor.getProcDesc(payload), 2, defaultResource);
-        l2v2 = new Vertex("l2v2", TestProcessor.getProcDesc(payload), 3, defaultResource);
+        l1v2 = Vertex.create("l1v2", TestProcessor.getProcDesc(payload), 2, defaultResource);
+        l2v2 = Vertex.create("l2v2", TestProcessor.getProcDesc(payload), 3, defaultResource);
         addVerticesAndEdgeInternal(l1v2, l2v2, DataMovementType.SCATTER_GATHER);
-        l1v3 = new Vertex("l1v3", TestProcessor.getProcDesc(payload), 3, defaultResource);
-        l2v3 = new Vertex("l2v3", TestProcessor.getProcDesc(payload), 2, defaultResource);
+        l1v3 = Vertex.create("l1v3", TestProcessor.getProcDesc(payload), 3, defaultResource);
+        l2v3 = Vertex.create("l2v3", TestProcessor.getProcDesc(payload), 2, defaultResource);
         addVerticesAndEdgeInternal(l1v3, l2v3, DataMovementType.SCATTER_GATHER);
-        l1v4 = new Vertex("l1v4", TestProcessor.getProcDesc(payload), 2, defaultResource);
-        l2v4 = new Vertex("l2v4", TestProcessor.getProcDesc(payload), 3, defaultResource);
+        l1v4 = Vertex.create("l1v4", TestProcessor.getProcDesc(payload), 2, defaultResource);
+        l2v4 = Vertex.create("l2v4", TestProcessor.getProcDesc(payload), 3, defaultResource);
         addVerticesAndEdgeInternal(l1v4, l2v4, DataMovementType.BROADCAST);
     }
     
@@ -99,11 +99,11 @@ public class TwoLevelsFailingDAG {
      * @param dataMovementType Data movement type
      */
     protected static void addEdge(Vertex v1, Vertex v2, DataMovementType dataMovementType) {
-        dag.addEdge(new Edge(v1, v2, 
-            new EdgeProperty(dataMovementType, 
-                DataSourceType.PERSISTED, 
-                SchedulingType.SEQUENTIAL, 
-                TestOutput.getOutputDesc(payload), 
+        dag.addEdge(Edge.create(v1, v2,
+            EdgeProperty.create(dataMovementType,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
                 TestInput.getInputDesc(payload))));
     }
     

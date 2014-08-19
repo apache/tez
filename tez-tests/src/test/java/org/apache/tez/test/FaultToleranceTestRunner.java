@@ -65,7 +65,7 @@ public class FaultToleranceTestRunner {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
 
-    tezSession = new TezClient("FaultToleranceTestRunner", tezConf);
+    tezSession = TezClient.create("FaultToleranceTestRunner", tezConf);
     tezSession.start();
   }
   

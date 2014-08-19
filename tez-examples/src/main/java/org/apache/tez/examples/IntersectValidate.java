@@ -125,7 +125,7 @@ public class IntersectValidate extends Configured implements Tool {
   }
   
   private TezClient createTezSession(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezSession = new TezClient("IntersectValidateSession", tezConf);
+    TezClient tezSession = TezClient.create("IntersectValidateSession", tezConf);
     tezSession.start();
     return tezSession;
   }
@@ -188,23 +188,23 @@ public class IntersectValidate extends Configured implements Tool {
         .newBuilder(Text.class.getName(), NullWritable.class.getName(),
             HashPartitioner.class.getName()).build();
 
-    Vertex lhsVertex = new Vertex(LHS_INPUT_NAME, new ProcessorDescriptor(
+    Vertex lhsVertex = Vertex.create(LHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("lhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 lhs.toUri().toString()).groupSplits(false).build());
 
-    Vertex rhsVertex = new Vertex(RHS_INPUT_NAME, new ProcessorDescriptor(
+    Vertex rhsVertex = Vertex.create(RHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 rhs.toUri().toString()).groupSplits(false).build());
 
-    Vertex intersectValidateVertex = new Vertex("intersectvalidate", new ProcessorDescriptor(
+    Vertex intersectValidateVertex = Vertex.create("intersectvalidate", ProcessorDescriptor.create(
         IntersectValidateProcessor.class.getName()), numPartitions);
 
-    Edge e1 = new Edge(lhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
-    Edge e2 = new Edge(rhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e1 = Edge.create(lhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e2 = Edge.create(rhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
 
     dag.addVertex(lhsVertex).addVertex(rhsVertex).addVertex(intersectValidateVertex).addEdge(e1)
         .addEdge(e2);

@@ -253,7 +253,7 @@ public class DAG {
     Vertex dstVertex = edge.getOutputVertex();
     VertexGroup uv = edge.getInputVertexGroup();
     for (Vertex member : uv.getMembers()) {
-      newEdges.add(new Edge(member, dstVertex, edge.getEdgeProperty()));
+      newEdges.add(Edge.create(member, dstVertex, edge.getEdgeProperty()));
     }
     dstVertex.addGroupInput(uv.getGroupName(), uv.getGroupInfo());
     

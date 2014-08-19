@@ -196,7 +196,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       dsd = MRInputLegacy.createConfigBuilder(mapStageConf, TextInputFormat.class, inputPath).build();
     }
 
-    Vertex mapVertex = new Vertex("initialmap", new ProcessorDescriptor(
+    Vertex mapVertex = Vertex.create("initialmap", ProcessorDescriptor.create(
         MapProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(mapStageConf))
         .setHistoryText(mapStageHistoryText)).setTaskLocalFiles(commonLocalResources);
@@ -206,10 +206,10 @@ public class TestOrderedWordCount extends Configured implements Tool {
     ByteArrayOutputStream iROutputStream = new ByteArrayOutputStream(4096);
     iReduceStageConf.writeXml(iROutputStream);
     String iReduceStageHistoryText = new String(iROutputStream.toByteArray(), "UTF-8");
-    Vertex ivertex = new Vertex("intermediate_reducer", new ProcessorDescriptor(
+    Vertex ivertex = Vertex.create("intermediate_reducer", ProcessorDescriptor.create(
         ReduceProcessor.class.getName())
-            .setUserPayload(TezUtils.createUserPayloadFromConf(iReduceStageConf))
-            .setHistoryText(iReduceStageHistoryText), 2);
+        .setUserPayload(TezUtils.createUserPayloadFromConf(iReduceStageConf))
+        .setHistoryText(iReduceStageHistoryText), 2);
     ivertex.setTaskLocalFiles(commonLocalResources);
     vertices.add(ivertex);
 
@@ -217,11 +217,11 @@ public class TestOrderedWordCount extends Configured implements Tool {
     finalReduceConf.writeXml(finalReduceOutputStream);
     String finalReduceStageHistoryText = new String(finalReduceOutputStream.toByteArray(), "UTF-8");
     UserPayload finalReducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
-    Vertex finalReduceVertex = new Vertex("finalreduce",
-        new ProcessorDescriptor(
+    Vertex finalReduceVertex = Vertex.create("finalreduce",
+        ProcessorDescriptor.create(
             ReduceProcessor.class.getName())
-                .setUserPayload(finalReducePayload)
-                .setHistoryText(finalReduceStageHistoryText), 1);
+            .setUserPayload(finalReducePayload)
+            .setHistoryText(finalReduceStageHistoryText), 1);
     finalReduceVertex.setTaskLocalFiles(commonLocalResources);
     finalReduceVertex.addDataSink("MROutput",
         MROutputLegacy.createConfigBuilder(finalReduceConf, TextOutputFormat.class, outputPath)
@@ -238,7 +238,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             HashPartitioner.class.getName()).setFromConfiguration(conf)
 	    .configureInput().useLegacyInput().done().build();
     dag.addEdge(
-        new Edge(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
+        Edge.create(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
             edgeConf1.createDefaultEdgeProperty()));
 
     OrderedPartitionedKVEdgeConfig edgeConf2 = OrderedPartitionedKVEdgeConfig
@@ -246,7 +246,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             HashPartitioner.class.getName()).setFromConfiguration(conf)
             .configureInput().useLegacyInput().done().build();
     dag.addEdge(
-        new Edge(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
+        Edge.create(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
             edgeConf2.createDefaultEdgeProperty()));
 
     return dag;
@@ -330,7 +330,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     } else {
       tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, false);
     }
-    TezClient tezSession = new TezClient("OrderedWordCountSession", tezConf,
+    TezClient tezSession = TezClient.create("OrderedWordCountSession", tezConf,
         null, instance.credentials);
     tezSession.start();
 
@@ -384,7 +384,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         }
         if (doPreWarm) {
           LOG.info("Pre-warming Session");
-          PreWarmVertex preWarmVertex = new PreWarmVertex("PreWarm", preWarmNumContainers, dag
+          PreWarmVertex preWarmVertex = PreWarmVertex.create("PreWarm", preWarmNumContainers, dag
               .getVertex("initialmap").getTaskResource());
           preWarmVertex.setTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
           preWarmVertex.setTaskEnvironment(dag.getVertex("initialmap").getTaskEnvironment());

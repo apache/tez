@@ -111,7 +111,7 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event = new InputDataInformationEvent(0, splitProto.toByteArray());
+    InputDataInformationEvent event = InputDataInformationEvent.create(0, splitProto.toByteArray());
 
     eventList.clear();
     eventList.add(event);
@@ -170,10 +170,12 @@ public class TestMultiMRInput {
     assertEquals(2, splits.length);
 
     MRSplitProto splitProto1 = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event1 = new InputDataInformationEvent(0, splitProto1.toByteArray());
+    InputDataInformationEvent event1 =
+        InputDataInformationEvent.create(0, splitProto1.toByteArray());
 
     MRSplitProto splitProto2 = MRInputHelpers.createSplitProto(splits[1]);
-    InputDataInformationEvent event2 = new InputDataInformationEvent(0, splitProto2.toByteArray());
+    InputDataInformationEvent event2 =
+        InputDataInformationEvent.create(0, splitProto2.toByteArray());
 
     eventList.clear();
     eventList.add(event1);
@@ -221,8 +223,10 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event1 = new InputDataInformationEvent(0, splitProto.toByteArray());
-    InputDataInformationEvent event2 = new InputDataInformationEvent(1, splitProto.toByteArray());
+    InputDataInformationEvent event1 =
+        InputDataInformationEvent.create(0, splitProto.toByteArray());
+    InputDataInformationEvent event2 =
+        InputDataInformationEvent.create(1, splitProto.toByteArray());
 
     eventList.clear();
     eventList.add(event1);
@@ -251,7 +255,7 @@ public class TestMultiMRInput {
     doReturn(1).when(inputContext).getTaskIndex();
     doReturn(1).when(inputContext).getTaskVertexIndex();
     doReturn("taskVertexName").when(inputContext).getTaskVertexName();
-    doReturn(new UserPayload(ByteBuffer.wrap(payload))).when(inputContext).getUserPayload();
+    doReturn(UserPayload.create(ByteBuffer.wrap(payload))).when(inputContext).getUserPayload();
     return inputContext;
   }
 

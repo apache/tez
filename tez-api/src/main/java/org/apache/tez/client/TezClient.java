@@ -105,26 +105,55 @@ public class TezClient {
   
   private int preWarmDAGCounter = 0;
 
+
+  private TezClient(String name, TezConfiguration tezConf) {
+    this(name, tezConf, tezConf.getBoolean(
+        TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT));    
+  }
+
+  @Private
+  TezClient(String name, TezConfiguration tezConf,
+            @Nullable Map<String, LocalResource> localResources,
+            @Nullable Credentials credentials) {
+    this(name, tezConf, tezConf.getBoolean(
+        TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT),
+        localResources, credentials);
+  }
+
+  private TezClient(String name, TezConfiguration tezConf, boolean isSession) {
+    this(name, tezConf, isSession, null, null);
+  }
+
+  @Private
+  TezClient(String name, TezConfiguration tezConf, boolean isSession,
+            @Nullable Map<String, LocalResource> localResources,
+            @Nullable Credentials credentials) {
+    this.clientName = name;
+    this.isSession = isSession;
+    // Set in conf for local mode AM to figure out whether in session mode or not
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
+    this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
+  }
+
   /**
    * Create a new TezClient. Session or non-session execution mode will be
-   * inferred from configuration. 
+   * inferred from configuration.
    * @param name
    *          Name of the client. Used for logging etc. This will also be used
    *          as app master name is session mode
    * @param tezConf
    *          Configuration for the framework
    */
-  public TezClient(String name, TezConfiguration tezConf) {
-    this(name, tezConf, tezConf.getBoolean(
-        TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT));    
+  public static TezClient create(String name, TezConfiguration tezConf) {
+    return new TezClient(name, tezConf);
   }
-  
+
   /**
    * Create a new TezClient. Session or non-session execution mode will be
    * inferred from configuration. Set the initial resources and security
    * credentials for the App Master. If app master resources/credentials are
-   * needed then this is the recommended constructor for session mode execution.
-   * 
+   * needed then this is the recommended method for session mode execution.
+   *
    * @param name
    *          Name of the client. Used for logging etc. This will also be used
    *          as app master name is session mode
@@ -144,14 +173,12 @@ public class TezClient {
    *          In session mode, credentials, if needed, must be set before
    *          calling start()
    */
-  public TezClient(String name, TezConfiguration tezConf,
-      @Nullable Map<String, LocalResource> localResources,
-      @Nullable Credentials credentials) {
-    this(name, tezConf, tezConf.getBoolean(
-        TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT),
-        localResources, credentials);
+  public static TezClient create(String name, TezConfiguration tezConf,
+                                 @Nullable Map<String, LocalResource> localResources,
+                                 @Nullable Credentials credentials) {
+    return new TezClient(name, tezConf, localResources, credentials);
   }
-  
+
   /**
    * Create a new TezClient with AM session mode set explicitly. This overrides
    * the setting from configuration.
@@ -161,8 +188,8 @@ public class TezClient {
    * @param tezConf Configuration for the framework
    * @param isSession The AM will run in session mode or not
    */
-  public TezClient(String name, TezConfiguration tezConf, boolean isSession) {
-    this(name, tezConf, isSession, null, null);
+  public static TezClient create(String name, TezConfiguration tezConf, boolean isSession) {
+    return new TezClient(name, tezConf, isSession);
   }
 
   /**
@@ -177,16 +204,12 @@ public class TezClient {
    * @param localResources resources for the App Master
    * @param credentials credentials for the App Master
    */
-  public TezClient(String name, TezConfiguration tezConf, boolean isSession,
-      @Nullable Map<String, LocalResource> localResources,
-      @Nullable Credentials credentials) {
-    this.clientName = name;
-    this.isSession = isSession;
-    // Set in conf for local mode AM to figure out whether in session mode or not
-    tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
-    this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
+  public static TezClient create(String name, TezConfiguration tezConf, boolean isSession,
+                                 @Nullable Map<String, LocalResource> localResources,
+                                 @Nullable Credentials credentials) {
+    return new TezClient(name, tezConf, isSession, localResources, credentials);
   }
-  
+
   /**
    * Add local resources for the DAG App Master. <br>
    * <p>

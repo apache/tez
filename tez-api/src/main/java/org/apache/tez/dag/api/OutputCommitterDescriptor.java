@@ -33,7 +33,11 @@ public class OutputCommitterDescriptor extends EntityDescriptor<OutputCommitterD
     super();
   }
 
-  public OutputCommitterDescriptor(String committerClassName) {
+  private OutputCommitterDescriptor(String committerClassName) {
     super(committerClassName);
+  }
+
+  public static OutputCommitterDescriptor create(String committerClassName) {
+    return new OutputCommitterDescriptor(committerClassName);
   }
 }

@@ -199,7 +199,7 @@ public class MapUtils {
       List<OutputSpec> outputSpecs) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
 
-    ProcessorDescriptor mapProcessorDesc = new ProcessorDescriptor(
+    ProcessorDescriptor mapProcessorDesc = ProcessorDescriptor.create(
         MapProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(jobConf));
     

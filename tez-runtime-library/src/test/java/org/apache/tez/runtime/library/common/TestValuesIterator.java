@@ -382,7 +382,7 @@ public class TestValuesIterator {
     doReturn(1).when(inputContext).getInputIndex();
     doReturn("srcVertex").when(inputContext).getSourceVertexName();
     doReturn(1).when(inputContext).getTaskVertexIndex();
-    doReturn(new UserPayload(ByteBuffer.wrap(new byte[1024]))).when(inputContext).getUserPayload();
+    doReturn(UserPayload.create(ByteBuffer.wrap(new byte[1024]))).when(inputContext).getUserPayload();
     return inputContext;
   }
 

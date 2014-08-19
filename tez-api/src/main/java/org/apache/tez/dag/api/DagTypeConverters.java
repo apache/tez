@@ -179,7 +179,7 @@ public class DagTypeConverters {
           new HashSet<String>(inputHint.getRackList()));
       outputList.add(outputHint);
     }
-    return new VertexLocationHint(outputList);
+    return VertexLocationHint.create(outputList);
   }
   
   // notes re HDFS URL handling:
@@ -237,15 +237,16 @@ public class DagTypeConverters {
 
   public static EdgeProperty createEdgePropertyMapFromDAGPlan(EdgePlan edge) {
     if (edge.getDataMovementType() == PlanEdgeDataMovementType.CUSTOM) {
-      return new EdgeProperty(
-          (edge.hasEdgeManager() ? convertEdgeManagerPluginDescriptorFromDAGPlan(edge.getEdgeManager()) : null),
+      return EdgeProperty.create(
+          (edge.hasEdgeManager() ?
+              convertEdgeManagerPluginDescriptorFromDAGPlan(edge.getEdgeManager()) : null),
           convertFromDAGPlan(edge.getDataSourceType()),
           convertFromDAGPlan(edge.getSchedulingType()),
           convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
           convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
       );
     } else {
-      return new EdgeProperty(
+      return EdgeProperty.create(
           convertFromDAGPlan(edge.getDataMovementType()),
           convertFromDAGPlan(edge.getDataSourceType()),
           convertFromDAGPlan(edge.getSchedulingType()),
@@ -320,9 +321,10 @@ public class DagTypeConverters {
       TezEntityDescriptorProto proto) {
     UserPayload userPayload = null;
     if (proto.hasUserPayload()) {
-      userPayload = new UserPayload(proto.getUserPayload().asReadOnlyByteBuffer(), proto.getVersion());
+      userPayload =
+          UserPayload.create(proto.getUserPayload().asReadOnlyByteBuffer(), proto.getVersion());
     } else {
-      userPayload = new UserPayload(null, -1);
+      userPayload = UserPayload.create(null, -1);
     }
     return userPayload;
   }
@@ -331,49 +333,49 @@ public class DagTypeConverters {
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new InputDescriptor(className).setUserPayload(payload);
+    return InputDescriptor.create(className).setUserPayload(payload);
   }
 
   public static OutputDescriptor convertOutputDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new OutputDescriptor(className).setUserPayload(payload);
+    return OutputDescriptor.create(className).setUserPayload(payload);
   }
 
   public static InputInitializerDescriptor convertInputInitializerDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new InputInitializerDescriptor(className).setUserPayload(payload);
+    return InputInitializerDescriptor.create(className).setUserPayload(payload);
   }
 
   public static OutputCommitterDescriptor convertOutputCommitterDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new OutputCommitterDescriptor(className).setUserPayload(payload);
+    return OutputCommitterDescriptor.create(className).setUserPayload(payload);
   }
 
   public static VertexManagerPluginDescriptor convertVertexManagerPluginDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new VertexManagerPluginDescriptor(className).setUserPayload(payload);
+    return VertexManagerPluginDescriptor.create(className).setUserPayload(payload);
   }
 
   public static EdgeManagerPluginDescriptor convertEdgeManagerPluginDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new EdgeManagerPluginDescriptor(className).setUserPayload(payload);
+    return EdgeManagerPluginDescriptor.create(className).setUserPayload(payload);
   }
 
   public static ProcessorDescriptor convertProcessorDescriptorFromDAGPlan(
       TezEntityDescriptorProto proto) {
     String className = proto.getClassName();
     UserPayload payload = convertTezUserPayloadFromDAGPlan(proto);
-    return new ProcessorDescriptor(className).setUserPayload(payload);
+    return ProcessorDescriptor.create(className).setUserPayload(payload);
   }
 
   public static TezAppMasterStatus convertTezSessionStatusFromProto(
@@ -589,7 +591,7 @@ public class DagTypeConverters {
       outputList.add(outputHint);
     }
 
-    return new VertexLocationHint(outputList);
+    return VertexLocationHint.create(outputList);
   }
 
   public static VertexLocationHintProto convertVertexLocationHintToProto(
@@ -614,7 +616,7 @@ public class DagTypeConverters {
   }
 
   public static UserPayload convertToTezUserPayload(@Nullable ByteBuffer payload, int version) {
-    return new UserPayload(payload, version);
+    return UserPayload.create(payload, version);
   }
 
   @Nullable

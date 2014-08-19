@@ -107,16 +107,16 @@ public class MRInputHelpers {
     try {
       inputSplitInfo = generateInputSplits(conf, splitsDir);
 
-      InputDescriptor inputDescriptor = new InputDescriptor(useLegacyInput ? MRInputLegacy.class
+      InputDescriptor inputDescriptor = InputDescriptor.create(useLegacyInput ? MRInputLegacy.class
           .getName() : MRInput.class.getName())
           .setUserPayload(createMRInputPayload(conf, null));
       Map<String, LocalResource> additionalLocalResources = new HashMap<String, LocalResource>();
       updateLocalResourcesForInputSplits(FileSystem.get(conf), inputSplitInfo,
           additionalLocalResources);
       DataSourceDescriptor dsd =
-          new DataSourceDescriptor(inputDescriptor, null, inputSplitInfo.getNumTasks(),
+          DataSourceDescriptor.create(inputDescriptor, null, inputSplitInfo.getNumTasks(),
               inputSplitInfo.getCredentials(),
-              new VertexLocationHint(inputSplitInfo.getTaskLocationHints()),
+              VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()),
               additionalLocalResources);
       return dsd;
     } catch (IOException e) {
@@ -693,7 +693,7 @@ public class MRInputHelpers {
       userPayloadBuilder.setSplits(mrSplitsProto);
     }
     userPayloadBuilder.setGroupingEnabled(isGrouped);
-    return new UserPayload(userPayloadBuilder.build().toByteString().asReadOnlyByteBuffer());
+    return UserPayload.create(userPayloadBuilder.build().toByteString().asReadOnlyByteBuffer());
   }
 
 }

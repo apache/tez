@@ -111,15 +111,15 @@ public class Edge {
   private void createEdgeManager() {
     switch (edgeProperty.getDataMovementType()) {
       case ONE_TO_ONE:
-        edgeManagerContext = new EdgeManagerPluginContextImpl(new UserPayload(null));
+        edgeManagerContext = new EdgeManagerPluginContextImpl(UserPayload.create(null));
         edgeManager = new OneToOneEdgeManager(edgeManagerContext);
         break;
       case BROADCAST:
-        edgeManagerContext = new EdgeManagerPluginContextImpl(new UserPayload(null));
+        edgeManagerContext = new EdgeManagerPluginContextImpl(UserPayload.create(null));
         edgeManager = new BroadcastEdgeManager(edgeManagerContext);
         break;
       case SCATTER_GATHER:
-        edgeManagerContext = new EdgeManagerPluginContextImpl(new UserPayload(null));
+        edgeManagerContext = new EdgeManagerPluginContextImpl(UserPayload.create(null));
         edgeManager = new ScatterGatherEdgeManager(edgeManagerContext);
         break;
       case CUSTOM:
@@ -129,7 +129,7 @@ public class Edge {
               edgeProperty.getEdgeManagerDescriptor().getUserPayload().hasPayload()) {
             payload = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
           } else {
-            payload = new UserPayload(null);
+            payload = UserPayload.create(null);
           }
           edgeManagerContext = new EdgeManagerPluginContextImpl(payload);
           String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();
@@ -157,7 +157,7 @@ public class Edge {
 
   public synchronized void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor) {
     EdgeProperty modifiedEdgeProperty =
-        new EdgeProperty(descriptor,
+        EdgeProperty.create(descriptor,
             edgeProperty.getDataSourceType(),
             edgeProperty.getSchedulingType(),
             edgeProperty.getEdgeSource(),
@@ -310,11 +310,11 @@ public class Edge {
             Event e;
             if (isDataMovementEvent) {
               DataMovementEvent dmEvent = (DataMovementEvent) event;
-              e = new DataMovementEvent(dmEvent.getSourceIndex(), 
+              e = DataMovementEvent.create(dmEvent.getSourceIndex(),
                   inputIndex, dmEvent.getVersion(), dmEvent.getUserPayload());
             } else {
               InputFailedEvent ifEvent = ((InputFailedEvent) event);
-              e = new InputFailedEvent(inputIndex, ifEvent.getVersion());
+              e = InputFailedEvent.create(inputIndex, ifEvent.getVersion());
             }
             tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo());
           }

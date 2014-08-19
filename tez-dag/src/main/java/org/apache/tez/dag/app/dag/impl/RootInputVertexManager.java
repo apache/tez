@@ -97,7 +97,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       if (event instanceof InputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
         Preconditions.checkState(dataInformationEventSeen == false);
-        inputDescriptor.setUserPayload(new UserPayload(
+        inputDescriptor.setUserPayload(UserPayload.create(
             ByteBuffer.wrap(((InputUpdatePayloadEvent) event).getUserPayload())));
       } else if (event instanceof InputDataInformationEvent) {
         dataInformationEventSeen = true;

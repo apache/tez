@@ -213,7 +213,7 @@ public class TezEvent implements Writable {
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEventProto ideProto =
             InputReadErrorEventProto.parseFrom(eventBytes);
-        event = new InputReadErrorEvent(ideProto.getDiagnostics(),
+        event = InputReadErrorEvent.create(ideProto.getDiagnostics(),
             ideProto.getIndex(), ideProto.getVersion());
         break;
       case TASK_ATTEMPT_FAILED_EVENT:
@@ -227,7 +227,7 @@ public class TezEvent implements Writable {
       case INPUT_FAILED_EVENT:
         InputFailedEventProto ifProto =
             InputFailedEventProto.parseFrom(eventBytes);
-        event = new InputFailedEvent(ifProto.getTargetIndex(), ifProto.getVersion());
+        event = InputFailedEvent.create(ifProto.getTargetIndex(), ifProto.getVersion());
         break;
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
         RootInputDataInformationEventProto difProto = RootInputDataInformationEventProto

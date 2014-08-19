@@ -34,15 +34,32 @@ public class Edge {
   private final Vertex outputVertex;
   private final EdgeProperty edgeProperty;
 
-  // InputVertex(EdgeInput) ----- Edge ----- OutputVertex(EdgeOutput)]
-  public Edge(Vertex inputVertex, 
-               Vertex outputVertex, 
+  private Edge(Vertex inputVertex,
+               Vertex outputVertex,
                EdgeProperty edgeProperty) {
     this.inputVertex = inputVertex;
     this.outputVertex = outputVertex;
     this.edgeProperty = edgeProperty;
   }
-  
+
+
+
+  /**
+   * Creates an edge between the specified vertices.
+   *
+   * InputVertex(EdgeInput) ----- Edge ----- OutputVertex(EdgeOutput)]
+   *
+   * @param inputVertex the vertex which generates data to the edge.
+   * @param outputVertex the vertex which consumes data from the edge
+   * @param edgeProperty {@link org.apache.tez.dag.api.EdgeProperty} associated with this edge
+   * @return the {@link org.apache.tez.dag.api.Edge}
+   */
+  public static Edge create(Vertex inputVertex,
+                            Vertex outputVertex,
+                            EdgeProperty edgeProperty) {
+    return new Edge(inputVertex, outputVertex, edgeProperty);
+  }
+
   /**
    * The @link {@link Vertex} that provides input to the edge
    * @return  {@link Vertex}

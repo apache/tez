@@ -150,7 +150,7 @@ public class WordCount extends Configured implements Tool {
     // Create a vertex that reads the data from the data source and tokenizes it using the 
     // TokenProcessor. The number of tasks that will do the work for this vertex will be decided 
     // using the information provided by the data source descriptor.
-    Vertex tokenizerVertex = new Vertex("Tokenizer", new ProcessorDescriptor(
+    Vertex tokenizerVertex = Vertex.create("Tokenizer", ProcessorDescriptor.create(
         TokenProcessor.class.getName())).addDataSource("Input", dataSource);
 
     // Create the edge that represents the movement and semantics of data between the producer 
@@ -172,8 +172,8 @@ public class WordCount extends Configured implements Tool {
     // The number of tasks that do the work of this vertex depends on the number of partitions used 
     // to distribute the sum processing. In this case, its been made configurable via the 
     // numPartitions parameter.
-    Vertex summationVertex = new Vertex("Summation",
-        new ProcessorDescriptor(SumProcessor.class.getName()), numPartitions)
+    Vertex summationVertex = Vertex.create("Summation",
+        ProcessorDescriptor.create(SumProcessor.class.getName()), numPartitions)
         .addDataSink("Output", dataSink);
 
     // No need to add jar containing this class as assumed to be part of the Tez jars. Otherwise 
@@ -184,7 +184,7 @@ public class WordCount extends Configured implements Tool {
     dag.addVertex(tokenizerVertex)
         .addVertex(summationVertex)
         .addEdge(
-            new Edge(tokenizerVertex, summationVertex, edgeConf.createDefaultEdgeProperty()));
+            Edge.create(tokenizerVertex, summationVertex, edgeConf.createDefaultEdgeProperty()));
     return dag;  
   }
 
@@ -205,7 +205,7 @@ public class WordCount extends Configured implements Tool {
 
     // Create the TezClient to submit the DAG. Pass the tezConf that has all necessary global and 
     // dag specific configurations
-    TezClient tezClient = new TezClient("WordCount", tezConf);
+    TezClient tezClient = TezClient.create("WordCount", tezConf);
     // TezClient must be started before it can be used
     tezClient.start();
 

@@ -44,12 +44,17 @@ public final class InputReadErrorEvent extends Event {
    */
   private final int version;
 
-  public InputReadErrorEvent(String diagnostics, int index,
-      int version) {
+  private InputReadErrorEvent(String diagnostics, int index,
+                              int version) {
     super();
     this.diagnostics = diagnostics;
     this.index = index;
     this.version = version;
+  }
+
+  public static InputReadErrorEvent create(String diagnostics, int index,
+                                           int version) {
+    return new InputReadErrorEvent(diagnostics, index, version);
   }
 
   public String getDiagnostics() {

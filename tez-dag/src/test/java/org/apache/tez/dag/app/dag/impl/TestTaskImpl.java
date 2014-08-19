@@ -167,7 +167,7 @@ public class TestTaskImpl {
   private void sendTezEventsToTask(TezTaskID taskId, int numTezEvents) {
     TaskEventAddTezEvent event = null;
     EventMetaData eventMetaData = new EventMetaData();
-    DataMovementEvent dmEvent = new DataMovementEvent(null);
+    DataMovementEvent dmEvent = DataMovementEvent.create(null);
     TezEvent tezEvent = new TezEvent(dmEvent, eventMetaData);
     for (int i = 0; i < numTezEvents; i++) {
       event = new TaskEventAddTezEvent(taskId, tezEvent);

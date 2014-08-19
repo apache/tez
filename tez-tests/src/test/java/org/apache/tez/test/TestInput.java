@@ -122,7 +122,7 @@ public class TestInput extends AbstractLogicalInput {
   }
 
   public static InputDescriptor getInputDesc(UserPayload payload) {
-    InputDescriptor desc = new InputDescriptor(TestInput.class.getName());
+    InputDescriptor desc = InputDescriptor.create(TestInput.class.getName());
     if (payload != null) {
       desc.setUserPayload(payload);
     }
@@ -158,7 +158,7 @@ public class TestInput extends AbstractLogicalInput {
             for (int i=0; i<getNumPhysicalInputs(); ++i) {
               String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
                   " index: " + i + " version: " + lastInputReadyValue);
-              events.add(new InputReadErrorEvent(msg, i, lastInputReadyValue));
+              events.add(InputReadErrorEvent.create(msg, i, lastInputReadyValue));
               LOG.info("Failing input: " + msg);
             }
           } else {
@@ -172,7 +172,7 @@ public class TestInput extends AbstractLogicalInput {
               }
               String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
                   " index: " + index.intValue() + " version: " + lastInputReadyValue);
-              events.add(new InputReadErrorEvent(msg, index.intValue(), lastInputReadyValue));
+              events.add(InputReadErrorEvent.create(msg, index.intValue(), lastInputReadyValue));
               LOG.info("Failing input: " + msg);
             }
           }

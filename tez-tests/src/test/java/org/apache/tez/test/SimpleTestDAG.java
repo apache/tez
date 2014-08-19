@@ -46,20 +46,20 @@ public class SimpleTestDAG {
   
   public static DAG createDAG(String name, 
       Configuration conf) throws Exception {
-    UserPayload payload = new UserPayload(null);
+    UserPayload payload = UserPayload.create(null);
     int taskCount = TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT;
     if (conf != null) {
       taskCount = conf.getInt(TEZ_SIMPLE_DAG_NUM_TASKS, TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT);
       payload = TezUtils.createUserPayloadFromConf(conf);
     }
     DAG dag = new DAG(name);
-    Vertex v1 = new Vertex("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    Vertex v2 = new Vertex("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    dag.addVertex(v1).addVertex(v2).addEdge(new Edge(v1, v2, 
-        new EdgeProperty(DataMovementType.SCATTER_GATHER, 
-            DataSourceType.PERSISTED, 
-            SchedulingType.SEQUENTIAL, 
-            TestOutput.getOutputDesc(payload), 
+    Vertex v1 = Vertex.create("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v2 = Vertex.create("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    dag.addVertex(v1).addVertex(v2).addEdge(Edge.create(v1, v2,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+            DataSourceType.PERSISTED,
+            SchedulingType.SEQUENTIAL,
+            TestOutput.getOutputDesc(payload),
             TestInput.getInputDesc(payload))));
     return dag;
   }
@@ -82,7 +82,7 @@ public class SimpleTestDAG {
    * @throws Exception
    */
   public static DAG createDAGForVertexOrder(String name, Configuration conf) throws Exception{
-    UserPayload payload = new UserPayload(null);
+    UserPayload payload = UserPayload.create(null);
     int taskCount = TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT;
     if (conf != null) {
       taskCount = conf.getInt(TEZ_SIMPLE_DAG_NUM_TASKS, TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT);
@@ -90,12 +90,12 @@ public class SimpleTestDAG {
     }
     DAG dag = new DAG(name);
 
-    Vertex v1 = new Vertex("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    Vertex v2 = new Vertex("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    Vertex v3 = new Vertex("v3", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    Vertex v4 = new Vertex("v4", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    Vertex v5 = new Vertex("v5", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
-    Vertex v6 = new Vertex("v6", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v1 = Vertex.create("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v2 = Vertex.create("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v3 = Vertex.create("v3", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v4 = Vertex.create("v4", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v5 = Vertex.create("v5", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
+    Vertex v6 = Vertex.create("v6", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
 
     // add vertex not in the topological order, since we are using this dag for testing vertex topological order
     dag.addVertex(v4)
@@ -104,42 +104,42 @@ public class SimpleTestDAG {
       .addVertex(v1)
       .addVertex(v2)
       .addVertex(v3)
-      .addEdge(new Edge(v1, v3,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL,
-            TestOutput.getOutputDesc(payload),
-            TestInput.getInputDesc(payload))))
-      .addEdge(new Edge(v2, v3,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL,
-            TestOutput.getOutputDesc(payload),
-            TestInput.getInputDesc(payload))))
-      .addEdge(new Edge(v3, v4,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL,
-            TestOutput.getOutputDesc(payload),
-            TestInput.getInputDesc(payload))))
-      .addEdge(new Edge(v3, v5,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL,
-            TestOutput.getOutputDesc(payload),
-            TestInput.getInputDesc(payload))))
-      .addEdge(new Edge(v4, v6,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL,
-            TestOutput.getOutputDesc(payload),
-            TestInput.getInputDesc(payload))))
-      .addEdge(new Edge(v5, v6,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED,
-            SchedulingType.SEQUENTIAL,
-            TestOutput.getOutputDesc(payload),
-            TestInput.getInputDesc(payload))));
+      .addEdge(Edge.create(v1, v3,
+          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              TestOutput.getOutputDesc(payload),
+              TestInput.getInputDesc(payload))))
+      .addEdge(Edge.create(v2, v3,
+          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              TestOutput.getOutputDesc(payload),
+              TestInput.getInputDesc(payload))))
+      .addEdge(Edge.create(v3, v4,
+          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              TestOutput.getOutputDesc(payload),
+              TestInput.getInputDesc(payload))))
+      .addEdge(Edge.create(v3, v5,
+          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              TestOutput.getOutputDesc(payload),
+              TestInput.getInputDesc(payload))))
+      .addEdge(Edge.create(v4, v6,
+          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              TestOutput.getOutputDesc(payload),
+              TestInput.getInputDesc(payload))))
+      .addEdge(Edge.create(v5, v6,
+          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              TestOutput.getOutputDesc(payload),
+              TestInput.getInputDesc(payload))));
 
     return dag;
   }

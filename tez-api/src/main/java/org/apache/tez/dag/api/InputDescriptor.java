@@ -33,7 +33,11 @@ public class InputDescriptor extends EntityDescriptor<InputDescriptor> {
     super();
   }
 
-  public InputDescriptor(String inputClassName) {
+  private InputDescriptor(String inputClassName) {
     super(inputClassName);
+  }
+
+  public static InputDescriptor create(String inputClassName) {
+    return new InputDescriptor(inputClassName);
   }
 }

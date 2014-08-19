@@ -1900,15 +1900,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to RootInputVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(RootInputVertexManager.class.getName())
-            .setUserPayload(new UserPayload(null)),
+            VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName())
+            .setUserPayload(UserPayload.create(null)),
             this, appContext);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(InputReadyVertexManager.class.getName())
-            .setUserPayload(new UserPayload(null)),
+            VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName())
+            .setUserPayload(UserPayload.create(null)),
             this, appContext);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
@@ -1921,8 +1921,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            new VertexManagerPluginDescriptor(ImmediateStartVertexManager.class.getName())
-            .setUserPayload(new UserPayload(null)),
+            VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName())
+            .setUserPayload(UserPayload.create(null)),
             this, appContext);
       }
     }

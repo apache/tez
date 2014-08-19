@@ -32,7 +32,11 @@ public class VertexManagerPluginDescriptor extends EntityDescriptor<VertexManage
     super();
   }
   
-  public VertexManagerPluginDescriptor(String className) {
+  private VertexManagerPluginDescriptor(String className) {
     super(className);
+  }
+
+  public static VertexManagerPluginDescriptor create(String className) {
+    return new VertexManagerPluginDescriptor(className);
   }
 }

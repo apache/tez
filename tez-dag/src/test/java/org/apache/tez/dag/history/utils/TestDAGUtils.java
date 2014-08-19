@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.codehaus.jettison.json.JSONException;
@@ -53,33 +54,34 @@ public class TestDAGUtils {
     Configuration conf = new Configuration(false);
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
-    org.apache.tez.dag.api.Vertex v1 = new org.apache.tez.dag.api.Vertex("vertex1",
-        new ProcessorDescriptor("Processor").setHistoryText("vertex1 Processor HistoryText"),
+    org.apache.tez.dag.api.Vertex v1 = Vertex.create("vertex1",
+        ProcessorDescriptor.create("Processor").setHistoryText("vertex1 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
-    v1.addDataSource("input1", new DataSourceDescriptor(new InputDescriptor(
+    v1.addDataSource("input1", DataSourceDescriptor.create(InputDescriptor.create(
         "input.class").setHistoryText("input HistoryText"), null, null));
-    org.apache.tez.dag.api.Vertex v2 = new org.apache.tez.dag.api.Vertex("vertex2",
-        new ProcessorDescriptor("Processor").setHistoryText("vertex2 Processor HistoryText"),
+    org.apache.tez.dag.api.Vertex v2 = Vertex.create("vertex2",
+        ProcessorDescriptor.create("Processor").setHistoryText("vertex2 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
-    org.apache.tez.dag.api.Vertex v3 = new org.apache.tez.dag.api.Vertex("vertex3",
-        new ProcessorDescriptor("Processor").setHistoryText("vertex3 Processor HistoryText"),
+    org.apache.tez.dag.api.Vertex v3 = Vertex.create("vertex3",
+        ProcessorDescriptor.create("Processor").setHistoryText("vertex3 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
 
     DAG dag = new DAG("testDag");
     String groupName1 = "uv12";
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
-    OutputDescriptor outDesc = new OutputDescriptor("output.class")
+    OutputDescriptor outDesc = OutputDescriptor.create("output.class")
         .setHistoryText("uvOut HistoryText");
-    OutputCommitterDescriptor ocd = new OutputCommitterDescriptor(OutputCommitter.class.getName());
+    OutputCommitterDescriptor ocd =
+        OutputCommitterDescriptor.create(OutputCommitter.class.getName());
     uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
     v3.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
 
-    GroupInputEdge e1 = new GroupInputEdge(uv12, v3,
-        new EdgeProperty(DataMovementType.SCATTER_GATHER,
+    GroupInputEdge e1 = GroupInputEdge.create(uv12, v3,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-            new OutputDescriptor("dummy output class").setHistoryText("Dummy History Text"),
-            new InputDescriptor("dummy input class").setHistoryText("Dummy History Text")),
-        new InputDescriptor("merge.class").setHistoryText("Merge HistoryText"));
+            OutputDescriptor.create("dummy output class").setHistoryText("Dummy History Text"),
+            InputDescriptor.create("dummy input class").setHistoryText("Dummy History Text")),
+        InputDescriptor.create("merge.class").setHistoryText("Merge HistoryText"));
 
     dag.addVertex(v1);
     dag.addVertex(v2);

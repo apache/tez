@@ -48,14 +48,14 @@ public class TestRootInputVertexManager {
 
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
-    InputDataInformationEvent diEvent11 = new InputDataInformationEvent(0, null);
+    InputDataInformationEvent diEvent11 = InputDataInformationEvent.create(0, null);
     events1.add(diEvent11);
     rootInputVertexManager.onRootVertexInitialized("input1", id1, events1);
     // All good so far, single input only.
 
     InputDescriptor id2 = mock(InputDescriptor.class);
     List<Event> events2 = new LinkedList<Event>();
-    InputDataInformationEvent diEvent21 = new InputDataInformationEvent(0, null);
+    InputDataInformationEvent diEvent21 = InputDataInformationEvent.create(0, null);
     events2.add(diEvent21);
     try {
       // Should fail due to second input
@@ -79,7 +79,7 @@ public class TestRootInputVertexManager {
 
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
-    InputConfigureVertexTasksEvent diEvent11 = new InputConfigureVertexTasksEvent(1, null,
+    InputConfigureVertexTasksEvent diEvent11 = InputConfigureVertexTasksEvent.create(1, null,
         null);
     events1.add(diEvent11);
     rootInputVertexManager.onRootVertexInitialized("input1", id1, events1);
@@ -87,7 +87,7 @@ public class TestRootInputVertexManager {
 
     InputDescriptor id2 = mock(InputDescriptor.class);
     List<Event> events2 = new LinkedList<Event>();
-    InputConfigureVertexTasksEvent diEvent21 = new InputConfigureVertexTasksEvent(1, null,
+    InputConfigureVertexTasksEvent diEvent21 = InputConfigureVertexTasksEvent.create(1, null,
         null);
     events2.add(diEvent21);
     try {

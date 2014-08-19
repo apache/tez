@@ -68,7 +68,8 @@ public class TestMRInputSplitDistributor {
     MRInputUserPayloadProto.Builder payloadProto = MRInputUserPayloadProto.newBuilder();
     payloadProto.setSplits(splitsProtoBuilder.build());
     payloadProto.setConfigurationBytes(confByteString);
-    UserPayload userPayload = new UserPayload(payloadProto.build().toByteString().asReadOnlyByteBuffer());
+    UserPayload userPayload =
+        UserPayload.create(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
     InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
@@ -116,7 +117,8 @@ public class TestMRInputSplitDistributor {
     MRInputUserPayloadProto.Builder payloadProto = MRInputUserPayloadProto.newBuilder();
     payloadProto.setSplits(splitsProtoBuilder.build());
     payloadProto.setConfigurationBytes(confByteString);
-    UserPayload userPayload = new UserPayload(payloadProto.build().toByteString().asReadOnlyByteBuffer());
+    UserPayload userPayload =
+        UserPayload.create(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
     InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
@@ -152,7 +154,7 @@ public class TestMRInputSplitDistributor {
 
     TezRootInputInitializerContextForTest(UserPayload payload) throws IOException {
       appId = ApplicationId.newInstance(1000, 200);
-      this.payload = payload == null ? new UserPayload(null) : payload;
+      this.payload = payload == null ? UserPayload.create(null) : payload;
     }
 
     @Override

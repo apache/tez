@@ -38,11 +38,16 @@ public class InputConfigureVertexTasksEvent extends Event {
   private final VertexLocationHint locationHint;
   private final InputSpecUpdate inputSpecUpdate;
 
-  public InputConfigureVertexTasksEvent(int numTasks, VertexLocationHint locationHint,
-      InputSpecUpdate inputSpecUpdate) {
+  private InputConfigureVertexTasksEvent(int numTasks, VertexLocationHint locationHint,
+                                         InputSpecUpdate inputSpecUpdate) {
     this.numTasks = numTasks;
     this.locationHint = locationHint;
     this.inputSpecUpdate = inputSpecUpdate;
+  }
+
+  public static InputConfigureVertexTasksEvent create(int numTasks, VertexLocationHint locationHint,
+                                                      InputSpecUpdate inputSpecUpdate) {
+    return new InputConfigureVertexTasksEvent(numTasks, locationHint, inputSpecUpdate);
   }
 
   public int getNumTasks() {

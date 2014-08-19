@@ -32,7 +32,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfoMem;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
@@ -132,8 +131,9 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo
         .getNumTasks() + 1);
     
-    InputConfigureVertexTasksEvent configureVertexEvent = new InputConfigureVertexTasksEvent(
-        inputSplitInfo.getNumTasks(), new VertexLocationHint(inputSplitInfo.getTaskLocationHints()),
+    InputConfigureVertexTasksEvent configureVertexEvent = InputConfigureVertexTasksEvent.create(
+        inputSplitInfo.getNumTasks(),
+        VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()),
         InputSpecUpdate.getDefaultSinglePhysicalInputSpecUpdate());
     events.add(configureVertexEvent);
 
@@ -142,7 +142,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
       int count = 0;
       for (MRSplitProto mrSplit : splitsProto.getSplitsList()) {
         // Unnecessary array copy, can be avoided by using ByteBuffer instead of a raw array.
-        InputDataInformationEvent diEvent = new InputDataInformationEvent(count++,
+        InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++,
             mrSplit.toByteArray());
         events.add(diEvent);
       }
@@ -150,12 +150,12 @@ public class MRInputAMSplitGenerator extends InputInitializer {
       int count = 0;
       if (inputSplitInfo.holdsNewFormatSplits()) {
         for (org.apache.hadoop.mapreduce.InputSplit split : inputSplitInfo.getNewFormatSplits()) {
-          InputDataInformationEvent diEvent = new InputDataInformationEvent(count++, split);
+          InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++, split);
           events.add(diEvent);
         }
       } else {
         for (org.apache.hadoop.mapred.InputSplit split : inputSplitInfo.getOldFormatSplits()) {
-          InputDataInformationEvent diEvent = new InputDataInformationEvent(count++, split);
+          InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++, split);
           events.add(diEvent);
         }
       }

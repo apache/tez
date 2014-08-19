@@ -131,7 +131,7 @@ public class TestDAGRecovery {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, " -Xmx256m");
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
 
-    tezSession = new TezClient("TestDAGRecovery", tezConf);
+    tezSession = TezClient.create("TestDAGRecovery", tezConf);
     tezSession.start();
   }
 
@@ -184,9 +184,9 @@ public class TestDAGRecovery {
     DAG dag = SimpleVTestDAG.createDAG("DelayedInitDAG", null);
     dag.getVertex("v1").addDataSource(
         "i1",
-        new DataSourceDescriptor(
-            new InputDescriptor(NoOpInput.class.getName()),
-            new InputInitializerDescriptor(FailingInputInitializer.class
+        DataSourceDescriptor.create(
+            InputDescriptor.create(NoOpInput.class.getName()),
+            InputInitializerDescriptor.create(FailingInputInitializer.class
                 .getName()), null));
     runDAGAndVerify(dag, State.SUCCEEDED);
   }

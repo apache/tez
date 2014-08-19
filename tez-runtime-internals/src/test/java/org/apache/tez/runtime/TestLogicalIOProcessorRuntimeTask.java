@@ -108,19 +108,19 @@ public class TestLogicalIOProcessorRuntimeTask {
   }
 
   private List<InputSpec> createInputSpecList() {
-    InputDescriptor inputDesc = new InputDescriptor(TestInput.class.getName());
+    InputDescriptor inputDesc = InputDescriptor.create(TestInput.class.getName());
     InputSpec inputSpec = new InputSpec("inedge", inputDesc, 1);
     return Lists.newArrayList(inputSpec);
   }
 
   private List<OutputSpec> createOutputSpecList() {
-    OutputDescriptor outputtDesc = new OutputDescriptor(TestOutput.class.getName());
+    OutputDescriptor outputtDesc = OutputDescriptor.create(TestOutput.class.getName());
     OutputSpec outputSpec = new OutputSpec("outedge", outputtDesc, 1);
     return Lists.newArrayList(outputSpec);
   }
 
   private ProcessorDescriptor createProcessorDescriptor() {
-    ProcessorDescriptor desc = new ProcessorDescriptor(TestProcessor.class.getName());
+    ProcessorDescriptor desc = ProcessorDescriptor.create(TestProcessor.class.getName());
     return desc;
   }
 

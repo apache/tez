@@ -304,15 +304,16 @@ public class TestHistoryEventsProtoConversion {
     {
       Map<String,EdgeManagerPluginDescriptor> sourceEdgeManagers
           = new LinkedHashMap<String, EdgeManagerPluginDescriptor>();
-      sourceEdgeManagers.put("foo", new EdgeManagerPluginDescriptor("bar"));
-      sourceEdgeManagers.put("foo1", new EdgeManagerPluginDescriptor("bar1")
-          .setUserPayload(new UserPayload(ByteBuffer.wrap(new String("payload").getBytes()), 100)));
+      sourceEdgeManagers.put("foo", EdgeManagerPluginDescriptor.create("bar"));
+      sourceEdgeManagers.put("foo1", EdgeManagerPluginDescriptor.create("bar1")
+          .setUserPayload(
+              UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)));
       VertexParallelismUpdatedEvent event =
           new VertexParallelismUpdatedEvent(
               TezVertexID.getInstance(
                   TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-              100, new VertexLocationHint(Arrays.asList(new TaskLocationHint(
-                  new HashSet<String>(Arrays.asList("h1")),
+              100, VertexLocationHint.create(Arrays.asList(new TaskLocationHint(
+              new HashSet<String>(Arrays.asList("h1")),
               new HashSet<String>(Arrays.asList("r1"))))),
               sourceEdgeManagers, null);
 
@@ -542,7 +543,7 @@ public class TestHistoryEventsProtoConversion {
       // Expected
     }
     List<TezEvent> events =
-        Arrays.asList(new TezEvent(new DataMovementEvent(1, null),
+        Arrays.asList(new TezEvent(DataMovementEvent.create(1, null),
             new EventMetaData(EventProducerConsumerType.SYSTEM, "foo", "bar", null)));
     event = new VertexDataMovementEventsGeneratedEvent(
             TezVertexID.getInstance(

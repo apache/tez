@@ -48,21 +48,30 @@ public final class InputDataInformationEvent extends Event {
   private final byte[] userPayload;
   private final Object userPayloadObject;
   
-  /**
-   * Provide a serialized form of the payload
-   * @param srcIndex the src index
-   * @param userPayload the serialized payload
-   */
-  public InputDataInformationEvent(int srcIndex, byte[] userPayload) {
+
+  private InputDataInformationEvent(int srcIndex, byte[] userPayload) {
     this.sourceIndex = srcIndex;
     this.userPayload = userPayload;
     this.userPayloadObject = null;
   }
   
-  public InputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
+  private InputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
     this.sourceIndex = srcIndex;
     this.userPayloadObject = userPayloadDeserialized;
     this.userPayload = null;
+  }
+
+  /**
+   * Provide a serialized form of the payload
+   * @param srcIndex the src index
+   * @param userPayload the serialized payload
+   */
+  public static InputDataInformationEvent create(int srcIndex, byte[] userPayload) {
+    return new InputDataInformationEvent(srcIndex, userPayload);
+  }
+
+  public static InputDataInformationEvent create(int srcIndex, Object userPayloadDeserialized) {
+    return new InputDataInformationEvent(srcIndex, userPayloadDeserialized);
   }
 
   public int getSourceIndex() {

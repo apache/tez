@@ -38,7 +38,7 @@ public class DataSinkDescriptor {
    * Create a {@link DataSinkDescriptor}
    * @param outputDescriptor
    *          An {@link OutputDescriptor} for the output
-   * @param outputCommitterDescriptor
+   * @param committerDescriptor
    *          Specify a committer to be used for the output. Can be null. After all
    *          tasks in the vertex (or in the DAG) have completed, the committer
    *          (if specified) is invoked to commit the outputs. Commit is a data
@@ -52,7 +52,7 @@ public class DataSinkDescriptor {
    * @param credentials Credentials needs to access the data sink
    */
   public DataSinkDescriptor(OutputDescriptor outputDescriptor,
-      @Nullable OutputCommitterDescriptor committerDescriptor, 
+      @Nullable OutputCommitterDescriptor committerDescriptor,
       @Nullable Credentials credentials) {
     this.outputDescriptor = outputDescriptor;
     this.committerDescriptor = committerDescriptor;

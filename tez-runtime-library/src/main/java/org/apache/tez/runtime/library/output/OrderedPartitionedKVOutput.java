@@ -199,13 +199,14 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
     VertexManagerEventPayloadProto.Builder vmBuilder = VertexManagerEventPayloadProto
         .newBuilder();
     vmBuilder.setOutputSize(outputSize);
-    VertexManagerEvent vmEvent = new VertexManagerEvent(
+    VertexManagerEvent vmEvent = VertexManagerEvent.create(
         getContext().getDestinationVertexName(), vmBuilder.build().toByteArray());    
 
     List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs() + 1);
     events.add(vmEvent);
 
-    CompositeDataMovementEvent csdme = new CompositeDataMovementEvent(0, getNumPhysicalOutputs(), payload);
+    CompositeDataMovementEvent csdme =
+        CompositeDataMovementEvent.create(0, getNumPhysicalOutputs(), payload);
     events.add(csdme);
 
     return events;

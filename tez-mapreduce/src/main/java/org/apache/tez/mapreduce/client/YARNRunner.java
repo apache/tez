@@ -416,7 +416,8 @@ public class YARNRunner implements ClientProtocol {
     stageConf.set(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX, "part");
     
     UserPayload vertexUserPayload = TezUtils.createUserPayloadFromConf(stageConf);
-    Vertex vertex = new Vertex(vertexName, new ProcessorDescriptor(processorName).setUserPayload(vertexUserPayload),
+    Vertex vertex = Vertex.create(vertexName,
+        ProcessorDescriptor.create(processorName).setUserPayload(vertexUserPayload),
         numTasks, taskResource);
     if (isMap) {
       vertex.addDataSource("MRInput",
@@ -424,10 +425,10 @@ public class YARNRunner implements ClientProtocol {
     }
     // Map only jobs.
     if (stageNum == totalStages -1) {
-      OutputDescriptor od = new OutputDescriptor(MROutputLegacy.class.getName())
+      OutputDescriptor od = OutputDescriptor.create(MROutputLegacy.class.getName())
           .setUserPayload(vertexUserPayload);
       vertex.addDataSink("MROutput", new DataSinkDescriptor(od,
-          new OutputCommitterDescriptor(MROutputCommitter.class.getName()), null));
+          OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), null));
     }
 
     Map<String, String> taskEnv = new HashMap<String, String>();
@@ -444,7 +445,7 @@ public class YARNRunner implements ClientProtocol {
 
     vertex.setTaskEnvironment(taskEnv)
         .setTaskLocalFiles(taskLocalResources)
-        .setLocationHint(new VertexLocationHint(locations))
+        .setLocationHint(VertexLocationHint.create(locations))
         .setTaskLaunchCmdOpts(taskJavaOpts);
     
     if (!isMap) {
@@ -505,7 +506,7 @@ public class YARNRunner implements ClientProtocol {
                 MRPartitioner.class.getName(), partitionerConf)
                 .configureInput().useLegacyInput().done()
                 .setFromConfiguration(stageConfs[i - 1]).build();
-        Edge edge = new Edge(vertices[i-1], vertices[i], edgeConf.createDefaultEdgeProperty());
+        Edge edge = Edge.create(vertices[i - 1], vertices[i], edgeConf.createDefaultEdgeProperty());
         dag.addEdge(edge);
       }
 
@@ -796,14 +797,14 @@ public class YARNRunner implements ClientProtocol {
     InputDescriptor inputDescriptor;
 
     try {
-      inputDescriptor = new InputDescriptor(useLegacyInput ? MRInputLegacy.class
+      inputDescriptor = InputDescriptor.create(useLegacyInput ? MRInputLegacy.class
           .getName() : MRInput.class.getName())
           .setUserPayload(MRInputHelpersInternal.createMRInputPayload(conf, null));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
 
-    DataSourceDescriptor dsd = new DataSourceDescriptor(inputDescriptor, null, null);
+    DataSourceDescriptor dsd = DataSourceDescriptor.create(inputDescriptor, null, null);
     return dsd;
   }
 

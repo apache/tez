@@ -101,8 +101,8 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   }
 
   public static ProcessorDescriptor getProcDesc(UserPayload payload) {
-    return new ProcessorDescriptor(TestProcessor.class.getName()).setUserPayload(
-        payload == null ? new UserPayload (null) : payload);
+    return ProcessorDescriptor.create(TestProcessor.class.getName()).setUserPayload(
+        payload == null ? UserPayload.create(null) : payload);
   }
 
   void throwException(String msg) {

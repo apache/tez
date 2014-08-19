@@ -524,7 +524,7 @@ public class MRRSleepJob extends Configured implements Tool {
     UserPayload mapUserPayload = TezUtils.createUserPayloadFromConf(mapStageConf);
     int numTasks = generateSplitsInAM ? -1 : numMapper;
 
-    Vertex mapVertex = new Vertex("map", new ProcessorDescriptor(
+    Vertex mapVertex = Vertex.create("map", ProcessorDescriptor.create(
         MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks)
         .setTaskLocalFiles(commonLocalResources);
     mapVertex.addDataSource("MRInput", dataSource);
@@ -536,8 +536,8 @@ public class MRRSleepJob extends Configured implements Tool {
         Configuration iconf =
             intermediateReduceStageConfs[i];
         UserPayload iReduceUserPayload = TezUtils.createUserPayloadFromConf(iconf);
-        Vertex ivertex = new Vertex("ireduce" + (i+1),
-                new ProcessorDescriptor(ReduceProcessor.class.getName()).
+        Vertex ivertex = Vertex.create("ireduce" + (i + 1),
+            ProcessorDescriptor.create(ReduceProcessor.class.getName()).
                 setUserPayload(iReduceUserPayload), numIReducer);
         ivertex.setTaskLocalFiles(commonLocalResources);
         vertices.add(ivertex);
@@ -547,7 +547,7 @@ public class MRRSleepJob extends Configured implements Tool {
     Vertex finalReduceVertex = null;
     if (numReducer > 0) {
       UserPayload reducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
-      finalReduceVertex = new Vertex("reduce", new ProcessorDescriptor(
+      finalReduceVertex = Vertex.create("reduce", ProcessorDescriptor.create(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
       finalReduceVertex.setTaskLocalFiles(commonLocalResources);
       finalReduceVertex.addDataSink("MROutput", MROutputLegacy.createConfigBuilder(finalReduceConf,
@@ -571,7 +571,7 @@ public class MRRSleepJob extends Configured implements Tool {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
         dag.addEdge(
-            new Edge(vertices.get(i - 1), vertices.get(i), edgeConf.createDefaultEdgeProperty()));
+            Edge.create(vertices.get(i - 1), vertices.get(i), edgeConf.createDefaultEdgeProperty()));
       }
     }
 
@@ -733,7 +733,7 @@ public class MRRSleepJob extends Configured implements Tool {
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount, writeSplitsToDfs, generateSplitsInAM);
 
-    TezClient tezSession = new TezClient("MRRSleep", conf, false, null, credentials);
+    TezClient tezSession = TezClient.create("MRRSleep", conf, false, null, credentials);
     tezSession.start();
     DAGClient dagClient = tezSession.submitDAG(dag);
 
