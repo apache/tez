@@ -32,8 +32,6 @@ import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 
-import sun.misc.Sort;
-
 /**
  * A description of an example program based on its class and a
  * human-readable description.
