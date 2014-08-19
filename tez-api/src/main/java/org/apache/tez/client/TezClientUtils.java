@@ -75,7 +75,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
-import org.apache.tez.common.LogUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.security.ACLManager;
@@ -336,7 +335,7 @@ public class TezClientUtils {
       Configuration conf) throws IOException {
 
     Preconditions.checkNotNull(sessionCredentials);
-    LogUtils.logCredentials(LOG, sessionCredentials, "session");
+    TezCommonUtils.logCredentials(LOG, sessionCredentials, "session");
 
     Credentials dagCredentials = dag.getCredentials();
     if (dagCredentials == null) {

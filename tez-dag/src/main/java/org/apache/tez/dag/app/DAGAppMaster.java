@@ -88,7 +88,6 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.common.LogUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -667,7 +666,7 @@ public class DAGAppMaster extends AbstractService {
     if (dagPB.hasCredentialsBinary()) {
       dagCredentials = DagTypeConverters.convertByteStringToCredentials(dagPB
           .getCredentialsBinary());
-      LogUtils.logCredentials(LOG, dagCredentials, "dag");
+      TezCommonUtils.logCredentials(LOG, dagCredentials, "dag");
     } else {
       dagCredentials = new Credentials();
     }

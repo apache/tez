@@ -32,6 +32,8 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -306,6 +308,20 @@ public class TezCommonUtils {
     InflaterInputStream in = new InflaterInputStream(byteString.newInput());
     byte[] bytes = IOUtils.toByteArray(in);
     return bytes;
+  }
+
+  public static void logCredentials(Log log, Credentials credentials, String identifier) {
+    if (log.isDebugEnabled()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("#" + identifier + "Tokens=").append(credentials.numberOfTokens());
+      if (credentials.numberOfTokens() > 0) {
+        sb.append(", Services: ");
+        for (Token<?> t : credentials.getAllTokens()) {
+          sb.append(t.getService()).append(",");
+        }
+      }
+      log.debug(sb.toString());
+    }
   }
 
 }

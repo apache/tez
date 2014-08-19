@@ -42,7 +42,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.security.DAGAccessControls;
-import org.apache.tez.common.LogUtils;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -756,7 +756,7 @@ public class DAG {
 
     if (credentials != null) {
       dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));
-      LogUtils.logCredentials(LOG, credentials, "dag");
+      TezCommonUtils.logCredentials(LOG, credentials, "dag");
     }
     return dagBuilder.build();
   }
