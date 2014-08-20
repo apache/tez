@@ -71,6 +71,8 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class RecoveryParser {
 
   private static final Log LOG = LogFactory.getLog(RecoveryParser.class);
@@ -307,7 +309,8 @@ public class RecoveryParser {
     return recoveryFS.create(dagRecoveryPath, true, recoveryBufferSize);
   }
 
-  private DAGSummaryData getLastCompletedOrInProgressDAG(
+  @VisibleForTesting
+  DAGSummaryData getLastCompletedOrInProgressDAG(
       Map<TezDAGID, DAGSummaryData> dagSummaryDataMap) {
     DAGSummaryData inProgressDAG = null;
     DAGSummaryData lastCompletedDAG = null;
@@ -320,7 +323,10 @@ public class RecoveryParser {
         }
         inProgressDAG = entry.getValue();
       } else {
-        lastCompletedDAG = entry.getValue();
+        if (lastCompletedDAG == null ||
+            lastCompletedDAG.dagId.getId() < entry.getValue().dagId.getId()) {
+          lastCompletedDAG = entry.getValue();
+        }
       }
     }
     if (inProgressDAG == null) {
@@ -388,7 +394,8 @@ public class RecoveryParser {
     return TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, foundPreviousAttempt);
   }
 
-  private static class DAGSummaryData {
+  @VisibleForTesting
+  static class DAGSummaryData {
 
     final TezDAGID dagId;
     String dagName;
@@ -546,6 +553,7 @@ public class RecoveryParser {
         + ", lastModTime=" + summaryFileStatus.getModificationTime());
 
     int dagCounter = 0;
+
     Map<TezDAGID, DAGSummaryData> dagSummaryDataMap =
         new HashMap<TezDAGID, DAGSummaryData>();
     while (true) {
