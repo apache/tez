@@ -46,7 +46,7 @@
   </bannerLeft>
 
   <publishDate position="right"/>
-  <version position="right"/>
+  <version position="none"/>
 
   <body>
     <head>
