@@ -131,7 +131,7 @@ public class TestValuesIterator {
     this.correctComparator =
         (correctComparator == null) ? this.comparator : getComparator(correctComparator);
     this.expectedTestResult = testResult;
-    sortedDataMap = TreeMultimap.create(this.correctComparator, Ordering.natural());
+    sortedDataMap = TreeMultimap.create(this.correctComparator, (java.util.Comparator) Ordering.natural());
     setupConf(serializationClassName);
   }
 
