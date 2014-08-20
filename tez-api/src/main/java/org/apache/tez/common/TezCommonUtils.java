@@ -19,6 +19,10 @@
 package org.apache.tez.common;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
@@ -324,4 +328,14 @@ public class TezCommonUtils {
     }
   }
 
+  public static Collection<String> tokenizeString(String str, String delim) {
+    List<String> values = new ArrayList<String>();
+    if (str == null || str.isEmpty())
+      return values;
+    StringTokenizer tokenizer = new StringTokenizer(str, delim);
+    while (tokenizer.hasMoreTokens()) {
+      values.add(tokenizer.nextToken());
+    }
+    return values;
+  }
 }

@@ -92,7 +92,6 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
 import org.apache.tez.common.security.ACLManager;
-import org.apache.tez.common.security.Groups;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -615,7 +614,7 @@ public class TestDAGImpl {
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
     historyEventHandler = mock(HistoryEventHandler.class);
-    aclManager = new ACLManager(mock(Groups.class), "amUser");
+    aclManager = new ACLManager("amUser");
     doReturn(conf).when(appContext).getAMConf();
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(appAttemptId.getApplicationId()).when(appContext).getApplicationID();

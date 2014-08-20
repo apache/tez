@@ -100,8 +100,8 @@ public class TestSecureShuffle {
   @AfterClass
   public static void shutdownDFSCluster() {
     if (miniDFSCluster != null) {
-      //shutdown and delete cluster dirs
-      miniDFSCluster.shutdown(true);
+      //shutdown
+      miniDFSCluster.shutdown();
     }
   }
 

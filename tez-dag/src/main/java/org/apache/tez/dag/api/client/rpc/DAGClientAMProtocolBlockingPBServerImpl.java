@@ -20,8 +20,10 @@ package org.apache.tez.dag.api.client.rpc;
 
 import java.io.IOException;
 import java.security.AccessControlException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -68,11 +70,19 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     }
   }
 
+  private List<String> getRPCUserGroups() throws ServiceException {
+    try {
+      return Arrays.asList(UserGroupInformation.getCurrentUser().getGroupNames());
+    } catch (IOException e) {
+      throw wrapException(e);
+    }
+  }
+
   @Override
   public GetAllDAGsResponseProto getAllDAGs(RpcController controller,
       GetAllDAGsRequestProto request) throws ServiceException {
     String user = getRPCUserName();
-    if (!real.getACLManager().checkAMViewAccess(user)) {
+    if (!real.getACLManager().checkAMViewAccess(user, getRPCUserGroups())) {
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
     try{
@@ -89,7 +99,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     String user = getRPCUserName();
     try {
       String dagId = request.getDagId();
-      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user, getRPCUserGroups())) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
       DAGStatus status;
@@ -111,7 +121,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     String user = getRPCUserName();
     try {
       String dagId = request.getDagId();
-      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user, getRPCUserGroups())) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
       String vertexName = request.getVertexName();
@@ -133,7 +143,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     String user = getRPCUserName();
     try {
       String dagId = request.getDagId();
-      if (!real.getACLManager(dagId).checkDAGModifyAccess(user)) {
+      if (!real.getACLManager(dagId).checkDAGModifyAccess(user, getRPCUserGroups())) {
         throw new AccessControlException("User " + user + " cannot perform DAG modify operation");
       }
       real.tryKillDAG(dagId);
@@ -147,7 +157,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   public SubmitDAGResponseProto submitDAG(RpcController controller,
       SubmitDAGRequestProto request) throws ServiceException {
     String user = getRPCUserName();
-    if (!real.getACLManager().checkAMModifyAccess(user)) {
+    if (!real.getACLManager().checkAMModifyAccess(user, getRPCUserGroups())) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
     try{
@@ -172,7 +182,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   public ShutdownSessionResponseProto shutdownSession(RpcController arg0,
       ShutdownSessionRequestProto arg1) throws ServiceException {
     String user = getRPCUserName();
-    if (!real.getACLManager().checkAMModifyAccess(user)) {
+    if (!real.getACLManager().checkAMModifyAccess(user, getRPCUserGroups())) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
     real.shutdownAM();
@@ -183,7 +193,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   public GetAMStatusResponseProto getAMStatus(RpcController controller,
       GetAMStatusRequestProto request) throws ServiceException {
     String user = getRPCUserName();
-    if (!real.getACLManager().checkAMViewAccess(user)) {
+    if (!real.getACLManager().checkAMViewAccess(user, getRPCUserGroups())) {
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
     try {

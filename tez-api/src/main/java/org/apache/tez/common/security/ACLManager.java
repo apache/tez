@@ -18,7 +18,6 @@
 
 package org.apache.tez.common.security;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -49,15 +48,13 @@ public class ACLManager {
   private final String amUser;
   private final Map<ACLType, Set<String>> users;
   private final Map<ACLType, Set<String>> groups;
-  private final Groups userGroupMapping;
   private final boolean aclsEnabled;
 
-  public ACLManager(Groups userGroupMapping, String amUser) {
-    this(userGroupMapping, amUser, new Configuration(false));
+  public ACLManager(String amUser) {
+    this(amUser, new Configuration(false));
   }
 
-  public ACLManager(Groups userGroupMapping, String amUser, Configuration conf) {
-    this.userGroupMapping = userGroupMapping;
+  public ACLManager(String amUser, Configuration conf) {
     this.amUser = amUser;
     this.dagUser = null;
     this.users = new HashMap<ACLType, Set<String>>();
@@ -77,7 +74,6 @@ public class ACLManager {
   }
 
   public ACLManager(ACLManager amACLManager, String dagUser, Configuration dagConf) {
-    this.userGroupMapping = amACLManager.userGroupMapping;
     this.amUser = amACLManager.amUser;
     this.dagUser = dagUser;
     this.users = amACLManager.users;
@@ -96,7 +92,7 @@ public class ACLManager {
   }
 
   @VisibleForTesting
-  boolean checkAccess(String user, ACLType aclType) {
+  boolean checkAccess(String user, Collection<String> userGroups, ACLType aclType) {
     if (!aclsEnabled) {
       return true;
     }
@@ -119,41 +115,36 @@ public class ACLManager {
         }
       }
     }
-    if (groups != null && !groups.isEmpty()) {
-      try {
-        Set<String> set = groups.get(aclType);
-        if (set != null) {
-          Set<String> userGrps = userGroupMapping.getGroups(user);
-          for (String userGrp : userGrps) {
-            if (set.contains(userGrp)) {
-              return true;
-            }
+    if (userGroups != null && !userGroups.isEmpty()
+        && groups != null && !groups.isEmpty()) {
+      Set<String> set = groups.get(aclType);
+      if (set != null) {
+        for (String userGrp : userGroups) {
+          if (set.contains(userGrp)) {
+            return true;
           }
         }
-      } catch (IOException e) {
-        LOG.warn("Failed to retrieve groups for user"
-            + ", user=" + user, e);
       }
     }
     return false;
   }
 
-  public boolean checkAMViewAccess(String user) {
-    return checkAccess(user, ACLType.AM_VIEW_ACL);
+  public boolean checkAMViewAccess(String user, Collection<String> userGroups) {
+    return checkAccess(user, userGroups, ACLType.AM_VIEW_ACL);
   }
 
-  public boolean checkAMModifyAccess(String user) {
-    return checkAccess(user, ACLType.AM_MODIFY_ACL);
+  public boolean checkAMModifyAccess(String user, Collection<String> userGroups) {
+    return checkAccess(user, userGroups, ACLType.AM_MODIFY_ACL);
   }
 
-  public boolean checkDAGViewAccess(String user) {
-    return checkAccess(user, ACLType.AM_VIEW_ACL)
-        || checkAccess(user, ACLType.DAG_VIEW_ACL);
+  public boolean checkDAGViewAccess(String user, Collection<String> userGroups) {
+    return checkAccess(user, userGroups, ACLType.AM_VIEW_ACL)
+        || checkAccess(user, userGroups, ACLType.DAG_VIEW_ACL);
   }
 
-  public boolean checkDAGModifyAccess(String user) {
-    return checkAccess(user, ACLType.AM_MODIFY_ACL)
-        || checkAccess(user, ACLType.DAG_MODIFY_ACL);
+  public boolean checkDAGModifyAccess(String user, Collection<String> userGroups) {
+    return checkAccess(user, userGroups, ACLType.AM_MODIFY_ACL)
+        || checkAccess(user, userGroups, ACLType.DAG_MODIFY_ACL);
   }
 
   public Map<ApplicationAccessType, String> toYARNACls() {

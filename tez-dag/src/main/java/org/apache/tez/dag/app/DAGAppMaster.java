@@ -139,7 +139,6 @@ import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeMap;
 import org.apache.tez.common.security.ACLManager;
-import org.apache.tez.common.security.Groups;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -309,9 +308,7 @@ public class DAGAppMaster extends AbstractService {
 
     dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
-    Groups userGroupMapping = new Groups(this.amConf);
-    this.aclManager = new ACLManager(userGroupMapping, appMasterUgi.getShortUserName(),
-        this.amConf);
+    this.aclManager = new ACLManager(appMasterUgi.getShortUserName(), this.amConf);
 
     clientHandler = new DAGClientHandler(this);
 

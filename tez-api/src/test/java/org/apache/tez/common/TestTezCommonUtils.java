@@ -232,4 +232,13 @@ public class TestTezCommonUtils {
     TestTezClientUtils.testLocalResourceVisibility(dfsCluster.getFileSystem(), conf);
   }
 
+  @Test
+  public void testStringTokenize() {
+    String s = "foo:bar:xyz::too";
+    String[] expectedTokens = { "foo", "bar" , "xyz" , "too"};
+    String[] tokens = new String[4];
+    TezCommonUtils.tokenizeString(s, ":").toArray(tokens);
+    Assert.assertArrayEquals(expectedTokens, tokens);
+  }
+
 }

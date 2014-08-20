@@ -78,7 +78,6 @@ import org.apache.log4j.Level;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.security.ACLManager;
-import org.apache.tez.common.security.Groups;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
@@ -576,9 +575,7 @@ public class TezClientUtils {
       sessionJarsPBLRsrc);
 
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
-
-    Groups groups = null;
-    ACLManager aclManager = new ACLManager(groups, user, finalTezConf);
+    ACLManager aclManager = new ACLManager(user, finalTezConf);
     Map<ApplicationAccessType, String> acls = aclManager.toYARNACls();
 
     if(dag != null) {
