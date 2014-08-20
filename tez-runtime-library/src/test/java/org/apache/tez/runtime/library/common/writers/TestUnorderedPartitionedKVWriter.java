@@ -41,6 +41,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
@@ -311,8 +312,9 @@ public class TestUnorderedPartitionedKVWriter {
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(0);
     assertEquals(0, cdme.getSourceIndexStart());
     assertEquals(numPartitions, cdme.getCount());
-    DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(cdme
-        .getUserPayload());
+    DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(
+        ByteString.copyFrom(cdme
+            .getUserPayload()));
     assertFalse(eventProto.hasData());
     BitSet emptyPartitionBits = null;
     if (partitionsWithData.cardinality() != numPartitions) {
@@ -498,8 +500,9 @@ public class TestUnorderedPartitionedKVWriter {
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(0);
     assertEquals(0, cdme.getSourceIndexStart());
     assertEquals(numOutputs, cdme.getCount());
-    DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(cdme
-        .getUserPayload());
+    DataMovementEventPayloadProto eventProto =
+        DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(
+            cdme.getUserPayload()));
     assertFalse(eventProto.hasData());
     if (skippedPartitions == null && numRecordsWritten > 0) {
       assertFalse(eventProto.hasEmptyPartitions());

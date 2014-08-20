@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api.events;
 
+import java.nio.ByteBuffer;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.Event;
@@ -46,7 +48,7 @@ public final class DataMovementEvent extends Event {
   /**
    * User Payload for this Event
    */
-  private final byte[] userPayload;
+  private final ByteBuffer userPayload;
 
   /**
    * Version number to indicate what attempt generated this Event
@@ -55,7 +57,7 @@ public final class DataMovementEvent extends Event {
 
 
   private DataMovementEvent(int sourceIndex,
-                            byte[] userPayload) {
+                            ByteBuffer userPayload) {
     this.userPayload = userPayload;
     this.sourceIndex = sourceIndex;
   }
@@ -64,14 +66,14 @@ public final class DataMovementEvent extends Event {
   private DataMovementEvent(int sourceIndex,
                             int targetIndex,
                             int version,
-                            byte[] userPayload) {
+                            ByteBuffer userPayload) {
     this.userPayload = userPayload;
     this.sourceIndex = sourceIndex;
     this.version = version;
     this.targetIndex = targetIndex;
   }
 
-  private DataMovementEvent(byte[] userPayload) {
+  private DataMovementEvent(ByteBuffer userPayload) {
     this(-1, userPayload);
   }
 
@@ -82,7 +84,7 @@ public final class DataMovementEvent extends Event {
    * @param userPayload User Payload of the User Event
    */
   public static DataMovementEvent create(int sourceIndex,
-                                         byte[] userPayload) {
+                                         ByteBuffer userPayload) {
     return new DataMovementEvent(sourceIndex, userPayload);
   }
 
@@ -90,7 +92,7 @@ public final class DataMovementEvent extends Event {
    * Constructor for Processor-generated User Events
    * @param userPayload
    */
-  public static DataMovementEvent create(byte[] userPayload) {
+  public static DataMovementEvent create(ByteBuffer userPayload) {
     return new DataMovementEvent(userPayload);
   }
 
@@ -98,12 +100,12 @@ public final class DataMovementEvent extends Event {
   public static DataMovementEvent create(int sourceIndex,
                                          int targetIndex,
                                          int version,
-                                         byte[] userPayload) {
+                                         ByteBuffer userPayload) {
     return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
   }
 
-  public byte[] getUserPayload() {
-    return userPayload;
+  public ByteBuffer getUserPayload() {
+    return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
 
   public int getSourceIndex() {

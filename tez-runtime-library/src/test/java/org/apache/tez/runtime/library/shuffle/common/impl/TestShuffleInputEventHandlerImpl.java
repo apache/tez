@@ -148,7 +148,8 @@ public class TestShuffleInputEventHandlerImpl {
     if (emptyPartitionByteString != null) {
       builder.setEmptyPartitions(emptyPartitionByteString);
     }
-    Event dme = DataMovementEvent.create(srcIndex, targetIndex, 0, builder.build().toByteArray());
+    Event dme = DataMovementEvent
+        .create(srcIndex, targetIndex, 0, builder.build().toByteString().asReadOnlyByteBuffer());
     return dme;
   }
 

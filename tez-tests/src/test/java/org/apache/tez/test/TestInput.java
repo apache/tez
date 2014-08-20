@@ -291,7 +291,7 @@ public class TestInput extends AbstractLogicalInput {
             " numCompletedInputs: " + numCompletedInputs);
         this.completedInputVersion[dmEvent.getTargetIndex()] = dmEvent.getVersion();
         this.inputValues[dmEvent.getTargetIndex()] = 
-            ByteBuffer.wrap(dmEvent.getUserPayload()).getInt();
+            dmEvent.getUserPayload().getInt();
       } else if (event instanceof InputFailedEvent) {
         InputFailedEvent ifEvent = (InputFailedEvent) event;
         numCompletedInputs--;

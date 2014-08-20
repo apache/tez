@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api.events;
 
+import java.nio.ByteBuffer;
+
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -43,13 +45,14 @@ import org.apache.tez.runtime.api.InputInitializer;
 @Public
 public final class InputDataInformationEvent extends Event {
 
+
   private final int sourceIndex;
   private int targetIndex; // TODO Likely to be multiple at a later point.
-  private final byte[] userPayload;
+  private final ByteBuffer userPayload;
   private final Object userPayloadObject;
   
 
-  private InputDataInformationEvent(int srcIndex, byte[] userPayload) {
+  private InputDataInformationEvent(int srcIndex, ByteBuffer userPayload) {
     this.sourceIndex = srcIndex;
     this.userPayload = userPayload;
     this.userPayloadObject = null;
@@ -66,7 +69,7 @@ public final class InputDataInformationEvent extends Event {
    * @param srcIndex the src index
    * @param userPayload the serialized payload
    */
-  public static InputDataInformationEvent create(int srcIndex, byte[] userPayload) {
+  public static InputDataInformationEvent create(int srcIndex, ByteBuffer userPayload) {
     return new InputDataInformationEvent(srcIndex, userPayload);
   }
 
@@ -86,8 +89,8 @@ public final class InputDataInformationEvent extends Event {
     this.targetIndex = target;
   }
   
-  public byte[] getUserPayload() {
-    return userPayload;
+  public ByteBuffer getUserPayload() {
+    return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
   
   public Object getDeserializedUserPayload() {

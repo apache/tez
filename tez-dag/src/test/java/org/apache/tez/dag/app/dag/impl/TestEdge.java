@@ -27,6 +27,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -88,7 +89,7 @@ public class TestEdge {
     
     // Verification via a CompositeEvent
     CompositeDataMovementEvent cdmEvent = CompositeDataMovementEvent.create(0, destTasks.size(),
-        "bytes".getBytes());
+        ByteBuffer.wrap("bytes".getBytes()));
     cdmEvent.setVersion(2); // AttemptNum
     TezEvent tezEvent = new TezEvent(cdmEvent, srcMeta);
     // Event setup to look like it would after the Vertex is done with it.
@@ -104,7 +105,7 @@ public class TestEdge {
     // Same Verification via regular DataMovementEvents
     reset(eventHandler);
     for (int i = 0 ; i < destTasks.size() ; i++) {
-      DataMovementEvent dmEvent = DataMovementEvent.create(i, "bytes".getBytes());
+      DataMovementEvent dmEvent = DataMovementEvent.create(i, ByteBuffer.wrap("bytes".getBytes()));
       dmEvent.setVersion(2);
       tezEvent = new TezEvent(dmEvent, srcMeta);
       edge.sendTezEventToDestinationTasks(tezEvent);
@@ -133,7 +134,9 @@ public class TestEdge {
       assertEquals(srcTAID.getId(), dmEvent.getVersion());
       assertEquals(count, dmEvent.getSourceIndex());
       assertEquals(srcTAID.getTaskID().getId(), dmEvent.getTargetIndex());
-      assertTrue(Arrays.equals("bytes".getBytes(), dmEvent.getUserPayload()));
+      byte[] res = new byte[dmEvent.getUserPayload().limit() - dmEvent.getUserPayload().position()];
+      dmEvent.getUserPayload().slice().get(res);
+      assertTrue(Arrays.equals("bytes".getBytes(), res));
 
       count++;
     }

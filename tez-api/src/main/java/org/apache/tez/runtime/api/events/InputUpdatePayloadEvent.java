@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api.events;
 
+import java.nio.ByteBuffer;
+
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.Event;
@@ -36,18 +38,18 @@ import com.google.common.base.Preconditions;
 @Public
 public class InputUpdatePayloadEvent extends Event {
 
-  private final byte[] userPayload;
+  private final ByteBuffer userPayload;
 
-  private InputUpdatePayloadEvent(byte[] userPayload) {
+  private InputUpdatePayloadEvent(ByteBuffer userPayload) {
     Preconditions.checkNotNull(userPayload);
     this.userPayload = userPayload;
   }
 
-  public static InputUpdatePayloadEvent create(byte[] userPayload) {
+  public static InputUpdatePayloadEvent create(ByteBuffer userPayload) {
     return new InputUpdatePayloadEvent(userPayload);
   }
 
-  public byte[] getUserPayload() {
-    return userPayload;
+  public ByteBuffer getUserPayload() {
+    return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
 }

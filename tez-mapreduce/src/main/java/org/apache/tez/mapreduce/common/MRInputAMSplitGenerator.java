@@ -143,7 +143,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
       for (MRSplitProto mrSplit : splitsProto.getSplitsList()) {
         // Unnecessary array copy, can be avoided by using ByteBuffer instead of a raw array.
         InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++,
-            mrSplit.toByteArray());
+            mrSplit.toByteString().asReadOnlyByteBuffer());
         events.add(diEvent);
       }
     } else {

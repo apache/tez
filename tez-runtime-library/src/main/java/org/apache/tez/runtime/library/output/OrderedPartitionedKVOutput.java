@@ -192,7 +192,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
     payloadBuilder.setRunDuration((int) ((endTime - startTime) / 1000));
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
-    byte[] payload = payloadProto.toByteArray();
+    ByteBuffer payload = payloadProto.toByteString().asReadOnlyByteBuffer();
 
     long outputSize = getContext().getCounters()
         .findCounter(TaskCounter.OUTPUT_BYTES).getValue();
@@ -200,7 +200,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
         .newBuilder();
     vmBuilder.setOutputSize(outputSize);
     VertexManagerEvent vmEvent = VertexManagerEvent.create(
-        getContext().getDestinationVertexName(), vmBuilder.build().toByteArray());    
+        getContext().getDestinationVertexName(), vmBuilder.build().toByteString().asReadOnlyByteBuffer());
 
     List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs() + 1);
     events.add(vmEvent);

@@ -48,7 +48,7 @@ public class ProtoConverters {
         proto.getTargetIndex(),
         proto.getVersion(),
         proto.getUserPayload() != null ?
-            proto.getUserPayload().toByteArray() : null);
+            proto.getUserPayload().asReadOnlyByteBuffer() : null);
   }
 
   public static EventProtos.CompositeEventProto convertCompositeDataMovementEventToProto(
@@ -67,7 +67,7 @@ public class ProtoConverters {
       EventProtos.CompositeEventProto proto) {
     return CompositeDataMovementEvent.create(proto.getStartIndex(),
         proto.getCount(),
-        proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null);
+        proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null);
   }
   
   public static EventProtos.VertexManagerEventProto convertVertexManagerEventToProto(
@@ -83,7 +83,7 @@ public class ProtoConverters {
   public static VertexManagerEvent convertVertexManagerEventFromProto(
       EventProtos.VertexManagerEventProto vmProto) {
     return VertexManagerEvent.create(vmProto.getTargetVertexName(),
-        vmProto.hasUserPayload() ? vmProto.getUserPayload().toByteArray() : null);
+        vmProto.hasUserPayload() ? vmProto.getUserPayload().asReadOnlyByteBuffer() : null);
   }
 
   public static EventProtos.RootInputDataInformationEventProto
@@ -103,7 +103,7 @@ public class ProtoConverters {
       EventProtos.RootInputDataInformationEventProto proto) {
     InputDataInformationEvent diEvent = InputDataInformationEvent.create(
         proto.getSourceIndex(),
-        proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null);
+        proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null);
     diEvent.setTargetIndex(proto.getTargetIndex());
     return diEvent;
   }
@@ -124,7 +124,7 @@ public class ProtoConverters {
       EventProtos.RootInputInitializerEventProto proto) {
     InputInitializerEvent event =
         InputInitializerEvent.create(proto.getTargetVertexName(), proto.getTargetInputName(),
-            (proto.hasUserPayload() ? proto.getUserPayload().toByteArray() : null));
+            (proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null));
     return event;
   }
 

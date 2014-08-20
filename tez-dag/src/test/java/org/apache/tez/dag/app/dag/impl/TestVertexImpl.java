@@ -1894,10 +1894,10 @@ public class TestVertexImpl {
 
     List<TezEvent> taskEvents = Lists.newLinkedList();
     TezEvent tezEvent1 = new TezEvent(
-        CompositeDataMovementEvent.create(0, 1, new byte[0]),
+        CompositeDataMovementEvent.create(0, 1, ByteBuffer.wrap(new byte[0])),
         new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex3", ta0_t0_v2));
     TezEvent tezEvent2 = new TezEvent(
-        DataMovementEvent.create(0, new byte[0]),
+        DataMovementEvent.create(0, ByteBuffer.wrap(new byte[0])),
         new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex3", ta0_t0_v2));
     taskEvents.add(tezEvent1);
     taskEvents.add(tezEvent2);
@@ -2911,10 +2911,10 @@ public class TestVertexImpl {
     TezTaskID t0_v1 = TezTaskID.getInstance(v1.getVertexId(), 0);
     TezTaskAttemptID ta0_t0_v1 = TezTaskAttemptID.getInstance(t0_v1, 0);
     events.add(new TezEvent(
-        VertexManagerEvent.create("vertex2", new byte[0]), new EventMetaData(
+        VertexManagerEvent.create("vertex2", ByteBuffer.wrap(new byte[0])), new EventMetaData(
             EventProducerConsumerType.PROCESSOR, "vertex1", "vertex2",
             ta0_t0_v1)));
-    events.add(new TezEvent(InputDataInformationEvent.create(0, new byte[0]),
+    events.add(new TezEvent(InputDataInformationEvent.create(0, ByteBuffer.wrap(new byte[0])),
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex2",
             "NULL_VERTEX", null)));
     dispatcher.getEventHandler().handle(
@@ -3244,7 +3244,7 @@ public class TestVertexImpl {
 
     public void completeInputDistribution(byte[] payload) {
       List<Event> events = Lists.newArrayListWithCapacity(1);
-      InputUpdatePayloadEvent event = InputUpdatePayloadEvent.create(payload);
+      InputUpdatePayloadEvent event = InputUpdatePayloadEvent.create(ByteBuffer.wrap(payload));
       events.add(event);
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
           .get(0).getName(), events));
@@ -3462,7 +3462,7 @@ public class TestVertexImpl {
         lock.unlock();
       }
       initComplete.set(true);
-      InputDataInformationEvent diEvent = InputDataInformationEvent.create(0, new byte[]{0});
+      InputDataInformationEvent diEvent = InputDataInformationEvent.create(0, ByteBuffer.wrap(new byte[]{0}));
       List<Event> eventList = new LinkedList<Event>();
       eventList.add(diEvent);
       return eventList;

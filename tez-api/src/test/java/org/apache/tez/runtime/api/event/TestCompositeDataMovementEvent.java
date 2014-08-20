@@ -17,13 +17,15 @@ package org.apache.tez.runtime.api.event;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import java.nio.ByteBuffer;
+
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestCompositeDataMovementEvent {
-  byte[] userPayload = "Dummy userPayLoad".getBytes();
+  ByteBuffer userPayload = ByteBuffer.wrap("Dummy userPayLoad".getBytes());
 
   @Test
   public void testGetCount(){

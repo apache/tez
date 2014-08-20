@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api.events;
 
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -42,9 +43,9 @@ public class CompositeDataMovementEvent extends Event {
   protected final int count;
   protected int version;
 
-  protected final byte[] userPayload;
+  protected final ByteBuffer userPayload;
 
-  private CompositeDataMovementEvent(int srcIndexStart, int count, byte[] userPayload) {
+  private CompositeDataMovementEvent(int srcIndexStart, int count, ByteBuffer userPayload) {
     this.sourceIndexStart = srcIndexStart;
     this.count = count;
     this.userPayload = userPayload;
@@ -61,7 +62,7 @@ public class CompositeDataMovementEvent extends Event {
    *          the common payload between all the events.
    */
   public static CompositeDataMovementEvent create(int srcIndexStart, int count,
-                                                  byte[] userPayload) {
+                                                  ByteBuffer userPayload) {
     return new CompositeDataMovementEvent(srcIndexStart, count, userPayload);
   }
 
@@ -73,8 +74,8 @@ public class CompositeDataMovementEvent extends Event {
     return count;
   }
 
-  public byte[] getUserPayload() {
-    return userPayload;
+  public ByteBuffer getUserPayload() {
+    return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
 
   public void setVersion(int version) {

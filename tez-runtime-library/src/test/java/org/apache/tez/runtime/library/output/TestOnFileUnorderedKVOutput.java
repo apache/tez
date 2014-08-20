@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -145,7 +146,7 @@ public class TestOnFileUnorderedKVOutput {
     assertEquals("Invalid source index", 0, dmEvent.getSourceIndex());
 
     DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto
-        .parseFrom(dmEvent.getUserPayload());
+        .parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
 
     assertFalse(shufflePayload.hasEmptyPartitions());
     assertEquals(outputContext.getUniqueIdentifier(), shufflePayload.getPathComponent());

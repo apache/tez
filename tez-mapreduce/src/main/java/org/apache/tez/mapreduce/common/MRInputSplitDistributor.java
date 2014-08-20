@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.common;
 import java.io.IOException;
 import java.util.List;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -38,12 +39,14 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 
 /**
  * Implements an {@link InputInitializer} that distributes Map Reduce 
@@ -96,7 +99,7 @@ public class MRInputSplitDistributor extends InputInitializer {
 
     List<Event> events = Lists.newArrayListWithCapacity(this.splitsProto.getSplitsCount() + 1);
     InputUpdatePayloadEvent updatePayloadEvent = InputUpdatePayloadEvent.create(
-        updatedPayloadBuilder.build().toByteArray());
+        updatedPayloadBuilder.build().toByteString().asReadOnlyByteBuffer());
 
     events.add(updatePayloadEvent);
     int count = 0;
@@ -108,7 +111,7 @@ public class MRInputSplitDistributor extends InputInitializer {
       if (sendSerializedEvents) {
         // Unnecessary array copy, can be avoided by using ByteBuffer instead of
         // a raw array.
-        diEvent = InputDataInformationEvent.create(count++, mrSplit.toByteArray());
+        diEvent = InputDataInformationEvent.create(count++, mrSplit.toByteString().asReadOnlyByteBuffer());
       } else {
         if (useNewApi) {
           org.apache.hadoop.mapreduce.InputSplit newInputSplit = MRInputUtils

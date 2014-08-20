@@ -491,7 +491,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
 
     CompositeDataMovementEvent cDme = CompositeDataMovementEvent.create(0, numPartitions,
-        payloadBuidler.build().toByteArray());
+        payloadBuidler.build().toByteString().asReadOnlyByteBuffer());
     return cDme;
   }
 

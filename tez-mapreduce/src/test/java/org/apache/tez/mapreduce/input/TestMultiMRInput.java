@@ -111,7 +111,8 @@ public class TestMultiMRInput {
     assertEquals(1, splits.length);
 
     MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
-    InputDataInformationEvent event = InputDataInformationEvent.create(0, splitProto.toByteArray());
+    InputDataInformationEvent event =
+        InputDataInformationEvent.create(0, splitProto.toByteString().asReadOnlyByteBuffer());
 
     eventList.clear();
     eventList.add(event);
@@ -171,11 +172,11 @@ public class TestMultiMRInput {
 
     MRSplitProto splitProto1 = MRInputHelpers.createSplitProto(splits[0]);
     InputDataInformationEvent event1 =
-        InputDataInformationEvent.create(0, splitProto1.toByteArray());
+        InputDataInformationEvent.create(0, splitProto1.toByteString().asReadOnlyByteBuffer());
 
     MRSplitProto splitProto2 = MRInputHelpers.createSplitProto(splits[1]);
     InputDataInformationEvent event2 =
-        InputDataInformationEvent.create(0, splitProto2.toByteArray());
+        InputDataInformationEvent.create(0, splitProto2.toByteString().asReadOnlyByteBuffer());
 
     eventList.clear();
     eventList.add(event1);
@@ -224,9 +225,9 @@ public class TestMultiMRInput {
 
     MRSplitProto splitProto = MRInputHelpers.createSplitProto(splits[0]);
     InputDataInformationEvent event1 =
-        InputDataInformationEvent.create(0, splitProto.toByteArray());
+        InputDataInformationEvent.create(0, splitProto.toByteString().asReadOnlyByteBuffer());
     InputDataInformationEvent event2 =
-        InputDataInformationEvent.create(1, splitProto.toByteArray());
+        InputDataInformationEvent.create(1, splitProto.toByteString().asReadOnlyByteBuffer());
 
     eventList.clear();
     eventList.add(event1);

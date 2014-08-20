@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.output;
 
+import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -175,7 +176,8 @@ public class TestOnFileSortedOutput {
 
     ShuffleUserPayloads.DataMovementEventPayloadProto
         payload = ShuffleUserPayloads.DataMovementEventPayloadProto
-        .parseFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload());
+        .parseFrom(
+            ByteString.copyFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload()));
 
     assertEquals(HOST, payload.getHost());
     assertEquals(PORT, payload.getPort());
@@ -203,7 +205,7 @@ public class TestOnFileSortedOutput {
 
     ShuffleUserPayloads.DataMovementEventPayloadProto
         payload = ShuffleUserPayloads.DataMovementEventPayloadProto
-        .parseFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload());
+        .parseFrom(ByteString.copyFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload()));
 
     assertEquals(HOST, payload.getHost());
     assertEquals(PORT, payload.getPort());
@@ -220,7 +222,7 @@ public class TestOnFileSortedOutput {
 
     ShuffleUserPayloads.DataMovementEventPayloadProto
         payload = ShuffleUserPayloads.DataMovementEventPayloadProto
-        .parseFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload());
+        .parseFrom(ByteString.copyFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload()));
     if (sendEmptyPartitionViaEvent) {
       assertEquals("", payload.getHost());
       assertEquals(0, payload.getPort());

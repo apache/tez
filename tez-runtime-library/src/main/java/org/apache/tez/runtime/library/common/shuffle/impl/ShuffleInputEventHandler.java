@@ -24,6 +24,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -90,7 +91,7 @@ public class ShuffleInputEventHandler {
   private void processDataMovementEvent(DataMovementEvent dmEvent) throws IOException {
     DataMovementEventPayloadProto shufflePayload;
     try {
-      shufflePayload = DataMovementEventPayloadProto.parseFrom(dmEvent.getUserPayload());
+      shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
     } catch (InvalidProtocolBufferException e) {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     } 

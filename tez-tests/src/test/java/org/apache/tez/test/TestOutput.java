@@ -77,7 +77,8 @@ public class TestOutput extends AbstractLogicalOutput {
   @Override
   public List<Event> close() throws Exception {
     LOG.info("Sending data movement event with value: " + output);
-    byte[] result = ByteBuffer.allocate(4).putInt(output).array();
+    ByteBuffer result = ByteBuffer.allocate(4).putInt(output);
+    result.flip();
     List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs());
     for (int i = 0; i < getNumPhysicalOutputs(); i++) {
       DataMovementEvent event = DataMovementEvent.create(i, result);

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -556,7 +557,7 @@ public class MRInput extends MRInputBase {
   private void initFromEventInternal(InputDataInformationEvent initEvent) throws IOException {
     LOG.info("Initializing RecordReader from event");
     Preconditions.checkState(initEvent != null, "InitEvent must be specified");
-    MRSplitProto splitProto = MRSplitProto.parseFrom(initEvent.getUserPayload());
+    MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(initEvent.getUserPayload()));
     Object split = null;
     if (useNewApi) {
       split = MRInputUtils.getNewSplitDetailsFromEvent(splitProto, jobConf);

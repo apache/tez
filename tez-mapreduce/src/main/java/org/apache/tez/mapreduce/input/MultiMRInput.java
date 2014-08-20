@@ -28,6 +28,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -114,7 +115,7 @@ public class MultiMRInput extends MRInputBase {
   private MRReader initFromEvent(InputDataInformationEvent event) throws IOException {
     Preconditions.checkState(event != null, "Event must be specified");
     LOG.info("Initializing Reader: " + eventCount.get());
-    MRSplitProto splitProto = MRSplitProto.parseFrom(event.getUserPayload());
+    MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(event.getUserPayload()));
     Object split = null;
     MRReader reader = null;
     JobConf localJobConf = new JobConf(jobConf);

@@ -19,6 +19,7 @@
 package org.apache.tez.dag.library.vertexmanager;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -215,8 +216,8 @@ public class TestShuffleVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
 
-    byte[] payload =
-        VertexManagerEventPayloadProto.newBuilder().setOutputSize(5000L).build().toByteArray();
+    ByteBuffer payload =
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(5000L).build().toByteString().asReadOnlyByteBuffer();
     VertexManagerEvent vmEvent = VertexManagerEvent.create("Vertex", payload);
     // parallelism not change due to large data size
     manager = createManager(conf, mockContext, 0.1f, 0.1f);
@@ -236,7 +237,7 @@ public class TestShuffleVertexManager {
     // parallelism changed due to small data size
     scheduledTasks.clear();
     payload =
-        VertexManagerEventPayloadProto.newBuilder().setOutputSize(500L).build().toByteArray();
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(500L).build().toByteString().asReadOnlyByteBuffer();
     vmEvent = VertexManagerEvent.create("Vertex", payload);
     
     manager = createManager(conf, mockContext, 0.5f, 0.5f);
@@ -283,7 +284,7 @@ public class TestShuffleVertexManager {
     
     EdgeManagerPlugin edgeManager = newEdgeManagers.values().iterator().next();
     Map<Integer, List<Integer>> targets = Maps.newHashMap();
-    DataMovementEvent dmEvent = DataMovementEvent.create(1, new byte[0]);
+    DataMovementEvent dmEvent = DataMovementEvent.create(1, ByteBuffer.wrap(new byte[0]));
     // 4 source task outputs - same as original number of partitions
     Assert.assertEquals(4, edgeManager.getNumSourceTaskPhysicalOutputs(0));
     // 4 destination task inputs - 2 source tasks + 2 merged partitions
@@ -295,7 +296,7 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(1, e.getValue().size());
     Assert.assertEquals(3, e.getValue().get(0).intValue());
     targets.clear();
-    dmEvent = DataMovementEvent.create(2, new byte[0]);
+    dmEvent = DataMovementEvent.create(2, ByteBuffer.wrap(new byte[0]));
     edgeManager.routeDataMovementEventToDestination(dmEvent, 0, dmEvent.getSourceIndex(), targets);
     Assert.assertEquals(1, targets.size());
     e = targets.entrySet().iterator().next();

@@ -90,12 +90,12 @@ public class TestMRInputSplitDistributor {
     assertNotNull(diEvent1.getUserPayload());
     assertNotNull(diEvent2.getUserPayload());
 
-    MRSplitProto event1Proto = MRSplitProto.parseFrom(diEvent1.getUserPayload());
+    MRSplitProto event1Proto = MRSplitProto.parseFrom(ByteString.copyFrom(diEvent1.getUserPayload()));
     InputSplit is1 = MRInputUtils.getOldSplitDetailsFromEvent(event1Proto, new Configuration());
     assertTrue(is1 instanceof InputSplitForTest);
     assertEquals(1, ((InputSplitForTest) is1).identifier);
 
-    MRSplitProto event2Proto = MRSplitProto.parseFrom(diEvent2.getUserPayload());
+    MRSplitProto event2Proto = MRSplitProto.parseFrom(ByteString.copyFrom(diEvent2.getUserPayload()));
     InputSplit is2 = MRInputUtils.getOldSplitDetailsFromEvent(event2Proto, new Configuration());
     assertTrue(is2 instanceof InputSplitForTest);
     assertEquals(2, ((InputSplitForTest) is2).identifier);

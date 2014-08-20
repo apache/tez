@@ -349,7 +349,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       // save output size
       VertexManagerEventPayloadProto proto;
       try {
-        proto = VertexManagerEventPayloadProto.parseFrom(vmEvent.getUserPayload());
+        proto = VertexManagerEventPayloadProto.parseFrom(ByteString.copyFrom(vmEvent.getUserPayload()));
       } catch (InvalidProtocolBufferException e) {
         throw new TezUncheckedException(e);
       }
