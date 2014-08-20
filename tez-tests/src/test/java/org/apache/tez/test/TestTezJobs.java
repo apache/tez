@@ -51,9 +51,9 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.examples.SimpleSessionExample;
-import org.apache.tez.examples.IntersectDataGen;
-import org.apache.tez.examples.IntersectExample;
-import org.apache.tez.examples.IntersectValidate;
+import org.apache.tez.examples.JoinDataGen;
+import org.apache.tez.examples.JoinExample;
+import org.apache.tez.examples.JoinValidate;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -118,7 +118,7 @@ public class TestTezJobs {
 
   @Test(timeout = 60000)
   public void testIntersectExample() throws Exception {
-    IntersectExample intersectExample = new IntersectExample();
+    JoinExample intersectExample = new JoinExample();
     intersectExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
     Path inPath1 = new Path("/tmp/inPath1");
@@ -192,18 +192,18 @@ public class TestTezJobs {
       tezSession = TezClient.create("IntersectExampleSession", tezConf);
       tezSession.start();
 
-      IntersectDataGen dataGen = new IntersectDataGen();
+      JoinDataGen dataGen = new JoinDataGen();
       String[] dataGenArgs = new String[] {
           dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
           expectedOutputPath.toString(), "2" };
       assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
 
-      IntersectExample intersect = new IntersectExample();
+      JoinExample intersect = new JoinExample();
       String[] intersectArgs = new String[] {
           dataPath1.toString(), dataPath2.toString(), "2", outPath.toString() };
       assertEquals(0, intersect.run(tezConf, intersectArgs, tezSession));
 
-      IntersectValidate intersectValidate = new IntersectValidate();
+      JoinValidate intersectValidate = new JoinValidate();
       String[] intersectValidateArgs = new String[] {
           expectedOutputPath.toString(), outPath.toString(), "3" };
       assertEquals(0, intersectValidate.run(tezConf, intersectValidateArgs, tezSession));

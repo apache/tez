@@ -26,6 +26,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -58,6 +59,12 @@ import com.google.common.base.Preconditions;
  */
 public class OrderedWordCount extends Configured implements Tool  {
   
+  private static String INPUT = WordCount.INPUT;
+  private static String OUTPUT = WordCount.OUTPUT;
+  private static String TOKENIZER = WordCount.TOKENIZER;
+  private static String SUMMATION = WordCount.SUMMATION;
+  private static String SORTER = "Sorter";
+  
   /*
    * SumProcessor similar to WordCount except that it writes the count as key and the 
    * word as value. This is because we can and ordered partitioned key value edge to group the 
@@ -72,8 +79,13 @@ public class OrderedWordCount extends Configured implements Tool  {
     public void run() throws Exception {
       Preconditions.checkArgument(getInputs().size() == 1);
       Preconditions.checkArgument(getOutputs().size() == 1);
-      KeyValueWriter kvWriter = (KeyValueWriter) getOutputs().values().iterator().next().getWriter();
-      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next().getReader();
+      // the recommended approach is to cast the reader/writer to a specific type instead
+      // of casting the input/output. This allows the actual input/output type to be replaced
+      // without affecting the semantic guarantees of the data type that are represented by
+      // the reader and writer.
+      // The inputs/outputs are referenced via the names assigned in the DAG.
+      KeyValueWriter kvWriter = (KeyValueWriter) getOutputs().get(SORTER).getWriter();
+      KeyValuesReader kvReader = (KeyValuesReader) getInputs().get(TOKENIZER).getReader();
       while (kvReader.next()) {
         Text word = (Text) kvReader.getCurrentKey();
         int sum = 0;
@@ -100,8 +112,8 @@ public class OrderedWordCount extends Configured implements Tool  {
     public void run() throws Exception {
       Preconditions.checkArgument(getInputs().size() == 1);
       Preconditions.checkArgument(getOutputs().size() == 1);
-      KeyValueWriter kvWriter = (KeyValueWriter) getOutputs().values().iterator().next().getWriter();
-      KeyValuesReader kvReader = (KeyValuesReader) getInputs().values().iterator().next().getReader();
+      KeyValueWriter kvWriter = (KeyValueWriter) getOutputs().get(OUTPUT).getWriter();
+      KeyValuesReader kvReader = (KeyValuesReader) getInputs().get(SUMMATION).getReader();
       while (kvReader.next()) {
         Object sum = kvReader.getCurrentKey();
         for (Object word : kvReader.getCurrentValues()) {
@@ -121,9 +133,9 @@ public class OrderedWordCount extends Configured implements Tool  {
     DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(tezConf),
         TextOutputFormat.class, outputPath).build();
 
-    Vertex tokenizerVertex = Vertex.create("Tokenizer", ProcessorDescriptor.create(
+    Vertex tokenizerVertex = Vertex.create(TOKENIZER, ProcessorDescriptor.create(
         TokenProcessor.class.getName()));
-    tokenizerVertex.addDataSource("MRInput", dataSource);
+    tokenizerVertex.addDataSource(INPUT, dataSource);
 
     // Use Text key and IntWritable value to bring counts for each word in the same partition
     OrderedPartitionedKVEdgeConfig summationEdgeConf = OrderedPartitionedKVEdgeConfig
@@ -132,7 +144,7 @@ public class OrderedWordCount extends Configured implements Tool  {
 
     // This vertex will be reading intermediate data via an input edge and writing intermediate data
     // via an output edge.
-    Vertex summationVertex = Vertex.create("Summation", ProcessorDescriptor.create(
+    Vertex summationVertex = Vertex.create(SUMMATION, ProcessorDescriptor.create(
         SumProcessor.class.getName()), numPartitions);
     
     // Use IntWritable key and Text value to bring all words with the same count in the same 
@@ -143,9 +155,9 @@ public class OrderedWordCount extends Configured implements Tool  {
 
     // Use 1 task to bring all the data in one place for global sorted order. Essentially the number
     // of partitions is 1. So the NoOpSorter can be used to produce the globally ordered output
-    Vertex sorterVertex = Vertex.create("Sorter", ProcessorDescriptor.create(
+    Vertex sorterVertex = Vertex.create(SORTER, ProcessorDescriptor.create(
         NoOpSorter.class.getName()), 1);
-    sorterVertex.addDataSink("MROutput", dataSink);
+    sorterVertex.addDataSink(OUTPUT, dataSink);
 
     // No need to add jar containing this class as assumed to be part of the tez jars.
     
@@ -175,6 +187,8 @@ public class OrderedWordCount extends Configured implements Tool  {
     } else {
       tezConf = new TezConfiguration();
     }
+    
+    UserGroupInformation.setConfiguration(tezConf);
     
     TezClient tezClient = TezClient.create("OrderedWordCount", tezConf);
     tezClient.start();

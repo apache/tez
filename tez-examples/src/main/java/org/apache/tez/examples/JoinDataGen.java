@@ -55,16 +55,16 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 import com.google.common.base.Preconditions;
 
-public class IntersectDataGen extends Configured implements Tool {
+public class JoinDataGen extends Configured implements Tool {
 
-  private static final Log LOG = LogFactory.getLog(IntersectDataGen.class);
+  private static final Log LOG = LogFactory.getLog(JoinDataGen.class);
 
   private static final String STREAM_OUTPUT_NAME = "streamoutput";
   private static final String HASH_OUTPUT_NAME = "hashoutput";
   private static final String EXPECTED_OUTPUT_NAME = "expectedoutput";
 
   public static void main(String[] args) throws Exception {
-    IntersectDataGen dataGen = new IntersectDataGen();
+    JoinDataGen dataGen = new JoinDataGen();
     int status = ToolRunner.run(new Configuration(), dataGen, args);
     System.exit(status);
   }
@@ -72,7 +72,7 @@ public class IntersectDataGen extends Configured implements Tool {
   private static void printUsage() {
     System.err
         .println("Usage: "
-            + "intersectdatagen <outPath1> <path1Size> <outPath2> <path2Size> <expectedResultPath> <numTasks>");
+            + "joindatagen <outPath1> <path1Size> <outPath2> <path2Size> <expectedResultPath> <numTasks>");
     ;
     ToolRunner.printGenericCommandUsage(System.err);
   }
@@ -88,14 +88,14 @@ public class IntersectDataGen extends Configured implements Tool {
     return execute(otherArgs);
   }
   
-  public int run(Configuration conf, String[] args, TezClient tezSession) throws Exception {
+  public int run(Configuration conf, String[] args, TezClient tezClient) throws Exception {
     setConf(conf);
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     int result = validateArgs(otherArgs);
     if (result != 0) {
       return result;
     }
-    return execute(otherArgs, tezSession);
+    return execute(otherArgs, tezClient);
   }
   
   private int validateArgs(String[] otherArgs) {
@@ -108,32 +108,32 @@ public class IntersectDataGen extends Configured implements Tool {
 
   private int execute(String [] args) throws TezException, IOException, InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
-    TezClient tezSession = null;
+    TezClient tezClient = null;
     try {
-      tezSession = createTezSession(tezConf);
-      return execute(args, tezConf, tezSession);
+      tezClient = createTezClient(tezConf);
+      return execute(args, tezConf, tezClient);
     } finally {
-      if (tezSession != null) {
-        tezSession.stop();
+      if (tezClient != null) {
+        tezClient.stop();
       }
     }
   }
   
-  private int execute(String[] args, TezClient tezSession) throws IOException, TezException,
+  private int execute(String[] args, TezClient tezClient) throws IOException, TezException,
       InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
-    return execute(args, tezConf, tezSession);
+    return execute(args, tezConf, tezClient);
   }
   
-  private TezClient createTezSession(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezSession = TezClient.create("IntersectDataGenSession", tezConf);
-    tezSession.start();
-    return tezSession;
+  private TezClient createTezClient(TezConfiguration tezConf) throws TezException, IOException {
+    TezClient tezClient = TezClient.create("JoinDataGen", tezConf);
+    tezClient.start();
+    return tezClient;
   }
   
-  private int execute(String[] args, TezConfiguration tezConf, TezClient tezSession)
+  private int execute(String[] args, TezConfiguration tezConf, TezClient tezClient)
       throws IOException, TezException, InterruptedException {
-    LOG.info("Running IntersectDataGen");
+    LOG.info("Running JoinDataGen");
 
     UserGroupInformation.setConfiguration(tezConf);
 
@@ -180,8 +180,8 @@ public class IntersectDataGen extends Configured implements Tool {
     DAG dag = createDag(tezConf, largeOutPath, smallOutPath, expectedOutputPath, numTasks,
         largeOutSize, smallOutSize);
 
-    tezSession.waitTillReady();
-    DAGClient dagClient = tezSession.submitDAG(dag);
+    tezClient.waitTillReady();
+    DAGClient dagClient = tezClient.submitDAG(dag);
     DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
     if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
       LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
@@ -198,7 +198,7 @@ public class IntersectDataGen extends Configured implements Tool {
     long largeOutSizePerTask = largeOutSize / numTasks;
     long smallOutSizePerTask = smallOutSize / numTasks;
 
-    DAG dag = new DAG("IntersectDataGen");
+    DAG dag = new DAG("JoinDataGen");
 
     Vertex genDataVertex = Vertex.create("datagen", ProcessorDescriptor.create(
         GenDataProcessor.class.getName()).setUserPayload(

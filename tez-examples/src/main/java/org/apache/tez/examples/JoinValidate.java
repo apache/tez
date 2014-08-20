@@ -43,7 +43,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.examples.IntersectExample.ForwardingProcessor;
+import org.apache.tez.examples.JoinExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
@@ -56,23 +56,23 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-public class IntersectValidate extends Configured implements Tool {
-  private static final Log LOG = LogFactory.getLog(IntersectExample.class);
+public class JoinValidate extends Configured implements Tool {
+  private static final Log LOG = LogFactory.getLog(JoinExample.class);
 
   private static final String LHS_INPUT_NAME = "lhsfile";
   private static final String RHS_INPUT_NAME = "rhsfile";
 
-  private static final String COUNTER_GROUP_NAME = "INTERSECT_VALIDATE";
+  private static final String COUNTER_GROUP_NAME = "JOIN_VALIDATE";
   private static final String MISSING_KEY_COUNTER_NAME = "MISSING_KEY_EXISTS";
 
   public static void main(String[] args) throws Exception {
-    IntersectValidate validate = new IntersectValidate();
+    JoinValidate validate = new JoinValidate();
     int status = ToolRunner.run(new Configuration(), validate, args);
     System.exit(status);
   }
 
   private static void printUsage() {
-    System.err.println("Usage: " + "intersectvalidate <path1> <path2>");
+    System.err.println("Usage: " + "joinvalidate <path1> <path2>");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
@@ -87,14 +87,14 @@ public class IntersectValidate extends Configured implements Tool {
     return execute(otherArgs);
   }
   
-  public int run(Configuration conf, String[] args, TezClient tezSession) throws Exception {
+  public int run(Configuration conf, String[] args, TezClient tezClient) throws Exception {
     setConf(conf);
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     int result = validateArgs(otherArgs);
     if (result != 0) {
       return result;
     }
-    return execute(otherArgs, tezSession);
+    return execute(otherArgs, tezClient);
   } 
 
   private int validateArgs(String[] otherArgs) {
@@ -107,32 +107,32 @@ public class IntersectValidate extends Configured implements Tool {
 
   private int execute(String[] args) throws TezException, IOException, InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
-    TezClient tezSession = null;
+    TezClient tezClient = null;
     try {
-      tezSession = createTezSession(tezConf);
-      return execute(args, tezConf, tezSession);
+      tezClient = createTezClient(tezConf);
+      return execute(args, tezConf, tezClient);
     } finally {
-      if (tezSession != null) {
-        tezSession.stop();
+      if (tezClient != null) {
+        tezClient.stop();
       }
     }
   }
   
-  private int execute(String[] args, TezClient tezSession) throws IOException, TezException,
+  private int execute(String[] args, TezClient tezClient) throws IOException, TezException,
       InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
-    return execute(args, tezConf, tezSession);
+    return execute(args, tezConf, tezClient);
   }
   
-  private TezClient createTezSession(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezSession = TezClient.create("IntersectValidateSession", tezConf);
-    tezSession.start();
-    return tezSession;
+  private TezClient createTezClient(TezConfiguration tezConf) throws TezException, IOException {
+    TezClient tezClient = TezClient.create("JoinValidate", tezConf);
+    tezClient.start();
+    return tezClient;
   }
 
-  private int execute(String[] args, TezConfiguration tezConf, TezClient tezSession)
+  private int execute(String[] args, TezConfiguration tezConf, TezClient tezClient)
       throws IOException, TezException, InterruptedException {
-    LOG.info("Running IntersectValidate");
+    LOG.info("Running JoinValidate");
     UserGroupInformation.setConfiguration(tezConf);
 
     String lhsDir = args[0];
@@ -152,8 +152,8 @@ public class IntersectValidate extends Configured implements Tool {
 
     DAG dag = createDag(tezConf, lhsPath, rhsPath, numPartitions);
 
-    tezSession.waitTillReady();
-    DAGClient dagClient = tezSession.submitDAG(dag);
+    tezClient.waitTillReady();
+    DAGClient dagClient = tezClient.submitDAG(dag);
     DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
     if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
       LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
@@ -179,7 +179,7 @@ public class IntersectValidate extends Configured implements Tool {
 
   private DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
       throws IOException {
-    DAG dag = new DAG("IntersectValidate");
+    DAG dag = new DAG("JoinValidate");
 
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
@@ -200,22 +200,22 @@ public class IntersectValidate extends Configured implements Tool {
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 rhs.toUri().toString()).groupSplits(false).build());
 
-    Vertex intersectValidateVertex = Vertex.create("intersectvalidate", ProcessorDescriptor.create(
-        IntersectValidateProcessor.class.getName()), numPartitions);
+    Vertex joinValidateVertex = Vertex.create("joinvalidate", ProcessorDescriptor.create(
+        JoinValidateProcessor.class.getName()), numPartitions);
 
-    Edge e1 = Edge.create(lhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
-    Edge e2 = Edge.create(rhsVertex, intersectValidateVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e1 = Edge.create(lhsVertex, joinValidateVertex, edgeConf.createDefaultEdgeProperty());
+    Edge e2 = Edge.create(rhsVertex, joinValidateVertex, edgeConf.createDefaultEdgeProperty());
 
-    dag.addVertex(lhsVertex).addVertex(rhsVertex).addVertex(intersectValidateVertex).addEdge(e1)
+    dag.addVertex(lhsVertex).addVertex(rhsVertex).addVertex(joinValidateVertex).addEdge(e1)
         .addEdge(e2);
     return dag;
   }
 
-  public static class IntersectValidateProcessor extends SimpleProcessor {
+  public static class JoinValidateProcessor extends SimpleProcessor {
 
-    private static final Log LOG = LogFactory.getLog(IntersectValidateProcessor.class);
+    private static final Log LOG = LogFactory.getLog(JoinValidateProcessor.class);
 
-    public IntersectValidateProcessor(ProcessorContext context) {
+    public JoinValidateProcessor(ProcessorContext context) {
       super(context);
     }
 

@@ -77,6 +77,7 @@ INCOMPATIBLE CHANGES
   TEZ-1231. Clean up TezRuntimeConfiguration
   TEZ-1246. Replace constructors with create() methods for DAG, Vertex, Edge etc in the API
   TEZ-1455. Replace deprecated junit.framework.Assert with org.junit.Assert
+  TEZ-1465. Update and document IntersectExample. Change name to JoinExample
 
 Release 0.4.0-incubating: 2014-04-05
 
