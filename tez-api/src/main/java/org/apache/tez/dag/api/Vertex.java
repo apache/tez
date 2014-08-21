@@ -121,6 +121,7 @@ public class Vertex {
    * @param taskResource
    *          Physical resources like memory/cpu thats used by each task of this
    *          vertex.
+   * @return a new Vertex with the given parameters
    */
   public static Vertex create(String vertexName,
                               ProcessorDescriptor processorDescriptor,
@@ -145,6 +146,7 @@ public class Vertex {
    * @param processorDescriptor
    *          Description of the processor that is executed in every task of
    *          this vertex
+   * @return a new Vertex with the given parameters
    */
   public static Vertex create(String vertexName, ProcessorDescriptor processorDescriptor) {
     return new Vertex(vertexName, processorDescriptor);
@@ -169,6 +171,7 @@ public class Vertex {
    *          Number of tasks in this vertex. Set to -1 if this is going to be
    *          decided at runtime. Parallelism may change at runtime due to graph
    *          reconfigurations.
+   * @return a new Vertex with the given parameters
    */
   public static Vertex create(String vertexName, ProcessorDescriptor processorDescriptor,
                               int parallelism) {
@@ -186,7 +189,7 @@ public class Vertex {
 
   /**
    * Get the vertex task processor descriptor
-   * @return
+   * @return process descriptor
    */
   public ProcessorDescriptor getProcessorDescriptor() {
     return this.processorDescriptor;

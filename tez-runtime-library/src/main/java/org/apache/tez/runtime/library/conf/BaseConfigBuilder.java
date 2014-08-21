@@ -34,7 +34,7 @@ interface BaseConfigBuilder<T> {
    *
    * @param key   the key to set
    * @param value the corresponding value
-   * @return
+   * @return this object for further chained method calls
    */
   public T setAdditionalConfiguration(String key, String value);
 
@@ -45,7 +45,7 @@ interface BaseConfigBuilder<T> {
    * made available to the combiner.
    *
    * @param confMap map of configuration key-value pairs
-   * @return
+   * @return this object for further chained method calls
    */
   public T setAdditionalConfiguration(Map<String, String> confMap);
 
@@ -55,7 +55,7 @@ interface BaseConfigBuilder<T> {
    * compatibility and ease of use for existing systems which rely heavily on Configuration.
    *
    * @param conf
-   * @return
+   * @return this object for further chained method calls
    */
   @InterfaceAudience.LimitedPrivate({"hive, pig"})
   public T setFromConfiguration(Configuration conf);

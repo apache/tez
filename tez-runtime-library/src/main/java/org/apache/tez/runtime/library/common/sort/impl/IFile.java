@@ -642,7 +642,7 @@ public class IFile {
     }
 
     /**
-     * Read upto len bytes into buf starting at offset off.
+     * Read up to len bytes into buf starting at offset off.
      *
      * @param buf buffer
      * @param off offset
@@ -687,7 +687,8 @@ public class IFile {
      * Reset key length and value length for next record in the file
      *
      * @param dIn
-     * @return
+     * @return true if key length and value length were set to the next
+     *         false if end of file (EOF) marker was reached
      * @throws IOException
      */
     protected boolean positionToNextRecord(DataInput dIn) throws IOException {

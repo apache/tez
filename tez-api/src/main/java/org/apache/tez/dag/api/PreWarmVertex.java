@@ -69,7 +69,7 @@ public class PreWarmVertex extends Vertex {
    * Create a config builder for the @link {@link PreWarmVertex}. This may be used to construct the
    * pre-warm vertex more flexibly.
    * @param conf
-   * @return
+   * @return a new config builder for {@link PreWarmVertex}
    */
   public static PreWarmVertexConfigBuilder createConfigBuilder(Configuration conf) {
     return new PreWarmVertexConfigBuilder(conf);

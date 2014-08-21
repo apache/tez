@@ -122,8 +122,9 @@ public class HttpConnection {
   /**
    * Connect to source
    * 
-   * @return
-   * @throws IOException
+   * @return true if connection was successful
+   *         false if connection was previously cleaned up
+   * @throws IOException upon connection failure
    */
   public boolean connect() throws IOException {
     return connect(httpConnParams.connectionTimeout);
@@ -133,8 +134,9 @@ public class HttpConnection {
    * Connect to source with specific timeout
    * 
    * @param connectionTimeout
-   * @return
-   * @throws IOException
+   * @return true if connection was successful
+   *         false if connection was previously cleaned up
+   * @throws IOException upon connection failure
    */
   public boolean connect(int connectionTimeout) throws IOException {
     stopWatch.reset().start();

@@ -161,7 +161,7 @@ public class DataSourceDescriptor {
 
   /**
    * Get the list of additional local files which were specified during creation.
-   * @return
+   * @return  Map of additional local files or null if there are none
    */
   @InterfaceAudience.Private
   public @Nullable Map<String, LocalResource> getAdditionalLocalFiles() {
