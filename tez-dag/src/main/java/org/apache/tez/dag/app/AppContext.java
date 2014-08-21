@@ -26,7 +26,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.dag.DAG;
@@ -78,8 +77,6 @@ public interface AppContext {
   AMNodeMap getAllNodes();
 
   TaskSchedulerEventHandler getTaskScheduler();
-
-  Map<String, LocalResource> getSessionResources();
 
   boolean isSession();
 

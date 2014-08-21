@@ -108,9 +108,9 @@ public class TestDAGPlan {
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
     v2.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = InputDescriptor.create("input")
         .setUserPayload(UserPayload.create(ByteBuffer.wrap("inputBytes".getBytes())));
@@ -144,9 +144,9 @@ public class TestDAGPlan {
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
     v2.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = InputDescriptor.create("input").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("inputBytes".getBytes())));
@@ -208,11 +208,11 @@ public class TestDAGPlan {
     Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
     Vertex v3 = Vertex.create("v3", pd3, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
     v2.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
     v3.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = InputDescriptor.create("input").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("inputBytes".getBytes())));
@@ -278,9 +278,9 @@ public class TestDAGPlan {
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
     Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
     v2.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
-        .setTaskLocalFiles(new HashMap<String, LocalResource>());
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
 
     InputDescriptor inputDescriptor = InputDescriptor.create("input").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("inputBytes".getBytes())));

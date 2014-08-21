@@ -104,9 +104,9 @@ public class TestMRInputHelpers {
 
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapReduce(newSplitsDir);
 
-    Assert.assertTrue(dataSource.getAdditionalLocalResources()
+    Assert.assertTrue(dataSource.getAdditionalLocalFiles()
         .containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    Assert.assertTrue(dataSource.getAdditionalLocalResources()
+    Assert.assertTrue(dataSource.getAdditionalLocalFiles()
         .containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     RemoteIterator<LocatedFileStatus> files =
@@ -141,8 +141,8 @@ public class TestMRInputHelpers {
   public void testOldSplitsGen() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
     Assert.assertTrue(
-        dataSource.getAdditionalLocalResources().containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-    Assert.assertTrue(dataSource.getAdditionalLocalResources()
+        dataSource.getAdditionalLocalFiles().containsKey(MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+    Assert.assertTrue(dataSource.getAdditionalLocalFiles()
         .containsKey(MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
     RemoteIterator<LocatedFileStatus> files =
@@ -177,7 +177,7 @@ public class TestMRInputHelpers {
   public void testInputSplitLocalResourceCreation() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
 
-    Map<String, LocalResource> localResources = dataSource.getAdditionalLocalResources();
+    Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
 
     Assert.assertEquals(2, localResources.size());
     Assert.assertTrue(localResources.containsKey(

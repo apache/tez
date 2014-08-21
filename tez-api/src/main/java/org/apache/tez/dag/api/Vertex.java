@@ -28,6 +28,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
@@ -247,9 +248,9 @@ public class Vertex {
    *          elements of the map.
    * @return this Vertex
    */
-  public Vertex setTaskLocalFiles(Map<String, LocalResource> localFiles) {
+  public Vertex addTaskLocalFiles(Map<String, LocalResource> localFiles) {
     if (localFiles != null) {
-      this.taskLocalResources.putAll(localFiles);
+      TezCommonUtils.addAdditionalLocalResources(localFiles, taskLocalResources);
     }
     return this;
   }
@@ -426,18 +427,6 @@ public class Vertex {
    */
   public List<Vertex> getOutputVertices() {
     return Collections.unmodifiableList(outputVertices);
-  }
-
-  void addAdditionalLocalResources(Map<String, LocalResource> additionalLrs) {
-    if (additionalLrs != null && !additionalLrs.isEmpty()) {
-      for (Map.Entry<String, LocalResource> lr : additionalLrs.entrySet()) {
-        if (taskLocalResources.containsKey(lr.getKey())) {
-          throw new TezUncheckedException("Attempting to add duplicate resource: " + lr.getKey());
-        } else {
-          taskLocalResources.put(lr.getKey(), lr.getValue());
-        }
-      }
-    }
   }
 
   /**

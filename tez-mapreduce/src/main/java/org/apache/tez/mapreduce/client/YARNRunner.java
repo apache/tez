@@ -444,7 +444,7 @@ public class YARNRunner implements ClientProtocol {
         : MRHelpers.getJavaOptsForMRReducer(stageConf);
 
     vertex.setTaskEnvironment(taskEnv)
-        .setTaskLocalFiles(taskLocalResources)
+        .addTaskLocalFiles(taskLocalResources)
         .setLocationHint(VertexLocationHint.create(locations))
         .setTaskLaunchCmdOpts(taskJavaOpts);
     

@@ -63,7 +63,7 @@ public class TezConstants {
   public static final String TEZ_CONTAINER_ERR_FILE_NAME = "stderr";
   public static final String TEZ_CONTAINER_OUT_FILE_NAME = "stdout";
 
-  public static final String TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME =
+  public static final String TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME =
     TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";
   
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
@@ -83,13 +83,6 @@ public class TezConstants {
 
   // Configuration keys used internally and not set by the users
   
-  /**
-   * The complete path to the serialized dag plan file
-   * <code>TEZ_AM_PLAN_PB_BINARY</code>. Used to make the plan available to
-   * individual tasks if needed. This will be inside the staging dir
-   */
-  public static final String TEZ_AM_PLAN_REMOTE_PATH = "dag-am-plan.remote.path";
-
   // These are session specific DAG ACL's. Currently here because these can only be specified
   // via code in the API.
   /**

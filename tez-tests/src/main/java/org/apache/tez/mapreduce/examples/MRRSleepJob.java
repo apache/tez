@@ -526,7 +526,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     Vertex mapVertex = Vertex.create("map", ProcessorDescriptor.create(
         MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks)
-        .setTaskLocalFiles(commonLocalResources);
+        .addTaskLocalFiles(commonLocalResources);
     mapVertex.addDataSource("MRInput", dataSource);
     vertices.add(mapVertex);
 
@@ -539,7 +539,7 @@ public class MRRSleepJob extends Configured implements Tool {
         Vertex ivertex = Vertex.create("ireduce" + (i + 1),
             ProcessorDescriptor.create(ReduceProcessor.class.getName()).
                 setUserPayload(iReduceUserPayload), numIReducer);
-        ivertex.setTaskLocalFiles(commonLocalResources);
+        ivertex.addTaskLocalFiles(commonLocalResources);
         vertices.add(ivertex);
       }
     }
@@ -549,7 +549,7 @@ public class MRRSleepJob extends Configured implements Tool {
       UserPayload reducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = Vertex.create("reduce", ProcessorDescriptor.create(
           ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
-      finalReduceVertex.setTaskLocalFiles(commonLocalResources);
+      finalReduceVertex.addTaskLocalFiles(commonLocalResources);
       finalReduceVertex.addDataSink("MROutput", MROutputLegacy.createConfigBuilder(finalReduceConf,
           NullOutputFormat.class).build());
       vertices.add(finalReduceVertex);

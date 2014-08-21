@@ -785,7 +785,7 @@ public class TestMRRJobsDAGApi {
       LOG.info("Submitting dag to tez session with appId=" + tezSession.getAppMasterApplicationId()
           + " and Dag Name=" + dag.getName());
       if (additionalLocalResources != null) {
-        tezSession.addAppMasterLocalResources(additionalLocalResources);
+        tezSession.addAppMasterLocalFiles(additionalLocalResources);
       }
       dagClient = tezSession.submitDAG(dag);
       Assert.assertEquals(TezAppMasterStatus.RUNNING,

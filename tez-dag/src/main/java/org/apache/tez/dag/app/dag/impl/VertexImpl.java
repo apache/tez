@@ -648,7 +648,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.localResources = DagTypeConverters
         .createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getLocalResourceList());
-    this.localResources.putAll(appContext.getSessionResources());
     this.environment = DagTypeConverters
         .createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getEnvironmentSettingList());

@@ -216,8 +216,6 @@ public class DAGAppMaster extends AbstractService {
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
-  private final Map<String, LocalResource> sessionResources =
-    new HashMap<String, LocalResource>();
 
   private boolean isLocal = false; //Local mode flag
 
@@ -398,15 +396,10 @@ public class DAGAppMaster extends AbstractService {
       FileInputStream sessionResourcesStream = null;
       try {
         sessionResourcesStream = new FileInputStream(
-          new File(workingDirectory, TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME));
-        PlanLocalResourcesProto sessionLocalResourcesProto =
-          PlanLocalResourcesProto.parseDelimitedFrom(sessionResourcesStream);
+          new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
         PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
             .parseDelimitedFrom(sessionResourcesStream);
-        sessionResources.putAll(DagTypeConverters.convertFromPlanLocalResources(
-          sessionLocalResourcesProto));
         amResources.putAll(DagTypeConverters.convertFromPlanLocalResources(amLocalResourceProto));
-        amResources.putAll(sessionResources);
       } finally {
         if (sessionResourcesStream != null) {
           sessionResourcesStream.close();
@@ -1189,11 +1182,6 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public TaskSchedulerEventHandler getTaskScheduler() {
       return taskSchedulerEventHandler;
-    }
-
-    @Override
-    public Map<String, LocalResource> getSessionResources() {
-      return sessionResources;
     }
 
     @Override
