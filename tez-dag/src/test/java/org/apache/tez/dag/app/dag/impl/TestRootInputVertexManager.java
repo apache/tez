@@ -48,14 +48,16 @@ public class TestRootInputVertexManager {
 
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
-    InputDataInformationEvent diEvent11 = InputDataInformationEvent.create(0, null);
+    InputDataInformationEvent diEvent11 = InputDataInformationEvent.createWithSerializedPayload(0,
+        null);
     events1.add(diEvent11);
     rootInputVertexManager.onRootVertexInitialized("input1", id1, events1);
     // All good so far, single input only.
 
     InputDescriptor id2 = mock(InputDescriptor.class);
     List<Event> events2 = new LinkedList<Event>();
-    InputDataInformationEvent diEvent21 = InputDataInformationEvent.create(0, null);
+    InputDataInformationEvent diEvent21 = InputDataInformationEvent.createWithSerializedPayload(0,
+        null);
     events2.add(diEvent21);
     try {
       // Should fail due to second input

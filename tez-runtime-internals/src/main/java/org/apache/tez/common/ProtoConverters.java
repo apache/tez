@@ -101,7 +101,7 @@ public class ProtoConverters {
   public static InputDataInformationEvent
       convertRootInputDataInformationEventFromProto(
       EventProtos.RootInputDataInformationEventProto proto) {
-    InputDataInformationEvent diEvent = InputDataInformationEvent.create(
+    InputDataInformationEvent diEvent = InputDataInformationEvent.createWithSerializedPayload(
         proto.getSourceIndex(),
         proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null);
     diEvent.setTargetIndex(proto.getTargetIndex());

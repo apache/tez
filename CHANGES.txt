@@ -79,7 +79,9 @@ INCOMPATIBLE CHANGES
   TEZ-1455. Replace deprecated junit.framework.Assert with org.junit.Assert
   TEZ-1465. Update and document IntersectExample. Change name to JoinExample
   TEZ-1449. Change user payloads to work with a byte buffer
-  TEZ-1472. AM/Session LRs are not shipped to vertices in new API use-case
+  TEZ-1469. AM/Session LRs are not shipped to vertices in new API use-case
+  TEZ-1472. Separate method calls for creating InputDataInformationEvent with
+  serialized/unserialized payloads
 
 ALL CHANGES
 

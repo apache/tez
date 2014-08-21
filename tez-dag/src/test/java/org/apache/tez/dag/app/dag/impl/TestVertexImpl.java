@@ -2914,7 +2914,8 @@ public class TestVertexImpl {
         VertexManagerEvent.create("vertex2", ByteBuffer.wrap(new byte[0])), new EventMetaData(
             EventProducerConsumerType.PROCESSOR, "vertex1", "vertex2",
             ta0_t0_v1)));
-    events.add(new TezEvent(InputDataInformationEvent.create(0, ByteBuffer.wrap(new byte[0])),
+    events.add(new TezEvent(InputDataInformationEvent.createWithSerializedPayload(0,
+        ByteBuffer.wrap(new byte[0])),
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex2",
             "NULL_VERTEX", null)));
     dispatcher.getEventHandler().handle(
@@ -3259,7 +3260,8 @@ public class TestVertexImpl {
           targetTasks, VertexLocationHint.create(locationHints), null);
       events.add(configEvent);
       for (int i = 0; i < targetTasks; i++) {
-        InputDataInformationEvent diEvent = InputDataInformationEvent.create(i, null);
+        InputDataInformationEvent diEvent = InputDataInformationEvent.createWithSerializedPayload(i,
+            null);
         events.add(diEvent);
       }
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
@@ -3462,7 +3464,8 @@ public class TestVertexImpl {
         lock.unlock();
       }
       initComplete.set(true);
-      InputDataInformationEvent diEvent = InputDataInformationEvent.create(0, ByteBuffer.wrap(new byte[]{0}));
+      InputDataInformationEvent diEvent = InputDataInformationEvent.createWithSerializedPayload(0,
+          ByteBuffer.wrap(new byte[]{0}));
       List<Event> eventList = new LinkedList<Event>();
       eventList.add(diEvent);
       return eventList;
