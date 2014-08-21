@@ -4,6 +4,9 @@ Apache Tez Change Log
 Release 0.5.0: 2014-08-22
 
 INCOMPATIBLE CHANGES
+  TEZ-1472. Separate method calls for creating InputDataInformationEvent with 
+    serialized/unserialized payloads
+  TEZ-1469. AM/Session LRs are not shipped to vertices in new API use-case
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
   TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 
@@ -85,6 +88,9 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES
 
+  TEZ-1436. Fix javadoc warnings (Jonathan Eagles via bikas)
+  TEZ-1472. Separate method calls for creating InputDataInformationEvent with serialized/unserialized payloads (Siddharth Seth via bikas)
+  TEZ-1469. AM/Session LRs are not shipped to vertices in new API use-case (bikas)
   TEZ-1449. Change user payloads to work with a byte buffer (Siddharth Seth via bikas)
   TEZ-1325. RecoveryParser can find incorrect last DAG ID. (Jeff Zhang via hitesh)
   TEZ-1466. Fix JDK8 builds of Tez (gopalv)
