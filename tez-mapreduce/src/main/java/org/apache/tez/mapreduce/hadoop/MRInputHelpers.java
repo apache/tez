@@ -253,7 +253,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * Generates Input splits and stores them in a {@link org.apache.hadoop.mapreduce.v2.proto.MRProtos} instance.
+   * Generates Input splits and stores them in a {@link org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto} instance.
    *
    * Returns an instance of {@link InputSplitInfoMem}
    *

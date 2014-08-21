@@ -207,7 +207,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
      * @param serializerConf         the serializer configuration. This can be null, and is a
      *                               {@link java.util.Map} of key-value pairs. The keys should be limited
      *                               to the ones required by the comparator.
-     * @return
+     * @return this object for further chained method calls
      */
     public Builder setKeySerializationClass(String serializationClassName,
                                             @Nullable Map<String, String> serializerConf) {
@@ -223,7 +223,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
      * @param serializerConf         the serializer configuration. This can be null, and is a
      *                               {@link java.util.Map} of key-value pairs. The keys should be limited
      *                               to the ones required by the comparator.
-     * @return
+     * @return this object for further chained method calls
      */
     public Builder setValueSerializationClass(String serializationClassName,
                                               @Nullable Map<String, String> serializerConf) {

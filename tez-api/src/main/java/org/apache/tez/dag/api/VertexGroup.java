@@ -89,7 +89,8 @@ public class VertexGroup {
   
   /**
    * Add an common data sink to the group of vertices.
-   * Refer to {@link Vertex#addDataSink(String, OutputDescriptor, OutputCommitterDescriptor)}
+   * Refer to {@link Vertex#addDataSink(String, DataSinkDescriptor)}
+   * @return this object for further chained method calls
    */
   public VertexGroup addDataSink(String outputName, DataSinkDescriptor dataSinkDescriptor) {
     RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> leafOutput = 

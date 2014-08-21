@@ -48,7 +48,7 @@ public class InputSpecUpdate {
    * 
    * @param numPhysicalInputs
    *          the number of physical inputs for all work units which will use the LogicalInput
-   * @return
+   * @return a new InputSpecUpdate instance given the parameters
    */
   public static InputSpecUpdate createAllTaskInputSpecUpdate(int numPhysicalInputs) {
     return new InputSpecUpdate(numPhysicalInputs);
@@ -61,7 +61,7 @@ public class InputSpecUpdate {
    * @param perWorkUnitNumPhysicalInputs
    *          A list containing one entry per work unit. The order in the list corresponds to task
    *          index or equivalently the order of {@link InputDataInformationEvent}s being sent.
-   * @return
+   * @return a new InputSpecUpdate instance given the parameters
    */
   public static InputSpecUpdate createPerTaskInputSpecUpdate(
       List<Integer> perWorkUnitNumPhysicalInputs) {

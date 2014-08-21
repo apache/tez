@@ -36,7 +36,6 @@ public interface ProcessorFrameworkInterface {
   /**
    * Initializes the <code>Processor</code>
    *
-   * @param processorContext
    * @throws java.io.IOException
    *           if an error occurs
    */

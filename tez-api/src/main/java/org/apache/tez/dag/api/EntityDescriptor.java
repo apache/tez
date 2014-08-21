@@ -60,7 +60,7 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
   /**
    * Set user payload for this entity descriptor
    * @param userPayload User Payload
-   * @return
+   * @return this object for further chained method calls
    */
   public T setUserPayload(UserPayload userPayload) {
     Preconditions.checkNotNull(userPayload);
@@ -72,6 +72,7 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
    * Provide a human-readable version of the user payload that can be
    * used in the History UI
    * @param historyText History text
+   * @return this object for further chained method calls
    */
   public T setHistoryText(String historyText) {
     this.historyText = historyText;

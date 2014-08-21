@@ -88,13 +88,13 @@ public interface InputSplitInfo {
 
   /**
    * Get new format splits. Should only be used if the mapreduce API is being used
-   * @return
+   * @return array of mapreduce format splits
    */
   public org.apache.hadoop.mapreduce.InputSplit[] getNewFormatSplits();
 
   /**
    * Get old format splits. Should only be used if the mapred API is being used
-   * @return
+   * @return array of mapred format splits
    */
   public org.apache.hadoop.mapred.InputSplit[] getOldFormatSplits();
 }

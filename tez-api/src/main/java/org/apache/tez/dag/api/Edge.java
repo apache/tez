@@ -70,7 +70,7 @@ public class Edge {
 
   /**
    * The @link {@link Vertex} that reads output from the edge
-   * @retur {@link Vertex} 
+   * @return {@link Vertex} 
    */
   public Vertex getOutputVertex() {
     return outputVertex;

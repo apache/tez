@@ -85,10 +85,10 @@ public class DAGAccessControls {
   }
 
   /**
-   * Set the list of users that view permissions on the DAG. If all users are allowed,
+   * Sets the list of users with view permissions on the DAG. If all users are allowed,
    * pass in a single entry "*"
    * @param users Set of users with view permissions
-   * @return
+   * @return this object for further chained method calls
    */
   public synchronized DAGAccessControls setUsersWithViewACLs(Collection<String> users) {
     this.usersWithViewACLs.clear();
@@ -97,10 +97,10 @@ public class DAGAccessControls {
   }
 
   /**
-   * Set the list of users that have modify permissions on the DAG. If all users are allowed,
+   * Sets the list of users with modify permissions on the DAG. If all users are allowed,
    * pass in a single entry "*"
    * @param users Set of users with modify permissions
-   * @return
+   * @return this object for further chained method calls
    */
   public synchronized DAGAccessControls setUsersWithModifyACLs(Collection<String> users) {
     this.usersWithModifyACLs.clear();
@@ -109,9 +109,9 @@ public class DAGAccessControls {
   }
 
   /**
-   * Set the list of groups that have view permissions on the DAG.
+   * Sets the list of groups with view permissions on the DAG.
    * @param groups Set of groups with view permissions
-   * @return
+   * @return this object for further chained method calls
    */
   public synchronized DAGAccessControls setGroupsWithViewACLs(Collection<String> groups) {
     this.groupsWithViewACLs.clear();
@@ -120,9 +120,9 @@ public class DAGAccessControls {
   }
 
   /**
-   * Set the list of groups that have modify permissions on the DAG.
+   * Sets the list of groups with modify permissions on the DAG.
    * @param groups Set of groups with modify permissions
-   * @return
+   * @return this object for further chained method calls
    */
   public synchronized DAGAccessControls setGroupsWithModifyACLs(Collection<String> groups) {
     this.groupsWithModifyACLs.clear();
