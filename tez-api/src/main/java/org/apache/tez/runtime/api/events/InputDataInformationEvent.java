@@ -58,7 +58,7 @@ public final class InputDataInformationEvent extends Event {
     this.userPayloadObject = null;
   }
   
-  private InputDataInformationEvent(int srcIndex, Object userPayloadDeserialized) {
+  private InputDataInformationEvent(int srcIndex, Object userPayloadDeserialized, Object sigChanged) {
     this.sourceIndex = srcIndex;
     this.userPayloadObject = userPayloadDeserialized;
     this.userPayload = null;
@@ -69,12 +69,14 @@ public final class InputDataInformationEvent extends Event {
    * @param srcIndex the src index
    * @param userPayload the serialized payload
    */
-  public static InputDataInformationEvent create(int srcIndex, ByteBuffer userPayload) {
+  public static InputDataInformationEvent createWithSerializedPayload(int srcIndex,
+                                                                      ByteBuffer userPayload) {
     return new InputDataInformationEvent(srcIndex, userPayload);
   }
 
-  public static InputDataInformationEvent create(int srcIndex, Object userPayloadDeserialized) {
-    return new InputDataInformationEvent(srcIndex, userPayloadDeserialized);
+  public static InputDataInformationEvent createWithObjectPayload(int srcIndex,
+                                                                  Object userPayloadDeserialized) {
+    return new InputDataInformationEvent(srcIndex, userPayloadDeserialized, null);
   }
 
   public int getSourceIndex() {

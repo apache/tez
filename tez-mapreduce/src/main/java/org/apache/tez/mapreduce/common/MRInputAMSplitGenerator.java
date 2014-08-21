@@ -142,7 +142,8 @@ public class MRInputAMSplitGenerator extends InputInitializer {
       int count = 0;
       for (MRSplitProto mrSplit : splitsProto.getSplitsList()) {
         // Unnecessary array copy, can be avoided by using ByteBuffer instead of a raw array.
-        InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++,
+        InputDataInformationEvent diEvent = InputDataInformationEvent.createWithSerializedPayload(
+            count++,
             mrSplit.toByteString().asReadOnlyByteBuffer());
         events.add(diEvent);
       }
@@ -150,12 +151,14 @@ public class MRInputAMSplitGenerator extends InputInitializer {
       int count = 0;
       if (inputSplitInfo.holdsNewFormatSplits()) {
         for (org.apache.hadoop.mapreduce.InputSplit split : inputSplitInfo.getNewFormatSplits()) {
-          InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++, split);
+          InputDataInformationEvent diEvent = InputDataInformationEvent.createWithObjectPayload(
+              count++, split);
           events.add(diEvent);
         }
       } else {
         for (org.apache.hadoop.mapred.InputSplit split : inputSplitInfo.getOldFormatSplits()) {
-          InputDataInformationEvent diEvent = InputDataInformationEvent.create(count++, split);
+          InputDataInformationEvent diEvent = InputDataInformationEvent.createWithObjectPayload(
+              count++, split);
           events.add(diEvent);
         }
       }
