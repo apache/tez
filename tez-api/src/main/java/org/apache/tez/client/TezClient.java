@@ -38,7 +38,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
@@ -48,7 +47,6 @@ import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
@@ -159,8 +157,8 @@ public class TezClient {
    *          as app master name is session mode
    * @param tezConf
    *          Configuration for the framework
-   * @param localResources
-   *          resources for the App Master
+   * @param localFiles
+   *          local files for the App Master
    * @param credentials
    *          Set security credentials to be used inside the app master, if
    *          needed. Tez App Master needs credentials to access the staging
@@ -174,9 +172,9 @@ public class TezClient {
    *          calling start()
    */
   public static TezClient create(String name, TezConfiguration tezConf,
-                                 @Nullable Map<String, LocalResource> localResources,
+                                 @Nullable Map<String, LocalResource> localFiles,
                                  @Nullable Credentials credentials) {
-    return new TezClient(name, tezConf, localResources, credentials);
+    return new TezClient(name, tezConf, localFiles, credentials);
   }
 
   /**
@@ -195,58 +193,59 @@ public class TezClient {
   /**
    * Create a new TezClient with AM session mode set explicitly. This overrides
    * the setting from configuration.
-   * Set the initial resources and security credentials for the App Master.
+   * Set the initial files and security credentials for the App Master.
    * @param name
    *          Name of the client. Used for logging etc. This will also be used
    *          as app master name is session mode
    * @param tezConf Configuration for the framework
    * @param isSession The AM will run in session mode or not
-   * @param localResources resources for the App Master
+   * @param localFiles local files for the App Master
    * @param credentials credentials for the App Master
    */
   public static TezClient create(String name, TezConfiguration tezConf, boolean isSession,
-                                 @Nullable Map<String, LocalResource> localResources,
+                                 @Nullable Map<String, LocalResource> localFiles,
                                  @Nullable Credentials credentials) {
-    return new TezClient(name, tezConf, isSession, localResources, credentials);
+    return new TezClient(name, tezConf, isSession, localFiles, credentials);
   }
 
   /**
-   * Add local resources for the DAG App Master. <br>
+   * Add local files for the DAG App Master. These may be files, archives, 
+   * jars etc.<br>
    * <p>
-   * In non-session mode these will be added to the resources of the App Master
-   * to be launched for the next DAG. Resources added via this method will
+   * In non-session mode these will be added to the files of the App Master
+   * to be launched for the next DAG. Files added via this method will
    * accumulate and be used for every new App Master until
-   * clearAppMasterLocalResource() is invoked. <br>
+   * {@link #clearAppMasterLocalFiles()} is invoked. <br>
    * <p>
-   * In session mode, the recommended usage is to add all resources before
-   * calling start() so that all needed resources are available to the app
-   * master before it starts. When called after start(), these local resources
+   * In session mode, the recommended usage is to add all files before
+   * calling start() so that all needed files are available to the app
+   * master before it starts. When called after start(), these local files
    * will be re-localized to the running session DAG App Master and will be
    * added to its classpath for execution of this DAG.
    * <p>
-   * Caveats for invoking this method after start() in session mode: Resources
+   * Caveats for invoking this method after start() in session mode: files
    * accumulate across DAG submissions and are never removed from the classpath.
-   * Only LocalResourceType.FILE is supported. All resources will be treated as
+   * Only LocalResourceType.FILE is supported. All files will be treated as
    * private.
    * 
-   * @param localResources
+   * @param localFiles
    */
-  public synchronized void addAppMasterLocalResources(Map<String, LocalResource> localResources) {
-    Preconditions.checkNotNull(localResources);
+  public synchronized void addAppMasterLocalFiles(Map<String, LocalResource> localFiles) {
+    Preconditions.checkNotNull(localFiles);
     if (isSession && sessionStarted) {
-      additionalLocalResources.putAll(localResources);
+      additionalLocalResources.putAll(localFiles);
     }
-    amConfig.addLocalResources(localResources);
+    amConfig.addAMLocalResources(localFiles);
   }
   
   /**
-   * If the next DAG App Master needs different local resources, then use this
-   * method to clear the local resources and then add the new local resources
-   * using addAppMasterLocalResources(). This method is a no-op in session mode,
+   * If the next DAG App Master needs different local files, then use this
+   * method to clear the local files and then add the new local files
+   * using {@link #addAppMasterLocalFiles(Map)}. This method is a no-op in session mode,
    * after start() is called.
    */
-  public synchronized void clearAppMasterLocalResource() {
-    amConfig.clearLocalResources();
+  public synchronized void clearAppMasterLocalFiles() {
+    amConfig.clearAMLocalResources();
   }
   
   /**
@@ -304,7 +303,7 @@ public class TezClient {
   
         ApplicationSubmissionContext appContext =
             TezClientUtils.createApplicationSubmissionContext(
-                amConfig.getTezConfiguration(), sessionAppId,
+                sessionAppId,
                 null, clientName, amConfig,
                 tezJarResources, sessionCredentials);
   
@@ -365,19 +364,10 @@ public class TezClient {
             + lr.getType() + " is not supported, only " + LocalResourceType.FILE + " is supported");
       }
     }
-
-    // Obtain DAG specific credentials.
-    TezClientUtils.setupDAGCredentials(dag, sessionCredentials, amConfig.getTezConfiguration());
-
-    // TODO TEZ-1229 - fix jar resources
-    // setup env
-    for (Vertex v : dag.getVertices()) {
-      Map<String, String> taskEnv = v.getTaskEnvironment();
-      TezYARNUtils.setupDefaultEnv(taskEnv, amConfig.getTezConfiguration(),
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV, TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT,
-          TezClientUtils.usingTezLibsFromArchive(getTezJarResources(sessionCredentials)));
-      TezClientUtils.setDefaultLaunchCmdOpts(v, amConfig.getTezConfiguration());
-    }
+    
+    Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
+    TezClientUtils.updateDAGVertices(dag, amConfig, tezJarResources,
+        TezClientUtils.usingTezLibsFromArchive(tezJarResources), sessionCredentials);
     
     DAGPlan dagPlan = dag.createDag(amConfig.getTezConfiguration());
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
@@ -684,7 +674,7 @@ public class TezClient {
       // Add credentials for tez-local resources.
       Map<String, LocalResource> tezJarResources = getTezJarResources(credentials);
       ApplicationSubmissionContext appContext = TezClientUtils
-          .createApplicationSubmissionContext(amConfig.getTezConfiguration(), 
+          .createApplicationSubmissionContext( 
               appId, dag, dag.getName(), amConfig, tezJarResources, credentials);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId

@@ -136,10 +136,10 @@ public class TestTezCommonUtils {
   public void testTezSessionJarStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
-    Path confStageDir = TezCommonUtils.getTezSessionJarStagingPath(stageDir);
+    Path confStageDir = TezCommonUtils.getTezAMJarStagingPath(stageDir);
     String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME;
+        + TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 

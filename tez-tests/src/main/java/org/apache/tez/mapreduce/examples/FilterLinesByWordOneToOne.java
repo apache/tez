@@ -162,7 +162,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     // Setup stage1 Vertex
     Vertex stage1Vertex = Vertex.create("stage1", ProcessorDescriptor.create(
         FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
-        .setTaskLocalFiles(commonLocalResources);
+        .addTaskLocalFiles(commonLocalResources);
 
     DataSourceDescriptor dsd;
     if (generateSplitsInClient) {
@@ -180,7 +180,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     Vertex stage2Vertex = Vertex.create("stage2", ProcessorDescriptor.create(
         FilterByWordOutputProcessor.class.getName()).setUserPayload(TezUtils
         .createUserPayloadFromConf(stage2Conf)), dsd.getNumberOfShards());
-    stage2Vertex.setTaskLocalFiles(commonLocalResources);
+    stage2Vertex.addTaskLocalFiles(commonLocalResources);
 
     // Configure the Output for stage2
     stage2Vertex.addDataSink(

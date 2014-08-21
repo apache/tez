@@ -19,10 +19,15 @@
 package org.apache.tez.dag.api;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
@@ -32,6 +37,8 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 public class TestDAGVerify {
 
@@ -896,8 +903,80 @@ public class TestDAGVerify {
 
     dag.createDag(new TezConfiguration());
   }
+  
+  
+  @Test(timeout = 5000)
+  public void testVerifyCommonFiles() {
+    Vertex v1 = Vertex.create("v1",
+        ProcessorDescriptor.create(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2",
+        ProcessorDescriptor.create("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = Edge.create(v1, v2,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create(dummyOutputClassName),
+            InputDescriptor.create(dummyInputClassName)));
+    Map<String, LocalResource> lrs = Maps.newHashMap();
+    String lrName1 = "LR1";
+    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.addTaskLocalFiles(lrs);
+    dag.createDag(new TezConfiguration());
+    Assert.assertTrue(v1.getTaskLocalFiles().containsKey(lrName1));
+    Assert.assertTrue(v2.getTaskLocalFiles().containsKey(lrName1));
+  }
 
-
+  @Test(timeout = 5000)
+  public void testVerifyCommonFilesFail() {
+    Vertex v1 = Vertex.create("v1",
+        ProcessorDescriptor.create(dummyProcessorClassName),
+        dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2",
+        ProcessorDescriptor.create("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = Edge.create(v1, v2,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create(dummyOutputClassName),
+            InputDescriptor.create(dummyInputClassName)));
+    Map<String, LocalResource> lrs = Maps.newHashMap();
+    String lrName1 = "LR1";
+    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    v1.addTaskLocalFiles(lrs);
+    try {
+      v1.addTaskLocalFiles(lrs);
+      Assert.fail();
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
+    }
+    DAG dag = new DAG("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addEdge(e1);
+    dag.addTaskLocalFiles(lrs);
+    try {
+      dag.addTaskLocalFiles(lrs);
+      Assert.fail();
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
+    }
+    try {
+      // dag will add duplicate common files to vertex
+      dag.createDag(new TezConfiguration());
+      Assert.fail();
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
+    }
+  }
+  
   @Test(timeout = 5000)
   public void testDAGAccessControls() {
     DAG dag = new DAG("testDag");

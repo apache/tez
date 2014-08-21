@@ -42,7 +42,7 @@ public class DataSourceDescriptor {
   private final Credentials credentials;
   private final int numShards;
   private final VertexLocationHint locationHint;
-  private final Map<String, LocalResource> additionalLocalResources;
+  private final Map<String, LocalResource> additionalLocalFiles;
 
   private DataSourceDescriptor(InputDescriptor inputDescriptor,
                                @Nullable InputInitializerDescriptor initializerDescriptor,
@@ -55,13 +55,13 @@ public class DataSourceDescriptor {
                                int numShards,
                                @Nullable Credentials credentials,
                                @Nullable VertexLocationHint locationHint,
-                               @Nullable Map<String, LocalResource> additionalLocalResources) {
+                               @Nullable Map<String, LocalResource> additionalLocalFiles) {
     this.inputDescriptor = inputDescriptor;
     this.initializerDescriptor = initializerDescriptor;
     this.numShards = numShards;
     this.credentials = credentials;
     this.locationHint = locationHint;
-    this.additionalLocalResources = additionalLocalResources;
+    this.additionalLocalFiles = additionalLocalFiles;
   }
 
   /**
@@ -104,19 +104,19 @@ public class DataSourceDescriptor {
    * @param numShards                Number of shards of data
    * @param credentials              Credentials needed to access the data
    * @param locationHint             Location hints for the vertex tasks
-   * @param additionalLocalResources additional local resources required by this Input. An attempt
-   *                                 will be made to add these resources to the Vertex as Private
+   * @param additionalLocalFiles additional local files required by this Input. An attempt
+   *                                 will be made to add these files to the Vertex as Private
    *                                 resources. If a name conflict occurs, a {@link
-   *                                 org.apache.tez.dag.api.TezException} will be thrown
+   *                                 org.apache.tez.dag.api.TezUncheckedException} will be thrown
    */
   public static DataSourceDescriptor create(InputDescriptor inputDescriptor,
                                             @Nullable InputInitializerDescriptor initializerDescriptor,
                                             int numShards,
                                             @Nullable Credentials credentials,
                                             @Nullable VertexLocationHint locationHint,
-                                            @Nullable Map<String, LocalResource> additionalLocalResources) {
+                                            @Nullable Map<String, LocalResource> additionalLocalFiles) {
     return new DataSourceDescriptor(inputDescriptor, initializerDescriptor, numShards, credentials,
-        locationHint, additionalLocalResources);
+        locationHint, additionalLocalFiles);
   }
 
   public InputDescriptor getInputDescriptor() {
@@ -160,12 +160,12 @@ public class DataSourceDescriptor {
   }
 
   /**
-   * Get the list of additional local resources which were specified during creation.
+   * Get the list of additional local files which were specified during creation.
    * @return
    */
   @InterfaceAudience.Private
-  public @Nullable Map<String, LocalResource> getAdditionalLocalResources() {
-    return additionalLocalResources;
+  public @Nullable Map<String, LocalResource> getAdditionalLocalFiles() {
+    return additionalLocalFiles;
   }
 
 

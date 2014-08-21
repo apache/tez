@@ -63,6 +63,7 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -85,13 +86,28 @@ public class DAG {
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
   private DAGAccessControls dagAccessControls;
-
+  Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
+  
   private Stack<String> topologicalVertexStack = new Stack<String>();
 
   public DAG(String name) {
     this.name = name;
   }
 
+  /**
+   * Set the files etc that must be provided to the tasks of this DAG
+   * @param localFiles
+   *          files that must be available locally for each task. These files
+   *          may be regular files, archives etc. as specified by the value
+   *          elements of the map.
+   * @return {@link DAG}
+   */
+  public DAG addTaskLocalFiles(Map<String, LocalResource> localFiles) {
+    Preconditions.checkNotNull(localFiles);
+    TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles);
+    return this;
+  }
+  
   public synchronized DAG addVertex(Vertex vertex) {
     if (vertices.containsKey(vertex.getName())) {
       throw new IllegalStateException(
@@ -597,7 +613,7 @@ public class DAG {
         if (dataSource.getCredentials() != null) {
           credentials.addAll(dataSource.getCredentials());
         }
-        vertex.addAdditionalLocalResources(dataSource.getAdditionalLocalResources());
+        vertex.addTaskLocalFiles(dataSource.getAdditionalLocalFiles());
       }
       if (dataSources.size() == 1) {
         DataSourceDescriptor dataSource = dataSources.get(0);
@@ -614,6 +630,9 @@ public class DAG {
         }
       }
       
+      // add common task files for this DAG
+      vertex.addTaskLocalFiles(commonTaskLocalFiles);
+        
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
       vertexBuilder.setName(vertex.getName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
@@ -752,7 +771,8 @@ public class DAG {
         confProtoBuilder.addConfKeyValues(kvp);
       }
     }
-    dagBuilder.setDagKeyValues(confProtoBuilder);
+    dagBuilder.setDagKeyValues(confProtoBuilder); // This does not seem to be used anywhere
+    // should this replace BINARY_PB_CONF???
 
     if (credentials != null) {
       dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));

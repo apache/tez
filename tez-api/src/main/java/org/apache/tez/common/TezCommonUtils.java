@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -38,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -165,8 +167,8 @@ public class TezCommonUtils {
    * @return path to store the session jars
    */
   @Private
-  public static Path getTezSessionJarStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConstants.TEZ_SESSION_LOCAL_RESOURCES_PB_FILE_NAME);
+  public static Path getTezAMJarStagingPath(Path tezSysStagingPath) {
+    return new Path(tezSysStagingPath, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME);
   }
 
   /**
@@ -294,6 +296,19 @@ public class TezCommonUtils {
    */
   public static FSDataOutputStream createFileForAM(FileSystem fs, Path filePath) throws IOException {
     return FileSystem.create(fs, filePath, new FsPermission(TEZ_AM_FILE_PERMISSION));
+  }
+  
+  public static void addAdditionalLocalResources(Map<String, LocalResource> additionalLrs,
+      Map<String, LocalResource> originalLRs) {
+    if (additionalLrs != null && !additionalLrs.isEmpty()) {
+      for (Map.Entry<String, LocalResource> lr : additionalLrs.entrySet()) {
+        if (originalLRs.containsKey(lr.getKey())) {
+          throw new TezUncheckedException("Attempting to add duplicate resource: " + lr.getKey());
+        } else {
+          originalLRs.put(lr.getKey(), lr.getValue());
+        }
+      }
+    }
   }
 
   @Private

@@ -199,7 +199,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     Vertex mapVertex = Vertex.create("initialmap", ProcessorDescriptor.create(
         MapProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(mapStageConf))
-        .setHistoryText(mapStageHistoryText)).setTaskLocalFiles(commonLocalResources);
+        .setHistoryText(mapStageHistoryText)).addTaskLocalFiles(commonLocalResources);
     mapVertex.addDataSource("MRInput", dsd);
     vertices.add(mapVertex);
 
@@ -210,7 +210,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         ReduceProcessor.class.getName())
         .setUserPayload(TezUtils.createUserPayloadFromConf(iReduceStageConf))
         .setHistoryText(iReduceStageHistoryText), 2);
-    ivertex.setTaskLocalFiles(commonLocalResources);
+    ivertex.addTaskLocalFiles(commonLocalResources);
     vertices.add(ivertex);
 
     ByteArrayOutputStream finalReduceOutputStream = new ByteArrayOutputStream(4096);
@@ -222,7 +222,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             ReduceProcessor.class.getName())
             .setUserPayload(finalReducePayload)
             .setHistoryText(finalReduceStageHistoryText), 1);
-    finalReduceVertex.setTaskLocalFiles(commonLocalResources);
+    finalReduceVertex.addTaskLocalFiles(commonLocalResources);
     finalReduceVertex.addDataSink("MROutput",
         MROutputLegacy.createConfigBuilder(finalReduceConf, TextOutputFormat.class, outputPath)
             .build());
@@ -386,7 +386,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
           LOG.info("Pre-warming Session");
           PreWarmVertex preWarmVertex = PreWarmVertex.create("PreWarm", preWarmNumContainers, dag
               .getVertex("initialmap").getTaskResource());
-          preWarmVertex.setTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
+          preWarmVertex.addTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
           preWarmVertex.setTaskEnvironment(dag.getVertex("initialmap").getTaskEnvironment());
           preWarmVertex.setTaskLaunchCmdOpts(dag.getVertex("initialmap").getTaskLaunchCmdOpts());
           
