@@ -82,6 +82,7 @@ INCOMPATIBLE CHANGES
   TEZ-1469. AM/Session LRs are not shipped to vertices in new API use-case
   TEZ-1472. Separate method calls for creating InputDataInformationEvent with
   serialized/unserialized payloads
+  TEZ-1485. Disable node blacklisting and ATS in AM for local mode
 
 Release 0.4.0-incubating: 2014-04-05
 
