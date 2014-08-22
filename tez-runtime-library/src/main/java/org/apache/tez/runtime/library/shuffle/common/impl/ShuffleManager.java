@@ -91,7 +91,7 @@ public class ShuffleManager implements FetcherCallback {
   private final ListeningExecutorService fetcherExecutor;
 
   private final ListeningExecutorService schedulerExecutor;
-  private final RunShuffleCallable schedulerCallable = new RunShuffleCallable();
+  private final RunShuffleCallable schedulerCallable;
   
   private final BlockingQueue<FetchedInput> completedInputs;
   private final AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
@@ -115,6 +115,7 @@ public class ShuffleManager implements FetcherCallback {
   // Parameters required by Fetchers
   private final SecretKey shuffleSecret;
   private final CompressionCodec codec;
+  private final boolean localDiskFetchEnabled;
   
   private final int ifileBufferSize;
   private final boolean ifileReadAhead;
@@ -130,6 +131,7 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter decompressedDataSizeCounter;
   private final TezCounter bytesShuffledToDiskCounter;
   private final TezCounter bytesShuffledToMemCounter;
+  private final TezCounter bytesShuffledDirectDiskCounter;
   
   private volatile Throwable shuffleError;
   private final HttpConnectionParams httpConnectionParams;
@@ -148,12 +150,15 @@ public class ShuffleManager implements FetcherCallback {
     this.decompressedDataSizeCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED);
     this.bytesShuffledToDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_DISK);
     this.bytesShuffledToMemCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_MEM);
+    this.bytesShuffledDirectDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_DISK_DIRECT);
   
     this.ifileBufferSize = bufferSize;
     this.ifileReadAhead = ifileReadAheadEnabled;
     this.ifileReadAheadLength = ifileReadAheadLength;
     this.codec = codec;
     this.inputManager = inputAllocator;
+    this.localDiskFetchEnabled = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
+        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
     
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
@@ -180,6 +185,7 @@ public class ShuffleManager implements FetcherCallback {
     ExecutorService schedulerRawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleRunner [" + srcNameTrimmed + "]").build());
     this.schedulerExecutor = MoreExecutors.listeningDecorator(schedulerRawExecutor);
+    this.schedulerCallable = new RunShuffleCallable(conf);
     
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
@@ -206,6 +212,12 @@ public class ShuffleManager implements FetcherCallback {
   }
   
   private class RunShuffleCallable implements Callable<Void> {
+
+    private final Configuration conf;
+
+    public RunShuffleCallable(Configuration conf) {
+      this.conf = conf;
+    }
 
     @Override
     public Void call() throws Exception {
@@ -252,7 +264,7 @@ public class ShuffleManager implements FetcherCallback {
               }
               if (inputHost.getNumPendingInputs() > 0 && !isShutdown.get()) {
                 LOG.info("Scheduling fetch for inputHost: " + inputHost.getIdentifier());
-                Fetcher fetcher = constructFetcherForHost(inputHost);
+                Fetcher fetcher = constructFetcherForHost(inputHost, conf);
                 runningFetchers.add(fetcher);
                 if (isShutdown.get()) {
                   LOG.info("hasBeenShutdown, Breaking out of ShuffleScheduler Loop");
@@ -284,10 +296,10 @@ public class ShuffleManager implements FetcherCallback {
     }
   }
   
-  private Fetcher constructFetcherForHost(InputHost inputHost) {
+  private Fetcher constructFetcherForHost(InputHost inputHost, Configuration conf) {
     FetcherBuilder fetcherBuilder = new FetcherBuilder(ShuffleManager.this,
       httpConnectionParams, inputManager, inputContext.getApplicationId(),
-      shuffleSecret, srcNameTrimmed);
+      shuffleSecret, srcNameTrimmed, conf, localDiskFetchEnabled);
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
     }
@@ -450,8 +462,10 @@ public class ShuffleManager implements FetcherCallback {
           bytesShuffledCounter.increment(fetchedBytes);
           if (fetchedInput.getType() == Type.MEMORY) {
             bytesShuffledToMemCounter.increment(fetchedBytes);
-          } else {
+          } else if (fetchedInput.getType() == Type.DISK) {
             bytesShuffledToDiskCounter.increment(fetchedBytes);
+          } else if (fetchedInput.getType() == Type.DISK_DIRECT) {
+            bytesShuffledDirectDiskCounter.increment(fetchedBytes);
           }
           decompressedDataSizeCounter.increment(decompressedLength);
 

@@ -33,13 +33,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.crypto.SecretKey;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.LocalDirAllocator;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleHeader;
+import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
+import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 
@@ -54,6 +64,7 @@ public class Fetcher implements Callable<FetchResult> {
   private static final Log LOG = LogFactory.getLog(Fetcher.class);
 
   private static final AtomicInteger fetcherIdGen = new AtomicInteger(0);
+  private final Configuration conf;
 
   // Configurable fields.
   private CompressionCodec codec;
@@ -89,15 +100,20 @@ public class Fetcher implements Callable<FetchResult> {
   private HttpConnection httpConnection;
   private HttpConnectionParams httpConnectionParams;
 
+  private final boolean localDiskFetchEnabled;
+
   private Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
       FetchedInputAllocator inputManager, ApplicationId appId, SecretKey shuffleSecret,
-      String srcNameTrimmed) {
+      String srcNameTrimmed, Configuration conf, boolean localDiskFetchEnabled) {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.shuffleSecret = shuffleSecret;
     this.appId = appId;
     this.pathToAttemptMap = new HashMap<String, InputAttemptIdentifier>();
     this.httpConnectionParams = params;
+    this.conf = conf;
+
+    this.localDiskFetchEnabled = localDiskFetchEnabled;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
     this.logIdentifier = "fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
@@ -115,11 +131,40 @@ public class Fetcher implements Callable<FetchResult> {
 
     remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
 
+    HostFetchResult hostFetchResult;
+
+    if (localDiskFetchEnabled &&
+        host.equals(System.getenv(ApplicationConstants.Environment.NM_HOST.toString()))) {
+      hostFetchResult = setupLocalDiskFetch();
+    } else {
+      hostFetchResult = doHttpFetch();
+    }
+
+    if (hostFetchResult.failedInputs != null && hostFetchResult.failedInputs.length > 0) {
+      LOG.warn("copyInputs failed for tasks " + Arrays.toString(hostFetchResult.failedInputs));
+      for (InputAttemptIdentifier left : hostFetchResult.failedInputs) {
+        fetcherCallback.fetchFailed(host, left, hostFetchResult.connectFailed);
+      }
+    }
+
+    shutdown();
+
+    // Sanity check
+    if (hostFetchResult.failedInputs == null && !remaining.isEmpty()) {
+      throw new IOException("server didn't return all expected map outputs: "
+          + remaining.size() + " left.");
+    }
+
+    return hostFetchResult.fetchResult;
+  }
+
+  @VisibleForTesting
+  protected HostFetchResult doHttpFetch() {
     try {
       StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
-        port, partition, appId.toString(), httpConnectionParams.isSSLShuffleEnabled());
+          port, partition, appId.toString(), httpConnectionParams.isSSLShuffleEnabled());
       this.url = ShuffleUtils.constructInputURL(baseURI.toString(), srcAttempts,
-        httpConnectionParams.getKeepAlive());
+          httpConnectionParams.getKeepAlive());
 
       httpConnection = new HttpConnection(url, httpConnectionParams, logIdentifier, shuffleSecret);
       httpConnection.connect();
@@ -127,21 +172,19 @@ public class Fetcher implements Callable<FetchResult> {
       // ioErrs.increment(1);
       // If connect did not succeed, just mark all the maps as failed,
       // indirectly penalizing the host
+      InputAttemptIdentifier[] failedFetches = null;
       if (isShutDown.get()) {
         LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
       } else {
-        for (Iterator<InputAttemptIdentifier> leftIter = remaining.iterator(); leftIter
-            .hasNext();) {
-          fetcherCallback.fetchFailed(host, leftIter.next(), true);
-        }
+        failedFetches = remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
       }
-      return new FetchResult(host, port, partition, remaining);
+      return new HostFetchResult(new FetchResult(host, port, partition, remaining), failedFetches, true);
     }
     if (isShutDown.get()) {
       // shutdown would have no effect if in the process of establishing the connection.
       shutdownInternal();
       LOG.info("Detected fetcher has been shutdown after connection establishment. Returning");
-      return new FetchResult(host, port, partition, remaining);
+      return new HostFetchResult(new FetchResult(host, port, partition, remaining), null, false);
     }
 
     try {
@@ -159,8 +202,8 @@ public class Fetcher implements Callable<FetchResult> {
         InputAttemptIdentifier firstAttempt = srcAttempts.get(0);
         LOG.warn("Fetch Failure from host while connecting: " + host + ", attempt: " + firstAttempt
             + " Informing ShuffleManager: ", e);
-        fetcherCallback.fetchFailed(host, firstAttempt, false);
-        return new FetchResult(host, port, partition, remaining);
+        return new HostFetchResult(new FetchResult(host, port, partition, remaining),
+            new InputAttemptIdentifier[] { firstAttempt }, false);
       }
     }
 
@@ -172,7 +215,7 @@ public class Fetcher implements Callable<FetchResult> {
       // shutdown would have no effect if in the process of establishing the connection.
       shutdownInternal();
       LOG.info("Detected fetcher has been shutdown after opening stream. Returning");
-      return new FetchResult(host, port, partition, remaining);
+      return new HostFetchResult(new FetchResult(host, port, partition, remaining), null, false);
     }
     // After this point, closing the stream and connection, should cause a
     // SocketException,
@@ -187,23 +230,99 @@ public class Fetcher implements Callable<FetchResult> {
       failedInputs = fetchInputs(input);
     }
 
-    if (failedInputs != null && failedInputs.length > 0) {
-      LOG.warn("copyInputs failed for tasks " + Arrays.toString(failedInputs));
-      for (InputAttemptIdentifier left : failedInputs) {
-        fetcherCallback.fetchFailed(host, left, false);
+    return new HostFetchResult(new FetchResult(host, port, partition, remaining), failedInputs,
+        false);
+  }
+
+  @VisibleForTesting
+  protected HostFetchResult setupLocalDiskFetch() {
+
+    Iterator<InputAttemptIdentifier> iterator = remaining.iterator();
+    while (iterator.hasNext()) {
+      InputAttemptIdentifier srcAttemptId = iterator.next();
+      //TODO: check for shutdown? - See TEZ-1480
+      long startTime = System.currentTimeMillis();
+
+      FetchedInput fetchedInput = null;
+      try {
+        TezIndexRecord idxRecord;
+        idxRecord = getTezIndexRecord(srcAttemptId);
+
+        fetchedInput = new LocalDiskFetchedInput(idxRecord.getStartOffset(),
+            idxRecord.getRawLength(), idxRecord.getPartLength(), srcAttemptId,
+            getShuffleInputFileName(srcAttemptId.getPathComponent(), null), conf,
+            new FetchedInputCallback() {
+              @Override
+              public void fetchComplete(FetchedInput fetchedInput) {}
+
+              @Override
+              public void fetchFailed(FetchedInput fetchedInput) {}
+
+              @Override
+              public void freeResources(FetchedInput fetchedInput) {}
+            });
+        LOG.info("fetcher" + " about to shuffle output of srcAttempt (direct disk)" + srcAttemptId
+            + " decomp: " + idxRecord.getRawLength() + " len: " + idxRecord.getPartLength()
+            + " to " + fetchedInput.getType());
+
+        long endTime = System.currentTimeMillis();
+        fetcherCallback.fetchSucceeded(host, srcAttemptId, fetchedInput, idxRecord.getPartLength(),
+            idxRecord.getRawLength(), (endTime - startTime));
+        iterator.remove();
+      } catch (IOException e) {
+        LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host + "(local fetch)",
+            e);
+        if (fetchedInput != null) {
+          try {
+            fetchedInput.abort();
+          } catch (IOException e1) {
+            LOG.info("Failed to cleanup fetchedInput " + fetchedInput);
+          }
+        }
       }
     }
 
-    shutdown();
-
-    // Sanity check
-    if (failedInputs == null && !remaining.isEmpty()) {
-      throw new IOException("server didn't return all expected map outputs: "
-          + remaining.size() + " left.");
+    InputAttemptIdentifier[] failedFetches = null;
+    if (remaining.size() > 0) {
+      failedFetches = remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
     }
+    return new HostFetchResult(new FetchResult(host, port, partition, remaining),
+        failedFetches, false);
+  }
 
-    return new FetchResult(host, port, partition, remaining);
+  @VisibleForTesting
+  protected TezIndexRecord getTezIndexRecord(InputAttemptIdentifier srcAttemptId) throws
+      IOException {
+    TezIndexRecord idxRecord;
+    Path indexFile = getShuffleInputFileName(srcAttemptId.getPathComponent(),
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
+    idxRecord = spillRecord.getIndex(partition);
+    return idxRecord;
+  }
 
+  @VisibleForTesting
+  protected Path getShuffleInputFileName(String pathComponent, String suffix) throws IOException {
+    LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    suffix = suffix != null ? suffix : "";
+
+    String pathFromLocalDir = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR + pathComponent +
+        Path.SEPARATOR + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
+
+    return localDirAllocator.getLocalPathToRead(pathFromLocalDir, conf);
+  }
+
+  static class HostFetchResult {
+    private final FetchResult fetchResult;
+    private final InputAttemptIdentifier[] failedInputs;
+    private final boolean connectFailed;
+
+    public HostFetchResult(FetchResult fetchResult, InputAttemptIdentifier[] failedInputs,
+                           boolean connectFailed) {
+      this.fetchResult = fetchResult;
+      this.failedInputs = failedInputs;
+      this.connectFailed = connectFailed;
+    }
   }
 
   public void shutdown() {
@@ -299,10 +418,13 @@ public class Fetcher implements Callable<FetchResult> {
           input, (int) decompressedLength, (int) compressedLength, codec,
           ifileReadAhead, ifileReadAheadLength, LOG,
           fetchedInput.getInputAttemptIdentifier().toString());
-      } else {
+      } else if (fetchedInput.getType() == Type.DISK) {
         ShuffleUtils.shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
           (host +":" +port), input, compressedLength, LOG,
           fetchedInput.getInputAttemptIdentifier().toString());
+      } else {
+        throw new TezUncheckedException("Bad fetchedInput type while fetching shuffle data " +
+            fetchedInput);
       }
 
       // Inform the shuffle scheduler
@@ -348,8 +470,8 @@ public class Fetcher implements Callable<FetchResult> {
    * @param compressedLength
    * @param decompressedLength
    * @param fetchPartition
-   * @param remaining
-   * @param mapId
+   * @param srcAttemptId
+   * @param pathComponent
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
@@ -400,10 +522,11 @@ public class Fetcher implements Callable<FetchResult> {
     private boolean workAssigned = false;
 
     public FetcherBuilder(FetcherCallback fetcherCallback, HttpConnectionParams params,
-        FetchedInputAllocator inputManager, ApplicationId appId,
-        SecretKey shuffleSecret, String srcNameTrimmed) {
+                          FetchedInputAllocator inputManager, ApplicationId appId,
+                          SecretKey shuffleSecret, String srcNameTrimmed, Configuration conf,
+                          boolean localDiskFetchEnabled) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
-          shuffleSecret, srcNameTrimmed);
+          shuffleSecret, srcNameTrimmed, conf, localDiskFetchEnabled);
     }
 
     public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {

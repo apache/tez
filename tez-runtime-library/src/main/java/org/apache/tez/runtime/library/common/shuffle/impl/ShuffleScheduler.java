@@ -87,6 +87,7 @@ class ShuffleScheduler {
   private final TezCounter reduceBytesDecompressed;
   private final TezCounter failedShuffleCounter;
   private final TezCounter bytesShuffledToDisk;
+  private final TezCounter bytesShuffledToDiskDirect;
   private final TezCounter bytesShuffledToMem;
 
   private final long startTime;
@@ -111,6 +112,7 @@ class ShuffleScheduler {
                           TezCounter reduceBytesDecompressed,
                           TezCounter failedShuffleCounter,
                           TezCounter bytesShuffledToDisk,
+                          TezCounter bytesShuffledToDiskDirect,
                           TezCounter bytesShuffledToMem) {
     this.inputContext = inputContext;
     this.numInputs = numberOfInputs;
@@ -124,6 +126,7 @@ class ShuffleScheduler {
     this.reduceBytesDecompressed = reduceBytesDecompressed;
     this.failedShuffleCounter = failedShuffleCounter;
     this.bytesShuffledToDisk = bytesShuffledToDisk;
+    this.bytesShuffledToDiskDirect = bytesShuffledToDiskDirect;
     this.bytesShuffledToMem = bytesShuffledToMem;
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
@@ -144,7 +147,7 @@ class ShuffleScheduler {
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT));
     
     this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
-    
+
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
         + "maxFetchFailuresBeforeReporting=" + maxFetchFailuresBeforeReporting
@@ -171,6 +174,8 @@ class ShuffleScheduler {
         output.commit();
         if (output.getType() == Type.DISK) {
           bytesShuffledToDisk.increment(bytesCompressed);
+        } else if (output.getType() == Type.DISK_DIRECT) {
+          bytesShuffledToDiskDirect.increment(bytesCompressed);
         } else {
           bytesShuffledToMem.increment(bytesCompressed);
         }

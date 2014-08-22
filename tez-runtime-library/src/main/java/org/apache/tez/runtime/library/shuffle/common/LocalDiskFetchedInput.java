@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.commons.logging.Log;
@@ -43,7 +44,7 @@ public class LocalDiskFetchedInput extends FetchedInput {
                                InputAttemptIdentifier inputAttemptIdentifier, Path inputFile,
                                Configuration conf, FetchedInputCallback callbackHandler)
       throws IOException {
-    super(Type.DISK, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
+    super(Type.DISK_DIRECT, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
     this.startOffset = startOffset;
     this.inputFile = inputFile;
     localFS = FileSystem.getLocal(conf);
@@ -99,4 +100,20 @@ public class LocalDiskFetchedInput extends FetchedInput {
         ", id=" + id +
         ", state=" + state + "]";
   }
+
+  @VisibleForTesting
+  protected Path getInputFile() {
+    return inputFile;
+  }
+
+  @VisibleForTesting
+  protected long getStartOffset() {
+    return startOffset;
+  }
+
+  @VisibleForTesting
+  protected FileSystem getLocalFS() {
+    return localFS;
+  }
+
 }

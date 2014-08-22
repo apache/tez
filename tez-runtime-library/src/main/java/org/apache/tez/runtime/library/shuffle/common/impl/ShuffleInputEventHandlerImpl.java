@@ -26,24 +26,15 @@ import java.util.List;
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
-import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.shuffle.common.*;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
@@ -62,23 +53,16 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private final CompressionCodec codec;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
-  private final Configuration conf;
-  private final boolean doLocalFetch;
-  
-  
+
   public ShuffleInputEventHandlerImpl(InputContext inputContext,
                                       ShuffleManager shuffleManager,
                                       FetchedInputAllocator inputAllocator, CompressionCodec codec,
-                                      boolean ifileReadAhead, int ifileReadAheadLength,
-                                      Configuration conf) {
+                                      boolean ifileReadAhead, int ifileReadAheadLength) {
     this.shuffleManager = shuffleManager;
     this.inputAllocator = inputAllocator;
     this.codec = codec;
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
-    this.conf = conf;
-    this.doLocalFetch = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
-        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
   }
 
   @Override
@@ -135,16 +119,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
       shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
     } else {
-      if (doLocalFetch && shufflePayload.getHost().equals(System.getenv(
-          ApplicationConstants.Environment.NM_HOST.toString()))) {
-        LOG.info("SrcAttempt: [" + srcAttemptIdentifier +
-            "] fetching input data using direct local access");
-        FetchedInput fetchedInput = getLocalFetchDiskInput(dme, shufflePayload, srcAttemptIdentifier);
-        shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
-      } else {
-        shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
-                srcAttemptIdentifier, srcIndex);
-      }
+      shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
+              srcAttemptIdentifier, srcIndex);
     }
 
   }
@@ -175,37 +151,5 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     shuffleManager.obsoleteKnownInput(srcAttemptIdentifier);
   }
 
-  private Path getShuffleInputFileName(String pathComponent, String suffix) throws IOException {
-    LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
-    suffix = suffix != null ? suffix : "";
-
-    String pathFromLocalDir = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR + pathComponent +
-            Path.SEPARATOR + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
-
-    return localDirAllocator.getLocalPathToRead(pathFromLocalDir.toString(), conf);
-  }
-
-  private FetchedInput getLocalFetchDiskInput(DataMovementEvent dme,
-                                              DataMovementEventPayloadProto shufflePayload,
-                                              InputAttemptIdentifier srcAttemptIdentifier)
-      throws IOException {
-      String pathComponent = shufflePayload.getPathComponent();
-      Path indexFile = getShuffleInputFileName(pathComponent,
-          Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
-      TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
-      TezIndexRecord idxRecord = spillRecord.getIndex(dme.getSourceIndex());
-      return new LocalDiskFetchedInput(idxRecord.getStartOffset(),idxRecord.getRawLength(),
-          idxRecord.getPartLength(), srcAttemptIdentifier, getShuffleInputFileName(pathComponent, ""), conf,
-          new FetchedInputCallback() {
-            @Override
-            public void fetchComplete(FetchedInput fetchedInput) {}
-
-            @Override
-            public void fetchFailed(FetchedInput fetchedInput) {}
-
-            @Override
-            public void freeResources(FetchedInput fetchedInput) {}
-          });
-  }
 }
 

@@ -81,9 +81,7 @@ public class TestShuffleInputEventHandler {
   public void setup() throws Exception {
     InputContext inputContext = createTezInputContext();
     scheduler = mock(ShuffleScheduler.class);
-    Configuration conf = mock(Configuration.class);
-    MergeManager merger = mock(MergeManager.class);
-    handler = new ShuffleInputEventHandler(inputContext, scheduler, merger,conf, false);
+    handler = new ShuffleInputEventHandler(inputContext, scheduler, false);
   }
 
   @Test

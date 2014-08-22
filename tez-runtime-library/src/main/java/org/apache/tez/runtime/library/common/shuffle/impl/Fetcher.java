@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,21 +31,33 @@ import javax.crypto.SecretKey;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.LocalDirAllocator;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.impl.MapOutput.Type;
+import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
+import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection;
-import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
+import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 
 class Fetcher extends Thread {
   
   private static final Log LOG = LogFactory.getLog(Fetcher.class);
+  private final Configuration conf;
+  private final boolean localDiskFetchEnabled;
+
   private static enum ShuffleErrors{IO_ERROR, WRONG_LENGTH, BAD_ID, WRONG_MAP,
                                     CONNECTION, WRONG_REDUCE}
   
@@ -63,7 +76,7 @@ class Fetcher extends Thread {
   private final String logIdentifier;
   private static int nextId = 0;
   private int currentPartition = -1;
-  
+
   // Decompression of map-outputs
   private final CompressionCodec codec;
   private final SecretKey jobTokenSecret;
@@ -81,11 +94,11 @@ class Fetcher extends Thread {
   HttpConnectionParams httpConnectionParams;
   
   public Fetcher(HttpConnectionParams httpConnectionParams,
-      ShuffleScheduler scheduler, MergeManager merger,
-      ShuffleClientMetrics metrics,
-      Shuffle shuffle, SecretKey jobTokenSecret,
-      boolean ifileReadAhead, int ifileReadAheadLength, CompressionCodec codec,
-      InputContext inputContext) throws IOException {
+                 ShuffleScheduler scheduler, MergeManager merger,
+                 ShuffleClientMetrics metrics,
+                 Shuffle shuffle, SecretKey jobTokenSecret,
+                 boolean ifileReadAhead, int ifileReadAheadLength, CompressionCodec codec,
+                 InputContext inputContext, Configuration conf, boolean localDiskFetchEnabled) throws IOException {
     setDaemon(true);
     this.scheduler = scheduler;
     this.merger = merger;
@@ -114,6 +127,9 @@ class Fetcher extends Thread {
     } else {
       this.codec = null;
     }
+    this.conf = conf;
+
+    this.localDiskFetchEnabled = localDiskFetchEnabled;
 
     this.logIdentifier = "fetcher [" + TezUtilsInternal
         .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
@@ -134,8 +150,15 @@ class Fetcher extends Thread {
           host = scheduler.getHost();
           metrics.threadBusy();
 
-          // Shuffle
-          copyFromHost(host);
+          String hostPort = host.getHostIdentifier();
+          String hostname = hostPort.substring(0, hostPort.indexOf(":"));
+          if (localDiskFetchEnabled &&
+              hostname.equals(System.getenv(ApplicationConstants.Environment.NM_HOST.toString()))) {
+            setupLocalDiskFetch(host);
+          } else {
+            // Shuffle
+            copyFromHost(host);
+          }
         } finally {
           cleanupCurrentConnection(false);
           if (host != null) {
@@ -290,7 +313,8 @@ class Fetcher extends Thread {
     }
   }
 
-  private void putBackRemainingMapOutputs(MapHost host) {
+  @VisibleForTesting
+  protected void putBackRemainingMapOutputs(MapHost host) {
     // Cycle through remaining MapOutputs
     boolean isFirst = true;
     InputAttemptIdentifier first = null;
@@ -359,7 +383,7 @@ class Fetcher extends Thread {
       
       // Get the location for the map output - either in-memory or on-disk
       try {
-        mapOutput = merger.reserve(srcAttemptId, decompressedLength, id);
+        mapOutput = merger.reserve(srcAttemptId, decompressedLength, compressedLength, id);
       } catch (IOException e) {
         // Kill the reduce attempt
         ioErrs.increment(1);
@@ -440,7 +464,7 @@ class Fetcher extends Thread {
    * @param decompressedLength
    * @param forReduce
    * @param remaining
-   * @param mapId
+   * @param srcAttemptId
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
@@ -479,6 +503,90 @@ class Fetcher extends Thread {
     } else {
       return null;
     }
+  }
+
+  @VisibleForTesting
+  protected void setupLocalDiskFetch(MapHost host) throws InterruptedException {
+    // Get completed maps on 'host'
+    List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
+    currentPartition = host.getPartitionId();
+
+    // Sanity check to catch hosts with only 'OBSOLETE' maps,
+    // especially at the tail of large jobs
+    if (srcAttempts.size() == 0) {
+      return;
+    }
+
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("Fetcher " + id + " going to fetch (local disk) from " + host + " for: "
+          + srcAttempts + ", partitionId: " + currentPartition);
+    }
+
+    // List of maps to be fetched yet
+    remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
+
+    try {
+      final Iterator<InputAttemptIdentifier> iter = remaining.iterator();
+      while (iter.hasNext()) {
+        InputAttemptIdentifier srcAttemptId = iter.next();
+        MapOutput mapOutput = null;
+        try {
+          long startTime = System.currentTimeMillis();
+          Path filename = getShuffleInputFileName(srcAttemptId.getPathComponent(), null);
+
+          TezIndexRecord indexRecord = getIndexRecord(srcAttemptId.getPathComponent(),
+              currentPartition);
+
+          mapOutput = getMapOutputForDirectDiskFetch(srcAttemptId, filename, indexRecord);
+          long endTime = System.currentTimeMillis();
+          scheduler.copySucceeded(srcAttemptId, host, indexRecord.getPartLength(),
+              indexRecord.getRawLength(), (endTime - startTime), mapOutput);
+          iter.remove();
+          metrics.successFetch();
+        } catch (IOException e) {
+          if (mapOutput != null) {
+            mapOutput.abort();
+          }
+          metrics.failedFetch();
+          ioErrs.increment(1);
+          scheduler.copyFailed(srcAttemptId, host, true, false);
+          LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
+              host.getHostIdentifier(), e);
+        }
+      }
+    } finally {
+      putBackRemainingMapOutputs(host);
+    }
+
+  }
+
+  @VisibleForTesting
+  protected Path getShuffleInputFileName(String pathComponent, String suffix)
+      throws IOException {
+    LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    suffix = suffix != null ? suffix : "";
+
+    String pathFromLocalDir = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR +
+        pathComponent + Path.SEPARATOR + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
+
+    return localDirAllocator.getLocalPathToRead(pathFromLocalDir.toString(), conf);
+  }
+
+  @VisibleForTesting
+  protected TezIndexRecord getIndexRecord(String pathComponent, int partitionId)
+      throws IOException {
+    Path indexFile = getShuffleInputFileName(pathComponent,
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
+    return spillRecord.getIndex(partitionId);
+  }
+
+  @VisibleForTesting
+  protected MapOutput getMapOutputForDirectDiskFetch(InputAttemptIdentifier srcAttemptId,
+                                                     Path filename, TezIndexRecord indexRecord)
+      throws IOException {
+    return MapOutput.createLocalDiskMapOutput(srcAttemptId, merger, filename,
+        indexRecord.getStartOffset(), indexRecord.getPartLength(), true);
   }
 }
 

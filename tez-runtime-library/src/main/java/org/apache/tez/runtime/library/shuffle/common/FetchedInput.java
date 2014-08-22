@@ -33,6 +33,7 @@ public abstract class FetchedInput {
     WAIT, // TODO NEWTEZ Implement this, only if required.
     MEMORY,
     DISK,
+    DISK_DIRECT
   }
   
   protected static enum State {

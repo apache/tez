@@ -22,17 +22,18 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
 
 @Private
-public class FileChunkPath extends Path {
+public class FileChunk implements Comparable<FileChunk> {
 
-  private long offset = -1;
-  private long size = -1;
-  private boolean hasOffset = false;
+  private final long offset;
+  private final long length;
+  private final boolean preserveAfterUse;
+  private final Path path;
 
-  public FileChunkPath(String pathString, long offset, long length) throws IllegalArgumentException {
-    super(pathString);
+  public FileChunk(Path path, long offset, long length, boolean preserveAfterUse) {
+    this.path = path;
     this.offset = offset;
-    this.size = length;
-    this.hasOffset = true;
+    this.length = length;
+    this.preserveAfterUse = preserveAfterUse;
   }
 
   @Override
@@ -41,50 +42,38 @@ public class FileChunkPath extends Path {
       return true;
     }
 
-    if (o == null) {
+    if (o == null || this.getClass() != o.getClass()) {
       return false;
     }
 
-    boolean isPathEqual = super.equals(o);
-    if (!isPathEqual || !(o instanceof FileChunkPath)) {
-      return isPathEqual;
-    }
-
-    FileChunkPath that = (FileChunkPath) o;
-
-    if (this.offset != that.offset || this.size != that.size) {
-      return false;
-    }
-
-    return true;
+    FileChunk that = (FileChunk)o;
+    return path.equals(that.path) && (offset == that.offset) && (length == that.length);
   }
 
   @Override
   public int hashCode() {
-    int result = super.hashCode();
+    int result = path.hashCode();
     result = 31 * result + (int) (offset ^ (offset >>> 32));
-    result = 31 * result + (int) (size ^ (size >>> 32));
+    result = 31 * result + (int) (length ^ (length >>> 32));
     return result;
   }
 
   @Override
-  public int compareTo(Object o) {
-    int c;
-
-    c = super.compareTo(o);
-    if (c != 0 || !(o instanceof FileChunkPath)) {
+  public int compareTo(FileChunk that) {
+    int c = path.compareTo(that.path);
+    if (c != 0) {
       return c;
     }
 
     long lc;
-    FileChunkPath that = (FileChunkPath)o;
-
-    if ((lc = this.offset - that.offset) != 0) {
-      return lc > 0 ? 1 : -1;
+    lc = offset - that.offset;
+    if (lc != 0) {
+      return lc < 0 ? -1 : 1;
     }
 
-    if ((lc = this.size - that.size) != 0) {
-      return lc > 0 ? 1 : -1;
+    lc = length - that.length;
+    if (lc != 0) {
+      return lc < 0 ? -1 : 1;
     }
 
     return 0;
@@ -95,10 +84,14 @@ public class FileChunkPath extends Path {
   }
 
   public long getLength() {
-    return size;
+    return length;
   }
 
-  public boolean hasOffset() {
-    return hasOffset;
+  public boolean preserveAfterUse() {
+    return preserveAfterUse;
+  }
+
+  public Path getPath() {
+    return path;
   }
 }

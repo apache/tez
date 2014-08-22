@@ -159,6 +159,11 @@ public enum TaskCounter {
   SHUFFLE_BYTES_TO_DISK,
 
   /**
+   * Number of bytes which were read directly from local disk
+   */
+  SHUFFLE_BYTES_DISK_DIRECT,
+
+  /**
    * Number of Memory to Disk merges performed during sort-merge.
    * Used by ShuffledMergedInput
    */

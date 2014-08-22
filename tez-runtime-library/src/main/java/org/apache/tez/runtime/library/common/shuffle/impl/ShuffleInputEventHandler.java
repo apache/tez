@@ -27,23 +27,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
-import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
@@ -57,20 +48,13 @@ public class ShuffleInputEventHandler {
   private final InputContext inputContext;
 
   private int maxMapRuntime = 0;
-  private final MergeManager merger;
-  private final Configuration conf;
   private final boolean sslShuffle;
-  private final boolean doLocalFetch;
 
   public ShuffleInputEventHandler(InputContext inputContext,
-      ShuffleScheduler scheduler, MergeManager merger, Configuration conf, boolean sslShuffle) {
+      ShuffleScheduler scheduler, boolean sslShuffle) {
     this.inputContext = inputContext;
     this.scheduler = scheduler;
-    this.merger = merger;
-    this.conf = conf;
     this.sslShuffle = sslShuffle;
-    this.doLocalFetch = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
-        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
   }
 
   public void handleEvents(List<Event> events) throws IOException {
@@ -125,21 +109,10 @@ public class ShuffleInputEventHandler {
     InputAttemptIdentifier srcAttemptIdentifier =
         new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(),
             shufflePayload.getPathComponent());
-    if (doLocalFetch && shufflePayload.getHost().equals(System.getenv(
-        ApplicationConstants.Environment.NM_HOST.toString()))) {
-      LOG.info("SrcAttempt: [" + srcAttemptIdentifier +
-          "] fetching input data using direct local access");
-      Path filename = getShuffleInputFileName(shufflePayload.getPathComponent(), "");
-      TezIndexRecord indexRecord = getIndexRecord(dmEvent, shufflePayload);
-      MapOutput mapOut = new MapOutput(srcAttemptIdentifier, merger, conf, filename,
-          indexRecord.getStartOffset(), indexRecord.getPartLength()); //TODO: do we need length?
-      scheduler.copySucceeded(srcAttemptIdentifier, null, indexRecord.getPartLength(),
-          indexRecord.getRawLength(), 0, mapOut);
-    } else {
-      URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
-      scheduler.addKnownMapOutput(shufflePayload.getHost(), shufflePayload.getPort(),
-          partitionId, baseUri.toString(), srcAttemptIdentifier);
-    }
+
+    URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
+    scheduler.addKnownMapOutput(shufflePayload.getHost(), shufflePayload.getPort(),
+        partitionId, baseUri.toString(), srcAttemptIdentifier);
   }
   
   private void processTaskFailedEvent(InputFailedEvent ifEvent) {
@@ -157,23 +130,5 @@ public class ShuffleInputEventHandler {
     return u;
   }
 
-  private Path getShuffleInputFileName(String pathComponent, String suffix) throws IOException {
-    LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
-    suffix = suffix != null ? suffix : "";
-
-    String pathFromLocalDir = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR + pathComponent +
-        Path.SEPARATOR + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
-
-    return localDirAllocator.getLocalPathToRead(pathFromLocalDir.toString(), conf);
-  }
-
-  private TezIndexRecord getIndexRecord(DataMovementEvent dme,
-                                              DataMovementEventPayloadProto shufflePayload)
-      throws IOException {
-    Path indexFile = getShuffleInputFileName(shufflePayload.getPathComponent(),
-        Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
-    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
-    return spillRecord.getIndex(dme.getSourceIndex());
-  }
 }
 

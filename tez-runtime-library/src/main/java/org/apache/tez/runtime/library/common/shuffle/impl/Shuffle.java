@@ -92,6 +92,7 @@ public class Shuffle implements ExceptionReporter {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private final int numFetchers;
+  private final boolean localDiskFetchEnabled;
   
   private Throwable throwable = null;
   private String throwingThreadName = null;
@@ -167,6 +168,8 @@ public class Shuffle implements ExceptionReporter {
         inputContext.getCounters().findCounter(TaskCounter.MERGED_MAP_OUTPUTS);
     TezCounter bytesShuffedToDisk = inputContext.getCounters().findCounter(
         TaskCounter.SHUFFLE_BYTES_TO_DISK);
+    TezCounter bytesShuffedToDiskDirect = inputContext.getCounters().findCounter(
+        TaskCounter.SHUFFLE_BYTES_DISK_DIRECT);
     TezCounter bytesShuffedToMem = inputContext.getCounters().findCounter(
         TaskCounter.SHUFFLE_BYTES_TO_MEM);
     
@@ -186,6 +189,7 @@ public class Shuffle implements ExceptionReporter {
           reduceDataSizeDecompressed,
           failedShuffleCounter,
           bytesShuffedToDisk,
+          bytesShuffedToDiskDirect,
           bytesShuffedToMem);
 
     merger = new MergeManager(
@@ -206,8 +210,6 @@ public class Shuffle implements ExceptionReporter {
     eventHandler= new ShuffleInputEventHandler(
         inputContext,
         scheduler,
-        merger,
-        this.conf,
         sslShuffle);
     
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
@@ -220,7 +222,9 @@ public class Shuffle implements ExceptionReporter {
     numFetchers = Math.min(configuredNumFetchers, numInputs);
     LOG.info("Num fetchers being started: " + numFetchers);
     fetchers = Lists.newArrayListWithCapacity(numFetchers);
-    
+    localDiskFetchEnabled = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
+        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
+
     executor = MoreExecutors.listeningDecorator(rawExecutor);
     runShuffleCallable = new RunShuffleCallable();
   }
@@ -318,7 +322,7 @@ public class Shuffle implements ExceptionReporter {
         for (int i = 0; i < numFetchers; ++i) {
           Fetcher fetcher = new Fetcher(httpConnectionParams, scheduler, merger,
             metrics, Shuffle.this, jobTokenSecret, ifileReadAhead, ifileReadAheadLength,
-            codec, inputContext);
+            codec, inputContext, conf, localDiskFetchEnabled);
           fetchers.add(fetcher);
           fetcher.start();
         }

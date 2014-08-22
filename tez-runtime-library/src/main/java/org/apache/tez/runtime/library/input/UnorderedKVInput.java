@@ -137,7 +137,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
           ifileReadAhead, ifileReadAheadLength, codec, inputManager);
 
       this.inputEventHandler = new ShuffleInputEventHandlerImpl(getContext(), shuffleManager,
-          inputManager, codec, ifileReadAhead, ifileReadAheadLength, conf);
+          inputManager, codec, ifileReadAhead, ifileReadAheadLength);
 
       ////// End of Initial configuration
 

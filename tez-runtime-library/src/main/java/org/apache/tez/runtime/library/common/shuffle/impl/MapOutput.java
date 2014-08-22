@@ -26,10 +26,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.hadoop.io.FileChunkPath;
+import org.apache.hadoop.io.FileChunk;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
@@ -44,118 +43,96 @@ class MapOutput {
     DISK,
     DISK_DIRECT
   }
-  
-  private InputAttemptIdentifier attemptIdentifier;
+
   private final int id;
-  
+  private final Type type;
+  private InputAttemptIdentifier attemptIdentifier;
+  private final long size;
+
+  private final boolean primaryMapOutput;
   private final MergeManager merger;
 
-  private final long fileOffset;
-  private final long size;
-  
+  // MEMORY
   private final byte[] memory;
   private BoundedByteArrayOutputStream byteStream;
-  
+
+  // DISK
   private final FileSystem localFS;
   private final Path tmpOutputPath;
-  private final Path outputPath;
-  private final OutputStream disk; 
-  
-  private final Type type;
-  
-  private final boolean primaryMapOutput;
-  
-  MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, long size, 
-            Configuration conf, LocalDirAllocator localDirAllocator,
-            int fetcher, boolean primaryMapOutput, 
-            TezTaskOutputFiles mapOutputFile)
-         throws IOException {
+  private final FileChunk outputPath;
+  private OutputStream disk;
+
+  private MapOutput(Type type, InputAttemptIdentifier attemptIdentifier, MergeManager merger,
+                    long size, Path outputPath, long offset, boolean primaryMapOutput,
+                    FileSystem fs, Path tmpOutputPath) {
     this.id = ID.incrementAndGet();
+    this.type = type;
     this.attemptIdentifier = attemptIdentifier;
     this.merger = merger;
-
-    type = Type.DISK;
-
-    memory = null;
-    byteStream = null;
-
-    this.fileOffset = 0;
-    this.size = size;
-    
-    this.localFS = FileSystem.getLocal(conf);
-    outputPath =
-      mapOutputFile.getInputFileForWrite(this.attemptIdentifier.getInputIdentifier().getInputIndex(), size);
-    tmpOutputPath = outputPath.suffix(String.valueOf(fetcher));
-
-    disk = localFS.create(tmpOutputPath);
-    
     this.primaryMapOutput = primaryMapOutput;
-  }
 
-  MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, Configuration conf,
-            Path path, long offset, long size)
-      throws IOException {
-    this.id = ID.incrementAndGet();
-    this.attemptIdentifier = attemptIdentifier;
-    this.merger = merger;
-
-    type = Type.DISK_DIRECT;
-
-    memory = null;
-    byteStream = null;
-
-    this.fileOffset = offset;
+    this.localFS = fs;
     this.size = size;
 
-    this.localFS = FileSystem.getLocal(conf);
-    outputPath = path;
-    tmpOutputPath = null;
+    // Other type specific values
 
-    disk = null;
-    this.primaryMapOutput = true;
+    if (type == Type.MEMORY) {
+      // since we are passing an int from createMemoryMapOutput, its safe to cast to int
+      this.byteStream = new BoundedByteArrayOutputStream((int)size);
+      this.memory = byteStream.getBuffer();
+    } else {
+      this.byteStream = null;
+      this.memory = null;
+    }
+
+    this.tmpOutputPath = tmpOutputPath;
+    this.disk = null;
+
+    if (type == Type.DISK || type == Type.DISK_DIRECT) {
+      boolean preserve = (type == Type.DISK_DIRECT); // type disk are temp files.
+      this.outputPath = new FileChunk(outputPath, offset, size, preserve);
+    } else {
+      this.outputPath = null;
+    }
+
   }
 
-  MapOutput(InputAttemptIdentifier attemptIdentifier, MergeManager merger, int size, 
-            boolean primaryMapOutput) {
-    this.id = ID.incrementAndGet();
-    this.attemptIdentifier = attemptIdentifier;
-    this.merger = merger;
+  public static MapOutput createDiskMapOutput(InputAttemptIdentifier attemptIdentifier,
+                                              MergeManager merger, long size, Configuration conf,
+                                              int fetcher, boolean primaryMapOutput,
+                                              TezTaskOutputFiles mapOutputFile) throws
+      IOException {
+    FileSystem fs = FileSystem.getLocal(conf);
+    Path outputpath = mapOutputFile.getInputFileForWrite(
+        attemptIdentifier.getInputIdentifier().getInputIndex(), size);
+    Path tmpOuputPath = outputpath.suffix(String.valueOf(fetcher));
+    long offset = 0;
 
-    type = Type.MEMORY;
-    byteStream = new BoundedByteArrayOutputStream(size);
-    memory = byteStream.getBuffer();
+    MapOutput mapOutput = new MapOutput(Type.DISK, attemptIdentifier, merger, size, outputpath, offset,
+        primaryMapOutput, fs, tmpOuputPath);
+    mapOutput.disk = mapOutput.localFS.create(tmpOuputPath);
 
-    this.size = size;
-    this.fileOffset = -1;
-    
-    localFS = null;
-    disk = null;
-    outputPath = null;
-    tmpOutputPath = null;
-    
-    this.primaryMapOutput = primaryMapOutput;
+    return mapOutput;
   }
 
-  public MapOutput(InputAttemptIdentifier attemptIdentifier) {
-    this.id = ID.incrementAndGet();
-    this.attemptIdentifier = attemptIdentifier;
-
-    type = Type.WAIT;
-    merger = null;
-    memory = null;
-    byteStream = null;
-    
-    size = -1;
-    fileOffset = -1;
-    
-    localFS = null;
-    disk = null;
-    outputPath = null;
-    tmpOutputPath = null;
-
-    this.primaryMapOutput = false;
+  public static MapOutput createLocalDiskMapOutput(InputAttemptIdentifier attemptIdentifier,
+                                                   MergeManager merger, Path path,  long offset,
+                                                   long size, boolean primaryMapOutput)  {
+    return new MapOutput(Type.DISK_DIRECT, attemptIdentifier, merger, size, path, offset,
+        primaryMapOutput, null, null);
   }
-  
+
+  public static MapOutput createMemoryMapOutput(InputAttemptIdentifier attemptIdentifier,
+                                                MergeManager merger, int size,
+                                                boolean primaryMapOutput)  {
+    return new MapOutput(Type.MEMORY, attemptIdentifier, merger, size, null, -1, primaryMapOutput,
+        null, null);
+  }
+
+  public static MapOutput createWaitMapOutput(InputAttemptIdentifier attemptIdentifier) {
+    return new MapOutput(Type.WAIT, attemptIdentifier, null, -1, null, -1, false, null, null);
+  }
+
   public boolean isPrimaryMapOutput() {
     return primaryMapOutput;
   }
@@ -173,7 +150,7 @@ class MapOutput {
     return id;
   }
 
-  public Path getOutputPath() {
+  public FileChunk getOutputPath() {
     return outputPath;
   }
 
@@ -205,11 +182,10 @@ class MapOutput {
     if (type == Type.MEMORY) {
       merger.closeInMemoryFile(this);
     } else if (type == Type.DISK) {
-      localFS.rename(tmpOutputPath, outputPath);
+      localFS.rename(tmpOutputPath, outputPath.getPath());
       merger.closeOnDiskFile(outputPath);
     } else if (type == Type.DISK_DIRECT) {
-      FileChunkPath fileChunkPath = new FileChunkPath(outputPath.toString(), fileOffset, size);
-      merger.closeOnDiskFile(fileChunkPath);
+      merger.closeOnDiskFile(outputPath);
     } else {
       throw new IOException("Cannot commit MapOutput of type WAIT!");
     }
@@ -252,9 +228,7 @@ class MapOutput {
         return -1;
       } else {
         return 1;
-      
       }
     }
   }
-  
 }
