@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
@@ -182,6 +183,23 @@ public abstract class ExternalSorter {
       Class<? extends CompressionCodec> codecClass =
           ConfigUtils.getIntermediateOutputCompressorClass(this.conf, DefaultCodec.class);
       codec = ReflectionUtils.newInstance(codecClass, this.conf);
+
+      if (codec != null) {
+        Class<? extends Compressor> compressorType = null;
+        Throwable cause = null;
+        try {
+          compressorType = codec.getCompressorType();
+        } catch (RuntimeException e) {
+          cause = e;
+        }
+        if (compressorType == null) {
+          String errMsg =
+              String.format("Unable to get CompressorType for codec (%s). This is most" +
+                      " likely due to missing native libraries for the codec.",
+                  conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC));
+          throw new IOException(errMsg, cause);
+        }
+      }
     } else {
       codec = null;
     }
