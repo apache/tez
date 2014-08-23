@@ -20,7 +20,6 @@ package org.apache.tez.dag.app.launcher;
 
 
 import java.io.IOException;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -41,15 +40,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -184,7 +183,7 @@ public class LocalContainerLauncher extends AbstractService implements
     String tokenIdentifier = context.getApplicationID().toString();
 
     String[] localDirs =
-        StringUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
+        TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
 
     try {
       ListenableFuture<TezChild.ContainerExecutionResult> runningTaskFuture =

@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.nio.ByteBuffer;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -44,6 +45,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.protobuf.ByteString;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -53,7 +55,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.Service.STATE;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -2020,7 +2021,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.FAILED, v.getState());
     Assert.assertEquals(VertexTerminationCause.OWN_TASK_FAILURE, v.getTerminationCause());
     String diagnostics =
-        StringUtils.join(",", v.getDiagnostics()).toLowerCase();
+        StringUtils.join(v.getDiagnostics(), ",").toLowerCase();
     Assert.assertTrue(diagnostics.contains("task failed"
         + ", taskid=" + t1.toString()));
   }
@@ -2031,7 +2032,7 @@ public class TestVertexImpl {
     VertexImpl v2 = vertices.get("vertex4");
     killVertex(v2);
     String diagnostics =
-        StringUtils.join(",", v2.getDiagnostics()).toLowerCase();
+        StringUtils.join(v2.getDiagnostics(), ",").toLowerCase();
     LOG.info("diagnostics v2: " + diagnostics);
     Assert.assertTrue(diagnostics.contains(
         "vertex received kill in inited state"));
@@ -2046,7 +2047,7 @@ public class TestVertexImpl {
     startVertex(vertices.get("vertex2"));
     killVertex(v3);
     String diagnostics =
-        StringUtils.join(",", v3.getDiagnostics()).toLowerCase();
+        StringUtils.join(v3.getDiagnostics(), ",").toLowerCase();
     Assert.assertTrue(diagnostics.contains(
         "vertex received kill while in running state"));
   }

@@ -28,11 +28,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ExitUtil;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezException;
@@ -357,12 +357,12 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
   private String getTaskDiagnosticsString(Throwable t, String message) {
     String diagnostics;
     if (t != null && message != null) {
-      diagnostics = "exceptionThrown=" + StringUtils.stringifyException(t) + ", errorMessage="
+      diagnostics = "exceptionThrown=" + ExceptionUtils.getStackTrace(t) + ", errorMessage="
           + message;
     } else if (t == null && message == null) {
       diagnostics = "Unknown error";
     } else {
-      diagnostics = t != null ? "exceptionThrown=" + StringUtils.stringifyException(t)
+      diagnostics = t != null ? "exceptionThrown=" + ExceptionUtils.getStackTrace(t)
           : " errorMessage=" + message;
     }
     return diagnostics;

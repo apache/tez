@@ -37,11 +37,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -634,7 +634,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           getTaskAttemptID());
       setFrameworkCounters();
       tezUmbilical.signalFatalError(getTaskAttemptID(),
-          t, StringUtils.stringifyException(t), sourceInfo);
+          t, ExceptionUtils.getStackTrace(t), sourceInfo);
       return false;
     }
     return true;

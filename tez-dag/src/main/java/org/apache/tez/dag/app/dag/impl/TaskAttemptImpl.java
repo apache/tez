@@ -29,12 +29,12 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.util.StringInterner;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -525,7 +525,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       result.setStartTime(launchTime);
       result.setFinishTime(finishTime);
       //result.setShuffleFinishTime(this.reportedStatus.shuffleFinishTime);
-      result.setDiagnosticInfo(StringUtils.join(LINE_SEPARATOR, getDiagnostics()));
+      result.setDiagnosticInfo(StringUtils.join(getDiagnostics(), LINE_SEPARATOR));
       //result.setPhase(reportedStatus.phase);
       //result.setStateString(reportedStatus.statef);
       result.setCounters(getCounters());
@@ -910,7 +910,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         taskAttempt.nodeRackName == null ? "UNKNOWN"
             : taskAttempt.nodeRackName,
         StringUtils.join(
-            LINE_SEPARATOR, taskAttempt.getDiagnostics()), taskAttempt
+            taskAttempt.getDiagnostics(), LINE_SEPARATOR), taskAttempt
             .getProgressSplitBlock().burst());
     return tauce;
   }
@@ -1047,7 +1047,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         attemptId, getTask().getVertex().getName(), getLaunchTime(),
         clock.getTime(), state,
         StringUtils.join(
-            LINE_SEPARATOR, getDiagnostics()),
+            getDiagnostics(), LINE_SEPARATOR),
         getCounters());
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(

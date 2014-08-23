@@ -18,6 +18,7 @@
 
 package org.apache.tez.common.security;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.StringUtils;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 
@@ -110,11 +111,11 @@ public class ACLConfigurationParser {
     }
     if (userListStr.length() >= 1) {
       allowedUsers.put(aclType,
-          Sets.newHashSet(StringUtils.getTrimmedStringCollection(userListStr)));
+          Sets.newLinkedHashSet(Arrays.asList(TezCommonUtils.getTrimmedStrings(userListStr))));
     }
     if (groupListStr != null && groupListStr.length() >= 1) {
       allowedGroups.put(aclType,
-          Sets.newHashSet(StringUtils.getTrimmedStringCollection(groupListStr)));
+          Sets.newLinkedHashSet(Arrays.asList(TezCommonUtils.getTrimmedStrings(groupListStr))));
     }
 
   }

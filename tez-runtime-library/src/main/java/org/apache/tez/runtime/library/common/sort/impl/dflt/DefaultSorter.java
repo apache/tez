@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -38,7 +39,6 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -680,7 +680,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     if (lspillException != null) {
       if (lspillException instanceof Error) {
         final String logMsg = "Task " + outputContext.getUniqueIdentifier()
-            + " failed : " + StringUtils.stringifyException(lspillException);
+            + " failed : " + ExceptionUtils.getStackTrace(lspillException);
         outputContext.fatalError(lspillException, logMsg);
       }
       throw new IOException("Spill failed", lspillException);

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -40,7 +41,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.QuickSort;
-import org.apache.hadoop.util.StringUtils;
 
 /**
  * An input format that reads the first 10 characters of each line as the key
@@ -201,7 +201,7 @@ public class TeraInputFormat extends FileInputFormat<Text,Text> {
             }
           } catch (IOException ie){
             System.err.println("Got an exception while reading splits " +
-                StringUtils.stringifyException(ie));
+                ExceptionUtils.getStackTrace(ie));
             throw new RuntimeException(ie);
           } catch (InterruptedException e) {
         	  

@@ -38,13 +38,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringInterner;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -1432,8 +1433,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   void logJobHistoryVertexFailedEvent(VertexState state) throws IOException {
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
         vertexName, initTimeRequested, initedTime, startTimeRequested,
-        startedTime, clock.getTime(), state, StringUtils.join(LINE_SEPARATOR,
-            getDiagnostics()), getAllCounters(), getVertexStats());
+        startedTime, clock.getTime(), state, StringUtils.join(getDiagnostics(),
+            LINE_SEPARATOR), getAllCounters(), getVertexStats());
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
@@ -1693,7 +1694,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } catch (Exception e) {
       LOG.warn("Vertex Committer init failed, vertexId=" + logIdentifier, e);
       addDiagnostic("Vertex init failed : "
-          + StringUtils.stringifyException(e));
+          + ExceptionUtils.getStackTrace(e));
       trySetTerminationCause(VertexTerminationCause.INIT_FAILURE);
       abortVertex(VertexStatus.State.FAILED);
       finished(VertexState.FAILED);

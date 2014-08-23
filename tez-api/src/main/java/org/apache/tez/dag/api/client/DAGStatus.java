@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -168,7 +168,7 @@ public class DAGStatus {
     sb.append("status=" + getState()
       + ", progress=" + getDAGProgress()
       + ", diagnostics="
-      + StringUtils.join(LINE_SEPARATOR, getDiagnostics())
+      + StringUtils.join(getDiagnostics(), LINE_SEPARATOR)
       + ", counters="
       + (dagCounters == null ? "null" : dagCounters.toString()));
     return sb.toString();

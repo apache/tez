@@ -29,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.SecretKey;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -59,7 +61,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.util.Progress;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
@@ -285,8 +286,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
       }
       if (!localArchives.isEmpty()) {
         job.set(MRJobConfig.CACHE_LOCALARCHIVES, StringUtils
-            .arrayToString(localArchives.toArray(new String[localArchives
-                .size()])));
+            .join(localArchives, ','));
       }
     }
 
@@ -304,7 +304,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
       }
       if (!localFiles.isEmpty()) {
         job.set(MRJobConfig.CACHE_LOCALFILES, StringUtils
-            .arrayToString(localFiles.toArray(new String[localFiles.size()])));
+            .join(localFiles, ','));
       }
     }
   }
@@ -441,7 +441,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
         //ignore
       } catch (IOException ie) {
         LOG.warn("Failure sending canCommit: "
-            + StringUtils.stringifyException(ie));
+            + ExceptionUtils.getStackTrace(ie));
         if (--retries == 0) {
           throw ie;
         }
@@ -458,7 +458,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
       return;
     } catch (IOException iee) {
       LOG.warn("Failure committing: " +
-          StringUtils.stringifyException(iee));
+          ExceptionUtils.getStackTrace(iee));
       //if it couldn't commit a successfully then delete the output
       discardOutput(output);
       throw iee;
@@ -471,7 +471,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
       output.abort();
     } catch (IOException ioe)  {
       LOG.warn("Failure cleaning up: " +
-               StringUtils.stringifyException(ioe));
+               ExceptionUtils.getStackTrace(ioe));
     }
   }
 

@@ -28,12 +28,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainersRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainersResponse;
@@ -179,7 +179,7 @@ public class ContainerLauncherImpl extends AbstractService implements
         this.state = ContainerState.RUNNING;
       } catch (Throwable t) {
         String message = "Container launch failed for " + containerID + " : "
-            + StringUtils.stringifyException(t);
+            + ExceptionUtils.getStackTrace(t);
         this.state = ContainerState.FAILED;
         sendContainerLaunchFailedMsg(containerID, message);
       } finally {
@@ -222,7 +222,7 @@ public class ContainerLauncherImpl extends AbstractService implements
           // ignore the cleanup failure
           String message = "cleanup failed for container "
             + this.containerID + " : "
-            + StringUtils.stringifyException(t);
+            + ExceptionUtils.getStackTrace(t);
           context.getEventHandler().handle(
               new AMContainerEventStopFailed(containerID, message));
           LOG.warn(message);

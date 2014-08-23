@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.hadoop.util.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounters;
@@ -328,9 +328,9 @@ public class TaskReporter {
       TezEvent statusUpdateEvent = new TezEvent(new TaskStatusUpdateEvent(task.getCounters(),
           task.getProgress()), updateEventMetadata);
       if (diagnostics == null) {
-        diagnostics = StringUtils.stringifyException(t);
+        diagnostics = ExceptionUtils.getStackTrace(t);
       } else {
-        diagnostics = diagnostics + ":" + StringUtils.stringifyException(t);
+        diagnostics = diagnostics + ":" + ExceptionUtils.getStackTrace(t);
       }
       TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
           srcMeta == null ? updateEventMetadata : srcMeta);

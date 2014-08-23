@@ -29,6 +29,7 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -352,5 +353,18 @@ public class TezCommonUtils {
       values.add(tokenizer.nextToken());
     }
     return values;
+  }
+
+  /**
+   * Splits a comma separated value <code>String</code>, trimming leading and trailing whitespace on each value.
+   * @param str a comma separated <String> with values
+   * @return an array of <code>String</code> values
+   */
+  public static String[] getTrimmedStrings(String str) {
+    if (null == str || (str = str.trim()).isEmpty()) {
+      return ArrayUtils.EMPTY_STRING_ARRAY;
+    }
+
+    return str.split("\\s*,\\s*");
   }
 }
