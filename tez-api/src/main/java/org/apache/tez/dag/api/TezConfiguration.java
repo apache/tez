@@ -397,7 +397,7 @@ public class TezConfiguration extends Configuration {
       + "scale.task.memory.allocator.class";
   @Private
   public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT =
-      "org.apache.tez.runtime.common.resources.ScalingAllocator";
+      "org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor";
 
   /**
    * The fraction of the JVM memory which will not be considered for allocation.

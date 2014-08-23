@@ -49,6 +49,7 @@ import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.apache.tez.runtime.common.resources.ScalingAllocator;
 import org.junit.Test;
 
 import com.google.common.collect.HashMultimap;
@@ -65,6 +66,8 @@ public class TestLogicalIOProcessorRuntimeTask {
     Multimap<String, String> startedInputsMap = HashMultimap.create();
     TezUmbilical umbilical = mock(TezUmbilical.class);
     TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
+        ScalingAllocator.class.getName());
 
     TezTaskAttemptID taId1 = createTaskAttemptID(vertexId, 1);
     TaskSpec task1 = createTaskSpec(taId1, "dag1", "vertex1");

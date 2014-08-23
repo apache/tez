@@ -47,13 +47,13 @@ import com.google.common.collect.Maps;
 /**
  * Distributes memory between various requesting components by applying a
  * weighted scaling function. Overall, ensures that all requestors stay within the JVM limits.
- * 
+ *
  * Configuration involves specifying weights for the different Inputs available
  * in the tez-runtime-library. As an example, SortedShuffle : SortedOutput :
  * UnsortedShuffle could be configured to be 20:10:1. In this case, if both
  * SortedShuffle and UnsortedShuffle ask for the same amount of initial memory,
  * SortedShuffle will be given 20 times more; both may be scaled down to fit within the JVM though.
- * 
+ *
  */
 @Public
 @Unstable
@@ -61,8 +61,10 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
 
   private static final Log LOG = LogFactory.getLog(WeightedScalingMemoryDistributor.class);
 
-  static final double MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO = 0.3d;
-  static final double RESERVATION_FRACTION_PER_IO = 0.025d;
+  static final double MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO = 0.1d;
+  static final double RESERVATION_FRACTION_PER_IO = 0.015d;
+  static final String[] DEFAULT_TASK_MEMORY_WEIGHTED_RATIOS =
+      generateWeightStrings(1, 1, 12, 12, 1, 1);
 
   private Configuration conf;
 
@@ -72,7 +74,8 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   @Private
   @VisibleForTesting
   public enum RequestType {
-    PARTITIONED_UNSORTED_OUTPUT, UNSORTED_INPUT, SORTED_OUTPUT, SORTED_MERGED_INPUT, PROCESSOR, OTHER
+    PARTITIONED_UNSORTED_OUTPUT, UNSORTED_INPUT, UNSORTED_OUTPUT, SORTED_OUTPUT,
+    SORTED_MERGED_INPUT, PROCESSOR, OTHER
   };
 
   private EnumMap<RequestType, Integer> typeScaleMap = Maps.newEnumMap(RequestType.class);
@@ -197,7 +200,8 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   }
 
   private void populateTypeScaleMap() {
-    String[] ratios = conf.getStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS);
+    String[] ratios = conf.getStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS,
+        DEFAULT_TASK_MEMORY_WEIGHTED_RATIOS);
     int numExpectedValues = RequestType.values().length;
     if (ratios == null) {
       LOG.info("No ratio specified. Falling back to Linear scaling");
@@ -259,6 +263,19 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
         + ", AdditionalReservationFractionForIOs=" + additionalReserveFraction
         + ", finalReserveFractionUsed=" + reserveFraction);
     return reserveFraction;
+  }
+
+  public static String[] generateWeightStrings(int unsortedPartitioned, int broadcastIn,
+      int sortedOut, int scatterGatherShuffleIn, int proc, int other) {
+    String[] weights = new String[RequestType.values().length];
+    weights[0] = RequestType.PARTITIONED_UNSORTED_OUTPUT.name() + ":" + unsortedPartitioned;
+    weights[1] = RequestType.UNSORTED_OUTPUT.name() + ":" + 0;
+    weights[2] = RequestType.UNSORTED_INPUT.name() + ":" + broadcastIn;
+    weights[3] = RequestType.SORTED_OUTPUT.name() + ":" + sortedOut;
+    weights[4] = RequestType.SORTED_MERGED_INPUT.name() + ":" + scatterGatherShuffleIn;
+    weights[5] = RequestType.PROCESSOR.name() + ":" + proc;
+    weights[6] = RequestType.OTHER.name() + ":" + other;
+    return weights;
   }
 
   @Override

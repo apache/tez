@@ -35,7 +35,6 @@ import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
 import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor;
-import org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor.RequestType;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
@@ -55,7 +54,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
   public void testSimpleWeightedScaling() {
     Configuration conf = new Configuration(this.conf);
     conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS,
-        generateWeightStrings(1, 2, 3, 1, 1));
+        WeightedScalingMemoryDistributor.generateWeightStrings(0, 1, 2, 3, 1, 1));
     System.err.println(Joiner.on(",").join(conf.getStringCollection(
         TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS)));
 
@@ -102,7 +101,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
   public void testAdditionalReserveFractionWeightedScaling() {
     Configuration conf = new Configuration(this.conf);
     conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS,
-        generateWeightStrings(2, 3, 6, 1, 1));
+        WeightedScalingMemoryDistributor.generateWeightStrings(0, 2, 3, 6, 1, 1));
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.025d);
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX, 0.2d);
 
@@ -165,18 +164,6 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
     OutputDescriptor desc = mock(OutputDescriptor.class);
     doReturn(outputClazz.getName()).when(desc).getClassName();
     return desc;
-  }
-
-  private String[] generateWeightStrings(int broadcastIn, int sortedOut,
-      int scatterGatherShuffleIn, int proc, int other) {
-    String[] weights = new String[RequestType.values().length];
-    weights[0] = RequestType.PARTITIONED_UNSORTED_OUTPUT + ":" + 0;
-    weights[1] = RequestType.UNSORTED_INPUT.name() + ":" + broadcastIn;
-    weights[2] = RequestType.SORTED_OUTPUT.name() + ":" + sortedOut;
-    weights[3] = RequestType.SORTED_MERGED_INPUT.name() + ":" + scatterGatherShuffleIn;
-    weights[4] = RequestType.PROCESSOR.name() + ":" + proc;
-    weights[5] = RequestType.OTHER.name() + ":" + other;
-    return weights;
   }
 
 }
