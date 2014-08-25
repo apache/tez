@@ -99,7 +99,7 @@
 
     <menu name="Documentation">
       <item name="Install Guide" href="install.html"/>
-      <item name="LocalMode" href="localmode.html"/>
+      <item name="Local Mode" href="localmode.html"/>
     </menu>
 
     <menu name="Community">
