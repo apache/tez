@@ -56,12 +56,14 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       TezUmbilical tezUmbilical, String dagName,
       String taskVertexName,
       String destinationVertexName,
+      int vertexParallelism,
       TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
       @Nullable UserPayload userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry) {
-    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
+    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, 
+        vertexParallelism, taskAttemptID,
         wrapCounters(counters, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor, objectRegistry);

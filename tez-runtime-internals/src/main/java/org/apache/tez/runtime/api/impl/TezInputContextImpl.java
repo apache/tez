@@ -58,18 +58,20 @@ public class TezInputContextImpl extends TezTaskContextImpl
   @Private
   public TezInputContextImpl(Configuration conf, String[] workDirs,
                              int appAttemptNumber,
-                             TezUmbilical tezUmbilical, String dagName, String taskVertexName,
-                             String sourceVertexName, TezTaskAttemptID taskAttemptID,
+                             TezUmbilical tezUmbilical, String dagName, 
+                             String taskVertexName, String sourceVertexName,
+                             int vertexParallelism, TezTaskAttemptID taskAttemptID,
                              TezCounters counters, int inputIndex, @Nullable UserPayload userPayload,
                              RuntimeTask runtimeTask,
                              Map<String, ByteBuffer> serviceConsumerMetadata,
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
                              InputDescriptor inputDescriptor, Map<String, LogicalInput> inputs,
                              InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry) {
-    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, taskAttemptID,
-        wrapCounters(counters, taskVertexName, sourceVertexName, conf),
-        runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv, memDist, inputDescriptor, objectRegistry);
+    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
+        vertexParallelism, taskAttemptID, wrapCounters(counters,
+        taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
+        serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
+        objectRegistry);
     checkNotNull(inputIndex, "inputIndex is null");
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(inputs, "input map is null");

@@ -173,5 +173,12 @@ public interface TaskContext {
    * @return the total available memory for all components of the task
    */
   public long getTotalMemoryAvailableToTask();
+
+  /**
+   * Get the vertex parallelism of the vertex to which this task belongs.
+   *
+   * @return Parallelism of the current vertex.
+   */
+  public int getVertexParallelism();
     
 }

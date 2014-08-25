@@ -61,11 +61,12 @@ public abstract class TezTaskContextImpl implements TaskContext {
   protected final EntityDescriptor<?> descriptor;
   private final String dagName;
   private final ObjectRegistry objectRegistry;
+  private final int vertexParallelism;
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
-      String dagName, String taskVertexName, TezTaskAttemptID taskAttemptID,
-      TezCounters counters, RuntimeTask runtimeTask,
+      String dagName, String taskVertexName, int vertexParallelism, 
+      TezTaskAttemptID taskAttemptID, TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry) {
@@ -97,6 +98,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
     this.initialMemoryDistributor = memDist;
     this.descriptor = descriptor;
     this.objectRegistry = objectRegistry;
+    this.vertexParallelism = vertexParallelism;
   }
 
   @Override
@@ -138,6 +140,11 @@ public abstract class TezTaskContextImpl implements TaskContext {
   @Override
   public TezCounters getCounters() {
     return counters;
+  }
+
+  @Override
+  public int getVertexParallelism() {
+    return this.vertexParallelism;
   }
 
   @Override

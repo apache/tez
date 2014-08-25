@@ -41,12 +41,14 @@ public class TaskSpec implements Writable {
   private List<InputSpec> inputSpecList;
   private List<OutputSpec> outputSpecList;
   private List<GroupInputSpec> groupInputSpecList;
+  private int vertexParallelism = -1;
 
   public TaskSpec() {
   }
 
   public TaskSpec(TezTaskAttemptID taskAttemptID,
       String dagName, String vertexName,
+      int vertexParallelism,
       ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
       @Nullable List<GroupInputSpec> groupInputSpecList) {
@@ -63,10 +65,15 @@ public class TaskSpec implements Writable {
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
     this.groupInputSpecList = groupInputSpecList;
+    this.vertexParallelism = vertexParallelism;
   }
 
   public String getDAGName() {
     return dagName;
+  }
+
+  public int getVertexParallelism() {
+    return vertexParallelism;
   }
 
   public String getVertexName() {
@@ -98,6 +105,7 @@ public class TaskSpec implements Writable {
     taskAttemptId.write(out);
     out.writeUTF(dagName);
     out.writeUTF(vertexName);
+    out.writeInt(vertexParallelism);
     processorDescriptor.write(out);
     out.writeInt(inputSpecList.size());
     for (InputSpec inputSpec : inputSpecList) {
@@ -123,6 +131,7 @@ public class TaskSpec implements Writable {
     taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
     dagName = StringInterner.weakIntern(in.readUTF());
     vertexName = StringInterner.weakIntern(in.readUTF());
+    vertexParallelism = in.readInt();
     // TODO TEZ-305 convert this to PB
     processorDescriptor = new ProcessorDescriptor();
     processorDescriptor.readFields(in);
@@ -157,6 +166,7 @@ public class TaskSpec implements Writable {
     StringBuffer sb = new StringBuffer();
     sb.append("DAGName : " + dagName);
     sb.append(", VertexName: " + vertexName);
+    sb.append(", VertexParallelism: " + vertexParallelism);
     sb.append(", TaskAttemptID:" + taskAttemptId);
     sb.append(", processorName=" + processorDescriptor.getClassName()
         + ", inputSpecListSize=" + inputSpecList.size()

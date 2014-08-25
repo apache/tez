@@ -693,7 +693,7 @@ public class TestTaskExecution {
     TezTaskAttemptID taskAttemptId = TezTaskAttemptID.getInstance(taskId, 1);
     ProcessorDescriptor processorDescriptor = ProcessorDescriptor.create(processorClass)
         .setUserPayload(UserPayload.create(ByteBuffer.wrap(processorConf)));
-    TaskSpec taskSpec = new TaskSpec(taskAttemptId, "dagName", "vertexName", processorDescriptor,
+    TaskSpec taskSpec = new TaskSpec(taskAttemptId, "dagName", "vertexName", -1, processorDescriptor,
         new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
 
     TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, umbilical, 1,

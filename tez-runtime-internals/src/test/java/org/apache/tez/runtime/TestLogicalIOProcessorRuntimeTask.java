@@ -70,10 +70,10 @@ public class TestLogicalIOProcessorRuntimeTask {
         ScalingAllocator.class.getName());
 
     TezTaskAttemptID taId1 = createTaskAttemptID(vertexId, 1);
-    TaskSpec task1 = createTaskSpec(taId1, "dag1", "vertex1");
+    TaskSpec task1 = createTaskSpec(taId1, "dag1", "vertex1", 30);
 
     TezTaskAttemptID taId2 = createTaskAttemptID(vertexId, 2);
-    TaskSpec task2 = createTaskSpec(taId2, "dag2", "vertex1");
+    TaskSpec task2 = createTaskSpec(taId2, "dag2", "vertex1", 10);
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, startedInputsMap, null);
@@ -86,6 +86,11 @@ public class TestLogicalIOProcessorRuntimeTask {
     assertEquals(1, TestProcessor.runCount);
     assertEquals(1, TestInput.startCount);
     assertEquals(0, TestOutput.startCount);
+    assertEquals(30, TestInput.vertexParallelism);
+    assertEquals(0, TestOutput.vertexParallelism);
+    assertEquals(30, lio1.getProcessorContext().getVertexParallelism());
+    assertEquals(30, lio1.getInputContexts().iterator().next().getVertexParallelism());
+    assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
 
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, startedInputsMap, null);
@@ -98,14 +103,20 @@ public class TestLogicalIOProcessorRuntimeTask {
     assertEquals(2, TestProcessor.runCount);
     assertEquals(1, TestInput.startCount);
     assertEquals(0, TestOutput.startCount);
+    assertEquals(30, TestInput.vertexParallelism);
+    assertEquals(0, TestOutput.vertexParallelism);
+    //Check if parallelism is available in processor/ i/p / o/p contexts
+    assertEquals(10, lio2.getProcessorContext().getVertexParallelism());
+    assertEquals(10, lio2.getInputContexts().iterator().next().getVertexParallelism());
+    assertEquals(10, lio2.getOutputContexts().iterator().next().getVertexParallelism());
 
   }
 
   private TaskSpec createTaskSpec(TezTaskAttemptID taskAttemptID,
-      String dagName, String vertexName) {
+      String dagName, String vertexName, int parallelism) {
     ProcessorDescriptor processorDesc = createProcessorDescriptor();
     TaskSpec taskSpec = new TaskSpec(taskAttemptID,
-        dagName, vertexName, processorDesc,
+        dagName, vertexName, parallelism, processorDesc,
         createInputSpecList(), createOutputSpecList(), null);
     return taskSpec;
   }
@@ -174,6 +185,7 @@ public class TestLogicalIOProcessorRuntimeTask {
   public static class TestInput extends AbstractLogicalInput {
 
     public static volatile int startCount = 0;
+    public static volatile int vertexParallelism;
 
     public TestInput(InputContext inputContext, int numPhysicalInputs) {
       super(inputContext, numPhysicalInputs);
@@ -189,6 +201,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     @Override
     public void start() throws Exception {
       startCount++;
+      this.vertexParallelism = getContext().getVertexParallelism();
       System.err.println("In started");
     }
 
@@ -211,6 +224,7 @@ public class TestLogicalIOProcessorRuntimeTask {
   public static class TestOutput extends AbstractLogicalOutput {
 
     public static volatile int startCount = 0;
+    public static volatile int vertexParallelism;
 
     public TestOutput(OutputContext outputContext, int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);
@@ -227,6 +241,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     public void start() throws Exception {
       System.err.println("Out started");
       startCount++;
+      this.vertexParallelism = getContext().getVertexParallelism();
     }
 
     @Override

@@ -506,7 +506,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     int taskId = getTaskID().getId();
     return new TaskSpec(getID(),
         vertex.getDAG().getName(),
-        vertex.getName(), procDesc,
+        vertex.getName(), vertex.getTotalTasks(), procDesc,
         vertex.getInputSpecList(taskId), vertex.getOutputSpecList(taskId), 
         vertex.getGroupInputSpecList(taskId));
   }

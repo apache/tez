@@ -1108,7 +1108,7 @@ public class TestContainerReuse {
       locationHint = new TaskLocationHint(hostsSet, racksSet);
     }
     AMSchedulerEventTALaunchRequest lr = new AMSchedulerEventTALaunchRequest(
-      taID, capability, new TaskSpec(taID, "dagName", "vertexName",
+      taID, capability, new TaskSpec(taID, "dagName", "vertexName", -1,
         ProcessorDescriptor.create("processorClassName"),
       Collections.singletonList(new InputSpec("vertexName",
           InputDescriptor.create("inputClassName"), 1)),
