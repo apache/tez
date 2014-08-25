@@ -736,19 +736,7 @@ public class MRRSleepJob extends Configured implements Tool {
     TezClient tezSession = TezClient.create("MRRSleep", conf, false, null, credentials);
     tezSession.start();
     DAGClient dagClient = tezSession.submitDAG(dag);
-
-    while (true) {
-      DAGStatus status = dagClient.getDAGStatus(null);
-      LOG.info("DAG Status: " + status);
-      if (status.isCompleted()) {
-        break;
-      }
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        // do nothing
-      }
-    }
+    dagClient.waitForCompletion();
     tezSession.stop();
 
     return dagClient.getDAGStatus(null).getState().equals(DAGStatus.State.SUCCEEDED) ? 0 : 1;

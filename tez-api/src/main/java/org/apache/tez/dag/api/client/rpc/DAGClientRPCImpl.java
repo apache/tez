@@ -61,10 +61,12 @@ public class DAGClientRPCImpl extends DAGClient {
   private static final Log LOG = LogFactory.getLog(DAGClientRPCImpl.class);
 
   private static final long SLEEP_FOR_COMPLETION = 500;
+  private static final long PRINT_STATUS_INTERVAL_MILLIS = 5000;
   private final DecimalFormat formatter = new DecimalFormat("###.##%");
   private final ApplicationId appId;
   private final String dagId;
   private final TezConfiguration conf;
+  private long lastPrintStatusTimeMillis;
   @VisibleForTesting
   ApplicationReport appReport;
   private final FrameworkClient frameworkClient;
@@ -324,20 +326,20 @@ public class DAGClientRPCImpl extends DAGClient {
 
   @Override
   public DAGStatus waitForCompletion() throws IOException, TezException, InterruptedException {
-    return _waitForCompletionWithStatusUpdates(null, EnumSet.noneOf(StatusGetOpts.class));
+    return _waitForCompletionWithStatusUpdates(false, EnumSet.noneOf(StatusGetOpts.class));
   }
 
   @Override
   public DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
       throws IOException, TezException, InterruptedException {
-    Set<String> vertexSet = getDAGStatus(statusGetOpts).getVertexProgress().keySet();
-    return _waitForCompletionWithStatusUpdates(vertexSet, statusGetOpts);
+    return _waitForCompletionWithStatusUpdates(true, statusGetOpts);
   }
 
-  private DAGStatus _waitForCompletionWithStatusUpdates(@Nullable Set<String> vertexNames,
+  private DAGStatus _waitForCompletionWithStatusUpdates(boolean vertexUpdates,
       @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException, InterruptedException {
     DAGStatus dagStatus;
     boolean initPrinted = false;
+    boolean runningPrinted = false;
     double dagProgress = -1.0; // Print the first one
     // monitoring
     while (true) {
@@ -356,32 +358,46 @@ public class DAGClientRPCImpl extends DAGClient {
       }
       Thread.sleep(SLEEP_FOR_COMPLETION);
     }// End of while(true)
+
+    Set<String> vertexNames = Collections.emptySet();
     while (dagStatus.getState() == DAGStatus.State.RUNNING) {
-      if (vertexNames != null) {
-        dagProgress = monitorProgress(vertexNames, dagProgress, null, dagStatus);
+      if (!runningPrinted) {
+        log("DAG initialized: CurrentState=Running");
+        runningPrinted = true;
       }
+      if (vertexUpdates && vertexNames.isEmpty()) {
+        vertexNames = getDAGStatus(statusGetOpts).getVertexProgress().keySet();
+      }
+      dagProgress = monitorProgress(vertexNames, dagProgress, null, dagStatus);
       Thread.sleep(SLEEP_FOR_COMPLETION);
       dagStatus = getDAGStatus(statusGetOpts);
     }// end of while
-    if (vertexNames != null) {
-      // Always print the last status irrespective of progress change
-      monitorProgress(vertexNames, -1.0, statusGetOpts, dagStatus);
-    }
+    // Always print the last status irrespective of progress change
+    monitorProgress(vertexNames, -1.0, statusGetOpts, dagStatus);
     log("DAG completed. " + "FinalState=" + dagStatus.getState());
     return dagStatus;
   }
 
-  private double monitorProgress(Set<String> vertexNamess, double prevDagProgress,
+  private double monitorProgress(Set<String> vertexNames, double prevDagProgress,
       Set<StatusGetOpts> opts, DAGStatus dagStatus) throws IOException, TezException {
     Progress progress = dagStatus.getDAGProgress();
-    double dagProgress = 0.0;
-    if (progress != null && (dagProgress = getProgress(progress)) > prevDagProgress) {
-      printDAGStatus(vertexNamess, opts, dagStatus, progress);
+    double dagProgress = prevDagProgress;
+    if (progress != null) {
+      dagProgress = getProgress(progress);
+      boolean progressChanged = dagProgress > prevDagProgress;
+      long currentTimeMillis = System.currentTimeMillis();
+      long timeSinceLastPrintStatus =  currentTimeMillis - lastPrintStatusTimeMillis;
+      boolean printIntervalExpired = timeSinceLastPrintStatus > PRINT_STATUS_INTERVAL_MILLIS;
+      if (progressChanged || printIntervalExpired) {
+        lastPrintStatusTimeMillis = currentTimeMillis;
+        printDAGStatus(vertexNames, opts, dagStatus, progress);
+      }
     }
+
     return dagProgress;
   }
 
-  private void printDAGStatus(Set<String> vertexNamess, Set<StatusGetOpts> opts,
+  private void printDAGStatus(Set<String> vertexNames, Set<StatusGetOpts> opts,
       DAGStatus dagStatus, Progress dagProgress) throws IOException, TezException {
     double vProgressFloat = 0.0f;
     log("DAG: State: " + dagStatus.getState() + " Progress: "
@@ -393,7 +409,7 @@ public class DAGClientRPCImpl extends DAGClient {
         log("DAG Counters:\n" + counters);
       }
     }
-    for (String vertex : vertexNamess) {
+    for (String vertex : vertexNames) {
       VertexStatus vStatus = getVertexStatus(vertex, opts);
       if (vStatus == null) {
         log("Could not retrieve status for vertex: " + vertex);
