@@ -45,4 +45,10 @@ public class RootInputLeafOutput <T extends EntityDescriptor<T>, S extends Entit
     return this.controllerDescriptor;
   }
 
+  @Override
+  public String toString() {
+    return "{InputName=" + name + "}, {Descriptor=" + ioDescriptor + "}, {ControllerDescriptor=" +
+        controllerDescriptor + "}";
+  }
+
 }

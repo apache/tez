@@ -123,4 +123,11 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
       this.userPayload = DagTypeConverters.convertToTezUserPayload(ByteBuffer.wrap(bb), version);
     }
   }
+
+  @Override
+  public String toString() {
+    boolean hasPayload =
+        userPayload == null ? false : userPayload.getPayload() == null ? false : true;
+    return "ClassName=" + className + ", hasPayload=" + hasPayload;
+  }
 }

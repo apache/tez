@@ -105,6 +105,7 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
@@ -424,6 +425,70 @@ public class TestVertexImpl {
             InputDescriptor.create("out.class"))));
    
     return dag.createDag(conf);
+  }
+
+  private DAGPlan createDAGPlanWithInitializer0Tasks(String initializerClassName) {
+    LOG.info("Setting up dag plan with input initializer and 0 tasks");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("initializerWith0Tasks")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
+                        .setName("input1")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                                .setClassName("InputClazz")
+                                .build()
+                        ).build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .addInEdgeId("e1")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
+                .addOutEdgeId("e1")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
+                .setInputVertexName("vertex2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex1")
+                .setDataMovementType(PlanEdgeDataMovementType.BROADCAST)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
+    return dag;
   }
 
   private DAGPlan createDAGPlanWithInputInitializer(String initializerClassName) {
@@ -2818,6 +2883,50 @@ public class TestVertexImpl {
     Assert.assertEquals(true, initializerManager2.hasShutDown);
   }
 
+  @Test(timeout = 10000)
+  public void testVertexWithInitializerParallelismSetTo0() throws InterruptedException {
+    useCustomInitializer = true;
+    customInitializer = new RootInitializerSettingParallelismTo0(null);
+    RootInitializerSettingParallelismTo0 initializer =
+        (RootInitializerSettingParallelismTo0) customInitializer;
+    setupPreDagCreation();
+    dagPlan =
+        createDAGPlanWithInitializer0Tasks(RootInitializerSettingParallelismTo0.class.getName());
+    setupPostDagCreation();
+
+    VertexImpl v1 = vertices.get("vertex1");
+    VertexImpl v2 = vertices.get("vertex2");
+
+    initVertex(v2);
+
+    TezTaskID v2t1 = TezTaskID.getInstance(v2.getVertexId(), 0);
+
+    TezTaskAttemptID ta1V2T1 = TezTaskAttemptID.getInstance(v2t1, 0);
+
+    TezEvent tezEvent = new TezEvent(DataMovementEvent.create(null),
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex2", "vertex1", ta1V2T1));
+    List<TezEvent> events = new LinkedList<TezEvent>();
+    events.add(tezEvent);
+    v1.handle(new VertexEventRouteEvent(v1.getVertexId(), events));
+
+    startVertex(v2);
+    dispatcher.await();
+    v2.handle(new VertexEventTaskAttemptCompleted(ta1V2T1, TaskAttemptStateInternal.SUCCEEDED));
+    v2.handle(new VertexEventTaskCompleted(v2t1, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
+
+    initializer.go();
+    while (v1.getState() == VertexState.INITIALIZING || v1.getState() == VertexState.INITED) {
+      Thread.sleep(10);
+    }
+
+    while (v1.getState() != VertexState.SUCCEEDED) {
+      Thread.sleep(10);
+    }
+    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
+  }
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 10000)
   public void testRootInputInitializerEvent() throws Exception {
@@ -3437,6 +3546,47 @@ public class TestVertexImpl {
         map.put("input4", InputSpecUpdate.createPerTaskInputSpecUpdate(pInputList));
       }
       getContext().setVertexParallelism(NUM_TASKS, null, null, map);
+    }
+  }
+
+  @InterfaceAudience.Private
+  public static class RootInitializerSettingParallelismTo0 extends InputInitializer {
+
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+
+    public RootInitializerSettingParallelismTo0(InputInitializerContext initializerContext) {
+      super(initializerContext);
+    }
+
+    @Override
+    public List<Event> initialize() throws Exception {
+      InputConfigureVertexTasksEvent event = InputConfigureVertexTasksEvent.create(0, null,
+          InputSpecUpdate.getDefaultSinglePhysicalInputSpecUpdate());
+      List<Event> events = new LinkedList<Event>();
+      events.add(event);
+      lock.lock();
+      try {
+        condition.await();
+      } finally {
+        lock.unlock();
+      }
+      LOG.info("Received signal to proceed. Returning event to set parallelism to 0");
+      return events;
+    }
+
+    public void go() {
+      lock.lock();
+      try {
+        LOG.info("Signallying initializer to proceed");
+        condition.signal();
+      } finally {
+        lock.unlock();
+      }
+    }
+
+    @Override
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
     }
   }
 

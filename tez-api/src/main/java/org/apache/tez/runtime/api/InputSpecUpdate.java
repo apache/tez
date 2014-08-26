@@ -102,4 +102,9 @@ public class InputSpecUpdate {
   public List<Integer> getAllNumPhysicalInputs() {
     return numPhysicalInputs;
   }
+
+  @Override
+  public String toString() {
+    return "forAllWorkUnits=" + forAllWorkUnits + ", update=" + numPhysicalInputs.toString();
+  }
 }

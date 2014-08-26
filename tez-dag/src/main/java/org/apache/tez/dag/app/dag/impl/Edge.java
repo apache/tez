@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
@@ -53,6 +55,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 public class Edge {
+
+  private static final Log LOG = LogFactory.getLog(Edge.class);
 
   class EdgeManagerPluginContextImpl implements EdgeManagerPluginContext {
 
@@ -356,25 +360,38 @@ public class Edge {
         TezTaskAttemptID srcAttemptId = tezEvent.getSourceInfo()
             .getTaskAttemptID();
         int srcTaskIndex = srcAttemptId.getTaskID().getId();
-        if (isDataMovementEvent) {
-          DataMovementEvent dmEvent = (DataMovementEvent)tezEvent.getEvent();
-          edgeManager.routeDataMovementEventToDestination(dmEvent,
+
+        boolean routingRequired = true;
+        if (edgeManagerContext.getDestinationVertexNumTasks() == 0) {
+          routingRequired = false;
+          LOG.info("Not routing events since destination vertex has 0 tasks" +
+              generateCommonDebugString(srcTaskIndex, tezEvent));
+        } else if (edgeManagerContext.getDestinationVertexNumTasks() < 0) {
+          throw new TezUncheckedException(
+              "Internal error. Not expected to route events to a destination until parallelism is determined" +
+                  generateCommonDebugString(srcTaskIndex, tezEvent));
+        }
+
+        if (routingRequired) {
+          if (isDataMovementEvent) {
+            DataMovementEvent dmEvent = (DataMovementEvent) tezEvent.getEvent();
+            edgeManager.routeDataMovementEventToDestination(dmEvent,
                 srcTaskIndex, dmEvent.getSourceIndex(),
                 destTaskAndInputIndices);
-        } else {
-          edgeManager.routeInputSourceTaskFailedEventToDestination(srcTaskIndex,
-              destTaskAndInputIndices);
+          } else {
+            edgeManager.routeInputSourceTaskFailedEventToDestination(srcTaskIndex,
+                destTaskAndInputIndices);
+          }
         }
+
         if (!destTaskAndInputIndices.isEmpty()) {
-          sendDmEventOrIfEventToTasks(tezEvent, srcTaskIndex, isDataMovementEvent, destTaskAndInputIndices);
-        } else {
+          sendDmEventOrIfEventToTasks(tezEvent, srcTaskIndex, isDataMovementEvent,
+              destTaskAndInputIndices);
+        } else if (routingRequired) {
           throw new TezUncheckedException("Event must be routed." +
-              " sourceVertex=" + sourceVertex.getVertexId() +
-              " srcIndex = " + srcTaskIndex +
-              " destAttemptId=" + destinationVertex.getVertexId() +
-              " edgeManager=" + edgeManager.getClass().getName() + 
-              " Event type=" + tezEvent.getEventType());
+              generateCommonDebugString(srcTaskIndex, tezEvent));
         }
+
         break;
       default:
         throw new TezUncheckedException("Unhandled tez event type: "
@@ -402,4 +419,12 @@ public class Edge {
     return this.destinationVertex.getName();
   }
 
+  private String generateCommonDebugString(int srcTaskIndex, TezEvent tezEvent) {
+    return new StringBuilder()
+        .append(" sourceVertex=").append(sourceVertex.getVertexId())
+        .append(" srcIndex = ").append(srcTaskIndex)
+        .append(" destAttemptId=").append(destinationVertex.getVertexId())
+        .append(" edgeManager=").append(edgeManager.getClass().getName())
+        .append(" Event type=").append(tezEvent.getEventType()).toString();
+  }
 }
