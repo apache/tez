@@ -123,7 +123,7 @@ public class JoinExample extends Configured implements Tool {
   }
   
   private int validateArgs(String[] otherArgs) {
-    if (otherArgs.length > 5) {
+    if (!(otherArgs.length == 4 || otherArgs.length == 5)) {
       printUsage();
       return 2;
     }
