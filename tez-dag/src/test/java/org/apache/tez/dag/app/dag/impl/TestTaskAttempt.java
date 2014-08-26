@@ -56,7 +56,7 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
@@ -130,7 +130,7 @@ public class TestTaskAttempt {
     hosts.add("host1");
     hosts.add("host2");
     hosts.add("host3");
-    TaskLocationHint locationHint = new TaskLocationHint(hosts, null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(hosts, null);
 
     TezTaskID taskID = TezTaskID.getInstance(
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
@@ -171,7 +171,7 @@ public class TestTaskAttempt {
     String hosts[] = new String[] { "127.0.0.1", "host2", "host3" };
     Set<String> resolved = new TreeSet<String>(
         Arrays.asList(new String[]{ "host1", "host2", "host3" }));
-    TaskLocationHint locationHint = new TaskLocationHint(
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
         new TreeSet<String>(Arrays.asList(hosts)), null);
 
     TezTaskID taskID = TezTaskID.getInstance(
@@ -314,8 +314,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     AppContext mockAppContext = mock(AppContext.class);
@@ -364,8 +364,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -455,8 +455,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -517,8 +517,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -604,8 +604,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -690,8 +690,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -784,8 +784,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -874,8 +874,8 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = new TaskLocationHint(
-        new HashSet<String>(Arrays.asList(new String[] {"127.0.0.1"})), null);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);

@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.security.Credentials;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
 /**

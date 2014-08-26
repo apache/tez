@@ -50,7 +50,6 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -174,7 +173,7 @@ public class DagTypeConverters {
     List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>();
 
     for(PlanTaskLocationHint inputHint : locationHints){
-      TaskLocationHint outputHint = new TaskLocationHint(
+      TaskLocationHint outputHint = TaskLocationHint.createTaskLocationHint(
           new HashSet<String>(inputHint.getHostList()),
           new HashSet<String>(inputHint.getRackList()));
       outputList.add(outputHint);
@@ -585,9 +584,9 @@ public class DagTypeConverters {
     List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>(
       proto.getTaskLocationHintsCount());
     for(PlanTaskLocationHint inputHint : proto.getTaskLocationHintsList()){
-      TaskLocationHint outputHint = new TaskLocationHint(
-        new HashSet<String>(inputHint.getHostList()),
-        new HashSet<String>(inputHint.getRackList()));
+      TaskLocationHint outputHint = TaskLocationHint.createTaskLocationHint(
+          new HashSet<String>(inputHint.getHostList()),
+          new HashSet<String>(inputHint.getRackList()));
       outputList.add(outputHint);
     }
 
@@ -603,8 +602,8 @@ public class DagTypeConverters {
         vertexLocationHint.getTaskLocationHints()) {
         PlanTaskLocationHint.Builder taskLHBuilder =
           PlanTaskLocationHint.newBuilder();
-        if (taskLocationHint.getDataLocalHosts() != null) {
-          taskLHBuilder.addAllHost(taskLocationHint.getDataLocalHosts());
+        if (taskLocationHint.getHosts() != null) {
+          taskLHBuilder.addAllHost(taskLocationHint.getHosts());
         }
         if (taskLocationHint.getRacks() != null) {
           taskLHBuilder.addAllRack(taskLocationHint.getRacks());

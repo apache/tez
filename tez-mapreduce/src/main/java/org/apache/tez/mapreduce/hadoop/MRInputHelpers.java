@@ -63,6 +63,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -301,14 +302,14 @@ public class MRInputHelpers {
     return splitInfoMem;
   }
 
-  private static List<VertexLocationHint.TaskLocationHint> createTaskLocationHintsFromSplits(
+  private static List<TaskLocationHint> createTaskLocationHintsFromSplits(
       org.apache.hadoop.mapreduce.InputSplit[] newFormatSplits) {
-    Iterable<VertexLocationHint.TaskLocationHint> iterable = Iterables
+    Iterable<TaskLocationHint> iterable = Iterables
         .transform(Arrays.asList(newFormatSplits),
-            new Function<org.apache.hadoop.mapreduce.InputSplit, VertexLocationHint.TaskLocationHint>() {
+            new Function<org.apache.hadoop.mapreduce.InputSplit, TaskLocationHint>() {
               @Override
 
-              public VertexLocationHint.TaskLocationHint apply(
+              public TaskLocationHint apply(
                   org.apache.hadoop.mapreduce.InputSplit input) {
                 try {
                   if (input instanceof TezGroupedSplit) {
@@ -316,17 +317,17 @@ public class MRInputHelpers {
                         ((org.apache.hadoop.mapreduce.split.TezGroupedSplit) input).getRack();
                     if (rack == null) {
                       if (input.getLocations() != null) {
-                        return new VertexLocationHint.TaskLocationHint(
+                        return TaskLocationHint.createTaskLocationHint(
                             new HashSet<String>(Arrays.asList(input.getLocations())), null);
                       } else {
-                        return new VertexLocationHint.TaskLocationHint(null, null);
+                        return TaskLocationHint.createTaskLocationHint(null, null);
                       }
                     } else {
-                      return new VertexLocationHint.TaskLocationHint(null,
+                      return TaskLocationHint.createTaskLocationHint(null,
                           Collections.singleton(rack));
                     }
                   } else {
-                    return new VertexLocationHint.TaskLocationHint(
+                    return TaskLocationHint.createTaskLocationHint(
                         new HashSet<String>(Arrays.asList(input.getLocations())), null);
                   }
                 } catch (IOException e) {
@@ -339,27 +340,27 @@ public class MRInputHelpers {
     return Lists.newArrayList(iterable);
   }
 
-  private static List<VertexLocationHint.TaskLocationHint> createTaskLocationHintsFromSplits(
+  private static List<TaskLocationHint> createTaskLocationHintsFromSplits(
       org.apache.hadoop.mapred.InputSplit[] oldFormatSplits) {
-    Iterable<VertexLocationHint.TaskLocationHint> iterable = Iterables.transform(Arrays.asList(oldFormatSplits),
-        new Function<org.apache.hadoop.mapred.InputSplit, VertexLocationHint.TaskLocationHint>() {
+    Iterable<TaskLocationHint> iterable = Iterables.transform(Arrays.asList(oldFormatSplits),
+        new Function<org.apache.hadoop.mapred.InputSplit, TaskLocationHint>() {
           @Override
-          public VertexLocationHint.TaskLocationHint apply(org.apache.hadoop.mapred.InputSplit input) {
+          public TaskLocationHint apply(org.apache.hadoop.mapred.InputSplit input) {
             try {
               if (input instanceof org.apache.hadoop.mapred.split.TezGroupedSplit) {
                 String rack = ((org.apache.hadoop.mapred.split.TezGroupedSplit) input).getRack();
                 if (rack == null) {
                   if (input.getLocations() != null) {
-                    return new VertexLocationHint.TaskLocationHint(new HashSet<String>(Arrays.asList(
+                    return TaskLocationHint.createTaskLocationHint(new HashSet<String>(Arrays.asList(
                         input.getLocations())), null);
                   } else {
-                    return new VertexLocationHint.TaskLocationHint(null, null);
+                    return TaskLocationHint.createTaskLocationHint(null, null);
                   }
                 } else {
-                  return new VertexLocationHint.TaskLocationHint(null, Collections.singleton(rack));
+                  return TaskLocationHint.createTaskLocationHint(null, Collections.singleton(rack));
                 }
               } else {
-                return new VertexLocationHint.TaskLocationHint(
+                return TaskLocationHint.createTaskLocationHint(
                     new HashSet<String>(Arrays.asList(input.getLocations())),
                     null);
               }
@@ -520,12 +521,13 @@ public class MRInputHelpers {
     JobSplitWriter.createSplitFiles(inputSplitDir, conf,
         inputSplitDir.getFileSystem(conf), splits);
 
-    List<VertexLocationHint.TaskLocationHint> locationHints =
-        new ArrayList<VertexLocationHint.TaskLocationHint>(splits.length);
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splits.length);
     for (int i = 0; i < splits.length; ++i) {
       locationHints.add(
-          new VertexLocationHint.TaskLocationHint(new HashSet<String>(
-              Arrays.asList(splits[i].getLocations())), null));
+          TaskLocationHint.createTaskLocationHint(new HashSet<String>(
+              Arrays.asList(splits[i].getLocations())), null)
+      );
     }
 
     return new InputSplitInfoDisk(
@@ -554,12 +556,13 @@ public class MRInputHelpers {
     JobSplitWriter.createSplitFiles(inputSplitDir, jobConf,
         inputSplitDir.getFileSystem(jobConf), splits);
 
-    List<VertexLocationHint.TaskLocationHint> locationHints =
-        new ArrayList<VertexLocationHint.TaskLocationHint>(splits.length);
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splits.length);
     for (int i = 0; i < splits.length; ++i) {
       locationHints.add(
-          new VertexLocationHint.TaskLocationHint(new HashSet<String>(
-              Arrays.asList(splits[i].getLocations())), null));
+          TaskLocationHint.createTaskLocationHint(new HashSet<String>(
+              Arrays.asList(splits[i].getLocations())), null)
+      );
     }
 
     return new InputSplitInfoDisk(

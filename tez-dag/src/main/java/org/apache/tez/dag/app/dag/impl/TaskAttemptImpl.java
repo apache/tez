@@ -54,7 +54,7 @@ import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -1081,12 +1081,12 @@ public class TaskAttemptImpl implements TaskAttempt,
         if (locationHint.getRacks() != null) {
           racks.addAll(locationHint.getRacks());
         }
-        if (locationHint.getDataLocalHosts() != null) {
-          for (String host : locationHint.getDataLocalHosts()) {
+        if (locationHint.getHosts() != null) {
+          for (String host : locationHint.getHosts()) {
             racks.add(RackResolver.resolve(host).getNetworkLocation());
           }
-          requestHosts = ta.resolveHosts(locationHint.getDataLocalHosts()
-              .toArray(new String[locationHint.getDataLocalHosts().size()]));
+          requestHosts = ta.resolveHosts(locationHint.getHosts()
+              .toArray(new String[locationHint.getHosts().size()]));
         }
       }
 

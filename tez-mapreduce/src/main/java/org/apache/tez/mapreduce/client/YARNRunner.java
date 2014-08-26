@@ -96,7 +96,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexLocationHint;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.MRDAGClient;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
@@ -346,9 +346,10 @@ public class YARNRunner implements ClientProtocol {
         new ArrayList<TaskLocationHint>(splitsCount);
     for (int i = 0; i < splitsCount; ++i) {
       TaskLocationHint locationHint =
-          new TaskLocationHint(
+          TaskLocationHint.createTaskLocationHint(
               new HashSet<String>(
-                  Arrays.asList(splitsInfo[i].getLocations())), null);
+                  Arrays.asList(splitsInfo[i].getLocations())), null
+          );
       locationHints.add(locationHint);
     }
     return locationHints;

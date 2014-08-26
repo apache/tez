@@ -46,7 +46,7 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
@@ -124,7 +124,7 @@ public class TestTaskImpl {
     taskHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     credentials = new Credentials();
     clock = new SystemClock();
-    locationHint = new TaskLocationHint(null, null);
+    locationHint = TaskLocationHint.createTaskLocationHint(null, null);
 
     appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     dagId = TezDAGID.getInstance(appId, 1);

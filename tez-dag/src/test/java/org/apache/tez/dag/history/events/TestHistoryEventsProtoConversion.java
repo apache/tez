@@ -31,7 +31,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -312,7 +312,7 @@ public class TestHistoryEventsProtoConversion {
           new VertexParallelismUpdatedEvent(
               TezVertexID.getInstance(
                   TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-              100, VertexLocationHint.create(Arrays.asList(new TaskLocationHint(
+              100, VertexLocationHint.create(Arrays.asList(TaskLocationHint.createTaskLocationHint(
               new HashSet<String>(Arrays.asList("h1")),
               new HashSet<String>(Arrays.asList("r1"))))),
               sourceEdgeManagers, null);

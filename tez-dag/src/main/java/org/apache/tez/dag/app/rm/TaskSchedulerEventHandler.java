@@ -41,7 +41,7 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
@@ -270,9 +270,9 @@ public class TaskSchedulerEventHandler extends AbstractService
             event);
         return;
       } else {
-        hosts = (locationHint.getDataLocalHosts() != null) ? locationHint
-            .getDataLocalHosts().toArray(
-                new String[locationHint.getDataLocalHosts().size()]) : null;
+        hosts = (locationHint.getHosts() != null) ? locationHint
+            .getHosts().toArray(
+                new String[locationHint.getHosts().size()]) : null;
         racks = (locationHint.getRacks() != null) ? locationHint.getRacks()
             .toArray(new String[locationHint.getRacks().size()]) : null;
       }

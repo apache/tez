@@ -29,7 +29,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
@@ -192,7 +192,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
           taskIsStarted[i] = true;
           TaskLocationHint locationHint = null;
           if (oneToOneLocationHints[i] != null) {
-            locationHint = new TaskLocationHint(oneToOneLocationHints[i].getId());
+            locationHint = TaskLocationHint.createTaskLocationHint(oneToOneLocationHints[i].getId());
           }
           LOG.info("Starting task " + i + " for vertex: "
               + getContext().getVertexName() + " with location: "

@@ -77,7 +77,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
@@ -3154,7 +3154,7 @@ public class TestVertexImpl {
     List<TaskLocationHint> locationHints = Lists
         .newArrayListWithCapacity(numTasks);
     for (int i = 0; i < numTasks; i++) {
-      TaskLocationHint taskLocationHint = new TaskLocationHint(
+      TaskLocationHint taskLocationHint = TaskLocationHint.createTaskLocationHint(
           Sets.newSet("host" + i), null);
       locationHints.add(taskLocationHint);
     }

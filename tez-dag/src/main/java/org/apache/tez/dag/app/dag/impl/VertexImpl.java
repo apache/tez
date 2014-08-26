@@ -69,7 +69,7 @@ import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.ProgressBuilder;
@@ -3709,11 +3709,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (TaskLocationHint taskLocationHint : locationHint
         .getTaskLocationHints()) {
       StringBuilder sb = new StringBuilder();
-      if (taskLocationHint.getDataLocalHosts() == null) {
+      if (taskLocationHint.getHosts() == null) {
         sb.append("No Hosts");
       } else {
         sb.append("Hosts: ");
-        for (String host : taskLocationHint.getDataLocalHosts()) {
+        for (String host : taskLocationHint.getHosts()) {
           hosts.add(host);
           sb.append(host).append(", ");
         }

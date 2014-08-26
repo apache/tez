@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
 // TODO Fix this to be more usable. Interface is broken since half the methods apply to only a specific type.

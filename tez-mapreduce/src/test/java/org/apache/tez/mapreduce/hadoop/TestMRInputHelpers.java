@@ -42,7 +42,7 @@ import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.DataSourceDescriptor;
-import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -187,18 +187,19 @@ public class TestMRInputHelpers {
   }
 
   private void verifyLocationHints(Path inputSplitsDir,
-                                   List<VertexLocationHint.TaskLocationHint> actual) throws Exception {
+                                   List<TaskLocationHint> actual) throws Exception {
     JobID jobId = new JobID("dummy", 1);
     JobSplit.TaskSplitMetaInfo[] splitsInfo =
         SplitMetaInfoReader.readSplitMetaInfo(jobId, remoteFs,
             conf, inputSplitsDir);
     int splitsCount = splitsInfo.length;
-    List<VertexLocationHint.TaskLocationHint> locationHints =
-        new ArrayList<VertexLocationHint.TaskLocationHint>(splitsCount);
+    List<TaskLocationHint> locationHints =
+        new ArrayList<TaskLocationHint>(splitsCount);
     for (int i = 0; i < splitsCount; ++i) {
       locationHints.add(
-          new VertexLocationHint.TaskLocationHint(new HashSet<String>(
-              Arrays.asList(splitsInfo[i].getLocations())), null));
+          TaskLocationHint.createTaskLocationHint(new HashSet<String>(
+              Arrays.asList(splitsInfo[i].getLocations())), null)
+      );
     }
 
     Assert.assertEquals(locationHints, actual);

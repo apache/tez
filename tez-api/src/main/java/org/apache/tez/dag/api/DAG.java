@@ -47,7 +47,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
-import org.apache.tez.dag.api.VertexLocationHint.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -708,8 +708,8 @@ public class DAG {
               throw new TezUncheckedException(
                   "Container affinity may not be specified via the DAG API");
             }
-            if (hint.getDataLocalHosts() != null) {
-              taskLocationHintBuilder.addAllHost(hint.getDataLocalHosts());
+            if (hint.getHosts() != null) {
+              taskLocationHintBuilder.addAllHost(hint.getHosts());
             }
             if (hint.getRacks() != null) {
               taskLocationHintBuilder.addAllRack(hint.getRacks());
