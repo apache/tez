@@ -717,25 +717,34 @@ public class TezClient {
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
   private static final char SEPARATOR = '_';
-  private static final String DAG = "dag";
-  private static final ThreadLocal<NumberFormat> idFormat = new ThreadLocal<NumberFormat>() {
+  public static final String DAG = "dag";
+  static final ThreadLocal<NumberFormat> tezAppIdFormat = new ThreadLocal<NumberFormat>() {
     @Override
     public NumberFormat initialValue() {
       NumberFormat fmt = NumberFormat.getInstance();
       fmt.setGroupingUsed(false);
-      fmt.setMinimumIntegerDigits(6);
+      fmt.setMinimumIntegerDigits(4);
+      return fmt;
+    }
+  };
+
+  static final ThreadLocal<NumberFormat> tezDagIdFormat = new ThreadLocal<NumberFormat>() {
+    @Override
+    public NumberFormat initialValue() {
+      NumberFormat fmt = NumberFormat.getInstance();
+      fmt.setGroupingUsed(false);
+      fmt.setMinimumIntegerDigits(1);
       return fmt;
     }
   };
 
   // Used only for MapReduce compatibility code
-  private static String getDefaultTezDAGID(ApplicationId appId) {
+  private static String getDefaultTezDAGID(ApplicationId applicationId) {
      return (new StringBuilder(DAG)).append(SEPARATOR).
-                   append(appId.getClusterTimestamp()).
-                   append(SEPARATOR).
-                   append(appId.getId()).
-                   append(SEPARATOR).
-                   append(idFormat.get().format(1)).toString();
+         append(applicationId.getClusterTimestamp()).
+         append(SEPARATOR).
+         append(tezAppIdFormat.get().format(applicationId.getId())).
+         append(SEPARATOR).
+         append(tezDagIdFormat.get().format(1)).toString();
   }
-
 }

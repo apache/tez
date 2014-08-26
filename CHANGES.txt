@@ -91,6 +91,7 @@ INCOMPATIBLE CHANGES
   TEZ-1472. Separate method calls for creating InputDataInformationEvent with
   serialized/unserialized payloads
   TEZ-1485. Disable node blacklisting and ATS in AM for local mode
+  TEZ-1490. dagid reported is incorrect in TezClient.java
 
 Release 0.4.0-incubating: 2014-04-05
 
