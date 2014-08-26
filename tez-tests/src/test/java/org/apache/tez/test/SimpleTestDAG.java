@@ -52,7 +52,7 @@ public class SimpleTestDAG {
       taskCount = conf.getInt(TEZ_SIMPLE_DAG_NUM_TASKS, TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT);
       payload = TezUtils.createUserPayloadFromConf(conf);
     }
-    DAG dag = new DAG(name);
+    DAG dag = DAG.create(name);
     Vertex v1 = Vertex.create("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
     Vertex v2 = Vertex.create("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
     dag.addVertex(v1).addVertex(v2).addEdge(Edge.create(v1, v2,
@@ -88,7 +88,7 @@ public class SimpleTestDAG {
       taskCount = conf.getInt(TEZ_SIMPLE_DAG_NUM_TASKS, TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT);
       payload = TezUtils.createUserPayloadFromConf(conf);
     }
-    DAG dag = new DAG(name);
+    DAG dag = DAG.create(name);
 
     Vertex v1 = Vertex.create("v1", TestProcessor.getProcDesc(payload), taskCount, defaultResource);
     Vertex v2 = Vertex.create("v2", TestProcessor.getProcDesc(payload), taskCount, defaultResource);

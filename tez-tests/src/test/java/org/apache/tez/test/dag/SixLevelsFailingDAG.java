@@ -84,7 +84,7 @@ public class SixLevelsFailingDAG extends ThreeLevelsFailingDAG {
         if (conf != null) {
           payload = TezUtils.createUserPayloadFromConf(conf);
         } 
-        dag = new DAG(name);
+        dag = DAG.create(name);
         addDAGVerticesAndEdges();
         return dag;
     }

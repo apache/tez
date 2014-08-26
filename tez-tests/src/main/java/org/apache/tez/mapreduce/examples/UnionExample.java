@@ -164,7 +164,7 @@ public class UnionExample {
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
       Map<String, LocalResource> localResources, Path stagingDir,
       String inputPath, String outputPath) throws IOException {
-    DAG dag = new DAG("UnionExample");
+    DAG dag = DAG.create("UnionExample");
     
     int numMaps = -1;
     Configuration inputConf = new Configuration(tezConf);

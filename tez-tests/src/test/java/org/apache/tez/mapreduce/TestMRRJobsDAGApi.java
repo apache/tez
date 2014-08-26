@@ -185,7 +185,7 @@ public class TestMRRJobsDAGApi {
   public void testSleepJob() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
-    DAG dag = new DAG("TezSleepProcessor");
+    DAG dag = DAG.create("TezSleepProcessor");
     Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
             SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
         Resource.newInstance(1024, 1));
@@ -234,7 +234,7 @@ public class TestMRRJobsDAGApi {
 
       SleepProcessorConfig spConf = new SleepProcessorConfig(1);
       for (int dagIndex = 1; dagIndex <= 2; dagIndex++) {
-        DAG dag = new DAG("TezSleepProcessor");
+        DAG dag = DAG.create("TezSleepProcessor");
         Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
                 SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
             Resource.newInstance(1024, 1));
@@ -273,7 +273,7 @@ public class TestMRRJobsDAGApi {
   public void testNonDefaultFSStagingDir() throws Exception {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
-    DAG dag = new DAG("TezSleepProcessor");
+    DAG dag = DAG.create("TezSleepProcessor");
     Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
             SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
         Resource.newInstance(1024, 1));
@@ -315,7 +315,7 @@ public class TestMRRJobsDAGApi {
       InterruptedException, TezException, ClassNotFoundException, YarnException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
-    DAG dag = new DAG("TezSleepProcessorHistoryLogging");
+    DAG dag = DAG.create("TezSleepProcessorHistoryLogging");
     Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
             SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 2,
         Resource.newInstance(1024, 1));
@@ -657,7 +657,7 @@ public class TestMRRJobsDAGApi {
     UserPayload stage2Payload = TezUtils.createUserPayloadFromConf(stage2Conf);
     UserPayload stage3Payload = TezUtils.createUserPayloadFromConf(stage3Conf);
     
-    DAG dag = new DAG("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
+    DAG dag = DAG.create("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
 
     Class<? extends InputInitializer> inputInitializerClazz =
         genSplitsInAM ?

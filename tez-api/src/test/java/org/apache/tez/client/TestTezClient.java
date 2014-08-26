@@ -150,7 +150,7 @@ public class TestTezClient {
             LocalResourceVisibility.PUBLIC, 1, 1));
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
         Resource.newInstance(1, 1));
-    DAG dag = new DAG("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
     DAGClient dagClient = client.submitDAG(dag);
     
     // verify that both DAG and TezClient localResources are added to the vertex
@@ -187,7 +187,7 @@ public class TestTezClient {
     when(client.mockYarnClient.createApplication().getNewApplicationResponse().getApplicationId())
         .thenReturn(appId2);
     
-    dag = new DAG("DAG").addVertex(
+    dag = DAG.create("DAG").addVertex(
         Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1, Resource.newInstance(1, 1)));
     dagClient = client.submitDAG(dag);
     

@@ -189,7 +189,7 @@ public class TestLocalMode {
   }
 
   private DAG createSimpleDAG(String dagName, String processorName) {
-    DAG dag = new DAG(dagName).addVertex(Vertex.create("Sleep", ProcessorDescriptor.create(
+    DAG dag = DAG.create(dagName).addVertex(Vertex.create("Sleep", ProcessorDescriptor.create(
         processorName).setUserPayload(
         new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
     return dag;

@@ -66,7 +66,7 @@ public class TestDAGUtils {
         ProcessorDescriptor.create("Processor").setHistoryText("vertex3 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = new DAG("testDag");
+    DAG dag = DAG.create("testDag");
     String groupName1 = "uv12";
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class")

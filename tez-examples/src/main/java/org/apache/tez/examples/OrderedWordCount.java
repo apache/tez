@@ -161,7 +161,7 @@ public class OrderedWordCount extends Configured implements Tool  {
 
     // No need to add jar containing this class as assumed to be part of the tez jars.
     
-    DAG dag = new DAG(dagName);
+    DAG dag = DAG.create(dagName);
     dag.addVertex(tokenizerVertex)
         .addVertex(summationVertex)
         .addVertex(sorterVertex)

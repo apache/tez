@@ -187,7 +187,7 @@ public class WordCount extends Configured implements Tool {
     // we would have to add the jars for this code as local files to the vertices.
     
     // Create DAG and add the vertices. Connect the producer and consumer vertices via the edge
-    DAG dag = new DAG("WordCount");
+    DAG dag = DAG.create("WordCount");
     dag.addVertex(tokenizerVertex)
         .addVertex(summationVertex)
         .addEdge(

@@ -494,7 +494,7 @@ public class MRRSleepJob extends Configured implements Tool {
           .generateSplitsInAM(generateSplitsInAM).build();
     }
 
-    DAG dag = new DAG("MRRSleepJob");
+    DAG dag = DAG.create("MRRSleepJob");
     String jarPath = ClassUtil.findContainingJar(getClass());
     if (jarPath == null)  {
         throw new TezUncheckedException("Could not find any jar containing"

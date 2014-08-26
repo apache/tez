@@ -179,7 +179,7 @@ public class JoinValidate extends Configured implements Tool {
 
   private DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
       throws IOException {
-    DAG dag = new DAG("JoinValidate");
+    DAG dag = DAG.create("JoinValidate");
 
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a

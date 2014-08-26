@@ -105,7 +105,6 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
-import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
@@ -385,7 +384,7 @@ public class TestVertexImpl {
   
   private DAGPlan createDAGPlanWithMixedEdges() {
     LOG.info("Setting up mixed edge dag plan");
-    org.apache.tez.dag.api.DAG dag = new org.apache.tez.dag.api.DAG("MixedEdges");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("MixedEdges");
     org.apache.tez.dag.api.Vertex v1 = org.apache.tez.dag.api.Vertex.create("vertex1",
         ProcessorDescriptor.create("v1.class"), 1, Resource.newInstance(0, 0));
     org.apache.tez.dag.api.Vertex v2 = org.apache.tez.dag.api.Vertex.create("vertex2",

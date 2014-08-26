@@ -471,7 +471,7 @@ public class YARNRunner implements ClientProtocol {
 
     String jobName = stageConfs[0].get(MRJobConfig.JOB_NAME,
         YarnConfiguration.DEFAULT_APPLICATION_NAME);
-    DAG dag = new DAG(jobName);
+    DAG dag = DAG.create(jobName);
 
     LOG.info("Number of stages: " + stageConfs.length);
 

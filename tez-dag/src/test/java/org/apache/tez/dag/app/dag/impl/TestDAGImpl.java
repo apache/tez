@@ -358,7 +358,7 @@ public class TestDAGImpl {
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = new DAG("testDag");
+    DAG dag = DAG.create("testDag");
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd = OutputCommitterDescriptor.create(
         TotalCountingOutputCommitter.class.getName());

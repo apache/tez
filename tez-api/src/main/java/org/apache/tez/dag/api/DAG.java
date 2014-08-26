@@ -90,8 +90,17 @@ public class DAG {
   
   private Stack<String> topologicalVertexStack = new Stack<String>();
 
-  public DAG(String name) {
+  private DAG(String name) {
     this.name = name;
+  }
+
+  /**
+   * Create a DAG with the specified name.
+   * @param name the name of the DAG
+   * @return this {@link DAG}
+   */
+  public static DAG create(String name) {
+    return new DAG(name);
   }
 
   /**

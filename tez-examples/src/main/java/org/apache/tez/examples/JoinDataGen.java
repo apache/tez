@@ -198,7 +198,7 @@ public class JoinDataGen extends Configured implements Tool {
     long largeOutSizePerTask = largeOutSize / numTasks;
     long smallOutSizePerTask = smallOutSize / numTasks;
 
-    DAG dag = new DAG("JoinDataGen");
+    DAG dag = DAG.create("JoinDataGen");
 
     Vertex genDataVertex = Vertex.create("datagen", ProcessorDescriptor.create(
         GenDataProcessor.class.getName()).setUserPayload(

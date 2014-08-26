@@ -201,7 +201,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
 
-    DAG dag = new DAG("FilterLinesByWord");
+    DAG dag = DAG.create("FilterLinesByWord");
     Edge edge =
         Edge.create(stage1Vertex, stage2Vertex, edgeConf.createDefaultBroadcastEdgeProperty());
     dag.addVertex(stage1Vertex).addVertex(stage2Vertex).addEdge(edge);

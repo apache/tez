@@ -100,7 +100,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testEdgeManagerSerde() {
-    DAG dag = new DAG("testDag");
+    DAG dag = DAG.create("testDag");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
         .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2")
@@ -136,7 +136,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testUserPayloadSerde() {
-    DAG dag = new DAG("testDag");
+    DAG dag = DAG.create("testDag");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
@@ -197,7 +197,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void userVertexOrderingIsMaintained() {
-    DAG dag = new DAG("testDag");
+    DAG dag = DAG.create("testDag");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
@@ -270,7 +270,7 @@ public class TestDAGPlan {
 
   @Test (timeout=5000)
   public void testCredentialsSerde() {
-    DAG dag = new DAG("testDag");
+    DAG dag = DAG.create("testDag");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").

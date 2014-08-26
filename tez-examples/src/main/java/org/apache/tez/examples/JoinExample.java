@@ -197,7 +197,7 @@ public class JoinExample extends Configured implements Tool {
 
   private DAG createDag(TezConfiguration tezConf, Path streamPath, Path hashPath, Path outPath,
       int numPartitions, boolean doBroadcast) throws IOException {
-    DAG dag = new DAG("JoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
+    DAG dag = DAG.create("JoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
 
     /**
      * This vertex represents the side of the join that will be accumulated in a hash 

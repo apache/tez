@@ -564,7 +564,7 @@ public class TezClient {
     
     verifySessionStateForSubmission();
     
-    DAG dag = new org.apache.tez.dag.api.DAG(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
+    DAG dag = org.apache.tez.dag.api.DAG.create(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
         + preWarmDAGCounter++);
     dag.addVertex(preWarmVertex);
 

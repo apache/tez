@@ -228,7 +228,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             .build());
     vertices.add(finalReduceVertex);
 
-    DAG dag = new DAG("OrderedWordCount" + dagIndex);
+    DAG dag = DAG.create("OrderedWordCount" + dagIndex);
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
     }

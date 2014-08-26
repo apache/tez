@@ -134,7 +134,7 @@ public class TestFaultTolerance {
   
   @Test (timeout=60000)
   public void testBasicSuccessBroadcast() throws Exception {
-    DAG dag = new DAG("testBasicSuccessBroadcast");
+    DAG dag = DAG.create("testBasicSuccessBroadcast");
     Vertex v1 =
         Vertex.create("v1", TestProcessor.getProcDesc(null), 2, SimpleTestDAG.defaultResource);
     Vertex v2 =

@@ -92,6 +92,7 @@ INCOMPATIBLE CHANGES
   serialized/unserialized payloads
   TEZ-1485. Disable node blacklisting and ATS in AM for local mode
   TEZ-1490. dagid reported is incorrect in TezClient.java
+  TEZ-1500. DAG should be created via a create method
 
 Release 0.4.0-incubating: 2014-04-05
 

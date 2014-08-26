@@ -59,7 +59,7 @@ public class TwoLevelsFailingDAG {
         if (conf != null) {
           payload = TezUtils.createUserPayloadFromConf(conf);
         } 
-        dag = new DAG(name);
+        dag = DAG.create(name);
         addDAGVerticesAndEdges();
         return dag;
     }

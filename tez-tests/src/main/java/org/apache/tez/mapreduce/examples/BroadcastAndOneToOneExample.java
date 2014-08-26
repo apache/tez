@@ -161,7 +161,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
 
-    DAG dag = new DAG("BroadcastAndOneToOneExample");
+    DAG dag = DAG.create("BroadcastAndOneToOneExample");
     dag.addVertex(inputVertex)
         .addVertex(broadcastVertex)
         .addVertex(oneToOneVertex)
