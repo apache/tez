@@ -97,7 +97,7 @@ public class MRInput extends MRInputBase {
     String inputPaths = null;
     InputInitializerDescriptor customInitializerDescriptor = null;
 
-    private MRInputConfigBuilder(Configuration conf, Class<?> inputFormat) {
+    MRInputConfigBuilder(Configuration conf, Class<?> inputFormat) {
       this.conf = conf;
       if (inputFormat != null) {
         inputFormatProvided = true;
@@ -345,7 +345,8 @@ public class MRInput extends MRInputBase {
   }
 
   /**
-   * Create an {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder} for {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}
+   * Create an {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder} 
+   * for {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}
    * or {@link org.apache.hadoop.mapred.FileInputFormat} format based InputFormats.
    * <p/>
    * The preferred usage model is to provide all of the parameters, and use methods to configure
