@@ -33,7 +33,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.hadoop.io.BufferUtils;
+import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IntWritable;
@@ -51,6 +51,7 @@ import org.apache.tez.runtime.library.testutils.KVDataGen;
 import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -168,16 +169,67 @@ public class TestIFile {
   @Test
   //test with sorted data and repeat keys
   public void testWithRLEMarker() throws IOException {
-    //keys would be repeated exactly 2 times
-    //e.g (k1,v1), (k1,v2), (k3, v3), (k4, v4), (k4, v5)...
-    //This should trigger RLE marker in IFile.
-    List<KVPair> sortedData = KVDataGen.generateTestData(true, 1);
-    testWriterAndReader(sortedData);
-    testWithDataBuffer(sortedData);
+    //Test with append(Object, Object)
+    FSDataOutputStream out = localFs.create(outputPath);
+    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+        Text.class, IntWritable.class, codec, null, null, true);
 
-    List<KVPair> unsortedData = KVDataGen.generateTestData(false, 1);
-    testWriterAndReader(unsortedData);
-    testWithDataBuffer(unsortedData);
+    Text key = new Text("key0");
+    IntWritable value = new IntWritable(0);
+    writer.append(key, value);
+
+    //same key (RLE should kick in)
+    key = new Text("key0");
+    writer.append(key, value);
+    assertTrue(writer.sameKey);
+
+    //Different key
+    key = new Text("key1");
+    writer.append(key, value);
+    assertFalse(writer.sameKey);
+    writer.close();
+    out.close();
+
+
+    //Test with append(DataInputBuffer key, DataInputBuffer value)
+    byte[] kvbuffer = "key1Value1key1Value2key3Value3".getBytes();
+    int keyLength = 4;
+    int valueLength = 6;
+    int pos = 0;
+    out = localFs.create(outputPath);
+    writer = new IFile.Writer(defaultConf, out,
+        Text.class, IntWritable.class, codec, null, null, true);
+
+    DataInputBuffer kin = new DataInputBuffer();
+    kin.reset(kvbuffer, pos, keyLength);
+
+    DataInputBuffer vin = new DataInputBuffer();
+    DataOutputBuffer vout = new DataOutputBuffer();
+    (new IntWritable(0)).write(vout);
+    vin.reset(vout.getData(), vout.getLength());
+
+    //Write initial KV pair
+    writer.append(kin, vin);
+    assertFalse(writer.sameKey);
+    pos += (keyLength + valueLength);
+
+    //Second key is similar to key1 (RLE should kick in)
+    kin.reset(kvbuffer, pos, keyLength);
+    (new IntWritable(0)).write(vout);
+    vin.reset(vout.getData(), vout.getLength());
+    writer.append(kin, vin);
+    assertTrue(writer.sameKey);
+    pos += (keyLength + valueLength);
+
+    //Next key (key3) is different (RLE should not kick in)
+    kin.reset(kvbuffer, pos, keyLength);
+    (new IntWritable(0)).write(vout);
+    vin.reset(vout.getData(), vout.getLength());
+    writer.append(kin, vin);
+    assertFalse(writer.sameKey);
+
+    writer.close();
+    out.close();
   }
 
   @Test

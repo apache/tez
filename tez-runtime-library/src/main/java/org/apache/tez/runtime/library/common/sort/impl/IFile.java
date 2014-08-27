@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -36,7 +37,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.BufferUtils;
+import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.compress.CodecPool;
@@ -110,7 +111,8 @@ public class IFile {
     final DataOutputBuffer previous = new DataOutputBuffer();
     Object prevKey = null;
     boolean headerWritten = false;
-    boolean firstKey = true;
+    @VisibleForTesting
+    boolean sameKey = false;
 
     final int RLE_MARKER_SIZE = WritableUtils.getVIntSize(RLE_MARKER);
     final int V_END_MARKER_SIZE = WritableUtils.getVIntSize(V_END_MARKER);
@@ -266,7 +268,7 @@ public class IFile {
           valueClass);
 
       int keyLength = 0;
-      boolean sameKey = (key == REPEAT_KEY);
+      sameKey = (key == REPEAT_KEY);
       if (!sameKey) {
         keySerializer.serialize(key);
         keyLength = buffer.getLength();
@@ -379,7 +381,7 @@ public class IFile {
       int valueLength = value.getLength() - value.getPosition();
       checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
 
-      boolean sameKey = (key == REPEAT_KEY);
+      sameKey = (key == REPEAT_KEY);
       if (!sameKey && rle) {
         sameKey = (keyLength != 0) && (BufferUtils.compare(previous, key) == 0);
       }
