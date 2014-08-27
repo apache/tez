@@ -360,7 +360,7 @@ public class DAGClientRPCImpl extends DAGClient {
     }// End of while(true)
 
     Set<String> vertexNames = Collections.emptySet();
-    while (dagStatus.getState() == DAGStatus.State.RUNNING) {
+    while (!dagStatus.isCompleted()) {
       if (!runningPrinted) {
         log("DAG initialized: CurrentState=Running");
         runningPrinted = true;
