@@ -54,7 +54,7 @@ public class TestTezClientUtils {
   @Test (timeout=5000)
   public void validateSetTezJarLocalResourcesNotDefined() throws Exception {
 
-    TezConfiguration conf = new TezConfiguration();
+    TezConfiguration conf = new TezConfiguration(false);
     Credentials credentials = new Credentials();
     try {
       TezClientUtils.setupTezJarsLocalResources(conf, credentials);
