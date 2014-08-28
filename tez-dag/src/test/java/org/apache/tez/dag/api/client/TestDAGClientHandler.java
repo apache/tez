@@ -40,7 +40,7 @@ import org.mockito.internal.util.collections.Sets;
 
 public class TestDAGClientHandler {
   
-  @Test(timeout = 1000)
+  @Test(timeout = 5000)
   public void testDAGClientHandler() throws TezException {
 
     TezDAGID mockTezDAGId = mock(TezDAGID.class);
