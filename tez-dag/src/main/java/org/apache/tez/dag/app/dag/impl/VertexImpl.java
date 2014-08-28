@@ -102,7 +102,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
-import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -3364,9 +3363,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             checkEventSourceMetadata(vertex, sourceMeta);
             InputDataInformationEvent riEvent = (InputDataInformationEvent) tezEvent
                 .getEvent();
-            TezTaskID targetTaskID = TezTaskID.getInstance(vertex.getVertexId(),
-                riEvent.getTargetIndex());
-            vertex.eventHandler.handle(new TaskEventAddTezEvent(targetTaskID, tezEvent));
+            Task targetTask = vertex.getTask(riEvent.getTargetIndex());
+            targetTask.registerTezEvent(tezEvent);
           }
           break;
         case VERTEX_MANAGER_EVENT:

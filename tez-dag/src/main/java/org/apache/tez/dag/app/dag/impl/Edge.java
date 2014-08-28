@@ -36,7 +36,6 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
-import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -336,8 +335,7 @@ public class Edge {
               " destNumTasks=" + destinationVertex.getTotalTasks() + 
               " edgeManager=" + edgeManager.getClass().getName());
         }
-        TezTaskID destTaskId = destTask.getTaskId();
-        sendEventToTask(destTaskId, tezEventToSend);      
+        sendEventToTask(destTask, tezEventToSend);
       }
     }
   }
@@ -402,8 +400,8 @@ public class Edge {
     }
   }
   
-  private void sendEventToTask(TezTaskID taskId, TezEvent tezEvent) {
-    sendEvent(new TaskEventAddTezEvent(taskId, tezEvent));
+  private void sendEventToTask(Task task, TezEvent tezEvent) {
+    task.registerTezEvent(tezEvent);
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })

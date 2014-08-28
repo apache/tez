@@ -31,9 +31,6 @@ public enum TaskEventType {
 
   //Producer:Speculator
   T_ADD_SPEC_ATTEMPT,
-  
-  //Producer:Edge
-  T_ADD_TEZ_EVENT,
 
   //Producer:TaskAttempt
   T_ATTEMPT_LAUNCHED,

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,7 +45,6 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -95,50 +95,46 @@ public class TestEdge {
     // Event setup to look like it would after the Vertex is done with it.
 
     edge.sendTezEventToDestinationTasks(tezEvent);
-    
-    ArgumentCaptor<Event> args = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(destTasks.size())).handle(args.capture());
-    
-    verifyEvents(args.getAllValues(), srcTAID, destTasks);
-    
-    
+    verifyEvents(srcTAID, destTasks);
+
     // Same Verification via regular DataMovementEvents
-    reset(eventHandler);
+    // Reset the mock
+    resetTaskMocks(destTasks.values());
+
     for (int i = 0 ; i < destTasks.size() ; i++) {
       DataMovementEvent dmEvent = DataMovementEvent.create(i, ByteBuffer.wrap("bytes".getBytes()));
       dmEvent.setVersion(2);
       tezEvent = new TezEvent(dmEvent, srcMeta);
       edge.sendTezEventToDestinationTasks(tezEvent);
     }
-    args = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(destTasks.size())).handle(args.capture());
-    
-    verifyEvents(args.getAllValues(), srcTAID, destTasks);
-
+    verifyEvents(srcTAID, destTasks);
   }
-  
-  @SuppressWarnings("rawtypes")
-  private void verifyEvents(List<Event> events, TezTaskAttemptID srcTAID, LinkedHashMap<TezTaskID, Task> destTasks) {
-    int count = 0;
-    
-    Iterator<Entry<TezTaskID, Task>> taskIter = destTasks.entrySet().iterator();
-    
-    for (Event event : events) {
-      Entry<TezTaskID, Task> expEntry = taskIter.next();
-      assertTrue(event instanceof TaskEventAddTezEvent);
-      TaskEventAddTezEvent taEvent = (TaskEventAddTezEvent) event;
-      assertEquals(expEntry.getKey(), taEvent.getTaskID());
-      TezEvent tezEvent = taEvent.getTezEvent();
 
-      DataMovementEvent dmEvent = (DataMovementEvent)tezEvent.getEvent();
+  @SuppressWarnings("rawtypes")
+  private void verifyEvents(TezTaskAttemptID srcTAID, LinkedHashMap<TezTaskID, Task> destTasks) {
+    int count = 0;
+
+    for (Entry<TezTaskID, Task> taskEntry : destTasks.entrySet()) {
+      Task mockTask = taskEntry.getValue();
+      ArgumentCaptor<TezEvent> args = ArgumentCaptor.forClass(TezEvent.class);
+      verify(mockTask, times(1)).registerTezEvent(args.capture());
+      TezEvent capturedEvent = args.getValue();
+
+      DataMovementEvent dmEvent = (DataMovementEvent) capturedEvent.getEvent();
       assertEquals(srcTAID.getId(), dmEvent.getVersion());
-      assertEquals(count, dmEvent.getSourceIndex());
+      assertEquals(count++, dmEvent.getSourceIndex());
       assertEquals(srcTAID.getTaskID().getId(), dmEvent.getTargetIndex());
       byte[] res = new byte[dmEvent.getUserPayload().limit() - dmEvent.getUserPayload().position()];
       dmEvent.getUserPayload().slice().get(res);
       assertTrue(Arrays.equals("bytes".getBytes(), res));
+    }
+  }
 
-      count++;
+  private void resetTaskMocks(Collection<Task> tasks) {
+    for (Task task : tasks) {
+      TezTaskID taskID = task.getTaskId();
+      reset(task);
+      doReturn(taskID).when(task).getTaskId();
     }
   }
 

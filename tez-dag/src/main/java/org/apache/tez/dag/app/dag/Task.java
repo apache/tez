@@ -83,4 +83,6 @@ public interface Task {
   public List<String> getDiagnostics();
 
   TaskState restoreFromEvent(HistoryEvent historyEvent);
+
+  public void registerTezEvent(TezEvent tezEvent);
 }

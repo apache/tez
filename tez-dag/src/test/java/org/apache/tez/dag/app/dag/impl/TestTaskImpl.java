@@ -58,7 +58,6 @@ import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
-import org.apache.tez.dag.app.dag.event.TaskEventAddTezEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -165,13 +164,11 @@ public class TestTaskImpl {
   }
 
   private void sendTezEventsToTask(TezTaskID taskId, int numTezEvents) {
-    TaskEventAddTezEvent event = null;
     EventMetaData eventMetaData = new EventMetaData();
     DataMovementEvent dmEvent = DataMovementEvent.create(null);
     TezEvent tezEvent = new TezEvent(dmEvent, eventMetaData);
     for (int i = 0; i < numTezEvents; i++) {
-      event = new TaskEventAddTezEvent(taskId, tezEvent);
-      mockTask.handle(event);
+      mockTask.registerTezEvent(tezEvent);
     }
   }
 
@@ -235,7 +232,7 @@ public class TestTaskImpl {
   }
 
   /**
-   * {@link TaskState#TERMINATING}
+   * {@link org.apache.tez.dag.app.dag.TaskStateInternal#KILL_WAIT}
    */
   private void assertTaskKillWaitState() {
     assertEquals(TaskStateInternal.KILL_WAIT, mockTask.getInternalState());
