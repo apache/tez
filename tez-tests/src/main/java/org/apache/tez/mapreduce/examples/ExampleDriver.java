@@ -47,6 +47,7 @@ public class ExampleDriver {
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {
+      pgd.addClass("rpcloadgen", RPCLoadGen.class, "Run a DAG to generate load for the task to AM RPC");
       pgd.addClass("wordcount", MapredWordCount.class,
           "A map/reduce program that counts the words in the input files.");
       pgd.addClass("mapredwordcount", MapredWordCount.class,
