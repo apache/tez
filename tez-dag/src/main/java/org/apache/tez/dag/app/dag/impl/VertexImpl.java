@@ -717,24 +717,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public Task getTask(int taskIndex) {
-    readLock.lock();
-    try {
-      // does it matter to create a duplicate list for efficiency
-      // instead of traversing the map
-      // local assign to LinkedHashMap to ensure that sequential traversal
-      // assumption is satisfied
-      LinkedHashMap<TezTaskID, Task> taskList = tasks;
-      int i=0;
-      for(Map.Entry<TezTaskID, Task> entry : taskList.entrySet()) {
-        if(taskIndex == i) {
-          return entry.getValue();
-        }
-        ++i;
-      }
-      return null;
-    } finally {
-      readLock.unlock();
-    }
+    return getTask(TezTaskID.getInstance(this.vertexId, taskIndex));
   }
 
   @Override
