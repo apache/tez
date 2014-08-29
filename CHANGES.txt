@@ -3,6 +3,9 @@ Apache Tez Change Log
 
 Release 0.6.0: Unreleased
 
+INCOMPATIBLE CHANGES
+  TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
+
 Release 0.5.0: Unreleased
 
 INCOMPATIBLE CHANGES
