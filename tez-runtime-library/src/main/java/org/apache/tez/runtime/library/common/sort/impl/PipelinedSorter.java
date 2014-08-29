@@ -39,7 +39,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.tez.common.TezUtilsInternal;
-import org.apache.tez.runtime.library.common.comparator.HashComparator;
+import org.apache.tez.runtime.library.common.comparator.ProxyComparator;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.IndexedSorter;
@@ -78,7 +78,7 @@ public class PipelinedSorter extends ExternalSorter {
 
   int numSpills = 0;
   private final int minSpillsForCombine;
-  private final HashComparator hasher;
+  private final ProxyComparator hasher;
   // SortSpans  
   private SortSpan span;
   private ByteBuffer largeBuffer;
@@ -135,8 +135,8 @@ public class PipelinedSorter extends ExternalSorter {
         .build());
 
     // k/v serialization    
-    if(comparator instanceof HashComparator) {
-      hasher = (HashComparator)comparator;
+    if(comparator instanceof ProxyComparator) {
+      hasher = (ProxyComparator)comparator;
       LOG.info("Using the HashComparator");
     } else {
       hasher = null;
@@ -236,7 +236,7 @@ public class PipelinedSorter extends ExternalSorter {
     int prefix = 0;
 
     if(hasher != null) {
-      prefix = hasher.getHashCode(key);
+      prefix = hasher.getProxy(key);
     }
 
     prefix = (partition << (32 - partitionBits)) | (prefix >>> partitionBits);

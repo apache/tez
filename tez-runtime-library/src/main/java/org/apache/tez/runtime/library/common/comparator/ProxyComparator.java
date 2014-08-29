@@ -19,11 +19,28 @@ package org.apache.tez.runtime.library.common.comparator;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.io.RawComparator;
 
 @Unstable
 @Private
-public interface HashComparator<KEY> {
-
-  int getHashCode(KEY key);
+public interface ProxyComparator<KEY> extends RawComparator {
+  /**
+   * This comparator interface provides a fast-path for comparisons between keys.
+   *
+   * The implicit assumption is that integer returned from this function serves
+   * as a transitive comparison proxy for the comparator that this implements.
+   *
+   * But this does not serve as a measure of equality.
+   *
+   * getProxy(k1) < getProxy(k2) implies k1 < k2 (transitive between different keys for sorting requirements)
+   *
+   * getProxy(k1) == getProxy(k2) does not imply ordering, but requires actual key comparisons.
+   *
+   * This serves as a way to short-circuit  the RawComparator speeds.
+   *
+   * @param key
+   * @return proxy
+   */
+  int getProxy(KEY key);
 
 }
