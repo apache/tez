@@ -43,7 +43,6 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -92,28 +91,36 @@ public class MROutput extends AbstractLogicalOutput {
     String outputPath;
     boolean doCommit = true;
     
-    private MROutputConfigBuilder(Configuration conf, Class<?> outputFormat) {
+    private MROutputConfigBuilder(Configuration conf, Class<?> outputFormatParam) {
       this.conf = conf;
-      if (outputFormat != null) {
+      if (outputFormatParam != null) {
         outputFormatProvided = true;
-        this.outputFormat = outputFormat;
-        if (org.apache.hadoop.mapred.OutputFormat.class.isAssignableFrom(outputFormat)) {
+        this.outputFormat = outputFormatParam;
+        if (org.apache.hadoop.mapred.OutputFormat.class.isAssignableFrom(outputFormatParam)) {
           useNewApi = false;
-        } else if (org.apache.hadoop.mapreduce.OutputFormat.class.isAssignableFrom(outputFormat)) {
+        } else if (org.apache.hadoop.mapreduce.OutputFormat.class.isAssignableFrom(outputFormatParam)) {
           useNewApi = true;
         } else {
           throw new TezUncheckedException("outputFormat must be assignable from either " +
               "org.apache.hadoop.mapred.OutputFormat or " +
               "org.apache.hadoop.mapreduce.OutputFormat" +
-              " Given: " + outputFormat.getName());
+              " Given: " + outputFormatParam.getName());
         }
       } else {
         outputFormatProvided = false;
-        useNewApi = conf.getBoolean("mapred.mapper.new-api", true);
-        if (useNewApi) {
-          this.outputFormat = ReflectionUtils.getClass(conf.get(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR));
-        } else {
-          this.outputFormat = ReflectionUtils.getClass(conf.get("mapred.output.format.class"));
+        useNewApi = conf.getBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, true);
+        try {
+          if (useNewApi) {
+            this.outputFormat = conf.getClassByName(conf.get(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR));
+            Preconditions.checkState(org.apache.hadoop.mapreduce.OutputFormat.class
+                .isAssignableFrom(this.outputFormat));
+          } else {
+            this.outputFormat = conf.getClassByName(conf.get("mapred.output.format.class"));
+            Preconditions.checkState(org.apache.hadoop.mapred.OutputFormat.class
+                .isAssignableFrom(this.outputFormat));
+          }
+        } catch (ClassNotFoundException e) {
+          throw new TezUncheckedException(e);
         }
         initializeOutputPath();
       }
@@ -210,7 +217,7 @@ public class MROutput extends AbstractLogicalOutput {
      */
     private UserPayload createUserPayload() {
       if (outputFormatProvided) {
-        conf.setBoolean("mapred.reducer.new-api", useNewApi);
+        conf.setBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, useNewApi);
         if (useNewApi) {
           conf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormat.getName());
         } else {
@@ -346,7 +353,7 @@ public class MROutput extends AbstractLogicalOutput {
       newApiTaskAttemptContext = createTaskAttemptContext(taskAttemptId);
       try {
         newOutputFormat =
-            ReflectionUtils.newInstance(
+            org.apache.hadoop.util.ReflectionUtils.newInstance(
                 newApiTaskAttemptContext.getOutputFormatClass(), jobConf);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException(cnfe);

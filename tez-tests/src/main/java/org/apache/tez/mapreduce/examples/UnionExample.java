@@ -32,6 +32,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClient;
@@ -168,9 +170,10 @@ public class UnionExample {
     
     int numMaps = -1;
     Configuration inputConf = new Configuration(tezConf);
-    MRInput.MRInputConfigBuilder configurer = MRInput.createConfigBuilder(inputConf,
-        TextInputFormat.class,
-        inputPath);
+    inputConf.setBoolean("mapred.mapper.new-api", false);
+    inputConf.set("mapred.input.format.class", TextInputFormat.class.getName());
+    inputConf.set(FileInputFormat.INPUT_DIR, inputPath);
+    MRInput.MRInputConfigBuilder configurer = MRInput.createConfigBuilder(inputConf, null);
     DataSourceDescriptor dataSource = configurer.generateSplitsInAM(false).build();
 
     Vertex mapVertex1 = Vertex.create("map1", ProcessorDescriptor.create(
@@ -186,8 +189,10 @@ public class UnionExample {
         UnionProcessor.class.getName()), 1);
 
     Configuration outputConf = new Configuration(tezConf);
-    DataSinkDescriptor od = MROutput.createConfigBuilder(outputConf,
-        TextOutputFormat.class, outputPath).build();
+    outputConf.setBoolean("mapred.reducer.new-api", false);
+    outputConf.set("mapred.output.format.class", TextOutputFormat.class.getName());
+    outputConf.set(FileOutputFormat.OUTDIR, outputPath);
+    DataSinkDescriptor od = MROutput.createConfigBuilder(outputConf, null).build();
     checkerVertex.addDataSink("union", od);
     
 

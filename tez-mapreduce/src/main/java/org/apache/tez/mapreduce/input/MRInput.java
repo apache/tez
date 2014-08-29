@@ -26,6 +26,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.protobuf.ByteString;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -38,7 +39,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DataSourceDescriptor;
@@ -80,7 +80,7 @@ import com.google.common.collect.Lists;
  */
 @Public
 public class MRInput extends MRInputBase {
-
+  
   /**
    * Helper class to configure {@link MRInput}
    *
@@ -97,28 +97,36 @@ public class MRInput extends MRInputBase {
     String inputPaths = null;
     InputInitializerDescriptor customInitializerDescriptor = null;
 
-    MRInputConfigBuilder(Configuration conf, Class<?> inputFormat) {
+    MRInputConfigBuilder(Configuration conf, Class<?> inputFormatParam) {
       this.conf = conf;
-      if (inputFormat != null) {
+      if (inputFormatParam != null) {
         inputFormatProvided = true;
-        this.inputFormat = inputFormat;
-        if (org.apache.hadoop.mapred.InputFormat.class.isAssignableFrom(inputFormat)) {
+        this.inputFormat = inputFormatParam;
+        if (org.apache.hadoop.mapred.InputFormat.class.isAssignableFrom(inputFormatParam)) {
           useNewApi = false;
-        } else if (org.apache.hadoop.mapreduce.InputFormat.class.isAssignableFrom(inputFormat)) {
+        } else if (org.apache.hadoop.mapreduce.InputFormat.class.isAssignableFrom(inputFormatParam)) {
           useNewApi = true;
         } else {
           throw new TezUncheckedException("inputFormat must be assignable from either " +
               "org.apache.hadoop.mapred.InputFormat or " +
               "org.apache.hadoop.mapreduce.InputFormat" +
-              " Given: " + inputFormat.getName());
+              " Given: " + inputFormatParam.getName());
         }
       } else {
         inputFormatProvided = false;
-        useNewApi = conf.getBoolean("mapred.mapper.new-api", true);
-        if (useNewApi) {
-          this.inputFormat = ReflectionUtils.getClass(conf.get(MRJobConfig.INPUT_FORMAT_CLASS_ATTR));
-        } else {
-          this.inputFormat = ReflectionUtils.getClass(conf.get("mapred.input.format.class"));
+        useNewApi = conf.getBoolean(MRJobConfig.NEW_API_MAPPER_CONFIG, true);
+        try {
+          if (useNewApi) {
+            this.inputFormat = conf.getClassByName(conf.get(MRJobConfig.INPUT_FORMAT_CLASS_ATTR));
+            Preconditions.checkState(org.apache.hadoop.mapreduce.InputFormat.class
+                .isAssignableFrom(this.inputFormat));
+          } else {
+            this.inputFormat = conf.getClassByName(conf.get("mapred.input.format.class"));
+            Preconditions.checkState(org.apache.hadoop.mapred.InputFormat.class
+                .isAssignableFrom(this.inputFormat));
+          }
+        } catch (ClassNotFoundException e) {
+          throw new TezUncheckedException(e);
         }
         initializeInputPath();
       }
@@ -292,7 +300,7 @@ public class MRInput extends MRInputBase {
 
     private void setupBasicConf(Configuration inputConf) {
       if (inputFormatProvided) {
-        inputConf.setBoolean("mapred.mapper.new-api", useNewApi);
+        inputConf.setBoolean(MRJobConfig.NEW_API_MAPPER_CONFIG, useNewApi);
         if (useNewApi) {
           inputConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, inputFormat.getName());
         } else {
