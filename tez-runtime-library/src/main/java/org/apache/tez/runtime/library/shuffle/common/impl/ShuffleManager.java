@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.shuffle.common.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -86,6 +87,8 @@ public class ShuffleManager implements FetcherCallback {
   private final InputContext inputContext;
   private final int numInputs;
 
+  private final DecimalFormat mbpsFormat = new DecimalFormat("0.00");
+
   private final FetchedInputAllocator inputManager;
 
   private final ListeningExecutorService fetcherExecutor;
@@ -105,6 +108,7 @@ public class ShuffleManager implements FetcherCallback {
   
   private final long startTime;
   private long lastProgressTime;
+  private long totalBytesShuffledTillNow;
 
   // Required to be held when manipulating pendingHosts
   private final ReentrantLock lock = new ReentrantLock();
@@ -436,9 +440,7 @@ public class ShuffleManager implements FetcherCallback {
   public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
       FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
       throws IOException {
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();    
-
-    LOG.info("Completed fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType());
+    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
 
     // Count irrespective of whether this is a copy of an already fetched input
     lock.lock();
@@ -454,7 +456,9 @@ public class ShuffleManager implements FetcherCallback {
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
-          
+          logIndividualFetchComplete(copyDuration, fetchedBytes, decompressedLength, fetchedInput,
+              srcAttemptIdentifier);
+
           // Processing counters for completed and commit fetches only. Need
           // additional counters for excessive fetches - which primarily comes
           // in after speculation or retries.
@@ -470,6 +474,13 @@ public class ShuffleManager implements FetcherCallback {
           decompressedDataSizeCounter.increment(decompressedLength);
 
           registerCompletedInput(fetchedInput);
+          lock.lock();
+          try {
+            totalBytesShuffledTillNow += fetchedBytes;
+          } finally {
+            lock.unlock();
+          }
+          logProgress();
         }
       }
     }
@@ -649,7 +660,33 @@ public class ShuffleManager implements FetcherCallback {
       throw new UnsupportedOperationException("Not supported for NullFetchedInput");
     }
   }
-  
+
+  private void logProgress() {
+    double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);
+    int inputsDone = numInputs - numCompletedInputs.get();
+    long secsSinceStart = (System.currentTimeMillis() - startTime) / 1000 + 1;
+
+    double transferRate = mbs / secsSinceStart;
+    LOG.info("copy(" + inputsDone + " of " + numInputs +
+        ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
+        + mbpsFormat.format(transferRate) + " MB/s)");
+  }
+
+  private void logIndividualFetchComplete(long millis, long fetchedBytes, long decompressedLength,
+                                          FetchedInput fetchedInput,
+                                          InputAttemptIdentifier srcAttemptIdentifier) {
+    double rate = 0;
+    if (millis != 0) {
+      rate = fetchedBytes / ((double) millis / 1000);
+      rate = rate / (1024 * 1024);
+    }
+
+    LOG.info(
+        "Completed fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType() +
+            ", CompressedSize=" + fetchedBytes + ", DecompressedSize=" + decompressedLength +
+            ",EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
+            mbpsFormat.format(rate) + " MB/s");
+  }
   
   private class SchedulerFutureCallback implements FutureCallback<Void> {
 

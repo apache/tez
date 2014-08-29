@@ -161,17 +161,21 @@ class ShuffleScheduler {
                                          MapHost host,
                                          long bytesCompressed,
                                          long bytesDecompressed,
-                                         long milis,
+                                         long millis,
                                          MapOutput output
                                          ) throws IOException {
-    failureCounts.remove(srcAttemptIdentifier);
-    if (host != null) {
-      hostFailures.remove(host.getHostIdentifier());
-    }
-    
+
     if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex())) {
       if (output != null) {
+
+        failureCounts.remove(srcAttemptIdentifier);
+        if (host != null) {
+          hostFailures.remove(host.getHostIdentifier());
+        }
+
         output.commit();
+        logIndividualFetchComplete(millis, bytesCompressed, bytesDecompressed, output,
+            srcAttemptIdentifier);
         if (output.getType() == Type.DISK) {
           bytesShuffledToDisk.increment(bytesCompressed);
         } else if (output.getType() == Type.DISK_DIRECT) {
@@ -217,13 +221,29 @@ class ShuffleScheduler {
     // TODO NEWTEZ Should this be releasing the output, if not committed ? Possible memory leak in case of speculation.
   }
 
+  private void logIndividualFetchComplete(long millis, long bytesCompressed, long bytesDecompressed,
+                                          MapOutput output,
+                                          InputAttemptIdentifier srcAttemptIdentifier) {
+    double rate = 0;
+    if (millis != 0) {
+      rate = bytesCompressed / ((double) millis / 1000);
+      rate = rate / (1024 * 1024);
+    }
+    LOG.info(
+        "Completed fetch for attempt: " + srcAttemptIdentifier + " to " + output.getType() +
+            ", CompressedSize=" + bytesCompressed + ", DecompressedSize=" + bytesDecompressed +
+            ",EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
+            mbpsFormat.format(rate) + " MB/s");
+  }
+
   private void logProgress() {
-    float mbs = (float) totalBytesShuffledTillNow / (1024 * 1024);
-    int mapsDone = numInputs - remainingMaps;
+    double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);
+    int inputsDone = numInputs - remainingMaps;
     long secsSinceStart = (System.currentTimeMillis() - startTime) / 1000 + 1;
 
-    float transferRate = mbs / secsSinceStart;
-    LOG.info("copy(" + mapsDone + " of " + numInputs + " at "
+    double transferRate = mbs / secsSinceStart;
+    LOG.info("copy(" + inputsDone + " of " + numInputs +
+        ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
         + mbpsFormat.format(transferRate) + " MB/s)");
   }
 
