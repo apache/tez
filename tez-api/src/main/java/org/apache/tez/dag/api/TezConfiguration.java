@@ -116,7 +116,8 @@ public class TezConfiguration extends Configuration {
    * */
   public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
-      "-Djava.net.preferIPv4Stack=true " +
+      "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc " + 
+      "-XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC " +
       "-Dhadoop.metrics.log.level=WARN ";
 
   /**
@@ -127,7 +128,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
       + "launch.cmd-opts";
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = 
-      "-Djava.net.preferIPv4Stack=true " +
+      "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc " + 
+      "-XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC " +
       "-Dhadoop.metrics.log.level=WARN ";
 
   /**

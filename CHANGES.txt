@@ -94,6 +94,7 @@ INCOMPATIBLE CHANGES
   TEZ-1485. Disable node blacklisting and ATS in AM for local mode
   TEZ-1490. dagid reported is incorrect in TezClient.java
   TEZ-1500. DAG should be created via a create method
+  TEZ-1509. Set a useful default value for java opts
 
 Release 0.4.0-incubating: 2014-04-05
 
