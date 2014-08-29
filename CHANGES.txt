@@ -1,8 +1,6 @@
 Apache Tez Change Log
 =====================
 
-Release 0.6.0: Unreleased
-
 Release 0.5.0: Unreleased
 
 INCOMPATIBLE CHANGES
