@@ -95,6 +95,300 @@ INCOMPATIBLE CHANGES
   TEZ-1500. DAG should be created via a create method
   TEZ-1509. Set a useful default value for java opts
 
+ALL CHANGES
+
+  TEZ-1516. Log transfer rates for broadcast fetch. (sseth)
+  TEZ-1511. MROutputConfigBuilder sets OutputFormat as String class if OutputFormat is not provided (bikas)
+  TEZ-1509. Set a useful default value for java opts (bikas)
+  TEZ-1517. Avoid sending routed events via the AsyncDispatcher. (sseth)
+  TEZ-1510. Add missed file. TezConfiguration should not add tez-site.xml as a default resource. (hitesh)
+  TEZ-1510. Addendum patch. TezConfiguration should not add tez-site.xml as a default resource. (hitesh)
+  TEZ-1510. TezConfiguration should not add tez-site.xml as a default resource. (hitesh)
+  TEZ-1501. Add a test dag to generate load on the getTask RPC. (sseth)
+  TEZ-1481. Flaky test : org.apache.tez.dag.api.client.TestDAGClientHandler.testDAGClientHandler (Contributed by Alexander Pivovarov)
+  TEZ-1512. VertexImpl.getTask(int) can be CPU intensive when lots of tasks are present in the vertex
+  TEZ-1492. IFile RLE not kicking in due to bug in BufferUtils.compare()
+  TEZ-1496. Multi MR inputs can not be configured without accessing internal proto structures (Siddharth Seth via bikas)
+  TEZ-1493. Tez examples sometimes fail in cases where AM recovery kicks in. (Jeff Zhang via hitesh)
+  TEZ-1038. Move TaskLocationHint outside of VertexLocationHint. (Alexander Pivovarov via hitesh)
+  TEZ-1475. Fix HDFS commands in INSTALL.txt (bikas)
+  TEZ-1500. DAG should be created via a create method (Siddharth Seth via bikas)
+  TEZ-1430. Javadoc generation should not generate docs for classes annotated as private. (Jonathan Eagles via hitesh)
+  TEZ-1498. Usage info is not printed when wrong number of arguments is provided for JoinExample. (Jeff Zhang via hitesh)
+  TEZ-1486. Event routing should not throw an exception if the EdgePlugin does not generate a routing table in cases where the destination vertex has a parallelism of 0. (sseth)
+  TEZ-1490. dagid reported is incorrect in TezClient.java (jeagles)
+  TEZ-1476. DAGClient waitForCompletion output is confusing (jeagles)
+  TEZ-1471. Additional supplement for TEZ local mode document. Contributed by Chen He.
+  TEZ-1360. Provide vertex parallelism to each vertex task. Contributed by Gopal V, Johannes Zillmann and Rajesh Balamohan.
+  TEZ-1463. Remove dependency on private class org.apache.hadoop.util.StringUtils (Alexander Pivovarov via jeagles)
+  TEZ-1448. Make WeightedScalingMemoryDistributor as the default memory distributor (Rajesh Balamohan)
+  TEZ-1485. Disable node blacklisting and ATS in AM for local mode (jeagles)
+  TEZ-1446. Move the fetch code for local disk fetch from data movement event handlers to fetcher. Contributed by Prakash Ramachandran.
+  TEZ-1487. Switch master to 0.6.0-SNAPSHOT. (hitesh)
+  TEZ-1474. detect missing native libraries for compression at the beginning of a task rather than at the end. Contributed by Prakash Ramachandran.
+  TEZ-1436. Fix javadoc warnings (Jonathan Eagles via bikas)
+  TEZ-1472. Separate method calls for creating InputDataInformationEvent with serialized/unserialized payloads (Siddharth Seth via bikas)
+  TEZ-1469. AM/Session LRs are not shipped to vertices in new API use-case (bikas)
+  TEZ-1464 Addendum. Update INSTALL.txt (bikas)
+  TEZ-1464. Update INSTALL.txt (bikas)
+  TEZ-1449. Change user payloads to work with a byte buffer (Siddharth Seth via bikas)
+  TEZ-1325. RecoveryParser can find incorrect last DAG ID. (Jeff Zhang via hitesh)
+  TEZ-1466. Fix JDK8 builds of Tez (gopalv)
+  TEZ-1251. Fix website to not display latest snapshot version in header. (Alexander Pivovarov via hitesh)
+  TEZ-1465. Update and document IntersectExample. Change name to JoinExample (bikas)
+  TEZ-1458. org.apache.tez.common.security.Groups does not compile against hadoop-2.2.0 anymore. (hitesh)
+  TEZ-1455. Replace deprecated junit.framework.Assert with org.junit.Assert (Alexander Pivovarov via jeagles)
+  TEZ-1454. Remove unused imports (Alexander Pivovarov via bikas)
+  TEZ-1415. Merge various Util classes in Tez (Alexander Pivovarov via bikas)
+  TEZ-1461. Add public key to KEYS (bikas)
+  TEZ-1452. Add license and notice to jars (bikas)
+  TEZ-1456. Fix typo in TestIFile.testWithRLEMarker (Contributed by Alexander Pivovarov)
+  TEZ-1246. Replace constructors with create() methods for DAG, Vertex, Edge etc in the API. (sseth)
+  TEZ-1453. Fix rat check for 0.5 (bikas)
+  TEZ-1231. Clean up TezRuntimeConfiguration (bikas)
+  TEZ-1450. Documentation of TezConfiguration (bikas)
+  TEZ-1417. Rename *Configurer to ConfigBuilder/Config. (sseth)
+  TEZ-1349. Add documentation for LocalMode usage. (sseth)
+  TEZ-1390. Replace byte[] with ByteBuffer as the type of user payload in the API. Contributed by Tsuyoshi OZAWA.
+  TEZ-1395. Fix failure in IFile handling of compressed data. (Rajesh Balamohan via hitesh)
+  TEZ-1445. Add more logging to catch shutdown handler race conditions. (hitesh)
+  TEZ-1426. Create configuration helpers for ShuffleVertexManager and TezGrouping code (Rajesh Balamohan via bikas)
+  TEZ-1439. IntersectDataGen/Example/Validate should move back to tez-examples. (hitesh)
+  TEZ-1423. Ability to pass custom properties to keySerializer for OnFileUnorderedPartitionedKVOutput (Siddharth Seth via bikas)
+  TEZ-1132. Consistent naming of Input and Outputs (bikas)
+  TEZ-1400. Reducers stuck when enabling auto-reduce parallelism
+  TEZ-1055 addendum. Rename tez-mapreduce-examples to tez-examples (Hitesh Shah via bikas)
+  TEZ-1055. Rename tez-mapreduce-examples to tez-examples (Hitesh Shah via bikas)
+  TEZ-1438. Annotate add java doc for tez-runtime-library and tez-mapreduce. (bikas via hitesh)
+  TEZ-1411. Address initial feedback on swimlanes (gopalv)
+  TEZ-1418. Provide Default value for TEZ_AM_LAUNCH_ENV and TEZ_TASK_LAUNCH (Subroto Sanyal via bikas)
+  TEZ-1065 addendum-1 to fix broken test (bikas)
+  TEZ-1435. Fix unused imports. (hitesh)
+  TEZ-1434. Make only wait apis in TezClient to throw InterruptedException. (hitesh)
+  TEZ-1427. Change remaining classes that are using byte[] to UserPayload. (sseth)
+  TEZ-1429. Avoid sysexit in the DAGAM in case of local mode. (sseth)
+  TEZ-1338. Support submission of multiple applications with LocalRunner from within the same JVM. (sseth)
+  TEZ-1334. Annotate all non public classes in tez-runtime-library with @private. (hitesh)
+  TEZ-1320. Remove getApplicationId from DAGClient (Jonathan Eagles via bikas)
+  TEZ-1065 addendum to fix broken test (bikas)
+  TEZ-1431. Fix use of synchronized for certain functions in TezClient. (hitesh)
+  TEZ-1065. DAGStatus.getVertexStatus and other vertex related API's should maintain vertex order (Jeff Zhang via bikas)
+  TEZ-1432. TEZ_AM_CANCEL_DELEGATION_TOKEN is named inorrectly. (sseth)
+  TEZ-1388. mvn site is slow and generates errors (jeagles)
+  TEZ-1409. Change MRInputConfigurer, MROutputConfigurer to accept complete configurations. (sseth)
+  TEZ-1425. Move constants to TezConstants (bikas)
+  TEZ-1416. tez-api project javadoc/annotations review and clean up (bikas)
+  TEZ-671. Support View/Modify ACLs for DAGs. (hitesh)
+  TEZ-1413. Fix build for TestTezClientUtils.testLocalResourceVisibility (Prakash Ramachandran via bikas)
+  TEZ-1422. Use NetUtils to create the bind address for the client, which allows clients to setup static address resolution. Contributed by Johannes Zillmann.
+  TEZ-1410. DAGClient#waitForCompletion() methods should not swallow interrupts. Contributed by Johannes Zillmann.
+  TEZ-1419. Release link broken on website for 0.4.1 release. (hitesh)
+  TEZ-1072. Consolidate monitoring APIs in DAGClient (jeagles)
+  TEZ-1420. Remove unused classes - LocalClientProtocolProviderTez, LocalJobRunnerMetricsTez, LocalJobRunnerTez. (sseth)
+  TEZ-1330. Create a default dist target which contains jars. (sseth)
+  TEZ-1414. Disable TestTezClientUtils.testLocalResourceVisibility to make builds pass(bikas)
+  TEZ-1347. Consolidate MRHelpers. (sseth)
+  TEZ-1402. MRoutput configurer should allow disabling the committer (bikas)
+  TEZ-817. TEZ_LIB_URI are always uploaded as public Local Resource (Prakash Ramachandran via bikas)
+  TEZ-1404. groupCommitInProgress in RecoveryTransition of DAGImpl is not set correctly. (Jeff Zhang via hitesh)
+  TEZ-1024. Fix determination of failed attempts in recovery. (Jeff Zhang via hitesh)
+  TEZ-1403. oah.mapred.Partitioner is not configured by JobConf. Contributed by Navis.
+  TEZ-1399. Add an example to show session usage (bikas)
+  TEZ-1194. Make TezUserPayload user facing for payload specification (Tsuyoshi Ozawa and bikas)
+  TEZ-1393. user.dir should not be reset in LocalMode. (sseth)
+  TEZ-1216. Clean up the staging directory when the application completes. (hitesh) This closes #3
+  TEZ-1407. Move MRInput related methods out of MRHelpers and consolidate. (sseth)
+  TEZ-1205. Remove profiling keyword from APIs/configs
+  TEZ-1405. TestSecureShuffle is slow (Rajesh Balamohan via bikas)
+  TEZ-1237. Consolidate naming of API classes (bikas)
+  TEZ-1391. Setup IGNORE_LIB_URIS correctly for Local Mode. (sseth)
+  TEZ-1318 addendum. Simplify Vertex Constructor (bikas)
+  TEZ-1318. Simplify Vertex Constructor (bikas)
+  TEZ-1372. Remove author tag from previous commit (bikas)
+  TEZ-1372. Fix preWarm to work after recent API changes (bikas)
+  TEZ-1372. Fix preWarm to work after recent API changes (bikas)
+  TEZ-1394. Create example code for OrderedWordCount (bikas)
+  TEZ-1394. Create example code for OrderedWordCount (bikas)
+  TEZ-1392. Fix MRRSleepJob failure. (sseth)
+  TEZ-1386. TezGroupedSplitsInputFormat should not need to be setup to enable grouping. (sseth)
+  TEZ-1385. Disk Direct fails for MapOutput when trying to use OnDiskMerger. Contributed by Prakash Ramachandran.
+  TEZ-1382. Change ObjectRegistry API to allow for future extensions (bikas)
+  TEZ-1332. Swimlane diagrams from tez AM logs (gopalv)
+  TEZ-1368. TestSecureShuffle failing
+  TEZ-1379. Allow EdgeConfigurers to accept Configuration for Comparators. Change the way partitioner, comparator, combiner confs are set (from Hadoop Configuration to Map). Rename specific Input/Output classes from *Configuration to *Configurer. (sseth)
+  TEZ-1317. Simplify MRinput/MROutput configuration (bikas)
+  TEZ-1351. MROutput needs a flush method to ensure data is materialized for FileOutputCommitter (bikas)
+  TEZ-1368 is fixed. (hitesh)
+  TEZ-1057. Replace interfaces with abstract classes for Processor/Input/Output classes (bikas)
+  TEZ-1041. Use VertexLocationHint consistently everywhere in the API (bikas)
+  TEZ-1343. Bypass the Fetcher and read directly from the local filesystem if source task ran on the same host. Contributed by Prakash Ramachandran.
+  TEZ-1365. Local mode should ignore tez.lib.uris, and set a config for the AM to be aware of session mode. (sseth)
+  TEZ-1355. Read host and shuffle meta-information for events only if data is generated by Outputs. Contributed by Jonathan Eagles.
+  TEZ-1342. Fix a bug which caused tez.am.client.am.port-range to not take effect. Contributed by Jeff Zhang.
+  TEZ-870. Change LocalContainerLauncher to handle multiple threads, improve error reporting and inform other components about container completion. (sseth)
+  TEZ-1352. HADOOP_CONF_DIR should be in the classpath for containers. (sseth)
+  TEZ-1238. Display more clear diagnostics info on client side on task failures. (Jeff Zhang via hitesh)
+  TEZ-1354. Fix NPE in FilterByWordOutputProcessor. Contributed by Jonathan Eagles.
+  TEZ-1322. OrderedWordCount broken in master branch. (hitesh)
+  TEZ-1341. IFile append() has string concats leading to memory pressure
+  TEZ-1346. Change Processor to require context constructors for creation, and remove the requirement of the initialize method requiring the context. (sseth)
+  TEZ-1064. Restore dagName Set for duplicate detection in recovered AMs. (Jeff Zhang via hitesh)
+  TEZ-1133 as incompatible.
+  TEZ-1133. Remove some unused methods from MRHelpers. Contributed by Chen He.
+  TEZ-1303. Change Inputs, Outputs, InputInitializer, OutputCommitter, VertexManagerPlugin, EdgeManager to require constructors for creation, and remove the initialize methods. (sseth)
+  TEZ-1276. Remove unnecessary TaskAttemptEventType TA_FAIL_REQUEST. (Jeff Zhang via hitesh)
+  TEZ-1326. AMStartedEvent should not be recovery event. (Jeff Zhang via hitesh)
+  TEZ-1333. Flaky test: TestOnFileSortedOutput fails in jenkins server with OOM
+  TEZ-717. Client changes for local mode DAG submission. Contributed by Jonathan Eagles.
+  TEZ-707. Add a LocalContainerLauncher. Contributed by Chen He.
+  TEZ-1058. Replace user land interfaces with abstract classes (bikas)
+  TEZ-1324. OnFileSortedOutput: send host/port/pathComponent details only when one of the partitions has data
+  TEZ-1328. Move EnvironmentUpdateUtils to tez-common
+  TEZ-1278. TezClient#waitTillReady() should not swallow interrupts. Contributed by Johannes Zillmann.
+  TEZ-1305: Log job tracking url (rohini)
+  TEZ-1257. Error on empty partition when using OnFileUnorderedKVOutput and ShuffledMergedInput
+  TEZ-1300. Change default tez classpath to not include hadoop jars from the cluster. (sseth)
+  TEZ-1321. Remove methods annotated as @Private from TezClient and DAGClient. (sseth)
+  TEZ-1288. Create FastTezSerialization as an optional feature (rajesh)
+  TEZ-1304. Abstract out client interactions with YARN. Contributed by Jonathan Eagles.
+  TEZ-1306. Remove unused ValuesIterator. Contributed by Jonathan Eagles.
+  TEZ-1127 addendum for changing tez.am.java.opts. Add TEZ_TASK_JAVA_OPTS and TEZ_ENV configs to specify values from config (bikas)
+  TEZ-1311. get sharedobjectregistry from the context instead of a static (bikas)
+  TEZ-1312. rename vertex.addInput/Output() to vertex.addDataSource/Sink() (Chen He via bikas)
+  TEZ-1134. InputInitializer and OutputCommitter implicitly use payloads of the input and output (bikas)
+  TEZ-1309. Use hflush instead of hsync in recovery log. (hitesh)
+  TEZ-1137. Move TezJobConfig to runtime-library and rename to TezRuntimeConfiguration (bikas)
+  TEZ-1247. Allow DAG.verify() to be called multiple times (Jeff Zhang via bikas)
+  TEZ-1299. Get rid of unnecessary setter override in EntityDescriptors. (sseth)
+  TEZ-866. Add a TezMergedInputContext for MergedInputs (bikas)
+  TEZ-1296. commons-math3 dependency (bikas)
+  TEZ-1301. Fix title of pages in docs. (hitesh)
+  TEZ-811. Addendum. Update page title. (hitesh)
+  TEZ-811. Update docs on how to contribute to Tez. (hitesh)
+  TEZ-1242. Icon. Logos for Tez (Harshad P Dhavale via bikas)
+  TEZ-1298. Add parameterized constructor capabilities in ReflectionUtils. Contributed by Jonathan Eagles.
+  TEZ-1242. Logos for Tez (Harshad P Dhavale via bikas)
+  TEZ-1242. Logos for Tez (Harshad P Dhavale via bikas)
+  TEZ-1295. Modify the tez-dist-full build target to include hadoop libraries. Also makes the tez direct dependencies explicit in the poms. (sseth)
+  TEZ-857. Split Input/Output interfaces into user/framework components. (sseth)
+  TEZ-1290. Make graduation related changes. (hitesh)
+  TEZ-1269. TaskScheduler prematurely releases containers (bikas)
+  TEZ-1269. TaskScheduler prematurely releases containers (bikas)
+  TEZ-1119. Support display of user payloads in Tez UI. (hitesh)
+  TEZ-1089. Change CompositeDataMovementEvent endIndex to a count of number of events. Contributed by Chen He.
+  TEZ-696. Remove implicit copying of processor payload to input and output (bikas)
+  TEZ-1285. Add Utility for Modifying Environment Variables. Contributed by Jonathan Eagles and Oleg Zhurakousky.
+  TEZ-1287. TestJavaProfilerOptions is missing apache license header. Contributed by Jonathan Eagles.
+  TEZ-1260. Allow KeyValueWriter to support writing list of values
+  TEZ-1244. Fix typo in RootInputDataInformationEvent javadoc. Contributed by Chen He.
+  TEZ-1266. Create *EdgeConfigurer.createDefaultCustomEdge() and force setting partitioners where applicable. (sseth)
+  TEZ-1279. Rename *EdgeConfiguration to *EdgeConfigurer. (sseth)
+  TEZ-1272. Change YARNRunner to make use of EdgeConfigurations. (sseth)
+  TEZ-1130. Replace confusing names on Vertex API (bikas)
+  TEZ-1228. Define a memory & merge optimized vertex-intermediate file format for Tez
+  TEZ-1076. Allow events to be sent to InputInitializers. (sseth)
+  TEZ-657. Tez should process the Container exit status - specifically when the RM preempts a container (bikas)
+  TEZ-1262. Change Tez examples to use Edge configs. (sseth)
+  TEZ-1241 Consistent getter for staging dir (kamrul)
+  TEZ-1131 addendum for missing fix. Simplify EdgeManager APIs (bikas)
+  TEZ-1118. Tez with container reuse reports negative CPU usage. Contributed by Robert Grandl.
+  TEZ-1131 (bikas)
+  TEZ-1080. Add specific Configuration APIs for non MR based Inputs / Outputs. (sseth)
+  TEZ-225. Tests for DAGClient (Jeff Zhang via bikas)
+  TEZ-1258. Remove unused class JobStateInternal. Contributed by Jeff Zhang.
+  TEZ-1253. Remove unused VertexEventTypes. Contributed by Jeff Zhang.
+  TEZ-1170 addendum to remove unnecessary transitions. Simplify Vertex Initializing transition (bikas)
+  TEZ-692. Unify job submission in either TezClient or TezSession (bikas)
+  TEZ-1163. Tez Auto Reducer-parallelism throws Divide-by-Zero
+  TEZ-699. Have sensible defaults for java opts. (hitesh)
+  TEZ-387. Move DAGClientHandler into its own class (Jeff Zhang via bikas)
+  TEZ-1234. Replace Interfaces with Abstract classes for VertexManagerPlugin and EdgeManager. (hitesh)
+  TEZ-1218. Make TaskScheduler an Abstract class instead of an Inteface. Contributed by Jeff Zhang.
+  TEZ-1127. Add TEZ_TASK_JAVA_OPTS and TEZ_ENV configs to specify values from config
+  TEZ-1214. Diagnostics of Vertex is missing when constructing TimelineEntity. (Jeff Zhang via hitesh)
+  TEZ-106. TaskImpl does not hold any diagnostic information that can be emitted to history. (Jeff Zhang via hitesh)
+  TEZ-1219. Addendum. Fix roles. (hitesh)
+  TEZ-1219. Update team list to match incubator status page. (hitesh)
+  TEZ-1213. Fix parameter naming in TezJobConfig. (sseth)
+  TEZ-1168. Add MultiMRInput, which can process multiple splits, and returns individual readers for each of these. (sseth)
+  TEZ-1106. Tez framework should use a unique subdir for staging data. (Mohammad Kamrul Islam via hitesh)
+  TEZ-1042.Stop re-routing stdout, stderr for tasks and AM. (sseth)
+  TEZ-1208. Log time taken to connect/getInputStream to a http source in fetcher. Contributed by Rajesh Balamohan.
+  TEZ-1172. Allow multiple Root Inputs to be specified per Vertex. (sseth)
+  TEZ-1170 Simplify Vertex Initializing transition (bikas)
+  TEZ-1193. Allow 'tez.lib.uris' to be overridden (Oleg Zhurakousky via bikas)
+  TEZ-1032. Allow specifying tasks/vertices to be profiled. (Rajesh Balamohan via hitesh)
+  TEZ-1131. Simplify EdgeManager APIs
+  TEZ-1169 addendum to modify the incompatible change list in CHANGES.txt
+  TEZ-1169. Allow numPhysicalInputs to be specified for RootInputs. (sseth)
+  TEZ-1192. Fix loop termination in TezChild. Contributed by Oleg Zhurakousky.
+  TEZ-1178. Prevent duplicate ObjectRegistryImpl inits in TezChild. (gopalv)
+  TEZ-1199. EdgeVertexName in EventMetaData can be null. (hitesh)
+  TEZ-1196. FaultToleranceTestRunner should allow passing generic options from cli (Karam Singh via tassapola)
+  TEZ-1162. The simple history text files now use ^A\n as their line endings.
+  TEZ-1164. Only events for tasks should be buffered in Initializing state (bikas)
+  TEZ-1171. Vertex remains in INITED state if all source vertices start while the vertex was in INITIALIZING state (bikas)
+  TEZ-373. Create UserPayload class for internal code (Tsuyoshi OZAWA via bikas)
+  TEZ-1151. Vertex should stay in initializing state until custom vertex manager sets the parallelism (bikas)
+  TEZ-1145. Vertices should not start if they have uninitialized custom edges (bikas)
+  TEZ-1143 (addendum). 1-1 source split event should be handled in Vertex.RUNNING and Vertex.INITED state (bikas)
+  TEZ-1116. Refactor YarnTezDAGChild to be testable and usable for LocalMode. (sseth)
+  TEZ-1143. 1-1 source split event should be handled in Vertex.RUNNING state (bikas)
+  TEZ-800. One-one edge with parallelism -1 fails if source vertex parallelism is not -1 as well (bikas)
+  TEZ-1154. tez-mapreduce-examples should depend on yarn-api. (hitesh)
+  TEZ-1090. Micro optimization - Remove duplicate updateProcessTree() in TaskCounterUpdater. (Rajesh Balamohan via hitesh)
+  TEZ-1027. orderedwordcount needs to respect tez.staging-dir property. (Rekha Joshi via hitesh)
+  TEZ-1150. Replace String EdgeId with Edge in the Vertex (bikas)
+  TEZ-1066. Generate events to integrate with YARN timeline server. (hitesh)
+  TEZ-1140. TestSecureShuffle leaves behind test data dirs. (hitesh)
+  TEZ-1039. Add Container locality to TaskScheduler (bikas)
+  TEZ-1139. Add a test for IntersectDataGen and IntersectValidate. (sseth)
+  TEZ-1126. Add a data generator and validator for the intersect example. (sseth)
+  TEZ-1114. Fix encrypted shuffle. Contributed by Rajesh Balamohan.
+  TEZ-1128. OnFileUnorderedPartitionedKVOutput does not handle partitioning correctly with the MRPartitioner. (sseth)
+  TEZ-1121. Clean up avro dependencies. (hitesh)
+  TEZ-1111. TestMRHelpers fails if HADOOP_COMMON_HOME is defined in the shell env. ( Mohammad Kamrul Islam via hitesh)
+  TEZ-1099. Minor documentation improvement and Eclipse direct import friendlyness. Contributed by Thiruvalluvan M. G.
+  TEZ-1112. MROutput committer should be initialized from initialized OutputFormat. Contributed by Rohini Palaniswamy.
+  TEZ-1102. Abstract out connection management logic in shuffle code. Contributed by Rajesh Balamohan.
+  TEZ-1088. Flaky Test: TestFaultTolerance.testInputFailureCausesRerunAttemptWithinMaxAttemptSuccess (Tassapol Athiapinya via bikas)
+  TEZ-1105. Fix docs to ensure users are aware of adding "*" for HADOOP_CLASSPATH. (hitesh)
+  TEZ-1091. Respect keepAlive when shutting down Fetchers. Contributed by Rajesh Balamohan.
+  TEZ-1093. Add an example for OnFileUnorderedPartitionedOutput. (sseth)
+  TEZ-661. Add an implementation for a non sorted, partitioned, key-value output. (sseth)
+  TEZ-1002. Generate Container Stop history events. Contributed by Gopal V.
+  TEZ-1085. Leave env values unchanged if they aren't set on the client. Contributed by Rohini Palaniswamy.
+  TEZ-1082. Fix the mechanism used by the Fetcher to check for an open connection when draining the error stream. Contributed by Rajesh Balamohan
+  TEZ-886. Add @Nullable annotation at API level (Tsuyoshi OZAWA via bikas)
+  TEZ-802. Determination of Task Placement for 1-1 Edges (bikas)
+  TEZ-1079. Make tez example jobs use the ToolRunner framework (Devaraj K via bikas)
+  TEZ-1087. ShuffleManager fails with IllegalStateException (Cheolsoo Park via bikas)
+  TEZ-1074. Reduce the frequency at which counters are sent from the task to the AM to reduce AM CPU usage. Contributed by Rajesh Balamohan.
+  TEZ-1062. Create SimpleProcessor for processors that only need to implement the run method (Mohammad Kamrul Islam via bikas)
+  TEZ-1073. RLE fast-forward merge for IFile (gopalv)
+  TEZ-1023. Tez runtime configuration changes by users may not get propagated to jobs. Contributed by Rajesh Balamohan.
+  TEZ-698. Make it easy to create and configure MRInput/MROutput and other inputs/outputs (bikas)
+  TEZ-1018. VertexManagerPluginContext should enable assigning locality to scheduled tasks (bikas)
+  TEZ-1077. Add unit tests for SortedMergedGroupedInput. (sseth)
+  TEZ-1003. Add a MergedInput to combine multiple ShuffledMergedInputs. Contributed by Rohini Palaniswamy.
+  TEZ-873. Expose InputSplit via MRInputLegacy, and underlying splits via TezGroupedSplits. Contributed by Mohammad Kamrul Islam.
+  TEZ-737. DAG name should be unique within a Tez Session. (Mohammad Kamrul Islam via hitesh)
+  TEZ-919. Fix shutdown handling for Shuffle. (sseth)
+  TEZ-988. Enable KeepAlive in Tez Fetcher (Rajesh Balamohan via bikas)
+  TEZ-695. Create Abstract class for Input/Processor/Output (Mohammad Kamrul Islam via bikas)
+  Revert "TEZ-695. Create Abstract class for Input/Processor/Output (Mohammad Kamrul Islam via bikas)"
+  TEZ-695. Create Abstract class for Input/Processor/Output (Mohammad Kamrul Islam via bikas)
+  TEZ-708. Add a LocalTaskScheduler for use in Local mode. Contributed by Jonathan Eagles.
+  TEZ-700. Helper API's to monitor a DAG to completion (Mohammad Kamrul Islam via bikas)
+  TEZ-1053. Refactor: Pass TaskLocationHint directly to the Scheduling logic (bikas)
+  TEZ-1049. Refactor - LocationHint need not be passed into TaskAttemptImpl's constructor (bikas)
+  TEZ-480. Create InputReady VertexManager (bikas)
+  TEZ-1007. MRHelpers.addLog4jSystemProperties() duplicates code from TezClientUtils.addLog4jSystemProperties(). (Thomas Jungblut via hitesh)
+  TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts (bikas)
+  TEZ-960. Addendum - updated CHANGES.txt for incompatible change. (hitesh)
+  TEZ-37. TaskScheduler.addTaskRequest() should handle duplicate tasks (bikas)
+  TEZ-960. Typos in MRJobConfig. (Chen He via hitesh)
+
 Release 0.4.0-incubating: 2014-04-05
 
 ALL CHANGES
