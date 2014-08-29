@@ -3,12 +3,6 @@ Apache Tez Change Log
 
 Release 0.6.0: Unreleased
 
-Release 0.5.1: Unreleased
-
-INCOMPATIBLE CHANGES
-  TEZ-1463. Remove dependency on private class org.apache.hadoop.util.StringUtils
-  TEZ-1476. DAGClient waitForCompletion output is confusing
-
 Release 0.5.0: Unreleased
 
 INCOMPATIBLE CHANGES
@@ -92,6 +86,8 @@ INCOMPATIBLE CHANGES
   TEZ-1472. Separate method calls for creating InputDataInformationEvent with
   serialized/unserialized payloads
   TEZ-1485. Disable node blacklisting and ATS in AM for local mode
+  TEZ-1463. Remove dependency on private class org.apache.hadoop.util.StringUtils
+  TEZ-1476. DAGClient waitForCompletion output is confusing
   TEZ-1490. dagid reported is incorrect in TezClient.java
   TEZ-1500. DAG should be created via a create method
   TEZ-1509. Set a useful default value for java opts
