@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.google.common.base.Joiner;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -69,7 +70,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
 
     @Override
     public String getDisplayName() {
-      return ResourceBundles.getCounterName(groupName, getName(), getName());
+      return getName();
     }
 
     @Override
@@ -117,7 +118,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
   @Override
   public String getDisplayName() {
     if (displayName == null) {
-      displayName = ResourceBundles.getCounterGroupName(getName(), getName());
+      displayName = getName();
     }
     return displayName;
   }

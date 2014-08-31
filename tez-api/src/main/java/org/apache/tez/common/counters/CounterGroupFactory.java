@@ -87,8 +87,7 @@ public abstract class CounterGroupFactory<C extends TezCounter,
    * @return a new counter group
    */
   public G newGroup(String name, Limits limits) {
-    return newGroup(name, ResourceBundles.getCounterGroupName(name, name),
-                    limits);
+    return newGroup(name, name, limits);
   }
 
   /**
