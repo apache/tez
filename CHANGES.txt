@@ -6,6 +6,12 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
   TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
 
+Release 0.5.1: Unreleased
+
+ALL CHANGES
+  TEZ-1515. Remove usage of ResourceBundles in Counters.
+  TEZ-1527. Fix indentation of Vertex status in DAGClient output.
+
 Release 0.5.0: Unreleased
 
 INCOMPATIBLE CHANGES
