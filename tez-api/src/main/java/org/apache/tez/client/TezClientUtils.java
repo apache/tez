@@ -166,7 +166,7 @@ public class TezClientUtils {
       if (tezJarUris == null || tezJarUris.length == 0) {
         throw new TezUncheckedException("Invalid configuration of tez jars"
             + ", " + TezConfiguration.TEZ_LIB_URIS
-            + " is not defined in the configurartion");
+            + " is not defined in the configuration");
       }
      
       List<Path> tezJarPaths = Lists.newArrayListWithCapacity(tezJarUris.length);
