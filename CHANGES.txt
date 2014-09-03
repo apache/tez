@@ -89,6 +89,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES
 
+  TEZ-1515. DAGAppMaster : Thread contentions due to org.apache.tez.common.counters.ResourceBundles (Rajesh Balamohan)
   TEZ-1516. Log transfer rates for broadcast fetch. (sseth)
   TEZ-1511. MROutputConfigBuilder sets OutputFormat as String class if OutputFormat is not provided (bikas)
   TEZ-1509. Set a useful default value for java opts (bikas)

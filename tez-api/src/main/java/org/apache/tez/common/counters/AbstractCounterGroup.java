@@ -115,9 +115,7 @@ public abstract class AbstractCounterGroup<T extends TezCounter>
   private synchronized T findCounterImpl(String counterName, boolean create) {
     T counter = counters.get(counterName);
     if (counter == null && create) {
-      String localized =
-          ResourceBundles.getCounterName(getName(), counterName, counterName);
-      return addCounterImpl(counterName, localized, 0);
+      return addCounterImpl(counterName, counterName, 0);
     }
     return counter;
   }

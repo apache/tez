@@ -54,10 +54,9 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
   // Just a few local casts probably worth not having to carry it around.
   private final Map<String, Object[]> map =
     new ConcurrentSkipListMap<String, Object[]>();
-  private String displayName;
+  private String displayName = "File System Counters";
 
   private static final Joiner NAME_JOINER = Joiner.on('_');
-  private static final Joiner DISP_JOINER = Joiner.on(": ");
 
   @InterfaceAudience.Private
   public static class FSCounter extends AbstractCounter {
@@ -77,12 +76,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
 
     @Override
     public String getDisplayName() {
-      return DISP_JOINER.join(scheme, localizeCounterName(key.name()));
-    }
-
-    protected String localizeCounterName(String counterName) {
-      return ResourceBundles.getCounterName(FileSystemCounter.class.getName(),
-                                            counterName, counterName);
+      return key.name();
     }
 
     @Override
@@ -123,10 +117,6 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
 
   @Override
   public String getDisplayName() {
-    if (displayName == null) {
-      displayName = ResourceBundles.getCounterGroupName(getName(),
-          "File System Counters");
-    }
     return displayName;
   }
 
