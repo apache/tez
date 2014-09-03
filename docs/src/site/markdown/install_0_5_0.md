@@ -1,0 +1,117 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<head><title>Install and Deployment Instructions</title></head>
+
+Install/Deploy Instructions for Tez-current (0.5.0-SNAPSHOT, branch master)
+---------------------------------------------------------------------------
+
+1.  Deploy Apache Hadoop using either the 2.2.0 release or a compatible
+    2.x version.
+    -   One thing to note though when compiling Tez is that you will
+        need to change the value of the hadoop.version property in the
+        top-level pom.xml to match the version of the hadoop branch being
+        used.
+2.  Build tez using `mvn clean package -DskipTests=true -Dmaven.javadoc.skip=true`
+    -   This assumes that you have already installed JDK6 or later,
+        Maven 3 or later and Protocol Buffers (protoc compiler) 2.5 or
+        later
+    -   If you prefer to run the unit tests, remove skipTests from the
+        command above.
+    -   If you use Eclipse IDE, you can import the peojects using
+        "Import/Maven/Existing Maven Projects". Eclipse does not
+        automatically generate Java sources or include the generated
+        sources into the projects. Please build using maven as described
+        above and then use Project Properties to include
+        "target/generatedsources/java" as a source directory into the
+        "Java Build Path" for these projects: tez-api, tez-mapreduce,
+        tez-runtime-internals and tez-runtime-library. This needs to be done
+        just once after importing the project.
+3.  Copy the relevant tez tarball into HDFS, and configure tezsite.xml
+    -   A tez tarball containing tez and hadoop libraries will be found
+        at tez-dist/target/tez-0.5.0-SNAPSHOT.tar.gz
+    -   Assuming that the tez jars are put in /apps/ on HDFS, the
+        command would be
+        ```
+            hadoop dfs -mkdir /apps/tez-0.5.0-SNAPSHOT
+            hadoop dfs -copyFromLocal tez-dist/target/tez-0.5.0-SNAPSHOT-archive.tar.gz /apps/tez-0.5.0-SNAPSHOT/
+        ```
+    -   tez-site.xml configuration.
+        -   Set tez.lib.uris to point to the tar.gz uploaded to HDFS.
+            Assuming the steps mentioned so far were followed,
+            ```
+            set tez.lib.uris to "${fs.default.name}/apps/tez-0.5.0-SNAPSHOT/tez-0.5.0-SNAPSHOT.tar.gz"
+            ```
+        -   Ensure tez.use.cluster.hadoop-libs is not set in tez-site.xml,
+            or if it is set, the value should be false
+4.  Optional: If running existing MapReduce jobs on Tez. Modify
+    mapred-site.xml to change "mapreduce.framework.name" property from
+    its default value of "yarn" to "yarn-tez"
+5.  Configure the client node to include the tez-libraries in the hadoop
+    classpath
+    -   Extract the tez tarball created in step 2 to a local directory
+        (assuming TEZ_JARS is where the files will be decompressed for
+        the next steps)
+        ```
+        tar -xvzf tez-dist/target/tez-0.5.0-SNAPSHOT.tar.gz -C $TEZ_JARS
+        ```
+    -   set TEZ_CONF_DIR to the location of tez-site.xml
+    -   The command to set up the classpath should be something like:
+        ```
+        export HADOOP_CLASSPATH=${TEZ_CONF_DIR}:${TEZ_JARS}/*:${TEZ_JARS}/lib/*
+        ```
+    -   Please note the "*" which is an important requirement when
+        setting up classpaths for directories containing jar files.
+6.  Submit a MR job as you normally would using something like:
+
+    ```
+    $HADOOP_PREFIX/bin/hadoop jar hadoop-mapreduce-client-jobclient-3.0.0-SNAPSHOT-tests.jar sleep -mt 1 -rt 1 -m 1 -r 1
+    ```
+
+    This will use the TEZ DAG ApplicationMaster to run the MR job. This
+    can be verified by looking at the AM’s logs from the YARN
+    ResourceManager UI.
+
+7.  There is a basic example of using an MRR job in the tez-examples.jar.
+    Refer to OrderedWordCount.java in the source code. To run this
+    example:
+
+    ```
+    $HADOOP_PREFIX/bin/hadoop jar tez-examples.jar orderedwordcount <input> <output>
+    ```
+
+    This will use the TEZ DAG ApplicationMaster to run the ordered word
+    count job. This job is similar to the word count example except that
+    it also orders all words based on the frequency of occurrence.
+
+    Tez DAGs could be run separately as different applications or
+    serially within a single TEZ session. There is a different variation
+    of orderedwordcount in tez-tests that supports the use of Sessions
+    and handling multiple input-output pairs. You can use it to run
+    multiple DAGs serially on different inputs/outputs.
+
+    ```
+    $HADOOP_PREFIX/bin/hadoop jar tez-tests.jar testorderedwordcount <input1> <output1> <input2> <output2> <input3> <output3> ...
+    ```
+
+    The above will run multiple DAGs for each input-output pair.
+
+    To use TEZ sessions, set -DUSE_TEZ_SESSION=true
+
+    ```
+    $HADOOP_PREFIX/bin/hadoop jar tez-tests.jar testorderedwordcount -DUSE_TEZ_SESSION=true <input1> <output1> <input2> <output2>
+    ```
