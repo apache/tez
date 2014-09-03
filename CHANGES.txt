@@ -1,6 +1,12 @@
 Apache Tez Change Log
 =====================
 
+Release 0.5.1: Unreleased
+
+ALL CHANGES
+  TEZ-1515. Remove usage of ResourceBundles in Counters.
+  TEZ-1527. Fix indentation of Vertex status in DAGClient output.
+
 Release 0.5.0: Unreleased
 
 INCOMPATIBLE CHANGES

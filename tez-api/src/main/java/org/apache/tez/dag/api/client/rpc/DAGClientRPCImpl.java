@@ -423,7 +423,7 @@ public class DAGClientRPCImpl extends DAGClient {
         } else if (vProgress.getTotalTaskCount() > 0) {
           vProgressFloat = getProgress(vProgress);
         }
-        log("VertexStatus:" + " VertexName: " + vertex + " Progress: "
+        log("\tVertexStatus:" + " VertexName: " + vertex + " Progress: "
             + formatter.format(vProgressFloat) + " " + vProgress);
       }
       if (displayCounter) {
