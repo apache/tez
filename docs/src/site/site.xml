@@ -112,6 +112,7 @@
 
     <menu name="Releases">
       <item name="0.4.1-incubating" href="http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
+      <item name="0.5.0" href="index_0_5_0.html"/>
     </menu>
 
     <menu name="Contribute">

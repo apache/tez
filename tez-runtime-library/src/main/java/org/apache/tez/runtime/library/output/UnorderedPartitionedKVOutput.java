@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -47,6 +48,7 @@ import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWrite
  * write Key-Value pairs. The key-value pairs are written to the correct partition based on the
  * configured Partitioner.
  */
+@Public
 public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(UnorderedPartitionedKVOutput.class);

@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezUtils;
@@ -58,6 +59,7 @@ import com.google.protobuf.ByteString;
  * value data without applying any ordering or grouping constraints. This can be
  * used to write raw key value data as is.
  */
+@Public
 public class UnorderedKVOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(UnorderedKVOutput.class);

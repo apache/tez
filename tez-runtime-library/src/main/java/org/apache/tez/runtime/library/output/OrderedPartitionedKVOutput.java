@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -65,6 +66,7 @@ import com.google.protobuf.ByteString;
  * key/value pairs written to it. It also partitions the output based on a
  * {@link Partitioner}
  */
+@Public
 public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   private static final Log LOG = LogFactory.getLog(OrderedPartitionedKVOutput.class);
