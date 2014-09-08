@@ -13,6 +13,7 @@ ALL CHANGES
   TEZ-1527. Fix indentation of Vertex status in DAGClient output.
   TEZ-1536. Fix spelling typo "configurartion" in TezClientUtils.
   TEZ-1310. Update website documentation framework
+  TEZ-1447. Provide a mechanism for InputInitializers to know about Vertex state changes.
 
 Release 0.5.0: Unreleased
 
