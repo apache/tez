@@ -18,11 +18,17 @@
 
 package org.apache.tez.runtime.api;
 
+import javax.annotation.Nullable;
+import java.util.EnumSet;
+import java.util.Set;
+
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 
 /**
  * A context that provides information to the {@link InputInitializer}
@@ -98,6 +104,17 @@ public interface InputInitializerContext {
    * @param vertexName
    * @return Total number of tasks in this vertex
    */
-  public int getVertexNumTasks(String vertexName);
+  int getVertexNumTasks(String vertexName);
+
+  /**
+   * Register to get notifications on updates to the specified vertex. Notifications will be sent
+   * via {@link org.apache.tez.runtime.api.InputInitializer#onVertexStateUpdated(org.apache.tez.dag.api.event.VertexStateUpdate)} </p>
+   *
+   * This method can only be invoked once. Duplicate invocations will result in an error.
+   *
+   * @param vertexName the vertex name for which notifications are required.
+   * @param stateSet   the set of states for which notifications are required. null implies all
+   */
+  void registerForVertexStatusUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
 
 }

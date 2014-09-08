@@ -18,10 +18,12 @@
 
 package org.apache.tez.dag.app.dag;
 
+import javax.annotation.Nullable;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,6 +41,8 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.event.*;
+import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
@@ -68,6 +72,7 @@ public class RootInputInitializerManager {
   private final EventHandler eventHandler;
   private volatile boolean isStopped = false;
   private final UserGroupInformation dagUgi;
+  private final StateChangeNotifier entityStateTracker;
 
   private final Vertex vertex;
   private final AppContext appContext;
@@ -75,7 +80,7 @@ public class RootInputInitializerManager {
   private final Map<String, InitializerWrapper> initializerMap = new HashMap<String, InitializerWrapper>();
 
   public RootInputInitializerManager(Vertex vertex, AppContext appContext,
-                                     UserGroupInformation dagUgi) {
+                                     UserGroupInformation dagUgi, StateChangeNotifier stateTracker) {
     this.appContext = appContext;
     this.vertex = vertex;
     this.eventHandler = appContext.getEventHandler();
@@ -83,6 +88,7 @@ public class RootInputInitializerManager {
         .setDaemon(true).setNameFormat("InputInitializer [" + this.vertex.getName() + "] #%d").build());
     this.executor = MoreExecutors.listeningDecorator(rawExecutor);
     this.dagUgi = dagUgi;
+    this.entityStateTracker = stateTracker;
   }
   
   public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
@@ -90,17 +96,17 @@ public class RootInputInitializerManager {
     for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
 
       InputInitializerContext context =
-          new TezRootInputInitializerContextImpl(input, vertex, appContext);
+          new TezRootInputInitializerContextImpl(input, vertex, appContext, this);
       InputInitializer initializer = createInitializer(input, context);
 
-      InitializerWrapper initializerWrapper = new InitializerWrapper(input, initializer, context, vertex);
+      InitializerWrapper initializerWrapper =
+          new InitializerWrapper(input, initializer, context, vertex, entityStateTracker);
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi));
       Futures.addCallback(future, createInputInitializerCallback(initializerWrapper));
     }
   }
-
 
   @VisibleForTesting
   protected InputInitializer createInitializer(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>
@@ -137,6 +143,14 @@ public class RootInputInitializerManager {
       throw new TezUncheckedException(
           "Initializer for input: " + event.getTargetInputName() + " failed to process event", e);
     }
+  }
+
+  public void registerForVertexUpdates(String vertexName, String inputName,
+                                       @Nullable Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
+    Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
+    Preconditions.checkNotNull(inputName, "InputName cannot be null");
+    InitializerWrapper initializer = initializerMap.get(inputName);
+    initializer.registerForVertexStateUpdates(vertexName, stateSet);
   }
 
   @VisibleForTesting
@@ -218,7 +232,7 @@ public class RootInputInitializerManager {
     }
   }
 
-  private static class InitializerWrapper {
+  private static class InitializerWrapper implements VertexStateUpdateListener {
 
 
     private final RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
@@ -226,14 +240,17 @@ public class RootInputInitializerManager {
     private final InputInitializerContext context;
     private final AtomicBoolean isComplete = new AtomicBoolean(false);
     private final String vertexLogIdentifier;
+    private final StateChangeNotifier stateChangeNotifier;
+    private final List<String> notificationRegisteredVertices = Lists.newArrayList();
 
     InitializerWrapper(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
                        InputInitializer initializer, InputInitializerContext context,
-                       Vertex vertex) {
+                       Vertex vertex, StateChangeNotifier stateChangeNotifier) {
       this.input = input;
       this.initializer = initializer;
       this.context = context;
       this.vertexLogIdentifier = vertex.getLogIdentifier();
+      this.stateChangeNotifier = stateChangeNotifier;
     }
 
     public RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> getInput() {
@@ -254,6 +271,36 @@ public class RootInputInitializerManager {
 
     public void setComplete() {
       this.isComplete.set(true);
+      unregisterForVertexStatusUpdates();
+    }
+
+    public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
+      synchronized(notificationRegisteredVertices) {
+        notificationRegisteredVertices.add(vertexName);
+      }
+      stateChangeNotifier.registerForVertexUpdates(vertexName, stateSet, this);
+    }
+
+    private void unregisterForVertexStatusUpdates() {
+      synchronized (notificationRegisteredVertices) {
+        for (String vertexName : notificationRegisteredVertices) {
+          stateChangeNotifier.unregisterForVertexUpdates(vertexName, this);
+        }
+
+      }
+    }
+
+    @Override
+    public void onStateUpdated(VertexStateUpdate event) {
+      if (isComplete()) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Dropping state update for vertex=" + event.getVertexName() + ", state=" +
+              event.getVertexState() +
+              " since initializer " + input.getName() + " is already complete.");
+        }
+      } else {
+        initializer.onVertexStateUpdated(event);
+      }
     }
   }
 

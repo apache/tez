@@ -83,6 +83,7 @@ import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -103,6 +104,7 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
+import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -195,6 +197,7 @@ public class TestVertexImpl {
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
   private HistoryEventHandler historyEventHandler;
+  private StateChangeNotifier updateTracker;
   private static TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
 
   public static class CountingOutputCommitter extends OutputCommitter {
@@ -1633,16 +1636,17 @@ public class TestVertexImpl {
         if (customInitializer == null) {
           v = new VertexImplWithControlledInitializerManager(vertexId, vPlan, vPlan.getName(), conf,
               dispatcher.getEventHandler(), taskAttemptListener,
-              clock, thh, appContext, locationHint, dispatcher);
+              clock, thh, appContext, locationHint, dispatcher, updateTracker);
         } else {
           v = new VertexImplWithRunningInputInitializer(vertexId, vPlan, vPlan.getName(), conf,
               dispatcher.getEventHandler(), taskAttemptListener,
-              clock, thh, appContext, locationHint, dispatcher, customInitializer);
+              clock, thh, appContext, locationHint, dispatcher, customInitializer, updateTracker);
         }
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
             dispatcher.getEventHandler(), taskAttemptListener,
-            clock, thh, true, appContext, locationHint, vertexGroups, taskSpecificLaunchCmdOption);
+            clock, thh, true, appContext, locationHint, vertexGroups, taskSpecificLaunchCmdOption,
+            updateTracker);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -1693,6 +1697,7 @@ public class TestVertexImpl {
   }
 
   public void setupPreDagCreation() {
+    LOG.info("____________ RESETTING CURRENT DAG ____________");
     conf = new Configuration();
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(
@@ -1736,6 +1741,7 @@ public class TestVertexImpl {
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
       vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));
     }
+    updateTracker = new StateChangeNotifier(dag);
     setupVertices();
     when(dag.getVertex(any(TezVertexID.class))).thenAnswer(new Answer<Vertex>() {
       @Override
@@ -1773,7 +1779,7 @@ public class TestVertexImpl {
     for (Edge edge : edges.values()) {
       edge.initialize();
     }
-    
+
     taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
     dispatcher.register(TaskAttemptEventType.class, taskAttemptEventDispatcher);
     taskEventDispatcher = new TaskEventDispatcher();
@@ -2926,6 +2932,42 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
   }
 
+  @Test(timeout = 10000)
+  public void testInputInitializerVertexStateUpdates() throws Exception {
+    // v2 running an Input initializer, which is subscribed to events on v1.
+    useCustomInitializer = true;
+    customInitializer = new EventHandlingRootInputInitializer(null);
+    // Using the EventHandlingRootInputInitializer since it keeps the initializer alive till signalled,
+    // which is required to track events that it receives.
+    EventHandlingRootInputInitializer initializer =
+        (EventHandlingRootInputInitializer) customInitializer;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithRunningInitializer();
+    setupPostDagCreation();
+
+    VertexImplWithRunningInputInitializer v1 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+
+    initVertex(v1);
+    startVertex(v1);
+    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+
+    // Make v1 succeed
+    for (TezTaskID taskId : v1.getTasks().keySet()) {
+      v1.handle(new VertexEventTaskCompleted(taskId, TaskState.SUCCEEDED));
+    }
+    dispatcher.await();
+
+    Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
+
+    // At this point, 2 events should have been received - since the dispatcher is complete.
+    Assert.assertEquals(2, initializer.stateUpdateEvents.size());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
+        initializer.stateUpdateEvents.get(0).getVertexState());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+        initializer.stateUpdateEvents.get(1).getVertexState());
+  }
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 10000)
   public void testRootInputInitializerEvent() throws Exception {
@@ -3171,7 +3213,8 @@ public class TestVertexImpl {
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener,
-          clock, thh, true, appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption);
+          clock, thh, true, appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
+          updateTracker);
       vertexIdMap.put(vId, v);
       vertices.put(v.getName(), v);
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
@@ -3202,10 +3245,12 @@ public class TestVertexImpl {
                                                  AppContext appContext,
                                                  VertexLocationHint vertexLocationHint,
                                                  DrainDispatcher dispatcher,
-                                                 InputInitializer presetInitializer) {
+                                                 InputInitializer presetInitializer,
+                                                 StateChangeNotifier updateTracker) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
-          appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption);
+          appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
+          updateTracker);
       this.presetInitializer = presetInitializer;
     }
 
@@ -3217,7 +3262,7 @@ public class TestVertexImpl {
       try {
         rootInputInitializerManager =
             new RootInputInitializerManagerWithRunningInitializer(this, this.getAppContext(),
-                presetInitializer);
+                presetInitializer, stateChangeNotifier);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -3239,10 +3284,12 @@ public class TestVertexImpl {
                                                       Clock clock, TaskHeartbeatHandler thh,
                                                       AppContext appContext,
                                                       VertexLocationHint vertexLocationHint,
-                                                      DrainDispatcher dispatcher) {
+                                                      DrainDispatcher dispatcher,
+                                                      StateChangeNotifier updateTracker) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
-          appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption);
+          appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
+          updateTracker);
       this.dispatcher = dispatcher;
     }
 
@@ -3254,7 +3301,7 @@ public class TestVertexImpl {
       try {
         rootInputInitializerManager =
             new RootInputInitializerManagerControlled(this, this.getAppContext(), eventHandler,
-                dispatcher);
+                dispatcher, stateChangeNotifier);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -3273,9 +3320,10 @@ public class TestVertexImpl {
     private final InputInitializer presetInitializer;
 
     public RootInputInitializerManagerWithRunningInitializer(Vertex vertex, AppContext appContext,
-                                                             InputInitializer presetInitializer) throws
+                                                             InputInitializer presetInitializer,
+                                                             StateChangeNotifier tracker) throws
         IOException {
-      super(vertex, appContext, UserGroupInformation.getCurrentUser());
+      super(vertex, appContext, UserGroupInformation.getCurrentUser(), tracker);
       this.presetInitializer = presetInitializer;
     }
 
@@ -3284,6 +3332,9 @@ public class TestVertexImpl {
     protected InputInitializer createInitializer(
         RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
         InputInitializerContext context) {
+      if (presetInitializer instanceof ContextSettableInputInitialzier) {
+        ((ContextSettableInputInitialzier)presetInitializer).setContext(context);
+      }
       return presetInitializer;
     }
   }
@@ -3300,9 +3351,10 @@ public class TestVertexImpl {
 
     public RootInputInitializerManagerControlled(Vertex vertex, AppContext appContext,
                                                  EventHandler eventHandler,
-                                                 DrainDispatcher dispatcher
+                                                 DrainDispatcher dispatcher,
+                                                 StateChangeNotifier tracker
     ) throws IOException {
-      super(vertex, appContext, UserGroupInformation.getCurrentUser());
+      super(vertex, appContext, UserGroupInformation.getCurrentUser(), tracker);
       this.eventHandler = eventHandler;
       this.dispatcher = dispatcher;
       this.vertexID = vertex.getVertexId();
@@ -3590,7 +3642,8 @@ public class TestVertexImpl {
   }
 
   @InterfaceAudience.Private
-  public static class EventHandlingRootInputInitializer extends InputInitializer {
+  public static class EventHandlingRootInputInitializer extends InputInitializer
+      implements ContextSettableInputInitialzier {
 
     final AtomicBoolean initStarted = new AtomicBoolean(false);
     final AtomicBoolean eventReceived = new AtomicBoolean(false);
@@ -3599,6 +3652,9 @@ public class TestVertexImpl {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition eventCondition = lock.newCondition();
 
+    private final List<VertexStateUpdate> stateUpdateEvents = new LinkedList<VertexStateUpdate>();
+    private volatile InputInitializerContext context;
+
     public EventHandlingRootInputInitializer(
         InputInitializerContext initializerContext) {
       super(initializerContext);
@@ -3606,6 +3662,7 @@ public class TestVertexImpl {
 
     @Override
     public List<Event> initialize() throws Exception {
+      context.registerForVertexStatusUpdates("vertex1", null);
       initStarted.set(true);
       lock.lock();
       try {
@@ -3632,5 +3689,18 @@ public class TestVertexImpl {
         lock.unlock();
       }
     }
+
+    @Override
+    public void setContext(InputInitializerContext context) {
+      this.context = context;
+    }
+
+    public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+      stateUpdateEvents.add(stateUpdate);
+    }
+  }
+
+  private interface ContextSettableInputInitialzier {
+    void setContext(InputInitializerContext context);
   }
 }

@@ -20,13 +20,17 @@ package org.apache.tez.dag.app.dag.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Set;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.InputInitializerContext;
 
@@ -36,18 +40,23 @@ public class TezRootInputInitializerContextImpl implements
   private RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
   private final Vertex vertex;
   private final AppContext appContext;
+  private final RootInputInitializerManager manager;
+
 
   // TODO Add support for counters - merged with the Vertex counters.
 
   public TezRootInputInitializerContextImpl(
       RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
-      Vertex vertex, AppContext appContext) {
+      Vertex vertex, AppContext appContext,
+      RootInputInitializerManager manager) {
     checkNotNull(input, "input is null");
     checkNotNull(vertex, "vertex is null");
     checkNotNull(appContext, "appContext is null");
+    checkNotNull(manager, "initializerManager is null");
     this.input = input;
     this.vertex = vertex;
     this.appContext = appContext;
+    this.manager = manager;
   }
 
   @Override
@@ -103,6 +112,11 @@ public class TezRootInputInitializerContextImpl implements
   @Override
   public int getVertexNumTasks(String vertexName) {
     return appContext.getCurrentDAG().getVertex(vertexName).getTotalTasks();
+  }
+
+  @Override
+  public void registerForVertexStatusUpdates(String vertexName, Set<VertexState> stateSet) {
+    manager.registerForVertexUpdates(vertexName, input.getName(), stateSet);
   }
 
 }
