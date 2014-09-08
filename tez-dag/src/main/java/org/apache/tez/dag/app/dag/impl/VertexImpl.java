@@ -77,6 +77,8 @@ import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.api.event.VertexStateUpdateParallelismUpdated;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
@@ -86,6 +88,7 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
+import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskTerminationCause;
@@ -161,6 +164,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import org.apache.tez.state.OnStateChangedCallback;
+import org.apache.tez.state.StateMachineTez;
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
  * The read and write calls use ReadWriteLock for concurrency.
@@ -207,6 +212,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private int distanceFromRoot = 0;
 
   private final List<String> diagnostics = new ArrayList<String>();
+
+  protected final StateChangeNotifier stateChangeNotifier;
   
   //task/attempt related datastructures
   @VisibleForTesting
@@ -227,6 +234,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private static final SourceTaskAttemptCompletedEventTransition
       SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION =
           new SourceTaskAttemptCompletedEventTransition();
+  private static final VertexStateChangedCallback STATE_CHANGED_CALLBACK =
+      new VertexStateChangedCallback();
 
   private VertexState recoveredState = VertexState.NEW;
   private List<TezEvent> recoveredEvents = new ArrayList<TezEvent>();
@@ -527,8 +536,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // create the topology tables
           .installTopology();
 
-  private final StateMachine<VertexState, VertexEventType, VertexEvent>
-      stateMachine;
+  private void augmentStateMachine() {
+    stateMachine
+        .registerStateEnteredCallback(VertexState.SUCCEEDED,
+            STATE_CHANGED_CALLBACK)
+        .registerStateEnteredCallback(VertexState.FAILED,
+            STATE_CHANGED_CALLBACK)
+        .registerStateEnteredCallback(VertexState.KILLED,
+            STATE_CHANGED_CALLBACK)
+        .registerStateEnteredCallback(VertexState.RUNNING,
+            STATE_CHANGED_CALLBACK);
+  }
+
+  private final StateMachineTez<VertexState, VertexEventType, VertexEvent, VertexImpl> stateMachine;
 
   //changing fields while the vertex is running
   private int numTasks;
@@ -617,7 +637,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       TaskAttemptListener taskAttemptListener, Clock clock,
       TaskHeartbeatHandler thh, boolean commitVertexOutputs,
       AppContext appContext, VertexLocationHint vertexLocationHint,
-      Map<String, VertexGroupInfo> dagVertexGroups, TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption) {
+      Map<String, VertexGroupInfo> dagVertexGroups, TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption,
+      StateChangeNotifier entityStatusTracker) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
     this.vertexName = StringInterner.weakIntern(vertexName);
@@ -663,17 +684,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     if (vertexPlan.getOutputsCount() > 0) {
       setAdditionalOutputs(vertexPlan.getOutputsList());
     }
+    this.stateChangeNotifier = entityStatusTracker;
 
     // Setup the initial parallelism early. This may be changed after
     // initialization or on a setParallelism call.
     this.numTasks = vertexPlan.getTaskConfig().getNumTasks();
+    // Not sending the notifier a parallelism update since this is the initial parallelism
 
     this.dagVertexGroups = dagVertexGroups;
 
     logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
-    stateMachine = stateMachineFactory.make(this);
+
+    stateMachine = new StateMachineTez<VertexState, VertexEventType, VertexEvent, VertexImpl>(
+        stateMachineFactory.make(this), this);
+    augmentStateMachine();
   }
 
   protected StateMachine<VertexState, VertexEventType, VertexEvent> getStateMachine() {
@@ -1003,7 +1029,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (updatedEvent.getVertexLocationHint() != null) {
           setTaskLocationHints(updatedEvent.getVertexLocationHint());
         }
+        int oldNumTasks = numTasks;
         numTasks = updatedEvent.getNumTasks();
+        stateChangeNotifier.stateChanged(vertexId,
+            new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
         handleParallelismUpdate(numTasks, updatedEvent.getSourceEdgeManagers(),
           updatedEvent.getRootInputSpecUpdates());
         if (LOG.isDebugEnabled()) {
@@ -1189,7 +1218,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           this.rootInputSpecs.putAll(rootInputSpecUpdates);
         }
+        int oldNumTasks = numTasks;
         this.numTasks = parallelism;
+        stateChangeNotifier.stateChanged(vertexId,
+            new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
         this.createTasks();
         LOG.info("Vertex " + getVertexId() + 
             " parallelism set to " + parallelism);
@@ -1251,7 +1283,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
         LOG.info("Vertex " + logIdentifier + 
             " parallelism set to " + parallelism + " from " + numTasks);
+        int oldNumTasks = numTasks;
         this.numTasks = parallelism;
+        stateChangeNotifier.stateChanged(vertexId,
+            new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
         assert tasks.size() == numTasks;
   
         // set new edge managers
@@ -1816,9 +1851,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // For VertexManagers setting parallelism, the setParallelism call needs
     // to be inline.
     if (event != null) {
+      int oldNumTasks = numTasks;
       numTasks = event.getNumTasks();
+      stateChangeNotifier.stateChanged(vertexId,
+          new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
     } else {
       numTasks = getVertexPlan().getTaskConfig().getNumTasks();
+      // Not sending a parallelism update notification since this is from the original plan
     }
 
     if (!(numTasks == -1 || numTasks >= 0)) {
@@ -2670,7 +2709,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       String dagName, String vertexName, TezVertexID vertexID,
       EventHandler eventHandler, int numTasks, int numNodes,
       Resource vertexTaskResource, Resource totalResource) {
-    return new RootInputInitializerManager(this, appContext, this.dagUgi);
+    return new RootInputInitializerManager(this, appContext, this.dagUgi, this.stateChangeNotifier);
   }
   
   private boolean initializeVertexInInitializingState() {
@@ -3453,6 +3492,40 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           + " on Vertex " + vertex.getVertexId()));
       vertex.setFinishTime();
       vertex.finished(VertexState.ERROR);
+    }
+  }
+
+  private static class VertexStateChangedCallback
+      implements OnStateChangedCallback<VertexState, VertexImpl> {
+
+    @Override
+    public void onStateChanged(VertexImpl vertex, VertexState vertexState) {
+      vertex.stateChangeNotifier.stateChanged(vertex.getVertexId(),
+          new VertexStateUpdate(vertex.getName(), convertInternalState(
+              vertexState, vertex.getVertexId())));
+    }
+
+    private org.apache.tez.dag.api.event.VertexState convertInternalState(VertexState vertexState,
+                                                                          TezVertexID vertexId) {
+      switch (vertexState) {
+        case RUNNING:
+          return org.apache.tez.dag.api.event.VertexState.RUNNING;
+        case SUCCEEDED:
+          return org.apache.tez.dag.api.event.VertexState.SUCCEEDED;
+        case FAILED:
+          return org.apache.tez.dag.api.event.VertexState.FAILED;
+        case KILLED:
+          return org.apache.tez.dag.api.event.VertexState.KILLED;
+        case NEW:
+        case INITIALIZING:
+        case INITED:
+        case ERROR:
+        case TERMINATING:
+        case RECOVERING:
+        default:
+          throw new TezUncheckedException(
+              "Not expecting state updates for state: " + vertexState + ", VertexID: " + vertexId);
+      }
     }
   }
 

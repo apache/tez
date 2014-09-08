@@ -29,13 +29,17 @@ import static org.junit.Assert.assertTrue;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -204,6 +208,11 @@ public class TestMRInputSplitDistributor {
 
     @Override
     public int getVertexNumTasks(String vertexName) {
+      throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
+    }
+
+    @Override
+    public void registerForVertexStatusUpdates(String vertexName, Set<VertexState> stateSet) {
       throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
     }
 
