@@ -3662,7 +3662,7 @@ public class TestVertexImpl {
 
     @Override
     public List<Event> initialize() throws Exception {
-      context.registerForVertexStatusUpdates("vertex1", null);
+      context.registerForVertexStateUpdates("vertex1", null);
       initStarted.set(true);
       lock.lock();
       try {

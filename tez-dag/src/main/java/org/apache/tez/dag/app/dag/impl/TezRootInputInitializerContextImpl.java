@@ -115,7 +115,7 @@ public class TezRootInputInitializerContextImpl implements
   }
 
   @Override
-  public void registerForVertexStatusUpdates(String vertexName, Set<VertexState> stateSet) {
+  public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
     manager.registerForVertexUpdates(vertexName, input.getName(), stateSet);
   }
 

@@ -91,7 +91,7 @@ public abstract class InputInitializer {
    * Receive notifications on vertex state changes.
    * <p/>
    * State changes will be received based on the registration via {@link
-   * org.apache.tez.runtime.api.InputInitializerContext#registerForVertexStatusUpdates(String,
+   * org.apache.tez.runtime.api.InputInitializerContext#registerForVertexStateUpdates(String,
    * java.util.Set)}. Notifications will be received for all registered state changes, and not just
    * for the latest state update. They will be in order in which the state change occurred.
    *
