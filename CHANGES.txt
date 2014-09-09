@@ -6,6 +6,9 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
   TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
 
+ALL CHANGES:
+  TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
+
 Release 0.5.1: Unreleased
 
 ALL CHANGES

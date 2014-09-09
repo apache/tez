@@ -20,7 +20,7 @@
 Apache Tez 0.5.0
 ----------------
 
-- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez)
+- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez/0.5.0/)
 - [Release Notes](releases/0.5.0/release-notes.txt)
 - Documentation
     - [API Javadocs](releases/0.5.0/tez-api-javadocs/index.html) : Documentation for the Tez APIs
