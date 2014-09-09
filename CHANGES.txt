@@ -14,6 +14,7 @@ ALL CHANGES
   TEZ-1536. Fix spelling typo "configurartion" in TezClientUtils.
   TEZ-1310. Update website documentation framework
   TEZ-1447. Provide a mechanism for InputInitializers to know about Vertex state changes.
+  TEZ-1362. Remove DAG_COMPLETED in DAGEventType. 
 
 Release 0.5.0: Unreleased
 
