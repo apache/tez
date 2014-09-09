@@ -37,9 +37,6 @@ public enum DAGEventType {
   //Producer: TaskImpl
   DAG_SCHEDULER_UPDATE,
 
-  //Producer:Dag
-  DAG_COMPLETED,
-
   //Producer:Any component
   DAG_DIAGNOSTIC_UPDATE,
   INTERNAL_ERROR,
