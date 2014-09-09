@@ -338,7 +338,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                   DAGEventType.DAG_VERTEX_COMPLETED,
                   DAGEventType.DAG_VERTEX_RERUNNING,
                   DAGEventType.DAG_SCHEDULER_UPDATE,
-                  DAGEventType.DAG_COMPLETED,
                   DAGEventType.DAG_DIAGNOSTIC_UPDATE,
                   DAGEventType.INTERNAL_ERROR,
                   DAGEventType.DAG_COUNTER_UPDATE))
