@@ -210,7 +210,7 @@ public class TezChild {
         cleanupOnTaskChanged(containerTask);
 
         // Execute the Actual Task
-        TezTaskRunner taskRunner = new TezTaskRunner(new TezConfiguration(defaultConf), childUGI,
+        TezTaskRunner taskRunner = new TezTaskRunner(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
             serviceConsumerMetadata, startedInputsMap, taskReporter, executor, objectRegistry);
         boolean shouldDie;
