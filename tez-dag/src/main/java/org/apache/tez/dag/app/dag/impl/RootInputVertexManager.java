@@ -18,23 +18,27 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-public class RootInputVertexManager extends ImmediateStartVertexManager {
+public class RootInputVertexManager extends VertexManagerPlugin {
 
   private String configuredInputName;
 
@@ -42,6 +46,27 @@ public class RootInputVertexManager extends ImmediateStartVertexManager {
     super(context);
   }
 
+  @Override
+  public void initialize() {
+  }
+
+  @Override
+  public void onVertexStarted(Map<String, List<Integer>> completions) {
+    int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
+    List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
+    for (int i=0; i<numTasks; ++i) {
+      scheduledTasks.add(new TaskWithLocationHint(new Integer(i), null));
+    }
+    getContext().scheduleVertexTasks(scheduledTasks);
+  }
+
+  @Override
+  public void onSourceTaskCompleted(String srcVertexName, Integer attemptId) {
+  }
+
+  @Override
+  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+  }
 
   @Override
   public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
