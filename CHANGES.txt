@@ -18,6 +18,7 @@ ALL CHANGES
   TEZ-1310. Update website documentation framework
   TEZ-1447. Provide a mechanism for InputInitializers to know about Vertex state changes.
   TEZ-1362. Remove DAG_COMPLETED in DAGEventType. 
+  TEZ-1519. TezTaskRunner should not initialize TezConfiguration in TezChild.
 
 Release 0.5.0: Unreleased
 
