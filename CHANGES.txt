@@ -12,6 +12,7 @@ ALL CHANGES:
 Release 0.5.1: Unreleased
 
 ALL CHANGES
+  TEZ-1494. DAG hangs waiting for ShuffleManager.getNextInput()
   TEZ-1515. Remove usage of ResourceBundles in Counters.
   TEZ-1527. Fix indentation of Vertex status in DAGClient output.
   TEZ-1536. Fix spelling typo "configurartion" in TezClientUtils.
