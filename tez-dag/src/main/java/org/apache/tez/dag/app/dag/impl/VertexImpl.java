@@ -156,7 +156,6 @@ import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -2762,10 +2761,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventRootInputInitialized liInitEvent = (VertexEventRootInputInitialized) event;
       VertexState state = vertex.getState();
       if (state == VertexState.INITIALIZING) {
-        vertex.vertexManager.onRootVertexInitialized(
+        List<TezEvent> inputInfoEvents =
+            vertex.vertexManager.onRootVertexInitialized(
             liInitEvent.getInputName(),
             vertex.getAdditionalInputs().get(liInitEvent.getInputName())
                 .getIODescriptor(), liInitEvent.getEvents());
+        ROUTE_EVENT_TRANSITION.transition(vertex, new VertexEventRouteEvent(vertex.vertexId, inputInfoEvents));
       }
 
       vertex.numInitializedInputs++;
@@ -2906,7 +2907,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         + " initWaitsForRootInitializers: " + initWaitsForRootInitializers);
     return false;
   }
-  
+
   public static class StartWhileInitializingTransition implements 
     SingleArcTransition<VertexImpl, VertexEvent> {
 
