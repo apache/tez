@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
+  TEZ-1559. Add system tests for AM recovery.
 
 Release 0.5.1: Unreleased
 
@@ -18,7 +19,7 @@ ALL CHANGES
   TEZ-1536. Fix spelling typo "configurartion" in TezClientUtils.
   TEZ-1310. Update website documentation framework
   TEZ-1447. Provide a mechanism for InputInitializers to know about Vertex state changes.
-  TEZ-1362. Remove DAG_COMPLETED in DAGEventType. 
+  TEZ-1362. Remove DAG_COMPLETED in DAGEventType.
   TEZ-1519. TezTaskRunner should not initialize TezConfiguration in TezChild.
 
 Release 0.5.0: Unreleased
@@ -27,7 +28,7 @@ INCOMPATIBLE CHANGES
   TEZ-1038. Move TaskLocationHint outside of VertexLocationHint.
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
-  TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 
+  TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts
   TEZ-1018. VertexManagerPluginContext should enable assigning locality to
   scheduled tasks
   TEZ-1169. Allow numPhysicalInputs to be specified for RootInputs.
@@ -40,8 +41,8 @@ INCOMPATIBLE CHANGES
     - Details at https://issues.apache.org/jira/browse/TEZ-1213?focusedCommentId
     =14039381&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpa
     nel#comment-14039381
-  TEZ-1080, TEZ-1272, TEZ-1279, TEZ-1266. Change YARNRunner to use EdgeConfigs. 
-    - Removes separation of runtime configs into input/ouput configs. Also 
+  TEZ-1080, TEZ-1272, TEZ-1279, TEZ-1266. Change YARNRunner to use EdgeConfigs.
+    - Removes separation of runtime configs into input/ouput configs. Also
     refactors public methods used for this conversion.
   TEZ-696. Remove implicit copying of processor payload to input and output
   TEZ-1269. TaskScheduler prematurely releases containers
