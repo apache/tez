@@ -375,7 +375,6 @@ public class TezClientUtils {
 
   /**
    * Create an ApplicationSubmissionContext to launch a Tez AM
-   * @param conf TezConfiguration
    * @param appId Application Id
    * @param dag DAG to be submitted
    * @param amName Name for the application
@@ -501,23 +500,12 @@ public class TezClientUtils {
     amLocalResources.putAll(tezJarResources);
 
     // emit conf as PB file
-    Configuration finalTezConf = createFinalTezConfForApp(amConfig.getTezConfiguration());
+    ConfigurationProto finalConfProto = createFinalConfProtoForApp(amConfig.getTezConfiguration());
     
     FSDataOutputStream amConfPBOutBinaryStream = null;
     try {
-      ConfigurationProto.Builder confProtoBuilder =
-          ConfigurationProto.newBuilder();
-      Iterator<Entry<String, String>> iter = finalTezConf.iterator();
-      while (iter.hasNext()) {
-        Entry<String, String> entry = iter.next();
-        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-        kvp.setKey(entry.getKey());
-        kvp.setValue(entry.getValue());
-        confProtoBuilder.addConfKeyValues(kvp);
-      }
-      //binary output
       amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
-      confProtoBuilder.build().writeTo(amConfPBOutBinaryStream);
+      finalConfProto.writeTo(amConfPBOutBinaryStream);
     } finally {
       if(amConfPBOutBinaryStream != null){
         amConfPBOutBinaryStream.close();
@@ -560,7 +548,7 @@ public class TezClientUtils {
       sessionJarsPBLRsrc);
 
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
-    ACLManager aclManager = new ACLManager(user, finalTezConf);
+    ACLManager aclManager = new ACLManager(user, amConfig.getTezConfiguration());
     Map<ApplicationAccessType, String> acls = aclManager.toYARNACls();
 
     if(dag != null) {
@@ -625,7 +613,7 @@ public class TezClientUtils {
     appContext.setAMContainerSpec(amContainer);
 
     appContext.setMaxAppAttempts(
-      finalTezConf.getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
+      amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
         TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));
 
     return appContext;
@@ -703,26 +691,16 @@ public class TezClientUtils {
         + "," + TezConstants.TEZ_CONTAINER_LOGGER_NAME);
   }
 
-  static Configuration createFinalTezConfForApp(TezConfiguration amConf) {
-    Configuration conf = new Configuration(false);
-    conf.setQuietMode(true);
-
+  static ConfigurationProto createFinalConfProtoForApp(Configuration amConf) {
     assert amConf != null;
-
-    Entry<String, String> entry;
-    Iterator<Entry<String, String>> iter = amConf.iterator();
-    while (iter.hasNext()) {
-      entry = iter.next();
-      // Copy all tez config parameters.
-      if (entry.getKey().startsWith(TezConfiguration.TEZ_PREFIX)) {
-        conf.set(entry.getKey(), entry.getValue());
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Adding tez dag am parameter from amConf: " + entry.getKey()
-              + ", with value: " + entry.getValue());
-        }
-      }
+    ConfigurationProto.Builder builder = ConfigurationProto.newBuilder();
+    for (Entry<String, String> entry : amConf) {
+      PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+      kvp.setKey(entry.getKey());
+      kvp.setValue(entry.getValue());
+      builder.addConfKeyValues(kvp);
     }
-    return conf;
+    return builder.build();
   }
 
   /**

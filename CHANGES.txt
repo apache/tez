@@ -21,6 +21,7 @@ ALL CHANGES
   TEZ-1447. Provide a mechanism for InputInitializers to know about Vertex state changes.
   TEZ-1362. Remove DAG_COMPLETED in DAGEventType.
   TEZ-1519. TezTaskRunner should not initialize TezConfiguration in TezChild.
+  TEZ-1534. Make client side configs available to AM and tasks.
 
 Release 0.5.0: Unreleased
 
