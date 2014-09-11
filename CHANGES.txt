@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
   TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
   TEZ-1559. Add system tests for AM recovery.
+  TEZ-850. Recovery unit tests.
 
 Release 0.5.1: Unreleased
 

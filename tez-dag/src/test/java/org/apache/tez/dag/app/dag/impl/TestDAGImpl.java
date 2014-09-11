@@ -111,7 +111,7 @@ public class TestDAGImpl {
   private static final Log LOG = LogFactory.getLog(TestDAGImpl.class);
   private DAGPlan dagPlan;
   private TezDAGID dagId;
-  private Configuration conf;
+  private static Configuration conf;
   private DrainDispatcher dispatcher;
   private Credentials fsTokens;
   private AppContext appContext;
@@ -344,7 +344,7 @@ public class TestDAGImpl {
   }
 
   // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
-  private DAGPlan createGroupDAGPlan() {
+  static DAGPlan createGroupDAGPlan() {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -381,7 +381,7 @@ public class TestDAGImpl {
     return dag.createDag(conf);
   }
 
-  private DAGPlan createTestDAGPlan() {
+  public static DAGPlan createTestDAGPlan() {
     LOG.info("Setting up dag plan");
     DAGPlan dag = DAGPlan.newBuilder()
         .setName("testverteximpl")

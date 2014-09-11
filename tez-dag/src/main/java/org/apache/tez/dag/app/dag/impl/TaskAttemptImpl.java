@@ -137,7 +137,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeHttpAddress;
   private String nodeRackName;
 
-  private TaskAttemptStatus reportedStatus;
+  @VisibleForTesting
+  TaskAttemptStatus reportedStatus;
   private DAGCounter localityCounter;
 
   // Used to store locality information when

@@ -116,7 +116,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected final AppContext appContext;
   private final Resource taskResource;
   private final ContainerContext containerContext;
-  private long scheduledTime;
+  @VisibleForTesting
+  long scheduledTime;
 
   private final List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
   private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
@@ -124,7 +125,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   // counts the number of attempts that are either running or in a state where
   //  they will come to be running when they get a Container
-  private int numberUncompletedAttempts = 0;
+  @VisibleForTesting
+  int numberUncompletedAttempts = 0;
 
   private boolean historyTaskStartGenerated = false;
 
@@ -290,11 +292,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   //saying COMMIT_PENDING
   private TezTaskAttemptID commitAttempt;
 
-  private TezTaskAttemptID successfulAttempt;
+  @VisibleForTesting
+  TezTaskAttemptID successfulAttempt;
 
   @VisibleForTesting
   int failedAttempts;
-  private int finishedAttempts;//finish are total of success, failed and killed
+  @VisibleForTesting
+  int finishedAttempts;//finish are total of success, failed and killed
 
   private final boolean leafVertex;
   private TaskState recoveredState = TaskState.NEW;
