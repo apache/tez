@@ -17,13 +17,16 @@
  */
 package org.apache.tez.client;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,6 +42,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -301,4 +305,27 @@ public class TestTezClientUtils {
     }
   }
 
+  @Test(timeout = 5000)
+  public void testConfigurationAllowAll() {
+    Configuration srcConf = new Configuration(false);
+
+    Map<String, String> confMap = new HashMap<String, String>();
+    confMap.put("ipc.timeout", "2000");
+    confMap.put("fs.defaultFS", "testfs:///");
+    confMap.put("tez.property", "tezProperty");
+    confMap.put("yarn.property", "yarnProperty");
+
+    for (Map.Entry<String, String> entry : confMap.entrySet()) {
+      srcConf.set(entry.getKey(), entry.getValue());
+    }
+
+    DAGProtos.ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(srcConf);
+
+    for (DAGProtos.PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
+      String val = confMap.remove(kvPair.getKey());
+      assertNotNull(val);
+      assertEquals(val, kvPair.getValue());
+    }
+    assertTrue(confMap.isEmpty());
+  }
 }

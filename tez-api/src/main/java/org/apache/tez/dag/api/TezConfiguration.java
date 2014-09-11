@@ -723,7 +723,6 @@ public class TezConfiguration extends Configuration {
 
   public static final int TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT = 1;
 
-
   // ACLs related configuration
   // Format supports a comma-separated list of users and groups with the users and groups separated
   // by whitespace. e.g. "user1,user2 group1,group2"
