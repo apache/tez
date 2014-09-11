@@ -160,7 +160,7 @@ public class HttpConnection {
         break;
       } catch (IOException ioe) {
         // Don't attempt another connect if already cleanedup.
-        if (!cleanup) {
+        if (cleanup) {
           LOG.info("Cleanup is set to true. Not attempting to"
               + " connect again. Last exception was: ["
               + ioe.getClass().getName() + ", " + ioe.getMessage() + "]");
@@ -170,7 +170,7 @@ public class HttpConnection {
         connectionTimeout -= unit;
         // throw an exception if we have waited for timeout amount of time
         // note that the updated value if timeout is used here
-        if (connectionTimeout == 0) {
+        if (connectionTimeout <= 0) {
           throw ioe;
         }
         // reset the connect timeout for the last try
