@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
 import java.nio.ByteBuffer;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -53,12 +54,15 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.Writer;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.test.TestInput;
 import org.apache.tez.test.TestOutput;
 import org.apache.tez.test.TestProcessor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -148,8 +152,15 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor, List<Event> events) {
-      // Do nothing
+    public void onRootVertexInitialized(String inputName,
+        InputDescriptor inputDescriptor, List<Event> events) {
+      List<InputDataInformationEvent> inputInfoEvents = new ArrayList<InputDataInformationEvent>();
+      for (Event event: events) {
+        if (event instanceof InputDataInformationEvent) {
+          inputInfoEvents.add((InputDataInformationEvent)event);
+        }
+      }
+      getContext().addRootInputEvents(inputName, inputInfoEvents);
     }
   }
 
@@ -211,6 +222,26 @@ public class MultiAttemptDAG {
           failOnCommit = true;
         }
       }
+    }
+  }
+
+  public static class TestRootInputInitializer extends InputInitializer {
+
+    public TestRootInputInitializer(InputInitializerContext initializerContext) {
+      super(initializerContext);
+    }
+
+    @Override
+    public List<Event> initialize() throws Exception {
+      List<Event> events = new ArrayList<Event>();
+      events.add(InputDataInformationEvent.createWithSerializedPayload(0, ByteBuffer.allocate(0)));
+      return events;
+    }
+
+    @Override
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events)
+        throws Exception {
+      throw new UnsupportedOperationException("Not supported");
     }
   }
 

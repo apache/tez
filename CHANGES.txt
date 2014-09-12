@@ -11,6 +11,7 @@ ALL CHANGES:
   TEZ-1559. Add system tests for AM recovery.
   TEZ-850. Recovery unit tests.
   TEZ-853. Support counters recovery.
+  TEZ-1345. Add checks to guarantee all init events are written to recovery to consider vertex initialized.
 
 Release 0.5.1: Unreleased
 

@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
@@ -44,7 +45,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
@@ -68,10 +68,11 @@ public class VertexManager {
   VertexManagerPluginContextImpl pluginContext;
   UserPayload payload = null;
   AppContext appContext;
-    
+  ConcurrentHashMap<String, List<TezEvent>> cachedRootInputEventMap;
+
   class VertexManagerPluginContextImpl implements VertexManagerPluginContext {
     // TODO Add functionality to allow VertexManagers to send VertexManagerEvents
-    
+
     private EventMetaData rootEventSourceMetadata = new EventMetaData(EventProducerConsumerType.INPUT,
         managedVertex.getName(), "NULL_VERTEX", null);
     private Map<String, EventMetaData> destinationEventMetadataMap = Maps.newHashMap();
@@ -80,7 +81,7 @@ public class VertexManager {
     public Map<String, EdgeProperty> getInputVertexEdgeProperties() {
       // TODO Something similar for Initial Inputs - payload etc visible
       Map<Vertex, Edge> inputs = managedVertex.getInputVertices();
-      Map<String, EdgeProperty> vertexEdgeMap = 
+      Map<String, EdgeProperty> vertexEdgeMap =
                           Maps.newHashMapWithExpectedSize(inputs.size());
       for (Map.Entry<Vertex, Edge> entry : inputs.entrySet()) {
         vertexEdgeMap.put(entry.getKey().getName(), entry.getValue().getEdgeProperty());
@@ -115,7 +116,7 @@ public class VertexManager {
     @Override
     public Set<String> getVertexInputNames() {
       Set<String> inputNames = null;
-      Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+      Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
           inputs = managedVertex.getAdditionalInputs();
       if (inputs != null) {
         inputNames = inputs.keySet();
@@ -128,7 +129,6 @@ public class VertexManager {
       return payload;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void addRootInputEvents(final String inputName,
         Collection<InputDataInformationEvent> events) {
@@ -142,8 +142,8 @@ public class VertexManager {
               return tezEvent;
             }
           });
-      appContext.getEventHandler().handle(
-          new VertexEventRouteEvent(managedVertex.getVertexId(), Lists.newArrayList(tezEvents)));
+
+      cachedRootInputEventMap.put(inputName,Lists.newArrayList(tezEvents));
       // Recovery handling is taken care of by the Vertex.
     }
 
@@ -201,7 +201,7 @@ public class VertexManager {
     }
   }
 
-  public VertexManager(VertexManagerPluginDescriptor pluginDesc, 
+  public VertexManager(VertexManagerPluginDescriptor pluginDesc,
       Vertex managedVertex, AppContext appContext) {
     checkNotNull(pluginDesc, "pluginDesc is null");
     checkNotNull(managedVertex, "managedVertex is null");
@@ -209,12 +209,13 @@ public class VertexManager {
     this.pluginDesc = pluginDesc;
     this.managedVertex = managedVertex;
     this.appContext = appContext;
+    this.cachedRootInputEventMap = new ConcurrentHashMap<String, List<TezEvent>>();
   }
-  
+
   public VertexManagerPlugin getPlugin() {
     return plugin;
   }
-  
+
   public void initialize() {
     pluginContext = new VertexManagerPluginContextImpl();
     if (pluginDesc != null) {
@@ -246,7 +247,7 @@ public class VertexManager {
 
   public void onSourceTaskCompleted(TezTaskID tezTaskId) {
     Integer taskId = new Integer(tezTaskId.getId());
-    String vertexName = 
+    String vertexName =
         appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();
     plugin.onSourceTaskCompleted(vertexName, taskId);
   }
@@ -255,8 +256,9 @@ public class VertexManager {
     plugin.onVertexManagerEventReceived(vmEvent);
   }
 
-  public void onRootVertexInitialized(String inputName, 
+  public List<TezEvent> onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) {
     plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
+    return cachedRootInputEventMap.get(inputName);
   }
 }
