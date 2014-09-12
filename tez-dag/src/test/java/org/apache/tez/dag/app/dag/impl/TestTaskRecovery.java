@@ -48,6 +48,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -161,7 +162,7 @@ public class TestTaskRecovery {
     task =
         new TaskImpl(vertexId, 1, dispatcher.getEventHandler(), conf,
             taskAttemptListener, clock, taskHeartbeatHandler, appContext,
-            leafVertex, taskResource, containerContext);
+            leafVertex, taskResource, containerContext, mock(StateChangeNotifier.class));
   }
 
   /**
