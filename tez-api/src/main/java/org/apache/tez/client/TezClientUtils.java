@@ -171,7 +171,11 @@ public class TezClientUtils {
      
       List<Path> tezJarPaths = Lists.newArrayListWithCapacity(tezJarUris.length);
 
-      if (tezJarUris.length == 1 && (tezJarUris[0].endsWith(".tar.gz") || tezJarUris[0].endsWith(".tgz"))) {
+      if (tezJarUris.length == 1 && (
+              tezJarUris[0].endsWith(".tar.gz") ||
+              tezJarUris[0].endsWith(".tgz") ||
+              tezJarUris[0].endsWith(".zip") ||
+              tezJarUris[0].endsWith(".tar"))) {
         String fileName = tezJarUris[0];
         if (fileName.endsWith(".tar.gz") || fileName.endsWith(".tgz")) {
           FileStatus fStatus = getLRFileStatus(fileName, conf, false)[0];
