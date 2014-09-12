@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
 
 ALL CHANGES
+  TEZ-1543. Shuffle Errors on heavy load (causing task retries)
   TEZ-1494. DAG hangs waiting for ShuffleManager.getNextInput()
   TEZ-1515. Remove usage of ResourceBundles in Counters.
   TEZ-1527. Fix indentation of Vertex status in DAGClient output.
