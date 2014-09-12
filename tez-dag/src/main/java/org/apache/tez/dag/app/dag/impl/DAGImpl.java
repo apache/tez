@@ -105,6 +105,7 @@ import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.dag.utils.RelocalizationUtils;
@@ -689,6 +690,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       return null;
     }
     return vertex.getVertexStatus(statusOptions);
+  }
+  
+  public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
+    return (TaskAttemptImpl) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
+        .getAttempt(taId);
   }
 
   protected void initializeVerticesAndStart() {

@@ -156,12 +156,12 @@ import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
 /**
- * The Map-Reduce Application Master.
+ * The Tez DAG Application Master.
  * The state machine is encapsulated in the implementation of Job interface.
  * All state changes happens via Job interface. Each event
  * results in a Finite State Transition in Job.
  *
- * MR AppMaster is the composition of loosely coupled services. The services
+ * Tez DAG AppMaster is the composition of loosely coupled services. The services
  * interact with each other via events. The components resembles the
  * Actors model. The component acts on received event and send out the
  * events to other components.
@@ -442,6 +442,11 @@ public class DAGAppMaster extends AbstractService {
     if (!isLocal) {
       System.exit(0);
     }
+  }
+  
+  @VisibleForTesting
+  protected TaskSchedulerEventHandler getTaskSchedulerEventHandler() {
+    return taskSchedulerEventHandler;
   }
 
   private synchronized void handle(DAGAppMasterEvent event) {
@@ -1434,14 +1439,14 @@ public class DAGAppMaster extends AbstractService {
     }
     return null;
   }
-
+  
   @Override
   public synchronized void serviceStart() throws Exception {
 
     //start all the components
     startServices();
     super.serviceStart();
-
+    
     // metrics system init is really init & start.
     // It's more test friendly to put it here.
     DefaultMetricsSystem.initialize("DAGAppMaster");
@@ -1882,7 +1887,7 @@ public class DAGAppMaster extends AbstractService {
 
     UserGroupInformation.setConfiguration(conf);
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
-
+    
     appMaster.appMasterUgi = UserGroupInformation
         .createRemoteUser(jobUserName);
     appMaster.appMasterUgi.addCredentials(credentials);

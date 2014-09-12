@@ -15,6 +15,7 @@ ALL CHANGES:
   TEZ-1345. Add checks to guarantee all init events are written to recovery to consider vertex initialized.
   TEZ-1575. MRRSleepJob does not pick MR settings for container size and java opts.
   TEZ-1578. Remove TeraSort from Tez codebase.
+  TEZ-1569. Add tests for preemption
 
 Release 0.5.1: Unreleased
 
@@ -33,7 +34,7 @@ ALL CHANGES
   TEZ-1534. Make client side configs available to AM and tasks.
   TEZ-1574. Support additional formats for the tez deployed archive
 
-Release 0.5.0: Unreleased
+Release 0.5.0: 2014-09-03
 
 INCOMPATIBLE CHANGES
   TEZ-1038. Move TaskLocationHint outside of VertexLocationHint.

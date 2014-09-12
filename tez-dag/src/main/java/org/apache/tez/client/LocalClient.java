@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -53,6 +54,8 @@ import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.utils.EnvironmentUpdateUtils;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class LocalClient extends FrameworkClient {
   public static final Logger LOG = Logger.getLogger(LocalClient.class);
@@ -286,8 +289,7 @@ public class LocalClient extends FrameworkClient {
           int nmHttpPort = YarnConfiguration.DEFAULT_NM_WEBAPP_PORT;
           long appSubmitTime = System.currentTimeMillis();
 
-          dagAppMaster =
-              new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+          dagAppMaster = createDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
                   new SystemClock(),
                   appSubmitTime, isSession, userDir.toUri().getPath());
           clientHandler = new DAGClientHandler(dagAppMaster);
@@ -304,5 +306,14 @@ public class LocalClient extends FrameworkClient {
     LOG.info("DAGAppMaster thread has been created");
 
     return thread;
+  }
+  
+  // this can be overridden by test code to create a mock app
+  @VisibleForTesting
+  protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
+      ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
+      Clock clock, long appSubmitTime, boolean isSession, String userDir) {
+    return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+        new SystemClock(), appSubmitTime, isSession, userDir);
   }
 }
