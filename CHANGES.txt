@@ -5,6 +5,7 @@ Release 0.6.0: Unreleased
 
 INCOMPATIBLE CHANGES
   TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
+  TEZ-1578. Remove TeraSort from Tez codebase.
 
 ALL CHANGES:
   TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
@@ -12,6 +13,8 @@ ALL CHANGES:
   TEZ-850. Recovery unit tests.
   TEZ-853. Support counters recovery.
   TEZ-1345. Add checks to guarantee all init events are written to recovery to consider vertex initialized.
+  TEZ-1575. MRRSleepJob does not pick MR settings for container size and java opts.
+  TEZ-1578. Remove TeraSort from Tez codebase.
 
 Release 0.5.1: Unreleased
 
