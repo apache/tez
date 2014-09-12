@@ -62,17 +62,9 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     this.real = real;
   }
 
-  private String getRPCUserName() throws ServiceException {
+  private UserGroupInformation getRPCUser() throws ServiceException {
     try {
-      return UserGroupInformation.getCurrentUser().getShortUserName();
-    } catch (IOException e) {
-      throw wrapException(e);
-    }
-  }
-
-  private List<String> getRPCUserGroups() throws ServiceException {
-    try {
-      return Arrays.asList(UserGroupInformation.getCurrentUser().getGroupNames());
+      return UserGroupInformation.getCurrentUser();
     } catch (IOException e) {
       throw wrapException(e);
     }
@@ -81,8 +73,8 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetAllDAGsResponseProto getAllDAGs(RpcController controller,
       GetAllDAGsRequestProto request) throws ServiceException {
-    String user = getRPCUserName();
-    if (!real.getACLManager().checkAMViewAccess(user, getRPCUserGroups())) {
+    UserGroupInformation user = getRPCUser();
+    if (!real.getACLManager().checkAMViewAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
     try{
@@ -96,10 +88,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetDAGStatusResponseProto getDAGStatus(RpcController controller,
       GetDAGStatusRequestProto request) throws ServiceException {
-    String user = getRPCUserName();
+    UserGroupInformation user = getRPCUser();
     try {
       String dagId = request.getDagId();
-      if (!real.getACLManager(dagId).checkDAGViewAccess(user, getRPCUserGroups())) {
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
       DAGStatus status;
@@ -118,10 +110,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetVertexStatusResponseProto getVertexStatus(RpcController controller,
       GetVertexStatusRequestProto request) throws ServiceException {
-    String user = getRPCUserName();
+    UserGroupInformation user = getRPCUser();
     try {
       String dagId = request.getDagId();
-      if (!real.getACLManager(dagId).checkDAGViewAccess(user, getRPCUserGroups())) {
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
       String vertexName = request.getVertexName();
@@ -140,10 +132,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public TryKillDAGResponseProto tryKillDAG(RpcController controller,
       TryKillDAGRequestProto request) throws ServiceException {
-    String user = getRPCUserName();
+    UserGroupInformation user = getRPCUser();
     try {
       String dagId = request.getDagId();
-      if (!real.getACLManager(dagId).checkDAGModifyAccess(user, getRPCUserGroups())) {
+      if (!real.getACLManager(dagId).checkDAGModifyAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG modify operation");
       }
       real.tryKillDAG(dagId);
@@ -156,8 +148,8 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public SubmitDAGResponseProto submitDAG(RpcController controller,
       SubmitDAGRequestProto request) throws ServiceException {
-    String user = getRPCUserName();
-    if (!real.getACLManager().checkAMModifyAccess(user, getRPCUserGroups())) {
+    UserGroupInformation user = getRPCUser();
+    if (!real.getACLManager().checkAMModifyAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
     try{
@@ -181,8 +173,8 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public ShutdownSessionResponseProto shutdownSession(RpcController arg0,
       ShutdownSessionRequestProto arg1) throws ServiceException {
-    String user = getRPCUserName();
-    if (!real.getACLManager().checkAMModifyAccess(user, getRPCUserGroups())) {
+    UserGroupInformation user = getRPCUser();
+    if (!real.getACLManager().checkAMModifyAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
     real.shutdownAM();
@@ -192,8 +184,8 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
   @Override
   public GetAMStatusResponseProto getAMStatus(RpcController controller,
       GetAMStatusRequestProto request) throws ServiceException {
-    String user = getRPCUserName();
-    if (!real.getACLManager().checkAMViewAccess(user, getRPCUserGroups())) {
+    UserGroupInformation user = getRPCUser();
+    if (!real.getACLManager().checkAMViewAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
     try {

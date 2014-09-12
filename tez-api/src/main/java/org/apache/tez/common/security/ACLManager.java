@@ -18,6 +18,7 @@
 
 package org.apache.tez.common.security;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.dag.api.TezConfiguration;
 
@@ -92,13 +94,19 @@ public class ACLManager {
   }
 
   @VisibleForTesting
-  boolean checkAccess(String user, Collection<String> userGroups, ACLType aclType) {
+  boolean checkAccess(UserGroupInformation ugi, ACLType aclType) {
+
     if (!aclsEnabled) {
       return true;
     }
+
+    String user = ugi.getShortUserName();
+    Collection<String> userGroups = Arrays.asList(ugi.getGroupNames());
+
     if (amUser.equals(user)) {
       return true;
     }
+
     if (EnumSet.of(ACLType.DAG_MODIFY_ACL, ACLType.DAG_VIEW_ACL).contains(aclType)) {
       if (dagUser != null && dagUser.equals(user)) {
         return true;
@@ -129,22 +137,22 @@ public class ACLManager {
     return false;
   }
 
-  public boolean checkAMViewAccess(String user, Collection<String> userGroups) {
-    return checkAccess(user, userGroups, ACLType.AM_VIEW_ACL);
+  public boolean checkAMViewAccess(UserGroupInformation ugi) {
+    return checkAccess(ugi, ACLType.AM_VIEW_ACL);
   }
 
-  public boolean checkAMModifyAccess(String user, Collection<String> userGroups) {
-    return checkAccess(user, userGroups, ACLType.AM_MODIFY_ACL);
+  public boolean checkAMModifyAccess(UserGroupInformation ugi) {
+    return checkAccess(ugi, ACLType.AM_MODIFY_ACL);
   }
 
-  public boolean checkDAGViewAccess(String user, Collection<String> userGroups) {
-    return checkAccess(user, userGroups, ACLType.AM_VIEW_ACL)
-        || checkAccess(user, userGroups, ACLType.DAG_VIEW_ACL);
+  public boolean checkDAGViewAccess(UserGroupInformation ugi) {
+    return checkAccess(ugi, ACLType.AM_VIEW_ACL)
+        || checkAccess(ugi, ACLType.DAG_VIEW_ACL);
   }
 
-  public boolean checkDAGModifyAccess(String user, Collection<String> userGroups) {
-    return checkAccess(user, userGroups, ACLType.AM_MODIFY_ACL)
-        || checkAccess(user, userGroups, ACLType.DAG_MODIFY_ACL);
+  public boolean checkDAGModifyAccess(UserGroupInformation ugi) {
+    return checkAccess(ugi, ACLType.AM_MODIFY_ACL)
+        || checkAccess(ugi, ACLType.DAG_MODIFY_ACL);
   }
 
   public Map<ApplicationAccessType, String> toYARNACls() {

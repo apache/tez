@@ -17,6 +17,7 @@ ALL CHANGES:
   TEZ-1578. Remove TeraSort from Tez codebase.
   TEZ-1569. Add tests for preemption
   TEZ-1580. Change TestOrderedWordCount to optionally use MR configs.
+  TEZ-1524. Resolve user group information only if ACLs are enabled.
 
 Release 0.5.1: Unreleased
 
