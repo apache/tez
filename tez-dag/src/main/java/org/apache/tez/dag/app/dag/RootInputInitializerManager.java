@@ -20,7 +20,10 @@ package org.apache.tez.dag.app.dag;
 
 import javax.annotation.Nullable;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,10 +33,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
@@ -43,10 +49,12 @@ import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.event.*;
 import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
 import org.apache.tez.dag.app.dag.impl.TezRootInputInitializerContextImpl;
+import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
@@ -61,6 +69,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 public class RootInputInitializerManager {
 
@@ -77,7 +86,8 @@ public class RootInputInitializerManager {
   private final Vertex vertex;
   private final AppContext appContext;
 
-  private final Map<String, InitializerWrapper> initializerMap = new HashMap<String, InitializerWrapper>();
+  @VisibleForTesting
+  final Map<String, InitializerWrapper> initializerMap = new HashMap<String, InitializerWrapper>();
 
   public RootInputInitializerManager(Vertex vertex, AppContext appContext,
                                      UserGroupInformation dagUgi, StateChangeNotifier stateTracker) {
@@ -100,7 +110,7 @@ public class RootInputInitializerManager {
       InputInitializer initializer = createInitializer(input, context);
 
       InitializerWrapper initializerWrapper =
-          new InitializerWrapper(input, initializer, context, vertex, entityStateTracker);
+          new InitializerWrapper(input, initializer, context, vertex, entityStateTracker, appContext);
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi));
@@ -117,31 +127,40 @@ public class RootInputInitializerManager {
     return initializer;
   }
 
-  public void handleInitializerEvent(InputInitializerEvent event) {
-    Preconditions.checkState(vertex.getName().equals(event.getTargetVertexName()),
-        "Received event for incorrect vertex");
-    Preconditions.checkNotNull(event.getTargetInputName(), "target input name must be set");
-    InitializerWrapper initializer = initializerMap.get(event.getTargetInputName());
-    Preconditions.checkState(initializer != null,
-        "Received event for unknown input : " + event.getTargetInputName());
+  public void handleInitializerEvents(List<TezEvent> events) {
+    ListMultimap<InitializerWrapper, TezEvent> eventMap = LinkedListMultimap.create();
+
+    for (TezEvent tezEvent : events) {
+      Preconditions.checkState(tezEvent.getEvent() instanceof InputInitializerEvent);
+      InputInitializerEvent event = (InputInitializerEvent)tezEvent.getEvent();
+      Preconditions.checkState(vertex.getName().equals(event.getTargetVertexName()),
+          "Received event for incorrect vertex");
+      Preconditions.checkNotNull(event.getTargetInputName(), "target input name must be set");
+      InitializerWrapper initializer = initializerMap.get(event.getTargetInputName());
+      Preconditions.checkState(initializer != null,
+          "Received event for unknown input : " + event.getTargetInputName());
+      eventMap.put(initializer, tezEvent);
+    }
+
     // This is a restriction based on current flow - i.e. events generated only by initialize().
     // TODO Rework the flow as per the first comment on TEZ-1076
     if (isStopped) {
       LOG.warn("InitializerManager already stopped for " + vertex.getLogIdentifier() +
-          " Dropping event. [" + event + "]");
-      return;
+          " Dropping " + events.size() + " events");
     }
-    if (initializer.isComplete()) {
-      LOG.warn(
-          "Event targeted at vertex " + vertex.getLogIdentifier() + ", initializerWrapper for Input: " +
-              initializer.getInput().getName() +
-              " will be dropped, since Input has already been initialized. [" + event + "]");
-    }
-    try {
-      initializer.getInitializer().handleInputInitializerEvent(Lists.newArrayList(event));
-    } catch (Exception e) {
-      throw new TezUncheckedException(
-          "Initializer for input: " + event.getTargetInputName() + " failed to process event", e);
+
+    for (Map.Entry<InitializerWrapper, Collection<TezEvent>> entry : eventMap.asMap().entrySet()) {
+      InitializerWrapper initializerWrapper = entry.getKey();
+      if (initializerWrapper.isComplete()) {
+        LOG.warn(entry.getValue().size() +
+            " events targeted at vertex " + vertex.getLogIdentifier() +
+            ", initializerWrapper for Input: " +
+            initializerWrapper.getInput().getName() +
+            " will be dropped, since Input has already been initialized.");
+      } else {
+        initializerWrapper.handleInputInitializerEvents(entry.getValue());
+      }
+
     }
   }
 
@@ -157,7 +176,13 @@ public class RootInputInitializerManager {
   protected InputInitializerCallback createInputInitializerCallback(InitializerWrapper initializer) {
     return new InputInitializerCallback(initializer, eventHandler, vertex.getVertexId());
   }
-  
+
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  public InitializerWrapper getInitializerWrapper(String inputName) {
+    return initializerMap.get(inputName);
+  }
+
   public void shutdown() {
     if (executor != null && !isStopped) {
       // Don't really care about what is running if an error occurs. If no error
@@ -232,7 +257,9 @@ public class RootInputInitializerManager {
     }
   }
 
-  private static class InitializerWrapper implements VertexStateUpdateListener {
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  public static class InitializerWrapper implements VertexStateUpdateListener, TaskStateUpdateListener {
 
 
     private final RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
@@ -242,15 +269,18 @@ public class RootInputInitializerManager {
     private final String vertexLogIdentifier;
     private final StateChangeNotifier stateChangeNotifier;
     private final List<String> notificationRegisteredVertices = Lists.newArrayList();
+    private final AppContext appContext;
 
     InitializerWrapper(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
                        InputInitializer initializer, InputInitializerContext context,
-                       Vertex vertex, StateChangeNotifier stateChangeNotifier) {
+                       Vertex vertex, StateChangeNotifier stateChangeNotifier,
+                       AppContext appContext) {
       this.input = input;
       this.initializer = initializer;
       this.context = context;
       this.vertexLogIdentifier = vertex.getLogIdentifier();
       this.stateChangeNotifier = stateChangeNotifier;
+      this.appContext = appContext;
     }
 
     public RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> getInput() {
@@ -272,6 +302,7 @@ public class RootInputInitializerManager {
     public void setComplete() {
       this.isComplete.set(true);
       unregisterForVertexStatusUpdates();
+      unregisterForTaskStatusUpdates();
     }
 
     public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
@@ -302,7 +333,118 @@ public class RootInputInitializerManager {
         initializer.onVertexStateUpdated(event);
       }
     }
-  }
 
+    private final Map<String, Map<Integer, Integer>> firstSuccessfulAttemptMap = new HashMap<String, Map<Integer, Integer>>();
+    private final ListMultimap<String, TezEvent> pendingEvents = LinkedListMultimap.create();
+    private final List<String> taskNotificationRegisteredVertices = Lists.newLinkedList();
+
+    @InterfaceAudience.Private
+    @VisibleForTesting
+    public Map<String, Map<Integer, Integer>> getFirstSuccessfulAttemptMap() {
+      return this.firstSuccessfulAttemptMap;
+    }
+
+    @InterfaceAudience.Private
+    @VisibleForTesting
+    public ListMultimap<String, TezEvent> getPendingEvents() {
+      return this.pendingEvents;
+    }
+
+    @Override
+    public void onTaskSucceeded(String vertexName, TezTaskID taskId, int attemptId) {
+      // Notifications will only start coming in after an event is received, which is when we register for notifications.
+      // TODO TEZ-1577. Get rid of this.
+      if (attemptId == -1) {
+        throw new TezUncheckedException(
+            "AttemptId is -1. This is likely caused by TEZ-1577; recovery not supported when InputInitializerEvents are used");
+      }
+      Map<Integer, Integer> vertexSuccessfulAttemptMap = firstSuccessfulAttemptMap.get(vertexName);
+      Integer successfulAttempt = vertexSuccessfulAttemptMap.get(taskId);
+      if (successfulAttempt == null) {
+        successfulAttempt = attemptId;
+        vertexSuccessfulAttemptMap.put(taskId.getId(), successfulAttempt);
+      }
+
+      // Run through all the pending events for this srcVertex to see if any of them need to be dispatched.
+      List<TezEvent> events = pendingEvents.get(vertexName);
+      if (events != null && !events.isEmpty()) {
+        List<InputInitializerEvent> toForwardEvents = new LinkedList<InputInitializerEvent>();
+        Iterator<TezEvent> eventIterator = events.iterator();
+        while (eventIterator.hasNext()) {
+          TezEvent tezEvent = eventIterator.next();
+          int taskIndex = tezEvent.getSourceInfo().getTaskAttemptID().getTaskID().getId();
+          int taskAttemptIndex = tezEvent.getSourceInfo().getTaskAttemptID().getId();
+          if (taskIndex == taskId.getId()) {
+            // Process only if there's a pending event for the specific succeeded task
+            if (taskAttemptIndex == successfulAttempt) {
+              toForwardEvents.add((InputInitializerEvent) tezEvent.getEvent());
+            }
+            eventIterator.remove();
+          }
+        }
+        sendEvents(toForwardEvents);
+      }
+    }
+
+    public void handleInputInitializerEvents(Collection<TezEvent> tezEvents) {
+      List<InputInitializerEvent> toForwardEvents = new LinkedList<InputInitializerEvent>();
+      for (TezEvent tezEvent : tezEvents) {
+        String srcVertexName = tezEvent.getSourceInfo().getTaskVertexName();
+        int taskIndex = tezEvent.getSourceInfo().getTaskAttemptID().getTaskID().getId();
+        int taskAttemptIndex = tezEvent.getSourceInfo().getTaskAttemptID().getId();
+
+        Map<Integer, Integer> vertexSuccessfulAttemptMap =
+            firstSuccessfulAttemptMap.get(srcVertexName);
+        if (vertexSuccessfulAttemptMap == null) {
+          vertexSuccessfulAttemptMap = new HashMap<Integer, Integer>();
+          firstSuccessfulAttemptMap.put(srcVertexName, vertexSuccessfulAttemptMap);
+          // Seen first time. Register for task updates
+          stateChangeNotifier.registerForTaskSuccessUpdates(srcVertexName, this);
+          taskNotificationRegisteredVertices.add(srcVertexName);
+        }
+
+        // Determine the successful attempt for the task
+        Integer successfulAttemptInteger = vertexSuccessfulAttemptMap.get(taskIndex);
+        if (successfulAttemptInteger == null) {
+          // Check immediately if this task has succeeded, in case the notification came in before the event
+          Vertex srcVertex = appContext.getCurrentDAG().getVertex(srcVertexName);
+          Task task = srcVertex.getTask(taskIndex);
+          if (task.getState() == TaskState.SUCCEEDED) {
+            successfulAttemptInteger = task.getSuccessfulAttempt().getID().getId();
+            vertexSuccessfulAttemptMap.put(taskIndex, successfulAttemptInteger);
+          }
+        }
+
+        if (successfulAttemptInteger == null) {
+          // Queue events and await a notification
+          pendingEvents.put(srcVertexName, tezEvent);
+        } else {
+          // Handle the event immediately.
+          if (taskAttemptIndex == successfulAttemptInteger) {
+            toForwardEvents.add((InputInitializerEvent) tezEvent.getEvent());
+          } // Otherwise the event can be dropped
+        }
+      }
+      sendEvents(toForwardEvents);
+    }
+
+    private void sendEvents(List<InputInitializerEvent> events) {
+      if (events != null && !events.isEmpty()) {
+        try {
+          initializer.handleInputInitializerEvent(events);
+        } catch (Exception e) {
+          throw new TezUncheckedException(
+              "Initializer for input: " + getInput().getName() + " on vertex: " + getVertexLogIdentifier() +
+                  " failed to process events", e);
+        }
+      }
+    }
+
+    private void unregisterForTaskStatusUpdates() {
+      for (String vertexName : taskNotificationRegisteredVertices) {
+        stateChangeNotifier.unregisterForTaskSuccessUpdates(vertexName, this);
+      }
+    }
+  }
 
 }

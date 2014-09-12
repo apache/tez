@@ -58,7 +58,7 @@ import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexCommitStartedEvent;
-import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
+import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
@@ -207,7 +207,7 @@ public class RecoveryParser {
         event = new TaskAttemptFinishedEvent();
         break;
       case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
-        event = new VertexDataMovementEventsGeneratedEvent();
+        event = new VertexRecoverableEventsGeneratedEvent();
         break;
       default:
         throw new IOException("Invalid data found, unknown event type "
@@ -865,8 +865,8 @@ public class RecoveryParser {
               + ", eventType=" + eventType
               + ", event=" + event.toString());
           assert recoveredDAGData.recoveredDAG != null;
-          VertexDataMovementEventsGeneratedEvent vEvent =
-              (VertexDataMovementEventsGeneratedEvent) event;
+          VertexRecoverableEventsGeneratedEvent vEvent =
+              (VertexRecoverableEventsGeneratedEvent) event;
           Vertex v = recoveredDAGData.recoveredDAG.getVertex(vEvent.getVertexID());
           v.restoreFromEvent(vEvent);
           break;

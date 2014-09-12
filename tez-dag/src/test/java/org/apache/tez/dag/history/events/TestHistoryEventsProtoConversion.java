@@ -527,9 +527,9 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private void testVertexDataMovementEventsGeneratedEvent() throws Exception {
-    VertexDataMovementEventsGeneratedEvent event;
+    VertexRecoverableEventsGeneratedEvent event;
     try {
-      event = new VertexDataMovementEventsGeneratedEvent(
+      event = new VertexRecoverableEventsGeneratedEvent(
           TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), null);
       Assert.fail("Invalid creation should have errored out");
@@ -539,11 +539,11 @@ public class TestHistoryEventsProtoConversion {
     List<TezEvent> events =
         Arrays.asList(new TezEvent(DataMovementEvent.create(1, null),
             new EventMetaData(EventProducerConsumerType.SYSTEM, "foo", "bar", null)));
-    event = new VertexDataMovementEventsGeneratedEvent(
+    event = new VertexRecoverableEventsGeneratedEvent(
             TezVertexID.getInstance(
                 TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), events);
-    VertexDataMovementEventsGeneratedEvent deserializedEvent =
-        (VertexDataMovementEventsGeneratedEvent) testProtoConversion(event);
+    VertexRecoverableEventsGeneratedEvent deserializedEvent =
+        (VertexRecoverableEventsGeneratedEvent) testProtoConversion(event);
     Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
     Assert.assertEquals(1,
         deserializedEvent.getTezEvents().size());

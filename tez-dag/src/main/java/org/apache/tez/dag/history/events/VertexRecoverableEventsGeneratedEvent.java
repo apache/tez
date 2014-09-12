@@ -38,27 +38,30 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.collect.Lists;
 
-public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
+// TODO PreCommit - rename this to VertexRecoverableEventGeneratedEvent
+public class VertexRecoverableEventsGeneratedEvent implements HistoryEvent {
 
   private static final Log LOG = LogFactory.getLog(
-      VertexDataMovementEventsGeneratedEvent.class);
+      VertexRecoverableEventsGeneratedEvent.class);
   private List<TezEvent> events;
   private TezVertexID vertexID;
 
-  public VertexDataMovementEventsGeneratedEvent(TezVertexID vertexID,
-      List<TezEvent> events) {
+  public VertexRecoverableEventsGeneratedEvent(TezVertexID vertexID,
+                                               List<TezEvent> events) {
     this.vertexID = vertexID;
     this.events = Lists.newArrayListWithCapacity(events.size());
     for (TezEvent event : events) {
       if (EnumSet.of(EventType.DATA_MOVEMENT_EVENT,
           EventType.COMPOSITE_DATA_MOVEMENT_EVENT,
-          EventType.ROOT_INPUT_DATA_INFORMATION_EVENT)
+          EventType.ROOT_INPUT_DATA_INFORMATION_EVENT,
+          EventType.ROOT_INPUT_INITIALIZER_EVENT)
               .contains(event.getEventType())) {
         this.events.add(event);
       }
@@ -69,7 +72,7 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
     }
   }
 
-  public VertexDataMovementEventsGeneratedEvent() {
+  public VertexRecoverableEventsGeneratedEvent() {
   }
 
   @Override
@@ -132,6 +135,9 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
           evtBuilder.setRootInputDataInformationEvent(
               ProtoConverters.convertRootInputDataInformationEventToProto(
                   (InputDataInformationEvent) event.getEvent()));
+        } else if (event.getEventType().equals(EventType.ROOT_INPUT_INITIALIZER_EVENT)) {
+          evtBuilder.setInputInitializerEvent(ProtoConverters
+              .convertRootInputInitializerEventToProto((InputInitializerEvent) event.getEvent()));
         }
         if (event.getSourceInfo() != null) {
           evtBuilder.setSourceInfo(convertEventMetaDataToProto(event.getSourceInfo()));
@@ -166,6 +172,9 @@ public class VertexDataMovementEventsGeneratedEvent implements HistoryEvent {
       } else if (eventProto.hasRootInputDataInformationEvent()) {
         evt = ProtoConverters.convertRootInputDataInformationEventFromProto(
             eventProto.getRootInputDataInformationEvent());
+      } else if (eventProto.hasInputInitializerEvent()) {
+        evt = ProtoConverters.convertRootInputInitializerEventFromProto(
+            eventProto.getInputInitializerEvent());
       }
       EventMetaData sourceInfo = null;
       EventMetaData destinationInfo = null;

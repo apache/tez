@@ -62,7 +62,7 @@ import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
-import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
+import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
@@ -403,7 +403,7 @@ public class TestVertexRecovery {
   public void testRecovery_New_Desired_RUNNING() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     VertexState recoveredState =
-        vertex1.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex1.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex1.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.NEW, recoveredState);
     assertEquals(1, vertex1.recoveredEvents.size());
@@ -478,7 +478,7 @@ public class TestVertexRecovery {
     restoreFromInitializedEvent(vertex1);
 
     VertexState recoveredState =
-        vertex1.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex1.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex1.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.INITED, recoveredState);
 
@@ -522,7 +522,7 @@ public class TestVertexRecovery {
     assertEquals(startedTime, vertex1.startedTime);
 
     recoveredState =
-        vertex1.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex1.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex1.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.RUNNING, recoveredState);
     assertEquals(1, vertex1.recoveredEvents.size());
@@ -616,7 +616,7 @@ public class TestVertexRecovery {
 
     VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
     VertexState recoveredState =
-        vertex3.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex3.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex3.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.NEW, recoveredState);
     assertEquals(1, vertex3.recoveredEvents.size());
@@ -669,7 +669,7 @@ public class TestVertexRecovery {
 
     VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
     VertexState recoveredState =
-        vertex3.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex3.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex3.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.NEW, recoveredState);
     assertEquals(1, vertex3.recoveredEvents.size());
@@ -734,7 +734,7 @@ public class TestVertexRecovery {
 
     VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
     recoveredState =
-        vertex3.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex3.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex3.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.NEW, recoveredState);
     assertEquals(1, vertex3.recoveredEvents.size());
@@ -814,7 +814,7 @@ public class TestVertexRecovery {
 
     VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
     recoveredState =
-        vertex3.restoreFromEvent(new VertexDataMovementEventsGeneratedEvent(
+        vertex3.restoreFromEvent(new VertexRecoverableEventsGeneratedEvent(
             vertex3.getVertexId(), Lists.newArrayList(createTezEvent())));
     assertEquals(VertexState.NEW, recoveredState);
     assertEquals(1, vertex3.recoveredEvents.size());

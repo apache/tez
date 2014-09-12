@@ -45,7 +45,7 @@ import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexCommitStartedEvent;
-import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
+import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
@@ -152,7 +152,7 @@ public class TestHistoryEventTimelineConversion {
           event = new ContainerStoppedEvent(containerId, random.nextInt(), -1, applicationAttemptId);
           break;
         case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
-          event = new VertexDataMovementEventsGeneratedEvent();
+          event = new VertexRecoverableEventsGeneratedEvent();
           break;
         case DAG_COMMIT_STARTED:
           event = new DAGCommitStartedEvent();

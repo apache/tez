@@ -180,6 +180,7 @@ message TezDataMovementEventProto {
   optional DataMovementEventProto data_movement_event = 3;
   optional CompositeEventProto composite_data_movement_event = 4;
   optional RootInputDataInformationEventProto root_input_data_information_event = 5;
+  optional RootInputInitializerEventProto input_initializer_event = 6;
 }
 
 message VertexDataMovementEventsGeneratedProto {

@@ -93,7 +93,10 @@ public abstract class InputInitializer {
    * State changes will be received based on the registration via {@link
    * org.apache.tez.runtime.api.InputInitializerContext#registerForVertexStateUpdates(String,
    * java.util.Set)}. Notifications will be received for all registered state changes, and not just
-   * for the latest state update. They will be in order in which the state change occurred.
+   * for the latest state update. They will be in order in which the state change occurred. </p>
+   *
+   * Extensive processing should not be performed via this method call. Instead this should just be
+   * used as a notification mechanism to the main initialization, which is via the initialize method.
    *
    * @param stateUpdate an event indicating the name of the vertex, and it's updated state.
    *                    Additional information may be available for specific events, Look at the

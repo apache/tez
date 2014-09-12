@@ -42,8 +42,8 @@ import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.dag.app.RecoveryParser;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.events.VertexDataMovementEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
+import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.test.dag.MultiAttemptDAG;
 import org.apache.tez.test.dag.MultiAttemptDAG.FailingInputInitializer;
 import org.apache.tez.test.dag.MultiAttemptDAG.NoOpInput;
@@ -198,8 +198,8 @@ public class TestDAGRecovery {
             + ", eventType=" + historyEvent.getEventType()
             + ", event=" + historyEvent);
         if (historyEvent.getEventType() ==  HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED) {
-          VertexDataMovementEventsGeneratedEvent dmEvent =
-              (VertexDataMovementEventsGeneratedEvent)historyEvent;
+          VertexRecoverableEventsGeneratedEvent dmEvent =
+              (VertexRecoverableEventsGeneratedEvent) historyEvent;
           // TODO do not need to check whether it is -1 after Tez-1521 is resolved
           if (dmEvent.getVertexID().getId() == 0 && inputInfoEventIndex == -1) {
             inputInfoEventIndex = j;

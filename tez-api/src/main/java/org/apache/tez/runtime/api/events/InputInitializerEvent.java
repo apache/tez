@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 
 import com.google.common.base.Preconditions;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.InputInitializer;
@@ -32,6 +33,13 @@ import org.apache.tez.runtime.api.Event;
 /**
  * An event that is routed to the specified {@link InputInitializer}.
  * This can be used to send information/metadata to the {@link InputInitializer}
+ * <p/>
+ *
+ * These events are routed to the InputInitializer, only after the task which generated the event
+ * succeeds. Also, the events will only be sent once per task - irrespective of how many attempts
+ * were run, or succeeded. An example of this is when a task is retried because the node on which it
+ * was running failed. If the Task had succeeded once, the event would already have been sent - and
+ * will not be resent when the task reruns and succeeds. </p>
  */
 @Unstable
 @Public
@@ -41,6 +49,7 @@ public class InputInitializerEvent extends Event {
   private String targetInputName;
 
   private ByteBuffer eventPayload;
+  private String sourceVertexName;
 
   private InputInitializerEvent(String targetVertexName, String targetInputName,
                                 ByteBuffer eventPayload) {
@@ -87,5 +96,19 @@ public class InputInitializerEvent extends Event {
    */
   public ByteBuffer getUserPayload() {
     return eventPayload == null ? null : eventPayload.asReadOnlyBuffer();
+  }
+
+  @InterfaceAudience.Private
+  public void setSourceVertexName(String srcVertexName) {
+    this.sourceVertexName = srcVertexName;
+  }
+
+  /**
+   * Returns the name of the vertex which generated the event. This will only be populated after
+   * the event has been routed by the AM.
+   * @return the name of the source vertex
+   */
+  public String getSourceVertexName() {
+    return this.sourceVertexName;
   }
 }

@@ -29,6 +29,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,7 +40,6 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
-import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
@@ -53,6 +53,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -88,6 +89,8 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.state.OnStateChangedCallback;
+import org.apache.tez.state.StateMachineTez;
 
 /**
  * Implementation of Task interface.
@@ -118,6 +121,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private final ContainerContext containerContext;
   @VisibleForTesting
   long scheduledTime;
+  final StateChangeNotifier stateChangeNotifier;
 
   private final List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
   private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
@@ -137,6 +141,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   // Recovery related flags
   boolean recoveryStartEventSeen = false;
+
+  private static final TaskStateChangedCallback STATE_CHANGED_CALLBACK = new TaskStateChangedCallback();
 
   private static final StateMachineFactory
                <TaskImpl, TaskStateInternal, TaskEventType, TaskEvent>
@@ -261,7 +267,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // create the topology tables
     .installTopology();
 
-  private final StateMachine<TaskStateInternal, TaskEventType, TaskEvent>
+  private void augmentStateMachine() {
+    stateMachine
+        .registerStateEnteredCallback(TaskStateInternal.SUCCEEDED,
+            STATE_CHANGED_CALLBACK);
+  }
+
+  private final StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, TaskImpl>
     stateMachine;
 
   // TODO: Recovery
@@ -318,7 +330,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       TaskAttemptListener taskAttemptListener,
       Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
       boolean leafVertex, Resource resource,
-      ContainerContext containerContext) {
+      ContainerContext containerContext,
+      StateChangeNotifier stateChangeNotifier) {
     this.conf = conf;
     this.clock = clock;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -333,11 +346,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
     this.appContext = appContext;
+    this.stateChangeNotifier = stateChangeNotifier;
 
     this.leafVertex = leafVertex;
     this.taskResource = resource;
     this.containerContext = containerContext;
-    stateMachine = stateMachineFactory.make(this);
+    stateMachine = new StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, TaskImpl>(
+        stateMachineFactory.make(this), this);
+    augmentStateMachine();
   }
 
   @Override
@@ -1420,6 +1436,27 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           new VertexEventTaskCompleted(task.taskId, TaskState.KILLED));
       // TODO Metrics
       //task.metrics.endWaitingTask(task);
+    }
+  }
+
+  private static class TaskStateChangedCallback
+      implements OnStateChangedCallback<TaskStateInternal, TaskImpl> {
+
+    @Override
+    public void onStateChanged(TaskImpl task, TaskStateInternal taskStateInternal) {
+      // Only registered for SUCCEEDED notifications at the moment
+      Preconditions.checkState(taskStateInternal == TaskStateInternal.SUCCEEDED);
+      TaskAttempt successfulAttempt = task.getSuccessfulAttempt();
+      // TODO TEZ-1577.
+      // This is a horrible hack to get around recovery issues. Without this, recovery would fail
+      // for successful vertices.
+      // With this, recovery will end up failing for DAGs making use of InputInitializerEvents
+      int succesfulAttemptInt = -1;
+      if (successfulAttempt != null) {
+        succesfulAttemptInt = successfulAttempt.getID().getId();
+      }
+      task.stateChangeNotifier.taskSucceeded(task.getVertex().getName(), task.getTaskId(),
+          succesfulAttemptInt);
     }
   }
 
