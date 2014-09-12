@@ -354,7 +354,6 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getFinishTime());
       Assert.assertEquals(event.getState(), deserializedEvent.getState());
       Assert.assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
-      Assert.assertEquals(event.getTezCounters(), deserializedEvent.getTezCounters());
       logEvents(event, deserializedEvent);
     }
     {
@@ -370,7 +369,6 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getFinishTime());
       Assert.assertEquals(event.getState(), deserializedEvent.getState());
       Assert.assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
-      Assert.assertEquals(event.getTezCounters(), deserializedEvent.getTezCounters());
       logEvents(event, deserializedEvent);
     }
   }
@@ -403,8 +401,6 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getFinishTime());
       Assert.assertEquals(event.getState(),
           deserializedEvent.getState());
-      Assert.assertEquals(event.getTezCounters(),
-          deserializedEvent.getTezCounters());
       Assert.assertEquals(event.getSuccessfulAttemptID(),
           deserializedEvent.getSuccessfulAttemptID());
       Assert.assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());
@@ -425,8 +421,6 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getFinishTime());
       Assert.assertEquals(event.getState(),
           deserializedEvent.getState());
-      Assert.assertEquals(event.getTezCounters(),
-          deserializedEvent.getTezCounters());
       Assert.assertEquals(event.getSuccessfulAttemptID(),
           deserializedEvent.getSuccessfulAttemptID());
       Assert.assertEquals(event.getDiagnostics(), deserializedEvent.getDiagnostics());

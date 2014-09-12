@@ -791,6 +791,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         this.launchTime = tEvent.getStartTime();
         recoveryStartEventSeen = true;
         recoveredState = TaskAttemptState.RUNNING;
+        sendEvent(createDAGCounterUpdateEventTALaunched(this));
         return recoveredState;
       }
       case TASK_ATTEMPT_FINISHED:
@@ -806,6 +807,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         this.reportedStatus.state = tEvent.getState();
         this.diagnostics.add(tEvent.getDiagnostics());
         this.recoveredState = tEvent.getState();
+        sendEvent(createDAGCounterUpdateEventTAFinished(this, tEvent.getState()));
         return recoveredState;
       }
       default:
@@ -829,46 +831,28 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   // TOOD Merge some of these JobCounter events.
-  private static DAGEventCounterUpdate createJobCounterUpdateEventTALaunched(
+  private static DAGEventCounterUpdate createDAGCounterUpdateEventTALaunched(
       TaskAttemptImpl ta) {
-    DAGEventCounterUpdate jce =
+    DAGEventCounterUpdate dagCounterEvent =
         new DAGEventCounterUpdate(
             ta.getDAGID()
             );
-    jce.addCounterUpdate(DAGCounter.TOTAL_LAUNCHED_TASKS, 1);
-    return jce;
+    dagCounterEvent.addCounterUpdate(DAGCounter.TOTAL_LAUNCHED_TASKS, 1);
+    return dagCounterEvent;
   }
 
-  private static DAGEventCounterUpdate createJobCounterUpdateEventSlotMillis(
-      TaskAttemptImpl ta) {
+  private static DAGEventCounterUpdate createDAGCounterUpdateEventTAFinished(
+      TaskAttemptImpl taskAttempt, TaskAttemptState taState) {
     DAGEventCounterUpdate jce =
-        new DAGEventCounterUpdate(
-            ta.getDAGID()
-            );
+        new DAGEventCounterUpdate(taskAttempt.getDAGID());
 
-//    long slotMillis = computeSlotMillis(ta);
-//    jce.addCounterUpdate(DAGCounter.SLOTS_MILLIS_TASKS, slotMillis);
-    return jce;
-  }
-
-  private static DAGEventCounterUpdate createJobCounterUpdateEventTATerminated(
-      TaskAttemptImpl taskAttempt, boolean taskAlreadyCompleted,
-      TaskAttemptStateInternal taState) {
-    DAGEventCounterUpdate jce =
-        new DAGEventCounterUpdate(
-            taskAttempt.getDAGID());
-
-    if (taState == TaskAttemptStateInternal.FAILED) {
+    if (taState == TaskAttemptState.FAILED) {
       jce.addCounterUpdate(DAGCounter.NUM_FAILED_TASKS, 1);
-    } else if (taState == TaskAttemptStateInternal.KILLED) {
+    } else if (taState == TaskAttemptState.KILLED) {
       jce.addCounterUpdate(DAGCounter.NUM_KILLED_TASKS, 1);
+    } else if (taState == TaskAttemptState.SUCCEEDED ) {
+      jce.addCounterUpdate(DAGCounter.NUM_SUCCEEDED_TASKS, 1);
     }
-
-//    long slotMillisIncrement = computeSlotMillis(taskAttempt);
-//    if (!taskAlreadyCompleted) {
-//      // dont double count the elapsed time
-//      jce.addCounterUpdate(DAGCounter.SLOTS_MILLIS_TASKS, slotMillisIncrement);
-//    }
 
     return jce;
   }
@@ -1142,8 +1126,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.addDiagnosticInfo(((DiagnosableEvent) event).getDiagnosticInfo());
       }
 
-      ta.sendEvent(createJobCounterUpdateEventTATerminated(ta, false,
-          helper.getTaskAttemptStateInternal()));
+      ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
+          helper.getTaskAttemptState()));
       if (ta.getLaunchTime() != 0) {
         // TODO For cases like this, recovery goes for a toss, since the the
         // attempt will not exist in the history file.
@@ -1184,7 +1168,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           .createSocketAddr(ta.nodeHttpAddress); // TODO: Costly?
       ta.trackerName = StringInterner.weakIntern(nodeHttpInetAddr.getHostName());
       ta.httpPort = nodeHttpInetAddr.getPort();
-      ta.sendEvent(createJobCounterUpdateEventTALaunched(ta));
+      ta.sendEvent(createDAGCounterUpdateEventTALaunched(ta));
 
       LOG.info("TaskAttempt: [" + ta.attemptId + "] started."
           + " Is using containerId: [" + ta.containerId + "]" + " on NM: ["
@@ -1316,7 +1300,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.setFinishTime();
       // Send out history event.
       ta.logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal.SUCCEEDED);
-      ta.sendEvent(createJobCounterUpdateEventSlotMillis(ta));
+      ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
+          TaskAttemptState.SUCCEEDED));
 
       // Inform the Scheduler.
       ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.containerId,
@@ -1415,6 +1400,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           // TODO abort taskattempt
           taskAttempt.sendEvent(new TaskEventTAUpdate(taskAttempt.attemptId,
               TaskEventType.T_ATTEMPT_KILLED));
+          taskAttempt.sendEvent(createDAGCounterUpdateEventTAFinished(taskAttempt,
+              getExternalState(TaskAttemptStateInternal.KILLED)));
           endState = TaskAttemptStateInternal.KILLED;
           break;
         case SUCCEEDED:

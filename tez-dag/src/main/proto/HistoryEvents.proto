@@ -136,7 +136,6 @@ message VertexFinishedProto {
   optional int64 finish_time = 3;
   optional int32 state = 4;
   optional string diagnostics = 5;
-  optional TezCountersProto counters = 6;
 }
 
 message TaskStartedProto {
@@ -150,8 +149,7 @@ message TaskFinishedProto {
   optional int64 finish_time = 2;
   optional int32 state = 3;
   optional string diagnostics = 4;
-  optional TezCountersProto counters = 5;
-  optional string successful_task_attempt_id = 6;
+  optional string successful_task_attempt_id = 5;
 }
 
 message TaskAttemptStartedProto {

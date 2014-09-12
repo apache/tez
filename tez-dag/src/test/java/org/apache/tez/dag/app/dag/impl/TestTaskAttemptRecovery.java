@@ -20,16 +20,17 @@ package org.apache.tez.dag.app.dag.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.counters.TezCounters;
@@ -39,6 +40,7 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
@@ -48,6 +50,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttemptRecovery {
@@ -98,6 +101,17 @@ public class TestTaskAttemptRecovery {
     assertEquals(state, recoveredState);
   }
 
+  private void verifyEvents(List<Event> events, Class<? extends Event> eventClass,
+      int expectedTimes) {
+    int actualTimes = 0;
+    for (Event event : events) {
+      if (eventClass.isInstance(event)) {
+        actualTimes ++;
+      }
+    }
+    assertEquals(expectedTimes, actualTimes);
+  }
+
   /**
    * No any event to restore -> RecoverTransition
    */
@@ -105,7 +119,14 @@ public class TestTaskAttemptRecovery {
   public void testTARecovery_NEW() {
     ta.handle(new TaskAttemptEvent(taId, TaskAttemptEventType.TA_RECOVER));
     assertEquals(TaskAttemptStateInternal.KILLED, ta.getInternalState());
-    verify(mockEventHandler, times(1)).handle(any(TaskEventTAUpdate.class));
+
+    ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(mockEventHandler, times(2)).handle(eventCaptor.capture());
+    List<Event> events = eventCaptor.getAllValues();
+    assertEquals(2, events.size());
+    verifyEvents(events, TaskEventTAUpdate.class, 1);
+    // one for task killed
+    verifyEvents(events, DAGEventCounterUpdate.class, 1);
   }
 
   /**
@@ -117,7 +138,14 @@ public class TestTaskAttemptRecovery {
 
     ta.handle(new TaskAttemptEvent(taId, TaskAttemptEventType.TA_RECOVER));
     assertEquals(TaskAttemptStateInternal.KILLED, ta.getInternalState());
-    verify(mockEventHandler, times(1)).handle(any(TaskEventTAUpdate.class));
+
+    ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(mockEventHandler, times(3)).handle(eventCaptor.capture());
+    List<Event> events = eventCaptor.getAllValues();
+    assertEquals(3, events.size());
+    verifyEvents(events, TaskEventTAUpdate.class, 1);
+    // one for task launch, one for task killed
+    verifyEvents(events, DAGEventCounterUpdate.class, 2);
   }
 
   /**
@@ -131,7 +159,13 @@ public class TestTaskAttemptRecovery {
 
     ta.handle(new TaskAttemptEvent(taId, TaskAttemptEventType.TA_RECOVER));
     assertEquals(TaskAttemptStateInternal.SUCCEEDED, ta.getInternalState());
-    verify(mockEventHandler, never()).handle(any(TaskEventTAUpdate.class));
+
+    ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(mockEventHandler, times(2)).handle(eventCaptor.capture());
+    List<Event> events = eventCaptor.getAllValues();
+    assertEquals(2, events.size());
+    // one for task launch, one for task succeeded
+    verifyEvents(events, DAGEventCounterUpdate.class, 2);
   }
 
   /**
@@ -145,7 +179,13 @@ public class TestTaskAttemptRecovery {
 
     ta.handle(new TaskAttemptEvent(taId, TaskAttemptEventType.TA_RECOVER));
     assertEquals(TaskAttemptStateInternal.KILLED, ta.getInternalState());
-    verify(mockEventHandler, never()).handle(any(TaskEventTAUpdate.class));
+
+    ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(mockEventHandler, times(2)).handle(eventCaptor.capture());
+    List<Event> events = eventCaptor.getAllValues();
+    assertEquals(2, events.size());
+    // one for task launch, one for task killed
+    verifyEvents(events, DAGEventCounterUpdate.class, 2);
   }
 
   /**
@@ -159,7 +199,13 @@ public class TestTaskAttemptRecovery {
 
     ta.handle(new TaskAttemptEvent(taId, TaskAttemptEventType.TA_RECOVER));
     assertEquals(TaskAttemptStateInternal.FAILED, ta.getInternalState());
-    verify(mockEventHandler, never()).handle(any(TaskEventTAUpdate.class));
+
+    ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(mockEventHandler, times(2)).handle(eventCaptor.capture());
+    List<Event> events = eventCaptor.getAllValues();
+    assertEquals(2, events.size());
+    // one for task launch, one for task killed
+    verifyEvents(events, DAGEventCounterUpdate.class, 2);
   }
 
   /**

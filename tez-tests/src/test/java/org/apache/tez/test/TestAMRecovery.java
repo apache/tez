@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.commons.logging.Log;
@@ -38,6 +39,8 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.DAGCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -193,7 +196,12 @@ public class TestAMRecovery {
     DAG dag =
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.BROADCAST, true);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    assertEquals(5, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
+    assertEquals(1, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
+    assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
+    assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
@@ -220,7 +228,11 @@ public class TestAMRecovery {
     DAG dag =
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.BROADCAST, false);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    assertEquals(4, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
+    assertEquals(0, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
+    assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
+    assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
@@ -244,11 +256,15 @@ public class TestAMRecovery {
    * @throws Exception
    */
   @Test(timeout = 120000)
-  public void testVertexPartialComplete_One2One() throws Exception {
+  public void testVertexPartialFinished_One2One() throws Exception {
     DAG dag =
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, true);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    assertEquals(5, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
+    assertEquals(1, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
+    assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
+    assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
@@ -273,11 +289,15 @@ public class TestAMRecovery {
    * @throws Exception
    */
   @Test(timeout = 120000)
-  public void testVertexCompletelyComplete_One2One() throws Exception {
+  public void testVertexCompletelyFinished_One2One() throws Exception {
     DAG dag =
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, false);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    assertEquals(4, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
+    assertEquals(0, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
+    assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
+    assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
@@ -306,7 +326,11 @@ public class TestAMRecovery {
     DAG dag =
         createDAG(ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, true);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    assertEquals(5, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
+    assertEquals(1, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
+    assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
+    assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
@@ -335,7 +359,11 @@ public class TestAMRecovery {
     DAG dag =
         createDAG(ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    assertEquals(4, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
+    assertEquals(0, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
+    assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
+    assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
@@ -369,13 +397,14 @@ public class TestAMRecovery {
 
   }
 
-  void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
+  TezCounters runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
     DAGStatus dagStatus =
         dagClient.waitForCompletionWithStatusUpdates(EnumSet
             .of(StatusGetOpts.GET_COUNTERS));
     Assert.assertEquals(finalState, dagStatus.getState());
+    return dagStatus.getDAGCounters();
   }
 
   /**
@@ -479,6 +508,19 @@ public class TestAMRecovery {
         }
       }
     }
+
+    @Override
+    public void onVertexStarted(Map<String, List<Integer>> completions) {
+      // sleep for 1 seconds to delay the running of task in v2.
+      // this could keep the case that task of v1 is partial finished or completely
+      // finished, and at the same time the task of v2 is not started
+      try {
+        Thread.sleep(1*1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      super.onVertexStarted(completions);
+    }
   }
 
   public static class ControlledShuffleVertexManager extends
@@ -515,6 +557,19 @@ public class TestAMRecovery {
           }
         }
       }
+    }
+
+    @Override
+    public void onVertexStarted(Map<String, List<Integer>> completions) {
+      // sleep for 1 seconds to delay the running of task in v2.
+      // this could keep the case that task of v1 is partial finished or completely
+      // finished, and at the same time the task of v2 is not started
+      try {
+        Thread.sleep(1*1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      super.onVertexStarted(completions);
     }
   }
 
@@ -554,6 +609,19 @@ public class TestAMRecovery {
         }
       }
     }
+
+    @Override
+    public void onVertexStarted(Map<String, List<Integer>> completions) {
+      // sleep for 1 seconds to delay the running of task in v2.
+      // this could keep the case that task of v1 is partial finished or completely
+      // finished, and at the same time the task of v2 is not started
+      try {
+        Thread.sleep(1*1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      super.onVertexStarted(completions);
+    }
   }
 
   /**
@@ -592,6 +660,10 @@ public class TestAMRecovery {
     }
   }
 
+  public static enum TestCounter {
+    Counter_1,
+  }
+
   /**
    * Do nothing if it is in task 0, sleep 3 seconds for other tasks. This enable
    * us to kill AM in VM when some tasks are still running.
@@ -605,8 +677,10 @@ public class TestAMRecovery {
 
     @Override
     public void run() throws Exception {
+      getContext().getCounters().findCounter(TestCounter.Counter_1).increment(1);
       if (getContext().getTaskIndex() == 0) {
-        return;
+        // keep task_0 running for 1 seconds to wait for task_1 start running
+        Thread.sleep(1 * 1000);;
       } else {
         Thread.sleep(3 * 1000);
       }
