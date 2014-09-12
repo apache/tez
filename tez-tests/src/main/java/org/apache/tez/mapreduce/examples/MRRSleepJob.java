@@ -525,9 +525,11 @@ public class MRRSleepJob extends Configured implements Tool {
     int numTasks = generateSplitsInAM ? -1 : numMapper;
 
     Vertex mapVertex = Vertex.create("map", ProcessorDescriptor.create(
-        MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks)
-        .addTaskLocalFiles(commonLocalResources);
-    mapVertex.addDataSource("MRInput", dataSource);
+        MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks,
+        MRHelpers.getResourceForMRMapper(mapStageConf));
+    mapVertex.addTaskLocalFiles(commonLocalResources)
+        .addDataSource("MRInput", dataSource)
+        .setTaskLaunchCmdOpts(MRHelpers.getJavaOptsForMRMapper(mapStageConf));
     vertices.add(mapVertex);
 
     if (iReduceStagesCount > 0
@@ -538,8 +540,11 @@ public class MRRSleepJob extends Configured implements Tool {
         UserPayload iReduceUserPayload = TezUtils.createUserPayloadFromConf(iconf);
         Vertex ivertex = Vertex.create("ireduce" + (i + 1),
             ProcessorDescriptor.create(ReduceProcessor.class.getName()).
-                setUserPayload(iReduceUserPayload), numIReducer);
-        ivertex.addTaskLocalFiles(commonLocalResources);
+                setUserPayload(iReduceUserPayload), numIReducer,
+            MRHelpers.getResourceForMRReducer(intermediateReduceStageConfs[i]));
+        ivertex.addTaskLocalFiles(commonLocalResources)
+            .setTaskLaunchCmdOpts(MRHelpers.getJavaOptsForMRReducer(
+                intermediateReduceStageConfs[i]));
         vertices.add(ivertex);
       }
     }
@@ -548,10 +553,12 @@ public class MRRSleepJob extends Configured implements Tool {
     if (numReducer > 0) {
       UserPayload reducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = Vertex.create("reduce", ProcessorDescriptor.create(
-          ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer);
-      finalReduceVertex.addTaskLocalFiles(commonLocalResources);
-      finalReduceVertex.addDataSink("MROutput", MROutputLegacy.createConfigBuilder(finalReduceConf,
-          NullOutputFormat.class).build());
+          ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer,
+          MRHelpers.getResourceForMRReducer(finalReduceConf));
+      finalReduceVertex.addTaskLocalFiles(commonLocalResources)
+          .addDataSink("MROutput", MROutputLegacy.createConfigBuilder(
+              finalReduceConf, NullOutputFormat.class).build())
+          .setTaskLaunchCmdOpts(MRHelpers.getJavaOptsForMRReducer(finalReduceConf));
       vertices.add(finalReduceVertex);
     } else {
       // Map only job
