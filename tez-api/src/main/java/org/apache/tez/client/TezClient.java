@@ -366,10 +366,9 @@ public class TezClient {
     }
     
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
-    TezClientUtils.updateDAGVertices(dag, amConfig, tezJarResources,
+    DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
         TezClientUtils.usingTezLibsFromArchive(tezJarResources), sessionCredentials);
-    
-    DAGPlan dagPlan = dag.createDag(amConfig.getTezConfiguration());
+
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan).build();
     if (!additionalLocalResources.isEmpty()) {

@@ -20,6 +20,7 @@ package org.apache.tez.client;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -89,7 +90,16 @@ public class TestTezClient {
     }
   }
   
-  static void configure(TezClientForTest client) throws YarnException, IOException {
+  TezClientForTest configure() throws YarnException, IOException {
+    return configure(new HashMap<String, LocalResource>(), true);
+  }
+  
+  TezClientForTest configure(Map<String, LocalResource> lrs, boolean isSession) throws YarnException, IOException {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
+    TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
+
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
     YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
     when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
@@ -100,31 +110,27 @@ public class TestTezClient {
     client.mockTezYarnClient = new TezYarnClient(yarnClient);
     client.mockYarnClient = yarnClient;
     client.mockAppId = appId1;
+    
+    return client;    
   }
   
-  @Test
+  @Test (timeout = 5000)
   public void testTezclientApp() throws Exception {
     testTezClient(false);
   }
   
-  @Test
+  @Test (timeout = 5000)
   public void testTezclientSession() throws Exception {
     testTezClient(true);
   }
   
   public void testTezClient(boolean isSession) throws Exception {
-    TezConfiguration conf = new TezConfiguration();
-    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
-    conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
-
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     
-    TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
-    
-    configure(client);
+    TezClientForTest client = configure(lrs, isSession);
     
     ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
     client.start();
@@ -229,13 +235,7 @@ public class TestTezClient {
   }
   
   public void testPreWarm() throws Exception {
-    TezConfiguration conf = new TezConfiguration();
-    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
-    conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
-    Map<String, LocalResource> lrs = Maps.newHashMap();
-    final TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
-
-    configure(client);
+    TezClientForTest client = configure();
     client.start();
     PreWarmVertex vertex = PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
     client.preWarm(vertex);
@@ -248,16 +248,42 @@ public class TestTezClient {
     client.stop();
   }
   
+  @Test (timeout = 10000)
+  public void testMultipleSubmissions() throws Exception {
+    testMultipleSubmissionsJob(false);
+    testMultipleSubmissionsJob(true);
+  }
+  
+  public void testMultipleSubmissionsJob(boolean isSession) throws Exception {
+    TezClientForTest client1 = configure(new HashMap<String, LocalResource>(), isSession);
+    client1.start();
+    
+    String mockLR1Name = "LR1";
+    Map<String, LocalResource> lrDAG = Collections.singletonMap(mockLR1Name, LocalResource
+        .newInstance(URL.newInstance("file:///", "localhost", 0, "test"), LocalResourceType.FILE,
+            LocalResourceVisibility.PUBLIC, 1, 1));
+    Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
+        Resource.newInstance(1, 1));
+    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+    // the dag resource will be added to the vertex once
+    client1.submitDAG(dag);
+    
+    TezClientForTest client2 = configure();
+    client2.start();
+    
+    // verify resubmission of same dag to new client (simulates submission error resulting in the
+    // creation of a new client and resubmission of the DAG)
+    // TEZ-1563 dag resource will not be added again to the vertex because its cached
+    // so resubmission works fine
+    client2.submitDAG(dag);
+    
+    client1.stop();
+    client2.stop();
+  }
+  
   @Test(timeout = 5000)
   public void testWaitTillReady_Interrupt() throws Exception {
-    TezConfiguration conf = new TezConfiguration();
-    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
-    conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
-    Map<String, LocalResource> lrs = Maps.newHashMap();
-    final TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
-
-    configure(client);
-
+    final TezClientForTest client = configure();
     client.start();
 
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -278,6 +304,7 @@ public class TestTezClient {
     thread.interrupt();
     thread.join();
     Assert.assertThat(exceptionReference.get(),CoreMatchers. instanceOf(InterruptedException.class));
+    client.stop();
   }
 
 }

@@ -89,6 +89,7 @@ public class DAG {
   Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
   
   private Stack<String> topologicalVertexStack = new Stack<String>();
+  private DAGPlan cachedDAGPlan;
 
   private DAG(String name) {
     this.name = name;
@@ -574,6 +575,10 @@ public class DAG {
     }
   }
 
+  @Private
+  public DAGPlan getCachedDAGPlan() {
+    return cachedDAGPlan;
+  }
 
   // create protobuf message describing DAG
   @Private
@@ -787,6 +792,8 @@ public class DAG {
       dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));
       TezCommonUtils.logCredentials(LOG, credentials, "dag");
     }
-    return dagBuilder.build();
+    
+    cachedDAGPlan = dagBuilder.build();
+    return cachedDAGPlan;
   }
 }

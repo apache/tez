@@ -19,6 +19,8 @@ ALL CHANGES:
   TEZ-1580. Change TestOrderedWordCount to optionally use MR configs.
   TEZ-1524. Resolve user group information only if ACLs are enabled.
   TEZ-1581. GroupByOrderByMRRTest no longer functional.
+  TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless
+  of DAG submission
 
 Release 0.5.1: Unreleased
 
@@ -36,6 +38,8 @@ ALL CHANGES
   TEZ-1519. TezTaskRunner should not initialize TezConfiguration in TezChild.
   TEZ-1534. Make client side configs available to AM and tasks.
   TEZ-1574. Support additional formats for the tez deployed archive
+  TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless
+  of DAG submission
 
 Release 0.5.0: 2014-09-03
 

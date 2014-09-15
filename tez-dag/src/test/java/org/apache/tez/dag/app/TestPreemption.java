@@ -85,7 +85,7 @@ public class TestPreemption {
     return dag;
   }
   
-  @Test
+  @Test (timeout = 5000)
   public void testPreemptionWithoutSession() throws Exception {
     System.out.println("TestPreemptionWithoutSession");
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
@@ -120,7 +120,7 @@ public class TestPreemption {
     tezClient.stop();
   }
   
-  @Test
+  @Test (timeout = 30000)
   public void testPreemptionWithSession() throws Exception {
     System.out.println("TestPreemptionWithSession");
     MockTezClient tezClient = createTezSession();

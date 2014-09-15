@@ -557,7 +557,7 @@ public class TezClientUtils {
 
     if(dag != null) {
       
-      updateDAGVertices(dag, amConfig, tezJarResources, tezLrsAsArchive, sessionCreds);
+      DAGPlan dagPB = prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive, sessionCreds);
 
       // emit protobuf DAG file style
       Path binaryPath = TezCommonUtils.getTezBinPlanStagingPath(tezSysStagingPath);
@@ -566,8 +566,6 @@ public class TezClientUtils {
             + tezSysStagingPath + " binaryConfPath :" + binaryConfPath + " sessionJarsPath :"
             + sessionJarsPath + " binaryPlanPath :" + binaryPath);
       }
-
-      DAGPlan dagPB = dag.createDag(amConfig.getTezConfiguration());
 
       FSDataOutputStream dagPBOutBinaryStream = null;
 
@@ -642,6 +640,17 @@ public class TezClientUtils {
 
       setDefaultLaunchCmdOpts(v, amConfig.getTezConfiguration());
     }
+  }
+  
+  static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
+      Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
+      Credentials credentials) throws IOException {
+    DAGPlan dagPB = dag.getCachedDAGPlan();
+    if (dagPB == null) {
+      updateDAGVertices(dag, amConfig, tezJarResources, tezLrsAsArchive, credentials);  
+      dagPB = dag.createDag(amConfig.getTezConfiguration());  
+    }    
+    return dagPB;
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
