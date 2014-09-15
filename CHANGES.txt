@@ -7,6 +7,8 @@ INCOMPATIBLE CHANGES
   TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
 
 ALL CHANGES
+  TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless
+  of DAG submission
   TEZ-1543. Shuffle Errors on heavy load (causing task retries)
   TEZ-1494. DAG hangs waiting for ShuffleManager.getNextInput()
   TEZ-1515. Remove usage of ResourceBundles in Counters.
@@ -19,7 +21,7 @@ ALL CHANGES
   TEZ-1534. Make client side configs available to AM and tasks.
   TEZ-1574. Support additional formats for the tez deployed archive
 
-Release 0.5.0: Unreleased
+Release 0.5.0: 2014-09-03
 
 INCOMPATIBLE CHANGES
   TEZ-1038. Move TaskLocationHint outside of VertexLocationHint.
