@@ -196,7 +196,7 @@ public class FilterLinesByWord extends Configured implements Tool {
         .setUserPayload(TezUtils.createUserPayloadFromConf(stage2Conf));
     OutputCommitterDescriptor ocd =
         OutputCommitterDescriptor.create(MROutputCommitter.class.getName());
-    stage2Vertex.addDataSink("MROutput", new DataSinkDescriptor(od, ocd, null));
+    stage2Vertex.addDataSink("MROutput", DataSinkDescriptor.create(od, ocd, null));
 
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
         .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();

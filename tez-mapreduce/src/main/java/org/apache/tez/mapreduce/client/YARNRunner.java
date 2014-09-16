@@ -428,7 +428,7 @@ public class YARNRunner implements ClientProtocol {
     if (stageNum == totalStages -1) {
       OutputDescriptor od = OutputDescriptor.create(MROutputLegacy.class.getName())
           .setUserPayload(vertexUserPayload);
-      vertex.addDataSink("MROutput", new DataSinkDescriptor(od,
+      vertex.addDataSink("MROutput", DataSinkDescriptor.create(od,
           OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), null));
     }
 

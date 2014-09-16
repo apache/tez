@@ -51,6 +51,7 @@ public class DataSinkDescriptor {
    *          operation.
    * @param credentials Credentials needs to access the data sink
    */
+  @Deprecated
   public DataSinkDescriptor(OutputDescriptor outputDescriptor,
       @Nullable OutputCommitterDescriptor committerDescriptor,
       @Nullable Credentials credentials) {
@@ -59,6 +60,29 @@ public class DataSinkDescriptor {
     this.credentials = credentials;
   }
 
+  /**
+   * Create a {@link DataSinkDescriptor}
+   * @param outputDescriptor
+   *          An {@link OutputDescriptor} for the output
+   * @param committerDescriptor
+   *          Specify a committer to be used for the output. Can be null. After all
+   *          tasks in the vertex (or in the DAG) have completed, the committer
+   *          (if specified) is invoked to commit the outputs. Commit is a data
+   *          sink specific operation that usually determines the visibility of
+   *          the output to external observers. E.g. moving output files from
+   *          temporary dirs to the real output dir. When there are multiple
+   *          executions of a task, the commit process also helps decide which
+   *          execution will be included in the final output. Users should
+   *          consider whether their application or data sink need a commit
+   *          operation.
+   * @param credentials Credentials needs to access the data sink
+   */
+  public static DataSinkDescriptor create(OutputDescriptor outputDescriptor,
+      @Nullable OutputCommitterDescriptor committerDescriptor,
+      @Nullable Credentials credentials) {
+    return new DataSinkDescriptor(outputDescriptor, committerDescriptor, credentials);
+  }
+  
   public OutputDescriptor getOutputDescriptor() {
     return outputDescriptor;
   }

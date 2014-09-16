@@ -521,7 +521,7 @@ public class TestDAGVerify {
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addDataSink("v2", new DataSinkDescriptor(null, null, null));
+    v1.addDataSink("v2", DataSinkDescriptor.create(null, null, null));
     
     Edge e1 = Edge.create(v1, v2,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
@@ -545,7 +545,7 @@ public class TestDAGVerify {
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     
-    v1.addDataSink("v2", new DataSinkDescriptor(null, null, null));
+    v1.addDataSink("v2", DataSinkDescriptor.create(null, null, null));
     
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
@@ -621,7 +621,7 @@ public class TestDAGVerify {
     DAG dag = DAG.create("testDag");
     VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
-    uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, null, null));
+    uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
     
     GroupInputEdge e1 = GroupInputEdge.create(uv12, v3,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
@@ -678,7 +678,7 @@ public class TestDAGVerify {
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
-    uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, null, null));
+    uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
     
     String groupName2 = "uv23";
     VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
@@ -760,7 +760,7 @@ public class TestDAGVerify {
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
-    uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, null, null));
+    uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
     
     String groupName2 = "uv23";
     VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
