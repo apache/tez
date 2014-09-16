@@ -115,7 +115,8 @@ public class TaskReporter {
     heartbeatExecutor.shutdownNow();
   }
 
-  private static class HeartbeatCallable implements Callable<Boolean> {
+  @VisibleForTesting
+  static class HeartbeatCallable implements Callable<Boolean> {
 
     private static final int LOG_COUNTER_START_INTERVAL = 5000; // 5 seconds
     private static final float LOG_COUNTER_BACKOFF = 1.3f;
@@ -172,25 +173,30 @@ public class TaskReporter {
     public Boolean call() throws Exception {
       // Heartbeat only for active tasks. Errors, etc will be reported directly.
       while (!task.isTaskDone() && !task.hadFatalError()) {
-        boolean result = heartbeat(null);
-        if (!result) {
+        ResponseWrapper response = heartbeat(null);
+
+        if (response.shouldDie) {
           // AM sent a shouldDie=true
           LOG.info("Asked to die via task heartbeat");
           return false;
-        }
-        lock.lock();
-        try {
-          boolean interrupted = condition.await(pollInterval, TimeUnit.MILLISECONDS);
-          if (!interrupted) {
-            nonOobHeartbeatCounter++;
+        } else {
+          if (response.numEvents < maxEventsToGet) {
+            // Wait before sending another heartbeat. Otherwise consider as an OOB heartbeat
+            lock.lock();
+            try {
+              boolean interrupted = condition.await(pollInterval, TimeUnit.MILLISECONDS);
+              if (!interrupted) {
+                nonOobHeartbeatCounter++;
+              }
+            } finally {
+              lock.unlock();
+            }
           }
-        } finally {
-          lock.unlock();
         }
       }
       int pendingEventCount = eventsToSend.size();
       if (pendingEventCount > 0) {
-        LOG.warn("Exiting TaskReporter therad with pending queue size=" + pendingEventCount);
+        LOG.warn("Exiting TaskReporter thread with pending queue size=" + pendingEventCount);
       }
       return true;
     }
@@ -203,7 +209,7 @@ public class TaskReporter {
      * @throws TezException
      *           indicates an exception somewhere in the AM.
      */
-    private synchronized boolean heartbeat(Collection<TezEvent> eventsArg) throws IOException,
+    private synchronized ResponseWrapper heartbeat(Collection<TezEvent> eventsArg) throws IOException,
         TezException {
 
       if (eventsArg != null) {
@@ -247,7 +253,7 @@ public class TaskReporter {
 
       if (response.shouldDie()) {
         LOG.info("Received should die response from AM");
-        return false;
+        return new ResponseWrapper(true, 1);
       }
       if (response.getLastRequestId() != requestId) {
         throw new TezException("AM and Task out of sync" + ", responseReqId="
@@ -256,6 +262,7 @@ public class TaskReporter {
 
       // The same umbilical is used by multiple tasks. Problematic in the case where multiple tasks
       // are running using the same umbilical.
+      int numEventsReceived = 0;
       if (task.isTaskDone() || task.hadFatalError()) {
         if (response.getEvents() != null && !response.getEvents().isEmpty()) {
           LOG.warn("Current task already complete, Ignoring all event in"
@@ -268,11 +275,11 @@ public class TaskReporter {
                 + task.getTaskAttemptID() + ", eventCount=" + response.getEvents().size());
           }
           // This should ideally happen in a separate thread
+          numEventsReceived = response.getEvents().size();
           task.handleEvents(response.getEvents());
         }
       }
-      return true;
-
+      return new ResponseWrapper(false, numEventsReceived);
     }
 
     public void markComplete() {
@@ -308,7 +315,7 @@ public class TaskReporter {
           task.getProgress()), updateEventMetadata);
       TezEvent taskCompletedEvent = new TezEvent(new TaskAttemptCompletedEvent(),
           updateEventMetadata);
-      return heartbeat(Lists.newArrayList(statusUpdateEvent, taskCompletedEvent));
+      return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskCompletedEvent)).shouldDie;
     }
 
     /**
@@ -334,7 +341,7 @@ public class TaskReporter {
       }
       TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
           srcMeta == null ? updateEventMetadata : srcMeta);
-      return heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent));
+      return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent)).shouldDie;
     }
 
     private void addEvents(TezTaskAttemptID taskAttemptID, Collection<TezEvent> events) {
@@ -380,5 +387,15 @@ public class TaskReporter {
 
   public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException {
     return umbilical.canCommit(taskAttemptID);
+  }
+
+  private static final class ResponseWrapper {
+    boolean shouldDie;
+    int numEvents;
+
+    private ResponseWrapper(boolean shouldDie, int numEvents) {
+      this.shouldDie = shouldDie;
+      this.numEvents = numEvents;
+    }
   }
 }
