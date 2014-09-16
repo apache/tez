@@ -183,7 +183,7 @@ public class TestDAGRecovery2 {
             .toUserPayload())));
     OutputCommitterDescriptor ocd = OutputCommitterDescriptor.create(
         MultiAttemptDAG.FailingOutputCommitter.class.getName());
-    dag.getVertex("v3").addDataSink("FailingOutput", new DataSinkDescriptor(od, ocd, null));
+    dag.getVertex("v3").addDataSink("FailingOutput", DataSinkDescriptor.create(od, ocd, null));
     runDAGAndVerify(dag, State.FAILED);
   }
 

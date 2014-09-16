@@ -73,8 +73,8 @@ public class TestDAGUtils {
         .setHistoryText("uvOut HistoryText");
     OutputCommitterDescriptor ocd =
         OutputCommitterDescriptor.create(OutputCommitter.class.getName());
-    uv12.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
-    v3.addDataSink("uvOut", new DataSinkDescriptor(outDesc, ocd, null));
+    uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, ocd, null));
+    v3.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, ocd, null));
 
     GroupInputEdge e1 = GroupInputEdge.create(uv12, v3,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,

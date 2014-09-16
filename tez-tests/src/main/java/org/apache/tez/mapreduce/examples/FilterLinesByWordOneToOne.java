@@ -185,7 +185,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     // Configure the Output for stage2
     stage2Vertex.addDataSink(
         "MROutput",
-        new DataSinkDescriptor(OutputDescriptor.create(MROutput.class.getName())
+        DataSinkDescriptor.create(OutputDescriptor.create(MROutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(stage2Conf)),
             OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), null));
 

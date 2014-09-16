@@ -179,7 +179,7 @@ public class MROutput extends AbstractLogicalOutput {
         }
       }
 
-      return new DataSinkDescriptor(
+      return DataSinkDescriptor.create(
           OutputDescriptor.create(outputClassName).setUserPayload(createUserPayload()),
           (doCommit ? OutputCommitterDescriptor.create(
               MROutputCommitter.class.getName()) : null), credentials);
