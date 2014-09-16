@@ -536,6 +536,13 @@ public class DAGAppMaster extends AbstractService {
           }
         }
       }
+      //close all fs related caches
+      try {
+        FileSystem.closeAllForUGI(context.getCurrentDAG().getDagUGI());
+      } catch (IOException e) {
+        LOG.warn("Error occurred when trying to close FileSystem for userName " + context
+            .getCurrentDAG().getDagUGI().getUserName(), e);
+      }
       break;
     case AM_REBOOT:
       LOG.info("Received an AM_REBOOT signal");
