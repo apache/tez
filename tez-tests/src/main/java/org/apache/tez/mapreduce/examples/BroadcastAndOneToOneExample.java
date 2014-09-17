@@ -50,6 +50,7 @@ import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
@@ -159,7 +160,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
         VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName()));
 
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
-        .newBuilder(Text.class.getName(), IntWritable.class.getName()).build();
+        .newBuilder(Text.class.getName(), IntWritable.class.getName())
+        .setFromConfiguration(tezConf).build();
 
     DAG dag = DAG.create("BroadcastAndOneToOneExample");
     dag.addVertex(inputVertex)
@@ -188,9 +190,9 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
     // staging dir
     FileSystem fs = FileSystem.get(tezConf);
-    String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
-        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());    
+    String stagingDirStr = tezConf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+        TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR +
+        "BroadcastAndOneToOneExample" +  Path.SEPARATOR + Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
@@ -240,6 +242,14 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       printUsage();
       throw new TezException("Invalid command line");
     }
+
+    if (doLocalityCheck &&
+        getConf().getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+            TezConfiguration.TEZ_LOCAL_MODE_DEFAULT)) {
+      System.out.println("locality check is not valid in local mode. skipping");
+      doLocalityCheck = false;
+    }
+
     boolean status = run(getConf(), doLocalityCheck);
     return status ? 0 : 1;
   }

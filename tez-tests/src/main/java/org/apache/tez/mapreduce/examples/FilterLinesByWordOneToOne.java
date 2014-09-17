@@ -190,7 +190,8 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
             OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), null));
 
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
-        .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
+        .newBuilder(Text.class.getName(), TextLongPair.class.getName())
+        .setFromConfiguration(tezConf).build();
 
     DAG dag = DAG.create("FilterLinesByWord");
     Edge edge =
