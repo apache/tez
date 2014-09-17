@@ -140,7 +140,7 @@ public class OrderedWordCount extends Configured implements Tool  {
     // Use Text key and IntWritable value to bring counts for each word in the same partition
     OrderedPartitionedKVEdgeConfig summationEdgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName()).build();
+            HashPartitioner.class.getName()).setFromConfiguration(tezConf).build();
 
     // This vertex will be reading intermediate data via an input edge and writing intermediate data
     // via an output edge.
@@ -151,7 +151,7 @@ public class OrderedWordCount extends Configured implements Tool  {
     // partition. The data will be ordered by count and words grouped by count.
     OrderedPartitionedKVEdgeConfig sorterEdgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
-            HashPartitioner.class.getName()).build();
+            HashPartitioner.class.getName()).setFromConfiguration(tezConf).build();
 
     // Use 1 task to bring all the data in one place for global sorted order. Essentially the number
     // of partitions is 1. So the NoOpSorter can be used to produce the globally ordered output

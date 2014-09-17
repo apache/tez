@@ -244,7 +244,7 @@ public class JoinExample extends Configured implements Tool {
     UnorderedPartitionedKVEdgeConfig streamConf =
         UnorderedPartitionedKVEdgeConfig
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-                HashPartitioner.class.getName()).build();
+                HashPartitioner.class.getName()).setFromConfiguration(tezConf).build();
 
     /**
      * Connect the join vertex with the stream side
@@ -265,7 +265,7 @@ public class JoinExample extends Configured implements Tool {
        * value is null.
        */
       UnorderedKVEdgeConfig broadcastConf = UnorderedKVEdgeConfig.newBuilder(Text.class.getName(),
-          NullWritable.class.getName()).build();
+          NullWritable.class.getName()).setFromConfiguration(tezConf).build();
       hashSideEdgeProperty = broadcastConf.createDefaultBroadcastEdgeProperty();
     } else {
       /**

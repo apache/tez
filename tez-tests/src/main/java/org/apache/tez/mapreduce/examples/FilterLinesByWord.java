@@ -199,7 +199,8 @@ public class FilterLinesByWord extends Configured implements Tool {
     stage2Vertex.addDataSink("MROutput", DataSinkDescriptor.create(od, ocd, null));
 
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
-        .newBuilder(Text.class.getName(), TextLongPair.class.getName()).build();
+        .newBuilder(Text.class.getName(), TextLongPair.class.getName())
+        .setFromConfiguration(tezConf).build();
 
     DAG dag = DAG.create("FilterLinesByWord");
     Edge edge =
