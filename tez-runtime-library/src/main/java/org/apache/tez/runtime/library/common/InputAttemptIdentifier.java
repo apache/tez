@@ -29,26 +29,36 @@ public class InputAttemptIdentifier {
 
   private final InputIdentifier inputIdentifier;
   private final int attemptNumber;
-  private String pathComponent;
-  
+  private final String pathComponent;
+  private final boolean shared;
+
   public static final String PATH_PREFIX = "attempt";
-  
+
   public InputAttemptIdentifier(int inputIndex, int attemptNumber) {
     this(new InputIdentifier(inputIndex), attemptNumber, null);
   }
-  
+
   public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent) {
+    this(inputIdentifier, attemptNumber, pathComponent, false);
+  }
+
+  public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent, boolean shared) {
     this.inputIdentifier = inputIdentifier;
     this.attemptNumber = attemptNumber;
     this.pathComponent = pathComponent;
+    this.shared = shared;
     if (pathComponent != null && !pathComponent.startsWith(PATH_PREFIX)) {
       throw new TezUncheckedException(
           "Path component must start with: " + PATH_PREFIX + " " + this);
     }
   }
-  
+
   public InputAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent) {
     this(new InputIdentifier(taskIndex), attemptNumber, pathComponent);
+  }
+
+  public InputAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent, boolean shared) {
+    this(new InputIdentifier(taskIndex), attemptNumber, pathComponent, shared);
   }
 
   public InputIdentifier getInputIdentifier() {
@@ -63,7 +73,11 @@ public class InputAttemptIdentifier {
     return pathComponent;
   }
 
-  // PathComponent does not need to be part of the hashCode and equals computation.
+  public boolean isShared() {
+    return this.shared;
+  }
+
+  // PathComponent & shared does not need to be part of the hashCode and equals computation.
   @Override
   public int hashCode() {
     final int prime = 31;

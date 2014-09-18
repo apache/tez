@@ -24,6 +24,7 @@ import java.util.BitSet;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -53,6 +54,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private final CompressionCodec codec;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
+  private final boolean useSharedInputs;
 
   public ShuffleInputEventHandlerImpl(InputContext inputContext,
                                       ShuffleManager shuffleManager,
@@ -63,6 +65,9 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     this.codec = codec;
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
+    // this currently relies on a user to enable the flag
+    // expand on idea based on vertex parallelism and num inputs
+    this.useSharedInputs = (inputContext.getTaskAttemptNumber() == 0);
   }
 
   @Override
@@ -109,9 +114,12 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         return;
       }
-    } 
-    InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
-        dme.getVersion(), shufflePayload.getPathComponent());
+    }
+
+    InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(
+        dme.getTargetIndex(), dme.getVersion(),
+        shufflePayload.getPathComponent(), (useSharedInputs && srcIndex == 0));
+
     if (shufflePayload.hasData()) {
       DataProto dataProto = shufflePayload.getData();
       FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(),
@@ -119,8 +127,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
       shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
     } else {
-      shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
-              srcAttemptIdentifier, srcIndex);
+      shuffleManager.addKnownInput(shufflePayload.getHost(),
+          shufflePayload.getPort(), srcAttemptIdentifier, srcIndex);
     }
 
   }
