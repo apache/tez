@@ -127,7 +127,7 @@ public class TestHistoryEventTimelineConversion {
         case VERTEX_FINISHED:
           event = new VertexFinishedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
               random.nextInt(), random.nextInt(), random.nextInt(), VertexState.ERROR,
-              null, null, null);
+              null, null, null, null);
           break;
         case TASK_STARTED:
           event = new TaskStartedEvent(tezTaskID, "v1", random.nextInt(), random.nextInt());

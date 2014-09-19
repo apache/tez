@@ -599,6 +599,7 @@ public class RecoveryParser {
     dagAppMaster.setDAGCounter(dagCounter);
     for (DAGSummaryData dagSummaryData: dagSummaryDataMap.values()){
       dagAppMaster.dagNames.add(dagSummaryData.dagName);
+      dagAppMaster.dagIDs.add(dagSummaryData.dagId.toString());
     }
 
     DAGSummaryData lastInProgressDAGData =

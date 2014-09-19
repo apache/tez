@@ -16,13 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history.utils;
+package org.apache.tez.common;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+
+@Private
 public class ATSConstants {
 
   // TODO remove once YARN exposes proper constants
 
   /* Top level keys */
+  public static final String ENTITIES = "entities";
   public static final String ENTITY = "entity";
   public static final String ENTITY_TYPE = "entitytype";
   public static final String EVENTS = "events";
@@ -60,6 +64,10 @@ public class ATSConstants {
   public static final String COUNTERS = "counters";
   public static final String STATS = "stats";
   public static final String NUM_TASKS = "numTasks";
+  public static final String NUM_COMPLETED_TASKS = "numCompletedTasks";
+  public static final String NUM_SUCCEEDED_TASKS = "numSucceededTasks";
+  public static final String NUM_FAILED_TASKS = "numFailedTasks";
+  public static final String NUM_KILLED_TASKS = "numKilledTasks";
   public static final String PROCESSOR_CLASS_NAME = "processorClassName";
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";
@@ -73,4 +81,14 @@ public class ATSConstants {
   public static final String COUNTER_DISPLAY_NAME = "counterDisplayName";
   public static final String COUNTER_VALUE = "counterValue";
 
+  /* Url related */
+  public static final String RESOURCE_URI_BASE = "/ws/v1/timeline";
+  public static final String TEZ_DAG_ID = "TEZ_DAG_ID";
+  public static final String TEZ_VERTEX_ID = "TEZ_VERTEX_ID";
+
+  /* In Yarn but not present in 2.2 */
+  public static final String TIMELINE_SERVICE_WEBAPP_HTTP_ADDRESS_CONF_NAME =
+      "yarn.timeline-service.webapp.address";
+  public static final String TIMELINE_SERVICE_WEBAPP_HTTPS_ADDRESS_CONF_NAME =
+      "yarn.timeline-service.webapp.https.address";
 }

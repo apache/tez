@@ -572,7 +572,7 @@ public class TestVertexRecovery {
         vertex1.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
             "vertex1", initRequestedTime, initedTime, startRequestedTime,
             startTime, finishTime, VertexState.SUCCEEDED, "",
-            new TezCounters(), new VertexStats()));
+            new TezCounters(), new VertexStats(), null));
     assertEquals(finishTime, vertex1.finishTime);
     assertEquals(VertexState.SUCCEEDED, recoveredState);
     assertEquals(false, vertex1.recoveryCommitInProgress);
@@ -801,7 +801,7 @@ public class TestVertexRecovery {
     recoveredState = vertex1.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
         "vertex1", initRequestedTime, initedTime, initRequestedTime + 300L,
         initRequestedTime + 400L, initRequestedTime + 500L,
-        VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats()));
+        VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats(), null));
     assertEquals(VertexState.SUCCEEDED, recoveredState);
 
     vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),

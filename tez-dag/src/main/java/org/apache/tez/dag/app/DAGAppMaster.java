@@ -245,6 +245,7 @@ public class DAGAppMaster extends AbstractService {
    * set of already executed dag names.
    */
   Set<String> dagNames = new HashSet<String>();
+  Set<String> dagIDs = new HashSet<String>();
 
   protected boolean isLastAMRetry = false;
 
@@ -1165,6 +1166,11 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public Set<String> getAllDAGIDs() {
+      return dagIDs;
+    }
+
+    @Override
     public EventHandler getEventHandler() {
       return eventHandler;
     }
@@ -1861,6 +1867,7 @@ public class DAGAppMaster extends AbstractService {
       throw new TezException(e);
     }
 
+    dagIDs.add(currentDAG.getID().toString());
     // End of creating the job.
     ((RunningAppContext) context).setDAG(currentDAG);
 

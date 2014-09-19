@@ -55,6 +55,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -1463,19 +1464,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   void logJobHistoryVertexFinishedEvent() throws IOException {
     this.setFinishTime();
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, initTimeRequested, initedTime, startTimeRequested,
-        startedTime, finishTime, VertexState.SUCCEEDED, "",
-        getAllCounters(), getVertexStats());
-    this.appContext.getHistoryHandler().handleCriticalEvent(
-        new DAGHistoryEvent(getDAGId(), finishEvt));
+    logJobHistoryVertexCompletedHelper(VertexState.SUCCEEDED, finishTime, "");
   }
 
   void logJobHistoryVertexFailedEvent(VertexState state) throws IOException {
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, initTimeRequested, initedTime, startTimeRequested,
-        startedTime, clock.getTime(), state, StringUtils.join(getDiagnostics(),
-            LINE_SEPARATOR), getAllCounters(), getVertexStats());
+    logJobHistoryVertexCompletedHelper(state, clock.getTime(),
+        StringUtils.join(getDiagnostics(), LINE_SEPARATOR));
+  }
+
+  private void logJobHistoryVertexCompletedHelper(VertexState finalState, long finishTime,
+                                                  String diagnostics) throws IOException {
+    Map<String, Integer> taskStats = new HashMap<String, Integer>();
+    taskStats.put(ATSConstants.NUM_COMPLETED_TASKS, completedTaskCount);
+    taskStats.put(ATSConstants.NUM_SUCCEEDED_TASKS, succeededTaskCount);
+    taskStats.put(ATSConstants.NUM_FAILED_TASKS, failedTaskCount);
+    taskStats.put(ATSConstants.NUM_KILLED_TASKS, killedTaskCount);
+
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, initTimeRequested,
+        initedTime, startTimeRequested, startedTime, finishTime, finalState, diagnostics,
+        getAllCounters(), getVertexStats(), taskStats);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
