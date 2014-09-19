@@ -3642,6 +3642,8 @@ public class TestVertexImpl {
      *   M7 --(B)---------------->M5 ---(SG)--> R6
      *                            /
      *   M8---(C)--------------->/
+     *                          /
+     *   M9---(B)--------------> (zero task vertex)
      */
 
     //init M2
@@ -3650,14 +3652,22 @@ public class TestVertexImpl {
     VertexImpl r3 = vertices.get("R3");
     VertexImpl m5 = vertices.get("M5");
     VertexImpl m8 = vertices.get("M8");
+    VertexImpl m9 = vertices.get("M9");
 
     initVertex(m2);
     initVertex(m7);
     initVertex(m8);
+    initVertex(m9);
     assertTrue(m7.getState().equals(VertexState.INITED));
+    assertTrue(m9.getState().equals(VertexState.INITED));
     assertTrue(m5.getState().equals(VertexState.INITED));
     assertTrue(m8.getState().equals(VertexState.INITED));
     assertTrue(m7.getVertexManager().getPlugin() instanceof ImmediateStartVertexManager);
+
+    //Start M9
+    dispatcher.getEventHandler().handle(new VertexEvent(m9.getVertexId(),
+        VertexEventType.V_START));
+    dispatcher.await();
 
     //Start M2; Let tasks complete in M2; Also let 1 task complete in R3
     dispatcher.getEventHandler().handle(new VertexEvent(m2.getVertexId(), VertexEventType.V_START));
@@ -3708,6 +3718,8 @@ public class TestVertexImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(m8.getVertexId(),VertexEventType.V_START));
     dispatcher.await();
 
+    assertTrue(m9.getState().equals(VertexState.SUCCEEDED));
+
     //M5 in running state. But tasks should not be scheduled until M8 finishes a task.
     assertTrue(m5.getState().equals(VertexState.RUNNING));
     for(Task task : m5.getTasks().values()) {
@@ -3740,6 +3752,8 @@ public class TestVertexImpl {
      *   M7 --(B)---------------->M5 ---(SG)--> R6
      *                            /
      *   M8---(C)--------------->/
+     *                          /
+     *   M9---(B)--------------> (zero task vertex)
      */
     DAGPlan dag = DAGPlan.newBuilder().setName("TestSamplerDAG")
         .addVertex(VertexPlan.newBuilder()
@@ -3776,6 +3790,24 @@ public class TestVertexImpl {
                         .build()
                 )
                 .addOutEdgeId("M8_M5")
+                .build()
+        )
+        .addVertex(VertexPlan.newBuilder()
+                .setName("M9")
+                .setProcessorDescriptor(
+                    TezEntityDescriptorProto.newBuilder().setClassName("M9.class"))
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder().addHost("host1").addRack("rack1").build())
+                .setTaskConfig(PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(0) //Zero task vertex
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("M9.class")
+                        .build()
+                )
+                .addOutEdgeId("M9_M5")
                 .build()
         )
          .addVertex(VertexPlan.newBuilder()
@@ -3815,6 +3847,7 @@ public class TestVertexImpl {
                 .addInEdgeId("R3_M5")
                 .addInEdgeId("M7_M5")
                 .addInEdgeId("M8_M5")
+                .addInEdgeId("M9_M5")
                 .addOutEdgeId("M5_R6")
                 .build()
         )
@@ -3898,6 +3931,18 @@ public class TestVertexImpl {
                 .setOutputVertexName("R6")
                 .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
                 .setId("M5_R6")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("M9_M5"))
+                .setInputVertexName("M9")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("M9_M5.class"))
+                .setOutputVertexName("M5")
+                .setDataMovementType(PlanEdgeDataMovementType.BROADCAST)
+                .setId("M9_M5")
                 .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
                 .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
                 .build()

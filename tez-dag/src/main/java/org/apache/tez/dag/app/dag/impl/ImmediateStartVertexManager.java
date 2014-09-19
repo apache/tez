@@ -64,7 +64,14 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
     for (Map.Entry<String, EdgeProperty> entry : edges.entrySet()) {
       String srcVertex = entry.getKey();
       EdgeProperty edgeProp = entry.getValue();
-      srcVertexInfo.put(srcVertex, new SourceVertexInfo(edgeProp));
+      LOG.info("Task count in " + srcVertex + ": " + getContext().getVertexNumTasks(srcVertex));
+      //track vertices with task count > 0
+      if (getContext().getVertexNumTasks(srcVertex) > 0) {
+        srcVertexInfo.put(srcVertex, new SourceVertexInfo(edgeProp));
+      } else {
+        LOG.info("Vertex: " + getContext().getVertexName() + "; Ignoring " + srcVertex
+            + " as it has got 0 tasks");
+      }
     }
 
     //handle completions
