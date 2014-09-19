@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -64,6 +65,8 @@ public interface AppContext {
   DAG getCurrentDAG();
 
   void setDAG(DAG dag);
+
+  Set<String> getAllDAGIDs();
 
   @SuppressWarnings("rawtypes")
   EventHandler getEventHandler();

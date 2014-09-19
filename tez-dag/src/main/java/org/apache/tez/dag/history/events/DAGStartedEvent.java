@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
@@ -108,4 +109,7 @@ public class DAGStartedEvent implements HistoryEvent {
     return dagName;
   }
 
+  public DAGState getDagState() {
+    return DAGState.RUNNING;
+  }
 }

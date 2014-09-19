@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
@@ -105,4 +106,7 @@ public class VertexStartedEvent implements HistoryEvent {
     return startTime;
   }
 
+  public VertexState getVertexState() {
+    return VertexState.RUNNING;
+  }
 }
