@@ -93,10 +93,10 @@ public class TestTezCommonUtils {
   @Test
   public void testCreateTezSysStagingPath() throws Exception {
     String strAppId = "testAppId";
-    String expectedStageDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId;
-    String unResolvedStageDir = STAGE_DIR + File.separatorChar + TezCommonUtils.TEZ_SYSTEM_SUB_DIR
-        + File.separatorChar + strAppId;
+    String expectedStageDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId;
+    String unResolvedStageDir = STAGE_DIR + Path.SEPARATOR + TezCommonUtils.TEZ_SYSTEM_SUB_DIR
+        + Path.SEPARATOR + strAppId;
 
     Path stagePath = new Path(unResolvedStageDir);
     FileSystem fs = stagePath.getFileSystem(conf);
@@ -114,8 +114,8 @@ public class TestTezCommonUtils {
   public void testTezSysStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
-    String expectedStageDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId;
+    String expectedStageDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId;
     Assert.assertEquals(stageDir.toString(), expectedStageDir);
   }
 
@@ -125,8 +125,8 @@ public class TestTezCommonUtils {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     Path confStageDir = TezCommonUtils.getTezConfStagingPath(stageDir);
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_BINARY_CONF_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
@@ -137,8 +137,8 @@ public class TestTezCommonUtils {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     Path confStageDir = TezCommonUtils.getTezAMJarStagingPath(stageDir);
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
@@ -149,8 +149,8 @@ public class TestTezCommonUtils {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     Path confStageDir = TezCommonUtils.getTezBinPlanStagingPath(stageDir);
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_PLAN_BINARY_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
@@ -161,8 +161,8 @@ public class TestTezCommonUtils {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     Path confStageDir = TezCommonUtils.getTezTextPlanStagingPath(stageDir);
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
@@ -173,8 +173,8 @@ public class TestTezCommonUtils {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     Path confStageDir = TezCommonUtils.getRecoveryPath(stageDir, conf);
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_DATA_DIR_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
@@ -187,9 +187,9 @@ public class TestTezCommonUtils {
     Path recoveryPath = TezCommonUtils.getRecoveryPath(stageDir, conf);
     Path recoveryStageDir = TezCommonUtils.getAttemptRecoveryPath(recoveryPath, 2);
 
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2";
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + Path.SEPARATOR + "2";
     Assert.assertEquals(recoveryStageDir.toString(), expectedDir);
   }
 
@@ -203,11 +203,11 @@ public class TestTezCommonUtils {
 
     Path dagRecoveryPathj = TezCommonUtils.getDAGRecoveryPath(recoveryStageDir, "dag_123");
 
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2" + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + Path.SEPARATOR + "2" + Path.SEPARATOR
         + "dag_123" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX;
-    Assert.assertEquals(dagRecoveryPathj.toString(), expectedDir);
+    Assert.assertEquals(expectedDir, dagRecoveryPathj.toString());
   }
 
   // Testing Summary recovery path staging dir
@@ -219,11 +219,11 @@ public class TestTezCommonUtils {
     Path recoveryStageDir = TezCommonUtils.getAttemptRecoveryPath(recoveryPath, 2);
     Path summaryRecoveryPathj = TezCommonUtils.getSummaryRecoveryPath(recoveryStageDir);
 
-    String expectedDir = RESOLVED_STAGE_DIR + File.separatorChar
-        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + File.separatorChar + strAppId + File.separator
-        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + File.separator + "2" + File.separator
+    String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
+        + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
+        + TezConstants.DAG_RECOVERY_DATA_DIR_NAME + Path.SEPARATOR + "2" + Path.SEPARATOR
         + TezConstants.DAG_RECOVERY_SUMMARY_FILE_SUFFIX;
-    Assert.assertEquals(summaryRecoveryPathj.toString(), expectedDir);
+    Assert.assertEquals(expectedDir, summaryRecoveryPathj.toString());
   }
 
   // This test is running here to leverage existing mini cluster
