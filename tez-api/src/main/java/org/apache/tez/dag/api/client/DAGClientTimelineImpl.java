@@ -21,6 +21,7 @@ package org.apache.tez.dag.api.client;
 import javax.annotation.Nullable;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -448,8 +449,14 @@ public class DAGClientTimelineImpl extends DAGClient {
       Class<?> yarnConfiguration = Class.forName("org.apache.hadoop.yarn.conf.YarnConfiguration");
       final Method useHttps = yarnConfiguration.getMethod("useHttps", Configuration.class);
       return (Boolean)useHttps.invoke(null, conf);
-    } catch (ReflectiveOperationException e) {
-      throw new TezException("error accessing yarn configuration", e);
+    } catch (ClassNotFoundException e) {
+      throw new TezException(e);
+    } catch (InvocationTargetException e) {
+      throw new TezException(e);
+    } catch (NoSuchMethodException e) {
+      throw new TezException(e);
+    } catch (IllegalAccessException e) {
+      throw new TezException(e);
     }
   }
 
