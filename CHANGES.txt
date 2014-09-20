@@ -21,6 +21,8 @@ ALL CHANGES:
   TEZ-1581. GroupByOrderByMRRTest no longer functional.
   TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless of DAG submission.
   TEZ-1157. Optimize broadcast shuffle to download data only once per host. 
+  TEZ-1594. Initial TezUI into TEZ-8 branch
+  TEZ-1595. Document timeline server setup for use with the Tez UI
 
 Release 0.5.1: Unreleased
 
