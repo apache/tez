@@ -31,6 +31,8 @@ a Tez UI web application.
 Application Timeline Server Setup
 ---------------------------------
 
+_Requires_: **Hadoop 2.6.0-SNAPSHOT**
+
 A minimal _yarn-site.xml_ configuration snippet is provided below. Replace
 localhost with the actual hostname if running in a distributed setup.
 
@@ -71,6 +73,8 @@ $ $HADOOP_PREFIX/sbin/yarn-daemon.sh start timelineserver
 
 Tez Setup
 ---------
+
+_Requires_: **Tez 0.6.0-SNAPSHOT**
 
 A minimal _tez-site.xml_ configuration snippet is provided below
 
