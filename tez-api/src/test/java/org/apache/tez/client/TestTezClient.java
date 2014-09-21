@@ -54,8 +54,11 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
@@ -127,7 +130,7 @@ public class TestTezClient {
   public void testTezClient(boolean isSession) throws Exception {
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
-    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
+    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     
     TezClientForTest client = configure(lrs, isSession);
@@ -152,7 +155,7 @@ public class TestTezClient {
     
     String mockLR1Name = "LR1";
     Map<String, LocalResource> lrDAG = Collections.singletonMap(mockLR1Name, LocalResource
-        .newInstance(URL.newInstance("file:///", "localhost", 0, "test"), LocalResourceType.FILE,
+        .newInstance(URL.newInstance("file", "localhost", 0, "/test1"), LocalResourceType.FILE,
             LocalResourceVisibility.PUBLIC, 1, 1));
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
         Resource.newInstance(1, 1));
@@ -185,7 +188,7 @@ public class TestTezClient {
     // add resources
     String lrName2 = "LR2";
     lrs.clear();
-    lrs.put(lrName2, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
+    lrs.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test2"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     client.addAppMasterLocalFiles(lrs);
     
@@ -234,14 +237,23 @@ public class TestTezClient {
     verify(client.mockYarnClient, times(1)).stop();
   }
   
+  @Test (timeout=5000)
   public void testPreWarm() throws Exception {
     TezClientForTest client = configure();
     client.start();
+
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+    .thenReturn(YarnApplicationState.RUNNING);
+    
+    when(
+        client.sessionAmProxy.getAMStatus((RpcController) any(), (GetAMStatusRequestProto) any()))
+        .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezSessionStatusProto.READY).build());
+
     PreWarmVertex vertex = PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
     client.preWarm(vertex);
     
     ArgumentCaptor<SubmitDAGRequestProto> captor1 = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
-    verify(client.sessionAmProxy, times(1)).submitDAG((RpcController)any(), (SubmitDAGRequestProto) any());
+    verify(client.sessionAmProxy, times(1)).submitDAG((RpcController)any(), captor1.capture());
     SubmitDAGRequestProto proto = captor1.getValue();
     Assert.assertTrue(proto.getDAGPlan().getName().startsWith(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX));
 
@@ -260,11 +272,16 @@ public class TestTezClient {
     
     String mockLR1Name = "LR1";
     Map<String, LocalResource> lrDAG = Collections.singletonMap(mockLR1Name, LocalResource
-        .newInstance(URL.newInstance("file:///", "localhost", 0, "test"), LocalResourceType.FILE,
+        .newInstance(URL.newInstance("file", "localhost", 0, "/test"), LocalResourceType.FILE,
+            LocalResourceVisibility.PUBLIC, 1, 1));
+    String mockLR2Name = "LR2";
+    Map<String, LocalResource> lrVertex = Collections.singletonMap(mockLR2Name, LocalResource
+        .newInstance(URL.newInstance("file", "localhost", 0, "/test1"), LocalResourceType.FILE,
             LocalResourceVisibility.PUBLIC, 1, 1));
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
-        Resource.newInstance(1, 1));
+        Resource.newInstance(1, 1)).addTaskLocalFiles(lrVertex);
     DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+
     // the dag resource will be added to the vertex once
     client1.submitDAG(dag);
     
@@ -273,8 +290,6 @@ public class TestTezClient {
     
     // verify resubmission of same dag to new client (simulates submission error resulting in the
     // creation of a new client and resubmission of the DAG)
-    // TEZ-1563 dag resource will not be added again to the vertex because its cached
-    // so resubmission works fine
     client2.submitDAG(dag);
     
     client1.stop();

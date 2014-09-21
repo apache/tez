@@ -920,7 +920,7 @@ public class TestDAGVerify {
             InputDescriptor.create(dummyInputClassName)));
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
-    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
+    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     
     DAG dag = DAG.create("testDag");
@@ -948,7 +948,7 @@ public class TestDAGVerify {
             InputDescriptor.create(dummyInputClassName)));
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
-    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file:///", "localhost", 0, "test"),
+    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     v1.addTaskLocalFiles(lrs);
     try {
