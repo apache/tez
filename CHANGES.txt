@@ -49,6 +49,8 @@ ALL CHANGES
   TestTezCommonUtils for Windows
   TEZ-1598. DAGClientTimelineImpl uses ReflectiveOperationException (which has JDK 1.7 dependency)
   TEZ-1599. TezClient.preWarm() is not enabled
+  TEZ-1550. TestEnvironmentUpdateUtils.testMultipleUpdateEnvironment fails on
+  Windows
 
 Release 0.5.0: 2014-09-03
 

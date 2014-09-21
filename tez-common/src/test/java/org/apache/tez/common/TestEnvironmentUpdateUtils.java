@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.utils;
+package org.apache.tez.common;
 
 import static org.junit.Assert.assertEquals;
 

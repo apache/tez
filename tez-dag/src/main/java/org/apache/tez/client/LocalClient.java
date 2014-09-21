@@ -45,6 +45,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.Logger;
+import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -53,7 +54,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.utils.EnvironmentUpdateUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 
