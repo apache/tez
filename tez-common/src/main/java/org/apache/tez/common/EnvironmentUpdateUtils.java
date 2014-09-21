@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.utils;
+package org.apache.tez.common;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.util.Shell;
 
 import java.lang.reflect.Field;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,7 +41,11 @@ public class EnvironmentUpdateUtils {
   public static void put(String key, String value){
     Map<String, String> environment = new HashMap<String, String>(System.getenv());
     environment.put(key, value);
-    updateEnvironment(environment);
+    if (!Shell.WINDOWS) {
+      updateEnvironment(environment);
+    } else {
+      updateEnvironmentOnWindows(environment);
+    }
   }
 
   /**
@@ -56,7 +60,11 @@ public class EnvironmentUpdateUtils {
   public static void putAll(Map<String, String> additionalEnvironment) {
     Map<String, String> environment = new HashMap<String, String>(System.getenv());
     environment.putAll(additionalEnvironment);
-    updateEnvironment(environment);
+    if (!Shell.WINDOWS) {
+      updateEnvironment(environment);
+    } else {
+      updateEnvironmentOnWindows(environment);
+    }
   }
 
   /**
@@ -69,23 +77,50 @@ public class EnvironmentUpdateUtils {
    */
   @SuppressWarnings("unchecked")
   private static void updateEnvironment(Map<String, String> environment) {
+    final Map<String, String> currentEnv = System.getenv();
+    copyMapValuesToPrivateField(currentEnv.getClass(), currentEnv, "m", environment);
+  }
+
+  /**
+   * Finds and modifies internal storage for system environment variables using reflection. This
+   * method works only on windows. Note that the actual env is not modified, rather the copy of env
+   * which the JVM creates at the beginning of execution is.
+   *
+   * @param environment Collection where the key is the System
+   * environment variable and the value is the value to assign the system
+   * environment variable
+   */
+  @SuppressWarnings("unchecked")
+  private static void updateEnvironmentOnWindows(Map<String, String> environment) {
     try {
-      Class<?>[] classes = Collections.class.getDeclaredClasses();
-      for (Class<?> clazz : classes) {
-        if ("java.util.Collections$UnmodifiableMap".equals(clazz.getName())) {
-          Field field = clazz.getDeclaredField("m");
-          field.setAccessible(true);
-          Object obj = field.get(System.getenv());
-          Map<String, String> map = (Map<String, String>)obj;
-          map.clear();
-          map.putAll(environment);
-        }
-      }
-    }
-    catch (NoSuchFieldException e) {
+      Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+      copyMapValuesToPrivateField(processEnvironmentClass, null, "theEnvironment", environment);
+      copyMapValuesToPrivateField(processEnvironmentClass, null, "theCaseInsensitiveEnvironment",
+          environment);
+    } catch (ClassNotFoundException e) {
       throw new IllegalStateException("Failed to update Environment variables", e);
     }
-    catch (IllegalAccessException e) {
+  }
+
+  /**
+   * Copies the given map values to the field specified by {@code fieldName}
+   * @param klass The {@code Class} of the object
+   * @param object The object to modify or null if the field is static
+   * @param fieldName The name of the field to set
+   * @param newMapValues The values to replace the current map.
+   */
+  @SuppressWarnings("unchecked")
+  private static void copyMapValuesToPrivateField(Class<?> klass, Object object, String fieldName,
+                                                  Map<String, String> newMapValues) {
+    try {
+      Field field = klass.getDeclaredField(fieldName);
+      field.setAccessible(true);
+      Map<String, String> currentMap = (Map<String, String>) field.get(object);
+      currentMap.clear();
+      currentMap.putAll(newMapValues);
+    } catch (NoSuchFieldException e) {
+      throw new IllegalStateException("Failed to update Environment variables", e);
+    } catch (IllegalAccessException e) {
       throw new IllegalStateException("Failed to update Environment variables", e);
     }
   }
