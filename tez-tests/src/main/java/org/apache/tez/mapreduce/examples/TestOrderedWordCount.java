@@ -79,6 +79,7 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 
 /**
  * An MRR job built on top of word count to return words sorted by
@@ -198,6 +199,11 @@ public class TestOrderedWordCount extends Configured implements Tool {
       dsd = MRInputLegacy.createConfigBuilder(mapStageConf, TextInputFormat.class, inputPath).build();
     }
 
+    Map<String, String> mapEnv = Maps.newHashMap();
+    MRHelpers.updateEnvBasedOnMRTaskEnv(mapStageConf, mapEnv, true);
+    Map<String, String> reduceEnv = Maps.newHashMap();
+    MRHelpers.updateEnvBasedOnMRTaskEnv(mapStageConf, reduceEnv, false);
+
     Vertex mapVertex;
     ProcessorDescriptor mapProcessorDescriptor =
         ProcessorDescriptor.create(MapProcessor.class.getName())
@@ -210,6 +216,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       mapVertex = Vertex.create("initialmap", mapProcessorDescriptor, -1,
           MRHelpers.getResourceForMRMapper(mapStageConf));
       mapVertex.setTaskLaunchCmdOpts(MRHelpers.getJavaOptsForMRMapper(mapStageConf));
+      mapVertex.setTaskEnvironment(mapEnv);
     }
     mapVertex.addTaskLocalFiles(commonLocalResources)
         .addDataSource("MRInput", dsd);
@@ -232,6 +239,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       intermediateVertex = Vertex.create("intermediate_reducer", iReduceProcessorDescriptor,
           intermediateNumReduceTasks, MRHelpers.getResourceForMRReducer(iReduceStageConf));
       intermediateVertex.setTaskLaunchCmdOpts(MRHelpers.getJavaOptsForMRReducer(iReduceStageConf));
+      intermediateVertex.setTaskEnvironment(reduceEnv);
     }
     intermediateVertex.addTaskLocalFiles(commonLocalResources);
     vertices.add(intermediateVertex);
@@ -253,6 +261,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       finalReduceVertex = Vertex.create("finalreduce", finalReduceProcessorDescriptor, 1,
           MRHelpers.getResourceForMRReducer(finalReduceConf));
       finalReduceVertex.setTaskLaunchCmdOpts(MRHelpers.getJavaOptsForMRReducer(finalReduceConf));
+      finalReduceVertex.setTaskEnvironment(reduceEnv);
     }
     finalReduceVertex.addTaskLocalFiles(commonLocalResources);
     finalReduceVertex.addDataSink("MROutput",
