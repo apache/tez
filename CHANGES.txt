@@ -52,6 +52,7 @@ ALL CHANGES
   TEZ-1599. TezClient.preWarm() is not enabled
   TEZ-1550. TestEnvironmentUpdateUtils.testMultipleUpdateEnvironment fails on
   Windows
+  TEZ-1554. Failing tests in TestMRHelpers related to environment on Windows
 
 Release 0.5.0: 2014-09-03
 
