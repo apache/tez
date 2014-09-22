@@ -73,7 +73,6 @@ public class JoinDataGen extends Configured implements Tool {
     System.err
         .println("Usage: "
             + "joindatagen <outPath1> <path1Size> <outPath2> <path2Size> <expectedResultPath> <numTasks>");
-    ;
     ToolRunner.printGenericCommandUsage(System.err);
   }
 

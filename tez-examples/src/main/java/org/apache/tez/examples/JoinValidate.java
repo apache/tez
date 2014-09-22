@@ -43,7 +43,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.examples.JoinExample.ForwardingProcessor;
+import org.apache.tez.examples.HashJoinExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.Reader;
@@ -57,7 +57,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 public class JoinValidate extends Configured implements Tool {
-  private static final Log LOG = LogFactory.getLog(JoinExample.class);
+  private static final Log LOG = LogFactory.getLog(JoinValidate.class);
 
   private static final String LHS_INPUT_NAME = "lhsfile";
   private static final String RHS_INPUT_NAME = "rhsfile";
