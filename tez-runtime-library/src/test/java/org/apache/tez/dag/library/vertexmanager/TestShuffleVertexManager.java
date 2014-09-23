@@ -232,14 +232,105 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(4, scheduledTasks.size());
     Assert.assertEquals(1, manager.numSourceTasksCompleted);
     Assert.assertEquals(5000L, manager.completedSourceTasksOutputSize);
-    
-    
+
+    /**
+     * Test for TEZ-978
+     * Delay determining parallelism until enough data has been received.
+     */
+    scheduledTasks.clear();
+    payload =
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(1L).build().toByteString().asReadOnlyByteBuffer();
+    vmEvent = VertexManagerEvent.create("Vertex", payload);
+
+    //min/max fraction of 0.01/0.75 would ensure that we hit determineParallelism code path on receiving first event itself.
+    manager = createManager(conf, mockContext, 0.01f, 0.75f);
+    manager.onVertexStarted(null);
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(4, manager.totalNumSourceTasks);
+    Assert.assertEquals(0, manager.numSourceTasksCompleted);
+
+    //First task in src1 completed with small payload
+    manager.onVertexManagerEventReceived(vmEvent); //small payload
+    manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
+    Assert.assertTrue(manager.determineParallelismAndApply() == false);
+    Assert.assertEquals(4, manager.pendingTasks.size());
+    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    Assert.assertEquals(1, manager.numSourceTasksCompleted);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(1L, manager.completedSourceTasksOutputSize);
+
+    //Second task in src1 completed with small payload
+    manager.onVertexManagerEventReceived(vmEvent); //small payload
+    manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
+    //Still overall data gathered has not reached threshold; So, ensure parallelism can be determined later
+    Assert.assertTrue(manager.determineParallelismAndApply() == false);
+    Assert.assertEquals(4, manager.pendingTasks.size());
+    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    Assert.assertEquals(1, manager.numSourceTasksCompleted);
+    Assert.assertEquals(2, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(2L, manager.completedSourceTasksOutputSize);
+
+    //First task in src2 completed (with larger payload) to trigger determining parallelism
+    payload =
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(1200L).build().toByteString()
+            .asReadOnlyByteBuffer();
+    vmEvent = VertexManagerEvent.create("Vertex", payload);
+    manager.onVertexManagerEventReceived(vmEvent);
+    Assert.assertTrue(manager.determineParallelismAndApply()); //ensure parallelism is determined
+    verify(mockContext, times(1)).setVertexParallelism(eq(2), any(VertexLocationHint.class),
+        anyMap(),
+        anyMap());
+    manager.onSourceTaskCompleted(mockSrcVertexId2, new Integer(0));
+    Assert.assertEquals(1, manager.pendingTasks.size());
+    Assert.assertEquals(1, scheduledTasks.size());
+    Assert.assertEquals(2, manager.numSourceTasksCompleted);
+    Assert.assertEquals(3, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(1202L, manager.completedSourceTasksOutputSize);
+
+    //Test for max fraction. Min fraction is just instruction to framework, but honor max fraction
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(20);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(20);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(40);
+    scheduledTasks.clear();
+    payload =
+        VertexManagerEventPayloadProto.newBuilder().setOutputSize(100L).build().toByteString()
+            .asReadOnlyByteBuffer();
+    vmEvent = VertexManagerEvent.create("Vertex", payload);
+
+    //min/max fraction of 0.0/0.2
+    manager = createManager(conf, mockContext, 0.0f, 0.2f);
+    manager.onVertexStarted(null);
+    Assert.assertEquals(40, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(40, manager.totalNumSourceTasks);
+    Assert.assertEquals(0, manager.numSourceTasksCompleted);
+    //send 7 events with payload size as 100
+    for(int i=0;i<7;i++) {
+      manager.onVertexManagerEventReceived(vmEvent); //small payload
+      manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(i));
+      //should not change parallelism
+      verify(mockContext, times(0)).setVertexParallelism(eq(4), any(VertexLocationHint.class),
+          anyMap(),
+          anyMap());
+    }
+    //send 8th event with payload size as 100
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(8));
+    //Since max threshold (40 * 0.2 = 8) is met, vertex manager should determine parallelism
+    verify(mockContext, times(1)).setVertexParallelism(eq(4), any(VertexLocationHint.class),
+        anyMap(),
+        anyMap());
+
+    //reset context for next test
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
+
     // parallelism changed due to small data size
     scheduledTasks.clear();
     payload =
         VertexManagerEventPayloadProto.newBuilder().setOutputSize(500L).build().toByteString().asReadOnlyByteBuffer();
     vmEvent = VertexManagerEvent.create("Vertex", payload);
-    
+
     manager = createManager(conf, mockContext, 0.5f, 0.5f);
     manager.onVertexStarted(null);
     Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
@@ -266,7 +357,9 @@ public class TestShuffleVertexManager {
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(1));
     // managedVertex tasks reduced
-    verify(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap(), anyMap());
+    verify(mockContext, times(2)).setVertexParallelism(eq(2), any(VertexLocationHint.class),
+        anyMap(),
+        anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     // TODO improve tests for parallelism
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
@@ -279,7 +372,9 @@ public class TestShuffleVertexManager {
     
     // more completions dont cause recalculation of parallelism
     manager.onSourceTaskCompleted(mockSrcVertexId2, new Integer(0));
-    verify(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap(), anyMap());
+    verify(mockContext, times(2)).setVertexParallelism(eq(2), any(VertexLocationHint.class),
+        anyMap(),
+        anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     
     EdgeManagerPlugin edgeManager = newEdgeManagers.values().iterator().next();
