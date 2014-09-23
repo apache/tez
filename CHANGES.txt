@@ -57,6 +57,8 @@ ALL CHANGES
   Windows
   TEZ-1554. Failing tests in TestMRHelpers related to environment on Windows
   TEZ-978. Enhance auto parallelism tuning for queries having empty outputs or data skewness
+  TEZ-1433. Invalid credentials can be used when a DAG is submitted to a
+  session which has timed out
 
 Release 0.5.0: 2014-09-03
 

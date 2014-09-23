@@ -39,10 +39,11 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -53,7 +54,6 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
-import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
@@ -89,7 +89,6 @@ public class DAG {
   Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
   
   private Stack<String> topologicalVertexStack = new Stack<String>();
-  private DAGPlan cachedDAGPlan;
 
   private DAG(String name) {
     this.name = name;
@@ -112,7 +111,7 @@ public class DAG {
    *          elements of the map.
    * @return {@link DAG}
    */
-  public DAG addTaskLocalFiles(Map<String, LocalResource> localFiles) {
+  public synchronized DAG addTaskLocalFiles(Map<String, LocalResource> localFiles) {
     Preconditions.checkNotNull(localFiles);
     TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles);
     return this;
@@ -296,6 +295,11 @@ public class DAG {
    */
   public String getName() {
     return this.name;
+  }
+  
+  @Private
+  public Map<String, LocalResource> getTaskLocalFiles() {
+    return commonTaskLocalFiles;
   }
   
   void checkAndInferOneToOneParallelism() {
@@ -575,14 +579,11 @@ public class DAG {
     }
   }
 
-  @Private
-  public DAGPlan getCachedDAGPlan() {
-    return cachedDAGPlan;
-  }
-
   // create protobuf message describing DAG
   @Private
-  public DAGPlan createDag(Configuration dagConf) {
+  public DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
+      Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
+      boolean tezLrsAsArchive) {
     verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
@@ -608,6 +609,15 @@ public class DAG {
       }
     }
 
+    Credentials dagCredentials = new Credentials();
+    if (extraCredentials != null) {
+      dagCredentials.mergeAll(extraCredentials);
+    }
+    dagCredentials.mergeAll(credentials);
+    if (!commonTaskLocalFiles.isEmpty()) {
+      dagBuilder.addAllLocalResource(DagTypeConverters.convertToDAGPlan(commonTaskLocalFiles));
+    }
+
     Preconditions.checkArgument(topologicalVertexStack.size() == vertices.size(),
         "size of topologicalVertexStack is:" + topologicalVertexStack.size() +
         " while size of vertices is:" + vertices.size() +
@@ -615,38 +625,57 @@ public class DAG {
     while(!topologicalVertexStack.isEmpty()) {
       Vertex vertex = vertices.get(topologicalVertexStack.pop());
       // infer credentials, resources and parallelism from data source
-      if (vertex.getTaskResource() == null) {
-        vertex.setTaskResource(Resource.newInstance(dagConf.getInt(
+      Resource vertexTaskResource = vertex.getTaskResource();
+      if (vertexTaskResource == null) {
+        vertexTaskResource = Resource.newInstance(dagConf.getInt(
             TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
             TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT), dagConf.getInt(
             TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
-            TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT)));
+            TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT));
       }
+      Map<String, LocalResource> vertexLRs = Maps.newHashMap();
+      vertexLRs.putAll(vertex.getTaskLocalFiles());
       List<DataSourceDescriptor> dataSources = vertex.getDataSources();
       for (DataSourceDescriptor dataSource : dataSources) {
         if (dataSource.getCredentials() != null) {
-          credentials.addAll(dataSource.getCredentials());
+          dagCredentials.addAll(dataSource.getCredentials());
         }
         vertex.addTaskLocalFiles(dataSource.getAdditionalLocalFiles());
+        if (dataSource.getAdditionalLocalFiles() != null) {
+          TezCommonUtils.addAdditionalLocalResources(dataSource.getAdditionalLocalFiles(), vertexLRs);
+        }
       }
+      if (tezJarResources != null) {
+        TezCommonUtils.addAdditionalLocalResources(tezJarResources, vertexLRs);
+      }
+      if (binaryConfig != null) {
+        vertexLRs.put(TezConstants.TEZ_PB_BINARY_CONF_NAME, binaryConfig);
+      }
+      int vertexParallelism = vertex.getParallelism();
+      VertexLocationHint vertexLocationHint = vertex.getLocationHint();
       if (dataSources.size() == 1) {
         DataSourceDescriptor dataSource = dataSources.get(0);
-        if (vertex.getParallelism() == -1 && dataSource.getNumberOfShards() > -1) {
-          vertex.setParallelism(dataSource.getNumberOfShards());
+        if (vertexParallelism == -1 && dataSource.getNumberOfShards() > -1) {
+          vertexParallelism = dataSource.getNumberOfShards();
         }
-        if (vertex.getLocationHint() == null && dataSource.getLocationHint() != null) {
-          vertex.setLocationHint(dataSource.getLocationHint());
+        if (vertexLocationHint == null && dataSource.getLocationHint() != null) {
+          vertexLocationHint = dataSource.getLocationHint();
         }
+      }
+      if (vertexParallelism == -1) {
+        Preconditions.checkState(vertexLocationHint == null,
+            "Cannot specify vertex location hint without specifying vertex parallelism. Vertex: "
+                + vertex.getName());
+      } else if (vertexLocationHint != null) {
+        Preconditions.checkState(vertexParallelism == vertexLocationHint.getTaskLocationHints().size(),
+            "vertex task location hint must equal vertex parallelism. Vertex: " + vertex.getName());
       }
       for (DataSinkDescriptor dataSink : vertex.getDataSinks()) {
         if (dataSink.getCredentials() != null) {
-          credentials.addAll(dataSink.getCredentials());
+          dagCredentials.addAll(dataSink.getCredentials());
         }
       }
       
-      // add common task files for this DAG
-      vertex.addTaskLocalFiles(commonTaskLocalFiles);
-        
       VertexPlan.Builder vertexBuilder = VertexPlan.newBuilder();
       vertexBuilder.setName(vertex.getName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
@@ -665,48 +694,31 @@ public class DAG {
 
       //task config
       PlanTaskConfiguration.Builder taskConfigBuilder = PlanTaskConfiguration.newBuilder();
-      Resource resource = vertex.getTaskResource();
-      taskConfigBuilder.setNumTasks(vertex.getParallelism());
-      taskConfigBuilder.setMemoryMb(resource.getMemory());
-      taskConfigBuilder.setVirtualCores(resource.getVirtualCores());
-      taskConfigBuilder.setJavaOpts(vertex.getTaskLaunchCmdOpts());
+      taskConfigBuilder.setNumTasks(vertexParallelism);
+      taskConfigBuilder.setMemoryMb(vertexTaskResource.getMemory());
+      taskConfigBuilder.setVirtualCores(vertexTaskResource.getVirtualCores());
+      taskConfigBuilder.setJavaOpts(
+          TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), dagConf));
 
       taskConfigBuilder.setTaskModule(vertex.getName());
-      PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
-      localResourcesBuilder.clear();
-      for (Entry<String, LocalResource> entry :
-             vertex.getTaskLocalFiles().entrySet()) {
-        String key = entry.getKey();
-        LocalResource lr = entry.getValue();
-        localResourcesBuilder.setName(key);
-        localResourcesBuilder.setUri(
-          DagTypeConverters.convertToDAGPlan(lr.getResource()));
-        localResourcesBuilder.setSize(lr.getSize());
-        localResourcesBuilder.setTimeStamp(lr.getTimestamp());
-        localResourcesBuilder.setType(
-          DagTypeConverters.convertToDAGPlan(lr.getType()));
-        localResourcesBuilder.setVisibility(
-          DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
-        if (lr.getType() == LocalResourceType.PATTERN) {
-          if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
-            throw new TezUncheckedException("LocalResource type set to pattern"
-              + " but pattern is null or empty");
-          }
-          localResourcesBuilder.setPattern(lr.getPattern());
-        }
-        taskConfigBuilder.addLocalResource(localResourcesBuilder);
+      if (!vertexLRs.isEmpty()) {
+        taskConfigBuilder.addAllLocalResource(DagTypeConverters.convertToDAGPlan(vertexLRs));
       }
-      
-      for (String key : vertex.getTaskEnvironment().keySet()) {
+
+      Map<String, String> taskEnv = Maps.newHashMap(vertex.getTaskEnvironment());
+      TezYARNUtils.setupDefaultEnv(taskEnv, dagConf,
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV,
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
+      for (Map.Entry<String, String> entry : taskEnv.entrySet()) {
         PlanKeyValuePair.Builder envSettingBuilder = PlanKeyValuePair.newBuilder();
-        envSettingBuilder.setKey(key);
-        envSettingBuilder.setValue(vertex.getTaskEnvironment().get(key));
+        envSettingBuilder.setKey(entry.getKey());
+        envSettingBuilder.setValue(entry.getValue());
         taskConfigBuilder.addEnvironmentSetting(envSettingBuilder);
       }
 
-      if (vertex.getLocationHint() != null) {
-        if (vertex.getLocationHint().getTaskLocationHints() != null) {
-          for (TaskLocationHint hint : vertex.getLocationHint().getTaskLocationHints()) {
+      if (vertexLocationHint != null) {
+        if (vertexLocationHint.getTaskLocationHints() != null) {
+          for (TaskLocationHint hint : vertexLocationHint.getTaskLocationHints()) {
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
 
             if (hint.getAffinitizedContainer() != null) {
@@ -788,12 +800,11 @@ public class DAG {
     dagBuilder.setDagKeyValues(confProtoBuilder); // This does not seem to be used anywhere
     // should this replace BINARY_PB_CONF???
 
-    if (credentials != null) {
-      dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(credentials));
-      TezCommonUtils.logCredentials(LOG, credentials, "dag");
+    if (dagCredentials != null) {
+      dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(dagCredentials));
+      TezCommonUtils.logCredentials(LOG, dagCredentials, "dag");
     }
     
-    cachedDAGPlan = dagBuilder.build();
-    return cachedDAGPlan;
+    return dagBuilder.build();
   }
 }

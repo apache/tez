@@ -19,7 +19,9 @@
 package org.apache.tez.dag.api;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
@@ -35,10 +37,14 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class TestDAGVerify {
 
@@ -901,51 +907,51 @@ public class TestDAGVerify {
 
     dag.addVertex(v1);
 
-    dag.createDag(new TezConfiguration());
+    dag.createDag(new TezConfiguration(), null, null, null, true);
   }
   
   
   @Test(timeout = 5000)
-  public void testVerifyCommonFiles() {
-    Vertex v1 = Vertex.create("v1",
-        ProcessorDescriptor.create(dummyProcessorClassName),
-        dummyTaskCount, dummyTaskResource);
-    Vertex v2 = Vertex.create("v2",
-        ProcessorDescriptor.create("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    Edge e1 = Edge.create(v1, v2,
-        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-            OutputDescriptor.create(dummyOutputClassName),
-            InputDescriptor.create(dummyInputClassName)));
-    Map<String, LocalResource> lrs = Maps.newHashMap();
+  public void testDAGCreateDataInference() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
+    Map<String, LocalResource> lrs1 = Maps.newHashMap();
     String lrName1 = "LR1";
-    lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
+    lrs1.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    Map<String, LocalResource> lrs2 = Maps.newHashMap();
+    String lrName2 = "LR2";
+    lrs2.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test1"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     
+    Set<String> hosts = Sets.newHashSet();
+    hosts.add("h1");
+    hosts.add("h2");
+    List<TaskLocationHint> taskLocationHints = Lists.newLinkedList();
+    taskLocationHints.add(TaskLocationHint.createTaskLocationHint(hosts, null));
+    taskLocationHints.add(TaskLocationHint.createTaskLocationHint(hosts, null));
+    VertexLocationHint vLoc = VertexLocationHint.create(taskLocationHints);
+    DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"), 
+        null, dummyTaskCount, null, vLoc, lrs2);
+    v1.addDataSource("i1", ds);
+        
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.addEdge(e1);
-    dag.addTaskLocalFiles(lrs);
-    dag.createDag(new TezConfiguration());
-    Assert.assertTrue(v1.getTaskLocalFiles().containsKey(lrName1));
-    Assert.assertTrue(v2.getTaskLocalFiles().containsKey(lrName1));
+    dag.addTaskLocalFiles(lrs1);
+    DAGPlan dagPlan = dag.createDag(new TezConfiguration(), null, null, null, true);
+    Assert.assertEquals(lrName1, dagPlan.getLocalResource(0).getName());
+    VertexPlan vPlan = dagPlan.getVertex(0);
+    PlanTaskConfiguration taskPlan = vPlan.getTaskConfig();
+    Assert.assertEquals(dummyTaskCount, taskPlan.getNumTasks());
+    Assert.assertEquals(TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT, taskPlan.getMemoryMb());
+    Assert.assertEquals(lrName2, taskPlan.getLocalResource(0).getName());
+    Assert.assertEquals(dummyTaskCount, vPlan.getTaskLocationHintCount());
   }
 
   @Test(timeout = 5000)
-  public void testVerifyCommonFilesFail() {
+  public void testInferredFilesFail() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
         dummyTaskCount, dummyTaskResource);
-    Vertex v2 = Vertex.create("v2",
-        ProcessorDescriptor.create("MapProcessor"),
-        dummyTaskCount, dummyTaskResource);
-    Edge e1 = Edge.create(v1, v2,
-        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-            OutputDescriptor.create(dummyOutputClassName),
-            InputDescriptor.create(dummyInputClassName)));
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
@@ -957,10 +963,13 @@ public class TestDAGVerify {
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
     }
+
+    DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"), 
+        null, -1, null, null, lrs);
+    v1.addDataSource("i1", ds);
+    
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.addEdge(e1);
     dag.addTaskLocalFiles(lrs);
     try {
       dag.addTaskLocalFiles(lrs);
@@ -969,8 +978,8 @@ public class TestDAGVerify {
       Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
     }
     try {
-      // dag will add duplicate common files to vertex
-      dag.createDag(new TezConfiguration());
+      // data source will add duplicate common files to vertex
+      dag.createDag(new TezConfiguration(), null, null, null, true);
       Assert.fail();
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
@@ -993,7 +1002,7 @@ public class TestDAGVerify {
     dag.setAccessControls(dagAccessControls);
 
     Configuration conf = new Configuration(false);
-    DAGPlan dagPlan = dag.createDag(conf);
+    DAGPlan dagPlan = dag.createDag(conf, null, null, null, true);
     Assert.assertNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
     Assert.assertNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 

@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -41,6 +42,7 @@ import org.apache.tez.dag.records.TezVertexID;
 public interface DAG {
 
   TezDAGID getID();
+  Map<String, LocalResource> getLocalResources();
   String getName();
   DAGState getState();
   DAGReport getReport();

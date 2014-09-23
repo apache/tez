@@ -429,7 +429,7 @@ public class TestVertexImpl {
             SchedulingType.SEQUENTIAL, OutputDescriptor.create("out.class"),
             InputDescriptor.create("out.class"))));
    
-    return dag.createDag(conf);
+    return dag.createDag(conf, null, null, null, true);
   }
 
   private DAGPlan createDAGPlanWithInitializer0Tasks(String initializerClassName) {

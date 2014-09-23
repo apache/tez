@@ -496,8 +496,14 @@ public class AMContainerImpl implements AMContainer {
       container.credentials = containerContext.getCredentials();
       container.credentialsChanged = true;
 
+      TezDAGID dagId = null;
+      Map<String, LocalResource> dagLocalResources = null;
+      if (container.appContext.getCurrentDAG() != null) {
+        dagId = container.appContext.getCurrentDAG().getID();
+        dagLocalResources = container.appContext.getCurrentDAG().getLocalResources();
+      }
       ContainerLaunchContext clc = AMContainerHelpers.createContainerLaunchContext(
-          container.appContext.getCurrentDAGID(),
+          dagId, dagLocalResources,
           container.appContext.getApplicationACLs(),
           container.getContainerId(),
           containerContext.getLocalResources(),

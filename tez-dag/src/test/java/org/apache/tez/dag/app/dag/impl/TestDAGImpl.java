@@ -378,7 +378,7 @@ public class TestDAGImpl {
     dag.addVertex(v2);
     dag.addVertex(v3);
     dag.addEdge(e1);
-    return dag.createDag(conf);
+    return dag.createDag(conf, null, null, null, true);
   }
 
   public static DAGPlan createTestDAGPlan() {
