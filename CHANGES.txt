@@ -25,6 +25,7 @@ ALL CHANGES:
   TEZ-1607. support mr envs in mrrsleep and testorderedwordcount
   TEZ-1499. Add SortMergeJoinExample to tez-examples
   TEZ-1613. Decrease running time for TestAMRecovery
+  TEZ-1240. Add system test for propagation of diagnostics for errors
 
 Release 0.5.1: Unreleased
 
