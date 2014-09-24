@@ -80,7 +80,7 @@ public class TestAMRecovery {
 
   private static Configuration conf = new Configuration();
   private static TezConfiguration tezConf;
-  private static int MAX_AM_ATTEMPT = 50;
+  private static int MAX_AM_ATTEMPT = 10;
   private static MiniTezCluster miniTezCluster = null;
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestAMRecovery.class.getName() + "-tmpDir";
@@ -181,7 +181,6 @@ public class TestAMRecovery {
       }
     }
     tezSession = null;
-    Thread.sleep(10000);
   }
 
   /**

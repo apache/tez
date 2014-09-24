@@ -24,6 +24,7 @@ ALL CHANGES:
   TEZ-1157. Optimize broadcast shuffle to download data only once per host. 
   TEZ-1607. support mr envs in mrrsleep and testorderedwordcount
   TEZ-1499. Add SortMergeJoinExample to tez-examples
+  TEZ-1613. Decrease running time for TestAMRecovery
 
 Release 0.5.1: Unreleased
 
