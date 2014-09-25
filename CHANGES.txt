@@ -26,6 +26,7 @@ ALL CHANGES:
   TEZ-1499. Add SortMergeJoinExample to tez-examples
   TEZ-1613. Decrease running time for TestAMRecovery
   TEZ-1240. Add system test for propagation of diagnostics for errors
+  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get negative if JVM memory is larger than 2GB
 
 Release 0.5.1: Unreleased
 
