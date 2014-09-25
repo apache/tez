@@ -30,6 +30,8 @@ ALL CHANGES:
   TEZ-1611. Change DataSource/Sink to be able to supply URIs for credentials
   TEZ-1592. Vertex should wait for all initializers to finish before moving to
   INITED state
+  TEZ-1612. ShuffleVertexManager's EdgeManager should not hard code source num
+  tasks
 
 Release 0.5.1: Unreleased
 

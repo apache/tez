@@ -19,7 +19,9 @@
 package org.apache.tez.dag.library.vertexmanager;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -166,7 +168,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       this.numDestinationTasks = config.numDestinationTasks;
       this.basePartitionRange = config.basePartitionRange;
       this.remainderRangeForLastShuffler = config.remainderRangeForLastShuffler;
-      this.numSourceTasks = config.numSourceTasks;
+      this.numSourceTasks = getContext().getSourceVertexNumTasks();
+      Preconditions.checkState(this.numDestinationTasks == getContext().getDestinationVertexNumTasks());
     }
 
     @Override
@@ -266,18 +269,15 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
-    int numSourceTasks;
 
     private CustomShuffleEdgeManagerConfig(int numSourceTaskOutputs,
         int numDestinationTasks,
-        int numSourceTasks,
         int basePartitionRange,
         int remainderRangeForLastShuffler) {
       this.numSourceTaskOutputs = numSourceTaskOutputs;
       this.numDestinationTasks = numDestinationTasks;
       this.basePartitionRange = basePartitionRange;
       this.remainderRangeForLastShuffler = remainderRangeForLastShuffler;
-      this.numSourceTasks = numSourceTasks;
     }
 
     public UserPayload toUserPayload() {
@@ -287,7 +287,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
               .setNumDestinationTasks(numDestinationTasks)
               .setBasePartitionRange(basePartitionRange)
               .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
-              .setNumSourceTasks(numSourceTasks)
               .build().toByteArray()));
     }
 
@@ -298,7 +297,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       return new CustomShuffleEdgeManagerConfig(
           proto.getNumSourceTaskOutputs(),
           proto.getNumDestinationTasks(),
-          proto.getNumSourceTasks(),
           proto.getBasePartitionRange(),
           proto.getRemainderRangeForLastShuffler());
 
@@ -464,8 +462,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         // for the source tasks
         CustomShuffleEdgeManagerConfig edgeManagerConfig =
             new CustomShuffleEdgeManagerConfig(
-                currentParallelism, finalTaskParallelism, 
-                getContext().getVertexNumTasks(vertex), basePartitionRange,
+                currentParallelism, finalTaskParallelism, basePartitionRange,
                 ((remainderRangeForLastShuffler > 0) ?
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerPluginDescriptor edgeManagerDescriptor =

@@ -186,12 +186,12 @@ public class TestShuffleVertexManager {
 
               @Override
               public int getSourceVertexNumTasks() {
-                return 0;
+                return 2;
               }
 
               @Override
               public int getDestinationVertexNumTasks() {
-                return 0;
+                return 2;
               }
             };
             EdgeManagerPlugin edgeManager = ReflectionUtils
