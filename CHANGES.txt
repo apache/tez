@@ -27,6 +27,7 @@ ALL CHANGES:
   TEZ-1613. Decrease running time for TestAMRecovery
   TEZ-1240. Add system test for propagation of diagnostics for errors
   TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get negative if JVM memory is larger than 2GB
+  TEZ-1611. Change DataSource/Sink to be able to supply URIs for credentials
 
 Release 0.5.1: Unreleased
 

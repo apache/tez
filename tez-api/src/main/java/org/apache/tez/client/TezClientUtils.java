@@ -83,6 +83,8 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -355,6 +357,14 @@ public class TezClientUtils {
       for (Vertex v: dag.getVertices()) {
         for (LocalResource lr: v.getTaskLocalFiles().values()) {
           lrPaths.add(ConverterUtils.getPathFromYarnURL(lr.getResource()));
+        }
+        List<DataSourceDescriptor> dataSources = v.getDataSources();
+        for (DataSourceDescriptor dataSource : dataSources) {
+          addFileSystemCredentialsFromURIs(dataSource.getURIsForCredentials(), dagCredentials, conf);
+        }
+        List<DataSinkDescriptor> dataSinks = v.getDataSinks();
+        for (DataSinkDescriptor dataSink : dataSinks) {
+          addFileSystemCredentialsFromURIs(dataSink.getURIsForCredentials(), dagCredentials, conf);
         }
       }
       

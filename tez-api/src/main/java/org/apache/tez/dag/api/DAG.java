@@ -640,7 +640,6 @@ public class DAG {
         if (dataSource.getCredentials() != null) {
           dagCredentials.addAll(dataSource.getCredentials());
         }
-        vertex.addTaskLocalFiles(dataSource.getAdditionalLocalFiles());
         if (dataSource.getAdditionalLocalFiles() != null) {
           TezCommonUtils.addAdditionalLocalResources(dataSource.getAdditionalLocalFiles(), vertexLRs);
         }

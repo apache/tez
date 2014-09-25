@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -39,7 +40,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.security.Credentials;
-import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -267,7 +267,7 @@ public class MRInput extends MRInputBase {
 
       MRHelpers.translateMRConfToTez(conf);
 
-      Credentials credentials = maybeGetCredentials();
+      Collection<URI> uris = maybeGetURIsForCredentials();
 
       UserPayload payload = null;
       if (groupSplitsInAM) {
@@ -276,16 +276,20 @@ public class MRInput extends MRInputBase {
         payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
 
-      return DataSourceDescriptor
+      DataSourceDescriptor ds = DataSourceDescriptor
           .create(InputDescriptor.create(inputClassName).setUserPayload(payload),
-              customInitializerDescriptor, credentials);
+              customInitializerDescriptor, null);
+      if (uris != null) {
+        ds.addURIsForCredentials(uris);
+      }
+      return ds;
     }
 
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
       setupBasicConf(conf);
       MRHelpers.translateMRConfToTez(conf);
       
-      Credentials credentials = maybeGetCredentials();
+      Collection<URI> uris = maybeGetURIsForCredentials();
 
       UserPayload payload = null;
       if (groupSplitsInAM) {
@@ -293,9 +297,13 @@ public class MRInput extends MRInputBase {
       } else {
         payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
-      return DataSourceDescriptor.create(
+      DataSourceDescriptor ds = DataSourceDescriptor.create(
           InputDescriptor.create(inputClassName).setUserPayload(payload),
-          InputInitializerDescriptor.create(MRInputAMSplitGenerator.class.getName()), credentials);
+          InputInitializerDescriptor.create(MRInputAMSplitGenerator.class.getName()), null);
+      if (uris != null) {
+        ds.addURIsForCredentials(uris);
+      }
+      return ds;
     }
 
     private void setupBasicConf(Configuration inputConf) {
@@ -309,8 +317,7 @@ public class MRInput extends MRInputBase {
       }
     }
 
-    private Credentials maybeGetCredentials() {
-      Credentials credentials = null;
+    private Collection<URI> maybeGetURIsForCredentials() {
       if (getCredentialsForSourceFilesystem && inputPaths != null) {
         try {
           List<URI> uris = Lists.newLinkedList();
@@ -321,13 +328,12 @@ public class MRInput extends MRInputBase {
             Path qPath = fs.makeQualified(path);
             uris.add(qPath.toUri());
           }
-          credentials = new Credentials();
-          TezClientUtils.addFileSystemCredentialsFromURIs(uris, credentials, conf);
+          return uris;
         } catch (IOException e) {
           throw new TezUncheckedException(e);
         }
       }
-      return credentials;
+      return null;
     }
 
   }
