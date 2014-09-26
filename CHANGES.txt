@@ -32,6 +32,8 @@ ALL CHANGES:
   INITED state
   TEZ-1612. ShuffleVertexManager's EdgeManager should not hard code source num
   tasks
+  TEZ-1555. TestTezClientUtils.validateSetTezJarLocalResourcesDefinedButEmpty
+  failing on Windows
 
 Release 0.5.1: Unreleased
 
