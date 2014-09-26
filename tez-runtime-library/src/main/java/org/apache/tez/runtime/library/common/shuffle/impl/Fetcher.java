@@ -35,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -92,6 +93,8 @@ class Fetcher extends Thread {
 
   HttpConnection httpConnection;
   HttpConnectionParams httpConnectionParams;
+
+  final static String localhostName = NetUtils.getHostname();
   
   public Fetcher(HttpConnectionParams httpConnectionParams,
                  ShuffleScheduler scheduler, MergeManager merger,
@@ -132,7 +135,7 @@ class Fetcher extends Thread {
     this.localDiskFetchEnabled = localDiskFetchEnabled;
 
     this.logIdentifier = "fetcher [" + TezUtilsInternal
-        .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
+        .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id + " " + localhostName;
     setName(logIdentifier);
     setDaemon(true);
   }  

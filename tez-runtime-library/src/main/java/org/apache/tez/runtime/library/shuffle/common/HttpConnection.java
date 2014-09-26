@@ -210,11 +210,13 @@ public class HttpConnection {
     if (replyHash == null) {
       throw new IOException("security validation of TT Map output failed");
     }
-    LOG.debug("url=" + msgToEncode + ";encHash=" + encHash + ";replyHash="
-        + replyHash);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("url=" + msgToEncode + ";encHash=" + encHash + ";replyHash="
+          + replyHash);
+    }
     // verify that replyHash is HMac of encHash
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecret);
-    LOG.info("for url=" + msgToEncode +
+    LOG.info("for url=" + url +
       " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
   }
 
