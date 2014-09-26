@@ -69,6 +69,7 @@ ALL CHANGES
   TEZ-978. Enhance auto parallelism tuning for queries having empty outputs or data skewness
   TEZ-1433. Invalid credentials can be used when a DAG is submitted to a
   session which has timed out
+  TEZ-1624. Flaky tests in TestContainerReuse due to race condition in DelayedContainerManager thread
 
 Release 0.5.0: 2014-09-03
 
