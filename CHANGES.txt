@@ -34,6 +34,7 @@ ALL CHANGES:
   tasks
   TEZ-1555. TestTezClientUtils.validateSetTezJarLocalResourcesDefinedButEmpty
   failing on Windows
+  TEZ-1609. Add hostname to logIdentifiers of fetchers for easy debugging
 
 Release 0.5.1: Unreleased
 
@@ -70,7 +71,6 @@ ALL CHANGES
   TEZ-1433. Invalid credentials can be used when a DAG is submitted to a
   session which has timed out
   TEZ-1624. Flaky tests in TestContainerReuse due to race condition in DelayedContainerManager thread
-  TEZ-1609. Add hostname to logIdentifiers of fetchers for easy debugging
 
 Release 0.5.0: 2014-09-03
 
