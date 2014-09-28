@@ -4,11 +4,19 @@ Apache Tez Change Log
 Release 0.6.0: Unreleased
 
 INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
+Release 0.5.1: Unreleased
+
+INCOMPATIBLE CHANGES
   TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
   TEZ-1578. Remove TeraSort from Tez codebase.
   TEZ-1499. Add SortMergeJoinExample to tez-examples
+  TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
+  TEZ-1571. Add create method for DataSinkDescriptor.
 
-ALL CHANGES:
+ALL CHANGES
   TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
   TEZ-1559. Add system tests for AM recovery.
   TEZ-850. Recovery unit tests.
@@ -26,22 +34,14 @@ ALL CHANGES:
   TEZ-1499. Add SortMergeJoinExample to tez-examples
   TEZ-1613. Decrease running time for TestAMRecovery
   TEZ-1240. Add system test for propagation of diagnostics for errors
-  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get negative if JVM memory is larger than 2GB
+  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get 
+  negative if JVM memory is larger than 2GB
   TEZ-1611. Change DataSource/Sink to be able to supply URIs for credentials
-  TEZ-1592. Vertex should wait for all initializers to finish before moving to
-  INITED state
-  TEZ-1612. ShuffleVertexManager's EdgeManager should not hard code source num
-  tasks
+  TEZ-1592. Vertex should wait for all initializers to finish before moving to INITED state
+  TEZ-1612. ShuffleVertexManager's EdgeManager should not hard code source num tasks
   TEZ-1555. TestTezClientUtils.validateSetTezJarLocalResourcesDefinedButEmpty
   failing on Windows
   TEZ-1609. Add hostname to logIdentifiers of fetchers for easy debugging
-
-Release 0.5.1: Unreleased
-
-INCOMPATIBLE CHANGES
-  TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
-
-ALL CHANGES
   TEZ-1494. DAG hangs waiting for ShuffleManager.getNextInput()
   TEZ-1515. Remove usage of ResourceBundles in Counters.
   TEZ-1527. Fix indentation of Vertex status in DAGClient output.
@@ -54,7 +54,6 @@ ALL CHANGES
   TEZ-1574. Support additional formats for the tez deployed archive
   TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless
   of DAG submission
-  TEZ-1571. Add create method for DataSinkDescriptor.
   TEZ-1585. Memory leak in tez session mode.
   TEZ-1533. Request Events more often if a complete set of events is received by a task.
   TEZ-1587. Some tez-examples fail in local mode.
