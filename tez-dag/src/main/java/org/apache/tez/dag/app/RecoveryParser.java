@@ -235,18 +235,18 @@ public class RecoveryParser {
 
 
 
-  private static void parseDAGRecoveryFile(FSDataInputStream inputStream)
+  public static List<HistoryEvent> parseDAGRecoveryFile(FSDataInputStream inputStream)
       throws IOException {
+    List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
     while (true) {
       HistoryEvent historyEvent = getNextEvent(inputStream);
       if (historyEvent == null) {
         LOG.info("Reached end of stream");
         break;
       }
-      LOG.info("Parsed event from recovery stream"
-          + ", eventType=" + historyEvent.getEventType()
-          + ", event=" + historyEvent);
+      historyEvents.add(historyEvent);
     }
+    return historyEvents;
   }
 
   public static void main(String argv[]) throws IOException {
@@ -264,7 +264,12 @@ public class RecoveryParser {
     parseSummaryFile(fs.open(new Path(summaryPath)));
     for (String dagPath : dagPaths) {
       LOG.info("Parsing DAG recovery file " + dagPath);
-      parseDAGRecoveryFile(fs.open(new Path(dagPath)));
+      List<HistoryEvent> historyEvents = parseDAGRecoveryFile(fs.open(new Path(dagPath)));
+      for (HistoryEvent historyEvent : historyEvents) {
+        LOG.info("Parsed event from recovery stream"
+            + ", eventType=" + historyEvent.getEventType()
+            + ", event=" + historyEvent);
+      }
     }
   }
 

@@ -123,7 +123,7 @@ public class TestDAGPlan {
 
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
 
     EdgeProperty edgeProperty = DagTypeConverters.createEdgePropertyMapFromDAGPlan(dagProto
         .getEdgeList().get(0));
@@ -158,7 +158,7 @@ public class TestDAGPlan {
 
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
 
     assertEquals(2, dagProto.getVertexCount());
     assertEquals(1, dagProto.getEdgeCount());
@@ -224,7 +224,7 @@ public class TestDAGPlan {
 
     dag.addVertex(v1).addVertex(v2).addEdge(edge).addVertex(v3);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
 
     assertEquals(3, dagProto.getVertexCount());
     assertEquals(1, dagProto.getEdgeCount());
@@ -300,7 +300,7 @@ public class TestDAGPlan {
     
     dag.setCredentials(dagCredentials);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration());
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
 
     assertTrue(dagProto.hasCredentialsBinary());
     

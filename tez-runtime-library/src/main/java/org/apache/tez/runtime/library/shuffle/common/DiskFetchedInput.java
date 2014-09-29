@@ -65,6 +65,13 @@ public class DiskFetchedInput extends FetchedInput {
   public InputStream getInputStream() throws IOException {
     return localFS.open(outputPath);
   }
+
+  public final Path getInputPath() {
+    if (state == State.COMMITTED) {
+      return this.outputPath;
+    }
+    return this.tmpOutputPath;
+  }
   
   @Override
   public void commit() throws IOException {

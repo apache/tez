@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
+import com.google.common.primitives.Ints;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -91,10 +92,17 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
 
   @Override
   public Resource getAvailableResources() {
-    Resource freeResources = Resource.newInstance(
-        (int)Runtime.getRuntime().freeMemory()/(1024*1024),
-        Runtime.getRuntime().availableProcessors());
-    return freeResources;
+    long memory = Runtime.getRuntime().freeMemory();
+    int cores = Runtime.getRuntime().availableProcessors();
+    return createResource(memory, cores);
+  }
+
+  static Resource createResource(long runtimeMemory, int core) {
+    if (runtimeMemory < 0 || core < 0) {
+      throw new IllegalArgumentException("Negative Memory or Core provided!"
+          + "mem: "+runtimeMemory+" core:"+core);
+    }
+    return Resource.newInstance(Ints.checkedCast(runtimeMemory/(1024*1024)), core);
   }
 
   @Override
@@ -108,10 +116,9 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
 
   @Override
   public Resource getTotalResources() {
-    Resource totalResources = Resource.newInstance(
-        (int)Runtime.getRuntime().maxMemory()/(1024*1024),
-        Runtime.getRuntime().availableProcessors());
-    return totalResources;
+    long memory = Runtime.getRuntime().maxMemory();
+    int cores = Runtime.getRuntime().availableProcessors();
+    return createResource(memory, cores);
   }
 
   @Override

@@ -170,7 +170,7 @@ public class DAGStatus {
       + ", diagnostics="
       + StringUtils.join(getDiagnostics(), LINE_SEPARATOR)
       + ", counters="
-      + (dagCounters == null ? "null" : dagCounters.toString()));
+      + (getDAGCounters() == null ? "null" : getDAGCounters().toString()));
     return sb.toString();
   }
 

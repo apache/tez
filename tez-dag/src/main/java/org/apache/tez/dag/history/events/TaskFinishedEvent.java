@@ -25,7 +25,6 @@ import java.io.OutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -45,7 +44,7 @@ public class TaskFinishedEvent implements HistoryEvent {
   private TezCounters tezCounters;
   private TezTaskAttemptID successfulAttemptID;
   private String diagnostics;
-  
+
   public TaskFinishedEvent(TezTaskID taskID,
       String vertexName, long startTime, long finishTime,
       TezTaskAttemptID successfulAttemptID,
@@ -85,9 +84,6 @@ public class TaskFinishedEvent implements HistoryEvent {
     if (diagnostics != null) {
       builder.setDiagnostics(diagnostics);
     }
-    if (tezCounters != null) {
-      builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
-    }
     if (successfulAttemptID != null) {
       builder.setSuccessfulTaskAttemptId(successfulAttemptID.toString());
     }
@@ -100,10 +96,6 @@ public class TaskFinishedEvent implements HistoryEvent {
     this.state = TaskState.values()[proto.getState()];
     if (proto.hasDiagnostics()) {
       this.diagnostics = proto.getDiagnostics();
-    }
-    if (proto.hasCounters()) {
-      this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-          proto.getCounters());
     }
     if (proto.hasSuccessfulTaskAttemptId()) {
       this.successfulAttemptID =

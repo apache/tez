@@ -19,10 +19,10 @@
 
 Talks
 -----
--   Apache Tez : Accelerating Hadoop Query Processing by Arun Murthy and
-    Bikas Saha at [Hadoop Summit 2013, San Jose, CA, USA](http://hadoopsummit.org/san-jose/)
-    -   [Slides](http://www.slideshare.net/Hadoop_Summit/murhty-saha-june26255pmroom212)
-    -   [Video](http://www.youtube.com/watch?v=9ZLLzlsz7h8)
+-   Apache Tez : Accelerating Hadoop Query Processing by Bikas Saha and
+    Hitesh Shah at [Hadoop Summit 2014, San Jose, CA, USA](http://hadoopsummit.org/san-jose/)
+    -   [Slides](http://www.slideshare.net/Hadoop_Summit/w-1205phall1saha)
+    -   [Video](http://www.youtube.com/watch?v=yf_hBiZy3nk)
 
 User Meetup Recordings
 ----------------------

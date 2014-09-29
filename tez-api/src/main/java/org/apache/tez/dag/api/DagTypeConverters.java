@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
@@ -72,6 +73,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
 
+import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.Output;
 
@@ -85,6 +87,33 @@ public class DagTypeConverters {
       case APPLICATION : return PlanLocalResourceVisibility.APPLICATION;
       default : throw new RuntimeException("unknown 'visibility': " + visibility);
     }
+  }
+  
+  public static List<PlanLocalResource> convertToDAGPlan(Map<String, LocalResource> lrs) {
+    List<PlanLocalResource> planLrs = Lists.newArrayListWithCapacity(lrs.size());
+    for (Entry<String, LocalResource> entry : lrs.entrySet()) {
+      PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
+      String key = entry.getKey();
+      LocalResource lr = entry.getValue();
+      localResourcesBuilder.setName(key);
+      localResourcesBuilder.setUri(
+        DagTypeConverters.convertToDAGPlan(lr.getResource()));
+      localResourcesBuilder.setSize(lr.getSize());
+      localResourcesBuilder.setTimeStamp(lr.getTimestamp());
+      localResourcesBuilder.setType(
+        DagTypeConverters.convertToDAGPlan(lr.getType()));
+      localResourcesBuilder.setVisibility(
+        DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
+      if (lr.getType() == LocalResourceType.PATTERN) {
+        if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
+          throw new TezUncheckedException("LocalResource type set to pattern"
+            + " but pattern is null or empty");
+        }
+        localResourcesBuilder.setPattern(lr.getPattern());
+      }
+      planLrs.add(localResourcesBuilder.build());
+    }
+    return planLrs;
   }
 
   public static LocalResourceVisibility convertFromDAGPlan(PlanLocalResourceVisibility visibility){

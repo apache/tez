@@ -123,7 +123,7 @@ public class TezClient {
   }
 
   @Private
-  TezClient(String name, TezConfiguration tezConf, boolean isSession,
+  protected TezClient(String name, TezConfiguration tezConf, boolean isSession,
             @Nullable Map<String, LocalResource> localResources,
             @Nullable Credentials credentials) {
     this.clientName = name;

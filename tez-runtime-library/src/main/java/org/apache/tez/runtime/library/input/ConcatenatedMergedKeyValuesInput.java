@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.input;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Input;
@@ -35,6 +36,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
  * input. It concatenates all the inputs to provide a unified view
  */
 
+@Public
 public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
 
   public ConcatenatedMergedKeyValuesInput(MergedInputContext context,

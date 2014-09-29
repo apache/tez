@@ -52,8 +52,9 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.examples.SimpleSessionExample;
 import org.apache.tez.examples.JoinDataGen;
-import org.apache.tez.examples.JoinExample;
+import org.apache.tez.examples.HashJoinExample;
 import org.apache.tez.examples.JoinValidate;
+import org.apache.tez.examples.SortMergeJoinExample;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -117,13 +118,13 @@ public class TestTezJobs {
   }
 
   @Test(timeout = 60000)
-  public void testIntersectExample() throws Exception {
-    JoinExample intersectExample = new JoinExample();
-    intersectExample.setConf(new Configuration(mrrTezCluster.getConfig()));
+  public void testHashJoinExample() throws Exception {
+    HashJoinExample hashJoinExample = new HashJoinExample();
+    hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
-    Path inPath1 = new Path("/tmp/inPath1");
-    Path inPath2 = new Path("/tmp/inPath2");
-    Path outPath = new Path("/tmp/outPath");
+    Path inPath1 = new Path("/tmp/hashJoin/inPath1");
+    Path inPath2 = new Path("/tmp/hashJoin/inPath2");
+    Path outPath = new Path("/tmp/hashJoin/outPath");
     remoteFs.mkdirs(inPath1);
     remoteFs.mkdirs(inPath2);
     remoteFs.mkdirs(stagingDirPath);
@@ -152,7 +153,7 @@ public class TestTezJobs {
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
         inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
-    assertEquals(0, intersectExample.run(args));
+    assertEquals(0, hashJoinExample.run(args));
 
     FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {
       public boolean accept(Path p) {
@@ -172,10 +173,71 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
-  @Test(timeout = 120000)
-  public void testIntersect2() throws Exception {
+  @Test(timeout = 60000)
+  public void testSortMergeJoinExample() throws Exception {
+    SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
+    sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
+    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
+    Path inPath1 = new Path("/tmp/sortMerge/inPath1");
+    Path inPath2 = new Path("/tmp/sortMerge/inPath2");
+    Path outPath = new Path("/tmp/sortMerge/outPath");
+    remoteFs.mkdirs(inPath1);
+    remoteFs.mkdirs(inPath2);
+    remoteFs.mkdirs(stagingDirPath);
 
-    Path testDir = new Path("/tmp/testIntersect2");
+    Set<String> expectedResult = new HashSet<String>();
+
+    FSDataOutputStream out1 = remoteFs.create(new Path(inPath1, "file"));
+    FSDataOutputStream out2 = remoteFs.create(new Path(inPath2, "file"));
+    BufferedWriter writer1 = new BufferedWriter(new OutputStreamWriter(out1));
+    BufferedWriter writer2 = new BufferedWriter(new OutputStreamWriter(out2));
+    for (int i = 0; i < 20; i++) {
+      String term = "term" + i;
+      writer1.write(term);
+      writer1.newLine();
+      if (i % 2 == 0) {
+        writer2.write(term);
+        writer2.newLine();
+        expectedResult.add(term);
+      }
+    }
+    writer1.close();
+    writer2.close();
+    out1.close();
+    out2.close();
+
+    String[] args = new String[] {
+        "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
+        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+    assertEquals(0, sortMergeJoinExample.run(args));
+
+    FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {
+      public boolean accept(Path p) {
+        String name = p.getName();
+        return !name.startsWith("_") && !name.startsWith(".");
+      }
+    });
+    assertEquals(1, statuses.length);
+    FSDataInputStream inStream = remoteFs.open(statuses[0].getPath());
+    BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
+    String line;
+    while ((line = reader.readLine()) != null) {
+      assertTrue(expectedResult.remove(line));
+    }
+    reader.close();
+    inStream.close();
+    assertEquals(0, expectedResult.size());
+  }
+
+  /**
+   * test whole {@link HashJoinExample} pipeline as following: <br>
+   * {@link JoinDataGen} -> {@link HashJoinExample} -> {@link JoinValidate}
+   * @throws Exception
+   */
+  @Test(timeout = 120000)
+  public void testHashJoinExamplePipeline() throws Exception {
+
+    Path testDir = new Path("/tmp/testHashJoinExample");
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
     remoteFs.mkdirs(stagingDirPath);
     remoteFs.mkdirs(testDir);
@@ -189,7 +251,7 @@ public class TestTezJobs {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
     TezClient tezSession = null;
     try {
-      tezSession = TezClient.create("IntersectExampleSession", tezConf);
+      tezSession = TezClient.create("HashJoinExampleSession", tezConf, true);
       tezSession.start();
 
       JoinDataGen dataGen = new JoinDataGen();
@@ -198,15 +260,63 @@ public class TestTezJobs {
           expectedOutputPath.toString(), "2" };
       assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
 
-      JoinExample intersect = new JoinExample();
-      String[] intersectArgs = new String[] {
+      HashJoinExample joinExample = new HashJoinExample();
+      String[] args = new String[] {
           dataPath1.toString(), dataPath2.toString(), "2", outPath.toString() };
-      assertEquals(0, intersect.run(tezConf, intersectArgs, tezSession));
+      assertEquals(0, joinExample.run(tezConf, args, tezSession));
 
-      JoinValidate intersectValidate = new JoinValidate();
-      String[] intersectValidateArgs = new String[] {
+      JoinValidate joinValidate = new JoinValidate();
+      String[] validateArgs = new String[] {
           expectedOutputPath.toString(), outPath.toString(), "3" };
-      assertEquals(0, intersectValidate.run(tezConf, intersectValidateArgs, tezSession));
+      assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
+
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+
+  /**
+   * test whole {@link SortMergeJoinExample} pipeline as following: <br>
+   * {@link JoinDataGen} -> {@link SortMergeJoinExample} -> {@link JoinValidate}
+   * @throws Exception
+   */
+  @Test(timeout = 120000)
+  public void testSortMergeJoinExamplePipeline() throws Exception {
+
+    Path testDir = new Path("/tmp/testSortMergeExample");
+    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+    remoteFs.mkdirs(testDir);
+
+    Path dataPath1 = new Path(testDir, "inPath1");
+    Path dataPath2 = new Path(testDir, "inPath2");
+    Path expectedOutputPath = new Path(testDir, "expectedOutputPath");
+    Path outPath = new Path(testDir, "outPath");
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    TezClient tezSession = null;
+    try {
+      tezSession = TezClient.create("SortMergeExampleSession", tezConf, true);
+      tezSession.start();
+
+      JoinDataGen dataGen = new JoinDataGen();
+      String[] dataGenArgs = new String[] {
+          dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
+          expectedOutputPath.toString(), "2" };
+      assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
+
+      SortMergeJoinExample joinExample = new SortMergeJoinExample();
+      String[] args = new String[] {
+          dataPath1.toString(), dataPath2.toString(), "2", outPath.toString() };
+      assertEquals(0, joinExample.run(tezConf, args, tezSession));
+
+      JoinValidate joinValidate = new JoinValidate();
+      String[] validateArgs = new String[] {
+          expectedOutputPath.toString(), outPath.toString(), "3" };
+      assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
 
     } finally {
       if (tezSession != null) {

@@ -161,11 +161,7 @@ public class TestTezClient {
         Resource.newInstance(1, 1));
     DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
     DAGClient dagClient = client.submitDAG(dag);
-    
-    // verify that both DAG and TezClient localResources are added to the vertex
-    Map<String, LocalResource> vertexLR = vertex.getTaskLocalFiles();
-    Assert.assertTrue(vertexLR.containsKey(mockLR1Name));
-    
+        
     Assert.assertTrue(dagClient.getExecutionContext().contains(client.mockAppId.toString()));
     
     if (isSession) {

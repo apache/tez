@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.common.TezUtils;
@@ -66,6 +67,7 @@ import com.google.common.base.Preconditions;
  * completion. Attempting to get a reader on a non-complete input will block.
  *
  */
+@Public
 public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
   static final Log LOG = LogFactory.getLog(OrderedGroupedKVInput.class);

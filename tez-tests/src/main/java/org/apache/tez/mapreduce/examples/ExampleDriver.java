@@ -31,9 +31,6 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.Progress;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
-import org.apache.tez.mapreduce.examples.terasort.TeraGen;
-import org.apache.tez.mapreduce.examples.terasort.TeraSort;
-import org.apache.tez.mapreduce.examples.terasort.TeraValidate;
 
 /**
  * A description of an example program based on its class and a
@@ -65,12 +62,6 @@ public class ExampleDriver {
       pgd.addClass("join", Join.class,
           "A job that effects a join over sorted, equally partitioned"
           + " datasets");
-      pgd.addClass("teragen", TeraGen.class,
-          "Generate data for the terasort");
-      pgd.addClass("terasort", TeraSort.class,
-          "Run the terasort");
-      pgd.addClass("teravalidate", TeraValidate.class,
-          "Checking results of terasort");
       pgd.addClass("groupbyorderbymrrtest", GroupByOrderByMRRTest.class,
           "A map-reduce-reduce program that does groupby-order by. Takes input"
           + " containing employee_name department name per line of input"

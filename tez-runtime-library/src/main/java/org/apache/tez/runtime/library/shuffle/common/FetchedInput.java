@@ -110,7 +110,8 @@ public abstract class FetchedInput {
 
   /**
    * Return an input stream to be used to read the previously fetched data.
-   * Users are expected to close the InputStream when they're done
+   * All calls to getInputStream() produce new reset streams for reading.
+   * Users are expected to close the InputStream when they're done.
    */
   public abstract InputStream getInputStream() throws IOException;
 

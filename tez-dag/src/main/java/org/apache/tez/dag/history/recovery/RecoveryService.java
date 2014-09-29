@@ -45,6 +45,8 @@ import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class RecoveryService extends AbstractService {
 
   private static final Log LOG = LogFactory.getLog(RecoveryService.class);
@@ -52,6 +54,21 @@ public class RecoveryService extends AbstractService {
 
   public static final String RECOVERY_FATAL_OCCURRED_DIR =
       "RecoveryFatalErrorOccurred";
+
+  /**
+   * whether to handle remaining event in the eventqueue when AM is stopped
+   */
+  @VisibleForTesting
+  public static final String TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED =
+      TezConfiguration.TEZ_AM_PREFIX + "recovery.handle_remaining_event_when_stopped";
+
+  /**
+   * by default do not handle remaining event when AM is stopped.
+   * Most of time, true is for recovery unit test
+   */
+  @VisibleForTesting
+  public static final boolean TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED_DEFAULT = false;
+
 
   private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
@@ -75,6 +92,7 @@ public class RecoveryService extends AbstractService {
   private int maxUnflushedEvents;
   private int flushInterval;
   private AtomicBoolean recoveryFatalErrorOccurred = new AtomicBoolean(false);
+  private boolean handleRemainingEventWhenStopped;
 
   public RecoveryService(AppContext appContext) {
     super(RecoveryService.class.getName());
@@ -93,6 +111,10 @@ public class RecoveryService extends AbstractService {
         TezConfiguration.DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT);
     maxUnflushedEvents = conf.getInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS,
         TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS_DEFAULT);
+
+    handleRemainingEventWhenStopped = conf.getBoolean(
+        TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED,
+        TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED_DEFAULT);
   }
 
   @Override
@@ -150,9 +172,26 @@ public class RecoveryService extends AbstractService {
   @Override
   public void serviceStop() {
     LOG.info("Stopping RecoveryService");
+
     stopped.set(true);
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
+    }
+
+    if (handleRemainingEventWhenStopped) {
+      LOG.info("Handle the remaining events in queue, queue size=" + eventQueue.size());
+      while(!eventQueue.isEmpty()) {
+        synchronized (lock) {
+          try {
+            DAGHistoryEvent event = eventQueue.take();
+            handleRecoveryEvent(event);
+          } catch (Exception e) {
+            // For now, ignore any such errors as these are non-critical
+            // All summary event related errors are handled as critical
+            LOG.warn("Error handling recovery event", e);
+          }
+        }
+      }
     }
 
     if (summaryStream != null) {

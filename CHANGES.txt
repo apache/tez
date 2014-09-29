@@ -1,26 +1,59 @@
 Apache Tez Change Log
 =====================
 
+Release 0.6.0: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
 Release 0.5.1: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
+  TEZ-1578. Remove TeraSort from Tez codebase.
+  TEZ-1499. Add SortMergeJoinExample to tez-examples
   TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
+  TEZ-1571. Add create method for DataSinkDescriptor.
 
 ALL CHANGES
-  TEZ-1543. Shuffle Errors on heavy load (causing task retries)
+  TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
+  TEZ-1559. Add system tests for AM recovery.
+  TEZ-850. Recovery unit tests.
+  TEZ-853. Support counters recovery.
+  TEZ-1345. Add checks to guarantee all init events are written to recovery to consider vertex initialized.
+  TEZ-1575. MRRSleepJob does not pick MR settings for container size and java opts.
+  TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
+  TEZ-1578. Remove TeraSort from Tez codebase.
+  TEZ-1569. Add tests for preemption
+  TEZ-1580. Change TestOrderedWordCount to optionally use MR configs.
+  TEZ-1524. Resolve user group information only if ACLs are enabled.
+  TEZ-1581. GroupByOrderByMRRTest no longer functional.
+  TEZ-1157. Optimize broadcast shuffle to download data only once per host. 
+  TEZ-1607. support mr envs in mrrsleep and testorderedwordcount
+  TEZ-1499. Add SortMergeJoinExample to tez-examples
+  TEZ-1613. Decrease running time for TestAMRecovery
+  TEZ-1240. Add system test for propagation of diagnostics for errors
+  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get 
+  negative if JVM memory is larger than 2GB
+  TEZ-1611. Change DataSource/Sink to be able to supply URIs for credentials
+  TEZ-1592. Vertex should wait for all initializers to finish before moving to INITED state
+  TEZ-1612. ShuffleVertexManager's EdgeManager should not hard code source num tasks
+  TEZ-1555. TestTezClientUtils.validateSetTezJarLocalResourcesDefinedButEmpty
+  failing on Windows
+  TEZ-1609. Add hostname to logIdentifiers of fetchers for easy debugging
   TEZ-1494. DAG hangs waiting for ShuffleManager.getNextInput()
   TEZ-1515. Remove usage of ResourceBundles in Counters.
   TEZ-1527. Fix indentation of Vertex status in DAGClient output.
   TEZ-1536. Fix spelling typo "configurartion" in TezClientUtils.
   TEZ-1310. Update website documentation framework
   TEZ-1447. Provide a mechanism for InputInitializers to know about Vertex state changes.
-  TEZ-1362. Remove DAG_COMPLETED in DAGEventType. 
+  TEZ-1362. Remove DAG_COMPLETED in DAGEventType.
   TEZ-1519. TezTaskRunner should not initialize TezConfiguration in TezChild.
   TEZ-1534. Make client side configs available to AM and tasks.
   TEZ-1574. Support additional formats for the tez deployed archive
   TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless
   of DAG submission
-  TEZ-1571. Add create method for DataSinkDescriptor.
   TEZ-1585. Memory leak in tez session mode.
   TEZ-1533. Request Events more often if a complete set of events is received by a task.
   TEZ-1587. Some tez-examples fail in local mode.
@@ -34,6 +67,8 @@ ALL CHANGES
   Windows
   TEZ-1554. Failing tests in TestMRHelpers related to environment on Windows
   TEZ-978. Enhance auto parallelism tuning for queries having empty outputs or data skewness
+  TEZ-1433. Invalid credentials can be used when a DAG is submitted to a
+  session which has timed out
   TEZ-1624. Flaky tests in TestContainerReuse due to race condition in DelayedContainerManager thread
 
 Release 0.5.0: 2014-09-03
@@ -42,7 +77,7 @@ INCOMPATIBLE CHANGES
   TEZ-1038. Move TaskLocationHint outside of VertexLocationHint.
   TEZ-960. VertexManagerPluginContext::getTotalAVailableResource() changed to
   VertexManagerPluginContext::getTotalAvailableResource()
-  TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts 
+  TEZ-1025. Rename tez.am.max.task.attempts to tez.am.task.max.failed.attempts
   TEZ-1018. VertexManagerPluginContext should enable assigning locality to
   scheduled tasks
   TEZ-1169. Allow numPhysicalInputs to be specified for RootInputs.
@@ -52,8 +87,11 @@ INCOMPATIBLE CHANGES
   TEZ-692. Unify job submission in either TezClient or TezSession
   TEZ-1130. Replace confusing names on Vertex API
   TEZ-1213. Fix parameter naming in TezJobConfig.
-  TEZ-1080, TEZ-1272, TEZ-1279, TEZ-1266. Change YARNRunner to use EdgeConfigs. 
-    - Removes separation of runtime configs into input/ouput configs. Also 
+    - Details at https://issues.apache.org/jira/browse/TEZ-1213?focusedCommentId
+    =14039381&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpa
+    nel#comment-14039381
+  TEZ-1080, TEZ-1272, TEZ-1279, TEZ-1266. Change YARNRunner to use EdgeConfigs.
+    - Removes separation of runtime configs into input/ouput configs. Also
     refactors public methods used for this conversion.
   TEZ-696. Remove implicit copying of processor payload to input and output
   TEZ-1269. TaskScheduler prematurely releases containers
@@ -124,7 +162,6 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES
 
-  TEZ-1515. DAGAppMaster : Thread contentions due to org.apache.tez.common.counters.ResourceBundles (Rajesh Balamohan)
   TEZ-1516. Log transfer rates for broadcast fetch. (sseth)
   TEZ-1511. MROutputConfigBuilder sets OutputFormat as String class if OutputFormat is not provided (bikas)
   TEZ-1509. Set a useful default value for java opts (bikas)

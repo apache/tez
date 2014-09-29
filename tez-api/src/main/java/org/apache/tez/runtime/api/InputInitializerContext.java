@@ -115,6 +115,6 @@ public interface InputInitializerContext {
    * @param vertexName the vertex name for which notifications are required.
    * @param stateSet   the set of states for which notifications are required. null implies all
    */
-  void registerForVertexStatusUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
+  void registerForVertexStateUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
 
 }

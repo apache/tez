@@ -19,10 +19,17 @@
 package org.apache.tez.runtime.library.shuffle.common;
 
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URL;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,12 +41,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.crypto.SecretKey;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -54,6 +68,7 @@ import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 /**
  * Responsible for fetching inputs served by the ShuffleHandler for a single
@@ -101,10 +116,22 @@ public class Fetcher implements Callable<FetchResult> {
   private HttpConnectionParams httpConnectionParams;
 
   private final boolean localDiskFetchEnabled;
+  private final boolean sharedFetchEnabled;
+
+  private final LocalDirAllocator localDirAllocator;
+  private final Path lockPath;
+  private final RawLocalFileSystem localFs;
+
+  private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
   private Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
-      FetchedInputAllocator inputManager, ApplicationId appId, SecretKey shuffleSecret,
-      String srcNameTrimmed, Configuration conf, boolean localDiskFetchEnabled) {
+      FetchedInputAllocator inputManager, ApplicationId appId,
+      SecretKey shuffleSecret, String srcNameTrimmed, Configuration conf,
+      RawLocalFileSystem localFs,
+      LocalDirAllocator localDirAllocator,
+      Path lockPath,
+      boolean localDiskFetchEnabled,
+      boolean sharedFetchEnabled) {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.shuffleSecret = shuffleSecret;
@@ -114,19 +141,42 @@ public class Fetcher implements Callable<FetchResult> {
     this.conf = conf;
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
+    this.sharedFetchEnabled = sharedFetchEnabled;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
-    this.logIdentifier = "fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
+    this.logIdentifier = " fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
+
+    this.localFs = localFs;
+    this.localDirAllocator = localDirAllocator;
+    this.lockPath = lockPath;
+
+    try {
+      if (this.sharedFetchEnabled) {
+        this.localFs.mkdirs(this.lockPath);
+      }
+    } catch (Exception e) {
+      LOG.warn("Error initializing local dirs for shared transfer " + e);
+    }
   }
 
   @Override
   public FetchResult call() throws Exception {
+    boolean multiplex = (this.sharedFetchEnabled && this.localDiskFetchEnabled);
+
     if (srcAttempts.size() == 0) {
       return new FetchResult(host, port, partition, srcAttempts);
     }
 
     for (InputAttemptIdentifier in : srcAttempts) {
       pathToAttemptMap.put(in.getPathComponent(), in);
+      // do only if all of them are shared fetches
+      multiplex &= in.isShared();
+    }
+
+    if (multiplex) {
+      Preconditions.checkArgument(partition == 0,
+          "Shared fetches cannot be done for partitioned input"
+              + "- partition is non-zero (%d)", partition);
     }
 
     remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
@@ -136,7 +186,9 @@ public class Fetcher implements Callable<FetchResult> {
     if (localDiskFetchEnabled &&
         host.equals(System.getenv(ApplicationConstants.Environment.NM_HOST.toString()))) {
       hostFetchResult = setupLocalDiskFetch();
-    } else {
+    } else if (multiplex) {
+      hostFetchResult = doSharedFetch();
+    } else{
       hostFetchResult = doHttpFetch();
     }
 
@@ -151,15 +203,197 @@ public class Fetcher implements Callable<FetchResult> {
 
     // Sanity check
     if (hostFetchResult.failedInputs == null && !remaining.isEmpty()) {
-      throw new IOException("server didn't return all expected map outputs: "
-          + remaining.size() + " left.");
+      if (!multiplex) {
+        throw new IOException("server didn't return all expected map outputs: "
+            + remaining.size() + " left.");
+      } else {
+        LOG.info("Shared fetch failed to return " + remaining.size() + " inputs on this try");
+      }
     }
 
     return hostFetchResult.fetchResult;
   }
 
+  private final class CachingCallBack {
+    // this is a closure object wrapping this in an inner class
+    public void cache(String host,
+        InputAttemptIdentifier srcAttemptId, FetchedInput fetchedInput,
+        long compressedLength, long decompressedLength) {
+      try {
+        // this breaks badly on partitioned input - please use responsibly
+        Preconditions.checkArgument(partition == 0, "Partition == 0");
+        final String tmpSuffix = "." + System.currentTimeMillis() + ".tmp";
+        final String finalOutput = getMapOutputFile(srcAttemptId.getPathComponent());
+        final Path outputPath = localDirAllocator.getLocalPathForWrite(finalOutput, compressedLength, conf);
+        final TezSpillRecord spillRec = new TezSpillRecord(1);
+        final TezIndexRecord indexRec;
+        Path tmpIndex = outputPath.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING+tmpSuffix);
+
+        if (localFs.exists(tmpIndex)) {
+          LOG.warn("Found duplicate instance of input index file " + tmpIndex);
+          return;
+        }
+
+        Path tmpPath = null;
+
+        switch (fetchedInput.getType()) {
+        case DISK: {
+          DiskFetchedInput input = (DiskFetchedInput) fetchedInput;
+          indexRec = new TezIndexRecord(0, decompressedLength, compressedLength);
+          localFs.mkdirs(outputPath.getParent());
+          // avoid pit-falls of speculation
+          tmpPath = outputPath.suffix(tmpSuffix);
+          // JDK7 - TODO: use Files implementation to speed up this process
+          localFs.copyFromLocalFile(input.getInputPath(), tmpPath);
+          // rename is atomic
+          boolean renamed = localFs.rename(tmpPath, outputPath);
+          if(!renamed) {
+            LOG.warn("Could not rename to cached file name " + outputPath);
+            localFs.delete(tmpPath, false);
+            return;
+          }
+        }
+        break;
+        default:
+          LOG.warn("Incorrect use of CachingCallback for " + srcAttemptId);
+          return;
+        }
+
+        spillRec.putIndex(indexRec, 0);
+        spillRec.writeToFile(tmpIndex, conf);
+        // everything went well so far - rename it
+        boolean renamed = localFs.rename(tmpIndex, outputPath
+            .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
+        if (!renamed) {
+          localFs.delete(tmpIndex, false);
+          if (outputPath != null) {
+            // invariant: outputPath was renamed from tmpPath
+            localFs.delete(outputPath, false);
+          }
+          LOG.warn("Could not rename the index file to "
+              + outputPath
+                  .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
+          return;
+        }
+      } catch (IOException ioe) {
+        // do mostly nothing
+        LOG.warn("Cache threw an error " + ioe);
+      }
+    }
+  }
+
+  private int findInputs() throws IOException {
+    int k = 0;
+    for (InputAttemptIdentifier src : srcAttempts) {
+      try {
+        if (getShuffleInputFileName(src.getPathComponent(),
+            Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING) != null) {
+          k++;
+        }
+      } catch (DiskErrorException de) {
+        // missing file, ignore
+      }
+    }
+    return k;
+  }
+
+  private FileLock getLock() throws OverlappingFileLockException, InterruptedException, IOException {
+    File lockFile = localFs.pathToFile(new Path(lockPath, host + ".lock"));
+
+    final boolean created = lockFile.createNewFile();
+
+    if (created == false && !lockFile.exists()) {
+      // bail-out cleanly
+      return null;
+    }
+
+    // invariant - file created (winner writes to this file)
+    // caveat: closing lockChannel does close the file (do not double close)
+    // JDK7 - TODO: use AsynchronousFileChannel instead of RandomAccessFile
+    FileChannel lockChannel = new RandomAccessFile(lockFile, "rws")
+        .getChannel();
+    FileLock xlock = null;
+
+    xlock = lockChannel.tryLock(0, Long.MAX_VALUE, false);
+    if (xlock != null) {
+      return xlock;
+    }
+    lockChannel.close();
+    return null;
+  }
+
+  private void releaseLock(FileLock lock) throws IOException {
+    if (lock != null && lock.isValid()) {
+      FileChannel lockChannel = lock.channel();
+      lock.release();
+      lockChannel.close();
+    }
+  }
+
+  protected HostFetchResult doSharedFetch() throws IOException {
+    int inputs = findInputs();
+
+    if (inputs == srcAttempts.size()) {
+      if (isDebugEnabled) {
+        LOG.debug("Using the copies found locally");
+      }
+      return doLocalDiskFetch(true);
+    }
+
+    if (inputs > 0) {
+      if (isDebugEnabled) {
+        LOG.debug("Found " + input
+            + " local fetches right now, using them first");
+      }
+      return doLocalDiskFetch(false);
+    }
+
+    FileLock lock = null;
+    try {
+      lock = getLock();
+      if (lock == null) {
+        // re-queue until we get a lock
+        LOG.info("Requeuing " + host + ":" + port
+            + " downloads because we didn't get a lock");
+        return new HostFetchResult(new FetchResult(host, port, partition,
+            remaining), null, false);
+      } else {
+        if (findInputs() == srcAttempts.size()) {
+          // double checked after lock
+          releaseLock(lock);
+          lock = null;
+          return doLocalDiskFetch(true);
+        }
+        // cache data if possible
+        return doHttpFetch(new CachingCallBack());
+      }
+    } catch (OverlappingFileLockException jvmCrossLock) {
+      // fall back to HTTP fetch below
+      LOG.warn("Double locking detected for " + host);
+    } catch (InterruptedException sleepInterrupted) {
+      // fall back to HTTP fetch below
+      LOG.warn("Lock was interrupted for " + host);
+    } finally {
+      releaseLock(lock);
+    }
+
+    if (isShutDown.get()) {
+      // if any exception was due to shut-down don't bother firing any more
+      // requests
+      return new HostFetchResult(new FetchResult(host, port, partition,
+          remaining), null, false);
+    }
+    // no more caching
+    return doHttpFetch();
+  }
+
   @VisibleForTesting
   protected HostFetchResult doHttpFetch() {
+    return doHttpFetch(null);
+  }
+
+  @VisibleForTesting
+  protected HostFetchResult doHttpFetch(CachingCallBack callback) {
     try {
       StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
           port, partition, appId.toString(), httpConnectionParams.isSSLShuffleEnabled());
@@ -227,7 +461,7 @@ public class Fetcher implements Callable<FetchResult> {
     // yet_to_be_fetched list and marking the failed tasks.
     InputAttemptIdentifier[] failedInputs = null;
     while (!remaining.isEmpty() && failedInputs == null) {
-      failedInputs = fetchInputs(input);
+      failedInputs = fetchInputs(input, callback);
     }
 
     return new HostFetchResult(new FetchResult(host, port, partition, remaining), failedInputs,
@@ -236,6 +470,11 @@ public class Fetcher implements Callable<FetchResult> {
 
   @VisibleForTesting
   protected HostFetchResult setupLocalDiskFetch() {
+    return doLocalDiskFetch(true);
+  }
+
+  @VisibleForTesting
+  private HostFetchResult doLocalDiskFetch(boolean failMissing) {
 
     Iterator<InputAttemptIdentifier> iterator = remaining.iterator();
     while (iterator.hasNext()) {
@@ -246,6 +485,7 @@ public class Fetcher implements Callable<FetchResult> {
       FetchedInput fetchedInput = null;
       try {
         TezIndexRecord idxRecord;
+        // for missing files, this will throw an exception
         idxRecord = getTezIndexRecord(srcAttemptId);
 
         fetchedInput = new LocalDiskFetchedInput(idxRecord.getStartOffset(),
@@ -283,8 +523,10 @@ public class Fetcher implements Callable<FetchResult> {
     }
 
     InputAttemptIdentifier[] failedFetches = null;
-    if (remaining.size() > 0) {
+    if (failMissing && remaining.size() > 0) {
       failedFetches = remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+    } else {
+      // nothing needs to be done to requeue remaining entries
     }
     return new HostFetchResult(new FetchResult(host, port, partition, remaining),
         failedFetches, false);
@@ -296,19 +538,24 @@ public class Fetcher implements Callable<FetchResult> {
     TezIndexRecord idxRecord;
     Path indexFile = getShuffleInputFileName(srcAttemptId.getPathComponent(),
         Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+
     TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
     idxRecord = spillRecord.getIndex(partition);
     return idxRecord;
   }
 
+  private static final String getMapOutputFile(String pathComponent) {
+    return Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR
+        + pathComponent + Path.SEPARATOR
+        + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
+  }
+
   @VisibleForTesting
-  protected Path getShuffleInputFileName(String pathComponent, String suffix) throws IOException {
-    LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+  protected Path getShuffleInputFileName(String pathComponent, String suffix)
+      throws IOException {
     suffix = suffix != null ? suffix : "";
 
-    String pathFromLocalDir = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR + pathComponent +
-        Path.SEPARATOR + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
-
+    String pathFromLocalDir = getMapOutputFile(pathComponent) + suffix;
     return localDirAllocator.getLocalPathToRead(pathFromLocalDir, conf);
   }
 
@@ -350,7 +597,7 @@ public class Fetcher implements Callable<FetchResult> {
     }
   }
 
-  private InputAttemptIdentifier[] fetchInputs(DataInputStream input) {
+  private InputAttemptIdentifier[] fetchInputs(DataInputStream input, CachingCallBack callback) {
     FetchedInput fetchedInput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = -1;
@@ -392,12 +639,16 @@ public class Fetcher implements Callable<FetchResult> {
         LOG.debug("header: " + srcAttemptId + ", len: " + compressedLength
             + ", decomp len: " + decompressedLength);
       }
-
-      // Get the location for the map output - either in-memory or on-disk
       
       // TODO TEZ-957. handle IOException here when Broadcast has better error checking
-      fetchedInput = inputManager.allocate(decompressedLength, compressedLength, srcAttemptId);
-
+      if (srcAttemptId.isShared() && callback != null) {
+        // force disk if input is being shared
+        fetchedInput = inputManager.allocateType(Type.DISK, decompressedLength,
+            compressedLength, srcAttemptId);
+      } else {
+        fetchedInput = inputManager.allocate(decompressedLength,
+            compressedLength, srcAttemptId);
+      }
       // TODO NEWTEZ No concept of WAIT at the moment.
       // // Check if we can shuffle *now* ...
       // if (fetchedInput.getType() == FetchedInput.WAIT) {
@@ -427,6 +678,14 @@ public class Fetcher implements Callable<FetchResult> {
             fetchedInput);
       }
 
+      // offer the fetched input for caching
+      if (srcAttemptId.isShared() && callback != null) {
+        // this has to be before the fetchSucceeded, because that goes across
+        // threads into the reader thread and can potentially shutdown this thread
+        // while it is still caching.
+        callback.cache(host, srcAttemptId, fetchedInput, compressedLength, decompressedLength);
+      }
+
       // Inform the shuffle scheduler
       long endTime = System.currentTimeMillis();
       fetcherCallback.fetchSucceeded(host, srcAttemptId, fetchedInput,
@@ -434,6 +693,7 @@ public class Fetcher implements Callable<FetchResult> {
 
       // Note successful shuffle
       remaining.remove(srcAttemptId);
+
       // metrics.successFetch();
       return null;
     } catch (IOException ioe) {
@@ -521,12 +781,24 @@ public class Fetcher implements Callable<FetchResult> {
     private Fetcher fetcher;
     private boolean workAssigned = false;
 
-    public FetcherBuilder(FetcherCallback fetcherCallback, HttpConnectionParams params,
-                          FetchedInputAllocator inputManager, ApplicationId appId,
-                          SecretKey shuffleSecret, String srcNameTrimmed, Configuration conf,
-                          boolean localDiskFetchEnabled) {
+    public FetcherBuilder(FetcherCallback fetcherCallback,
+        HttpConnectionParams params, FetchedInputAllocator inputManager,
+        ApplicationId appId, SecretKey shuffleSecret, String srcNameTrimmed,
+        Configuration conf, boolean localDiskFetchEnabled) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
-          shuffleSecret, srcNameTrimmed, conf, localDiskFetchEnabled);
+          shuffleSecret, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
+          false);
+    }
+
+    public FetcherBuilder(FetcherCallback fetcherCallback,
+        HttpConnectionParams params, FetchedInputAllocator inputManager,
+        ApplicationId appId, SecretKey shuffleSecret, String srcNameTrimmed,
+        Configuration conf, RawLocalFileSystem localFs,
+        LocalDirAllocator localDirAllocator, Path lockPath,
+        boolean localDiskFetchEnabled, boolean sharedFetchEnabled) {
+      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
+          shuffleSecret, srcNameTrimmed, conf, localFs, localDirAllocator,
+          lockPath, localDiskFetchEnabled, sharedFetchEnabled);
     }
 
     public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {

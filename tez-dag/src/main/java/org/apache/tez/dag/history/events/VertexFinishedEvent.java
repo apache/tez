@@ -26,7 +26,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -102,9 +101,6 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
     if (diagnostics != null) {
       builder.setDiagnostics(diagnostics);
     }
-    if (tezCounters != null) {
-      builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
-    }
     return builder.build();
   }
 
@@ -115,10 +111,6 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
     this.state = VertexState.values()[proto.getState()];
     if (proto.hasDiagnostics())  {
       this.diagnostics = proto.getDiagnostics();
-    }
-    if (proto.hasCounters()) {
-      this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-          proto.getCounters());
     }
   }
 

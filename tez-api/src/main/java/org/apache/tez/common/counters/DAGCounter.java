@@ -27,6 +27,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 public enum DAGCounter {
   NUM_FAILED_TASKS, 
   NUM_KILLED_TASKS,
+  NUM_SUCCEEDED_TASKS,
   TOTAL_LAUNCHED_TASKS,
   OTHER_LOCAL_TASKS,
   DATA_LOCAL_TASKS,

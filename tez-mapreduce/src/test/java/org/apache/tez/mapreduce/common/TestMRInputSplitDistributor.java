@@ -212,7 +212,7 @@ public class TestMRInputSplitDistributor {
     }
 
     @Override
-    public void registerForVertexStatusUpdates(String vertexName, Set<VertexState> stateSet) {
+    public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
       throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
     }
 
