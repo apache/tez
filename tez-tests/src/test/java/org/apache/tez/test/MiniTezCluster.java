@@ -21,6 +21,9 @@ package org.apache.tez.test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,6 +38,9 @@ import org.apache.hadoop.mapred.ShuffleHandler;
 import org.apache.hadoop.mapreduce.v2.jobhistory.JobHistoryUtils;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.JarFinder;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.nodemanager.ContainerExecutor;
@@ -44,6 +50,9 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 
 /**
  * Configures and starts the Tez-specific components in the YARN cluster.
@@ -195,6 +204,40 @@ public class MiniTezCluster extends MiniYARNCluster {
         + conf.get(YarnConfiguration.YARN_APPLICATION_CLASSPATH));
   }
 
+  @Override
+  protected void serviceStop() throws Exception {
+    waitForAppsToFinish();
+    super.serviceStop();
+  }
+
+  private void waitForAppsToFinish() {
+    YarnClient yarnClient = YarnClient.createYarnClient(); 
+    yarnClient.init(getConfig());
+    yarnClient.start();
+    try {
+      while(true) {
+        List<ApplicationReport> appReports = yarnClient.getApplications();
+        Collection<ApplicationReport> unCompletedApps = Collections2.filter(appReports, new Predicate<ApplicationReport>(){
+          @Override
+          public boolean apply(ApplicationReport appReport) {
+            return EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
+            YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
+            .contains(appReport.getYarnApplicationState());
+          }
+        });
+        if (unCompletedApps.size()==0){
+          break;
+        }
+        LOG.info("wait for applications to finish in MiniTezCluster");
+        Thread.sleep(1000);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      yarnClient.stop();
+    }
+  }
+  
   public Path getConfigFilePath() {
     return confFilePath;
   }

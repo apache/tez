@@ -7,6 +7,13 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+Release 0.5.2: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-1620. Wait for application finish before stopping MiniTezCluster
+
 Release 0.5.1: Unreleased
 
 INCOMPATIBLE CHANGES

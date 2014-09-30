@@ -123,7 +123,6 @@ public class TestAMRecovery {
         e.printStackTrace();
       }
     }
-    Thread.sleep(10000);
     if (miniTezCluster != null) {
       try {
         LOG.info("Stopping MiniTezCluster");

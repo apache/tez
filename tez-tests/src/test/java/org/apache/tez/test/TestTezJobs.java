@@ -101,11 +101,6 @@ public class TestTezJobs {
 
   @AfterClass
   public static void tearDown() {
-    try {
-      Thread.sleep(10000);
-    } catch (InterruptedException e) {
-      // Ignore
-    }
     if (mrrTezCluster != null) {
       mrrTezCluster.stop();
       mrrTezCluster = null;
