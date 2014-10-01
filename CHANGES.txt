@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1634. Fix compressed IFile shuffle errors
 
 Release 0.5.2: Unreleased
 
