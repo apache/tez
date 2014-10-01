@@ -1,6 +1,12 @@
 Apache Tez Change Log
 =====================
 
+Release 0.4.2: Unreleased
+
+ALL CHANGES
+  TEZ-1631. Session dag submission timeout can result in duplicate DAG
+  submissions
+
 Release 0.4.1-incubating: 2014-06-30
 
 ALL CHANGES
