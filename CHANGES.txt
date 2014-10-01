@@ -13,6 +13,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-1620. Wait for application finish before stopping MiniTezCluster
+  TEZ-1621. Should report error to AM before shuting down TezChild
 
 Release 0.5.1: Unreleased
 
