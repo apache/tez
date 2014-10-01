@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,20 +36,35 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.client.TezSession;
+import org.apache.tez.client.TezSessionConfiguration;
+import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.GroupInputEdge;
+import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexGroup;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.mapreduce.examples.ExampleDriver;
+import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -62,7 +78,7 @@ public class TestTezJobs {
 
   private static final Log LOG = LogFactory.getLog(TestTezJobs.class);
 
-  protected static MiniTezCluster mrrTezCluster;
+  protected static MiniTezCluster miniTezCluster;
   protected static MiniDFSCluster dfsCluster;
 
   private static Configuration conf = new Configuration();
@@ -82,21 +98,21 @@ public class TestTezJobs {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
 
-    if (mrrTezCluster == null) {
-      mrrTezCluster = new MiniTezCluster(TestTezJobs.class.getName(), 1, 1, 1);
+    if (miniTezCluster == null) {
+      miniTezCluster = new MiniTezCluster(TestTezJobs.class.getName(), 1, 1, 1);
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
-      mrrTezCluster.init(conf);
-      mrrTezCluster.start();
+      miniTezCluster.init(conf);
+      miniTezCluster.start();
     }
 
   }
 
   @AfterClass
   public static void tearDown() {
-    if (mrrTezCluster != null) {
-      mrrTezCluster.stop();
-      mrrTezCluster = null;
+    if (miniTezCluster != null) {
+      miniTezCluster.stop();
+      miniTezCluster = null;
     }
     if (dfsCluster != null) {
       dfsCluster.shutdown();
@@ -115,7 +131,7 @@ public class TestTezJobs {
         Resource.newInstance(1024, 1));
     dag.addVertex(vertex);
 
-    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(new Random()
         .nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
@@ -153,7 +169,7 @@ public class TestTezJobs {
         Resource.newInstance(1024, 1));
     dag.addVertex(vertex);
 
-    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
     Path stagingDir = new Path(TEST_ROOT_DIR, "testNonDefaultFSStagingDir"
         + String.valueOf(new Random().nextInt(100000)));
     FileSystem localFs = FileSystem.getLocal(tezConf);
@@ -185,4 +201,82 @@ public class TestTezJobs {
 
   }
 
+  // TEZ-1631
+  @Test (timeout=100000)
+  public void testDuplicatedDAGSubmitWhenAMSessionTimeout() throws Exception {
+    Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
+        .valueOf(new Random().nextInt(100000))));
+    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
+    TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
+        remoteStagingDir.toString());
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+    tezConf.set(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, "10");
+    AMConfiguration amConfig = new AMConfiguration(
+        new HashMap<String, String>(), new HashMap<String, LocalResource>(),
+        tezConf, null);
+    TezSessionConfiguration tezSessionConfig =
+        new TezSessionConfiguration(amConfig, tezConf);
+
+    TezSession tezSession = new TezSession("TestFaultTolerance", tezSessionConfig);
+    tezSession.start();
+
+    DAG dag = new DAG("testDuplciatedDAGSubmitWhenAMSessionTimeout");
+    Vertex v1 = new Vertex("v1", TestProcessor.getProcDesc(null), 1, SimpleTestDAG.defaultResource);
+    Vertex v2 = new Vertex("v2", TestProcessor.getProcDesc(null), 1, SimpleTestDAG.defaultResource);
+    Vertex v3 = new Vertex("v3", TestProcessor.getProcDesc(null), 1, SimpleTestDAG.defaultResource);
+    VertexGroup unionVertex = dag.createVertexGroup("union", v1, v2);
+    dag.addVertex(v1)
+      .addVertex(v2)
+      .addVertex(v3)
+      .addEdge(
+        new GroupInputEdge(unionVertex, v3,
+            new EdgeProperty(DataMovementType.BROADCAST,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(null),
+                TestInput.getInputDesc(null)),
+        new InputDescriptor(
+            ConcatenatedMergedKeyValuesInput.class.getName())));
+
+    // wait for AM session timeout
+    LOG.info("Sleep 30 seconds");
+    Thread.sleep(30*1000);
+    try {
+      tezSession.submitDAG(dag);
+      Assert.fail("should fail due to AM session timeout");
+    } catch (Exception e) {
+      LOG.info(ExceptionUtils.getStackTrace(e));
+      Assert.assertTrue(e instanceof SessionNotRunning);
+    }
+    // create a new TezSession since the previous one has been timeout
+    tezSession = new TezSession("TestFaultTolerance", tezSessionConfig);
+    tezSession.start();
+    runDAGAndVerify(tezSession, dag, DAGStatus.State.SUCCEEDED);
+    tezSession.stop();
+  }
+
+  void runDAGAndVerify(TezSession tezSession, DAG dag, DAGStatus.State finalState) throws Exception {
+    TezSessionStatus status = tezSession.getSessionStatus();
+    while (status != TezSessionStatus.READY && status != TezSessionStatus.SHUTDOWN) {
+      LOG.info("Waiting for session to be ready. Current: " + status);
+      Thread.sleep(100);
+      status = tezSession.getSessionStatus();
+    }
+    if (status == TezSessionStatus.SHUTDOWN) {
+      throw new TezUncheckedException("Unexpected Session shutdown");
+    }
+    DAGClient dagClient = tezSession.submitDAG(dag);
+    DAGStatus dagStatus = dagClient.getDAGStatus(null);
+    while (!dagStatus.isCompleted()) {
+      LOG.info("Waiting for dag to complete. Sleeping for 500ms."
+          + " DAG name: " + dag.getName()
+          + " DAG appId: " + dagClient.getApplicationId()
+          + " Current state: " + dagStatus.getState());
+      Thread.sleep(100);
+      dagStatus = dagClient.getDAGStatus(null);
+    }
+
+    Assert.assertEquals(finalState, dagStatus.getState());
+  }
 }

@@ -194,6 +194,18 @@ public class TezSession {
     throws TezException, IOException, InterruptedException {
     verifySessionStateForSubmission();
 
+    DAGClientAMProtocolBlockingPB proxy = waitForProxy();
+    if (proxy == null) {
+      try {
+        LOG.warn("DAG submission to session timed out, stopping session");
+        stop();
+      } catch (Throwable t) {
+        LOG.info("Got an exception when trying to stop session", t);
+      }
+      throw new DAGSubmissionTimedOut("Could not submit DAG to Tez Session"
+          + ", timed out after " + clientTimeout + " seconds");
+    }
+
     String dagId;
     LOG.info("Submitting dag to TezSession"
       + ", sessionName=" + sessionName
@@ -225,18 +237,6 @@ public class TezSession {
     if (additionalAmResources != null && !additionalAmResources.isEmpty()) {
       requestBuilder.setAdditionalAmResources(DagTypeConverters
           .convertFromLocalResources(additionalAmResources));
-    }
-
-    DAGClientAMProtocolBlockingPB proxy = waitForProxy();
-    if (proxy == null) {
-      try {
-        LOG.warn("DAG submission to session timed out, stopping session");
-        stop();
-      } catch (Throwable t) {
-        LOG.info("Got an exception when trying to stop session", t);
-      }
-      throw new DAGSubmissionTimedOut("Could not submit DAG to Tez Session"
-          + ", timed out after " + clientTimeout + " seconds");
     }
 
     try {
