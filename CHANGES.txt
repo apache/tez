@@ -6,7 +6,6 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-1634. Fix compressed IFile shuffle errors
 
 Release 0.5.2: Unreleased
 
@@ -15,8 +14,9 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
   TEZ-1620. Wait for application finish before stopping MiniTezCluster
   TEZ-1621. Should report error to AM before shuting down TezChild
+  TEZ-1634. Fix compressed IFile shuffle errors
 
-Release 0.5.1: Unreleased
+Release 0.5.1: 2014-10-02
 
 INCOMPATIBLE CHANGES
   TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
