@@ -278,8 +278,8 @@ public class TestExceptionPropagation {
     OUTPUT_CLOSE, OUTPUT_INITIALIZE,
     // Not Supported yet
     // PROCESSOR_HANDLE_EVENTS
-    PROCESSOR_RUN, PROCESSOR_CLOSE, PROCESSOR_INITIALIZE,
-
+    PROCESSOR_RUN_ERROR, PROCESSOR_CLOSE_ERROR, PROCESSOR_INITIALIZE_ERROR,
+    PROCESSOR_RUN_EXCEPTION, PROCESSOR_CLOSE_EXCEPTION, PROCESSOR_INITIALIZE_EXCEPTION,
   }
 
   /**
@@ -479,7 +479,9 @@ public class TestExceptionPropagation {
       output.start();
       output.getWriter();
 
-      if (this.exLocation == ExceptionLocation.PROCESSOR_RUN) {
+      if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_ERROR) {
+        throw new Error(this.exLocation.name());
+      } else if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_EXCEPTION) {
         throw new Exception(this.exLocation.name());
       }
     }
@@ -490,15 +492,19 @@ public class TestExceptionPropagation {
 
     @Override
     public void close() throws Exception {
-      if (this.exLocation == ExceptionLocation.PROCESSOR_CLOSE) {
-        throw new RuntimeException(this.exLocation.name());
+      if (this.exLocation == ExceptionLocation.PROCESSOR_CLOSE_ERROR) {
+        throw new Error(this.exLocation.name());
+      } else if (this.exLocation == ExceptionLocation.PROCESSOR_CLOSE_EXCEPTION) {
+        throw new Exception(this.exLocation.name());
       }
     }
 
     @Override
     public void initialize() throws Exception {
-      if (this.exLocation == ExceptionLocation.PROCESSOR_INITIALIZE) {
-        throw new RuntimeException(this.exLocation.name());
+      if (this.exLocation == ExceptionLocation.PROCESSOR_INITIALIZE_ERROR) {
+        throw new Error(this.exLocation.name());
+      } else if (this.exLocation == ExceptionLocation.PROCESSOR_INITIALIZE_EXCEPTION) {
+        throw new Exception(this.exLocation.name());
       }
     }
 
