@@ -159,6 +159,7 @@ message DAGPlan {
   optional ConfigurationProto dagKeyValues = 4;
   optional bytes credentials_binary = 5;
   repeated PlanVertexGroupInfo vertex_groups = 6;
+  repeated PlanLocalResource local_resource = 7;
 }
 
 // DAG monitoring messages

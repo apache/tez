@@ -4,32 +4,55 @@ Apache Tez Change Log
 Release 0.6.0: Unreleased
 
 INCOMPATIBLE CHANGES
-  TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
-  TEZ-1578. Remove TeraSort from Tez codebase.
 
 ALL CHANGES:
+  TEZ-1634. Fix compressed IFile shuffle errors
+
+Release 0.5.2: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-1620. Wait for application finish before stopping MiniTezCluster
+  TEZ-1621. Should report error to AM before shuting down TezChild
+
+Release 0.5.1: Unreleased
+
+INCOMPATIBLE CHANGES
+  TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
+  TEZ-1578. Remove TeraSort from Tez codebase.
+  TEZ-1499. Add SortMergeJoinExample to tez-examples
+  TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
+  TEZ-1571. Add create method for DataSinkDescriptor.
+
+ALL CHANGES
   TEZ-1544. Link to release artifacts for 0.5.0 does not point to a specific link for 0.5.0.
   TEZ-1559. Add system tests for AM recovery.
   TEZ-850. Recovery unit tests.
   TEZ-853. Support counters recovery.
   TEZ-1345. Add checks to guarantee all init events are written to recovery to consider vertex initialized.
   TEZ-1575. MRRSleepJob does not pick MR settings for container size and java opts.
+  TEZ-1488. Rename HashComparator to ProxyComparator and implement in TezBytesComparator
   TEZ-1578. Remove TeraSort from Tez codebase.
   TEZ-1569. Add tests for preemption
   TEZ-1580. Change TestOrderedWordCount to optionally use MR configs.
   TEZ-1524. Resolve user group information only if ACLs are enabled.
   TEZ-1581. GroupByOrderByMRRTest no longer functional.
-  TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless of DAG submission.
   TEZ-1157. Optimize broadcast shuffle to download data only once per host. 
   TEZ-1594. Initial TezUI into TEZ-8 branch
   TEZ-1595. Document timeline server setup for use with the Tez UI
-
-Release 0.5.1: Unreleased
-
-INCOMPATIBLE CHANGES
-  TEZ-1539. Change InputInitializerEvent semantics to SEND_ONCE_ON_TASK_SUCCESS
-
-ALL CHANGES
+  TEZ-1607. support mr envs in mrrsleep and testorderedwordcount
+  TEZ-1499. Add SortMergeJoinExample to tez-examples
+  TEZ-1613. Decrease running time for TestAMRecovery
+  TEZ-1240. Add system test for propagation of diagnostics for errors
+  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get 
+  negative if JVM memory is larger than 2GB
+  TEZ-1611. Change DataSource/Sink to be able to supply URIs for credentials
+  TEZ-1592. Vertex should wait for all initializers to finish before moving to INITED state
+  TEZ-1612. ShuffleVertexManager's EdgeManager should not hard code source num tasks
+  TEZ-1555. TestTezClientUtils.validateSetTezJarLocalResourcesDefinedButEmpty
+  failing on Windows
+  TEZ-1609. Add hostname to logIdentifiers of fetchers for easy debugging
   TEZ-1494. DAG hangs waiting for ShuffleManager.getNextInput()
   TEZ-1515. Remove usage of ResourceBundles in Counters.
   TEZ-1527. Fix indentation of Vertex status in DAGClient output.
@@ -42,10 +65,22 @@ ALL CHANGES
   TEZ-1574. Support additional formats for the tez deployed archive
   TEZ-1563. TezClient.submitDAGSession alters DAG local resources regardless
   of DAG submission
-  TEZ-1571. Add create method for DataSinkDescriptor.
   TEZ-1585. Memory leak in tez session mode.
   TEZ-1533. Request Events more often if a complete set of events is received by a task.
   TEZ-1587. Some tez-examples fail in local mode.
+  TEZ-1597. ImmediateStartVertexManager should handle corner case of vertex having zero tasks.
+  TEZ-1495. ATS integration for TezClient
+  TEZ-1553. Multiple failures in testing path-related tests in
+  TestTezCommonUtils for Windows
+  TEZ-1598. DAGClientTimelineImpl uses ReflectiveOperationException (which has JDK 1.7 dependency)
+  TEZ-1599. TezClient.preWarm() is not enabled
+  TEZ-1550. TestEnvironmentUpdateUtils.testMultipleUpdateEnvironment fails on
+  Windows
+  TEZ-1554. Failing tests in TestMRHelpers related to environment on Windows
+  TEZ-978. Enhance auto parallelism tuning for queries having empty outputs or data skewness
+  TEZ-1433. Invalid credentials can be used when a DAG is submitted to a
+  session which has timed out
+  TEZ-1624. Flaky tests in TestContainerReuse due to race condition in DelayedContainerManager thread
 
 Release 0.5.0: 2014-09-03
 

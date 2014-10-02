@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
+import org.apache.tez.dag.api.DAGNotRunningException;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster;
@@ -46,6 +47,10 @@ public class DAGClientHandler {
 
   private DAG getCurrentDAG() {
     return dagAppMaster.getContext().getCurrentDAG();
+  }
+
+  private Set<String> getAllDagIDs() {
+    return dagAppMaster.getContext().getAllDAGIDs();
   }
 
   public List<String> getAllDAGs() throws TezException {
@@ -78,12 +83,20 @@ public class DAGClientHandler {
     if (currentDAG == null) {
       throw new TezException("No running dag at present");
     }
-    if (!currentDAG.getID().toString().equals(dagId.toString())) {
-      LOG.warn("Current DAGID : "
-          + (currentDAG.getID() == null ? "NULL" : currentDAG.getID())
-          + ", Looking for string (not found): " + dagIdStr + ", dagIdObj: "
-          + dagId);
-      throw new TezException("Unknown dagId: " + dagIdStr);
+
+    final String currentDAGIdStr = currentDAG.getID().toString();
+    if (!currentDAGIdStr.equals(dagIdStr)) {
+      if (getAllDagIDs().contains(dagIdStr)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Looking for finished dagId " + dagIdStr + " current dag is " + currentDAGIdStr);
+        }
+        throw new DAGNotRunningException("DAG " + dagIdStr + " Not running, current dag is " +
+            currentDAGIdStr);
+      } else {
+        LOG.warn("Current DAGID : " + currentDAGIdStr + ", Looking for string (not found): " +
+            dagIdStr + ", dagIdObj: " + dagId);
+        throw new TezException("Unknown dagId: " + dagIdStr);
+      }
     }
 
     return currentDAG;

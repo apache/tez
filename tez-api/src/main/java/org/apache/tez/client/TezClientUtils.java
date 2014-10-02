@@ -83,6 +83,8 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -334,17 +336,13 @@ public class TezClientUtils {
    * @throws IOException
    */
   @Private
-  static void setupDAGCredentials(DAG dag, Credentials sessionCredentials,
+  static Credentials setupDAGCredentials(DAG dag, Credentials sessionCredentials,
       Configuration conf) throws IOException {
 
     Preconditions.checkNotNull(sessionCredentials);
     TezCommonUtils.logCredentials(LOG, sessionCredentials, "session");
 
-    Credentials dagCredentials = dag.getCredentials();
-    if (dagCredentials == null) {
-      dagCredentials = new Credentials();
-      dag.setCredentials(dagCredentials);
-    }
+    Credentials dagCredentials = new Credentials();
     // All session creds are required for the DAG.
     dagCredentials.mergeAll(sessionCredentials);
     
@@ -360,6 +358,18 @@ public class TezClientUtils {
         for (LocalResource lr: v.getTaskLocalFiles().values()) {
           lrPaths.add(ConverterUtils.getPathFromYarnURL(lr.getResource()));
         }
+        List<DataSourceDescriptor> dataSources = v.getDataSources();
+        for (DataSourceDescriptor dataSource : dataSources) {
+          addFileSystemCredentialsFromURIs(dataSource.getURIsForCredentials(), dagCredentials, conf);
+        }
+        List<DataSinkDescriptor> dataSinks = v.getDataSinks();
+        for (DataSinkDescriptor dataSink : dataSinks) {
+          addFileSystemCredentialsFromURIs(dataSink.getURIsForCredentials(), dagCredentials, conf);
+        }
+      }
+      
+      for (LocalResource lr: dag.getTaskLocalFiles().values()) {
+        lrPaths.add(ConverterUtils.getPathFromYarnURL(lr.getResource()));
       }
 
       Path[] paths = lrPaths.toArray(new Path[lrPaths.size()]);
@@ -368,6 +378,8 @@ public class TezClientUtils {
     } catch (URISyntaxException e) {
       throw new IOException(e);
     }
+    
+    return dagCredentials;
   }
 
   @Private
@@ -622,35 +634,12 @@ public class TezClientUtils {
 
   }
   
-  static void updateDAGVertices(DAG dag, AMConfiguration amConfig,
-      Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
-      Credentials credentials) throws IOException {
-    setupDAGCredentials(dag, credentials, amConfig.getTezConfiguration());
-    for (Vertex v : dag.getVertices()) {
-      if (tezJarResources != null) {
-        v.getTaskLocalFiles().putAll(tezJarResources);
-      }
-      v.getTaskLocalFiles().put(TezConstants.TEZ_PB_BINARY_CONF_NAME,
-          amConfig.getBinaryConfLR());
-
-      Map<String, String> taskEnv = v.getTaskEnvironment();
-      TezYARNUtils.setupDefaultEnv(taskEnv, amConfig.getTezConfiguration(),
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV,
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
-
-      setDefaultLaunchCmdOpts(v, amConfig.getTezConfiguration());
-    }
-  }
-  
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
       Credentials credentials) throws IOException {
-    DAGPlan dagPB = dag.getCachedDAGPlan();
-    if (dagPB == null) {
-      updateDAGVertices(dag, amConfig, tezJarResources, tezLrsAsArchive, credentials);  
-      dagPB = dag.createDag(amConfig.getTezConfiguration());  
-    }    
-    return dagPB;
+    Credentials dagCredentials = setupDAGCredentials(dag, credentials, amConfig.getTezConfiguration());
+    return dag.createDag(amConfig.getTezConfiguration(), dagCredentials, tezJarResources,
+        amConfig.getBinaryConfLR(), true);
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
@@ -678,8 +667,8 @@ public class TezClientUtils {
     return StringUtils.join(vargs, " ").trim();
   }
   
-  static void setDefaultLaunchCmdOpts(Vertex v, TezConfiguration conf) {
-    String vOpts = v.getTaskLaunchCmdOpts();
+  @Private
+  public static String addDefaultsToTaskLaunchCmdOpts(String vOpts, Configuration conf) {
     String vConfigOpts = conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT);
     if (vConfigOpts != null && vConfigOpts.length() > 0) {
@@ -689,7 +678,7 @@ public class TezClientUtils {
     vOpts = maybeAddDefaultLoggingJavaOpts(conf.get(
         TezConfiguration.TEZ_TASK_LOG_LEVEL,
         TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT), vOpts);
-    v.setTaskLaunchCmdOpts(vOpts);
+    return vOpts;
   }
 
   @Private

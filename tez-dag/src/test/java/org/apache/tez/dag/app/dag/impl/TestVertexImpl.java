@@ -429,7 +429,7 @@ public class TestVertexImpl {
             SchedulingType.SEQUENTIAL, OutputDescriptor.create("out.class"),
             InputDescriptor.create("out.class"))));
    
-    return dag.createDag(conf);
+    return dag.createDag(conf, null, null, null, true);
   }
 
   private DAGPlan createDAGPlanWithInitializer0Tasks(String initializerClassName) {
@@ -493,6 +493,52 @@ public class TestVertexImpl {
                 .build()
         )
         .build();
+    return dag;
+  }
+
+  private DAGPlan createDAGPlanWithMultipleInitializers(String initializerClassName) {
+    LOG.info("Setting up dag plan with multiple input initializer");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("testVertexWithMultipleInitializers")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
+                        .setName("input1")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                                .setClassName("InputClazz")
+                                .build()
+                        ).build()
+                )
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                initializerClassName))
+                        .setName("input2")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                                .setClassName("InputClazz")
+                                .build()
+                        ).build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .build()
+        ).build();
     return dag;
   }
 
@@ -3642,6 +3688,8 @@ public class TestVertexImpl {
      *   M7 --(B)---------------->M5 ---(SG)--> R6
      *                            /
      *   M8---(C)--------------->/
+     *                          /
+     *   M9---(B)--------------> (zero task vertex)
      */
 
     //init M2
@@ -3650,14 +3698,22 @@ public class TestVertexImpl {
     VertexImpl r3 = vertices.get("R3");
     VertexImpl m5 = vertices.get("M5");
     VertexImpl m8 = vertices.get("M8");
+    VertexImpl m9 = vertices.get("M9");
 
     initVertex(m2);
     initVertex(m7);
     initVertex(m8);
+    initVertex(m9);
     assertTrue(m7.getState().equals(VertexState.INITED));
+    assertTrue(m9.getState().equals(VertexState.INITED));
     assertTrue(m5.getState().equals(VertexState.INITED));
     assertTrue(m8.getState().equals(VertexState.INITED));
     assertTrue(m7.getVertexManager().getPlugin() instanceof ImmediateStartVertexManager);
+
+    //Start M9
+    dispatcher.getEventHandler().handle(new VertexEvent(m9.getVertexId(),
+        VertexEventType.V_START));
+    dispatcher.await();
 
     //Start M2; Let tasks complete in M2; Also let 1 task complete in R3
     dispatcher.getEventHandler().handle(new VertexEvent(m2.getVertexId(), VertexEventType.V_START));
@@ -3708,6 +3764,8 @@ public class TestVertexImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(m8.getVertexId(),VertexEventType.V_START));
     dispatcher.await();
 
+    assertTrue(m9.getState().equals(VertexState.SUCCEEDED));
+
     //M5 in running state. But tasks should not be scheduled until M8 finishes a task.
     assertTrue(m5.getState().equals(VertexState.RUNNING));
     for(Task task : m5.getTasks().values()) {
@@ -3740,6 +3798,8 @@ public class TestVertexImpl {
      *   M7 --(B)---------------->M5 ---(SG)--> R6
      *                            /
      *   M8---(C)--------------->/
+     *                          /
+     *   M9---(B)--------------> (zero task vertex)
      */
     DAGPlan dag = DAGPlan.newBuilder().setName("TestSamplerDAG")
         .addVertex(VertexPlan.newBuilder()
@@ -3776,6 +3836,24 @@ public class TestVertexImpl {
                         .build()
                 )
                 .addOutEdgeId("M8_M5")
+                .build()
+        )
+        .addVertex(VertexPlan.newBuilder()
+                .setName("M9")
+                .setProcessorDescriptor(
+                    TezEntityDescriptorProto.newBuilder().setClassName("M9.class"))
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder().addHost("host1").addRack("rack1").build())
+                .setTaskConfig(PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(0) //Zero task vertex
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("M9.class")
+                        .build()
+                )
+                .addOutEdgeId("M9_M5")
                 .build()
         )
          .addVertex(VertexPlan.newBuilder()
@@ -3815,6 +3893,7 @@ public class TestVertexImpl {
                 .addInEdgeId("R3_M5")
                 .addInEdgeId("M7_M5")
                 .addInEdgeId("M8_M5")
+                .addInEdgeId("M9_M5")
                 .addOutEdgeId("M5_R6")
                 .build()
         )
@@ -3904,6 +3983,18 @@ public class TestVertexImpl {
         )
         .addEdge(
             EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("M9_M5"))
+                .setInputVertexName("M9")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("M9_M5.class"))
+                .setOutputVertexName("M5")
+                .setDataMovementType(PlanEdgeDataMovementType.BROADCAST)
+                .setId("M9_M5")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
                 .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("M8_M5"))
                 .setInputVertexName("M8")
                 .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("M8_M5.class"))
@@ -3922,6 +4013,60 @@ public class TestVertexImpl {
         .build();
 
     return dag;
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexWithMultipleInitializers1() {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
+    setupPostDagCreation();
+
+    VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
+        .get("vertex1");
+
+    dispatcher.getEventHandler().handle(
+        new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+
+    RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
+    List<TaskLocationHint> v1Hints = createTaskLocationHints(5);
+
+    // Complete initializer which sets parallelism first
+    initializerManager1.completeInputInitialization(0, 5, v1Hints);
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+
+    // Complete second initializer
+    initializerManager1.completeInputInitialization(1);
+    Assert.assertEquals(VertexState.INITED, v1.getState());
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexWithMultipleInitializers2() {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
+    setupPostDagCreation();
+
+    VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
+        .get("vertex1");
+
+    dispatcher.getEventHandler().handle(
+        new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+
+    RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
+    List<TaskLocationHint> v1Hints = createTaskLocationHints(5);
+
+    // Complete initializer which does not set parallelism
+    initializerManager1.completeInputInitialization(1);
+    Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
+
+    // Complete second initializer which sets parallelism
+    initializerManager1.completeInputInitialization(0, 5, v1Hints);
+    Assert.assertEquals(VertexState.INITED, v1.getState());
   }
 
   @SuppressWarnings("unchecked")
@@ -4315,6 +4460,12 @@ public class TestVertexImpl {
       events.add(event);
       eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
           .get(0).getName(), events));
+      dispatcher.await();
+    }
+
+    public void completeInputInitialization(int initializerIndex) {
+      eventHandler.handle(new VertexEventRootInputInitialized(vertexID, inputs
+          .get(initializerIndex).getName(), null));
       dispatcher.await();
     }
 

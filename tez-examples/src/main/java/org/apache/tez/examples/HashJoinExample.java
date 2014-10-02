@@ -63,65 +63,69 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import com.google.common.base.Preconditions;
 
 /**
- * Simple example of joining 2 data sets.
- * <br>The example shows a vertex with multiple inputs that represent the two
- * data sets that need to be joined.
- * <br>The join can be performed using a broadcast (or replicate-fragment) join in 
- * which the small side of the join is broadcast in total to fragments of the 
+ * Simple example of joining 2 data sets using <a
+ * href="http://en.wikipedia.org/wiki/Hash_join">Hash Join</a>.<br>
+ * The example shows a vertex with multiple inputs that represent the two data
+ * sets that need to be joined. This HashJoinExample assume that keys in the
+ * second dataset (hashSide) is unique.<br>
+ * The join can be performed using a broadcast (or replicate-fragment) join in
+ * which the small side of the join is broadcast in total to fragments of the
  * larger side. Each fragment of the larger side can perform the join operation
- * independently using the full data of the smaller side. This shows the usage 
- * of the broadcast edge property in Tez.
- * <br>The join can be performed using the regular repartition join where both 
- * sides are partitioned according to the same scheme into the same number of 
- * fragments. Then the keys in the same fragment are joined with each other. This 
- * is the default join strategy.
- *
+ * independently using the full data of the smaller side. This shows the usage
+ * of the broadcast edge property in Tez. <br>
+ * The join can be performed using the regular repartition join where both sides
+ * are partitioned according to the same scheme into the same number of
+ * fragments. Then the keys in the same fragment are joined with each other.
+ * This is the default join strategy.
  */
-public class JoinExample extends Configured implements Tool {
+public class HashJoinExample extends Configured implements Tool {
 
-  private static final Log LOG = LogFactory.getLog(JoinExample.class);
-  
+  private static final Log LOG = LogFactory.getLog(HashJoinExample.class);
+
   private static final String broadcastOption = "doBroadcast";
   private static final String streamingSide = "streamingSide";
   private static final String hashSide = "hashSide";
   private static final String inputFile = "inputFile";
   private static final String joiner = "joiner";
   private static final String joinOutput = "joinOutput";
-  
 
   public static void main(String[] args) throws Exception {
-    JoinExample job = new JoinExample();
+    HashJoinExample job = new HashJoinExample();
     int status = ToolRunner.run(new Configuration(), job, args);
     System.exit(status);
   }
 
   private static void printUsage() {
-    System.err.println("Usage: " + "joinexample <file1> <file2> <numPartitions> <outPath> [" 
-                       + broadcastOption + "(default false)]");
+    System.err.println("Usage: "
+        + "hashjoin <file1> <file2> <numPartitions> <outPath> ["
+        + broadcastOption + "(default false)]");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
   @Override
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    String[] otherArgs =
+        new GenericOptionsParser(conf, args).getRemainingArgs();
     int result = validateArgs(otherArgs);
     if (result != 0) {
       return result;
     }
     return execute(otherArgs);
   }
-  
-  public int run(Configuration conf, String[] args, TezClient tezClient) throws Exception {
+
+  public int run(Configuration conf, String[] args, TezClient tezClient)
+      throws Exception {
     setConf(conf);
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    String[] otherArgs =
+        new GenericOptionsParser(conf, args).getRemainingArgs();
     int result = validateArgs(otherArgs);
     if (result != 0) {
       return result;
     }
     return execute(otherArgs, tezClient);
   }
-  
+
   private int validateArgs(String[] otherArgs) {
     if (!(otherArgs.length == 4 || otherArgs.length == 5)) {
       printUsage();
@@ -130,7 +134,8 @@ public class JoinExample extends Configured implements Tool {
     return 0;
   }
 
-  private int execute(String[] args) throws TezException, IOException, InterruptedException {
+  private int execute(String[] args) throws TezException, IOException,
+      InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
     TezClient tezClient = null;
     try {
@@ -142,23 +147,26 @@ public class JoinExample extends Configured implements Tool {
       }
     }
   }
-  
-  private int execute(String[] args, TezClient tezClient) throws IOException, TezException,
-      InterruptedException {
+
+  private int execute(String[] args, TezClient tezClient) throws IOException,
+      TezException, InterruptedException {
     TezConfiguration tezConf = new TezConfiguration(getConf());
     return execute(args, tezConf, tezClient);
   }
 
-  private TezClient createTezClient(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezClient = TezClient.create("JoinExample", tezConf);
+  private TezClient createTezClient(TezConfiguration tezConf)
+      throws TezException, IOException {
+    TezClient tezClient = TezClient.create("HashJoinExample", tezConf);
     tezClient.start();
     return tezClient;
   }
-  
-  private int execute(String[] args, TezConfiguration tezConf, TezClient tezClient)
-      throws IOException, TezException, InterruptedException {
-    boolean doBroadcast = args.length == 5 && args[4].equals(broadcastOption) ? true : false;
-    LOG.info("Running JoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
+
+  private int execute(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws IOException, TezException,
+      InterruptedException {
+    boolean doBroadcast =
+        args.length == 5 && args[4].equals(broadcastOption) ? true : false;
+    LOG.info("Running HashJoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
 
     UserGroupInformation.setConfiguration(tezConf);
 
@@ -182,7 +190,9 @@ public class JoinExample extends Configured implements Tool {
       return 4;
     }
 
-    DAG dag = createDag(tezConf, streamInputPath, hashInputPath, outputPath, numPartitions, doBroadcast);
+    DAG dag =
+        createDag(tezConf, streamInputPath, hashInputPath, outputPath,
+            numPartitions, doBroadcast);
 
     tezClient.waitTillReady();
     DAGClient dagClient = tezClient.submitDAG(dag);
@@ -195,104 +205,124 @@ public class JoinExample extends Configured implements Tool {
 
   }
 
-  private DAG createDag(TezConfiguration tezConf, Path streamPath, Path hashPath, Path outPath,
-      int numPartitions, boolean doBroadcast) throws IOException {
-    DAG dag = DAG.create("JoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
+  private DAG createDag(TezConfiguration tezConf, Path streamPath,
+      Path hashPath, Path outPath, int numPartitions, boolean doBroadcast)
+      throws IOException {
+    DAG dag = DAG.create("HashJoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
 
     /**
-     * This vertex represents the side of the join that will be accumulated in a hash 
-     * table in order to join it against the other side. It reads text data using the
-     * TextInputFormat. ForwardingProcessor simply forwards the data downstream as is.
-     */
-    Vertex hashFileVertex = Vertex.create(hashSide, ProcessorDescriptor.create(
-        ForwardingProcessor.class.getName())).addDataSource(
-        inputFile,
-        MRInput
-            .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
-                hashPath.toUri().toString()).groupSplits(false).build());
-
-    /**
-     * This vertex represents that side of the data that will be streamed and joined 
-     * against the other side that has been accumulated into a hash table. It reads 
-     * text data using the TextInputFormat. ForwardingProcessor simply forwards the data 
+     * This vertex represents the side of the join that will be accumulated in a
+     * hash table in order to join it against the other side. It reads text data
+     * using the TextInputFormat. ForwardingProcessor simply forwards the data
      * downstream as is.
      */
-    Vertex streamFileVertex = Vertex.create(streamingSide, ProcessorDescriptor.create(
-        ForwardingProcessor.class.getName())).addDataSource(
-        inputFile,
-        MRInput
-            .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
-                streamPath.toUri().toString()).groupSplits(false).build());
+    Vertex hashFileVertex =
+        Vertex.create(hashSide,
+            ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
+            .addDataSource(
+                inputFile,
+                MRInput
+                    .createConfigBuilder(new Configuration(tezConf),
+                        TextInputFormat.class, hashPath.toUri().toString())
+                    .groupSplits(false).build());
 
     /**
-     * This vertex represents the join operation. It writes the join output as text using
-     * the TextOutputFormat. The JoinProcessor is going to perform the join of the 
-     * streaming side and the hash side. It is load balanced across numPartitions 
+     * This vertex represents that side of the data that will be streamed and
+     * joined against the other side that has been accumulated into a hash
+     * table. It reads text data using the TextInputFormat. ForwardingProcessor
+     * simply forwards the data downstream as is.
      */
-    Vertex joinVertex = Vertex.create(joiner, ProcessorDescriptor.create(
-        JoinProcessor.class.getName()), numPartitions).addDataSink(joinOutput,
-        MROutput.createConfigBuilder(new Configuration(tezConf),
-            TextOutputFormat.class, outPath.toUri().toString()).build());
+    Vertex streamFileVertex =
+        Vertex.create(streamingSide,
+            ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
+            .addDataSource(
+                inputFile,
+                MRInput
+                    .createConfigBuilder(new Configuration(tezConf),
+                        TextInputFormat.class, streamPath.toUri().toString())
+                    .groupSplits(false).build());
 
     /**
-     * The streamed side will be partitioned into fragments with the same keys going to 
-     * the same fragments using hash partitioning. The data to be joined is the key itself
-     * and so the value is null. The number of fragments is initially inferred from the 
-     * number of tasks running in the join vertex because each task will be handling one
-     * fragment.
+     * This vertex represents the join operation. It writes the join output as
+     * text using the TextOutputFormat. The JoinProcessor is going to perform
+     * the join of the streaming side and the hash side. It is load balanced
+     * across numPartitions
+     */
+    Vertex joinVertex =
+        Vertex.create(joiner,
+            ProcessorDescriptor.create(HashJoinProcessor.class.getName()),
+            numPartitions).addDataSink(
+            joinOutput,
+            MROutput.createConfigBuilder(new Configuration(tezConf),
+                TextOutputFormat.class, outPath.toUri().toString()).build());
+
+    /**
+     * The streamed side will be partitioned into fragments with the same keys
+     * going to the same fragments using hash partitioning. The data to be
+     * joined is the key itself and so the value is null. The number of
+     * fragments is initially inferred from the number of tasks running in the
+     * join vertex because each task will be handling one fragment.
      */
     UnorderedPartitionedKVEdgeConfig streamConf =
         UnorderedPartitionedKVEdgeConfig
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-                HashPartitioner.class.getName()).setFromConfiguration(tezConf).build();
+                HashPartitioner.class.getName()).setFromConfiguration(tezConf)
+            .build();
 
     /**
      * Connect the join vertex with the stream side
      */
-    Edge e1 = Edge.create(streamFileVertex, joinVertex, streamConf.createDefaultEdgeProperty());
-    
+    Edge e1 =
+        Edge.create(streamFileVertex, joinVertex,
+            streamConf.createDefaultEdgeProperty());
+
     EdgeProperty hashSideEdgeProperty = null;
     if (doBroadcast) {
       /**
-       * This option can be used when the hash side is small. We can broadcast the entire data to 
-       * all fragments of the stream side. This avoids re-partitioning the fragments of the stream 
-       * side to match the partitioning scheme of the hash side and avoids costly network data 
-       * transfer. However, in this example the stream side is being partitioned in both cases for 
-       * brevity of code. The join task can perform the join of its fragment of keys with all the 
-       * keys of the hash side.
-       * Using an unpartitioned edge to transfer the complete output of the hash side to be 
-       * broadcasted to all fragments of the streamed side. Again, since the data is the key, the 
-       * value is null.
+       * This option can be used when the hash side is small. We can broadcast
+       * the entire data to all fragments of the stream side. This avoids
+       * re-partitioning the fragments of the stream side to match the
+       * partitioning scheme of the hash side and avoids costly network data
+       * transfer. However, in this example the stream side is being partitioned
+       * in both cases for brevity of code. The join task can perform the join
+       * of its fragment of keys with all the keys of the hash side. Using an
+       * unpartitioned edge to transfer the complete output of the hash side to
+       * be broadcasted to all fragments of the streamed side. Again, since the
+       * data is the key, the value is null.
        */
-      UnorderedKVEdgeConfig broadcastConf = UnorderedKVEdgeConfig.newBuilder(Text.class.getName(),
-          NullWritable.class.getName()).setFromConfiguration(tezConf).build();
+      UnorderedKVEdgeConfig broadcastConf =
+          UnorderedKVEdgeConfig
+              .newBuilder(Text.class.getName(), NullWritable.class.getName())
+              .setFromConfiguration(tezConf).build();
       hashSideEdgeProperty = broadcastConf.createDefaultBroadcastEdgeProperty();
     } else {
       /**
-       * The hash side is also being partitioned into fragments with the same key going to the same
-       * fragment using hash partitioning. This way all keys with the same hash value will go to the
-       * same fragment from both sides. Thus the join task handling that fragment can join both data
-       * set fragments. 
+       * The hash side is also being partitioned into fragments with the same
+       * key going to the same fragment using hash partitioning. This way all
+       * keys with the same hash value will go to the same fragment from both
+       * sides. Thus the join task handling that fragment can join both data set
+       * fragments.
        */
       hashSideEdgeProperty = streamConf.createDefaultEdgeProperty();
     }
 
     /**
-     * Connect the join vertex to the hash side.
-     * The join vertex is connected with 2 upstream vertices that provide it with inputs
+     * Connect the join vertex to the hash side. The join vertex is connected
+     * with 2 upstream vertices that provide it with inputs
      */
     Edge e2 = Edge.create(hashFileVertex, joinVertex, hashSideEdgeProperty);
 
     /**
      * Connect everything up by adding them to the DAG
      */
-    dag.addVertex(streamFileVertex).addVertex(hashFileVertex).addVertex(joinVertex)
-        .addEdge(e1).addEdge(e2);
+    dag.addVertex(streamFileVertex).addVertex(hashFileVertex)
+        .addVertex(joinVertex).addEdge(e1).addEdge(e2);
     return dag;
   }
 
   /**
-   * Reads key-values from the source and forwards the value as the key for the output
+   * Reads key-values from the source and forwards the value as the key for the
+   * output
    */
   public static class ForwardingProcessor extends SimpleProcessor {
     public ForwardingProcessor(ProcessorContext context) {
@@ -304,7 +334,7 @@ public class JoinExample extends Configured implements Tool {
       Preconditions.checkState(getInputs().size() == 1);
       Preconditions.checkState(getOutputs().size() == 1);
       // not looking up inputs and outputs by name because there is just one
-      // instance and this processor is used in many different DAGs with 
+      // instance and this processor is used in many different DAGs with
       // different names for inputs and outputs
       LogicalInput input = getInputs().values().iterator().next();
       Reader rawReader = input.getReader();
@@ -316,16 +346,25 @@ public class JoinExample extends Configured implements Tool {
 
       while (reader.next()) {
         Object val = reader.getCurrentValue();
-        // The data value itself is the join key. Simply write it out as the key.
+        // The data value itself is the join key. Simply write it out as the
+        // key.
         // The output value is null.
         writer.write(val, NullWritable.get());
       }
     }
   }
 
-  public static class JoinProcessor extends SimpleMRProcessor {
+  /**
+   * Join 2 inputs using Hash Join algorithm. Check the algorithm here <a
+   * href="http://en.wikipedia.org/wiki/Hash_join">Hash Join</a> <br>
+   * It would output all the occurrences keys in the streamFile which also exist
+   * in the hashFile. This require the keys in hashFile should be unique
+   * <br>Disclaimer: The join code here is written as a tutorial for the APIs and
+   * not for performance.
+   */
+  public static class HashJoinProcessor extends SimpleMRProcessor {
 
-    public JoinProcessor(ProcessorContext context) {
+    public HashJoinProcessor(ProcessorContext context) {
       super(context);
     }
 

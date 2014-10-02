@@ -21,7 +21,9 @@ package org.apache.tez.mapreduce.output;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.net.URI;
 import java.text.NumberFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -164,25 +166,27 @@ public class MROutput extends AbstractLogicalOutput {
                   FileOutputFormat.class.getName());
         }
       }
-      Credentials credentials = null;
+      Collection<URI> uris = null;
       if (getCredentialsForSinkFilesystem && outputPath != null) {
         try {
           Path path = new Path(outputPath);
           FileSystem fs;
           fs = path.getFileSystem(conf);
           Path qPath = fs.makeQualified(path);
-          credentials = new Credentials();
-          TezClientUtils.addFileSystemCredentialsFromURIs(Collections.singletonList(qPath.toUri()),
-              credentials, conf);
+          uris = Collections.singletonList(qPath.toUri());
         } catch (IOException e) {
           throw new TezUncheckedException(e);
         }
       }
 
-      return DataSinkDescriptor.create(
+      DataSinkDescriptor ds = DataSinkDescriptor.create(
           OutputDescriptor.create(outputClassName).setUserPayload(createUserPayload()),
           (doCommit ? OutputCommitterDescriptor.create(
-              MROutputCommitter.class.getName()) : null), credentials);
+              MROutputCommitter.class.getName()) : null), null);
+      if (uris != null) {
+        ds.addURIsForCredentials(uris);
+      }
+      return ds;
     }
     
     /**

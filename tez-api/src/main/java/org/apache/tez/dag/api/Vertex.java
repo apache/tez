@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -440,11 +441,13 @@ public class Vertex {
     this.taskResource = resource;
   }
 
-  List<DataSourceDescriptor> getDataSources() {
+  @Private
+  public List<DataSourceDescriptor> getDataSources() {
     return dataSources;
   }
   
-  List<DataSinkDescriptor> getDataSinks() {
+  @Private
+  public List<DataSinkDescriptor> getDataSinks() {
     return dataSinks;
   }
 

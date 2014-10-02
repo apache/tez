@@ -44,6 +44,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
@@ -167,6 +168,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   public final Configuration conf;
   private final DAGPlan jobPlan;
+  
+  Map<String, LocalResource> localResources;
 
   private final List<String> diagnostics = new ArrayList<String>();
 
@@ -421,6 +424,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
+    
+    this.localResources = DagTypeConverters.createLocalResourceMapFromDAGPlan(jobPlan
+        .getLocalResourceList());
 
     this.credentials = dagCredentials;
     if (this.credentials == null) {
@@ -451,6 +457,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @Override
   public TezDAGID getID() {
     return dagId;
+  }
+  
+  @Override
+  public Map<String, LocalResource> getLocalResources() {
+    return localResources;
   }
 
   // TODO maybe removed after TEZ-74

@@ -105,7 +105,6 @@ public class TestDAGRecovery {
         e.printStackTrace();
       }
     }
-    Thread.sleep(10000);
     if (miniTezCluster != null) {
       try {
         LOG.info("Stopping MiniTezCluster");
@@ -158,7 +157,6 @@ public class TestDAGRecovery {
       }
     }
     tezSession = null;
-    Thread.sleep(10000);
   }
 
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {

@@ -55,6 +55,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -1463,19 +1464,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   void logJobHistoryVertexFinishedEvent() throws IOException {
     this.setFinishTime();
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, initTimeRequested, initedTime, startTimeRequested,
-        startedTime, finishTime, VertexState.SUCCEEDED, "",
-        getAllCounters(), getVertexStats());
-    this.appContext.getHistoryHandler().handleCriticalEvent(
-        new DAGHistoryEvent(getDAGId(), finishEvt));
+    logJobHistoryVertexCompletedHelper(VertexState.SUCCEEDED, finishTime, "");
   }
 
   void logJobHistoryVertexFailedEvent(VertexState state) throws IOException {
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId,
-        vertexName, initTimeRequested, initedTime, startTimeRequested,
-        startedTime, clock.getTime(), state, StringUtils.join(getDiagnostics(),
-            LINE_SEPARATOR), getAllCounters(), getVertexStats());
+    logJobHistoryVertexCompletedHelper(state, clock.getTime(),
+        StringUtils.join(getDiagnostics(), LINE_SEPARATOR));
+  }
+
+  private void logJobHistoryVertexCompletedHelper(VertexState finalState, long finishTime,
+                                                  String diagnostics) throws IOException {
+    Map<String, Integer> taskStats = new HashMap<String, Integer>();
+    taskStats.put(ATSConstants.NUM_COMPLETED_TASKS, completedTaskCount);
+    taskStats.put(ATSConstants.NUM_SUCCEEDED_TASKS, succeededTaskCount);
+    taskStats.put(ATSConstants.NUM_FAILED_TASKS, failedTaskCount);
+    taskStats.put(ATSConstants.NUM_KILLED_TASKS, killedTaskCount);
+
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, initTimeRequested,
+        initedTime, startTimeRequested, startedTime, finishTime, finalState, diagnostics,
+        getAllCounters(), getVertexStats(), taskStats);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
@@ -2663,25 +2670,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             + " to set #tasks for the vertex " + vertex.getVertexId());
 
         if (vertex.inputsWithInitializers != null) {
-          // Use DAGScheduler to arbitrate resources among vertices later
-          vertex.rootInputInitializerManager = vertex.createRootInputInitializerManager(
-              vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
-              vertex.eventHandler, -1,
-              vertex.appContext.getTaskScheduler().getNumClusterNodes(),
-              vertex.getTaskResource(),
-              vertex.appContext.getTaskScheduler().getTotalResources());
-          List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
-              inputList = Lists.newArrayListWithCapacity(vertex.inputsWithInitializers.size());
-          for (String inputName : vertex.inputsWithInitializers) {
-            inputList.add(vertex.rootInputDescriptors.get(inputName));
-          }
-          LOG.info("Vertex will initialize via inputInitializers "
-              + vertex.logIdentifier + ". Starting root input initializers: "
-              + vertex.inputsWithInitializers.size());
-          vertex.rootInputInitializerManager.runInputInitializers(inputList);
-          // Send pending rootInputInitializerEvents
-          vertex.rootInputInitializerManager.handleInitializerEvents(vertex.pendingInitializerEvents);
-          vertex.pendingInitializerEvents.clear();
+          vertex.setupInputInitializerManager();
           return VertexState.INITIALIZING;
         } else {
           boolean hasOneToOneUninitedSource = false;
@@ -2709,27 +2698,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       } else {
         LOG.info("Creating " + vertex.numTasks + " for vertex: " + vertex.logIdentifier);
         vertex.createTasks();
+
         if (vertex.inputsWithInitializers != null) {
-          vertex.rootInputInitializerManager = vertex.createRootInputInitializerManager(
-              vertex.getDAG().getName(), vertex.getName(), vertex.getVertexId(),
-              vertex.eventHandler, vertex.getTotalTasks(),
-              vertex.appContext.getTaskScheduler().getNumClusterNodes(),
-              vertex.getTaskResource(),
-              vertex.appContext.getTaskScheduler().getTotalResources());
-          List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
-          inputList = Lists.newArrayListWithCapacity(vertex.inputsWithInitializers.size());
-          for (String inputName : vertex.inputsWithInitializers) {
-            inputList.add(vertex.rootInputDescriptors.get(inputName));
-          }
-          LOG.info("Starting root input initializers: "
-              + vertex.inputsWithInitializers.size());
-          // special case when numTasks>0 and still we want to stay in initializing
-          // state. This is handled in RootInputInitializedTransition specially.
-          vertex.initWaitsForRootInitializers = true;
-          vertex.rootInputInitializerManager.runInputInitializers(inputList);
-          // Send pending rootInputInitializerEvents
-          vertex.rootInputInitializerManager.handleInitializerEvents(vertex.pendingInitializerEvents);
-          vertex.pendingInitializerEvents.clear();
+          vertex.setupInputInitializerManager();
           return VertexState.INITIALIZING;
         }
         if (!vertex.uninitializedEdges.isEmpty()) {
@@ -2825,8 +2796,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       // done. check if we need to do the initialization
       if (vertex.getState() == VertexState.INITIALIZING &&
           vertex.initWaitsForRootInitializers) {
-        // set the wait flag to false
-        vertex.initWaitsForRootInitializers = false;
+        if (vertex.numInitializedInputs == vertex.inputsWithInitializers.size()) {
+          // set the wait flag to false if all initializers are done
+          vertex.initWaitsForRootInitializers = false;
+        }
         // initialize vertex if possible and needed
         if (vertex.canInitVertex()) {
           Preconditions.checkState(vertex.numTasks >= 0,
@@ -3563,6 +3536,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       vertex.setFinishTime();
       vertex.finished(VertexState.ERROR);
     }
+  }
+
+  private void setupInputInitializerManager() {
+    rootInputInitializerManager = createRootInputInitializerManager(
+        getDAG().getName(), getName(), getVertexId(),
+        eventHandler, getTotalTasks(),
+        appContext.getTaskScheduler().getNumClusterNodes(),
+        getTaskResource(),
+        appContext.getTaskScheduler().getTotalResources());
+    List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
+        inputList = Lists.newArrayListWithCapacity(inputsWithInitializers.size());
+    for (String inputName : inputsWithInitializers) {
+      inputList.add(rootInputDescriptors.get(inputName));
+    }
+    LOG.info("Vertex will initialize via inputInitializers "
+        + logIdentifier + ". Starting root input initializers: "
+        + inputsWithInitializers.size());
+    initWaitsForRootInitializers = true;
+    rootInputInitializerManager.runInputInitializers(inputList);
+    // Send pending rootInputInitializerEvents
+    rootInputInitializerManager.handleInitializerEvents(pendingInitializerEvents);
+    pendingInitializerEvents.clear();
   }
 
   private static class VertexStateChangedCallback

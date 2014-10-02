@@ -30,6 +30,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ContainerContext;
@@ -84,16 +85,19 @@ public class MockDAGAppMaster extends DAGAppMaster {
       ContainerId cId;
       TezTaskAttemptID taId;
       String vName;
+      ContainerLaunchContext launchContext;
       boolean completed;
       
-      public ContainerData(ContainerId cId) {
+      public ContainerData(ContainerId cId, ContainerLaunchContext context) {
         this.cId = cId;
+        this.launchContext = context;
       }
       
       void clear() {
         taId = null;
         vName = null;
         completed = false;
+        launchContext = null;
       }
     }
     
@@ -126,6 +130,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
     
     
     void waitToGo() {
+      if (goFlag == null) {
+        return;
+      }
       synchronized (goFlag) {
         goFlag.set(true);
         goFlag.notify();
@@ -164,8 +171,15 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
     void launch(NMCommunicatorLaunchRequestEvent event) {
       // launch container by putting it in simulated container list
-      containers.put(event.getContainerId(), new ContainerData(event.getContainerId()));
+      containers.put(event.getContainerId(), new ContainerData(event.getContainerId(), 
+          event.getContainerLaunchContext()));
       getContext().getEventHandler().handle(new AMContainerEventLaunched(event.getContainerId()));      
+    }
+    
+    public void waitTillContainersLaunched() throws InterruptedException {
+      while (containers.isEmpty()) {
+        Thread.sleep(50);
+      }
     }
 
     @Override

@@ -18,7 +18,10 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -120,7 +123,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   int minTaskParallelism = 1;
   boolean enableAutoParallelism = false;
   boolean parallelismDetermined = false;
-  
+
   int totalNumSourceTasks = 0;
   int numSourceTasksCompleted = 0;
   int numVertexManagerEventsReceived = 0;
@@ -165,7 +168,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       this.numDestinationTasks = config.numDestinationTasks;
       this.basePartitionRange = config.basePartitionRange;
       this.remainderRangeForLastShuffler = config.remainderRangeForLastShuffler;
-      this.numSourceTasks = config.numSourceTasks;
+      this.numSourceTasks = getContext().getSourceVertexNumTasks();
+      Preconditions.checkState(this.numDestinationTasks == getContext().getDestinationVertexNumTasks());
     }
 
     @Override
@@ -265,18 +269,15 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
-    int numSourceTasks;
 
     private CustomShuffleEdgeManagerConfig(int numSourceTaskOutputs,
         int numDestinationTasks,
-        int numSourceTasks,
         int basePartitionRange,
         int remainderRangeForLastShuffler) {
       this.numSourceTaskOutputs = numSourceTaskOutputs;
       this.numDestinationTasks = numDestinationTasks;
       this.basePartitionRange = basePartitionRange;
       this.remainderRangeForLastShuffler = remainderRangeForLastShuffler;
-      this.numSourceTasks = numSourceTasks;
     }
 
     public UserPayload toUserPayload() {
@@ -286,7 +287,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
               .setNumDestinationTasks(numDestinationTasks)
               .setBasePartitionRange(basePartitionRange)
               .setRemainderRangeForLastShuffler(remainderRangeForLastShuffler)
-              .setNumSourceTasks(numSourceTasks)
               .build().toByteArray()));
     }
 
@@ -297,7 +297,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       return new CustomShuffleEdgeManagerConfig(
           proto.getNumSourceTaskOutputs(),
           proto.getNumDestinationTasks(),
-          proto.getNumSourceTasks(),
           proto.getBasePartitionRange(),
           proto.getRemainderRangeForLastShuffler());
 
@@ -382,18 +381,43 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     totalNumSourceTasks = numSrcTasks;
   }
 
-  void determineParallelismAndApply() {
+  /**
+   * Compute optimal parallelism needed for the job
+   * @return true (if parallelism is determined), false otherwise
+   */
+  @VisibleForTesting
+  boolean determineParallelismAndApply() {
     if(numSourceTasksCompleted == 0) {
-      return;
+      return true;
     }
     
     if(numVertexManagerEventsReceived == 0) {
-      return;
+      return true;
     }
     
     int currentParallelism = pendingTasks.size();
-    long expectedTotalSourceTasksOutputSize = 
-        (totalNumSourceTasks*completedSourceTasksOutputSize)/numVertexManagerEventsReceived;
+    /**
+     * When overall completed output size is not even equal to
+     * desiredTaskInputSize, we can wait for some more data to be available to determine
+     * better parallelism until max.fraction is reached.  min.fraction is just a hint to the
+     * framework and need not be honored strictly in this case.
+     */
+    boolean canDetermineParallelismLater = (completedSourceTasksOutputSize <
+        desiredTaskInputDataSize)
+        && (numSourceTasksCompleted < (totalNumSourceTasks * slowStartMaxSrcCompletionFraction));
+    if (canDetermineParallelismLater) {
+      LOG.info("Defer scheduling tasks; vertex=" + getContext().getVertexName()
+          + ", totalNumSourceTasks=" + totalNumSourceTasks
+          + ", completedSourceTasksOutputSize=" + completedSourceTasksOutputSize
+          + ", numVertexManagerEventsReceived=" + numVertexManagerEventsReceived
+          + ", numSourceTasksCompleted=" + numSourceTasksCompleted + ", maxThreshold="
+          + (totalNumSourceTasks * slowStartMaxSrcCompletionFraction));
+      return false;
+    }
+
+    long expectedTotalSourceTasksOutputSize =
+        (totalNumSourceTasks * completedSourceTasksOutputSize) / numVertexManagerEventsReceived;
+
     int desiredTaskParallelism = 
         (int)(
             (expectedTotalSourceTasksOutputSize+desiredTaskInputDataSize-1)/
@@ -403,7 +427,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     
     if(desiredTaskParallelism >= currentParallelism) {
-      return;
+      return true;
     }
     
     // most shufflers will be assigned this range
@@ -411,7 +435,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     
     if (basePartitionRange <= 1) {
       // nothing to do if range is equal 1 partition. shuffler does it by default
-      return;
+      return true;
     }
     
     int numShufflersWithBaseRange = currentParallelism / basePartitionRange;
@@ -425,7 +449,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         + " . Expected output: " + expectedTotalSourceTasksOutputSize 
         + " based on actual output: " + completedSourceTasksOutputSize
         + " from " + numVertexManagerEventsReceived + " vertex manager events. "
-        + " desiredTaskInputSize: " + desiredTaskInputDataSize);
+        + " desiredTaskInputSize: " + desiredTaskInputDataSize + " max slow start tasks:" +
+        (totalNumSourceTasks * slowStartMaxSrcCompletionFraction) + " num sources completed:" +
+        numSourceTasksCompleted);
           
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
@@ -436,8 +462,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         // for the source tasks
         CustomShuffleEdgeManagerConfig edgeManagerConfig =
             new CustomShuffleEdgeManagerConfig(
-                currentParallelism, finalTaskParallelism, 
-                getContext().getVertexNumTasks(vertex), basePartitionRange,
+                currentParallelism, finalTaskParallelism, basePartitionRange,
                 ((remainderRangeForLastShuffler > 0) ?
                     remainderRangeForLastShuffler : basePartitionRange));
         EdgeManagerPluginDescriptor edgeManagerDescriptor =
@@ -447,8 +472,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       }
       
       getContext().setVertexParallelism(finalTaskParallelism, null, edgeManagers, null);
-      updatePendingTasks();      
+      updatePendingTasks();
     }
+    return true;
   }
   
   void schedulePendingTasks(int numTasksToSchedule) {
@@ -460,9 +486,11 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     // calculating parallelism or change parallelism while tasks are already
     // running then we can create other parameters to trigger this calculation.
     if(enableAutoParallelism && !parallelismDetermined) {
-      // do this once
-      parallelismDetermined = true;
-      determineParallelismAndApply();
+      parallelismDetermined = determineParallelismAndApply();
+      if (!parallelismDetermined) {
+        //try to determine parallelism later when more info is available.
+        return;
+      }
     }
     List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasksToSchedule);
     while(!pendingTasks.isEmpty() && numTasksToSchedule > 0) {
@@ -498,8 +526,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     // linearly increase the number of scheduled tasks such that all tasks are 
     // scheduled when source tasks completed fraction reaches max
     float tasksFractionToSchedule = 1; 
-    float percentRange = slowStartMaxSrcCompletionFraction - 
-                          slowStartMinSrcCompletionFraction;
+    float percentRange = slowStartMaxSrcCompletionFraction - slowStartMinSrcCompletionFraction;
     if (percentRange > 0) {
       tasksFractionToSchedule = 
             (completedSourceTaskFraction - slowStartMinSrcCompletionFraction)/

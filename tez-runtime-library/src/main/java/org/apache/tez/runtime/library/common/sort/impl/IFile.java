@@ -219,17 +219,15 @@ public class IFile {
       //Flush the stream
       out.flush();
 
-      if (compressOutput) {
-        // Flush
-        compressedOut.finish();
-        compressedOut.resetState();
-      }
-
       // Close the underlying stream iff we own it...
       if (ownOutputStream) {
         out.close();
-      }
-      else {
+      } else {
+        if (compressOutput) {
+          // Flush
+          compressedOut.finish();
+          compressedOut.resetState();
+        }
         // Write the checksum
         checksumOut.finish();
       }

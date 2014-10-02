@@ -19,9 +19,11 @@
 package org.apache.tez.dag.history.logging.ats;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -41,7 +43,6 @@ import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.history.logging.EntityTypes;
-import org.apache.tez.dag.history.utils.ATSConstants;
 import org.apache.tez.dag.history.utils.DAGUtils;
 
 public class HistoryEventTimelineConversion {
@@ -253,6 +254,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
+    atsEntity.addOtherInfo(ATSConstants.STATUS, event.getDagState().toString());
 
     return atsEntity;
   }
@@ -422,6 +424,13 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.STATS,
         DAGUtils.convertVertexStatsToATSMap(event.getVertexStats()));
 
+    final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
+    if (vertexTaskStats != null) {
+      for(String key : vertexTaskStats.keySet()) {
+        atsEntity.addOtherInfo(key, vertexTaskStats.get(key));
+      }
+    }
+
     return atsEntity;
   }
 
@@ -464,6 +473,7 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addOtherInfo(ATSConstants.START_REQUESTED_TIME, event.getStartRequestedTime());
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
+    atsEntity.addOtherInfo(ATSConstants.STATUS, event.getVertexState().toString());
 
     return atsEntity;
   }

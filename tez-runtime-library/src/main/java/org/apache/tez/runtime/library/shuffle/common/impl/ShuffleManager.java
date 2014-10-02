@@ -49,6 +49,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -153,6 +154,7 @@ public class ShuffleManager implements FetcherCallback {
   private final LocalDirAllocator localDirAllocator;
   private final RawLocalFileSystem localFs;
   private final Path[] localDisks;
+  private final static String localhostName = NetUtils.getHostname();
 
   // TODO More counters - FetchErrors, speed?
   
@@ -199,7 +201,7 @@ public class ShuffleManager implements FetcherCallback {
     ExecutorService fetcherRawExecutor = Executors.newFixedThreadPool(
         numFetchers,
         new ThreadFactoryBuilder().setDaemon(true)
-            .setNameFormat("Fetcher [" + srcNameTrimmed + "] #%d").build());
+            .setNameFormat("Fetcher [" + srcNameTrimmed + "] #%d " + localhostName).build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
     
     ExecutorService schedulerRawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()

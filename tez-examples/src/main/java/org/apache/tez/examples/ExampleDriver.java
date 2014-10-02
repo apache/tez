@@ -50,8 +50,10 @@ public class ExampleDriver {
           "Word Count with words sorted on frequency");
       pgd.addClass("simplesessionexample", SimpleSessionExample.class,
           "Example to run multiple dags in a session");
-      pgd.addClass("joinexample", JoinExample.class,
-          "Identify all occurences of lines in file1 which also occur in file2");
+      pgd.addClass("hashjoin", HashJoinExample.class,
+          "Identify all occurences of lines in file1 which also occur in file2 using hash join");
+      pgd.addClass("sortmergejoin", SortMergeJoinExample.class,
+          "Identify all occurences of lines in file1 which also occur in file2 using sort merge join");
       pgd.addClass("joindatagen", JoinDataGen.class,
           "Generate data to run the joinexample");
       pgd.addClass("joinvalidate", JoinValidate.class,

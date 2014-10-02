@@ -132,7 +132,7 @@ public class VertexStatus {
     sb.append("status=" + getState()
       + ", progress=" + getProgress()
       + ", counters="
-      + (vertexCounters == null ? "null" : vertexCounters.toString()));
+      + (getVertexCounters() == null ? "null" : getVertexCounters().toString()));
     return sb.toString();
   }
 

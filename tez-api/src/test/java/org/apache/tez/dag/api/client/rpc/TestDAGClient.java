@@ -33,6 +33,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -61,7 +63,7 @@ import com.google.protobuf.ServiceException;
 
 public class TestDAGClient {
 
-  private DAGClientRPCImpl dagClient;
+  private DAGClient dagClient;
   private ApplicationId mockAppId;
   private ApplicationReport mockAppReport;
   private String dagIdStr;
@@ -188,17 +190,17 @@ public class TestDAGClient {
     when(mockProxy.getVertexStatus(isNull(RpcController.class), argThat(new VertexCounterRequestMatcher())))
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithCounters).build());
    
-    
-    
-    dagClient = new DAGClientRPCImpl(mockAppId, dagIdStr, new TezConfiguration(), null);
-    dagClient.appReport = mockAppReport;
-    ((DAGClientRPCImpl)dagClient).proxy = mockProxy;
+    dagClient = new DAGClientImpl(mockAppId, dagIdStr, new TezConfiguration(), null);
+    DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
+    realClient.appReport = mockAppReport;
+    realClient.proxy = mockProxy;
   }
   
   @Test
   public void testApp() throws IOException, TezException, ServiceException{
     assertTrue(dagClient.getExecutionContext().contains(mockAppId.toString()));
-    assertEquals(mockAppReport, dagClient.getApplicationReportInternal());
+    DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
+    assertEquals(mockAppReport, realClient.getApplicationReportInternal());
   }
   
   @Test
@@ -226,7 +228,8 @@ public class TestDAGClient {
     
     resultVertexStatus = dagClient.getVertexStatus("v1", Sets.newSet(StatusGetOpts.GET_COUNTERS));
     verify(mockProxy).getVertexStatus(null, GetVertexStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).setVertexName("v1").addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
+        .setDagId(dagIdStr).setVertexName("v1").addStatusOptions(StatusGetOptsProto.GET_COUNTERS)
+        .build());
     assertEquals(new VertexStatus(vertexStatusProtoWithCounters), resultVertexStatus);
     System.out.println("VertexWithCounter:" + resultVertexStatus);
   }
@@ -249,7 +252,7 @@ public class TestDAGClient {
       
     dagClient.waitForCompletion();
     verify(mockProxy, times(2)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-      .setDagId(dagIdStr).build());
+        .setDagId(dagIdStr).build());
   }
 
   @Test
@@ -257,7 +260,8 @@ public class TestDAGClient {
 
     // first time and second time return DAG_RUNNING, third time return DAG_SUCCEEDED
     when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
-      .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters).build())
+      .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters)
+          .build())
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters).build())
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus
                 (DAGStatusProto.newBuilder(dagStatusProtoWithoutCounters).setState(DAGStatusStateProto.DAG_SUCCEEDED).build())

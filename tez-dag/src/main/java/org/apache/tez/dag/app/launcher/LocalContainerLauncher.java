@@ -46,8 +46,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -65,7 +67,6 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
-import org.apache.tez.dag.utils.EnvironmentUpdateUtils;
 import org.apache.tez.runtime.task.TezChild;
 
 
@@ -111,6 +112,9 @@ public class LocalContainerLauncher extends AbstractService implements
         Base64.encodeBase64String(ByteBuffer.allocate(4).putInt(0).array()));
     EnvironmentUpdateUtils.put(Environment.NM_HOST.toString(),
         InetAddress.getLocalHost().getHostName());
+    if (Shell.WINDOWS) {
+      EnvironmentUpdateUtils.put(Environment.USER.name(), System.getenv("USERNAME"));
+    }
   }
 
   @Override

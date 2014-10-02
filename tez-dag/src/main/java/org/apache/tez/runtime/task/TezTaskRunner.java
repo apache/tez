@@ -118,11 +118,9 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
         // Not immediately fatal, this is an error reported by Hadoop FileSystem
         failureCause = cause;
       } else if (cause instanceof Error) {
-        LOG.error("Exception of type Error. Exiting now", cause);
-        ExitUtil.terminate(-1, cause);
-        // Effectively dead code. Must return something.
-        assert(false);
-        return false;
+        LOG.error("Exception of type Error.", cause);
+        sendFailure(cause, "Fatal Error cause TezChild exit.");
+        throw new TezException("Fatal Error cause TezChild exit.", cause);
       } else {
         failureCause = cause;
       }
@@ -140,11 +138,9 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
             failureCause);
         throw (FSError) failureCause;
       } else if (failureCause instanceof Error) {
-        LOG.error("Exception of type Error. Exiting now", failureCause);
-        ExitUtil.terminate(-1, failureCause);
-        // Effectively dead code. Must return something.
-        assert(false);
-        return false;
+        LOG.error("Exception of type Error.", failureCause);
+        sendFailure(failureCause, "Fatal error cause TezChild exit.");
+        throw new TezException("Fatal error cause TezChild exit.", failureCause);
       } else {
         if (failureCause instanceof IOException) {
           throw (IOException) failureCause;
@@ -214,8 +210,9 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
                 }
                 throw (FSError) cause;
               } else if (cause instanceof Error) {
-                LOG.error("Exception of type Error. Exiting now", cause);
-                ExitUtil.terminate(-1, cause);
+                LOG.error("Exception of type Error.", cause);
+                sendFailure(cause, "Fatal Error cause TezChild exit.");
+                throw new TezException("Fatal Error cause TezChild exit.", cause);
               } else {
                 if (cause instanceof UndeclaredThrowableException) {
                   cause = ((UndeclaredThrowableException) cause).getCause();
@@ -242,7 +239,6 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
             } finally {
               task.cleanup();
             }
-            return null;
           }
         });
       } finally {
@@ -251,6 +247,8 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
     }
   }
 
+  // should wait until all messages are sent to AM before TezChild shutdown
+  // if this method become async in future
   private void sendFailure(Throwable t, String message) throws IOException, TezException {
     if (!fatalErrorSent.getAndSet(true)) {
       task.setFatalError(t, message);
@@ -331,10 +329,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
 
   @Override
   public synchronized void reportError(Throwable t) {
-    if (t instanceof Error) {
-      LOG.error("Exception of type Error during heartbeat, Exiting Now");
-      ExitUtil.terminate(-1, t);
-    } else if (taskRunning.get()) {
+   if (taskRunning.get()) {
       LOG.error("TaskReporter reported error", t);
       maybeRegisterFirstException(t);
       waitingThread.interrupt();

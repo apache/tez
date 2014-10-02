@@ -20,15 +20,22 @@ package org.apache.tez.dag.api;
 
 import javax.annotation.Nullable;
 
+import java.net.URI;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 /**
  * Defines the input and input initializer for a data source 
@@ -43,6 +50,7 @@ public class DataSourceDescriptor {
   private final int numShards;
   private final VertexLocationHint locationHint;
   private final Map<String, LocalResource> additionalLocalFiles;
+  private final Collection<URI> urisForCredentials = Sets.newHashSet();
 
   private DataSourceDescriptor(InputDescriptor inputDescriptor,
                                @Nullable InputInitializerDescriptor initializerDescriptor,
@@ -119,12 +127,48 @@ public class DataSourceDescriptor {
         locationHint, additionalLocalFiles);
   }
 
+  /**
+   * Get the {@link InputDescriptor} for this {@link DataSourceDescriptor} 
+   * @return {@link InputDescriptor}
+   */
   public InputDescriptor getInputDescriptor() {
     return inputDescriptor;
   }
   
+  /**
+   * Get the {@link InputInitializerDescriptor} for this {@link DataSourceDescriptor}
+   * @return {@link InputInitializerDescriptor}
+   */
   public @Nullable InputInitializerDescriptor getInputInitializerDescriptor() {
     return initializerDescriptor;
+  }
+  
+  /** 
+  * This method can be used to specify a list of URIs for which Credentials
+  * need to be obtained so that the job can run. An incremental list of URIs
+  * can be provided by making multiple calls to the method.
+  * 
+  * Currently, @{link credentials} can only be fetched for HDFS and other
+  * {@link org.apache.hadoop.fs.FileSystem} implementations that support
+  * credentials.
+  * 
+  * @param uris
+  *          a list of {@link URI}s
+  * @return this
+  */
+  public synchronized DataSourceDescriptor addURIsForCredentials(Collection<URI> uris) {
+    Preconditions.checkNotNull(uris, "URIs cannot be null");
+    urisForCredentials.addAll(uris);
+    return this;
+  }
+  
+  /**
+   * Get the URIs for which credentials will be obtained
+   * @return an unmodifiable list representing the URIs for which credentials
+   *         are required.
+   */
+  public Collection<URI> getURIsForCredentials() {
+    return Collections.unmodifiableCollection(urisForCredentials);
   }
   
   /**

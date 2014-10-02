@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.HashMap;
@@ -73,9 +74,8 @@ public class TestTezClientUtils {
     File emptyDir = new File(TEST_ROOT_DIR, "emptyDir");
     emptyDir.deleteOnExit();
     Assert.assertTrue(emptyDir.mkdirs());
-    Path emptyDirPath = new Path(emptyDir.getAbsolutePath());
     TezConfiguration conf = new TezConfiguration();
-    conf.set(TezConfiguration.TEZ_LIB_URIS, "file://" + emptyDirPath.toString());
+    conf.set(TezConfiguration.TEZ_LIB_URIS, emptyDir.toURI().toURL().toString());
     Credentials credentials = new Credentials();
     try {
       TezClientUtils.setupTezJarsLocalResources(conf, credentials);

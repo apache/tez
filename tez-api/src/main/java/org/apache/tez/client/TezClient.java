@@ -54,7 +54,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRespo
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientRPCImpl;
+import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -409,7 +409,7 @@ public class TezClient {
         + ", sessionName=" + clientName
         + ", applicationId=" + sessionAppId
         + ", dagName=" + dag.getName());
-    return new DAGClientRPCImpl(sessionAppId, dagId,
+    return new DAGClientImpl(sessionAppId, dagId,
         amConfig.getTezConfiguration(), frameworkClient);
   }
 
@@ -711,7 +711,7 @@ public class TezClient {
   static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf,
                                 FrameworkClient frameworkClient)
       throws IOException, TezException {
-    return new DAGClientRPCImpl(appId, getDefaultTezDAGID(appId), tezConf, frameworkClient);
+    return new DAGClientImpl(appId, getDefaultTezDAGID(appId), tezConf, frameworkClient);
   }
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java

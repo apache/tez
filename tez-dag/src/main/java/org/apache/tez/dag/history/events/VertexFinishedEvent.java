@@ -21,6 +21,7 @@ package org.apache.tez.dag.history.events;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,12 +53,13 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
   private TezCounters tezCounters;
   private boolean fromSummary = false;
   private VertexStats vertexStats;
+  private Map<String, Integer> vertexTaskStats;
 
-  public VertexFinishedEvent(TezVertexID vertexId,
-      String vertexName, long initRequestedTime, long initedTime,
-      long startRequestedTime, long startedTime, long finishTime,
-      VertexState state, String diagnostics, TezCounters counters,
-      VertexStats vertexStats) {
+  public VertexFinishedEvent(TezVertexID vertexId, String vertexName, long initRequestedTime,
+                             long initedTime, long startRequestedTime, long startedTime,
+                             long finishTime, VertexState state, String diagnostics,
+                             TezCounters counters, VertexStats vertexStats,
+                             Map<String, Integer> vertexTaskStats) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
     this.initRequestedTime = initRequestedTime;
@@ -69,6 +71,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
     this.diagnostics = diagnostics;
     this.tezCounters = counters;
     this.vertexStats = vertexStats;
+    this.vertexTaskStats = vertexTaskStats;
   }
 
   public VertexFinishedEvent() {
@@ -138,10 +141,9 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
         + ", status=" + state.name()
         + ", diagnostics=" + diagnostics
         + ", counters=" + ( tezCounters == null ? "null" :
-          tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " "))
-        + ", vertexStats=" + (vertexStats == null ? "null"
-              : vertexStats.toString());
+          tezCounters.toString().replaceAll("\\n", ", ").replaceAll("\\s+", " "))
+        + ", vertexStats=" + (vertexStats == null ? "null" : vertexStats.toString())
+        + ", vertexTaskStats=" + (vertexTaskStats == null ? "null" : vertexTaskStats.toString());
   }
 
   public TezVertexID getVertexID() {
@@ -174,6 +176,10 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
 
   public long getStartTime() {
     return startTime;
+  }
+
+  public Map<String, Integer> getVertexTaskStats() {
+    return vertexTaskStats;
   }
 
   @Override
