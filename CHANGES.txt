@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-1634. Fix compressed IFile shuffle errors
+  TEZ-1615. Skeleton framework for Tez UI
 
 Release 0.5.2: Unreleased
 

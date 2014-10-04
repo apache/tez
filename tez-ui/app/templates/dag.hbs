@@ -1,0 +1,36 @@
+{{partial "utils/pageHeader"}}
+{{#unless loading}}
+	<div class='margin-small-horizontal'>
+		{{#link-to 'dags'}}<i class='fa-arrow-circle-left fa fa-2x'>&nbsp;Dags</i>{{/link-to}}
+	</div>
+
+	<div class='type-table fill-full margin-small'>
+		<div class='align-left'>
+			{{!simple-kv-list data=this columns=commonDisplayProperties}}
+
+			<table class='detail-list'>
+				<tbody>
+					<tr>
+						<td>{{t common.id}}</td>
+						<td>{{id}}</td>
+					</tr>
+					<tr>
+						<td>{{t common.applicationId}}</td>
+						<td>{{applicationId}}</td>
+					</tr>
+				</tbody>
+			</table>
+
+		</div>
+
+		<div class='pill-container align-right'>
+			{{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
+		</div>
+
+	</div>
+	<div class='margin-small'>
+		{{outlet}}
+	</div>
+{{else}}
+		{{partial 'utils/loadingSpinner'}}	
+{{/unless}}

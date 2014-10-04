@@ -1,0 +1,41 @@
+<table style="table-layout:fixed;overflow:hidden;white-space:nowrap;">
+	<thead>
+		<tr>
+			<th style="width:120px;"></th>
+			<th></th>
+		</tr>
+	</thread>
+	<tbody>
+		<tr>
+			<td>{{t common.status}}</td>
+			<td>{{status}}</td>
+		</tr>
+		<tr>
+			<td>{{t common.user}}</td>
+			<td>{{user}}</td>
+		</tr>
+		<tr>
+			<td>{{t common.time.start}}</td>
+			<td>{{formatUnixTimestamp startTime}}</td>
+		</tr>
+		<tr>
+			<td>{{t common.time.end}}</td>
+			<td>{{formatUnixTimestamp endTime}}</td>
+		</tr>
+		<tr>
+			<td>{{t common.time.duration}}</td>
+			<td>{{formatDuration startTime endTime}}</td>
+		</tr>
+	</tbody>
+</table>
+
+<!-- TODO: merge the groups so that we can collapse - treeview? -->
+<div class="margin-small h4">DAG Counters</div>
+<div class='table-container margin-small'>
+  {{table-component
+    hasFooter=false
+    columnsBinding='counterTableColumns'
+    contentBinding='counterContent'
+    forceFillColumns=true
+  }}
+</div>
