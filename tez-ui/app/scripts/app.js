@@ -18,7 +18,7 @@
 
 var App = window.App = Em.Application.createWithMixins(Bootstrap, {
 	// Basic logging, e.g. "Transitioned into 'post'"
-  LOG_TRANSITIONS: true, 
+  LOG_TRANSITIONS: true,
 
   // Extremely detailed logging, highlighting every internal
   // step made while transitioning into a route, including
@@ -35,7 +35,7 @@ require('scripts/store');
 App.Helpers = Em.Namespace.create();
 App.Mappers = Em.Namespace.create();
 
-//TODO: initializer. 
+//TODO: initializer.
 
 /* Order and include */
 /* TODO: cleanup */
@@ -43,6 +43,7 @@ require('scripts/translations');
 require('scripts/mixins/*');
 require('scripts/helpers/*');
 require('scripts/models/**/*');
+require('scripts/views/**/*');
 require('scripts/mappers/server_data_mapper.js');
 require('scripts/mappers/**/*');
 require('scripts/controllers/**/*');

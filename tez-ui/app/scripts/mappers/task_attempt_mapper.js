@@ -16,25 +16,23 @@
  * limitations under the License.
  */
 
-App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-	controllerName: "DagsController",
+var jsonToTaskAttemptMap = {
+	id: 'entity',
+	startTime: 'otherinfo.startTime', //TODO: what is the difference between this and the one in the otherinfo
+	endTime: 'otherinfo.endTime',
+	diagnostics: 'otherinfo.inProgressLogsURL',
+};
 
-	pageTitle: "Dag",
+App.Mappers.TaskAttempt = {
+	mapSingle : function(json) {
+		return Em.JsonMapper.map(json, jsonToTaskAttemptMap);
+	},
 
-	loading: true,
+	mapMany : function(json) {
+		if (Array.isArray(json.entities)) {
+			return json.entities.map(this.mapSingle);
+		}
 
-	updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-	pageSubTitle: function() {
-		return this.get('name');
-	}.property(),
-
-	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
-		Ember.Object.create({title: 'Vertex', linkTo: 'dag.vertex'}),
-		Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
-	],
-
-});
+		return [];
+	}
+}

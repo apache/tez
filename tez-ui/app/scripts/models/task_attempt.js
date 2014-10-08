@@ -15,14 +15,26 @@
  * the License.
  */
 
-App.AbstractEntity = DS.Model.extend({
-	// type of the entity. should be one of App.EntityType
-	entityType: DS.attr('string')
+App.TaskAttempt = App.AbstractEntity.extend({
+
+  // start time of the entity
+  startTime: DS.attr('number'),
+
+  // end time of the entity
+  endTime: DS.attr('number'),
+
+	entityType: App.EntityType.TASK_ATTEMPT,
+
+  // dagId
+  dagId: DS.attr('string'),
+
+	// container
+	containerId: DS.attr('string'),
+
+  // status of the task attempt
+	status: DS.attr('string'),
+
+
 });
 
-App.EntityType = {
-	DAG: 'dag',
-	VERTEX: 'vertex',
-	TASK: 'task',
-  TASK_ATTEMPT: 'task_attempt',
-};
+App.TaskAttempt.FIXTURES = [];

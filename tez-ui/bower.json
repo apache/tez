@@ -9,7 +9,7 @@
     "bootstrap": "3.0.0",
     "ember-json-mapper": "master",
     "jquery-ui": ">=1.11",
-    "d3": "2.10.2",
+    "d3": "3.4.11",
     "ember-addons.bs_for_ember": "~0.7.0",
     "ember-table": "~0.2.2"
   },

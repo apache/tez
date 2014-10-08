@@ -1,0 +1,44 @@
+.svg {
+  shape-rendering: crispEdges;
+}
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.mini text {
+  font: 12px sans-serif;
+  fill: black;
+}
+
+.container {
+  fill: lightblue;
+  stroke-width: 6;
+}
+
+.task_attempt {
+  fill: slategray;
+  stroke-width: 6;
+}
+
+div.tooltip {
+  position: absolute;
+  text-align: left;
+  width: 270px;
+  height: 48px;
+  padding: 6px;
+  font: 12px sans-serif;
+  background: lightsteelblue;
+  border: 0px;
+  border-radius: 8px;
+}

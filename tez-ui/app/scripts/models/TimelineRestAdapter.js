@@ -1,6 +1,7 @@
 var typeToPathMap = {
 	dag: 'TEZ_DAG_ID',
-	vertex: 'TEZ_VERTEX_ID'
+	vertex: 'TEZ_VERTEX_ID',
+	taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
 };
 
 App.TimelineRESTAdapter = DS.RESTAdapter.extend({
@@ -28,7 +29,7 @@ App.TimelineSerializer = DS.RESTSerializer.extend({
 	},
 
 	extractArray: function(store, primaryType, rawPayload) {
-		// restserializer expects a plural of the model but TimelineServer returns 
+		// restserializer expects a plural of the model but TimelineServer returns
 		// it in entities.
 		var payload = {};
 		payload[primaryType.typeKey.pluralize()] = rawPayload.entities;
@@ -121,4 +122,36 @@ App.CounterSerializer = DS.JSONSerializer.extend({
       'parent': hash.cgID
     };
   }
+});
+
+var timelineJsonToTaskAttemptMap = {
+  id: 'entity',
+  startTime: 'otherinfo.startTime',
+  endTime: 'otherinfo.endTime',
+  dagId: 'primaryfilters.dagId',
+  containerId: 'otherinfo.containerId',
+  status: 'otherinfo.status',
+};
+
+
+App.TaskAttemptSerializer = App.TimelineSerializer.extend({
+  normalizePayload: function(rawPayload){
+
+    // TODO - fake a containerId until it is present
+    var taskAttempts = rawPayload.taskAttempts;
+    for (var i = 0; i < taskAttempts.length; ++i) {
+      var taskAttempt = taskAttempts[i];
+      var inProgressLogsURL = taskAttempt.otherinfo.inProgressLogsURL;
+      var regex = /.*(container_.*?)\/.*/;
+      var match = regex.exec(inProgressLogsURL);
+      taskAttempt.otherinfo.containerId = match[1];
+      taskAttempt.primaryfilters.dagId = taskAttempt.primaryfilters.TEZ_DAG_ID[0];
+    }
+    return rawPayload;
+  },
+
+  normalize: function(type, hash, prop) {
+    var post = Em.JsonMapper.map(hash, timelineJsonToTaskAttemptMap);
+    return post;
+  },
 });

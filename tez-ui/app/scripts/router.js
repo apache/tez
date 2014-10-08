@@ -33,8 +33,8 @@ App.ApplicationRoute = Em.Route.extend({
 			return;
 			this.transitionTo('error').then(function(newRoute) {
 				newRoute.controller.set('err', {
-					target: transition.targetName, 
-					statusText: error.message, 
+					target: transition.targetName,
+					statusText: error.message,
 					responseText: error.stack
 				});
 				newRoute.controller.set('pageTitle', "Error");
@@ -80,6 +80,20 @@ App.DagsRoute = Em.Route.extend({
 App.DagRoute = Em.Route.extend({
 	model: function(params) {
 		return this.store.find('dag', params.dag_id);
+	},
+
+	setupController: function(controller, model) {
+		this._super(controller, model);
+	}
+});
+
+App.DagSwimlaneRoute = Em.Route.extend({
+
+	model: function(params) {
+		var model = this.modelFor('dag');
+		var queryParams = {'primaryFilter': 'TEZ_DAG_ID:' + model.id};
+		this.store.unloadAll('task_attempt');
+		return this.store.findQuery('task_attempt', queryParams);
 	},
 
 	setupController: function(controller, model) {

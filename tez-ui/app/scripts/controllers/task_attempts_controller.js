@@ -16,25 +16,20 @@
  * limitations under the License.
  */
 
-App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-	controllerName: "DagsController",
+App.DagSwimlaneController = Em.ArrayController.extend({
+  needs: "dag",
+  controllerName: "DagSwimlaneController",
+  pageTitle: "Task Attempts",
+  pageSubTitle: "All Task Attempts",
+  dag_id: Em.computed.alias('controllers.dag.id'),
 
-	pageTitle: "Dag",
+  getFilterParams: function(params) {
+    var dag_id = this.get('dag_id');
+    var filterParams = {};
+    if (dag_id) {
+      filterParams['primaryFilter'] = 'TEZ_DAG_ID:' + dag_id;
+    }
 
-	loading: true,
-
-	updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-	pageSubTitle: function() {
-		return this.get('name');
-	}.property(),
-
-	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
-		Ember.Object.create({title: 'Vertex', linkTo: 'dag.vertex'}),
-		Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
-	],
-
+    return filterParams;
+  },
 });

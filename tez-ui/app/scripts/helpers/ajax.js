@@ -43,7 +43,11 @@ var urls = {
 
   load_vertex_details: {
     real: App.AtsBaseUrl + '/ws/v1/timeline/TEZ_VERTEX_ID/?primaryFilter=TEZ_DAG_ID:{dag_id}'
-  }
+  },
+
+  load_task_attempts: {
+    real: App.AtsBaseUrl + '/ws/v1/timeline/TEZ_TASK_ATTEMPT_ID/?primaryFilter=TEZ_DAG_ID:{dag_id}'
+  },
 };
 
 /**

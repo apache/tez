@@ -74,7 +74,7 @@ module.exports = function (grunt) {
     },
     connect: {
       options: {
-        port: 9000,
+        port: 9001,
         // change this to '0.0.0.0' to access the server from outside
         hostname: 'localhost'
       },
@@ -368,7 +368,7 @@ module.exports = function (grunt) {
           cwd: "<%= yeoman.app %>/styles",
           src: ['styles/*.less', '**/*.less'],
           dest: ".tmp/styles",
-          ext: ".css" 
+          ext: ".css"
         }]
       },
       production: {
