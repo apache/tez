@@ -186,7 +186,7 @@ public class JoinValidate extends Configured implements Tool {
     // better mechanism to configure the IOs.
     OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-            HashPartitioner.class.getName()).setFromConfiguration(tezConf).build();
+            HashPartitioner.class.getName()).build();
 
     Vertex lhsVertex = Vertex.create(LHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("lhs",

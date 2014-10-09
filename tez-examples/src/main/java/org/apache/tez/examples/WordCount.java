@@ -173,7 +173,7 @@ public class WordCount extends Configured implements Tool {
     // using this helper.
     OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName()).setFromConfiguration(tezConf).build();
+            HashPartitioner.class.getName()).build();
 
     // Create a vertex that reads the tokenized data and calculates the sum using the SumProcessor.
     // The number of tasks that do the work of this vertex depends on the number of partitions used 
