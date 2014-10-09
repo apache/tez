@@ -10,6 +10,7 @@ ALL CHANGES:
   TEZ-1621. Should report error to AM before shuting down TezChild
   TEZ-1634. Fix compressed IFile shuffle errors
   TEZ-1648. Update website after 0.5.1
+  TEZ-1614. Use setFromConfiguration() in SortMergeJoinExample to demonstrate the usage
 
 Release 0.5.1: 2014-10-02
 
