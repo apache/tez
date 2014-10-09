@@ -15,15 +15,15 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez 0.5.0</title></head>
+<head><title>Apache Tez 0.5.1</title></head>
 
-Apache Tez 0.5.0
+Apache Tez 0.5.1
 ----------------
 
-- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez/0.5.0/)
-- [Release Notes](releases/0.5.0/release-notes.txt)
+- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez/0.5.1/)
+- [Release Notes](0.5.1/release-notes.txt)
 - Documentation
-    - [API Javadocs](releases/0.5.0/tez-api-javadocs/index.html) : Documentation for the Tez APIs
-    - [Runtime Library Javadocs](releases/0.5.0/tez-runtime-library-javadocs/index.html) : Documentation for built-in implementations of useful Inputs, Outputs, Processors etc. written based on the Tez APIs 
-    - [Tez Mapreduce Javadocs](releases/0.5.0/tez-mapreduce-javadocs/index.html) : Documentation for built-in implementations of Mapreduce compatible Inputs, Outputs, Processors etc. written based on the Tez APIs 
+    - [API Javadocs](0.5.1/tez-api-javadocs/index.html) : Documentation for the Tez APIs
+    - [Runtime Library Javadocs](0.5.1/tez-runtime-library-javadocs/index.html) : Documentation for built-in implementations of useful Inputs, Outputs, Processors etc. written based on the Tez APIs 
+    - [Tez Mapreduce Javadocs](0.5.1/tez-mapreduce-javadocs/index.html) : Documentation for built-in implementations of Mapreduce compatible Inputs, Outputs, Processors etc. written based on the Tez APIs 
 

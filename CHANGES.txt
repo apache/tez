@@ -15,6 +15,7 @@ ALL CHANGES:
   TEZ-1620. Wait for application finish before stopping MiniTezCluster
   TEZ-1621. Should report error to AM before shuting down TezChild
   TEZ-1634. Fix compressed IFile shuffle errors
+  TEZ-1648. Update website after 0.5.1
 
 Release 0.5.1: 2014-10-02
 
