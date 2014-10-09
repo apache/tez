@@ -6,7 +6,8 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-1614.  Use setFromConfiguration() in SortMergeJoinExample to demonstrate the usage
+  TEZ-1614. Use setFromConfiguration() in SortMergeJoinExample to demonstrate the usage
+  TEZ-1641. Add debug logs in VertexManager to help debugging custom VertexManagerPlugins
 
 Release 0.5.2: Unreleased
 

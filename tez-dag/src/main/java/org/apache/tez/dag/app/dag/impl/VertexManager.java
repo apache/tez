@@ -28,6 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ReflectionUtils;
@@ -69,6 +71,8 @@ public class VertexManager {
   UserPayload payload = null;
   AppContext appContext;
   ConcurrentHashMap<String, List<TezEvent>> cachedRootInputEventMap;
+
+  private static final Log LOG = LogFactory.getLog(VertexManager.class);
 
   class VertexManagerPluginContextImpl implements VertexManagerPluginContext {
     // TODO Add functionality to allow VertexManagers to send VertexManagerEvents
@@ -143,6 +147,10 @@ public class VertexManager {
             }
           });
 
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("vertex:" + managedVertex.getName() + "; Added " + events.size() + " for input " +
+                "name " + inputName);
+      }
       cachedRootInputEventMap.put(inputName,Lists.newArrayList(tezEvents));
       // Recovery handling is taken care of by the Vertex.
     }
@@ -259,6 +267,10 @@ public class VertexManager {
   public List<TezEvent> onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) {
     plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("vertex:" + managedVertex.getName() + "; For input name "
+          + inputName + " task events size is " + cachedRootInputEventMap.get(inputName).size());
+    }
     return cachedRootInputEventMap.get(inputName);
   }
 }
