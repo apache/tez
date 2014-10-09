@@ -266,7 +266,7 @@ public class HashJoinExample extends Configured implements Tool {
     UnorderedPartitionedKVEdgeConfig streamConf =
         UnorderedPartitionedKVEdgeConfig
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-                HashPartitioner.class.getName()).setFromConfiguration(tezConf)
+                HashPartitioner.class.getName())
             .build();
 
     /**
@@ -293,7 +293,7 @@ public class HashJoinExample extends Configured implements Tool {
       UnorderedKVEdgeConfig broadcastConf =
           UnorderedKVEdgeConfig
               .newBuilder(Text.class.getName(), NullWritable.class.getName())
-              .setFromConfiguration(tezConf).build();
+              .build();
       hashSideEdgeProperty = broadcastConf.createDefaultBroadcastEdgeProperty();
     } else {
       /**

@@ -193,6 +193,13 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
     }
 
     @Override
+    /**
+     * Edge config options are derived from client-side tez-site.xml (recommended).
+     * Optionally invoke setFromConfiguration to override these config options via commandline arguments.
+     *
+     * @param conf
+     * @return this object for further chained method calls
+     */
     public Builder setFromConfiguration(Configuration conf) {
       outputBuilder.setFromConfiguration(conf);
       inputBuilder.setFromConfiguration(conf);

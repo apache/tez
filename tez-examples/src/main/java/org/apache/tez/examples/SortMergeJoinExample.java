@@ -266,6 +266,8 @@ public class SortMergeJoinExample extends Configured implements Tool {
      * JoinProcessor. The number of fragments is initially inferred from the
      * number of tasks running in the join vertex because each task will be
      * handling one fragment.
+     * Edge config options are derived from client-side tez-site.xml (recommended). Optionally
+     * invoke setFromConfiguration to override these config options via commandline arguments.
      */
     OrderedPartitionedKVEdgeConfig edgeConf =
         OrderedPartitionedKVEdgeConfig
