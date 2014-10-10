@@ -576,6 +576,16 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT = false;
 
   /**
+   * String value.
+   *
+   * Specify additional classpath information to be used for Tez AM and all containers.
+   * This will be prepended to the classpath before all framework specific components have been
+   * specified.
+   */
+  public static final String TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX =
+      TEZ_PREFIX + "cluster.additional.classpath.prefix";
+
+  /**
    * Session-related properties
    */
   @Private

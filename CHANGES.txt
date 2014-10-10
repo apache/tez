@@ -19,6 +19,7 @@ ALL CHANGES:
   TEZ-1614. Use setFromConfiguration() in SortMergeJoinExample to demonstrate the usage
   TEZ-1641. Add debug logs in VertexManager to help debugging custom VertexManagerPlugins
   TEZ-1645. Add support for specifying additional local resources via config.
+  TEZ-1646. Add support for augmenting classpath via configs.
 
 Release 0.5.1: 2014-10-02
 
@@ -42,12 +43,12 @@ ALL CHANGES
   TEZ-1580. Change TestOrderedWordCount to optionally use MR configs.
   TEZ-1524. Resolve user group information only if ACLs are enabled.
   TEZ-1581. GroupByOrderByMRRTest no longer functional.
-  TEZ-1157. Optimize broadcast shuffle to download data only once per host. 
+  TEZ-1157. Optimize broadcast shuffle to download data only once per host.
   TEZ-1607. support mr envs in mrrsleep and testorderedwordcount
   TEZ-1499. Add SortMergeJoinExample to tez-examples
   TEZ-1613. Decrease running time for TestAMRecovery
   TEZ-1240. Add system test for propagation of diagnostics for errors
-  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get 
+  TEZ-1618. LocalTaskSchedulerService.getTotalResources() and getAvailableResources() can get
   negative if JVM memory is larger than 2GB
   TEZ-1611. Change DataSource/Sink to be able to supply URIs for credentials
   TEZ-1592. Vertex should wait for all initializers to finish before moving to INITED state
