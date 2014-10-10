@@ -39,28 +39,40 @@ public class TezYARNUtils {
   private static Pattern ENV_VARIABLE_PATTERN = Pattern.compile(Shell.getEnvironmentVariableRegex());
 
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
-    Map<String, String> environment = new HashMap<String, String>();
+    StringBuilder classpathBuilder = new StringBuilder();
 
-    TezYARNUtils.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$(),
-        File.pathSeparator);
+    // Add any additional user-specified classpath
+    String additionalClasspath = conf.get(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX);
+    if (additionalClasspath != null && !additionalClasspath.trim().isEmpty()) {
+      classpathBuilder.append(additionalClasspath)
+          .append(File.pathSeparator);
+    }
 
-    TezYARNUtils.addToEnvironment(environment,
-        Environment.CLASSPATH.name(),
-        Environment.PWD.$() + File.separator + "*",
-        File.pathSeparator);
+    // Add PWD:PWD/*
+    classpathBuilder.append(Environment.PWD.$())
+        .append(File.pathSeparator)
+        .append(Environment.PWD.$() + File.separator + "*")
+        .append(File.pathSeparator);
 
     // Next add the tez libs, if specified via an archive.
     if (usingArchive) {
-      TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          Environment.PWD.$() + File.separator +
-              TezConstants.TEZ_TAR_LR_NAME + File.separator + "*", File.pathSeparator);
+      // Add PWD/tezlib/*
+      classpathBuilder.append(Environment.PWD.$())
+          .append(File.separator)
+          .append(TezConstants.TEZ_TAR_LR_NAME)
+          .append(File.separator)
+          .append("*")
+          .append(File.pathSeparator);
 
-      TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          Environment.PWD.$() + File.separator +
-              TezConstants.TEZ_TAR_LR_NAME + File.separator + "lib" + File.separator + "*",
-          File.pathSeparator);
+      // Add PWD/tezlib/lib/*
+      classpathBuilder.append(Environment.PWD.$())
+          .append(File.separator)
+          .append(TezConstants.TEZ_TAR_LR_NAME)
+          .append(File.separator)
+          .append("lib")
+          .append(File.separator)
+          .append("*")
+          .append(File.pathSeparator);
     }
 
     // Last add HADOOP_CLASSPATH, if it's required.
@@ -69,15 +81,17 @@ public class TezYARNUtils {
       for (String c : conf.getStrings(
           YarnConfiguration.YARN_APPLICATION_CLASSPATH,
           YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
-        TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
-            c.trim(), File.pathSeparator);
+        classpathBuilder.append(c.trim())
+            .append(File.pathSeparator);
       }
     } else {
       // Setup HADOOP_CONF_DIR after PWD and tez-libs, if it's required.
-      TezYARNUtils.addToEnvironment(environment, Environment.CLASSPATH.name(),
-          Environment.HADOOP_CONF_DIR.$(), File.pathSeparator);
+      classpathBuilder.append(Environment.HADOOP_CONF_DIR.$())
+          .append(File.pathSeparator);
     }
-    return StringInterner.weakIntern(environment.get(Environment.CLASSPATH.name()));
+
+    String classpath = classpathBuilder.toString();
+    return StringInterner.weakIntern(classpath);
   }
 
   public static void appendToEnvFromInputString(Map<String, String> env,
