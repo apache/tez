@@ -16,25 +16,15 @@
  * limitations under the License.
  */
 
-App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-	controllerName: 'DagController',
+ require('scripts/controllers/show_tasks_view_controller');
 
-	pageTitle: 'Dag',
+ //TODO: watch individual counters.
+App.TaskIndexController = Em.ObjectController.extend({
+	controllerName: 'TaskIndexController',
 
-	loading: true,
+	taskIconStatus: function() {
+		return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
+	}.property('id', 'status', 'counterGroups'),
 
-	updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-	pageSubTitle: function() {
-		return this.get('name');
-	}.property('name'),
-
-	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
-		Ember.Object.create({title: 'Counters', linkTo: 'dag.counters'}),
-		Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
-	],
-
+	showTasksViewController: App.ShowTasksViewController.create()
 });

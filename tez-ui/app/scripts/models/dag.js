@@ -203,7 +203,21 @@ App.DagVertex = DS.Model.extend({
   }.property('duration')
 });
 
+App.Task = App.AbstractEntity.extend({
+  status: DS.attr('status'),
 
+  dagID: DS.attr('string'),
+  
+  vertexID: DS.attr('string'),
+
+  startTime: DS.attr('number'),
+
+  endTime: DS.attr('number'),
+
+  diagnostics: DS.attr('string'),
+
+  counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
+});
 
 App.DagVertexState = {
   NEW: "NEW",

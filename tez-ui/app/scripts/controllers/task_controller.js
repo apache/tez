@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-	controllerName: 'DagController',
+App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
+	controllerName: 'TaskController',
 
-	pageTitle: 'Dag',
+	pageTitle: 'Task',
 
 	loading: true,
 
@@ -28,13 +28,12 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   }.observes('content'),
 
 	pageSubTitle: function() {
-		return this.get('name');
-	}.property('name'),
+		return this.get('id');
+	}.property('id'),
 
 	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
-		Ember.Object.create({title: 'Counters', linkTo: 'dag.counters'}),
-		Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
+		Ember.Object.create({title: 'Details', linkTo: 'task.index'}),
+		Ember.Object.create({title: 'Counters', linkTo: 'task.counters'}),
 	],
 
 });

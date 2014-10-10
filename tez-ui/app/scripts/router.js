@@ -19,10 +19,18 @@
 App.Router.map(function() {
 	this.resource('dags', { path: '/' });
 	this.resource('dag', { path: '/dag/:dag_id'}, function() {
+		this.route('counters'),
 		this.route('vertex'),
 		this.route('swimlane')
 	});
-	//this.resource('error', {path: '/error'});
+	this.resource('tasks', {path: '/tasks/:dag_id'});
+	this.resource('task', {path: '/task/:task_id'}, function(){
+		this.route('counters');
+	});
+	this.resource('taskAttempt', {path: '/task_attempt/:task_attempt_id'}, function() {
+		this.route('counters');
+	});
+	//this.resource('error', {path:$ '/error'});
 });
 
 /*
@@ -69,6 +77,8 @@ App.DagsRoute = Em.Route.extend({
 
 		//TODO remove this
 		this.store.unloadAll('dag');
+		this.store.unloadAll('counterGroup');
+		this.store.unloadAll('counter');
 		return this.store.findQuery('dag', queryParams);
 	},
 
@@ -94,6 +104,33 @@ App.DagSwimlaneRoute = Em.Route.extend({
 		var queryParams = {'primaryFilter': 'TEZ_DAG_ID:' + model.id};
 		this.store.unloadAll('task_attempt');
 		return this.store.findQuery('task_attempt', queryParams);
+	},
+
+	setupController: function(controller, model) {
+		this._super(controller, model);
+	}
+});
+
+App.TasksRoute = Em.Route.extend({
+	model: function(params) {
+		var controllerClass = this.controllerFor('tasks');
+		var queryParams = controllerClass.getFilterParams(params);
+		
+		//TODO: fix this
+		this.store.unloadAll('task');
+		this.store.unloadAll('counterGroup');
+		this.store.unloadAll('counter');
+		return this.store.findQuery('task', queryParams);
+	},
+
+	setupController: function(controller, model) {
+		this._super(controller, model);
+	}
+});
+
+App.TaskRoute = Em.Route.extend({
+	model: function(params) {
+		return this.store.find('task', params.task_id);
 	},
 
 	setupController: function(controller, model) {

@@ -1,12 +1,15 @@
 {{partial "utils/pageHeader"}}
 {{#unless loading}}
 	<div class='margin-small-horizontal'>
-		{{#link-to 'dags'}}<i class='fa-arrow-circle-left fa fa-2x'>&nbsp;Dags</i>{{/link-to}}
+		{{#link-to 'dags'}}
+			<i class='fa-arrow-circle-left fa fa-2x'>
+				<span style='font-size: 85%'>&nbsp;Dags</span>
+			</i>
+		{{/link-to}}
 	</div>
 
 	<div class='type-table fill-full margin-small'>
 		<div class='align-left'>
-			{{!simple-kv-list data=this columns=commonDisplayProperties}}
 
 			<table class='detail-list'>
 				<tbody>
@@ -17,6 +20,10 @@
 					<tr>
 						<td>{{t common.applicationId}}</td>
 						<td>{{applicationId}}</td>
+					</tr>
+					<tr>
+						<td>{{t common.user}}</td>
+						<td>{{user}}</td>
 					</tr>
 				</tbody>
 			</table>

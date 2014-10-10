@@ -16,6 +16,6 @@
 * limitations under the License.
 }}
 
-<i {{bind-attr class=':page-nav-link :nav-first hasPrev:enabled:disabled'}} {{action 'gotoFirst'}}></i>
-<i {{bind-attr class=':page-nav-link :nav-prev hasPrev:enabled:disabled'}} {{action 'gotoPrev'}}></i>
-<i {{bind-attr class=':page-nav-link :nav-next hasNext:enabled:disabled'}} {{action 'gotoNext'}}></i>
+<div class='table-container margin-medium' style='width: 50%;'>
+  {{counter-table-component data=counterGroups}}
+</div>

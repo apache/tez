@@ -16,6 +16,36 @@
 * limitations under the License.
 }}
 
-<i {{bind-attr class=':page-nav-link :nav-first hasPrev:enabled:disabled'}} {{action 'gotoFirst'}}></i>
-<i {{bind-attr class=':page-nav-link :nav-prev hasPrev:enabled:disabled'}} {{action 'gotoPrev'}}></i>
-<i {{bind-attr class=':page-nav-link :nav-next hasNext:enabled:disabled'}} {{action 'gotoNext'}}></i>
+{{partial "utils/pageHeader"}}
+{{#unless loading}}
+	<div class='type-table fill-full '>
+			<div class='align-left'>
+				<table class='detail-list'>
+					<tbody>
+						<tr>
+							<td>{{t common.id}}</td>
+							<td>{{id}}</td>
+						</tr>
+						<tr>
+							<td>Vertex ID</td>
+							<td>{{vertexID}}</td>
+						</tr>
+						<tr>
+							<td>DAG ID</td>
+							<td>{{dagID}}</td>
+						</tr>
+					</tbody>
+				</table>
+
+			</div>
+
+			<div class='pill-container align-right'>
+				{{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
+			</div>
+
+		</div>
+
+		{{outlet}}
+{{else}}
+		{{partial 'utils/loadingSpinner'}}	
+{{/unless}}

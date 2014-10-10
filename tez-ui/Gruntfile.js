@@ -204,7 +204,8 @@ module.exports = function (grunt) {
             '.tmp/styles/{,*/}*.css',
             '<%= yeoman.app %>/styles/{,*/}*.css',
             '<%= yeoman.app %>/bower_components/bootstrap/dist/css/bootstrap.css',
-            '<%= yeoman.app %>/bower_components/ember-table/dist/ember-table.css'
+            '<%= yeoman.app %>/bower_components/ember-table/dist/ember-table.css',
+            '<%= yeoman.app %>/bower_components/font-awesome/css/font-awesome.css'
           ]
         }
       }
@@ -282,8 +283,8 @@ module.exports = function (grunt) {
           {
             expand: true,
             flatten: true,
-            src: '<%= yeoman.app %>/bower_components/font-awesome/font/*',
-            dest: '<%= yeoman.dist %>/font/'
+            src: '<%= yeoman.app %>/bower_components/font-awesome/fonts/*',
+            dest: '<%= yeoman.dist %>/fonts/'
           }
         ]
       },
@@ -312,8 +313,8 @@ module.exports = function (grunt) {
           {
             expand: true,
             flatten: true,
-            src: '<%= yeoman.app %>/bower_components/font-awesome/font/*',
-            dest: '.tmp/font/'
+            src: '<%= yeoman.app %>/bower_components/font-awesome/fonts/*',
+            dest: '.tmp/fonts/'
           },
           {
             expand: true,

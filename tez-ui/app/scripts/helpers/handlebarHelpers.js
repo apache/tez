@@ -46,3 +46,16 @@ Em.Handlebars.helper('formatDuration', function(startTime, endTime) {
 
 	return App.Helpers.date.durationSummary(startTime, endTime);
 });
+
+function replaceAll(str, str1, str2, ignore) 
+{
+    return str.replace(new RegExp(str1.replace(/([\/\,\!\\\^\$\{\}\[\]\(\)\.\*\+\?\|\<\>\-\&])/g,"\\$&"),(ignore?"gi":"g")),(typeof(str2)=="string")?str2.replace(/\$/g,"$$$$"):str2);
+} 
+
+//TODO: needs better indendation.
+Em.Handlebars.helper('formatDiagnostics', function(diagnostics) {
+  var x = replaceAll(diagnostics, '[', '<div class="indent"><i>&nbsp;</i>');
+  x = replaceAll(x, '],', '</div><i>&nbsp;</i>');
+  x = replaceAll(x, ']', '</div>');
+  return new Handlebars.SafeString(x);
+});

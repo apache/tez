@@ -17,6 +17,8 @@
  */
 
 App.PageNavComponent = Em.Component.extend({
+	layoutName: 'components/page-nav',
+	
 	actions: {
 		gotoNext: function() {
 			this.sendAction('navNext');
@@ -29,3 +31,5 @@ App.PageNavComponent = Em.Component.extend({
 		}
 	}
 });
+
+Em.Handlebars.helper('page-nav-component', App.PageNavComponent);

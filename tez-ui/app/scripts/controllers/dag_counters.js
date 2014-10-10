@@ -16,25 +16,8 @@
  * limitations under the License.
  */
 
-App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-	controllerName: 'DagController',
+ //TODO: watch individual counters.
+/*App.DagCountersController = Em.ObjectController.extend({
+	controllerName: 'DagIndexController',
 
-	pageTitle: 'Dag',
-
-	loading: true,
-
-	updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-	pageSubTitle: function() {
-		return this.get('name');
-	}.property('name'),
-
-	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
-		Ember.Object.create({title: 'Counters', linkTo: 'dag.counters'}),
-		Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
-	],
-
-});
+});*/

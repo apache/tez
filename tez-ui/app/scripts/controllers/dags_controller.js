@@ -17,11 +17,11 @@
  */
 
 App.DagsController = Em.ArrayController.extend({
-	controllerName: "DagsController",
+	controllerName: 'DagsController',
 
-	pageTitle: "Dags",
+	pageTitle: 'Dags',
 
-	pageSubTitle: "All Dags",
+	pageSubTitle: 'All Dags',
 
   /* filtering and sorting related */
   queryParams: {
@@ -138,49 +138,59 @@ App.DagsController = Em.ArrayController.extend({
 
 	/* table view for dags */
   columns: function() {
+    var store = this.get('store');
+    var columnHelper = function(columnName, valName) {
+      return Em.Table.ColumnDefinition.create({
+        textAlign: 'text-align-left',
+        headerCellName: columnName,
+        getCellContent: function(row) {
+          return row.get(valName);
+        }
+      });
+    }
+
     var idColumn = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'Dag Id',
       tableCellViewClass: Em.Table.TableCell.extend({
-      	template: Em.Handlebars.compile("{{#link-to 'dag' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+      	template: Em.Handlebars.compile(
+          "{{#link-to 'dag' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
       }),
       getCellContent: function(row) {
       	return row.get('id');
       }
     });
-    var nameColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Name',
-      getCellContent: function(row) {
-      	return row.get('name');
-      }
-    });
-    var userColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Submitter',
-      getCellContent: function(row) {
-      	return row.get('user');
-      }
-    });
+    var nameColumn = columnHelper('Name', 'name');
+    var userColumn = columnHelper('Submitter', 'user');
     var statusColumn = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'Status',
+      tableCellViewClass: Em.Table.TableCell.extend({
+        template: Em.Handlebars.compile(
+          '<span class="ember-table-content">&nbsp;\
+          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+      }),
       getCellContent: function(row) {
-      	return row.get('status');
+      	return { 
+          status: row.get('status'),
+          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+        };
       }
     });
     var startTimeColumn = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'SubmissionTime',
+      headerCellName: 'Submission Time',
       getCellContent: function(row) {
       	return App.Helpers.date.dateFormat(row.get('startTime'));
       }
     });
-    var appIdColumn = Em.Table.ColumnDefinition.create({
+    var appIdColumn = columnHelper('Application ID', 'applicationId');
+    var endTimeColumn = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Application Id',
+      headerCellName: 'End Time',
       getCellContent: function(row) {
-      	return row.get('applicationId');
+        return App.Helpers.date.dateFormat(row.get('endTime'));
       }
     });
     return [idColumn, nameColumn, userColumn, statusColumn, startTimeColumn, appIdColumn];

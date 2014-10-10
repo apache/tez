@@ -1,0 +1,38 @@
+{{#unless loading}}
+	<div class='margin-small'>
+		<span class='align-left'>
+			{{page-nav-component
+				hasPrev=hasPrev
+				hasNext=hasNext
+				navNext='navigateNext'
+				navPrev='navigatePrev'
+				navFirst='navigateFirst'
+			}}
+		</span>
+		<div class='align-clear'> </div>
+	</div>
+
+	<div class='table-container'>
+	  {{table-component
+	    hasFooter=false
+	    columnsBinding='columns'
+	    contentBinding='sortedContent'
+	    forceFillColumns=true
+	  }}
+	</div>
+
+	<div class='margin-small'>
+		<span class='align-left'>
+			{{page-nav-component
+				hasPrev=hasPrev
+				hasNext=hasNext
+				navNext='navigateNext'
+				navPrev='navigatePrev'
+				navFirst='navigateFirst'
+			}}
+		</span>
+		<div class='align-clear'> </div>
+	</div>
+{{else}}
+	{{partial 'utils/loadingSpinner'}}	
+{{/unless}}

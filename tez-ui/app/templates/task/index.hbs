@@ -27,30 +27,6 @@
 						<i {{bind-attr class=':task-status taskIconStatus'}}></i>
 					</td>
 				</tr>
-				<tr>
-					<td>Total Tasks</td>
-					<td>{{totalTasks}}</td>
-				</tr>
-				<tr>
-					<td>Successful Tasks</td>
-					<td>{{sucessfulTasks}}</td>
-				</tr>
-				<tr>
-					<td>Failed Tasks</td>
-					<td>
-						{{failedTasks}}
-					</td>
-					<td>
-						{{#if hasFailedTasks}}
-							{{!TODO: place link to the tasks that failed}}
-							{{#link-to 'tasks' id}}Failed Tasks{{/link-to}}
-						{{/if}}
-					</td>
-				</tr>
-				<tr>
-					<td>Killed Tasks</td>
-					<td>{{killedTasks}}</td>
-				</tr>
 			</tbody>
 		</table>
 	</div>
@@ -80,4 +56,4 @@
 	{{/bs-panel}}
 {{/if}}
 
-{{view App.ShowTasksView parentEntityType='dag' store=store parentEntityID=content.id controllerBinding='showTasksViewController'}}
+{{view App.ShowTasksView parentEntityType='task' store=store parentEntityID=content.id controllerBinding='showTasksViewController'}}

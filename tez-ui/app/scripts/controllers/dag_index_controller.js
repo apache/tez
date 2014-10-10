@@ -16,48 +16,45 @@
  * limitations under the License.
  */
 
+ require('scripts/controllers/show_tasks_view_controller');
+
+ //TODO: watch individual counters.
 App.DagIndexController = Em.ObjectController.extend({
-	controllerName: "DagsController",
+	controllerName: 'DagIndexController',
 
-	counterTableColumns: function() {
-		var groupColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Group',
-      getCellContent: function(row) {
-      	return row.get('counterGroup');
-      }
-    });
+	taskIconStatus: function() {
+		return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
+	}.property('id', 'status', 'counterGroups'),
 
-		var nameColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Counter Name',
-      getCellContent: function(row) {
-      	return row.get('name');
-      }
-    });
+	totalTasks: function() {
+		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), 
+			this.get('id'), 'org.apache.tez.common.counters.DAGCounter', 'TOTAL_LAUNCHED_TASKS')
+	}.property('id', 'counterGroups'),
 
-		var valueColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Counter Name',
-      getCellContent: function(row) {
-      	return row.get('value');
-      }
-    });
+	sucessfulTasks: function() {
+		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
+			'org.apache.tez.common.counters.DAGCounter', 'NUM_SUCCEEDED_TASKS')
+	}.property('id', 'counterGroups'),
 
-    return [groupColumn, nameColumn, valueColumn];
-	}.property(),
+	failedTasks: function() {
+		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
+			'org.apache.tez.common.counters.DAGCounter', 'NUM_FAILED_TASKS')
+	}.property('id', 'counterGroups'),
 
-	counterContent: function() {
-		var allCounters = [];
-		this.get('content').get('counterGroups').forEach(function(cg){
-			cg.get('counters').forEach(function(counter){
-				allCounters.push({
-					counterGroup: cg.get('displayName'),
-					name: counter.get('displayName'),
-					value: counter.get('value')
-				});
-			});
-		});
-		return allCounters;
-	}.property(),
+	killedTasks: function() {
+		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
+			'org.apache.tez.common.counters.DAGCounter', 'NUM_KILLED_TASKS')
+	}.property('id', 'counterGroups'),
+
+	hasFailedTasks: function() {
+		return this.get('failedTasks') > 0;
+	}.property('id', 'counterGroups'),
+
+	actions: {
+		showFailedTasks: function() {
+			alert('not implemented');
+		}
+	},
+
+	showTasksViewController: App.ShowTasksViewController.create()
 });

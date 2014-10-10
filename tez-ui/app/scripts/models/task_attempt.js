@@ -34,7 +34,9 @@ App.TaskAttempt = App.AbstractEntity.extend({
   // status of the task attempt
 	status: DS.attr('string'),
 
+  vertexID: DS.attr('string'),
 
+  dagID: DS.attr('string'),
+
+  counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });
-
-App.TaskAttempt.FIXTURES = [];

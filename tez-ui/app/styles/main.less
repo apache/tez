@@ -1,0 +1,133 @@
+@import "../bower_components/font-awesome/less/font-awesome";
+
+.fa-icon(@name) {
+    @content: "fa-var-@{name}";
+    &:before {content: @@content}
+}
+
+/* colors */
+@success-color: limegreen;
+@error-color: crimson; 
+@warning-color: orange;
+
+/* misc helpers */
+.align-right {
+	float: right;
+}
+
+.align-left {
+	float: left;
+}
+
+.align-clear {
+	clear: both;
+}
+
+.margin-small {
+	margin: 15px;
+}
+
+.margin-small-horizontal {
+	margin: 15px 0px;
+}
+
+.margin-medium {
+	margin: 30px;
+}
+
+.type-table {
+	display: table;
+}
+
+.fill-full {
+	width: 100%;
+	height: 100%;
+}
+
+/* Navigation */
+.page-nav-link {
+	.fa;
+	//TODO: change this and remove below .fa-3x;
+	font-size: 2.5em;
+	cursor: pointer;
+	color: black;
+
+	&.disabled {
+		pointer-events: none;
+		color:lightgray;
+	}
+
+	&.nav-first {
+		.fa-icon(arrow-circle-o-left);
+	}
+
+	&.nav-prev {
+		.fa-icon(arrow-circle-left)
+	}
+
+	&.nav-next {
+		.fa-icon(arrow-circle-right);
+	}
+}
+
+.pill-container {
+	display: table-cell;
+	margin-right: 30px;
+
+	a {
+		height: 30px !important;
+		padding: 5px 15px !important;
+	}
+}
+
+/* dag page */
+.detail-list {
+	table-layout: fixed;
+	overflow: hidden;
+	white-space: nowrap;
+
+	td {
+		padding: 0px 20px 0px 0px;
+	}
+
+	td:first-child {
+		width:120px;
+	}
+}
+
+/* status related */
+.task-status {
+	.fa;
+	.fa-lg;
+
+	&.success {
+		.fa-icon(check-circle);
+		color: @success-color;
+	}
+
+	&.failure {
+		.fa-icon(exclamation-circle);
+		color: @error-color;
+	}
+
+	&.warning {
+		.fa-icon(exclamation-triangle);
+		color: @warning-color;
+	}
+}
+
+div.indent {
+	margin: 0px 0px 0px 20px;
+	i {
+		.fa;
+		.fa-icon(angle-double-right);
+	}
+}
+
+.countertable-group-header {
+	background-color: lightgray;
+}
+
+.countertable-row {
+	margin: 0px 0px 0px 15px;
+}
