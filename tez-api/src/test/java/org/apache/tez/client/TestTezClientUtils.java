@@ -24,15 +24,19 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.URI;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -62,7 +66,8 @@ public class TestTezClientUtils {
     TezConfiguration conf = new TezConfiguration(false);
     Credentials credentials = new Credentials();
     try {
-      TezClientUtils.setupTezJarsLocalResources(conf, credentials);
+      Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
+      TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
       Assert.fail("Expected TezUncheckedException");
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("Invalid configuration of tez jars"));
@@ -78,7 +83,8 @@ public class TestTezClientUtils {
     conf.set(TezConfiguration.TEZ_LIB_URIS, emptyDir.toURI().toURL().toString());
     Credentials credentials = new Credentials();
     try {
-      TezClientUtils.setupTezJarsLocalResources(conf, credentials);
+      Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
+      TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
       Assert.fail("Expected TezUncheckedException");
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("No files found in locations"));
@@ -94,7 +100,8 @@ public class TestTezClientUtils {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_LIB_URIS, "file:///foo");
     Credentials credentials = new Credentials();
-    TezClientUtils.setupTezJarsLocalResources(conf, credentials);
+    Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
+    TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
   }
 
   /**
@@ -111,7 +118,10 @@ public class TestTezClientUtils {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_LIB_URIS, buffer.toString());
     Credentials credentials = new Credentials();
-    Map<String, LocalResource> localizedMap = TezClientUtils.setupTezJarsLocalResources(conf, credentials);
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    boolean usingArchive = TezClientUtils.setupTezJarsLocalResources(conf, credentials,
+        localizedMap);
+    Assert.assertFalse(usingArchive);
     Set<String> resourceNames = localizedMap.keySet();
     for (URL url : cp) {
       File file = FileUtils.toFile(url);
@@ -147,7 +157,8 @@ public class TestTezClientUtils {
     conf.set(TezConfiguration.TEZ_LIB_URIS, buffer.toString());
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     Credentials credentials = new Credentials();
-    Map<String, LocalResource> localizedMap = TezClientUtils.setupTezJarsLocalResources(conf, credentials);
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    Assert.assertFalse(TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap));
     assertTrue(localizedMap.isEmpty());
   }
 
@@ -167,7 +178,8 @@ public class TestTezClientUtils {
     conf.set(TezConfiguration.TEZ_LIB_URIS, buffer.toString());
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false);
     Credentials credentials = new Credentials();
-    Map<String, LocalResource> localizedMap = TezClientUtils.setupTezJarsLocalResources(conf, credentials);
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    Assert.assertFalse(TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap));
     assertFalse(localizedMap.isEmpty());
   }
 
@@ -267,8 +279,8 @@ public class TestTezClientUtils {
           conf.get(TezConfiguration.TEZ_LIB_URIS, ""));
       tezConf.set(TezConfiguration.TEZ_LIB_URIS, tmpTezLibUris);
 
-      Map<String, LocalResource> lrMap =
-          TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials());
+      Map<String, LocalResource> lrMap = new HashMap<String, LocalResource>();
+      TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials(), lrMap);
 
       Assert.assertEquals(publicFile.getName(), LocalResourceVisibility.PUBLIC,
           lrMap.get(publicFile.getName()).getVisibility());
@@ -287,14 +299,17 @@ public class TestTezClientUtils {
       //public
       remoteFs.setPermission(tarFile, publicFilePerms);
       tezConf.set(TezConfiguration.TEZ_LIB_URIS, tarFile.toString());
-      lrMap = TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials());
+      lrMap.clear();
+      Assert.assertTrue(
+          TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials(), lrMap));
 
       Assert.assertEquals(LocalResourceVisibility.PUBLIC,
           lrMap.get(TezConstants.TEZ_TAR_LR_NAME).getVisibility());
 
       //private
       remoteFs.setPermission(tarFile, privateFilePerms);
-      lrMap = TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials());
+      lrMap.clear();
+      TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials(), lrMap);
       Assert.assertEquals(LocalResourceVisibility.PRIVATE,
           lrMap.get(TezConstants.TEZ_TAR_LR_NAME).getVisibility());
 
@@ -328,4 +343,52 @@ public class TestTezClientUtils {
     }
     assertTrue(confMap.isEmpty());
   }
+
+  private Path createFile(FileSystem fs, Path dir, String fileName) throws IOException {
+    Path f1 = new Path(dir, fileName);
+    FSDataOutputStream outputStream = fs.create(f1, true);
+    outputStream.write(1);
+    outputStream.close();
+    return fs.makeQualified(f1);
+  }
+
+  @Test (timeout=5000)
+  public void validateSetTezAuxLocalResourcesWithFilesAndFolders() throws Exception {
+    FileSystem localFs = FileSystem.getLocal(new Configuration());
+    List<String> resources = new ArrayList<String>();
+    StringBuilder auxUriStr = new StringBuilder();
+
+    // Create 2 files
+    Path topDir = new Path(TEST_ROOT_DIR, "validateauxwithfiles");
+    if (localFs.exists(topDir)) {
+      localFs.delete(topDir, true);
+    }
+    localFs.mkdirs(topDir);
+    resources.add(createFile(localFs, topDir, "f1.txt").toString());
+    auxUriStr.append(localFs.makeQualified(topDir).toString()).append(",");
+
+    Path dir2 = new Path(topDir, "dir2");
+    localFs.mkdirs(dir2);
+    Path nestedDir = new Path(dir2, "nestedDir");
+    localFs.mkdirs(nestedDir);
+    createFile(localFs, nestedDir, "nested-f.txt");
+    resources.add(createFile(localFs, dir2, "dir2-f.txt").toString());
+    auxUriStr.append(localFs.makeQualified(dir2).toString()).append(",");
+
+    Path dir3 = new Path(topDir, "dir3");
+    localFs.mkdirs(dir3);
+    auxUriStr.append(localFs.makeQualified(dir3).toString()).append(",");
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    conf.set(TezConfiguration.TEZ_AUX_URIS, auxUriStr.toString());
+    Credentials credentials = new Credentials();
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap);
+    Set<String> resourceNames = localizedMap.keySet();
+    Assert.assertEquals(2, resourceNames.size());
+    Assert.assertTrue(resourceNames.contains("f1.txt"));
+    Assert.assertTrue(resourceNames.contains("dir2-f.txt"));
+  }
+
 }
