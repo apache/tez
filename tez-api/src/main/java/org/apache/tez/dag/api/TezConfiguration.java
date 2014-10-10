@@ -544,8 +544,22 @@ public class TezConfiguration extends Configuration {
    * </ol>
    */
   public static final String TEZ_LIB_URIS = TEZ_PREFIX + "lib.uris";
-  
-  /** 
+
+  /**
+   * Auxiliary resources to be localized for the Tez AM and all its containers.
+   *
+   * Value is comma-separated list of fully-resolved directories or file paths. All resources
+   * are made available into the working directory of the AM and/or containers i.e. $CWD.
+   *
+   * If directories are specified, they are not traversed recursively. Only files directly under the
+   * specified directory are localized.
+   *
+   * All duplicate resources are ignored.
+   *
+   */
+  public static final String TEZ_AUX_URIS = TEZ_PREFIX + "aux.uris";
+
+  /**
    * Boolean value. Allows to ignore 'tez.lib.uris'. Useful during development as well as 
    * raw Tez application where classpath is propagated with application
    * via {@link LocalResource}s. This is mainly useful for developer/debugger scenarios.

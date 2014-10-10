@@ -20,6 +20,7 @@ package org.apache.tez.client;
 
 import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -96,6 +97,7 @@ public class TezClient {
   private Credentials sessionCredentials = new Credentials();
   private long clientTimeout;
   Map<String, LocalResource> cachedTezJarResources;
+  boolean usingTezArchiveDeploy = false;
   private static final long SLEEP_FOR_READY = 500;
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
@@ -305,7 +307,7 @@ public class TezClient {
             TezClientUtils.createApplicationSubmissionContext(
                 sessionAppId,
                 null, clientName, amConfig,
-                tezJarResources, sessionCredentials);
+                tezJarResources, sessionCredentials, usingTezArchiveDeploy);
   
         // Set Tez Sessions to not retry on AM crashes if recovery is disabled
         if (!amConfig.getTezConfiguration().getBoolean(
@@ -367,7 +369,7 @@ public class TezClient {
     
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
-        TezClientUtils.usingTezLibsFromArchive(tezJarResources), sessionCredentials);
+        usingTezArchiveDeploy, sessionCredentials);
 
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan).build();
@@ -674,7 +676,8 @@ public class TezClient {
       Map<String, LocalResource> tezJarResources = getTezJarResources(credentials);
       ApplicationSubmissionContext appContext = TezClientUtils
           .createApplicationSubmissionContext( 
-              appId, dag, dag.getName(), amConfig, tezJarResources, credentials);
+              appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
+              usingTezArchiveDeploy);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId
           + ", dagName=" + dag.getName());
@@ -701,8 +704,9 @@ public class TezClient {
   private synchronized Map<String, LocalResource> getTezJarResources(Credentials credentials)
       throws IOException {
     if (cachedTezJarResources == null) {
-      cachedTezJarResources = TezClientUtils.setupTezJarsLocalResources(
-          amConfig.getTezConfiguration(), credentials);
+      cachedTezJarResources = new HashMap<String, LocalResource>();
+      usingTezArchiveDeploy = TezClientUtils.setupTezJarsLocalResources(
+          amConfig.getTezConfiguration(), credentials, cachedTezJarResources);
     }
     return cachedTezJarResources;
   }
