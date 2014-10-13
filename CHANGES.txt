@@ -20,6 +20,7 @@ ALL CHANGES:
   TEZ-1641. Add debug logs in VertexManager to help debugging custom VertexManagerPlugins
   TEZ-1645. Add support for specifying additional local resources via config.
   TEZ-1646. Add support for augmenting classpath via configs.
+  TEZ-1647. Issue with caching of events in VertexManager::onRootVertexInitialized.
 
 Release 0.5.1: 2014-10-02
 
