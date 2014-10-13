@@ -201,7 +201,7 @@ public class TestTaskRecovery {
         task.restoreFromEvent(new TaskStartedEvent(task.getTaskId(),
             vertexName, taskScheduledTime, taskStartTime));
     assertEquals(TaskState.SCHEDULED, recoveredState);
-    assertEquals(0, task.finishedAttempts);
+    assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(taskScheduledTime, task.scheduledTime);
     assertEquals(0, task.getAttempts().size());
   }
@@ -212,12 +212,12 @@ public class TestTaskRecovery {
         task.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
             taStartTime, mock(ContainerId.class), mock(NodeId.class), "", ""));
     assertEquals(TaskState.RUNNING, recoveredState);
-    assertEquals(0, task.finishedAttempts);
+    assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(taskScheduledTime, task.scheduledTime);
     assertEquals(1, task.getAttempts().size());
     assertEquals(TaskAttemptStateInternal.NEW,
         ((TaskAttemptImpl) task.getAttempt(taId)).getInternalState());
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
   }
 
   /**
@@ -257,7 +257,7 @@ public class TestTaskRecovery {
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(1, task.getAttempts().size());
-    assertEquals(0, task.finishedAttempts);
+    assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
     assertEquals(null, task.successfulAttempt);
   }
@@ -275,7 +275,7 @@ public class TestTaskRecovery {
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     assertEquals(1, task.getAttempts().size());
-    assertEquals(0, task.finishedAttempts);
+    assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
     assertEquals(null, task.successfulAttempt);
   }
@@ -298,17 +298,17 @@ public class TestTaskRecovery {
             new TezCounters()));
     assertEquals(TaskState.SUCCEEDED, recoveredState);
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.SUCCEEDED, task.getInternalState());
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
   }
 
@@ -330,18 +330,18 @@ public class TestTaskRecovery {
             new TezCounters()));
     assertEquals(TaskState.RUNNING, recoveredState);
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(1, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(1, task.failedAttempts);
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
   }
 
@@ -363,18 +363,18 @@ public class TestTaskRecovery {
             new TezCounters()));
     assertEquals(TaskState.RUNNING, recoveredState);
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
   }
 
@@ -398,9 +398,9 @@ public class TestTaskRecovery {
             new TezCounters()));
     assertEquals(TaskState.SUCCEEDED, recoveredState);
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
 
     recoveredState =
@@ -413,10 +413,104 @@ public class TestTaskRecovery {
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.SUCCEEDED, task.getInternalState());
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
+  }
+
+  /**
+   * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
+   * restoreFromTaskAttemptFinishedEvent (SUCCEEDED) ->
+   * restoreFromTaskAttemptFinishedEvent (Failed due to output_failure)
+   * restoreFromTaskFinishedEvent -> RecoverTransition
+   */
+  @Test
+  public void testRecovery_OneTAStarted_SUCCEEDED_FAILED() {
+
+    restoreFromTaskStartEvent();
+    TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
+    restoreFromFirstTaskAttemptStartEvent(taId);
+
+    long taStartTime = taskStartTime + 100L;
+    long taFinishTime = taStartTime + 100L;
+    TaskState recoveredState =
+        task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+            taStartTime, taFinishTime, TaskAttemptState.SUCCEEDED, "",
+            new TezCounters()));
+    assertEquals(TaskState.SUCCEEDED, recoveredState);
+    assertEquals(1, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(0, task.failedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
+    assertEquals(taId, task.successfulAttempt);
+
+    // it is possible for TaskAttempt transit from SUCCEEDED to FAILURE due to output failure.
+    recoveredState =
+        task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+            taStartTime, taFinishTime, TaskAttemptState.FAILED, "",
+            new TezCounters()));
+    assertEquals(TaskState.RUNNING, recoveredState);
+    assertEquals(1, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(1, task.failedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
+    assertEquals(null, task.successfulAttempt);
+
+    task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
+    assertEquals(2, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(1, task.failedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
+    assertEquals(null, task.successfulAttempt);
+  }
+
+  /**
+   * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
+   * restoreFromTaskAttemptFinishedEvent (SUCCEEDED) ->
+   * restoreFromTaskAttemptFinishedEvent (KILLED due to node failed )
+   * restoreFromTaskFinishedEvent -> RecoverTransition
+   */
+  @Test
+  public void testRecovery_OneTAStarted_SUCCEEDED_KILLED() {
+
+    restoreFromTaskStartEvent();
+    TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
+    restoreFromFirstTaskAttemptStartEvent(taId);
+
+    long taStartTime = taskStartTime + 100L;
+    long taFinishTime = taStartTime + 100L;
+    TaskState recoveredState =
+        task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+            taStartTime, taFinishTime, TaskAttemptState.SUCCEEDED, "",
+            new TezCounters()));
+    assertEquals(TaskState.SUCCEEDED, recoveredState);
+    assertEquals(1, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(0, task.failedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
+    assertEquals(taId, task.successfulAttempt);
+
+    // it is possible for TaskAttempt transit from SUCCEEDED to KILLED due to node failure.
+    recoveredState =
+        task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+            taStartTime, taFinishTime, TaskAttemptState.KILLED, "",
+            new TezCounters()));
+    assertEquals(TaskState.RUNNING, recoveredState);
+    assertEquals(1, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(0, task.failedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
+    assertEquals(null, task.successfulAttempt);
+
+    task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
+    assertEquals(2, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(0, task.failedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
+    assertEquals(null, task.successfulAttempt);
   }
 
   /**
@@ -444,18 +538,18 @@ public class TestTaskRecovery {
             new TezCounters()));
     assertEquals(TaskState.SUCCEEDED, recoveredState);
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
   }
 
@@ -484,18 +578,18 @@ public class TestTaskRecovery {
             new TezCounters()));
     assertEquals(TaskState.SUCCEEDED, recoveredState);
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
   }
 
@@ -553,9 +647,9 @@ public class TestTaskRecovery {
     assertEquals(TaskAttemptStateInternal.NEW,
         ((TaskAttemptImpl) task.getAttempt(taId)).getInternalState());
     assertEquals(1, task.getAttempts().size());
-    assertEquals(0, task.finishedAttempts);
+    assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
 
     long taFinishTime = taStartTime + 100L;
@@ -567,9 +661,9 @@ public class TestTaskRecovery {
     assertEquals(TaskAttemptStateInternal.NEW,
         ((TaskAttemptImpl) task.getAttempt(taId)).getInternalState());
     assertEquals(1, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(0, task.numberUncompletedAttempts);
+    assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
@@ -580,9 +674,9 @@ public class TestTaskRecovery {
         ((TaskAttemptImpl) task.getAttempt(taId)).getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
-    assertEquals(1, task.numberUncompletedAttempts);
+    assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
   }
 
