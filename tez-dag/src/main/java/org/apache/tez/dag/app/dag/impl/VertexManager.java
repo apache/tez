@@ -20,11 +20,13 @@ package org.apache.tez.dag.app.dag.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.annotation.Nullable;
 
@@ -59,7 +61,7 @@ import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -70,7 +72,7 @@ public class VertexManager {
   VertexManagerPluginContextImpl pluginContext;
   UserPayload payload = null;
   AppContext appContext;
-  ConcurrentHashMap<String, List<TezEvent>> cachedRootInputEventMap;
+  BlockingQueue<TezEvent> rootInputInitEventQueue;
 
   private static final Log LOG = LogFactory.getLog(VertexManager.class);
 
@@ -137,7 +139,7 @@ public class VertexManager {
     public void addRootInputEvents(final String inputName,
         Collection<InputDataInformationEvent> events) {
       verifyIsRootInput(inputName);
-      Iterable<TezEvent> tezEvents = Iterables.transform(events,
+      Collection<TezEvent> tezEvents = Collections2.transform(events,
           new Function<InputDataInformationEvent, TezEvent>() {
             @Override
             public TezEvent apply(InputDataInformationEvent riEvent) {
@@ -151,7 +153,7 @@ public class VertexManager {
         LOG.debug("vertex:" + managedVertex.getName() + "; Added " + events.size() + " for input " +
                 "name " + inputName);
       }
-      cachedRootInputEventMap.put(inputName,Lists.newArrayList(tezEvents));
+      rootInputInitEventQueue.addAll(tezEvents);
       // Recovery handling is taken care of by the Vertex.
     }
 
@@ -217,7 +219,8 @@ public class VertexManager {
     this.pluginDesc = pluginDesc;
     this.managedVertex = managedVertex;
     this.appContext = appContext;
-    this.cachedRootInputEventMap = new ConcurrentHashMap<String, List<TezEvent>>();
+    // don't specify the size of rootInputInitEventQueue, otherwise it will fail when addAll
+    this.rootInputInitEventQueue = new LinkedBlockingQueue<TezEvent>();
   }
 
   public VertexManagerPlugin getPlugin() {
@@ -268,9 +271,11 @@ public class VertexManager {
       InputDescriptor inputDescriptor, List<Event> events) {
     plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
     if (LOG.isDebugEnabled()) {
-      LOG.debug("vertex:" + managedVertex.getName() + "; For input name "
-          + inputName + " task events size is " + cachedRootInputEventMap.get(inputName).size());
+      LOG.debug("vertex:" + managedVertex.getName() + "; after call of VertexManagerPlugin.onRootVertexInitialized"
+          + " on input:" + inputName + ", current task events size is " + rootInputInitEventQueue.size());
     }
-    return cachedRootInputEventMap.get(inputName);
+    List<TezEvent> resultEvents = new ArrayList<TezEvent>();
+    rootInputInitEventQueue.drainTo(resultEvents);
+    return resultEvents;
   }
 }
