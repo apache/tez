@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1579. MR examples should be setting mapreduce.framework.name to yarn-tez.
 
 Release 0.5.2: Unreleased
 
