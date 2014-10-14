@@ -18,6 +18,8 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import static org.apache.tez.mapreduce.examples.ExampleDriver.getTezDecoratedConfiguration;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
@@ -189,7 +191,7 @@ public class Sort<K,V> extends Configured implements Tool {
 
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Sort(), args);
+    int res = ToolRunner.run(getTezDecoratedConfiguration(), new Sort(), args);
     System.exit(res);
   }
 

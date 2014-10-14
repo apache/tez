@@ -18,6 +18,8 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import static org.apache.tez.mapreduce.examples.ExampleDriver.getTezDecoratedConfiguration;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,7 +28,6 @@ import java.util.StringTokenizer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -155,8 +156,8 @@ public class MapredWordCount extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(),
-        new MapredWordCount(), args);
+    int res = ToolRunner.run(getTezDecoratedConfiguration(),
+      new MapredWordCount(), args);
     System.exit(res);
   }
 
