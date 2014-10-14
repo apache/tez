@@ -22,6 +22,7 @@ ALL CHANGES:
   TEZ-1646. Add support for augmenting classpath via configs.
   TEZ-1647. Issue with caching of events in VertexManager::onRootVertexInitialized.
   TEZ-1470. Recovery fails due to TaskAttemptFinishedEvent being recorded multiple times for the same task.
+  TEZ-1649. ShuffleVertexManager auto reduce parallelism can cause jobs to hang indefinitely.
 
 Release 0.5.1: 2014-10-02
 
