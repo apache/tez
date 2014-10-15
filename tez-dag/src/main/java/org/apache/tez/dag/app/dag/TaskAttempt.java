@@ -124,8 +124,6 @@ public interface TaskAttempt {
   
   public Task getTask();
   
-  public boolean getIsRescheduled();
-
   TaskAttemptState restoreFromEvent(HistoryEvent event);
 
 }

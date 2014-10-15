@@ -17,7 +17,6 @@
 
 package org.apache.tez.dag.app.rm;
 
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.app.ContainerContext;
@@ -31,7 +30,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   //.... Maybe have the Container talk to the TaskAttempt to pull in the remote task.
 
   private final TezTaskAttemptID attemptId;
-  private final Priority priority;
+  private final int priority;
   private final Resource capability;
   private final TaskLocationHint locationHint;
   private final ContainerContext containerContext;
@@ -42,7 +41,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
   public AMSchedulerEventTALaunchRequest(TezTaskAttemptID attemptId,
       Resource capability,
       TaskSpec remoteTaskSpec, TaskAttempt ta,
-      TaskLocationHint locationHint, Priority priority,
+      TaskLocationHint locationHint, int priority,
       ContainerContext containerContext) {
     super(AMSchedulerEventType.S_TA_LAUNCH_REQUEST);
     this.attemptId = attemptId;
@@ -66,7 +65,7 @@ public class AMSchedulerEventTALaunchRequest extends AMSchedulerEvent {
     return locationHint;
   }
 
-  public Priority getPriority() {
+  public int getPriority() {
     return priority;
   }
 

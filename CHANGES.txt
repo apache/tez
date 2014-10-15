@@ -28,6 +28,8 @@ ALL CHANGES:
   TEZ-1083. Enable IFile RLE for DefaultSorter.
   TEZ-1637. Improved shuffle error handling across NM restarts.
   TEZ-1479. Disambiguate (refactor) between ShuffleInputEventHandlers and Fetchers.
+  TEZ-1665. DAGScheduler should provide a priority range instead of an exact
+  priority
 
 Release 0.5.1: 2014-10-02
 

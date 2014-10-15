@@ -778,11 +778,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @Override
-  public boolean getIsRescheduled() {
-    return isRescheduled;
-  }
-
-  @Override
   public TaskAttemptState restoreFromEvent(HistoryEvent historyEvent) {
     switch (historyEvent.getEventType()) {
       case TASK_ATTEMPT_STARTED:
@@ -1087,11 +1082,19 @@ public class TaskAttemptImpl implements TaskAttempt,
         LOG.debug("Asking for container launch with taskAttemptContext: "
             + remoteTaskSpec);
       }
+      
       // Send out a launch request to the scheduler.
+      int priority;
+      if (ta.isRescheduled) {
+        // higher priority for rescheduled attempts
+        priority = scheduleEvent.getPriorityHighLimit();
+      } else {
+        priority = (scheduleEvent.getPriorityHighLimit() + scheduleEvent.getPriorityLowLimit()) / 2;
+      }
 
       AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
           ta.attemptId, ta.taskResource, remoteTaskSpec, ta, locationHint,
-          scheduleEvent.getPriority(), ta.containerContext);
+          priority, ta.containerContext);
       ta.sendEvent(launchRequestEvent);
     }
   }

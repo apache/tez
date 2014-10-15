@@ -1114,7 +1114,7 @@ public class TestContainerReuse {
           InputDescriptor.create("inputClassName"), 1)),
       Collections.singletonList(new OutputSpec("vertexName",
           OutputDescriptor.create("outputClassName"), 1)), null), ta, locationHint,
-      priority, containerContext);
+      priority.getPriority(), containerContext);
     return lr;
   }
 
