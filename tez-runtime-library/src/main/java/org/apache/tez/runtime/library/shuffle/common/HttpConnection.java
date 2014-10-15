@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.net.ssl.HttpsURLConnection;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -57,7 +58,8 @@ public class HttpConnection {
   //Shared by many threads
   private static SSLFactory sslFactory;
 
-  private HttpURLConnection connection;
+  @VisibleForTesting
+  protected HttpURLConnection connection;
   private DataInputStream input;
 
   private boolean connectionSucceeed;

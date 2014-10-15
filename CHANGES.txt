@@ -26,6 +26,7 @@ ALL CHANGES:
   TEZ-1649. ShuffleVertexManager auto reduce parallelism can cause jobs to hang indefinitely.
   TEZ-1566. Reduce log verbosity.
   TEZ-1083. Enable IFile RLE for DefaultSorter.
+  TEZ-1637. Improved shuffle error handling across NM restarts.
 
 Release 0.5.1: 2014-10-02
 

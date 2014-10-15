@@ -21,17 +21,17 @@ package org.apache.tez.runtime.library.shuffle.common;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -42,13 +42,9 @@ import javax.crypto.SecretKey;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -56,7 +52,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
@@ -64,11 +59,11 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleHeader;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
+import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
 import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 
 /**
  * Responsible for fetching inputs served by the ShuffleHandler for a single
@@ -121,6 +116,9 @@ public class Fetcher implements Callable<FetchResult> {
   private final LocalDirAllocator localDirAllocator;
   private final Path lockPath;
   private final RawLocalFileSystem localFs;
+
+  // Initiative value is 0, which means it hasn't retried yet.
+  private long retryStartTime = 0;
 
   private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
@@ -392,12 +390,11 @@ public class Fetcher implements Callable<FetchResult> {
     return doHttpFetch(null);
   }
 
-  @VisibleForTesting
-  protected HostFetchResult doHttpFetch(CachingCallBack callback) {
+  private HostFetchResult setupConnection(List<InputAttemptIdentifier> attempts) {
     try {
       StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
           port, partition, appId.toString(), httpConnectionParams.isSSLShuffleEnabled());
-      this.url = ShuffleUtils.constructInputURL(baseURI.toString(), srcAttempts,
+      this.url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts,
           httpConnectionParams.getKeepAlive());
 
       httpConnection = new HttpConnection(url, httpConnectionParams, logIdentifier, shuffleSecret);
@@ -433,14 +430,23 @@ public class Fetcher implements Callable<FetchResult> {
       if (isShutDown.get()) {
         LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
       } else {
-        InputAttemptIdentifier firstAttempt = srcAttempts.get(0);
+        InputAttemptIdentifier firstAttempt = attempts.get(0);
         LOG.warn("Fetch Failure from host while connecting: " + host + ", attempt: " + firstAttempt
             + " Informing ShuffleManager: ", e);
         return new HostFetchResult(new FetchResult(host, port, partition, remaining),
             new InputAttemptIdentifier[] { firstAttempt }, false);
       }
     }
+    return null;
+  }
 
+  @VisibleForTesting
+  protected HostFetchResult doHttpFetch(CachingCallBack callback) {
+
+    HostFetchResult connectionsWithRetryResult = setupConnection(srcAttempts);
+    if (connectionsWithRetryResult != null) {
+      return connectionsWithRetryResult;
+    }
     // By this point, the connection is setup and the response has been
     // validated.
 
@@ -461,7 +467,19 @@ public class Fetcher implements Callable<FetchResult> {
     // yet_to_be_fetched list and marking the failed tasks.
     InputAttemptIdentifier[] failedInputs = null;
     while (!remaining.isEmpty() && failedInputs == null) {
-      failedInputs = fetchInputs(input, callback);
+      try {
+        failedInputs = fetchInputs(input, callback);
+      } catch (FetcherReadTimeoutException e) {
+        //clean up connection
+        shutdownInternal(true);
+
+        // Connect again.
+        connectionsWithRetryResult = setupConnection(
+            new LinkedList<InputAttemptIdentifier>(remaining));
+        if (connectionsWithRetryResult != null) {
+          break;
+        }
+      }
     }
 
     return new HostFetchResult(new FetchResult(host, port, partition, remaining), failedInputs,
@@ -579,13 +597,17 @@ public class Fetcher implements Callable<FetchResult> {
   }
 
   private void shutdownInternal() {
+    shutdownInternal(false);
+  }
+
+  private void shutdownInternal(boolean disconnect) {
     // Synchronizing on isShutDown to ensure we don't run into a parallel close
     // Can't synchronize on the main class itself since that would cause the
     // shutdown request to block
     synchronized (isShutDown) {
       try {
         if (httpConnection != null) {
-          httpConnection.cleanup(false);
+          httpConnection.cleanup(disconnect);
         }
       } catch (IOException e) {
         LOG.info("Exception while shutting down fetcher on " + logIdentifier + " : "
@@ -597,7 +619,8 @@ public class Fetcher implements Callable<FetchResult> {
     }
   }
 
-  private InputAttemptIdentifier[] fetchInputs(DataInputStream input, CachingCallBack callback) {
+  private InputAttemptIdentifier[] fetchInputs(DataInputStream input,
+      CachingCallBack callback) throws FetcherReadTimeoutException {
     FetchedInput fetchedInput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = -1;
@@ -688,6 +711,8 @@ public class Fetcher implements Callable<FetchResult> {
 
       // Inform the shuffle scheduler
       long endTime = System.currentTimeMillis();
+      // Reset retryStartTime as map task make progress if retried before.
+      retryStartTime = 0;
       fetcherCallback.fetchSucceeded(host, srcAttemptId, fetchedInput,
           compressedLength, decompressedLength, (endTime - startTime));
 
@@ -697,6 +722,17 @@ public class Fetcher implements Callable<FetchResult> {
       // metrics.successFetch();
       return null;
     } catch (IOException ioe) {
+      if (shouldRetry(srcAttemptId, ioe)) {
+        //release mem/file handles
+        if (fetchedInput != null) {
+          try {
+            fetchedInput.abort();
+          } catch (IOException e) {
+            LOG.info("Failure to cleanup fetchedInput: " + fetchedInput);
+          }
+        }
+        throw new FetcherReadTimeoutException(ioe);
+      }
       // ZZZ Add some shutdown code here
       // ZZZ Make sure any assigned memory inputs are aborted
       // ioErrs.increment(1);
@@ -721,6 +757,37 @@ public class Fetcher implements Callable<FetchResult> {
       }
       // metrics.failedFetch();
       return new InputAttemptIdentifier[] { srcAttemptId };
+    }
+  }
+
+  /**
+   * Check connection needs to be re-established.
+   *
+   * @param srcAttemptId
+   * @param ioe
+   * @return true to indicate connection retry. false otherwise.
+   * @throws IOException
+   */
+  private boolean shouldRetry(InputAttemptIdentifier srcAttemptId, IOException ioe) {
+    if (!(ioe instanceof SocketTimeoutException)) {
+      return false;
+    }
+    // First time to retry.
+    long currentTime = System.currentTimeMillis();
+    if (retryStartTime == 0) {
+      retryStartTime = currentTime;
+    }
+
+    if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
+      LOG.warn("Shuffle output from " + srcAttemptId +
+          " failed, retry it.");
+      //retry connecting to the host
+      return true;
+    } else {
+      // timeout, prepare to be failed.
+      LOG.warn("Timeout for copying MapOutput with retry on host " + host
+          + "after " + httpConnectionParams.getReadTimeout() + "milliseconds.");
+      return false;
     }
   }
 
