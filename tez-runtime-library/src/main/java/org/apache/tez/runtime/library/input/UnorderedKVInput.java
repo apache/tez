@@ -45,10 +45,10 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.readers.UnorderedKVReader;
-import org.apache.tez.runtime.library.shuffle.common.ShuffleEventHandler;
-import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleInputEventHandlerImpl;
-import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
-import org.apache.tez.runtime.library.shuffle.common.impl.SimpleFetchedInputAllocator;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
+import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleInputEventHandlerImpl;
+import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
+import org.apache.tez.runtime.library.common.shuffle.impl.SimpleFetchedInputAllocator;
 
 import com.google.common.base.Preconditions;
 
