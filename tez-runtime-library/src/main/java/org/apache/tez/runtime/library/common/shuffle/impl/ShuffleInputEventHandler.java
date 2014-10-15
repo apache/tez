@@ -80,7 +80,7 @@ public class ShuffleInputEventHandler {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     } 
     int partitionId = dmEvent.getSourceIndex();
-    LOG.info("DataMovementEvent partitionId:" + partitionId + ", targetIndex: " + dmEvent.getTargetIndex()
+    LOG.info("DME srcIdx: " + partitionId + ", targetIdx: " + dmEvent.getTargetIndex()
         + ", attemptNum: " + dmEvent.getVersion() + ", payload: " + ShuffleUtils.stringify(shufflePayload));
     // TODO NEWTEZ See if this duration hack can be removed.
     int duration = shufflePayload.getRunDuration();
@@ -95,8 +95,11 @@ public class ShuffleInputEventHandler {
         if (emptyPartitionsBitSet.get(partitionId)) {
           InputAttemptIdentifier srcAttemptIdentifier =
               new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion());
-          LOG.info("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
-              + srcAttemptIdentifier + "]. Not fetching.");
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(
+                "Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
+                    + srcAttemptIdentifier + "]. Not fetching.");
+          }
           scheduler.copySucceeded(srcAttemptIdentifier, null, 0, 0, 0, null);
           return;
         }

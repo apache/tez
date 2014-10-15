@@ -426,9 +426,10 @@ class ShuffleScheduler {
       
       pendingHosts.remove(host);     
       host.markBusy();
-      
-      LOG.info("Assigning " + host + " with " + host.getNumKnownMapOutputs() + 
-               " to " + Thread.currentThread().getName());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Assigning " + host + " with " + host.getNumKnownMapOutputs() +
+            " to " + Thread.currentThread().getName());
+      }
       shuffleStart.set(System.currentTimeMillis());
       
       return host;
@@ -490,8 +491,10 @@ class ShuffleScheduler {
       InputAttemptIdentifier id = dedupedItr.next().getValue();
       host.addKnownMap(id);
     }
-    LOG.info("assigned " + includedMaps + " of " + totalSize + " to " +
-             host + " to " + Thread.currentThread().getName());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("assigned " + includedMaps + " of " + totalSize + " to " +
+          host + " to " + Thread.currentThread().getName());
+    }
     return result;
   }
 
