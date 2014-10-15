@@ -32,12 +32,12 @@ import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.common.shuffle.impl.InMemoryReader;
+import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
-import org.apache.tez.runtime.library.shuffle.common.FetchedInput;
-import org.apache.tez.runtime.library.shuffle.common.FetchedInput.Type;
-import org.apache.tez.runtime.library.shuffle.common.impl.ShuffleManager;
-import org.apache.tez.runtime.library.shuffle.common.MemoryFetchedInput;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
+import org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput;
 
 @Unstable
 @Private

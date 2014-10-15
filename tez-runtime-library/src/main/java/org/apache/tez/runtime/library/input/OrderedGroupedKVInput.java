@@ -47,7 +47,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.ValuesIterator;
-import org.apache.tez.runtime.library.common.shuffle.impl.Shuffle;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.Shuffle;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 import com.google.common.base.Preconditions;

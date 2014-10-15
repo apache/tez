@@ -27,6 +27,7 @@ ALL CHANGES:
   TEZ-1566. Reduce log verbosity.
   TEZ-1083. Enable IFile RLE for DefaultSorter.
   TEZ-1637. Improved shuffle error handling across NM restarts.
+  TEZ-1479. Disambiguate (refactor) between ShuffleInputEventHandlers and Fetchers.
 
 Release 0.5.1: 2014-10-02
 
