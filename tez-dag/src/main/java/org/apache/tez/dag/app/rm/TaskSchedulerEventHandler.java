@@ -36,6 +36,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -265,7 +266,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         taskScheduler.allocateTask(taskAttempt,
             event.getCapability(),
             locationHint.getAffinitizedContainer(),
-            event.getPriority(),
+            Priority.newInstance(event.getPriority()),
             event.getContainerContext(),
             event);
         return;
@@ -282,7 +283,7 @@ public class TaskSchedulerEventHandler extends AbstractService
                                event.getCapability(),
                                hosts,
                                racks,
-                               event.getPriority(),
+                               Priority.newInstance(event.getPriority()),
                                event.getContainerContext(),
                                event);
   }
