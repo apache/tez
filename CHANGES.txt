@@ -25,6 +25,7 @@ ALL CHANGES:
   TEZ-1470. Recovery fails due to TaskAttemptFinishedEvent being recorded multiple times for the same task.
   TEZ-1649. ShuffleVertexManager auto reduce parallelism can cause jobs to hang indefinitely.
   TEZ-1566. Reduce log verbosity.
+  TEZ-1083. Enable IFile RLE for DefaultSorter.
 
 Release 0.5.1: 2014-10-02
 
