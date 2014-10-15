@@ -20,10 +20,12 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -41,12 +43,12 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.InputContext;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.impl.MapOutput.Type;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
+import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection;
 import org.apache.tez.runtime.library.shuffle.common.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.shuffle.common.ShuffleUtils;
@@ -82,7 +84,8 @@ class Fetcher extends Thread {
   private final CompressionCodec codec;
   private final SecretKey jobTokenSecret;
 
-  private volatile boolean stopped = false;
+  @VisibleForTesting
+  volatile boolean stopped = false;
   
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
@@ -95,6 +98,9 @@ class Fetcher extends Thread {
   HttpConnectionParams httpConnectionParams;
 
   final static String localhostName = NetUtils.getHostname();
+
+  // Initiative value is 0, which means it hasn't retried yet.
+  private long retryStartTime = 0;
   
   public Fetcher(HttpConnectionParams httpConnectionParams,
                  ShuffleScheduler scheduler, MergeManager merger,
@@ -216,6 +222,8 @@ class Fetcher extends Thread {
    */
   @VisibleForTesting
   protected void copyFromHost(MapHost host) throws IOException {
+    // reset retryStartTime for a new host
+    retryStartTime = 0;
     // Get completed maps on 'host'
     List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
     currentPartition = host.getPartitionId();
@@ -235,55 +243,17 @@ class Fetcher extends Thread {
     remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
     
     // Construct the url and connect
-    boolean connectSucceeded = false;
-    
-    try {
-      URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), srcAttempts,
-        httpConnectionParams.getKeepAlive());
-      httpConnection = new HttpConnection(url, httpConnectionParams,
-        logIdentifier, jobTokenSecret);
-      connectSucceeded = httpConnection.connect();
-      
+    if (!setupConnection(host, srcAttempts)) {
       if (stopped) {
-        LOG.info("Detected fetcher has been shutdown after connection establishment. Returning");
         cleanupCurrentConnection(true);
-        putBackRemainingMapOutputs(host);
-        return;
       }
-      input = httpConnection.getInputStream();
-      httpConnection.validate();
-    } catch (IOException ie) {
-      if (stopped) {
-        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
-        cleanupCurrentConnection(true);
-        putBackRemainingMapOutputs(host);
-        return;
-      }
-      ioErrs.increment(1);
-      if (!connectSucceeded) {
-        LOG.warn("Failed to connect to " + host + " with " + remaining.size() + " inputs", ie);
-        connectionErrs.increment(1);
-      } else {
-        LOG.warn("Failed to verify reply after connecting to " + host + " with " + remaining.size()
-          + " inputs pending", ie);
-      }
-
-      // At this point, either the connection failed, or the initial header verification failed.
-      // The error does not relate to any specific Input. Report all of them as failed.
-      // This ends up indirectly penalizing the host (multiple failures reported on the single host)
-      for(InputAttemptIdentifier left: remaining) {
-        // Need to be handling temporary glitches .. 
-        // Report read error to the AM to trigger source failure heuristics
-        scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded);
-      }
-
       // Add back all remaining maps - which at this point is ALL MAPS the
       // Fetcher was started with. The Scheduler takes care of retries,
       // reporting too many failures etc.
       putBackRemainingMapOutputs(host);
       return;
     }
-    
+
     try {
       // Loop through available map-outputs and fetch them
       // On any error, faildTasks is not null and we exit
@@ -291,10 +261,24 @@ class Fetcher extends Thread {
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptIdentifier[] failedTasks = null;
       while (!remaining.isEmpty() && failedTasks == null) {
-        // fail immediately after first failure because we dont know how much to 
+        // fail immediately after first failure because we dont know how much to
         // skip for this error in the input stream. So we cannot move on to the 
         // remaining outputs. YARN-1773. Will get to them in the next retry.
-        failedTasks = copyMapOutput(host, input);
+        try {
+          failedTasks = copyMapOutput(host, input);
+        } catch (FetcherReadTimeoutException e) {
+          // Setup connection again if disconnected
+          cleanupCurrentConnection(true);
+
+          // Connect with retry
+          if (!setupConnection(host, new LinkedList<InputAttemptIdentifier>(remaining))) {
+            if (stopped) {
+              cleanupCurrentConnection(true);
+            }
+            failedTasks = new InputAttemptIdentifier[] {getNextRemainingAttempt()};
+            break;
+          }
+        }
       }
       
       if(failedTasks != null && failedTasks.length > 0) {
@@ -313,6 +297,50 @@ class Fetcher extends Thread {
       }
     } finally {
       putBackRemainingMapOutputs(host);
+    }
+  }
+
+  @VisibleForTesting
+  boolean setupConnection(MapHost host, List<InputAttemptIdentifier> attempts)
+      throws IOException {
+    boolean connectSucceeded = false;
+    try {
+      URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), attempts,
+          httpConnectionParams.getKeepAlive());
+      httpConnection = new HttpConnection(url, httpConnectionParams,
+          logIdentifier, jobTokenSecret);
+      connectSucceeded = httpConnection.connect();
+
+      if (stopped) {
+        LOG.info("Detected fetcher has been shutdown after connection establishment. Returning");
+        return false;
+      }
+      input = httpConnection.getInputStream();
+      httpConnection.validate();
+      return true;
+    } catch (IOException ie) {
+      if (stopped) {
+        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
+        return false;
+      }
+      ioErrs.increment(1);
+      if (!connectSucceeded) {
+        LOG.warn("Failed to connect to " + host + " with " + remaining.size() + " inputs", ie);
+        connectionErrs.increment(1);
+      } else {
+        LOG.warn("Failed to verify reply after connecting to " + host + " with " + remaining.size()
+            + " inputs pending", ie);
+      }
+
+      // At this point, either the connection failed, or the initial header verification failed.
+      // The error does not relate to any specific Input. Report all of them as failed.
+      // This ends up indirectly penalizing the host (multiple failures reported on the single host)
+      for(InputAttemptIdentifier left: remaining) {
+        // Need to be handling temporary glitches ..
+        // Report read error to the AM to trigger source failure heuristics
+        scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded);
+      }
+      return false;
     }
   }
 
@@ -336,8 +364,8 @@ class Fetcher extends Thread {
 
   private static InputAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new InputAttemptIdentifier[0];
   
-  private InputAttemptIdentifier[] copyMapOutput(MapHost host,
-                                DataInputStream input) {
+  protected InputAttemptIdentifier[] copyMapOutput(MapHost host,
+                                DataInputStream input) throws FetcherReadTimeoutException {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = -1;
@@ -417,9 +445,12 @@ class Fetcher extends Thread {
         throw new IOException("Unknown mapOutput type while fetching shuffle data:" +
             mapOutput.getType());
       }
-      
+
       // Inform the shuffle scheduler
       long endTime = System.currentTimeMillis();
+      // Reset retryStartTime as map task make progress if retried before.
+      retryStartTime = 0;
+
       scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength, 
                               endTime - startTime, mapOutput);
       // Note successful shuffle
@@ -436,6 +467,13 @@ class Fetcher extends Thread {
         }
         // Don't need to put back - since that's handled by the invoker
         return EMPTY_ATTEMPT_ID_ARRAY;
+      }
+      if (shouldRetry(host, ioe)) {
+        //release mem/file handles
+        if (mapOutput != null) {
+          mapOutput.abort();
+        }
+        throw new FetcherReadTimeoutException(ioe);
       }
       ioErrs.increment(1);
       if (srcAttemptId == null || mapOutput == null) {
@@ -458,6 +496,37 @@ class Fetcher extends Thread {
       return new InputAttemptIdentifier[] {srcAttemptId};
     }
 
+  }
+
+  /**
+   * Check connection needs to be re-established.
+   *
+   * @param host
+   * @param ioe
+   * @return true to indicate connection retry. false otherwise.
+   * @throws IOException
+   */
+  private boolean shouldRetry(MapHost host, IOException ioe) {
+    if (!(ioe instanceof SocketTimeoutException)) {
+      return false;
+    }
+    // First time to retry.
+    long currentTime = System.currentTimeMillis();
+    if (retryStartTime == 0) {
+      retryStartTime = currentTime;
+    }
+
+    if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
+      LOG.warn("Shuffle output from " + host.getHostIdentifier() +
+          " failed, retry it.");
+      //retry connecting to the host
+      return true;
+    } else {
+      // timeout, prepare to be failed.
+      LOG.warn("Timeout for copying MapOutput with retry on host " + host
+          + "after " + httpConnectionParams.getReadTimeout() + "milliseconds.");
+      return false;
+    }
   }
   
   /**
