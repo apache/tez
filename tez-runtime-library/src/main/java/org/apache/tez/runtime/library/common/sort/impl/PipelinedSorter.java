@@ -503,11 +503,12 @@ public class PipelinedSorter extends ExternalSorter {
     	this.comparator = comparator;
       ki = new byte[keymax];
       kj = new byte[keymax];
-      LOG.info("begin sorting Span"+index + " ("+length()+")");
+      long start = System.currentTimeMillis();
       if(length() > 1) {
         sorter.sort(this, 0, length(), nullProgressable);
       }
-      LOG.info("done sorting Span"+index);
+      LOG.info("done sorting span=" + index + ", length=" + length() + ", "
+          + "time=" + (System.currentTimeMillis() - start));
       return new SpanIterator(this);
     }
 

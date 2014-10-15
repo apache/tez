@@ -272,7 +272,9 @@ public class HttpConnection {
         readErrorStream(connection.getErrorStream());
       }
       if (connection != null && (disconnect || !httpConnParams.keepAlive)) {
-        LOG.info("Closing connection on " + logIdentifier);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Closing connection on " + logIdentifier);
+        }
         connection.disconnect();
       }
     } catch (IOException e) {

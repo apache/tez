@@ -97,10 +97,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     }
     int srcIndex = dme.getSourceIndex();
     String hostIdentifier = shufflePayload.getHost() + ":" + shufflePayload.getPort();
-    LOG.info("Processing DataMovementEvent with srcIndex: "
-        + srcIndex + ", targetIndex: " + dme.getTargetIndex()
-        + ", attemptNum: " + dme.getVersion() + ", payload: "
-        + ShuffleUtils.stringify(shufflePayload));
+    LOG.info("DME srcIdx: " + srcIndex + ", targetIndex: " + dme.getTargetIndex()
+        + ", attemptNum: " + dme.getVersion() + ", payload: " + ShuffleUtils.stringify(shufflePayload));
 
     if (shufflePayload.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload
@@ -109,8 +107,10 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       if (emptyPartionsBitSet.get(srcIndex)) {
         InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
             dme.getVersion());
-        LOG.info("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
-            + srcAttemptIdentifier + "]. Not fetching.");
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
+              + srcAttemptIdentifier + "]. Not fetching.");
+        }
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         return;
       }
