@@ -66,7 +66,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     Multimap<String, String> startedInputsMap = HashMultimap.create();
     TezUmbilical umbilical = mock(TezUmbilical.class);
     TezConfiguration tezConf = new TezConfiguration();
-    tezConf.set(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
+    tezConf.set(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
         ScalingAllocator.class.getName());
 
     TezTaskAttemptID taId1 = createTaskAttemptID(vertexId, 1);

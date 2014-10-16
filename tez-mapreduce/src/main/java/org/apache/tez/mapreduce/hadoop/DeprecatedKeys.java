@@ -74,13 +74,13 @@ public class DeprecatedKeys {
     // Framework counters, like FILESYSTEM will likely be incompatible since
     // they enum key belongs to a different package.
     mrParamToDAGParamMap.put(MRJobConfig.COUNTERS_MAX_KEY,
-      TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS);
-    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
-      TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS);
-    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
-      TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS);
+      TezConfiguration.TEZ_COUNTERS_MAX);
     mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUPS_MAX_KEY,
-      TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS);
+        TezConfiguration.TEZ_COUNTERS_MAX_GROUPS);
+    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_NAME_MAX_KEY,
+        TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH);
+    mrParamToDAGParamMap.put(MRJobConfig.COUNTER_GROUP_NAME_MAX_KEY,
+      TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.

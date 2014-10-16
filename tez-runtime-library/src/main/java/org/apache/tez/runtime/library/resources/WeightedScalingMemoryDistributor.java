@@ -200,7 +200,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   }
 
   private void populateTypeScaleMap() {
-    String[] ratios = conf.getStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS,
+    String[] ratios = conf.getStrings(TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS,
         DEFAULT_TASK_MEMORY_WEIGHTED_RATIOS);
     int numExpectedValues = RequestType.values().length;
     if (ratios == null) {
@@ -238,10 +238,10 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   private double computeReservedFraction(int numTotalRequests) {
 
     double reserveFractionPerIo = conf.getDouble(
-        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO,
         RESERVATION_FRACTION_PER_IO);
     double maxAdditionalReserveFraction = conf.getDouble(
-        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX,
         MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO);
     Preconditions.checkArgument(maxAdditionalReserveFraction >= 0f
         && maxAdditionalReserveFraction <= 1f);
@@ -252,8 +252,8 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
           + maxAdditionalReserveFraction);
     }
 
-    double initialReserveFraction = conf.getDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION,
-        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT);
+    double initialReserveFraction = conf.getDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION_DEFAULT);
     double additionalReserveFraction = Math.min(maxAdditionalReserveFraction, numTotalRequests
         * reserveFractionPerIo);
 

@@ -24,6 +24,7 @@ ALL CHANGES:
   TEZ-1665. DAGScheduler should provide a priority range instead of an exact
   priority
   TEZ-1632. NPE at TestPreemption.testPreemptionWithoutSession
+  TEZ-1674. Rename configuration parameters related to counters / memory scaling.
 
 Release 0.5.1: 2014-10-02
 
