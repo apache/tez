@@ -35,6 +35,36 @@ public class TezConfiguration extends Configuration {
 
   public final static String TEZ_SITE_XML = "tez-site.xml";
 
+  static {
+    Configuration.addDeprecations(new DeprecationDelta[]
+        {
+            new DeprecationDelta("tez.am.counters.max.keys", TezConfiguration.TEZ_COUNTERS_MAX),
+            new DeprecationDelta("tez.am.counters.groups.max.keys",
+                TezConfiguration.TEZ_COUNTERS_MAX_GROUPS),
+            new DeprecationDelta("tez.am.counters.name.max.keys",
+                TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH),
+            new DeprecationDelta("tez.am.counters.group-name.max.keys",
+                TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH),
+
+            new DeprecationDelta("tez.task.scale.task.memory.enabled",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED),
+            new DeprecationDelta("tez.task.scale.task.memory.allocator.class",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS),
+            new DeprecationDelta("tez.task.scale.task.memory.reserve-fraction",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION),
+            new DeprecationDelta(
+                "tez.task.scale.task.memory.additional-reservation.fraction.per-io",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO),
+            new DeprecationDelta("tez.task.scale.task.memory.additional-reservation.fraction.max",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX),
+            new DeprecationDelta("tez.task.scale.task.memory.ratios",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS),
+
+            new DeprecationDelta("tez.task.max-events-per-heartbeat.max",
+                TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT)
+        });
+  }
+
   public TezConfiguration() {
     this(true);
   }
@@ -185,13 +215,33 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
 
   /**
-   * Int value. Configuration to limit the counters per app master. This can be used to
+   * Int value. Configuration to limit the counters per dag (AppMaster and Task). This can be used
+   * to
    * limit the amount of memory being used in the app master to store the
    * counters. Expert level setting.
    */
   @Unstable
-  public static final String TEZ_AM_COUNTERS_MAX_KEYS = TEZ_AM_PREFIX + "counters.max.keys";
-  public static final int TEZ_AM_COUNTERS_MAX_KEYS_DEFAULT = 1200;
+  public static final String TEZ_COUNTERS_MAX = TEZ_PREFIX + "counters.max";
+  public static final int TEZ_COUNTERS_MAX_DEFAULT = 1200;
+
+  /**
+   * Int value. Configuration to limit the number of counter groups for a DAG. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
+  public static final String TEZ_COUNTERS_MAX_GROUPS = TEZ_PREFIX + "counters.max.groups";
+  public static final int TEZ_COUNTERS_MAX_GROUPS_DEFAULT = 500;
+
+  /**
+   * Int value. Configuration to limit the length of counter names. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
+  public static final String TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH =
+      TEZ_PREFIX + "counters.counter-name.max-length";
+  public static final int TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH_DEFAULT = 64;
 
   /**
    * Int value. Configuration to limit the counter group names per app master. This can be used to
@@ -199,31 +249,11 @@ public class TezConfiguration extends Configuration {
    * counters. Expert level setting.
    */
   @Unstable
-  public static final String TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS =
-      TEZ_AM_PREFIX + "counters.group-name.max.keys";
-  public static final int TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS_DEFAULT = 128;
+  public static final String TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH =
+      TEZ_PREFIX + "counters.group-name.max-length";
+  public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 128;
 
 
-  /**
-   * Int value. Configuration to limit the counter names per app master. This can be used to
-   * limit the amount of memory being used in the app master to store the
-   * counters. Expert level setting.
-   */
-  @Unstable
-  public static final String TEZ_AM_COUNTERS_NAME_MAX_KEYS =
-      TEZ_AM_PREFIX + "counters.name.max.keys";
-  public static final int TEZ_AM_COUNTERS_NAME_MAX_KEYS_DEFAULT = 64;
-
-
-  /**
-   * Int value. Configuration to limit the counter groups per app master. This can be used to
-   * limit the amount of memory being used in the app master to store the
-   * counters. Expert level setting.
-   */
-  @Unstable
-  public static final String TEZ_AM_COUNTERS_GROUPS_MAX_KEYS =
-      TEZ_AM_PREFIX + "counters.groups.max.keys";
-  public static final int TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT = 500;
 
   /**
    * Int value. Upper limit on the number of threads user to launch containers in the app
@@ -357,7 +387,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting. Expert level setting.
    */
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
-      + "max-events-per-heartbeat.max";
+      + "max-events-per-heartbeat";
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
 
   /**
@@ -391,20 +421,20 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ENABLED = TEZ_TASK_PREFIX
-      + "scale.task.memory.enabled";
+  public static final String TEZ_TASK_SCALE_MEMORY_ENABLED = TEZ_TASK_PREFIX
+      + "scale.memory.enabled";
   @Private
-  public static final boolean TEZ_TASK_SCALE_TASK_MEMORY_ENABLED_DEFAULT = true;
+  public static final boolean TEZ_TASK_SCALE_MEMORY_ENABLED_DEFAULT = true;
 
   /**
    * The allocator to use for initial memory allocation
    */
   @Private
   @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
-      + "scale.task.memory.allocator.class";
+  public static final String TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
+      + "scale.memory.allocator.class";
   @Private
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT =
+  public static final String TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS_DEFAULT =
       "org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor";
 
   /**
@@ -413,10 +443,35 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
-      + "scale.task.memory.reserve-fraction";
+  public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
+      + "scale.memory.reserve-fraction";
   @Private
-  public static final double TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT = 0.3d; 
+  public static final double TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION_DEFAULT = 0.3d;
+
+  /**
+   * Fraction of available memory to reserve per input/output. This amount is
+   * removed from the total available pool before allocation and is for factoring in overheads.
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
+      TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.per-io";
+
+  @Private
+  @Unstable
+  /**
+   * Max cumulative total reservation for additional IOs.
+   */
+  public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
+      TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.max";
+  /*
+   * Weighted ratios for individual component types in the RuntimeLibrary.
+   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS =
+      TEZ_TASK_PREFIX + "scale.memory.ratios";
 
   @Private
   @Unstable
@@ -425,31 +480,6 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS =
       TEZ_TASK_PREFIX + "resource.calculator.process-tree.class";
-
-  /**
-   * Fraction of available memory to reserve per input/output. This amount is
-   * removed from the total available pool before allocation and is for factoring in overheads.
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
-      TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.per-io";
-
-  @Private
-  @Unstable
-  /**
-   * Max cumulative total reservation for additional IOs.
-   */
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
-      TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.max";
-  /*
-   * Weighted ratios for individual component types in the RuntimeLibrary.
-   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS = 
-      TEZ_TASK_PREFIX + "scale.task.memory.ratios";
 
 
   /**

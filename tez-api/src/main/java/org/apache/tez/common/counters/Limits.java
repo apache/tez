@@ -44,17 +44,17 @@ public class Limits {
       conf = new Configuration();
     }
     GROUP_NAME_MAX =
-        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS,
-            TezConfiguration.TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH,
+            TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT);
     COUNTER_NAME_MAX =
-        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS,
-            TezConfiguration.TEZ_AM_COUNTERS_NAME_MAX_KEYS_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH,
+            TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH_DEFAULT);
     GROUPS_MAX =
-        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS,
-            TezConfiguration.TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS,
+            TezConfiguration.TEZ_COUNTERS_MAX_GROUPS_DEFAULT);
     COUNTERS_MAX =
-        conf.getInt(TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS, 
-            TezConfiguration.TEZ_AM_COUNTERS_MAX_KEYS_DEFAULT);
+        conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX,
+            TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT);
     initialized = true;
     LOG.info("Counter limits initialized with parameters: " + " GROUP_NAME_MAX=" + GROUP_NAME_MAX
         + ", MAX_GROUPS=" + GROUPS_MAX + ", COUNTER_NAME_MAX=" + COUNTER_NAME_MAX
