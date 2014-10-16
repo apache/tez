@@ -1336,7 +1336,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         VertexParallelismUpdatedEvent parallelismUpdatedEvent =
             new VertexParallelismUpdatedEvent(vertexId, numTasks,
                 vertexLocationHint,
-                sourceEdgeManagers, rootInputSpecUpdates);
+                sourceEdgeManagers, rootInputSpecUpdates, oldNumTasks);
         appContext.getHistoryHandler().handle(new DAGHistoryEvent(getDAGId(),
             parallelismUpdatedEvent));
 

@@ -64,6 +64,7 @@ public class ATSConstants {
   public static final String COUNTERS = "counters";
   public static final String STATS = "stats";
   public static final String NUM_TASKS = "numTasks";
+  public static final String OLD_NUM_TASKS = "oldNumTasks";
   public static final String NUM_COMPLETED_TASKS = "numCompletedTasks";
   public static final String NUM_SUCCEEDED_TASKS = "numSucceededTasks";
   public static final String NUM_FAILED_TASKS = "numFailedTasks";
@@ -72,6 +73,7 @@ public class ATSConstants {
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";
   public static final String EXIT_STATUS = "exitStatus";
+  public static final String UPDATED_EDGE_MANAGERS = "updatedEdgeManagers";
 
   /* Counters-related keys */
   public static final String COUNTER_GROUPS = "counterGroups";

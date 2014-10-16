@@ -278,7 +278,7 @@ public class TestHistoryEventsProtoConversion {
           new VertexParallelismUpdatedEvent(
               TezVertexID.getInstance(
                   TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-              100, null, null, rootInputSpecUpdates);
+              100, null, null, rootInputSpecUpdates, 1);
       VertexParallelismUpdatedEvent deserializedEvent = (VertexParallelismUpdatedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
@@ -315,7 +315,7 @@ public class TestHistoryEventsProtoConversion {
               100, VertexLocationHint.create(Arrays.asList(TaskLocationHint.createTaskLocationHint(
               new HashSet<String>(Arrays.asList("h1")),
               new HashSet<String>(Arrays.asList("r1"))))),
-              sourceEdgeManagers, null);
+              sourceEdgeManagers, null, 1);
 
       VertexParallelismUpdatedEvent deserializedEvent = (VertexParallelismUpdatedEvent)
           testProtoConversion(event);

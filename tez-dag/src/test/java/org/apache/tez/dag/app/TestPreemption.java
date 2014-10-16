@@ -99,11 +99,7 @@ public class TestPreemption {
     // now the MockApp has been started. sync with it to get the launcher
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
 
-    DAGImpl dagImpl;
-    do {
-      Thread.sleep(100); // usually needs to sleep 2-3 times
-    } while ((dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG()) == null);
-
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     int vertexIndex = 0;
     int upToTaskVersion = 3;
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), vertexIndex);
