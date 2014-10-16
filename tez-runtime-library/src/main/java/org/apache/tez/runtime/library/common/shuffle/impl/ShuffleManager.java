@@ -224,7 +224,7 @@ public class ShuffleManager implements FetcherCallback {
         TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
     this.localDisks = Iterables.toArray(
-        localDirAllocator.getAllLocalPathsToRead("", conf), Path.class);
+        localDirAllocator.getAllLocalPathsToRead(".", conf), Path.class);
 
     Arrays.sort(this.localDisks);
 
