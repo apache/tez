@@ -199,6 +199,8 @@ public class HistoryEventTimelineConversion {
     stoppedEvt.setTimestamp(event.getStoppedTime());
     atsEntity.addEvent(stoppedEvt);
 
+    atsEntity.addPrimaryFilter(ATSConstants.EXIT_STATUS, event.getExitStatus());
+
     atsEntity.addOtherInfo(ATSConstants.EXIT_STATUS, event.getExitStatus());
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getStoppedTime());
 
@@ -217,6 +219,7 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
+    atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());
@@ -291,7 +294,7 @@ public class HistoryEventTimelineConversion {
 
     try {
       atsEntity.addOtherInfo(ATSConstants.DAG_PLAN,
-          DAGUtils.convertDAGPlanToATSMap(event.getDAGPlan()));
+          DAGUtils.convertDAGPlanToATSMap(event.getDAGPlan(), event.getVertexNameIDMap()));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
@@ -317,6 +320,8 @@ public class HistoryEventTimelineConversion {
     finishEvt.setEventType(HistoryEventType.TASK_ATTEMPT_FINISHED.name());
     finishEvt.setTimestamp(event.getFinishTime());
     atsEntity.addEvent(finishEvt);
+
+    atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());
     atsEntity.addOtherInfo(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
@@ -355,6 +360,9 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
     atsEntity.addOtherInfo(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
     atsEntity.addOtherInfo(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
+    atsEntity.addOtherInfo(ATSConstants.NODE_ID, event.getNodeId().toString());
+    atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
+    atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
 
     return atsEntity;
   }
@@ -373,6 +381,8 @@ public class HistoryEventTimelineConversion {
     finishEvt.setEventType(HistoryEventType.TASK_FINISHED.name());
     finishEvt.setTimestamp(event.getFinishTime());
     atsEntity.addEvent(finishEvt);
+
+    atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());
     atsEntity.addOtherInfo(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
@@ -420,6 +430,8 @@ public class HistoryEventTimelineConversion {
     finishEvt.setEventType(HistoryEventType.VERTEX_FINISHED.name());
     finishEvt.setTimestamp(event.getFinishTime());
     atsEntity.addEvent(finishEvt);
+
+    atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());
     atsEntity.addOtherInfo(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));

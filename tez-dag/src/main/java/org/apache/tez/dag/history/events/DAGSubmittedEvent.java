@@ -35,6 +35,7 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGSubmittedProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.utils.ProtoUtils;
@@ -53,6 +54,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   private ApplicationAttemptId applicationAttemptId;
   private String user;
   private Map<String, LocalResource> cumulativeAdditionalLocalResources;
+  private Map<String, TezVertexID> vertexNameIDMap;
 
   public DAGSubmittedEvent() {
   }
@@ -60,7 +62,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   public DAGSubmittedEvent(TezDAGID dagID, long submitTime,
       DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
       Map<String, LocalResource> cumulativeAdditionalLocalResources,
-      String user) {
+      String user, Map<String, TezVertexID> vertexNameIDMap) {
     this.dagID = dagID;
     this.dagName = dagPlan.getName();
     this.submitTime = submitTime;
@@ -68,6 +70,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     this.applicationAttemptId = applicationAttemptId;
     this.cumulativeAdditionalLocalResources = cumulativeAdditionalLocalResources;
     this.user = user;
+    this.vertexNameIDMap = vertexNameIDMap;
   }
 
   @Override
@@ -180,6 +183,10 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   public String getUser() {
     return user;
+  }
+
+  public Map<String, TezVertexID> getVertexNameIDMap() {
+    return vertexNameIDMap;
   }
 
 }

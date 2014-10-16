@@ -553,6 +553,20 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   @Override
+  public Map<String, TezVertexID> getVertexNameIDMapping() {
+    this.readLock.lock();
+    try {
+      Map<String, TezVertexID> idNameMap = new HashMap<String, TezVertexID>();
+      for (Vertex v : getVertices().values()) {
+        idNameMap.put(v.getName(), v.getVertexId());
+      }
+      return idNameMap;
+    } finally {
+      this.readLock.unlock();
+    }
+  }
+
+  @Override
   public TezCounters getAllCounters() {
 
     readLock.lock();

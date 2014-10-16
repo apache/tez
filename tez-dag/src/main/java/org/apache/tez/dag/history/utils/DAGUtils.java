@@ -33,9 +33,12 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -47,6 +50,7 @@ public class DAGUtils {
   public static final String VERTEX_GROUPS_KEY = "vertexGroups";
 
   public static final String VERTEX_NAME_KEY = "vertexName";
+  public static final String VERTEX_ID_KEY = "vertexId";
   public static final String PROCESSOR_CLASS_KEY = "processorClass";
   public static final String IN_EDGE_IDS_KEY = "inEdgeIds";
   public static final String OUT_EDGE_IDS_KEY = "outEdgeIds";
@@ -81,10 +85,11 @@ public class DAGUtils {
 
 
 
-  public static JSONObject generateSimpleJSONPlan(DAGProtos.DAGPlan dagPlan) throws JSONException {
+  public static JSONObject generateSimpleJSONPlan(DAGPlan dagPlan,
+      Map<String, TezVertexID> vertexNameIDMap) throws JSONException {
     JSONObject dagJson;
     try {
-      dagJson = new JSONObject(convertDAGPlanToATSMap(dagPlan));
+      dagJson = new JSONObject(convertDAGPlanToATSMap(dagPlan, vertexNameIDMap));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
@@ -125,7 +130,7 @@ public class DAGUtils {
   }
 
   public static Map<String,Object> convertDAGPlanToATSMap(
-      DAGProtos.DAGPlan dagPlan) throws IOException {
+      DAGPlan dagPlan, Map<String, TezVertexID> vertexNameIDMap) throws IOException {
 
     final String VERSION_KEY = "version";
     final int version = 1;
@@ -136,7 +141,12 @@ public class DAGUtils {
     for (DAGProtos.VertexPlan vertexPlan : dagPlan.getVertexList()) {
       Map<String,Object> vertexMap = new LinkedHashMap<String, Object>();
       vertexMap.put(VERTEX_NAME_KEY, vertexPlan.getName());
-
+      if (vertexNameIDMap != null && !vertexNameIDMap.isEmpty()) {
+        TezVertexID vertexID = vertexNameIDMap.get(vertexPlan.getName());
+        if (vertexID != null) {
+          vertexMap.put(VERTEX_ID_KEY, vertexID.toString());
+        }
+      }
       if (vertexPlan.hasProcessorDescriptor()) {
         vertexMap.put(PROCESSOR_CLASS_KEY,
             vertexPlan.getProcessorDescriptor().getClassName());
