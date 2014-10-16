@@ -689,7 +689,8 @@ public class DAGAppMaster extends AbstractService {
     try {
       if (LOG.isDebugEnabled()) {
         LOG.info("JSON dump for submitted DAG, dagId=" + dagId.toString()
-            + ", json=" + DAGUtils.generateSimpleJSONPlan(dagPB).toString());
+            + ", json="
+            + DAGUtils.generateSimpleJSONPlan(dagPB, newDag.getVertexNameIDMapping()).toString());
       }
     } catch (JSONException e) {
       LOG.warn("Failed to generate json for DAG", e);
@@ -1837,7 +1838,7 @@ public class DAGAppMaster extends AbstractService {
     // for an app later
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
-        newDAG.getUserName());
+        newDAG.getUserName(), newDAG.getVertexNameIDMapping());
     try {
       historyEventHandler.handleCriticalEvent(
           new DAGHistoryEvent(newDAG.getID(), submittedEvent));

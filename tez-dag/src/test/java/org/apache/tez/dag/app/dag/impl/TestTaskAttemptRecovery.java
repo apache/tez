@@ -79,7 +79,7 @@ public class TestTaskAttemptRecovery {
   private void restoreFromTAStartEvent() {
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
-            startTime, mock(ContainerId.class), mock(NodeId.class), "", ""));
+            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", ""));
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(TaskAttemptState.RUNNING, recoveredState);
   }
