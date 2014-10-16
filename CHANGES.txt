@@ -30,6 +30,7 @@ ALL CHANGES:
   TEZ-1479. Disambiguate (refactor) between ShuffleInputEventHandlers and Fetchers.
   TEZ-1665. DAGScheduler should provide a priority range instead of an exact
   priority
+  TEZ-1632. NPE at TestPreemption.testPreemptionWithoutSession
 
 Release 0.5.1: 2014-10-02
 
