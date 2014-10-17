@@ -469,6 +469,18 @@
           Hortonworks
         </organization>
       </developer>
+      <developer>
+        <id>zjffdu</id>
+        <name>Jeff Zhang</name>
+        <email>zjffdu@apache.org</email>
+        <timezone>+8</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
     </developers>
 
     <organization>
