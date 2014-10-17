@@ -72,13 +72,14 @@ public class TestDAGRecovery {
   private long startTime = initTime + 200L;
   private long commitStartTime = startTime + 200L;
   private long finishTime = commitStartTime + 200L;
+  private TezCounters tezCounters = new TezCounters();
 
   @Before
   public void setUp() {
-
     mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
     when(mockAppContext.getCurrentDAG().getDagUGI()).thenReturn(null);
     mockEventHandler = mock(EventHandler.class);
+    tezCounters.findCounter("grp_1", "counter_1").increment(1);
 
     DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
     dag =
@@ -143,10 +144,11 @@ public class TestDAGRecovery {
   private void restoreFromDAGFinishedEvent(DAGState finalState) {
     DAGState recoveredState =
         dag.restoreFromEvent(new DAGFinishedEvent(dagId, startTime, finishTime,
-            finalState, "", new TezCounters(), user, dagName));
+            finalState, "", tezCounters, user, dagName));
     assertEquals(finishTime, dag.finishTime);
     assertFalse(dag.recoveryCommitInProgress);
     assertEquals(finalState, recoveredState);
+    assertEquals(tezCounters, dag.fullCounters);
   }
 
   /**
@@ -230,7 +232,7 @@ public class TestDAGRecovery {
 
     dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
     assertEquals(DAGState.SUCCEEDED, dag.getState());
-
+    assertEquals(tezCounters, dag.getAllCounters());
     // recover all the vertices to SUCCEED
     ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
     verify(mockEventHandler, times(7)).handle(eventCaptor.capture());
@@ -263,7 +265,7 @@ public class TestDAGRecovery {
 
     dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
     assertEquals(DAGState.FAILED, dag.getState());
-
+    assertEquals(tezCounters, dag.getAllCounters());
     // recover all the vertices to FAILED
     ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
     verify(mockEventHandler, times(7)).handle(eventCaptor.capture());
@@ -296,7 +298,7 @@ public class TestDAGRecovery {
 
     dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
     assertEquals(DAGState.KILLED, dag.getState());
-
+    assertEquals(tezCounters, dag.getAllCounters());
     // recover all the vertices to KILLED
     ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
     verify(mockEventHandler, times(7)).handle(eventCaptor.capture());
@@ -329,7 +331,7 @@ public class TestDAGRecovery {
 
     dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
     assertEquals(DAGState.ERROR, dag.getState());
-
+    assertEquals(tezCounters, dag.getAllCounters());
     // recover all the vertices to KILLED
     ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
     verify(mockEventHandler, times(7)).handle(eventCaptor.capture());
@@ -491,7 +493,8 @@ public class TestDAGRecovery {
     restoreFromDAGFinishedEvent(DAGState.SUCCEEDED);
 
     dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
-
+    assertEquals(DAGState.SUCCEEDED, dag.getState());
+    assertEquals(tezCounters, dag.getAllCounters());
     // recover all the vertices to SUCCEEDED
     ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
     verify(mockEventHandler, times(7)).handle(eventCaptor.capture());

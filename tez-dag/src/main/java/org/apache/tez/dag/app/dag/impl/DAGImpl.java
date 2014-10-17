@@ -163,7 +163,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   Map<String, Edge> edges = new HashMap<String, Edge>();
   private TezCounters dagCounters = new TezCounters();
   private Object fullCountersLock = new Object();
-  private TezCounters fullCounters = null;
+  @VisibleForTesting
+  TezCounters fullCounters = null;
   private Set<TezVertexID> reRunningVertices = new HashSet<TezVertexID>();
 
   public final Configuration conf;
@@ -540,6 +541,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         DAGFinishedEvent finishedEvent = (DAGFinishedEvent) historyEvent;
         this.finishTime = finishedEvent.getFinishTime();
         recoveredState = finishedEvent.getState();
+        this.fullCounters = finishedEvent.getTezCounters();
         return recoveredState;
       default:
         throw new RuntimeException("Unexpected event received for restoring"
