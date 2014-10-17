@@ -278,7 +278,7 @@ public class TestTaskRecovery {
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // taskAttempt_1 is recovered to KILLED, and new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
-    assertEquals(1, task.finishedAttempts);
+    assertEquals(1, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
     assertEquals(null, task.successfulAttempt);
   }
