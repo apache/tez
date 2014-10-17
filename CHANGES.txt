@@ -38,6 +38,7 @@ ALL CHANGES:
   TEZ-1673. Update the default value for allowed node failures, num events per heartbeat
   and counter update interval.
   TEZ-1462. Remove unnecessary SuppressWarnings.
+  TEZ-1633. Fixed expected values in TestTaskRecovery.testRecovery_OneTAStarted.
 
 Release 0.5.1: 2014-10-02
 
