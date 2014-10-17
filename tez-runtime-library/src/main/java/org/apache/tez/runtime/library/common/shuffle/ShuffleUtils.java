@@ -80,7 +80,6 @@ public class ShuffleUtils {
     }
   }
 
-  @SuppressWarnings("resource")
   public static void shuffleToMemory(byte[] shuffleData,
       InputStream input, int decompressedLength, int compressedLength,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength,

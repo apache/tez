@@ -79,7 +79,6 @@ public class Join extends Configured implements Tool {
    * @throws Exception When there is communication problems with the
    *                     job tracker.
    */
-  @SuppressWarnings("unchecked")
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
     JobClient client = new JobClient(conf);

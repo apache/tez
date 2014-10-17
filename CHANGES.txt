@@ -37,6 +37,7 @@ ALL CHANGES:
   TEZ-1676. Fix failing test in TestHistoryEventTimelineConversion.
   TEZ-1673. Update the default value for allowed node failures, num events per heartbeat
   and counter update interval.
+  TEZ-1462. Remove unnecessary SuppressWarnings.
 
 Release 0.5.1: 2014-10-02
 
