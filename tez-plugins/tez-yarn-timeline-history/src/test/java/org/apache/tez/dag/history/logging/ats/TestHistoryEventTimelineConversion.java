@@ -129,7 +129,7 @@ public class TestHistoryEventTimelineConversion {
           event = new VertexStartedEvent(tezVertexID, random.nextInt(), random.nextInt());
           break;
         case VERTEX_PARALLELISM_UPDATED:
-          event = new VertexParallelismUpdatedEvent();
+          event = new VertexParallelismUpdatedEvent(tezVertexID, 1, null, null, null, 1);
           break;
         case VERTEX_FINISHED:
           event = new VertexFinishedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),

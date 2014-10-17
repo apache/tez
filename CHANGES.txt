@@ -34,6 +34,7 @@ ALL CHANGES:
   TEZ-1674. Rename configuration parameters related to counters / memory scaling.
   TEZ-1176. Set parallelism should end up sending an update to ATS if numTasks are updated at run-time.
   TEZ-1658. Additional data generation to Timeline for UI.
+  TEZ-1676. Fix failing test in TestHistoryEventTimelineConversion.
 
 Release 0.5.1: 2014-10-02
 
