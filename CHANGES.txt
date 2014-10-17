@@ -35,6 +35,8 @@ ALL CHANGES:
   TEZ-1176. Set parallelism should end up sending an update to ATS if numTasks are updated at run-time.
   TEZ-1658. Additional data generation to Timeline for UI.
   TEZ-1676. Fix failing test in TestHistoryEventTimelineConversion.
+  TEZ-1673. Update the default value for allowed node failures, num events per heartbeat
+  and counter update interval.
 
 Release 0.5.1: 2014-10-02
 

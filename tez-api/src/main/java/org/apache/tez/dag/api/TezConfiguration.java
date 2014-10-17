@@ -271,7 +271,7 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_AM_MAX_TASK_FAILURES_PER_NODE = TEZ_AM_PREFIX
       + "maxtaskfailures.per.node";
-  public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
+  public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 10;
 
   /**
    * Int value. Specifies the number of times the app master can be launched in order to recover 
@@ -380,7 +380,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.counter.interval-ms.max";
   public static final int TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS_DEFAULT =
-      1000;
+      4000;
 
   /**
    * Int value. Maximum number of of events to fetch from the AM by the tasks in a single heartbeat.
@@ -388,7 +388,7 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
       + "max-events-per-heartbeat";
-  public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
+  public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 500;
 
   /**
    * Whether to generate counters per IO or not. Enabling this will rename
