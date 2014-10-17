@@ -273,9 +273,12 @@ public class TestTaskRecovery {
     restoreFromFirstTaskAttemptStartEvent(taId);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    // wait for the second task attempt is scheduled
+    dispatcher.await();
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
-    assertEquals(1, task.getAttempts().size());
-    assertEquals(0, task.getFinishedAttemptsCount());
+    // taskAttempt_1 is recovered to KILLED, and new task attempt is scheduled
+    assertEquals(2, task.getAttempts().size());
+    assertEquals(1, task.finishedAttempts);
     assertEquals(0, task.failedAttempts);
     assertEquals(null, task.successfulAttempt);
   }
