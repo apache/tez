@@ -31,6 +31,7 @@ import static org.mockito.Mockito.eq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -289,9 +290,27 @@ public class TestTaskImpl {
     killTask(taskId);
     mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
         TaskEventType.T_ATTEMPT_KILLED));
+
     assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+    verifyOutgoingEvents(eventHandler.events, VertexEventType.V_TASK_COMPLETED);
   }
-  
+
+  @Test(timeout = 5000)
+  public void testKillRunningTaskPreviousKilledAttempts() {
+    LOG.info("--- START: testKillRunningTaskPreviousKilledAttempts ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killRunningTaskAttempt(mockTask.getLastAttempt().getID());
+    assertEquals(TaskStateInternal.RUNNING, mockTask.getInternalState());
+    killTask(taskId);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_KILLED));
+
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+    verifyOutgoingEvents(eventHandler.events, VertexEventType.V_TASK_COMPLETED);
+  }
+
   /**
    * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
    */
@@ -545,8 +564,32 @@ public class TestTaskImpl {
     assertEquals(1, mockTask.getDiagnostics().size());
     assertTrue(mockTask.getDiagnostics().get(0).contains(TaskTerminationCause.OTHER_TASK_FAILURE.name()));
   }
-  
+
   // TODO Add test to validate the correct commit attempt.
+
+
+  /* Verifies that the specified event types, exist. Does not ensure they are the only ones, however */
+  private void verifyOutgoingEvents(List<Event> events,
+                                    Enum<?>... expectedTypes) {
+
+    List<Enum<?>> expectedTypeList = new LinkedList<Enum<?>>();
+    for (Enum<?> expectedType : expectedTypes) {
+      expectedTypeList.add(expectedType);
+    }
+    for (Event event : events) {
+      Iterator<Enum<?>> typeIter = expectedTypeList.iterator();
+      while (typeIter.hasNext()) {
+        Enum<?> expectedType = typeIter.next();
+        if (event.getType() == expectedType) {
+          typeIter.remove();
+          // Move to the next event.
+          break;
+        }
+      }
+    }
+    assertTrue("Did not find types : " + expectedTypeList
+        + " in outgoing event list", expectedTypeList.isEmpty());
+  }
 
   @SuppressWarnings("rawtypes")
   private class MockTaskImpl extends TaskImpl {
