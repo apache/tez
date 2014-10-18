@@ -101,12 +101,9 @@ public class ACLManager {
     }
 
     String user = ugi.getShortUserName();
-    Collection<String> userGroups = Arrays.asList(ugi.getGroupNames());
-
     if (amUser.equals(user)) {
       return true;
     }
-
     if (EnumSet.of(ACLType.DAG_MODIFY_ACL, ACLType.DAG_VIEW_ACL).contains(aclType)) {
       if (dagUser != null && dagUser.equals(user)) {
         return true;
@@ -123,6 +120,8 @@ public class ACLManager {
         }
       }
     }
+
+    Collection<String> userGroups = Arrays.asList(ugi.getGroupNames());
     if (userGroups != null && !userGroups.isEmpty()
         && groups != null && !groups.isEmpty()) {
       Set<String> set = groups.get(aclType);
