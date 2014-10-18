@@ -855,7 +855,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
       if (oldState != getInternalState()) {
         LOG.info(taskId + " Task Transitioned from " + oldState + " to "
-            + getInternalState());
+            + getInternalState() + " due to event "
+            + event.getType());
       }
     } finally {
       writeLock.unlock();
@@ -1522,8 +1523,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.killUnfinishedAttempt
             (attempt, "Task KILL is received. Killing attempt!");
       }
-      task.taskAttemptStatus.clear();
-      
     }
   }
 

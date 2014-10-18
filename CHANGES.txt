@@ -40,6 +40,7 @@ ALL CHANGES:
   TEZ-1462. Remove unnecessary SuppressWarnings.
   TEZ-1633. Fixed expected values in TestTaskRecovery.testRecovery_OneTAStarted.
   TEZ-1669. yarn-swimlanes.sh throws error post TEZ-1556.
+  TEZ-1682. Tez AM hangs at times when there are task failures.
 
 Release 0.5.1: 2014-10-02
 
