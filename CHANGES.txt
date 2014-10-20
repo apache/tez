@@ -42,6 +42,7 @@ ALL CHANGES:
   TEZ-1669. yarn-swimlanes.sh throws error post TEZ-1556.
   TEZ-1682. Tez AM hangs at times when there are task failures.
   TEZ-1683. Do ugi::getGroups only when necessary when checking ACLs.
+  TEZ-1584. Restore counters from DAGFinishedEvent when DAG is completed.
 
 Release 0.5.1: 2014-10-02
 
