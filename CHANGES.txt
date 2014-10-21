@@ -49,6 +49,8 @@ ALL CHANGES:
   TEZ-1668. InputInitializers should be able to register for Vertex state updates in the constructor.
   TEZ-1656. Grouping of splits should maintain the original ordering of splits
   within a group
+  TEZ-1396. Grouping should generate consistent groups when given the same set
+  of splits
 
 Release 0.5.1: 2014-10-02
 
