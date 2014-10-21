@@ -19,6 +19,8 @@
 package org.apache.hadoop.mapred.split;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -327,6 +329,84 @@ public class TestGroupedSplits {
     splits = format.getSplits(job, 0);
     Assert.assertEquals(25, splits.length);
     
+  }
+  
+  class TestInputSplit implements InputSplit {
+    long length;
+    String[] locations;
+    int position;
+    
+    public TestInputSplit(long length, String[] locations, int position) {
+      this.length = length;
+      this.locations = locations;
+      this.position = position;
+    }
+    
+    @Override
+    public void write(DataOutput out) throws IOException {
+    }
+
+    @Override
+    public void readFields(DataInput in) throws IOException {
+    }
+
+    @Override
+    public long getLength() throws IOException {
+      return length;
+    }
+
+    @Override
+    public String[] getLocations() throws IOException {
+      return locations;
+    }
+    
+    public int getPosition() {
+      return position;
+    }
+  }
+  
+  @Test (timeout=5000)
+  public void testMaintainSplitOrdering() throws IOException {
+    int numLocations = 3;
+    String[] locations = new String[numLocations];
+    InputSplit[] origSplits = new InputSplit[numLocations*4];
+    long splitLength = 100;
+    for (int i=0; i<numLocations; i++) {
+      locations[i] = "node" + i;
+      String[] splitLoc = {locations[i]};
+      for (int j=0; j<4; j++) {
+        int pos = i*4 + j;
+        origSplits[pos] = new TestInputSplit(splitLength, splitLoc, pos);
+      }
+    }
+    
+    TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
+    JobConf conf = new JobConf(defaultConf);
+    conf = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(conf)
+    .setGroupingSplitSize(splitLength*3, splitLength*3)
+    .setGroupingRackSplitSizeReduction(1)
+    .build();
+    
+    // based on the above settings the 3 nodes will each group 3 splits.
+    // the remainig 3 splits (1 from each node) will be grouped at rack level (default-rack)
+    // all of them will maintain ordering
+    InputSplit[] groupedSplits = grouper.getGroupedSplits(conf, origSplits, 4, "InputFormat");
+    Assert.assertEquals(4, groupedSplits.length);
+    for (int i=0; i<4; ++i) {
+      TezGroupedSplit split = (TezGroupedSplit)groupedSplits[i];
+      List<InputSplit> innerSplits = split.getGroupedSplits();
+      int pos = -1;
+      // splits in group maintain original order
+      for (InputSplit innerSplit : innerSplits) {
+        int splitPos = ((TestInputSplit) innerSplit).getPosition();
+        Assert.assertTrue(pos < splitPos);
+        pos = splitPos;
+      }
+      // last one is rack split
+      if (i==3) {
+        Assert.assertTrue(split.getRack() != null);
+      }
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })

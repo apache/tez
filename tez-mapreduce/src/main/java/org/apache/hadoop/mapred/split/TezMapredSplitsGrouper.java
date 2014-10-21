@@ -359,8 +359,20 @@ public class TezMapredSplitsGrouper {
             rackLocations.put(rack, new LocationHolder(numRemainingSplits));
           }
         }
+        distinctLocations.clear();
         HashSet<String> rackSet = new HashSet<String>(rackLocations.size());
-        for (InputSplit split : remainingSplits) {
+        int numRackSplitsToGroup = remainingSplits.size();
+        for (InputSplit split : originalSplits) {
+          if (numRackSplitsToGroup == 0) {
+            break;
+          }
+          // Iterate through the original splits in their order and consider them for grouping. 
+          // This maintains the original ordering in the list and thus subsequent grouping will 
+          // maintain that order
+          if (!remainingSplits.contains(split)) {
+            continue;
+          }
+          numRackSplitsToGroup--;
           rackSet.clear();
           SplitHolder splitHolder = new SplitHolder(split);
           String[] locations = split.getLocations();
@@ -377,8 +389,7 @@ public class TezMapredSplitsGrouper {
             rackLocations.get(rack).splits.add(splitHolder);
           }
         }
-        
-        distinctLocations.clear();
+        remainingSplits.clear();
         distinctLocations = rackLocations;
         // adjust split length to be smaller because the data is non local
         float rackSplitReduction = conf.getFloat(
