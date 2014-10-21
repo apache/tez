@@ -625,12 +625,12 @@ public class TestTezJobs {
     public InputInitializerForTest(
         InputInitializerContext initializerContext) {
       super(initializerContext);
+      getContext().registerForVertexStateUpdates(EVENT_GENERATING_VERTEX_NAME, EnumSet.of(
+          VertexState.SUCCEEDED));
     }
 
     @Override
     public List<Event> initialize() throws Exception {
-      getContext().registerForVertexStateUpdates(EVENT_GENERATING_VERTEX_NAME, EnumSet.of(
-          VertexState.SUCCEEDED));
       lock.lock();
       try {
         condition.await();

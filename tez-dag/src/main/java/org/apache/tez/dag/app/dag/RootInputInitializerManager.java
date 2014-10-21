@@ -111,6 +111,15 @@ public class RootInputInitializerManager {
 
       InitializerWrapper initializerWrapper =
           new InitializerWrapper(input, initializer, context, vertex, entityStateTracker, appContext);
+
+      // Register pending vertex update registrations
+      List<VertexUpdateRegistrationHolder> vertexUpdateRegistrations = pendingVertexRegistrations.removeAll(input.getName());
+      if (vertexUpdateRegistrations != null) {
+        for (VertexUpdateRegistrationHolder h : vertexUpdateRegistrations) {
+          initializerWrapper.registerForVertexStateUpdates(h.vertexName, h.stateSet);
+        }
+      }
+
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi));
@@ -164,12 +173,30 @@ public class RootInputInitializerManager {
     }
   }
 
+  private static class VertexUpdateRegistrationHolder {
+    private VertexUpdateRegistrationHolder(String vertexName, Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
+      this.vertexName = vertexName;
+      this.stateSet = stateSet;
+    }
+    private final String vertexName;
+    private final Set<org.apache.tez.dag.api.event.VertexState> stateSet;
+  }
+
+  // This doesn't need to be thread safe, since initializers are not created in separate threads,
+  // they're only executed in separate threads.
+  private final ListMultimap<String, VertexUpdateRegistrationHolder> pendingVertexRegistrations =
+      LinkedListMultimap.create();
+
   public void registerForVertexUpdates(String vertexName, String inputName,
                                        @Nullable Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
     Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
     Preconditions.checkNotNull(inputName, "InputName cannot be null");
     InitializerWrapper initializer = initializerMap.get(inputName);
-    initializer.registerForVertexStateUpdates(vertexName, stateSet);
+    if (initializer == null) {
+      pendingVertexRegistrations.put(inputName, new VertexUpdateRegistrationHolder(vertexName, stateSet));
+    } else {
+      initializer.registerForVertexStateUpdates(vertexName, stateSet);
+    }
   }
 
   @VisibleForTesting
