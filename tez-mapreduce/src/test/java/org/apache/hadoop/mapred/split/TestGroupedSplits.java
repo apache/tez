@@ -409,6 +409,68 @@ public class TestGroupedSplits {
     }
   }
 
+  @Test (timeout=5000)
+  public void testRepeatableSplits() throws IOException {
+    int numLocations = 3;
+    String[] locations = new String[numLocations];
+    InputSplit[] origSplits = new InputSplit[numLocations*4];
+    long splitLength = 100;
+    for (int i=0; i<numLocations; i++) {
+      locations[i] = "node" + i;
+    }
+    for (int i=0; i<4; i++) {
+      String[] splitLoc = null;
+      for (int j=0; j<3; j++) {
+        int pos = i*3 + j;
+        if (pos < 9) {
+          // for the first 9 splits do node grouping
+          // copy of the string to verify the comparator does not succeed by comparing the same object
+          // provide 2 locations for each split to provide alternates for non-repeatability
+          String[] nodeLoc = {new String(locations[i]), new String(locations[(i+1)%numLocations])};
+          splitLoc = nodeLoc;
+        } else {
+          // for the last 3 splits do rack grouping by spreading them across the 3 nodes
+          String[] rackLoc = {new String(locations[j])};
+          splitLoc = rackLoc;
+        }
+        origSplits[pos] = new TestInputSplit(splitLength, splitLoc, pos);
+      }
+    }
+
+    TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
+    JobConf conf = new JobConf(defaultConf);
+    conf = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(conf)
+    .setGroupingSplitSize(splitLength*3, splitLength*3)
+    .setGroupingRackSplitSizeReduction(1)
+    .build();
+    
+    // based on the above settings the 3 nodes will each group 3 splits.
+    // the remainig 3 splits (1 from each node) will be grouped at rack level (default-rack)
+    // all of them will maintain ordering
+    InputSplit[] groupedSplits1 = grouper.getGroupedSplits(conf, origSplits, 4, "InputFormat");
+    InputSplit[] groupedSplits2 = grouper.getGroupedSplits(conf, origSplits, 4, "InputFormat");
+    Assert.assertEquals(4, groupedSplits1.length);
+    Assert.assertEquals(4, groupedSplits2.length);
+    // check both split groups are the same. this depends on maintaining split order tested above
+    for (int i=0; i<4; ++i) {
+      TezGroupedSplit gSplit1 = ((TezGroupedSplit) groupedSplits1[i]);
+      List<InputSplit> testSplits1 = gSplit1.getGroupedSplits();
+      TezGroupedSplit gSplit2 = ((TezGroupedSplit) groupedSplits2[i]);
+      List<InputSplit> testSplits2 = gSplit2.getGroupedSplits();
+      Assert.assertEquals(testSplits1.size(), testSplits2.size());
+      for (int j=0; j<testSplits1.size(); j++) {
+        TestInputSplit split1 = (TestInputSplit) testSplits1.get(j);
+        TestInputSplit split2 = (TestInputSplit) testSplits2.get(j);
+        Assert.assertEquals(split1.position, split2.position);
+      }
+      if (i==3) {
+        // check for rack split creation. Ensures repeatability holds for rack splits also
+        Assert.assertTrue(gSplit1.getRack() != null);
+        Assert.assertTrue(gSplit2.getRack() != null);
+      }
+    }
+  }
+  
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test(timeout=10000)
   public void testGroupedSplitWithDuplicates() throws IOException {

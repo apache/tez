@@ -25,6 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+
+import javax.annotation.Nullable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -96,6 +99,14 @@ public class TezMapReduceSplitsGrouper {
   public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
                                               "tez.grouping.rack-split-reduction";
   public static final float TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION_DEFAULT = 0.75f;
+  
+  /**
+   * Repeated invocations of grouping on the same splits with the same parameters will produce the 
+   * same groups. This may help in cache reuse but may cause hot-spotting on nodes when there are a
+   * large number of jobs reading the same hot data. True by default.
+   */
+  public static final String TEZ_GROUPING_REPEATABLE = "tez.grouping.repeatable";
+  public static final boolean TEZ_GROUPING_REPEATABLE_DEFAULT = true;
 
   class SplitHolder {
     InputSplit split;
@@ -127,6 +138,14 @@ public class TezMapReduceSplitsGrouper {
     void incrementHeadIndex() {
       headIndex++;
     }
+  }
+  
+  Map<String, LocationHolder> createLocationsMap(Configuration conf) {
+    if (conf.getBoolean(TezMapReduceSplitsGrouper.TEZ_GROUPING_REPEATABLE, 
+        TezMapReduceSplitsGrouper.TEZ_GROUPING_REPEATABLE_DEFAULT)) {
+      return new TreeMap<String, LocationHolder>();
+    }
+    return new HashMap<String, LocationHolder>();
   }
   
   public List<InputSplit> getGroupedSplits(Configuration conf,
@@ -217,7 +236,7 @@ public class TezMapReduceSplitsGrouper {
     groupedSplits = new ArrayList<InputSplit>(desiredNumSplits);
     
     long totalLength = 0;
-    Map<String, LocationHolder> distinctLocations = new HashMap<String, LocationHolder>();
+    Map<String, LocationHolder> distinctLocations = createLocationsMap(conf);
     // go through splits and add them to locations
     for (InputSplit split : originalSplits) {
       totalLength += split.getLength();
@@ -393,7 +412,7 @@ public class TezMapReduceSplitsGrouper {
         // splits is expected to be much smaller
         RackResolver.init(conf);
         Map<String, String> locToRackMap = new HashMap<String, String>(distinctLocations.size());
-        Map<String, LocationHolder> rackLocations = new HashMap<String, LocationHolder>();
+        Map<String, LocationHolder> rackLocations = createLocationsMap(conf);
         for (String location : distinctLocations.keySet()) {
           String rack = emptyLocation;
           if (location != emptyLocation) {
@@ -508,7 +527,7 @@ public class TezMapReduceSplitsGrouper {
     /**
      * This configuration will be modified in place
      */
-    private TezMRSplitsGrouperConfigBuilder(Configuration conf) {
+    private TezMRSplitsGrouperConfigBuilder(@Nullable Configuration conf) {
       if (conf == null) {
         conf = new Configuration(false);
       }
