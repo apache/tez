@@ -44,6 +44,7 @@ ALL CHANGES:
   TEZ-1683. Do ugi::getGroups only when necessary when checking ACLs.
   TEZ-1584. Restore counters from DAGFinishedEvent when DAG is completed.
   TEZ-1525. BroadcastLoadGen testcase.
+  TEZ-1686. TestRecoveryParser.testGetLastCompletedDAG fails sometimes
 
 Release 0.5.1: 2014-10-02
 
