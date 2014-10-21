@@ -38,6 +38,7 @@ ALL CHANGES:
   TEZ-1584. Restore counters from DAGFinishedEvent when DAG is completed.
   TEZ-1525. BroadcastLoadGen testcase.
   TEZ-1686. TestRecoveryParser.testGetLastCompletedDAG fails sometimes
+  TEZ-1667. Add a system test for InitializerEvents.
 
 Release 0.5.1: 2014-10-02
 

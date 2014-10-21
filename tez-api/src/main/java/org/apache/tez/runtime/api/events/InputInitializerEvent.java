@@ -111,4 +111,10 @@ public class InputInitializerEvent extends Event {
   public String getSourceVertexName() {
     return this.sourceVertexName;
   }
+
+  @Override
+  public String toString() {
+    return "[TargetVertexName=" + targetVertexName + ", TargetInputName=" + targetInputName +
+        ", SourceVertexName=" + sourceVertexName + " Payload=" + eventPayload + "]";
+  }
 }
