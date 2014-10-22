@@ -113,6 +113,7 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -219,8 +220,8 @@ public class DAGAppMaster extends AbstractService {
 
   private boolean isLocal = false; //Local mode flag
 
-  private DAGAppMasterShutdownHandler shutdownHandler =
-      new DAGAppMasterShutdownHandler();
+  @VisibleForTesting
+  protected DAGAppMasterShutdownHandler shutdownHandler;
   private final AtomicBoolean shutdownHandlerRunning = new AtomicBoolean(false);
 
   private DAGAppMasterState state;
@@ -278,6 +279,8 @@ public class DAGAppMaster extends AbstractService {
     this.state = DAGAppMasterState.NEW;
     this.isSession = isSession;
     this.workingDirectory = workingDirectory;
+    this.shutdownHandler = new DAGAppMasterShutdownHandler();
+
     // TODO Metrics
     //this.metrics = DAGAppMetrics.create();
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId);
@@ -450,8 +453,22 @@ public class DAGAppMaster extends AbstractService {
     return taskSchedulerEventHandler;
   }
 
-  private synchronized void handle(DAGAppMasterEvent event) {
+  @VisibleForTesting
+  protected synchronized void handle(DAGAppMasterEvent event) {
     switch (event.getType()) {
+    case SCHEDULING_SERVICE_ERROR:
+      // Scheduling error - probably an issue with the communication with the RM
+      // In this scenario, the AM should shutdown. Expectation is that the RM
+      // will restart a new AM attempt.
+      // Should not kill the current running DAG to ensure that on restart, we
+      // can recover it and continue.
+      DAGAppMasterEventSchedulingServiceError schedulingServiceErrorEvent =
+          (DAGAppMasterEventSchedulingServiceError) event;
+      state = DAGAppMasterState.ERROR;
+      LOG.info("Error in the TaskScheduler. Shutting down.",
+          schedulingServiceErrorEvent.getThrowable());
+      shutdownHandler.shutdown();
+      break;
     case INTERNAL_ERROR:
       state = DAGAppMasterState.ERROR;
       if(currentDAG != null) {
@@ -511,6 +528,7 @@ public class DAGAppMaster extends AbstractService {
               TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
             failedDAGs.incrementAndGet();
           }
+          // This is a pass-through. Kill the AM if DAG state is ERROR.
         default:
           LOG.fatal("Received a DAG Finished Event with state="
               + finishEvt.getDAGState()
@@ -581,7 +599,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private class DAGAppMasterShutdownHandler {
+  protected class DAGAppMasterShutdownHandler {
     private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
 
     public void shutdown() {

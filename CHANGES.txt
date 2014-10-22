@@ -55,6 +55,8 @@ ALL CHANGES:
   session mode
   TEZ-1629. Replace ThreadPool's default RejectedExecutionHandler in ContainerLauncherImpl to void
   abort when AM shutdown.
+  TEZ-1643. DAGAppMaster kills DAG & shuts down, when RM is restarted.
+
 
 Release 0.5.1: 2014-10-02
 
