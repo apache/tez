@@ -51,6 +51,8 @@ ALL CHANGES:
   within a group
   TEZ-1396. Grouping should generate consistent groups when given the same set
   of splits
+  TEZ-1210. TezClientUtils.localizeDagPlanAsText() needs to be fixed for
+  session mode
 
 Release 0.5.1: 2014-10-02
 

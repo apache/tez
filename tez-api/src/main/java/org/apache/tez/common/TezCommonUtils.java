@@ -193,11 +193,17 @@ public class TezCommonUtils {
    * 
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
+   * @param strAppId
+   *          Application ID
+   * @param dagPBName
+   *          DAG PB Name
    * @return path to store the plan in text
    */
   @Private
-  public static Path getTezTextPlanStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConstants.TEZ_PB_PLAN_TEXT_NAME);
+  public static Path getTezTextPlanStagingPath(Path tezSysStagingPath, String strAppId,
+      String dagPBName) {
+    String fileName = strAppId + "-" + dagPBName + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
+    return new Path(tezSysStagingPath, fileName);
   }
 
   /**
