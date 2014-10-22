@@ -53,6 +53,8 @@ ALL CHANGES:
   of splits
   TEZ-1210. TezClientUtils.localizeDagPlanAsText() needs to be fixed for
   session mode
+  TEZ-1629. Replace ThreadPool's default RejectedExecutionHandler in ContainerLauncherImpl to void
+  abort when AM shutdown.
 
 Release 0.5.1: 2014-10-02
 
