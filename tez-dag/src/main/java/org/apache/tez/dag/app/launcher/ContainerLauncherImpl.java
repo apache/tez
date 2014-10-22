@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -268,7 +269,7 @@ public class ContainerLauncherImpl extends AbstractService implements
     launcherPool = new ThreadPoolExecutor(INITIAL_POOL_SIZE,
         Integer.MAX_VALUE, 1, TimeUnit.HOURS,
         new LinkedBlockingQueue<Runnable>(),
-        tf);
+        tf, new CustomizedRejectedExecutionHandler());
     eventHandlingThread = new Thread() {
       @Override
       public void run() {
@@ -384,6 +385,18 @@ public class ContainerLauncherImpl extends AbstractService implements
         break;
       }
       removeContainerIfDone(containerID);
+    }
+  }
+
+  /**
+   * ThreadPoolExecutor.submit may fail if you are submitting task
+   * when ThreadPoolExecutor is shutting down (DAGAppMaster is shutting down).
+   * Use this CustomizedRejectedExecutionHandler to just logging rather than abort the application.
+   */
+  private static class CustomizedRejectedExecutionHandler implements RejectedExecutionHandler {
+    @Override
+    public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+      LOG.warn("Can't submit task to ThreadPoolExecutor:" + executor);
     }
   }
 
