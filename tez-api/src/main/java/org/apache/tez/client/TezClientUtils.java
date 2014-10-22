@@ -731,7 +731,8 @@ public class TezClientUtils {
 
   private static Path localizeDagPlanAsText(DAGPlan dagPB, FileSystem fs, AMConfiguration amConfig,
       String strAppId, Path tezSysStagingPath) throws IOException {
-    Path textPath = TezCommonUtils.getTezTextPlanStagingPath(tezSysStagingPath);
+    Path textPath =
+        TezCommonUtils.getTezTextPlanStagingPath(tezSysStagingPath, strAppId, dagPB.getName());
     FSDataOutputStream dagPBOutTextStream = null;
     try {
       dagPBOutTextStream = TezCommonUtils.createFileForAM(fs, textPath);
