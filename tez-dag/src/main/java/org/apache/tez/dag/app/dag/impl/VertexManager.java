@@ -49,6 +49,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
@@ -227,17 +228,21 @@ public class VertexManager {
     return plugin;
   }
 
-  public void initialize() {
+  public void initialize() throws AMUserCodeException {
     pluginContext = new VertexManagerPluginContextImpl();
     if (pluginDesc != null) {
       plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
           new Class[]{VertexManagerPluginContext.class}, new Object[]{pluginContext});
       payload = pluginDesc.getUserPayload();
     }
-    plugin.initialize();
+    try {
+      plugin.initialize(); 
+    } catch (Exception e) {
+      throw new AMUserCodeException(Source.VertexManager, e);
+    }
   }
 
-  public void onVertexStarted(List<TezTaskAttemptID> completions) {
+  public void onVertexStarted(List<TezTaskAttemptID> completions) throws AMUserCodeException {
     Map<String, List<Integer>> pluginCompletionsMap = Maps.newHashMap();
     if (completions != null && !completions.isEmpty()) {
       for (TezTaskAttemptID tezTaskAttemptID : completions) {
@@ -253,23 +258,39 @@ public class VertexManager {
         taskIdList.add(taskId);
       }
     }
-    plugin.onVertexStarted(pluginCompletionsMap);
+    try {
+      plugin.onVertexStarted(pluginCompletionsMap);
+    } catch (Exception e) {
+      throw new AMUserCodeException(Source.VertexManager, e);
+    }
   }
 
-  public void onSourceTaskCompleted(TezTaskID tezTaskId) {
+  public void onSourceTaskCompleted(TezTaskID tezTaskId) throws AMUserCodeException {
     Integer taskId = new Integer(tezTaskId.getId());
     String vertexName =
         appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();
-    plugin.onSourceTaskCompleted(vertexName, taskId);
+    try {
+      plugin.onSourceTaskCompleted(vertexName, taskId);
+    } catch (Exception e) {
+      throw new AMUserCodeException(Source.VertexManager, e);
+    }
   }
 
-  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
-    plugin.onVertexManagerEventReceived(vmEvent);
+  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws AMUserCodeException {
+    try {
+      plugin.onVertexManagerEventReceived(vmEvent);
+    } catch (Exception e) {
+      throw new AMUserCodeException(Source.VertexManager, e);
+    }
   }
 
   public List<TezEvent> onRootVertexInitialized(String inputName,
-      InputDescriptor inputDescriptor, List<Event> events) {
-    plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
+      InputDescriptor inputDescriptor, List<Event> events) throws AMUserCodeException {
+    try {
+      plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
+    } catch (Exception e) {
+      throw new AMUserCodeException(Source.VertexManager, e);
+    }
     if (LOG.isDebugEnabled()) {
       LOG.debug("vertex:" + managedVertex.getName() + "; after call of VertexManagerPlugin.onRootVertexInitialized"
           + " on input:" + inputName + ", current task events size is " + rootInputInitEventQueue.size());
