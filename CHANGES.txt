@@ -58,7 +58,7 @@ ALL CHANGES:
   TEZ-1643. DAGAppMaster kills DAG & shuts down, when RM is restarted.
   TEZ-1684. upgrade mockito to latest release.
   TEZ-1567. Avoid blacklisting nodes when the disable blacklisting threshold is about to be hit.
-
+  TEZ-1267. Exception handling for VertexManager.
 
 Release 0.5.1: 2014-10-02
 

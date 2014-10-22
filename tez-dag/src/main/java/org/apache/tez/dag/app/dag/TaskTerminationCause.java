@@ -33,5 +33,10 @@ public enum TaskTerminationCause {
   OTHER_TASK_FAILURE, 
   
   /** One of the tasks of the destination vertex failed. */
-  OWN_TASK_FAILURE
+  OWN_TASK_FAILURE,
+
+  /** This vertex failed as its AM usercode (VertexManager/EdgeManager/InputInitializer)
+   * throw Exception
+   */
+  AM_USERCODE_FAILURE,
 }

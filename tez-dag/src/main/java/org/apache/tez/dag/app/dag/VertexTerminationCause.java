@@ -32,6 +32,11 @@ public enum VertexTerminationCause {
   /** Initialization failed for one of the root Inputs */
   ROOT_INPUT_INIT_FAILURE,
   
+  /** This vertex failed as its AM usercode (VertexManager/EdgeManager/InputInitializer)
+   * throw Exception
+   */
+  AM_USERCODE_FAILURE,
+
   /** One of the tasks for this vertex failed.  */
   OWN_TASK_FAILURE, 
 
