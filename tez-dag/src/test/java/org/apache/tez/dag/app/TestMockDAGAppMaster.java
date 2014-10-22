@@ -37,6 +37,8 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher.ContainerData;
+import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -131,8 +133,31 @@ public class TestMockDAGAppMaster {
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     tezClient.stop();
-
   }
-  
+
+  @Test (timeout = 10000)
+  public void testSchedulerErrorHandling() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null);
+    tezClient.start();
+
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+
+    DAG dag = DAG.create("test");
+    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
+    dag.addVertex(vA);
+
+    tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    mockApp.handle(new DAGAppMasterEventSchedulingServiceError(new RuntimeException("Mock error")));
+
+    while(!mockApp.getShutdownHandler().wasShutdownInvoked()) {
+      Thread.sleep(100);
+    }
+    Assert.assertEquals(DAGState.RUNNING, mockApp.getContext().getCurrentDAG().getState());
+  }
 
 }

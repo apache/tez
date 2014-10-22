@@ -50,6 +50,7 @@ import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
@@ -510,8 +511,8 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public void onError(Throwable t) {
-    LOG.info("Error reported by scheduler");
-    sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
+    LOG.info("Error reported by scheduler", t);
+    sendEvent(new DAGAppMasterEventSchedulingServiceError(t));
   }
 
   public void dagCompleted() {
