@@ -36,10 +36,10 @@ import org.apache.tez.dag.app.AppContext;
 
 import com.google.common.annotations.VisibleForTesting;
 
-public class AMNodeMap extends AbstractService implements
+public class AMNodeTracker extends AbstractService implements
     EventHandler<AMNodeEvent> {
   
-  static final Log LOG = LogFactory.getLog(AMNodeMap.class);
+  static final Log LOG = LogFactory.getLog(AMNodeTracker.class);
   
   private final ConcurrentHashMap<NodeId, AMNode> nodeMap;
   private final ConcurrentHashMap<String, Set<NodeId>> blacklistMap;
@@ -51,10 +51,10 @@ public class AMNodeMap extends AbstractService implements
   private int maxTaskFailuresPerNode;
   private boolean nodeBlacklistingEnabled;
   private int blacklistDisablePercent;
-  
+  float currentIgnoreBlacklistingCountThreshold = 0;
   
   @SuppressWarnings("rawtypes")
-  public AMNodeMap(EventHandler eventHandler, AppContext appContext) {
+  public AMNodeTracker(EventHandler eventHandler, AppContext appContext) {
     super("AMNodeMap");
     this.nodeMap = new ConcurrentHashMap<NodeId, AMNode>();
     this.blacklistMap = new ConcurrentHashMap<String, Set<NodeId>>();
@@ -92,14 +92,6 @@ public class AMNodeMap extends AbstractService implements
     }
   }
 
-  // Interface for the scheduler to check about a specific host.
-  public boolean isHostBlackListed(String hostname) {
-    if (!nodeBlacklistingEnabled || ignoreBlacklisting) {
-      return false;
-    }
-    return blacklistMap.containsKey(hostname);
-  }
-
   private void addToBlackList(NodeId nodeId) {
     String host = nodeId.getHost();
     Set<NodeId> nodes;
@@ -115,39 +107,33 @@ public class AMNodeMap extends AbstractService implements
       nodes.add(nodeId);
     }
   }
-  
-  // TODO: Currently, un-blacklisting feature is not supported.
-  /*
-  private void removeFromBlackList(NodeId nodeId) {
-    String host = nodeId.getHost();
-    if (blacklistMap.containsKey(host)) {
-      ArrayList<NodeId> nodes = blacklistMap.get(host);
-      nodes.remove(nodeId);
+
+  boolean registerBadNodeAndShouldBlacklist(AMNode amNode) {
+    if (nodeBlacklistingEnabled) {
+      addToBlackList(amNode.getNodeId());
+      computeIgnoreBlacklisting();
+      return !ignoreBlacklisting;
+    } else {
+      return false;
     }
   }
-  */
 
   public void handle(AMNodeEvent rEvent) {
     // No synchronization required until there's multiple dispatchers.
     NodeId nodeId = rEvent.getNodeId();
     switch (rEvent.getType()) {
-    case N_NODE_WAS_BLACKLISTED:
-      // When moving away from IGNORE_BLACKLISTING state, nodes will send out
-      // blacklisted events. These need to be ignored.
-      addToBlackList(nodeId);
-      computeIgnoreBlacklisting();
-      break;
     case N_NODE_COUNT_UPDATED:
       AMNodeEventNodeCountUpdated event = (AMNodeEventNodeCountUpdated) rEvent;
       numClusterNodes = event.getNodeCount();
       LOG.info("Num cluster nodes = " + numClusterNodes);
+      recomputeCurrentIgnoreBlacklistingThreshold();
       computeIgnoreBlacklisting();
       break;
     case N_TURNED_UNHEALTHY:
     case N_TURNED_HEALTHY:
       AMNode amNode = nodeMap.get(nodeId);
       if (amNode == null) {
-        LOG.info("Ignoring RM Health Update for unknwon node: " + nodeId);
+        LOG.info("Ignoring RM Health Update for unknown node: " + nodeId);
       } else {
         amNode.handle(rEvent);
       }
@@ -157,36 +143,36 @@ public class AMNodeMap extends AbstractService implements
     }
   }
 
+  private void recomputeCurrentIgnoreBlacklistingThreshold() {
+    if (nodeBlacklistingEnabled && blacklistDisablePercent != -1) {
+      currentIgnoreBlacklistingCountThreshold =
+          (float) numClusterNodes * blacklistDisablePercent / 100;
+    }
+  }
+
   // May be incorrect if there's multiple NodeManagers running on a single host.
   // knownNodeCount is based on node managers, not hosts. blacklisting is
   // currently based on hosts.
   protected void computeIgnoreBlacklisting() {
-    
+
     boolean stateChanged = false;
-    
-    if (!nodeBlacklistingEnabled) {
+
+    if (!nodeBlacklistingEnabled || blacklistDisablePercent == -1 || blacklistMap.size() == 0) {
       return;
     }
-    if (blacklistDisablePercent != -1) {
-      if (numClusterNodes == 0) {
-        LOG.info("KnownNode Count at 0. Not computing ignoreBlacklisting");
-        return;
+    if (blacklistMap.size() >= currentIgnoreBlacklistingCountThreshold) {
+      if (ignoreBlacklisting == false) {
+        ignoreBlacklisting = true;
+        LOG.info("Ignore Blacklisting set to true. Known: " + numClusterNodes
+            + ", Blacklisted: " + blacklistMap.size());
+        stateChanged = true;
       }
-      int val = (int) ((float) blacklistMap.size() / numClusterNodes * 100);
-      if (val >= blacklistDisablePercent) {
-        if (ignoreBlacklisting == false) {
-          ignoreBlacklisting = true;
-          LOG.info("Ignore Blacklisting set to true. Known: " + numClusterNodes
-              + ", Blacklisted: " + blacklistMap.size());
-          stateChanged = true;
-        }
-      } else {
-        if (ignoreBlacklisting == true) {
-          ignoreBlacklisting = false;
-          LOG.info("Ignore blacklisting set to false. Known: "
-              + numClusterNodes + ", Blacklisted: " + blacklistMap.size());
-          stateChanged = true;
-        }
+    } else {
+      if (ignoreBlacklisting == true) {
+        ignoreBlacklisting = false;
+        LOG.info("Ignore blacklisting set to false. Known: "
+            + numClusterNodes + ", Blacklisted: " + blacklistMap.size());
+        stateChanged = true;
       }
     }
 
@@ -213,7 +199,7 @@ public class AMNodeMap extends AbstractService implements
     this.eventHandler.handle(event);
   }
 
-  public int size() {
+  public int getNumNodes() {
     return nodeMap.size();
   }
 
