@@ -14,7 +14,7 @@
 <FindBugsFilter>
 
   <Match>
-    <Class name="org.apache.tez.dag.app.rm.node.AMNodeMap" />
+    <Class name="org.apache.tez.dag.app.rm.node.AMNodeTracker" />
     <Or>
       <Field name="blacklistDisablePercent" />
       <Field name="maxTaskFailuresPerNode" />

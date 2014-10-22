@@ -240,8 +240,14 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
-  protected boolean shouldBlacklistNode() {
+  /* Check whether this node needs to be blacklisted based on node specific information */
+  protected boolean qualifiesForBlacklisting() {
     return blacklistingEnabled && (numFailedTAs >= maxTaskFailuresPerNode);
+  }
+
+  /* Blacklist the node with the AMNodeTracker and check if the node should be blacklisted */
+  protected boolean registerBadNodeAndShouldBlacklist() {
+    return appContext.getNodeTracker().registerBadNodeAndShouldBlacklist(this);
   }
 
   protected void blacklistSelf() {
@@ -252,8 +258,6 @@ public class AMNodeImpl implements AMNode {
     pastContainers.addAll(containers);
     containers.clear();
     sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true));
-    sendEvent(new AMNodeEvent(getNodeId(),
-        AMNodeEventType.N_NODE_WAS_BLACKLISTED));
   }
 
   @SuppressWarnings("unchecked")
@@ -296,12 +300,15 @@ public class AMNodeImpl implements AMNode {
         if (node.failedAttemptIds.add(event.getTaskAttemptId())) {
           // new failed container on node
           node.numFailedTAs++;
-          boolean shouldBlacklist = node.shouldBlacklistNode();
-          if (shouldBlacklist) {
-            LOG.info("Too many task attempt failures. " + 
-                     "Blacklisting node: " + node.getNodeId());
-            node.blacklistSelf();
-            return AMNodeState.BLACKLISTED;
+          if (node.qualifiesForBlacklisting()) {
+            if (node.registerBadNodeAndShouldBlacklist()) {
+              LOG.info("Too many task attempt failures. " +
+                  "Blacklisting node: " + node.getNodeId());
+              node.blacklistSelf();
+              return AMNodeState.BLACKLISTED;
+            } else {
+              // Stay in ACTIVE state. Move to FORCED_ACTIVE only when an explicit message is received.
+            }
           }
         }
       }
@@ -329,10 +336,15 @@ public class AMNodeImpl implements AMNode {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       node.ignoreBlacklisting = false;
-      boolean shouldBlacklist = node.shouldBlacklistNode();
-      if (shouldBlacklist) {
-        node.blacklistSelf();
-        return AMNodeState.BLACKLISTED;
+      if (node.qualifiesForBlacklisting()) {
+        if (node.registerBadNodeAndShouldBlacklist()) {
+          LOG.info("Too many previous task failures after blacklisting re-enabled. " +
+              "Blacklisting node: " + node.getNodeId());
+          node.blacklistSelf();
+          return AMNodeState.BLACKLISTED;
+        } else {
+          // Stay in ACTIVE state. Move to FORCED_ACTIVE only when an explicit message is received.
+        }
       }
       return AMNodeState.ACTIVE;
     }

@@ -138,7 +138,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
-import org.apache.tez.dag.app.rm.node.AMNodeMap;
+import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
@@ -200,7 +200,7 @@ public class DAGAppMaster extends AbstractService {
   private final String workingDirectory;
   private ContainerSignatureMatcher containerSignatureMatcher;
   private AMContainerMap containers;
-  private AMNodeMap nodes;
+  private AMNodeTracker nodes;
   private AppContext context;
   private Configuration amConf;
   private Dispatcher dispatcher;
@@ -351,7 +351,7 @@ public class DAGAppMaster extends AbstractService {
     addIfService(containers, true);
     dispatcher.register(AMContainerEventType.class, containers);
 
-    nodes = new AMNodeMap(dispatcher.getEventHandler(), context);
+    nodes = new AMNodeTracker(dispatcher.getEventHandler(), context);
     addIfService(nodes, true);
     dispatcher.register(AMNodeEventType.class, nodes);
 
@@ -1215,7 +1215,7 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
-    public AMNodeMap getAllNodes() {
+    public AMNodeTracker getNodeTracker() {
       return nodes;
     }
 

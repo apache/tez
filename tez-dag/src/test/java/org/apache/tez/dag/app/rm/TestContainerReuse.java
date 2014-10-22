@@ -80,7 +80,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventStopRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
-import org.apache.tez.dag.app.rm.node.AMNodeMap;
+import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -135,10 +135,10 @@ public class TestContainerReuse {
       mock(ContainerHeartbeatHandler.class),
       mock(TaskAttemptListener.class),
       new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -273,9 +273,9 @@ public class TestContainerReuse {
       mock(ContainerHeartbeatHandler.class),
       mock(TaskAttemptListener.class),
       new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
@@ -376,9 +376,9 @@ public class TestContainerReuse {
     AppContext appContext = mock(AppContext.class);
     AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class),
         mock(TaskAttemptListener.class), new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
@@ -516,9 +516,9 @@ public class TestContainerReuse {
     AppContext appContext = mock(AppContext.class);
     AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class),
         mock(TaskAttemptListener.class), new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
@@ -708,9 +708,9 @@ public class TestContainerReuse {
         mock(ContainerHeartbeatHandler.class),
         mock(TaskAttemptListener.class),
         new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
@@ -836,9 +836,9 @@ public class TestContainerReuse {
       mock(ContainerHeartbeatHandler.class),
       mock(TaskAttemptListener.class),
       new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(true).when(appContext).isSession();
     doReturn(dagID).when(appContext).getCurrentDAGID();
@@ -956,9 +956,9 @@ public class TestContainerReuse {
     ChangingDAGIDAnswer dagIDAnswer = new ChangingDAGIDAnswer(dagID1);
     AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class),
         mock(TaskAttemptListener.class), new ContainerContextMatcher(), appContext);
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
-    doReturn(amNodeMap).when(appContext).getAllNodes();
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(true).when(appContext).isSession();
     doAnswer(dagIDAnswer).when(appContext).getCurrentDAGID();

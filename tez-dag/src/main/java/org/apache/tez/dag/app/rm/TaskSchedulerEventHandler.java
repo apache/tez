@@ -367,7 +367,7 @@ public class TaskSchedulerEventHandler extends AbstractService
                                            Container container) {
     ContainerId containerId = container.getId();
     if (appContext.getAllContainers().addContainerIfNew(container)) {
-      appContext.getAllNodes().nodeSeen(container.getNodeId());
+      appContext.getNodeTracker().nodeSeen(container.getNodeId());
       sendEvent(new AMNodeEventContainerAllocated(container
           .getNodeId(), container.getId()));
     }

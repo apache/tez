@@ -19,6 +19,9 @@
 package org.apache.tez.dag.app.rm.node;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -44,16 +47,15 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
 @SuppressWarnings({ "resource", "rawtypes" })
-public class TestAMNodeMap {
+public class TestAMNodeTracker {
 
-  private static final Log LOG = LogFactory.getLog(TestAMNodeMap.class);
+  private static final Log LOG = LogFactory.getLog(TestAMNodeTracker.class);
 
   DrainDispatcher dispatcher;
   EventHandler eventHandler;
@@ -85,99 +87,150 @@ public class TestAMNodeMap {
   public void testHealthUpdateKnownNode() {
     AppContext appContext = mock(AppContext.class);
 
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
-    amNodeMap.init(new Configuration(false));
-    amNodeMap.start();
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    amNodeTracker.init(new Configuration(false));
+    amNodeTracker.start();
 
     NodeId nodeId = NodeId.newInstance("host1", 2342);
-    amNodeMap.nodeSeen(nodeId);
+    amNodeTracker.nodeSeen(nodeId);
 
     NodeReport nodeReport = generateNodeReport(nodeId, NodeState.UNHEALTHY);
-    amNodeMap.handle(new AMNodeEventStateChanged(nodeReport));
+    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport));
     dispatcher.await();
-    assertEquals(AMNodeState.UNHEALTHY, amNodeMap.get(nodeId).getState());
-    amNodeMap.stop();
+    assertEquals(AMNodeState.UNHEALTHY, amNodeTracker.get(nodeId).getState());
+    amNodeTracker.stop();
   }
 
   @Test(timeout=5000)
   public void testHealthUpdateUnknownNode() {
     AppContext appContext = mock(AppContext.class);
 
-    AMNodeMap amNodeMap = new AMNodeMap(eventHandler, appContext);
-    amNodeMap.init(new Configuration(false));
-    amNodeMap.start();
+    AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    amNodeTracker.init(new Configuration(false));
+    amNodeTracker.start();
 
     NodeId nodeId = NodeId.newInstance("unknownhost", 2342);
 
     NodeReport nodeReport = generateNodeReport(nodeId, NodeState.UNHEALTHY);
-    amNodeMap.handle(new AMNodeEventStateChanged(nodeReport));
+    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport));
     dispatcher.await();
 
-    amNodeMap.stop();
+    amNodeTracker.stop();
     // No exceptions - the status update was ignored. Not bothering to capture
     // the log message for verification.
   }
-  
+
+  @Test (timeout = 5000)
+  public void testSingleNodeNotBlacklisted() {
+    AppContext appContext = mock(AppContext.class);
+    Configuration conf = new Configuration(false);
+    conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
+    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, true);
+    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD, 33);
+
+    TestEventHandler handler = new TestEventHandler();
+    AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    AMContainerMap amContainerMap = mock(AMContainerMap.class);
+    TaskSchedulerEventHandler taskSchedulerEventHandler =
+        mock(TaskSchedulerEventHandler.class);
+    dispatcher.register(AMNodeEventType.class, amNodeTracker);
+    dispatcher.register(AMContainerEventType.class, amContainerMap);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    amNodeTracker.init(conf);
+    amNodeTracker.start();
+
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(1));
+    NodeId nodeId = NodeId.newInstance("host1", 1234);
+    amNodeTracker.nodeSeen(nodeId);
+
+    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId);
+
+    ContainerId cId1 = mock(ContainerId.class);
+    ContainerId cId2 = mock(ContainerId.class);
+
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId1));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId2));
+
+    TezTaskAttemptID ta1 = mock(TezTaskAttemptID.class);
+    TezTaskAttemptID ta2 = mock(TezTaskAttemptID.class);
+
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId1, ta1, true));
+    dispatcher.await();
+    assertEquals(1, node.numFailedTAs);
+    assertEquals(AMNodeState.ACTIVE, node.getState());
+
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
+    dispatcher.await();
+    assertEquals(2, node.numFailedTAs);
+    assertEquals(1, handler.events.size());
+    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(0).getType());
+    assertEquals(AMNodeState.FORCED_ACTIVE, node.getState());
+  }
+
   @Test(timeout=10000)
-  public void testNodeSelfBlacklist() throws InterruptedException {
+  public void testNodeSelfBlacklist() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
     TestEventHandler handler = new TestEventHandler();
-    AMNodeMap amNodeMap = new AMNodeMap(handler, appContext);
+    AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
     TaskSchedulerEventHandler taskSchedulerEventHandler =
         mock(TaskSchedulerEventHandler.class);
-    dispatcher.register(AMNodeEventType.class, amNodeMap);
+    dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
     dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
-    amNodeMap.init(conf);
-    amNodeMap.start();
+    amNodeTracker.init(conf);
+    amNodeTracker.start();
 
-    amNodeMap.handle(new AMNodeEventNodeCountUpdated(4));
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(4));
     NodeId nodeId = NodeId.newInstance("host1", 1234);
     NodeId nodeId2 = NodeId.newInstance("host2", 1234);
     NodeId nodeId3 = NodeId.newInstance("host3", 1234);
     NodeId nodeId4 = NodeId.newInstance("host4", 1234);
-    amNodeMap.nodeSeen(nodeId);
-    amNodeMap.nodeSeen(nodeId2);
-    amNodeMap.nodeSeen(nodeId3);
-    amNodeMap.nodeSeen(nodeId4);
-    AMNodeImpl node = (AMNodeImpl) amNodeMap.get(nodeId);
+    amNodeTracker.nodeSeen(nodeId);
+    amNodeTracker.nodeSeen(nodeId2);
+    amNodeTracker.nodeSeen(nodeId3);
+    amNodeTracker.nodeSeen(nodeId4);
+    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId);
     
     ContainerId cId1 = mock(ContainerId.class);
     ContainerId cId2 = mock(ContainerId.class);
     ContainerId cId3 = mock(ContainerId.class);
     
-    amNodeMap.handle(new AMNodeEventContainerAllocated(nodeId, cId1));
-    amNodeMap.handle(new AMNodeEventContainerAllocated(nodeId, cId2));
-    amNodeMap.handle(new AMNodeEventContainerAllocated(nodeId, cId3));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId1));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId2));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId3));
     assertEquals(3, node.containers.size());
     
     TezTaskAttemptID ta1 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta2 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta3 = mock(TezTaskAttemptID.class);
     
-    amNodeMap.handle(new AMNodeEventTaskAttemptSucceeded(nodeId, cId1, ta1));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptSucceeded(nodeId, cId1, ta1));
     assertEquals(1, node.numSuccessfulTAs);
     
-    amNodeMap.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(1, node.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node.getState());
     // duplicate should not affect anything
-    amNodeMap.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(1, node.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node.getState());
     
-    amNodeMap.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId3, ta3, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId3, ta3, true));
     dispatcher.await();
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(2, node.numFailedTAs);
     assertEquals(AMNodeState.BLACKLISTED, node.getState());
     
-    assertEquals(5, handler.events.size());
+    assertEquals(4, handler.events.size());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(0).getType());
     assertEquals(cId1, ((AMContainerEventNodeFailed)handler.events.get(0)).getContainerId());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(1).getType());
@@ -186,48 +239,54 @@ public class TestAMNodeMap {
     assertEquals(cId3, ((AMContainerEventNodeFailed)handler.events.get(2)).getContainerId());
     assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(3).getType());
     assertEquals(node.getNodeId(), ((AMSchedulerEventNodeBlacklistUpdate)handler.events.get(3)).getNodeId());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(4).getType());
-    assertEquals(node.getNodeId(), ((AMNodeEvent)handler.events.get(4)).getNodeId());
-    
+
+
+    // Trigger one more node failure, which should cause BLACKLISTING to be disabled
     ContainerId cId4 = mock(ContainerId.class);
     ContainerId cId5 = mock(ContainerId.class);
     TezTaskAttemptID ta4 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta5 = mock(TezTaskAttemptID.class);
-    AMNodeImpl node2 = (AMNodeImpl) amNodeMap.get(nodeId2);
-    amNodeMap.handle(new AMNodeEventContainerAllocated(nodeId2, cId4));
-    amNodeMap.handle(new AMNodeEventContainerAllocated(nodeId2, cId5));
+    AMNodeImpl node2 = (AMNodeImpl) amNodeTracker.get(nodeId2);
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId2, cId4));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId2, cId5));
     
-    amNodeMap.handle(new AMNodeEventTaskAttemptEnded(nodeId2, cId4, ta4, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId2, cId4, ta4, true));
     assertEquals(1, node2.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node2.getState());
     
     handler.events.clear();
-    amNodeMap.handle(new AMNodeEventTaskAttemptEnded(nodeId2, cId5, ta5, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId2, cId5, ta5, true));
     dispatcher.await();
     assertEquals(2, node2.numFailedTAs);
     assertEquals(AMNodeState.FORCED_ACTIVE, node2.getState());
-    AMNodeImpl node3 = (AMNodeImpl)amNodeMap.get(nodeId3);
+    AMNodeImpl node3 = (AMNodeImpl) amNodeTracker.get(nodeId3);
     assertEquals(AMNodeState.FORCED_ACTIVE, node3.getState());
-    assertEquals(10, handler.events.size());
+    assertEquals(5, handler.events.size());
 
-    assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(0).getType());
-    assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(1).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(2).getType());
-    assertEquals(AMNodeEventType.N_NODE_WAS_BLACKLISTED, handler.events.get(3).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(4).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(5).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(6).getType());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(7).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_UNBLACKLISTED, handler.events.get(8).getType());
-    assertEquals(AMSchedulerEventType.S_NODE_UNBLACKLISTED, handler.events.get(9).getType());
+    // Blacklisting Disabled, the node causing this will not be blacklisted. The single node that
+    // was blacklisted will be unblacklisted.
+    int numIgnoreBlacklistingEnabledEvents = 0;
+    int numUnblacklistedEvents = 0;
+    for (Event event : handler.events) {
+      if (event.getType() == AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED) {
+        numIgnoreBlacklistingEnabledEvents++;
+      } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLACKLISTED) {
+        numUnblacklistedEvents++;
+      } else {
+        fail("Unexpected event of type: " + event.getType());
+      }
+    }
+    assertEquals(4, numIgnoreBlacklistingEnabledEvents);
+    assertEquals(1, numUnblacklistedEvents);
+
     // drain all previous events
-    Thread.sleep(500l);
     dispatcher.await();
 
+
+    // Increase the number of nodes. BLACKLISTING should be re-enabled.
+    // Node 1 and Node 2 should go into BLACKLISTED state
     handler.events.clear();
-    amNodeMap.handle(new AMNodeEventNodeCountUpdated(8));
-    dispatcher.await();
-    Thread.sleep(1000l);
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(8));
     dispatcher.await();
     LOG.info(("Completed waiting for dispatcher to process all pending events"));
     assertEquals(AMNodeState.BLACKLISTED, node.getState());
@@ -236,27 +295,30 @@ public class TestAMNodeMap {
     assertEquals(8, handler.events.size());
 
     int index = 0;
-    int numBlacklistingDisabledEvents = 0;
-    int numNodeBlacklistedEvents = 0;
-    int numNodeWasBlacklistedEvents = 0;
+    int numIgnoreBlacklistingDisabledEvents = 0;
+    int numBlacklistedEvents = 0;
+    int numNodeFailedEvents = 0;
     for (Event event : handler.events) {
       LOG.info("Logging event: index:" + index++
           + " type: " + event.getType());
       if (event.getType() == AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED) {
-        numBlacklistingDisabledEvents++;
+        numIgnoreBlacklistingDisabledEvents++;
       } else if (event.getType() == AMSchedulerEventType.S_NODE_BLACKLISTED) {
-        numNodeBlacklistedEvents++;
-      } else if (event.getType() == AMNodeEventType.N_NODE_WAS_BLACKLISTED) {
-        numNodeWasBlacklistedEvents++;
+        numBlacklistedEvents++;
+      } else if (event.getType() == AMContainerEventType.C_NODE_FAILED) {
+        numNodeFailedEvents++;
+        // Node2 is now blacklisted so the container's will be informed
+        assertTrue(((AMContainerEventNodeFailed) event).getContainerId() == cId4 ||
+            ((AMContainerEventNodeFailed) event).getContainerId() == cId5);
       } else {
-        Assert.assertTrue("Unexpected event: " + event.getType(), false);        
+        fail("Unexpected event of type: " + event.getType());
       }
     }
-    assertEquals(4, numBlacklistingDisabledEvents);
-    assertEquals(2, numNodeBlacklistedEvents);
-    assertEquals(2, numNodeWasBlacklistedEvents);
+    assertEquals(4, numIgnoreBlacklistingDisabledEvents);
+    assertEquals(2, numBlacklistedEvents);
+    assertEquals(2, numNodeFailedEvents);
     
-    amNodeMap.stop();
+    amNodeTracker.stop();
   }
 
   private static NodeReport generateNodeReport(NodeId nodeId, NodeState nodeState) {
