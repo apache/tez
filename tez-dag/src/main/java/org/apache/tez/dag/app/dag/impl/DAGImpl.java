@@ -680,6 +680,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     int totalRunningTaskCount = 0;
     int totalFailedTaskCount = 0;
     int totalKilledTaskCount = 0;
+    int totalFailedTaskAttemptCount = 0;
+    int totalKilledTaskAttemptCount = 0;
     readLock.lock();
     try {
       for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
@@ -690,6 +692,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         totalRunningTaskCount += progress.getRunningTaskCount();
         totalFailedTaskCount += progress.getFailedTaskCount();
         totalKilledTaskCount += progress.getKilledTaskCount();
+        totalFailedTaskAttemptCount += progress.getFailedTaskAttemptCount();
+        totalKilledTaskAttemptCount += progress.getKilledTaskAttemptCount();
       }
       ProgressBuilder dagProgress = new ProgressBuilder();
       dagProgress.setTotalTaskCount(totalTaskCount);
@@ -697,6 +701,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dagProgress.setRunningTaskCount(totalRunningTaskCount);
       dagProgress.setFailedTaskCount(totalFailedTaskCount);
       dagProgress.setKilledTaskCount(totalKilledTaskCount);
+      dagProgress.setFailedTaskAttemptCount(totalFailedTaskAttemptCount);
+      dagProgress.setKilledTaskAttemptCount(totalKilledTaskAttemptCount);
       status.setState(getState());
       status.setDiagnostics(diagnostics);
       status.setDAGProgress(dagProgress);

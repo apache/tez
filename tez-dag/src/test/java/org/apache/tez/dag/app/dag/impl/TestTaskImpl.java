@@ -22,12 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -207,12 +202,16 @@ public class TestTaskImpl {
     mockTask.handle(new TaskEventTAUpdate(attemptId,
         TaskEventType.T_ATTEMPT_KILLED));
     assertTaskRunningState();
+    verify(mockTask.getVertex(), times(1)).incrementKilledTaskAttemptCount();
   }
 
   private void failRunningTaskAttempt(TezTaskAttemptID attemptId) {
+    int failedAttempts = mockTask.failedAttempts;
     mockTask.handle(new TaskEventTAUpdate(attemptId,
         TaskEventType.T_ATTEMPT_FAILED));
     assertTaskRunningState();
+    Assert.assertEquals(failedAttempts + 1, mockTask.failedAttempts);
+    verify(mockTask.getVertex(), times(failedAttempts + 1)).incrementFailedTaskAttemptCount();
   }
 
   /**
@@ -427,8 +426,10 @@ public class TestTaskImpl {
     // kill first attempt
     // should trigger a new attempt
     // as no successful attempts
-    killRunningTaskAttempt(mockTask.getLastAttempt().getID());
+    failRunningTaskAttempt(mockTask.getLastAttempt().getID());
     assert (mockTask.getAttemptList().size() == 2);
+    assertEquals(1, mockTask.failedAttempts);
+    verify(mockTask.getVertex(), times(1)).incrementFailedTaskAttemptCount();
 
     assert (mockTask.getProgress() == 0f);
     launchTaskAttempt(mockTask.getLastAttempt().getID());
@@ -452,7 +453,8 @@ public class TestTaskImpl {
     failRunningTaskAttempt(mockTask.getLastAttempt().getID());
 
     assertEquals(2, mockTask.getAttemptList().size());
-    
+    assertEquals(1, mockTask.failedAttempts);
+
     assertFalse("First attempt should not commit",
         mockTask.canCommit(mockTask.getAttemptList().get(0).getID()));
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
