@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
- require('scripts/controllers/show_tasks_view_controller');
-
  //TODO: watch individual counters.
 App.TaskIndexController = Em.ObjectController.extend({
 	controllerName: 'TaskIndexController',
@@ -26,5 +24,4 @@ App.TaskIndexController = Em.ObjectController.extend({
 		return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
 	}.property('id', 'status', 'counterGroups'),
 
-	showTasksViewController: App.ShowTasksViewController.create()
 });

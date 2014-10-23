@@ -149,7 +149,7 @@ App.DagsController = Em.ArrayController.extend({
       });
     }
 
-    var idColumn = Em.Table.ColumnDefinition.create({
+    var idCol = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'Dag Id',
       tableCellViewClass: Em.Table.TableCell.extend({
@@ -160,9 +160,9 @@ App.DagsController = Em.ArrayController.extend({
       	return row.get('id');
       }
     });
-    var nameColumn = columnHelper('Name', 'name');
-    var userColumn = columnHelper('Submitter', 'user');
-    var statusColumn = Em.Table.ColumnDefinition.create({
+    var nameCol = columnHelper('Name', 'name');
+    var userCol = columnHelper('Submitter', 'user');
+    var statusCol = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'Status',
       tableCellViewClass: Em.Table.TableCell.extend({
@@ -178,22 +178,29 @@ App.DagsController = Em.ArrayController.extend({
         };
       }
     });
-    var startTimeColumn = Em.Table.ColumnDefinition.create({
+    var submittedTimeCol = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Submission Time',
+      headerCellName: 'Submitted Time',
+      getCellContent: function(row) {
+        return App.Helpers.date.dateFormat(row.get('submittedTime'));
+      }
+    });
+    var startTimeCol = Em.Table.ColumnDefinition.create({
+      textAlign: 'text-align-left',
+      headerCellName: 'Start Time',
       getCellContent: function(row) {
       	return App.Helpers.date.dateFormat(row.get('startTime'));
       }
     });
-    var appIdColumn = columnHelper('Application ID', 'applicationId');
-    var endTimeColumn = Em.Table.ColumnDefinition.create({
+    var appIdCol = columnHelper('Application ID', 'applicationId');
+    var endTimeCol = Em.Table.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'End Time',
       getCellContent: function(row) {
         return App.Helpers.date.dateFormat(row.get('endTime'));
       }
     });
-    return [idColumn, nameColumn, userColumn, statusColumn, startTimeColumn, appIdColumn];
+    return [idCol, nameCol, userCol, statusCol, submittedTimeCol, startTimeCol, appIdCol];
   }.property(),
 
 

@@ -17,6 +17,8 @@
 
 App.Dag = App.AbstractEntity.extend({
 
+  submittedTime: DS.attr('number'),
+  
   // start time of the entity
   startTime: DS.attr('number'),
 
@@ -41,9 +43,9 @@ App.Dag = App.AbstractEntity.extend({
 	// diagnostics info if any.
 	diagnostics: DS.attr('string'),
 
-	//vertices: DS.hasMany('dagVertex'),
+	//vertices: DS.hasMany('vertex'),
 
-	//edges: DS.hasMany('dagEdge'),
+	//edges: DS.hasMany('edge'),
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });
@@ -68,34 +70,34 @@ App.Counter = DS.Model.extend({
   parent: DS.belongsTo('counterGroup')
 });
 
-App.DagEdge = DS.Model.extend({
+App.Edge = DS.Model.extend({
 
-  fromVertex: DS.belongsTo('dagVertex'),
+  fromVertex: DS.belongsTo('vertex'),
 
-  toVertex: DS.belongsTo('dagVertex'),
+  toVertex: DS.belongsTo('vertex'),
 
   /**
    * Type of this edge connecting vertices. Should be one of constants defined
-   * in 'App.DagEdgeType'.
+   * in 'App.EdgeType'.
    */
   edgeType: DS.attr('string'),
 
   dag: DS.belongsTo('dag')
 });
 
-App.DagVertex = DS.Model.extend({
+App.Vertex = DS.Model.extend({
   name: DS.attr('string'),
 
   dag: DS.belongsTo('dag'),
 
   /**
    * State of this vertex. Should be one of constants defined in
-   * App.DagVertexState.
+   * App.VertexState.
    */
-  state: DS.attr('string'),
+  status: DS.attr('string'),
 
   /**
-   * Vertex type has to be one of the types defined in 'App.DagVertexType'
+   * Vertex type has to be one of the types defined in 'App.VertexType'
    * @return {string}
    */
   type: DS.attr('string'),
@@ -103,12 +105,12 @@ App.DagVertex = DS.Model.extend({
   /**
    * A vertex can have multiple incoming edges.
    */
-  incomingEdges: DS.hasMany('dagEdge'),
+  incomingEdges: DS.hasMany('edge', {inverse: 'fromVertex' }),
 
   /**
    * This vertex can have multiple outgoing edges.
    */
-  outgoingEdges: DS.hasMany('dagEdge'),
+  outgoingEdges: DS.hasMany('edge', {inverse: 'toVertex'}),
 
   startTime: DS.attr('number'),
 
@@ -142,7 +144,7 @@ App.DagVertex = DS.Model.extend({
   /**
    * Number of actual Map/Reduce tasks in this vertex
    */
-  tasksCount: DS.attr('number'),
+  numTasks: DS.attr('number'),
 
   tasksNumber: function () {
     return this.getWithDefault('tasksCount', 0);
@@ -216,10 +218,12 @@ App.Task = App.AbstractEntity.extend({
 
   diagnostics: DS.attr('string'),
 
+  numAttempts: DS.attr('number'),
+
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });
 
-App.DagVertexState = {
+App.VertexState = {
   NEW: "NEW",
   INITIALIZING: "INITIALIZING",
   INITED: "INITED",
@@ -232,13 +236,13 @@ App.DagVertexState = {
   JOBFAILED: "JOB FAILED"
 };
 
-App.DagVertexType = {
+App.VertexType = {
   MAP: 'MAP',
   REDUCE: 'REDUCE',
   UNION: 'UNION'
 };
 
-App.DagEdgeType = {
+App.EdgeType = {
   SCATTER_GATHER: "SCATTER_GATHER",
   BROADCAST: "BROADCAST",
   CONTAINS: "CONTAINS"

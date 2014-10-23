@@ -1,0 +1,12 @@
+{{#if controller.hasHeader}}
+  {{view Ember.Table.HeaderTableContainer}}
+{{/if}}
+{{#if controller.hasFilter}}
+	{{view App.ExTable.FilterTableContainer}}
+{{/if}}
+{{view Ember.Table.BodyTableContainer}}
+{{#if controller.hasFooter}}
+  {{view Ember.Table.FooterTableContainer}}
+{{/if}}
+{{view Ember.Table.ScrollContainer}}
+{{view Ember.Table.ColumnSortableIndicator}}

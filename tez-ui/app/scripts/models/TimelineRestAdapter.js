@@ -93,6 +93,7 @@ App.TimelineSerializer = DS.RESTSerializer.extend({
 
 var timelineJsonToDagMap = {
   id: 'entity',
+  submittedTime: 'starttime',
   startTime: 'otherinfo.startTime',
   endTime: 'otherinfo.endTime',
   name: 'primaryfilters.dagName.0',
@@ -147,6 +148,8 @@ App.DagSerializer = App.TimelineSerializer.extend({
   },
 });
 
+var containerIdRegex = /.*(container_.*?)\/.*/;
+var nodeIdRegex = /([^\/]*)\//;
 var timelineJsonToTaskAttemptMap = {
   id: 'entity',
   startTime: 'otherinfo.startTime',
@@ -158,10 +161,16 @@ var timelineJsonToTaskAttemptMap = {
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   containerId: { custom: function (source) {
     var inProgressLogsURL = Em.get(source, 'otherinfo.inProgressLogsURL');
-    var regex = /.*(container_.*?)\/.*/;
-    var match = regex.exec(inProgressLogsURL);
+    var match = containerIdRegex.exec(inProgressLogsURL);
     return match[1];
-  }}
+  }},
+  nodeId: {
+    custom: function(source) {
+      var inProgressLogsURL = Em.get(source, 'otherinfo.inProgressLogsURL');
+      var match = nodeIdRegex.exec(inProgressLogsURL);
+      return match[1];
+    }
+  }
 };
 
 
@@ -216,6 +225,7 @@ var timelineJsonToTaskMap = {
   counterGroups: 'counterGroups',
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
+  numAttempts: 'relatedentities'
 };
 
 App.TaskSerializer = App.TimelineSerializer.extend({
@@ -258,5 +268,60 @@ App.TaskSerializer = App.TimelineSerializer.extend({
 
   normalize: function(type, hash, prop) {
     return Em.JsonMapper.map(hash, timelineJsonToTaskMap);
+  },
+});
+
+var timelineJsonToVertexMap = {
+  id: 'entity',
+  name: 'otherinfo.vertexName',
+  dagID: 'primaryfilters.TEZ_DAG_ID.0',
+  startTime: 'otherinfo.startTime',
+  endTime: 'otherinfo.endTime',
+  status: 'otherinfo.status',
+  diagnostics: 'otherinfo.diagnostics',
+  counterGroups: 'counterGroups',
+  numTasks: 'otherinfo.numTasks'
+};
+
+App.VertexSerializer = App.TimelineSerializer.extend({
+  _normalizeSingleVertexPayload: function(vertex) {
+    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('vertex', vertex.entity, 
+      vertex);
+    vertex.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
+
+    delete vertex.otherinfo.counters;
+
+    return {
+      vertex: vertex,
+      counterGroups: normalizedCounterGroupData.counterGroups,
+      counters: normalizedCounterGroupData.counters
+    };
+  },
+
+  normalizePayload: function(rawPayload) {
+    if (!!rawPayload.vertices) {
+      var normalizedPayload = {
+        vertices: [],
+        counterGroups: [],
+        counters: []
+      };
+      rawPayload.vertices.forEach(function(vertex){
+        var n = this._normalizeSingleVertexPayload(vertex);
+        normalizedPayload.vertices.push(n.vertex);
+        [].push.apply(normalizedPayload.counterGroups, n.counterGroups);
+        [].push.apply(normalizedPayload.counters, n.counters);
+      }, this);
+      
+      // delete so that we dont hang on to the json data.
+      delete rawPayload.vertex;
+
+      return normalizedPayload;
+    } else {
+      return this._normalizeSingleVertexPayload(rawPayload.vertex);
+    }
+  },
+
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(hash, timelineJsonToVertexMap);
   },
 });

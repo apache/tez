@@ -30,6 +30,7 @@ App.TaskAttempt = App.AbstractEntity.extend({
 
 	// container
 	containerId: DS.attr('string'),
+  nodeId: DS.attr('string'),
 
   // status of the task attempt
 	status: DS.attr('string'),

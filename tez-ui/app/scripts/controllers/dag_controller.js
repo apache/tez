@@ -33,6 +33,8 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
 	childDisplayViews: [
 		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
+		Ember.Object.create({title: 'Vertices', linkTo: 'dag.vertices'}),
+		Ember.Object.create({title: 'Tasks', linkTo: 'dag.tasks'}),
 		Ember.Object.create({title: 'Counters', linkTo: 'dag.counters'}),
 		Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
 	],

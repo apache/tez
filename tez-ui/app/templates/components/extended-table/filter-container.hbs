@@ -1,0 +1,15 @@
+<div class="ember-table-table-fixed-wrapper">
+  {{#if controller.numFixedColumns}}
+    {{view App.ExTable.FilterBlock classNames="ember-table-left-table-block"
+      columnsBinding="controller.fixedColumns"
+      widthBinding="controller._fixedBlockWidth"
+      heightBinding="controller.filterHeight"
+    }}
+  {{/if}}
+  {{view App.ExTable.FilterBlock classNames="ember-table-right-table-block"
+    columnsBinding="controller.tableColumns"
+    scrollLeftBinding="controller._tableScrollLeft"
+    widthBinding="controller._tableBlockWidth"
+    heightBinding="controller.filterHeight"
+  }}
+</div>

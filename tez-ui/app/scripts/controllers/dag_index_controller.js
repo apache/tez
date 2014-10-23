@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
- require('scripts/controllers/show_tasks_view_controller');
-
  //TODO: watch individual counters.
 App.DagIndexController = Em.ObjectController.extend({
 	controllerName: 'DagIndexController',
@@ -56,5 +54,4 @@ App.DagIndexController = Em.ObjectController.extend({
 		}
 	},
 
-	showTasksViewController: App.ShowTasksViewController.create()
 });

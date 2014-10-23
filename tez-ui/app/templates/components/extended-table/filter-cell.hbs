@@ -1,0 +1,9 @@
+<div class="ember-table-content-container" style='cursor: auto;'>
+  <span class="ember-table-content" style='white-space: nowrap; cursor: auto;'>
+    {{#if view.content.isFilterable}}
+    	{{view App.ExTable.FilterField filterValueBinding='view.content.columnFilterValue' class='inline-display'}}
+    	<!--i {{bind-attr class=':fa :fa-search-plus :inline-display view.content.isPopulated:enabled-icon:disabled-icon'}} {{action 'updateFilter' view.content}}></i>
+    	<i {{bind-attr class=':fa :fa-close :inline-display view.isPopulated:enabled-icon:disabled-icon'}} {{action 'removeFilter' view.content}}></i-->
+    {{/if}}
+  </span>
+</div>

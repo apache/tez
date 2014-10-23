@@ -1,0 +1,29 @@
+{{#unless loading}}
+	<div class='margin-small'>
+		<span class='align-right'>
+			{{page-nav-component
+				hasPrev=hasPrev
+				hasNext=hasNext
+				navNext='navigateNext'
+				navPrev='navigatePrev'
+				navFirst='navigateFirst'
+			}}
+		</span>
+		<div class='align-clear'> </div>
+	</div>
+
+	<div class='table-container'>
+	{{extended-table-component 
+		hasFooter=false
+		enableContentSelection=true
+		columnsBinding="columns"
+		contentBinding="sortedContent"
+		forceFillColumns=true
+		filtersBinding='filterValues'
+		hasFilter=true
+	}}
+	</div>
+{{else}}
+	{{partial 'utils/loadingSpinner'}}	
+{{/unless}}
+	{{!todo remove unnecessary stuff}}

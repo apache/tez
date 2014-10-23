@@ -19,12 +19,16 @@
 App.Router.map(function() {
 	this.resource('dags', { path: '/' });
 	this.resource('dag', { path: '/dag/:dag_id'}, function() {
+		this.route('vertices'),
+		this.route('tasks'),
 		this.route('counters'),
-		this.route('vertex'),
 		this.route('swimlane')
 	});
+	this.resource('vertex', {path: '/vertex/:vertex_id'});
+	
 	this.resource('tasks', {path: '/tasks/:dag_id'});
 	this.resource('task', {path: '/task/:task_id'}, function(){
+		this.route('attempts');
 		this.route('counters');
 	});
 	this.resource('taskAttempt', {path: '/task_attempt/:task_attempt_id'}, function() {
