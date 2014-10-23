@@ -570,6 +570,17 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+
+    otherInfo.put(ATSConstants.STATS,
+        DAGUtils.convertVertexStatsToJSON(event.getVertexStats()));
+
+    final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
+    if (vertexTaskStats != null) {
+      for(String key : vertexTaskStats.keySet()) {
+        otherInfo.put(key, vertexTaskStats.get(key));
+      }
+    }
+
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;

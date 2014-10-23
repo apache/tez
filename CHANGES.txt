@@ -59,6 +59,7 @@ ALL CHANGES:
   TEZ-1684. upgrade mockito to latest release.
   TEZ-1567. Avoid blacklisting nodes when the disable blacklisting threshold is about to be hit.
   TEZ-1267. Exception handling for VertexManager.
+  TEZ-1688. Add applicationId as a primary filter for all Timeline data for easier export.
 
 Release 0.5.1: 2014-10-02
 
