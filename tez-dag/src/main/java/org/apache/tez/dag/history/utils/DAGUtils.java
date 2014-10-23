@@ -295,6 +295,12 @@ public class DAGUtils {
     return list;
   }
 
+  public static JSONObject convertVertexStatsToJSON(VertexStats vertexStats)
+      throws JSONException {
+    JSONObject jsonObject = new JSONObject(convertVertexStatsToATSMap(vertexStats));
+    return jsonObject;
+  }
+
   public static Map<String,Object> convertVertexStatsToATSMap(
       VertexStats vertexStats) {
     Map<String,Object> vertexStatsMap = new LinkedHashMap<String, Object>();
