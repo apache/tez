@@ -649,11 +649,11 @@ public class TezConfiguration extends Configuration {
 
   @Unstable
   /**
-   * Boolean value. Generate debug artifacts like DAG visualization.
+   * Boolean value. Generate debug artifacts like DAG plan in text format.
    */
   public static final String TEZ_GENERATE_DEBUG_ARTIFACTS =
       TEZ_PREFIX + "generate.debug.artifacts";
-  public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = true;
+  public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = false;
 
   /**
    * Set of tasks for which specific launch command options need to be added.
