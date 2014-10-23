@@ -60,6 +60,7 @@ ALL CHANGES:
   TEZ-1567. Avoid blacklisting nodes when the disable blacklisting threshold is about to be hit.
   TEZ-1267. Exception handling for VertexManager.
   TEZ-1688. Add applicationId as a primary filter for all Timeline data for easier export.
+  TEZ-1141. DAGStatus.Progress should include number of failed and killed attempts.
 
 Release 0.5.1: 2014-10-02
 

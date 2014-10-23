@@ -595,10 +595,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           successfulAttempt = taskAttempt.getID();
         } else if (taskAttemptState.equals(TaskAttemptState.FAILED)){
           failedAttempts++;
+          getVertex().incrementFailedTaskAttemptCount();
           successfulAttempt = null;
           recoveredState = TaskState.RUNNING; // reset to RUNNING, may fail after SUCCEEDED
         } else if (taskAttemptState.equals(TaskAttemptState.KILLED)) {
           successfulAttempt = null;
+          getVertex().incrementKilledTaskAttemptCount();
           recoveredState = TaskState.RUNNING; // reset to RUNNING, may been killed after SUCCEEDED
         }
         return recoveredState;
@@ -1128,6 +1130,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           TaskAttemptStateInternal.KILLED);
       // we KillWaitAttemptCompletedTransitionready have a spare
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
+      task.getVertex().incrementKilledTaskAttemptCount();
       if (task.getUncompletedAttemptsCount() == 0
           && task.successfulAttempt == null) {
         task.addAndScheduleAttempt();
@@ -1302,6 +1305,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
+      task.getVertex().incrementFailedTaskAttemptCount();
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
       task.addDiagnosticInfo("TaskAttempt " + castEvent.getTaskAttemptID().getId() + " failed,"
           + " info=" + task.getAttempt(castEvent.getTaskAttemptID()).getDiagnostics());

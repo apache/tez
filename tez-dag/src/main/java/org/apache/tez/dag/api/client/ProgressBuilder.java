@@ -51,6 +51,14 @@ public class ProgressBuilder extends Progress {
     getBuilder().setKilledTaskCount(count);
   }
 
+  public void setFailedTaskAttemptCount(int count) {
+    getBuilder().setFailedTaskAttemptCount(count);
+  }
+
+  public void setKilledTaskAttemptCount(int count) {
+    getBuilder().setKilledTaskAttemptCount(count);
+  }
+
   private ProgressProto.Builder getBuilder() {
     return (Builder) this.proxy;
   }

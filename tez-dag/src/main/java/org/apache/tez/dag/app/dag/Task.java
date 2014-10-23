@@ -85,4 +85,5 @@ public interface Task {
   TaskState restoreFromEvent(HistoryEvent historyEvent);
 
   public void registerTezEvent(TezEvent tezEvent);
+
 }

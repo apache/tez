@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -585,6 +586,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   int killedTaskCount = 0;
 
+  // Both failed and killed task attempt counts are incremented via direct calls
+  // and not via state machine changes as they always increase. In no situation, does
+  // the counter need to be reset or changed back as failed attempts never go back to succeeded.
+  // Likewise for killed attempts.
+  // The same cannot apply to succeeded task attempts if they are tracked as they might be
+  // subsequently declared as failed.
+  @VisibleForTesting
+  AtomicInteger failedTaskAttemptCount = new AtomicInteger(0);
+  @VisibleForTesting
+  AtomicInteger killedTaskAttemptCount = new AtomicInteger(0);
+
   @VisibleForTesting
   long initTimeRequested; // Time at which INIT request was received.
   @VisibleForTesting
@@ -909,6 +921,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       progress.setRunningTaskCount(getRunningTasks());
       progress.setFailedTaskCount(failedTaskCount);
       progress.setKilledTaskCount(killedTaskCount);
+      progress.setFailedTaskAttemptCount(failedTaskAttemptCount.get());
+      progress.setKilledTaskAttemptCount(killedTaskAttemptCount.get());
       return progress;
     } finally {
       this.readLock.unlock();
@@ -1113,6 +1127,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public String getLogIdentifier() {
     return this.logIdentifier;
+  }
+
+  @Override
+  public void incrementFailedTaskAttemptCount() {
+    this.failedTaskAttemptCount.incrementAndGet();
+  }
+
+  @Override
+  public void incrementKilledTaskAttemptCount() {
+    this.killedTaskAttemptCount.incrementAndGet();
+  }
+
+  @Override
+  public int getFailedTaskAttemptCount() {
+    return this.failedTaskAttemptCount.get();
+  }
+
+  @Override
+  public int getKilledTaskAttemptCount() {
+    return this.killedTaskAttemptCount.get();
   }
 
   private void setTaskLocationHints(VertexLocationHint vertexLocationHint) {

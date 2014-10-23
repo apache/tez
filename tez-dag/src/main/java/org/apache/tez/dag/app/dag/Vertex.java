@@ -135,4 +135,12 @@ public interface Vertex extends Comparable<Vertex> {
 
   String getLogIdentifier();
 
+  public void incrementFailedTaskAttemptCount();
+
+  public void incrementKilledTaskAttemptCount();
+
+  public int getFailedTaskAttemptCount();
+
+  public int getKilledTaskAttemptCount();
+
 }
