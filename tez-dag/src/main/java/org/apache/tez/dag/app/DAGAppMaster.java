@@ -714,11 +714,8 @@ public class DAGAppMaster extends AbstractService {
       LOG.warn("Failed to generate json for DAG", e);
     }
 
-    if (dagConf.getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
-        TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
-      generateDAGVizFile(dagId, dagPB);
-    }
-
+    generateDAGVizFile(dagId, dagPB);
+    writePBTextFile(newDag);
     return newDag;
   } // end createDag()
 
@@ -797,6 +794,25 @@ public class DAGAppMaster extends AbstractService {
     } catch (Exception e) {
       LOG.warn("Error occurred when trying to save graph structure"
           + " for dag " + dagId.toString(), e);
+    }
+  }
+
+  private void writePBTextFile(DAG dag) {
+    if (dag.getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
+        TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
+
+      String logFile = TezUtilsInternal.getContainerLogDir() + File.separatorChar + dag.getID().toString()
+          + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
+
+      LOG.info("Writing DAG plan to: " + logFile);
+      File outFile = new File(logFile);
+      try {
+        PrintWriter printWriter = new PrintWriter(outFile);
+        printWriter.println(TezUtilsInternal.convertDagPlanToString(dag.getJobPlan()));
+        printWriter.close();
+      } catch (IOException e) {
+        LOG.warn("Failed to write TEZ_PLAN to " + outFile.toString(), e);
+      }
     }
   }
 
@@ -1006,22 +1022,7 @@ public class DAGAppMaster extends AbstractService {
     
     if (LOG.isDebugEnabled()) {
       LOG.debug("Invoked with additional local resources: " + additionalResources);
-      
-      LOG.debug("Writing DAG plan to: "
-          + TezConstants.TEZ_PB_PLAN_TEXT_NAME);
-
-      File outFile = new File(TezConstants.TEZ_PB_PLAN_TEXT_NAME);
-      try {
-        PrintWriter printWriter = new PrintWriter(outFile);
-        String dagPbString = dagPlan.toString();
-        printWriter.println(dagPbString);
-        printWriter.close();
-      } catch (IOException e) {
-        throw new TezException("Failed to write TEZ_PLAN to "
-            + outFile.toString(), e);
-      }
     }
-
     submittedDAGs.incrementAndGet();
     startDAG(dagPlan, additionalResources);
     return currentDAG.getID().toString();
