@@ -133,19 +133,19 @@ public class OrderedPartitionedKVOutputConfig {
     }
 
     @Override
-    public SpecificBuilder setAdditionalConfiguration(String key, String value) {
+    public SpecificBuilder<E> setAdditionalConfiguration(String key, String value) {
       builder.setAdditionalConfiguration(key, value);
       return this;
     }
 
     @Override
-    public SpecificBuilder setAdditionalConfiguration(Map<String, String> confMap) {
+    public SpecificBuilder<E> setAdditionalConfiguration(Map<String, String> confMap) {
       builder.setAdditionalConfiguration(confMap);
       return this;
     }
 
     @Override
-    public SpecificBuilder setFromConfiguration(Configuration conf) {
+    public SpecificBuilder<E> setFromConfiguration(Configuration conf) {
       builder.setFromConfiguration(conf);
       return this;
     }
