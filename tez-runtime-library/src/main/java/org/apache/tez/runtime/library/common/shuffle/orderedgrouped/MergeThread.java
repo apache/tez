@@ -88,6 +88,7 @@ abstract class MergeThread<T> extends Thread {
         // Merge
         merge(inputs);
       } catch (InterruptedException ie) {
+        // Meant to handle a shutdown of the entire fetch/merge process
         return;
       } catch(Throwable t) {
         reporter.reportException(t);

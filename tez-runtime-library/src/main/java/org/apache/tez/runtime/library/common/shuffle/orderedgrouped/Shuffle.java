@@ -245,7 +245,6 @@ public class Shuffle implements ExceptionReporter {
    * @throws IOException 
    * @throws InputAlreadyClosedException 
    */
-  // ZZZ Deal with these methods.
   public boolean isInputReady() throws IOException, InterruptedException, TezException {
     if (isShutDown.get()) {
       throw new InputAlreadyClosedException();
@@ -277,7 +276,6 @@ public class Shuffle implements ExceptionReporter {
    * @throws IOException
    * @throws InterruptedException
    */
-  // ZZZ Deal with these methods.
   public TezRawKeyValueIterator waitForInput() throws IOException, InterruptedException,
       TezException {
     Preconditions.checkState(runShuffleFuture != null,
@@ -314,6 +312,7 @@ public class Shuffle implements ExceptionReporter {
     }
   }
 
+  // Not handling any shutdown logic here. That's handled by the callback from this invocation.
   private class RunShuffleCallable implements Callable<TezRawKeyValueIterator> {
     @Override
     public TezRawKeyValueIterator call() throws IOException, InterruptedException {
@@ -440,6 +439,7 @@ public class Shuffle implements ExceptionReporter {
 
   @Private
   public synchronized void reportException(Throwable t) {
+    // RunShuffleCallable onFailure deals with ignoring errors on shutdown.
     if (throwable == null) {
       throwable = t;
       throwingThreadName = Thread.currentThread().getName();
@@ -472,7 +472,6 @@ public class Shuffle implements ExceptionReporter {
 
     @Override
     public void onFailure(Throwable t) {
-      // ZZZ Handle failures during shutdown.
       if (isShutDown.get()) {
         LOG.info("Already shutdown. Ignoring error: ",  t);
       } else {

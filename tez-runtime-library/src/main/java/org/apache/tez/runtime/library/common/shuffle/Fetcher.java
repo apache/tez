@@ -191,9 +191,14 @@ public class Fetcher implements Callable<FetchResult> {
     }
 
     if (hostFetchResult.failedInputs != null && hostFetchResult.failedInputs.length > 0) {
-      LOG.warn("copyInputs failed for tasks " + Arrays.toString(hostFetchResult.failedInputs));
-      for (InputAttemptIdentifier left : hostFetchResult.failedInputs) {
-        fetcherCallback.fetchFailed(host, left, hostFetchResult.connectFailed);
+      if (!isShutDown.get()) {
+        LOG.warn("copyInputs failed for tasks " + Arrays.toString(hostFetchResult.failedInputs));
+        for (InputAttemptIdentifier left : hostFetchResult.failedInputs) {
+          fetcherCallback.fetchFailed(host, left, hostFetchResult.connectFailed);
+        }
+      } else {
+        LOG.info("Ignoring failed fetch reports for " + hostFetchResult.failedInputs.length +
+            " inputs since the fetcher has already been stopped");
       }
     }
 
@@ -405,7 +410,9 @@ public class Fetcher implements Callable<FetchResult> {
       // indirectly penalizing the host
       InputAttemptIdentifier[] failedFetches = null;
       if (isShutDown.get()) {
-        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
+        LOG.info(
+            "Not reporting fetch failure during connection establishment, since an Exception was caught after shutdown." +
+                e.getClass().getName() + ", Message: " + e.getMessage());
       } else {
         failedFetches = remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
       }
@@ -428,7 +435,9 @@ public class Fetcher implements Callable<FetchResult> {
       // with the first map, typically lost map. So, penalize only that map
       // and add the rest
       if (isShutDown.get()) {
-        LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
+        LOG.info(
+            "Not reporting fetch failure during connection establishment, since an Exception was caught after shutdown." +
+                e.getClass().getName() + ", Message: " + e.getMessage());
       } else {
         InputAttemptIdentifier firstAttempt = attempts.get(0);
         LOG.warn("Fetch Failure from host while connecting: " + host + ", attempt: " + firstAttempt
@@ -467,12 +476,22 @@ public class Fetcher implements Callable<FetchResult> {
     // yet_to_be_fetched list and marking the failed tasks.
     InputAttemptIdentifier[] failedInputs = null;
     while (!remaining.isEmpty() && failedInputs == null) {
+      if (isShutDown.get()) {
+        shutdownInternal(true);
+        LOG.info("Fetcher already shutdown. Aborting queued fetches for " + remaining.size() + " inputs");
+        return new HostFetchResult(new FetchResult(host, port, partition, remaining), null,
+            false);
+      }
       try {
         failedInputs = fetchInputs(input, callback);
       } catch (FetcherReadTimeoutException e) {
         //clean up connection
         shutdownInternal(true);
-
+        if (isShutDown.get()) {
+          LOG.info("Fetcher already shutdown. Aborting reconnection and queued fetches for " + remaining.size() + " inputs");
+          return new HostFetchResult(new FetchResult(host, port, partition, remaining), null,
+              false);
+        }
         // Connect again.
         connectionsWithRetryResult = setupConnection(
             new LinkedList<InputAttemptIdentifier>(remaining));
@@ -482,6 +501,11 @@ public class Fetcher implements Callable<FetchResult> {
       }
     }
 
+    if (isShutDown.get() && failedInputs != null && failedInputs.length > 0) {
+      LOG.info("Fetcher already shutdown. Not reporting fetch failures for: " +
+          (failedInputs == null ? 0 : failedInputs.length) + " failed inputs");
+      failedInputs = null;
+    }
     return new HostFetchResult(new FetchResult(host, port, partition, remaining), failedInputs,
         false);
   }
@@ -496,8 +520,11 @@ public class Fetcher implements Callable<FetchResult> {
 
     Iterator<InputAttemptIdentifier> iterator = remaining.iterator();
     while (iterator.hasNext()) {
+      if (isShutDown.get()) {
+        LOG.info("Already shutdown. Skipping fetch for " + remaining.size() + " inputs");
+        break;
+      }
       InputAttemptIdentifier srcAttemptId = iterator.next();
-      //TODO: check for shutdown? - See TEZ-1480
       long startTime = System.currentTimeMillis();
 
       FetchedInput fetchedInput = null;
@@ -528,21 +555,26 @@ public class Fetcher implements Callable<FetchResult> {
             idxRecord.getRawLength(), (endTime - startTime));
         iterator.remove();
       } catch (IOException e) {
+        cleanupFetchedInput(fetchedInput);
+        if (isShutDown.get()) {
+          LOG.info(
+              "Already shutdown. Ignoring Local Fetch Failure for " + srcAttemptId + " from host " +
+                  host + " : " + e.getClass().getName() + ", message=" + e.getMessage());
+          break;
+        }
         LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host + "(local fetch)",
             e);
-        if (fetchedInput != null) {
-          try {
-            fetchedInput.abort();
-          } catch (IOException e1) {
-            LOG.info("Failed to cleanup fetchedInput " + fetchedInput);
-          }
-        }
       }
     }
 
     InputAttemptIdentifier[] failedFetches = null;
     if (failMissing && remaining.size() > 0) {
-      failedFetches = remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+      if (isShutDown.get()) {
+        LOG.info("Already shutdown, not reporting fetch failures for: " + remaining.size() +
+            " remaining inputs");
+      } else {
+        failedFetches = remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+      }
     } else {
       // nothing needs to be done to requeue remaining entries
     }
@@ -642,20 +674,30 @@ public class Fetcher implements Callable<FetchResult> {
         responsePartition = header.getPartition();
       } catch (IllegalArgumentException e) {
         // badIdErrs.increment(1);
-        LOG.warn("Invalid src id ", e);
-        // Don't know which one was bad, so consider all of them as bad
-        return remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+        if (!isShutDown.get()) {
+          LOG.warn("Invalid src id ", e);
+          // Don't know which one was bad, so consider all of them as bad
+          return remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+        } else {
+          LOG.info("Already shutdown. Ignoring badId error with message: " + e.getMessage());
+          return null;
+        }
       }
 
       // Do some basic sanity verification
       if (!verifySanity(compressedLength, decompressedLength,
           responsePartition, srcAttemptId, pathComponent)) {
-        if (srcAttemptId == null) {
-          LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
-          srcAttemptId = getNextRemainingAttempt();
+        if (!isShutDown.get()) {
+          if (srcAttemptId == null) {
+            LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
+            srcAttemptId = getNextRemainingAttempt();
+          }
+          assert (srcAttemptId != null);
+          return new InputAttemptIdentifier[]{srcAttemptId};
+        } else {
+          LOG.info("Already shutdown. Ignoring verification failure.");
+          return null;
         }
-        assert(srcAttemptId != null);
-        return new InputAttemptIdentifier[] { srcAttemptId };
       }
 
       if (LOG.isDebugEnabled()) {
@@ -672,7 +714,7 @@ public class Fetcher implements Callable<FetchResult> {
         fetchedInput = inputManager.allocate(decompressedLength,
             compressedLength, srcAttemptId);
       }
-      // TODO NEWTEZ No concept of WAIT at the moment.
+      // No concept of WAIT at the moment.
       // // Check if we can shuffle *now* ...
       // if (fetchedInput.getType() == FetchedInput.WAIT) {
       // LOG.info("fetcher#" + id +
@@ -722,23 +764,23 @@ public class Fetcher implements Callable<FetchResult> {
       // metrics.successFetch();
       return null;
     } catch (IOException ioe) {
+      if (isShutDown.get()) {
+        cleanupFetchedInput(fetchedInput);
+        LOG.info("Already shutdown. Ignoring exception during fetch " + ioe.getClass().getName() +
+            ", Message: " + ioe.getMessage());
+        return null;
+      }
       if (shouldRetry(srcAttemptId, ioe)) {
         //release mem/file handles
-        if (fetchedInput != null) {
-          try {
-            fetchedInput.abort();
-          } catch (IOException e) {
-            LOG.info("Failure to cleanup fetchedInput: " + fetchedInput);
-          }
-        }
+        cleanupFetchedInput(fetchedInput);
         throw new FetcherReadTimeoutException(ioe);
       }
-      // ZZZ Add some shutdown code here
-      // ZZZ Make sure any assigned memory inputs are aborted
       // ioErrs.increment(1);
       if (srcAttemptId == null || fetchedInput == null) {
         LOG.info("fetcher" + " failed to read map header" + srcAttemptId
             + " decomp: " + decompressedLength + ", " + compressedLength, ioe);
+        // Cleanup the fetchedInput before returning.
+        cleanupFetchedInput(fetchedInput);
         if (srcAttemptId == null) {
           return remaining
               .toArray(new InputAttemptIdentifier[remaining.size()]);
@@ -749,14 +791,20 @@ public class Fetcher implements Callable<FetchResult> {
       LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host,
           ioe);
 
-      // Inform the shuffle-scheduler
+      // Cleanup the fetchedInput
+      cleanupFetchedInput(fetchedInput);
+      // metrics.failedFetch();
+      return new InputAttemptIdentifier[] { srcAttemptId };
+    }
+  }
+
+  private void cleanupFetchedInput(FetchedInput fetchedInput) {
+    if (fetchedInput != null) {
       try {
         fetchedInput.abort();
       } catch (IOException e) {
         LOG.info("Failure to cleanup fetchedInput: " + fetchedInput);
       }
-      // metrics.failedFetch();
-      return new InputAttemptIdentifier[] { srcAttemptId };
     }
   }
 
