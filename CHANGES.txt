@@ -63,6 +63,7 @@ ALL CHANGES:
   TEZ-1141. DAGStatus.Progress should include number of failed and killed attempts.
   TEZ-1424. Fixes to DAG text representation in debug mode.
   TEZ-1590. Fetchers should not report failures after the Processor on the task completes.
+  TEZ-1542. Fix a Local Mode crash on concurrentModificationException.
 
 Release 0.5.1: 2014-10-02
 
