@@ -61,13 +61,12 @@ class ShuffleScheduler {
   private static final Log LOG = LogFactory.getLog(ShuffleScheduler.class);
   private static final long INITIAL_PENALTY = 2000l; // 2 seconds
   private static final float PENALTY_GROWTH_RATE = 1.3f;
-  
-  // TODO NEWTEZ May need to be a string if attempting to fetch from multiple inputs.
+
   private boolean[] finishedMaps;
   private final int numInputs;
   private int remainingMaps;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
-  //TODO NEWTEZ Clean this and other maps at some point
+  //TODO Clean this and other maps at some point
   private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>(); 
   private Set<MapHost> pendingHosts = new HashSet<MapHost>();
   private Set<InputAttemptIdentifier> obsoleteInputs = new HashSet<InputAttemptIdentifier>();
@@ -283,6 +282,7 @@ class ShuffleScheduler {
                 inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
                 srcAttempt.getAttemptNumber()));
       ioe.fillInStackTrace();
+      // Shuffle knows how to deal with failures post shutdown via the onFailure hook
       shuffle.reportException(ioe);
     }
 
@@ -299,6 +299,7 @@ class ShuffleScheduler {
 
   public void reportLocalError(IOException ioe) {
     LOG.error("Shuffle failed : caused by local error", ioe);
+    // Shuffle knows how to deal with failures post shutdown via the onFailure hook
     shuffle.reportException(ioe);
   }
 
@@ -372,6 +373,7 @@ class ShuffleScheduler {
           + ", reducerHealthy=" + reducerHealthy + ", reducerProgressedEnough="
           + reducerProgressedEnough + ", reducerStalled=" + reducerStalled);
       String errorMsg = "Exceeded MAX_FAILED_UNIQUE_FETCHES; bailing-out.";
+      // Shuffle knows how to deal with failures post shutdown via the onFailure hook
       shuffle.reportException(new IOException(errorMsg));
     }
 
@@ -590,15 +592,16 @@ class ShuffleScheduler {
           }
         }
       } catch (InterruptedException ie) {
+        // This handles shutdown of the entire fetch / merge process.
         return;
       } catch (Throwable t) {
+        // Shuffle knows how to deal with failures post shutdown via the onFailure hook
         shuffle.reportException(t);
       }
     }
   }
   
   public void close() throws InterruptedException {
-    /// ZZZ need to interrupt setlf ?
     referee.interrupt();
     referee.join();
   }

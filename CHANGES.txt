@@ -62,6 +62,7 @@ ALL CHANGES:
   TEZ-1688. Add applicationId as a primary filter for all Timeline data for easier export.
   TEZ-1141. DAGStatus.Progress should include number of failed and killed attempts.
   TEZ-1424. Fixes to DAG text representation in debug mode.
+  TEZ-1590. Fetchers should not report failures after the Processor on the task completes.
 
 Release 0.5.1: 2014-10-02
 

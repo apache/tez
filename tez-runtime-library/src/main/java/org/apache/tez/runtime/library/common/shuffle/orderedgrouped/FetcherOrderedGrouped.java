@@ -182,6 +182,7 @@ class FetcherOrderedGrouped extends Thread {
       return;
     } catch (Throwable t) {
       shuffle.reportException(t);
+      // Shuffle knows how to deal with failures post shutdown via the onFailure hook
     }
   }
 
@@ -271,22 +272,32 @@ class FetcherOrderedGrouped extends Thread {
         } catch (FetcherReadTimeoutException e) {
           // Setup connection again if disconnected
           cleanupCurrentConnection(true);
-
+          if (stopped) {
+            LOG.info("Not re-establishing connection since Fetcher has been stopped");
+            return;
+          }
           // Connect with retry
           if (!setupConnection(host, new LinkedList<InputAttemptIdentifier>(remaining))) {
             if (stopped) {
               cleanupCurrentConnection(true);
+              LOG.info("Not reporting connection re-establishment failure since fetcher is stopped");
+              return;
             }
             failedTasks = new InputAttemptIdentifier[] {getNextRemainingAttempt()};
             break;
           }
         }
       }
-      
-      if(failedTasks != null && failedTasks.length > 0) {
-        LOG.warn("copyMapOutput failed for tasks "+Arrays.toString(failedTasks));
-        for(InputAttemptIdentifier left: failedTasks) {
-          scheduler.copyFailed(left, host, true, false);
+
+      if (failedTasks != null && failedTasks.length > 0) {
+        if (stopped) {
+          LOG.info("Ignoring copyMapOutput failures for tasks: " + Arrays.toString(failedTasks) +
+              " since Fetcher has been stopped");
+        } else {
+          LOG.warn("copyMapOutput failed for tasks " + Arrays.toString(failedTasks));
+          for (InputAttemptIdentifier left : failedTasks) {
+            scheduler.copyFailed(left, host, true, false);
+          }
         }
       }
 
@@ -365,7 +376,7 @@ class FetcherOrderedGrouped extends Thread {
   }
 
   private static InputAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new InputAttemptIdentifier[0];
-  
+
   protected InputAttemptIdentifier[] copyMapOutput(MapHost host,
                                 DataInputStream input) throws FetcherReadTimeoutException {
     MapOutput mapOutput = null;
@@ -382,8 +393,15 @@ class FetcherOrderedGrouped extends Thread {
         // TODO Review: Multiple header reads in case of status WAIT ? 
         header.readFields(input);
         if (!header.mapId.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
-          throw new IllegalArgumentException(
-              "Invalid header received: " + header.mapId + " partition: " + header.forReduce);
+          if (!stopped) {
+            badIdErrs.increment(1);
+            LOG.warn("Invalid map id: " + header.mapId + ", expected to start with " +
+                InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.forReduce);
+            return new InputAttemptIdentifier[] {getNextRemainingAttempt()};
+          } else {
+            LOG.info("Already shutdown. Ignoring invalid map id error");
+            return EMPTY_ATTEMPT_ID_ARRAY;
+          }
         }
         srcAttemptId = 
             scheduler.getIdentifierForFetchedOutput(header.mapId, header.forReduce);
@@ -391,22 +409,33 @@ class FetcherOrderedGrouped extends Thread {
         decompressedLength = header.uncompressedLength;
         forReduce = header.forReduce;
       } catch (IllegalArgumentException e) {
-        badIdErrs.increment(1);
-        LOG.warn("Invalid map id ", e);
-        // Don't know which one was bad, so consider this one bad and dont read
-        // the remaining because we dont know where to start reading from. YARN-1773
-        return new InputAttemptIdentifier[] {getNextRemainingAttempt()};
+        if (!stopped) {
+          badIdErrs.increment(1);
+          LOG.warn("Invalid map id ", e);
+          // Don't know which one was bad, so consider this one bad and dont read
+          // the remaining because we dont know where to start reading from. YARN-1773
+          return new InputAttemptIdentifier[] {getNextRemainingAttempt()};
+        } else {
+          LOG.info("Already shutdown. Ignoring invalid map id error. Exception: " +
+              e.getClass().getName() + ", Message: " + e.getMessage());
+          return EMPTY_ATTEMPT_ID_ARRAY;
+        }
       }
 
       // Do some basic sanity verification
       if (!verifySanity(compressedLength, decompressedLength, forReduce,
           remaining, srcAttemptId)) {
-        if (srcAttemptId == null) {
-          LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
-          srcAttemptId = getNextRemainingAttempt();
+        if (!stopped) {
+          if (srcAttemptId == null) {
+            LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
+            srcAttemptId = getNextRemainingAttempt();
+          }
+          assert (srcAttemptId != null);
+          return new InputAttemptIdentifier[]{srcAttemptId};
+        } else {
+          LOG.info("Already stopped. Ignoring verification failure.");
+          return EMPTY_ATTEMPT_ID_ARRAY;
         }
-        assert(srcAttemptId != null);
-        return new InputAttemptIdentifier[] {srcAttemptId};
       }
       
       if(LOG.isDebugEnabled()) {
@@ -418,9 +447,13 @@ class FetcherOrderedGrouped extends Thread {
       try {
         mapOutput = merger.reserve(srcAttemptId, decompressedLength, compressedLength, id);
       } catch (IOException e) {
-        // Kill the reduce attempt
-        ioErrs.increment(1);
-        scheduler.reportLocalError(e);
+        if (!stopped) {
+          // Kill the reduce attempt
+          ioErrs.increment(1);
+          scheduler.reportLocalError(e);
+        } else {
+          LOG.info("Already stopped. Ignoring error from merger.reserve");
+        }
         return EMPTY_ATTEMPT_ID_ARRAY;
       }
       
@@ -601,6 +634,10 @@ class FetcherOrderedGrouped extends Thread {
     try {
       final Iterator<InputAttemptIdentifier> iter = remaining.iterator();
       while (iter.hasNext()) {
+        // Avoid fetching more if already stopped
+        if (stopped) {
+          return;
+        }
         InputAttemptIdentifier srcAttemptId = iter.next();
         MapOutput mapOutput = null;
         try {
@@ -620,11 +657,16 @@ class FetcherOrderedGrouped extends Thread {
           if (mapOutput != null) {
             mapOutput.abort();
           }
-          metrics.failedFetch();
-          ioErrs.increment(1);
-          scheduler.copyFailed(srcAttemptId, host, true, false);
-          LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
-              host.getHostIdentifier(), e);
+          if (!stopped) {
+            metrics.failedFetch();
+            ioErrs.increment(1);
+            scheduler.copyFailed(srcAttemptId, host, true, false);
+            LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
+                host.getHostIdentifier(), e);
+          } else {
+            LOG.info("Ignoring fetch error during local disk copy since fetcher has already been stopped");
+            return;
+          }
         }
       }
     } finally {
