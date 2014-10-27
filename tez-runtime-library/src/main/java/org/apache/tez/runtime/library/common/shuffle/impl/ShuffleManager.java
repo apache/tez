@@ -54,6 +54,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
@@ -126,7 +127,7 @@ public class ShuffleManager implements FetcherCallback {
   private final int numFetchers;
   
   // Parameters required by Fetchers
-  private final SecretKey shuffleSecret;
+  private final JobTokenSecretManager jobTokenSecretMgr;
   private final CompressionCodec codec;
   private final boolean localDiskFetchEnabled;
   private final boolean sharedFetchEnabled;
@@ -212,9 +213,10 @@ public class ShuffleManager implements FetcherCallback {
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
     
-    this.shuffleSecret = ShuffleUtils
+    SecretKey shuffleSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
+    this.jobTokenSecretMgr = new JobTokenSecretManager(shuffleSecret);
     httpConnectionParams =
         ShuffleUtils.constructHttpShuffleConnectionParams(conf);
 
@@ -343,7 +345,7 @@ public class ShuffleManager implements FetcherCallback {
 
     FetcherBuilder fetcherBuilder = new FetcherBuilder(ShuffleManager.this,
       httpConnectionParams, inputManager, inputContext.getApplicationId(),
-        shuffleSecret, srcNameTrimmed, conf, localFs, localDirAllocator,
+        jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
         lockDisk, localDiskFetchEnabled, sharedFetchEnabled);
 
     if (codec != null) {

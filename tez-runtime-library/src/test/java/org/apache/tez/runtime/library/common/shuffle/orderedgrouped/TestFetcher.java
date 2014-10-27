@@ -47,6 +47,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -182,9 +183,9 @@ public class TestFetcher {
   static class FakeHttpConnection extends HttpConnection {
 
     public FakeHttpConnection(URL url,
-        HttpConnectionParams connParams, String logIdentifier, SecretKey jobTokenSecret)
+        HttpConnectionParams connParams, String logIdentifier, JobTokenSecretManager jobTokenSecretMgr)
         throws IOException {
-      super(url, connParams, logIdentifier, jobTokenSecret);
+      super(url, connParams, logIdentifier, jobTokenSecretMgr);
       this.connection = mock(HttpURLConnection.class);
       when(connection.getResponseCode()).thenReturn(200);
       when(connection.getHeaderField(ShuffleHeader.HTTP_HEADER_NAME))

@@ -38,8 +38,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.crypto.SecretKey;
-
 import com.google.common.annotations.VisibleForTesting;
 
 import org.apache.commons.logging.Log;
@@ -52,6 +50,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
@@ -82,7 +81,7 @@ public class Fetcher implements Callable<FetchResult> {
   private boolean ifileReadAhead = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
   private int ifileReadAheadLength = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
   
-  private final SecretKey shuffleSecret;
+  private final JobTokenSecretManager jobTokenSecretMgr;
 
   private final FetcherCallback fetcherCallback;
   private final FetchedInputAllocator inputManager;
@@ -124,7 +123,7 @@ public class Fetcher implements Callable<FetchResult> {
 
   private Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
       FetchedInputAllocator inputManager, ApplicationId appId,
-      SecretKey shuffleSecret, String srcNameTrimmed, Configuration conf,
+      JobTokenSecretManager jobTokenSecretManager, String srcNameTrimmed, Configuration conf,
       RawLocalFileSystem localFs,
       LocalDirAllocator localDirAllocator,
       Path lockPath,
@@ -132,7 +131,7 @@ public class Fetcher implements Callable<FetchResult> {
       boolean sharedFetchEnabled) {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
-    this.shuffleSecret = shuffleSecret;
+    this.jobTokenSecretMgr = jobTokenSecretManager;
     this.appId = appId;
     this.pathToAttemptMap = new HashMap<String, InputAttemptIdentifier>();
     this.httpConnectionParams = params;
@@ -402,7 +401,7 @@ public class Fetcher implements Callable<FetchResult> {
       this.url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts,
           httpConnectionParams.getKeepAlive());
 
-      httpConnection = new HttpConnection(url, httpConnectionParams, logIdentifier, shuffleSecret);
+      httpConnection = new HttpConnection(url, httpConnectionParams, logIdentifier, jobTokenSecretMgr);
       httpConnection.connect();
     } catch (IOException e) {
       // ioErrs.increment(1);
@@ -898,21 +897,21 @@ public class Fetcher implements Callable<FetchResult> {
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
         HttpConnectionParams params, FetchedInputAllocator inputManager,
-        ApplicationId appId, SecretKey shuffleSecret, String srcNameTrimmed,
+        ApplicationId appId, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
         Configuration conf, boolean localDiskFetchEnabled) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
-          shuffleSecret, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
+          jobTokenSecretMgr, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
           false);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
         HttpConnectionParams params, FetchedInputAllocator inputManager,
-        ApplicationId appId, SecretKey shuffleSecret, String srcNameTrimmed,
+        ApplicationId appId, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
         Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
         boolean localDiskFetchEnabled, boolean sharedFetchEnabled) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
-          shuffleSecret, srcNameTrimmed, conf, localFs, localDirAllocator,
+          jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
           lockPath, localDiskFetchEnabled, sharedFetchEnabled);
     }
 

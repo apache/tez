@@ -49,7 +49,7 @@ public class SecureShuffleUtils {
   public static String generateHash(byte[] msg, SecretKey key) {
     return new String(Base64.encodeBase64(generateByteHash(msg, key)));
   }
-  
+
   /**
    * calculate hash of msg
    * @param msg
@@ -58,41 +58,43 @@ public class SecureShuffleUtils {
   private static byte[] generateByteHash(byte[] msg, SecretKey key) {
     return JobTokenSecretManager.computeHash(msg, key);
   }
-  
+
   /**
    * verify that hash equals to HMacHash(msg)
-   * @param newHash
-   * @return true if is the same
+   * @param hash
+   * @param msg
+   * @param mgr JobTokenSecretManager
+   * @return true when hashes match; false otherwise
    */
-  private static boolean verifyHash(byte[] hash, byte[] msg, SecretKey key) {
-    byte[] msg_hash = generateByteHash(msg, key);
+  private static boolean verifyHash(byte[] hash, byte[] msg, JobTokenSecretManager mgr) {
+    byte[] msg_hash = mgr.computeHash(msg);
     return WritableComparator.compareBytes(msg_hash, 0, msg_hash.length, hash, 0, hash.length) == 0;
   }
-  
+
   /**
    * Aux util to calculate hash of a String
    * @param enc_str
-   * @param key
+   * @param mgr JobTokenSecretManager
    * @return Base64 encodedHash
    * @throws IOException
    */
-  public static String hashFromString(String enc_str, SecretKey key) 
-  throws IOException {
-    return generateHash(enc_str.getBytes(), key); 
+  public static String hashFromString(String enc_str, JobTokenSecretManager mgr)
+      throws IOException {
+    return new String(Base64.encodeBase64(mgr.computeHash(enc_str.getBytes())));
   }
   
   /**
-   * verify that base64Hash is same as HMacHash(msg)  
+   * verify that base64Hash is same as HMacHash(msg)
    * @param base64Hash (Base64 encoded hash)
    * @param msg
    * @throws IOException if not the same
    */
-  public static void verifyReply(String base64Hash, String msg, SecretKey key)
-  throws IOException {
+  public static void verifyReply(String base64Hash, String msg, JobTokenSecretManager mgr)
+      throws IOException {
     byte[] hash = Base64.decodeBase64(base64Hash.getBytes());
-    
-    boolean res = verifyHash(hash, msg.getBytes(), key);
-    
+
+    boolean res = verifyHash(hash, msg.getBytes(), mgr);
+
     if(res != true) {
       throw new IOException("Verification of the hashReply failed");
     }
