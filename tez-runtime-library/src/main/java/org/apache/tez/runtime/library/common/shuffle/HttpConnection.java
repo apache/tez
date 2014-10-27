@@ -27,7 +27,6 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.TimeUnit;
 
-import javax.crypto.SecretKey;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -37,6 +36,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.ssl.SSLFactory;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 
@@ -65,7 +65,7 @@ public class HttpConnection {
   private boolean connectionSucceeed;
   private volatile boolean cleanup;
 
-  private final SecretKey jobTokenSecret;
+  private final JobTokenSecretManager jobTokenSecretMgr;
   private String encHash;
   private String msgToEncode;
 
@@ -78,13 +78,13 @@ public class HttpConnection {
    * @param url
    * @param connParams
    * @param logIdentifier
-   * @param jobTokenSecret
+   * @param jobTokenSecretManager
    * @throws IOException
    */
   public HttpConnection(URL url, HttpConnectionParams connParams,
-      String logIdentifier, SecretKey jobTokenSecret) throws IOException {
+      String logIdentifier, JobTokenSecretManager jobTokenSecretManager) throws IOException {
     this.logIdentifier = logIdentifier;
-    this.jobTokenSecret = jobTokenSecret;
+    this.jobTokenSecretMgr = jobTokenSecretManager;
     this.httpConnParams = connParams;
     this.url = url;
     this.stopWatch = new Stopwatch();
@@ -107,7 +107,7 @@ public class HttpConnection {
     }
     // generate hash of the url
     msgToEncode = SecureShuffleUtils.buildMsgFrom(url);
-    encHash = SecureShuffleUtils.hashFromString(msgToEncode, jobTokenSecret);
+    encHash = SecureShuffleUtils.hashFromString(msgToEncode, jobTokenSecretMgr);
 
     // put url hash into http header
     connection.addRequestProperty(SecureShuffleUtils.HTTP_HEADER_URL_HASH,
@@ -217,7 +217,7 @@ public class HttpConnection {
           + replyHash);
     }
     // verify that replyHash is HMac of encHash
-    SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecret);
+    SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecretMgr);
     LOG.info("for url=" + url +
       " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
   }

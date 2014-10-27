@@ -44,6 +44,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.runtime.api.Event;
@@ -88,6 +89,7 @@ public class Shuffle implements ExceptionReporter {
   private final MergeManager merger;
 
   private final SecretKey jobTokenSecret;
+  private final JobTokenSecretManager jobTokenSecretMgr;
   private final CompressionCodec codec;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
@@ -126,6 +128,7 @@ public class Shuffle implements ExceptionReporter {
     this.jobTokenSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
+    this.jobTokenSecretMgr = new JobTokenSecretManager(jobTokenSecret);
     
     if (ConfigUtils.isIntermediateInputCompressed(conf)) {
       Class<? extends CompressionCodec> codecClass =
@@ -321,7 +324,7 @@ public class Shuffle implements ExceptionReporter {
         for (int i = 0; i < numFetchers; ++i) {
           FetcherOrderedGrouped
               fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
-            metrics, Shuffle.this, jobTokenSecret, ifileReadAhead, ifileReadAheadLength,
+            metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
             codec, inputContext, conf, localDiskFetchEnabled);
           fetchers.add(fetcher);
           fetcher.start();

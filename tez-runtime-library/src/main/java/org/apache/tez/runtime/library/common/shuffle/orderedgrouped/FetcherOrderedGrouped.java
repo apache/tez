@@ -29,8 +29,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import javax.crypto.SecretKey;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -42,6 +40,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -82,7 +81,7 @@ class FetcherOrderedGrouped extends Thread {
 
   // Decompression of map-outputs
   private final CompressionCodec codec;
-  private final SecretKey jobTokenSecret;
+  private final JobTokenSecretManager jobTokenSecretManager;
 
   @VisibleForTesting
   volatile boolean stopped = false;
@@ -105,7 +104,7 @@ class FetcherOrderedGrouped extends Thread {
   public FetcherOrderedGrouped(HttpConnectionParams httpConnectionParams,
                                ShuffleScheduler scheduler, MergeManager merger,
                                ShuffleClientMetrics metrics,
-                               Shuffle shuffle, SecretKey jobTokenSecret,
+                               Shuffle shuffle, JobTokenSecretManager jobTokenSecretMgr,
                                boolean ifileReadAhead, int ifileReadAheadLength,
                                CompressionCodec codec,
                                InputContext inputContext, Configuration conf,
@@ -116,7 +115,7 @@ class FetcherOrderedGrouped extends Thread {
     this.metrics = metrics;
     this.shuffle = shuffle;
     this.id = ++nextId;
-    this.jobTokenSecret = jobTokenSecret;
+    this.jobTokenSecretManager = jobTokenSecretMgr;
     ioErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
         ShuffleErrors.IO_ERROR.toString());
     wrongLengthErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
@@ -321,7 +320,7 @@ class FetcherOrderedGrouped extends Thread {
       URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), attempts,
           httpConnectionParams.getKeepAlive());
       httpConnection = new HttpConnection(url, httpConnectionParams,
-          logIdentifier, jobTokenSecret);
+          logIdentifier, jobTokenSecretManager);
       connectSucceeded = httpConnection.connect();
 
       if (stopped) {

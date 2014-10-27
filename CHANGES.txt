@@ -65,6 +65,7 @@ ALL CHANGES:
   TEZ-1590. Fetchers should not report failures after the Processor on the task completes.
   TEZ-1542. Fix a Local Mode crash on concurrentModificationException.
   TEZ-1638. Fix Missing type parametrization in runtime Input/Output configs.
+  TEZ-1596. Secure Shuffle utils is extremely expensive for fast queries.
 
 Release 0.5.1: 2014-10-02
 
