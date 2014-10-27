@@ -89,6 +89,7 @@ App.Vertex = DS.Model.extend({
   name: DS.attr('string'),
 
   dag: DS.belongsTo('dag'),
+  dagID: DS.attr('string'),
 
   /**
    * State of this vertex. Should be one of constants defined in
@@ -145,6 +146,17 @@ App.Vertex = DS.Model.extend({
    * Number of actual Map/Reduce tasks in this vertex
    */
   numTasks: DS.attr('number'),
+
+  name: DS.attr('string'),
+
+  failedTasks: DS.attr('number'),
+  sucessfulTasks: DS.attr('number'),
+  numTasks: DS.attr('number'),
+  killedTasks: DS.attr('number'),
+
+  diagnostics: DS.attr('string'),
+
+  counterGroups: DS.hasMany('counterGroup'),
 
   tasksNumber: function () {
     return this.getWithDefault('tasksCount', 0);

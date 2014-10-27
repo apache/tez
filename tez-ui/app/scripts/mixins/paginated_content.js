@@ -18,6 +18,7 @@
 var modelToATSType = {
 	dag: 'TEZ_DAG_ID',
 	task: 'TEZ_TASK_ID',
+	vertex: 'TEZ_VERTEX_ID',
 	taskAttempt: 'TEZ_TASK_ATTEMPT_ID'
 };
 

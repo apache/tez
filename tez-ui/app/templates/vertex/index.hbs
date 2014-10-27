@@ -1,0 +1,81 @@
+{{!
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+}}
+
+<div class='type-table fill-full margin-small-horizontal'>
+  <div class='align-left'>
+    <table class='detail-list'>
+      <tbody>
+        <tr>
+          <td>Vertex Name</td>
+          <td>
+            {{name}}
+          </td>
+        </tr>
+        <tr>
+          <td>{{t common.status}}</td>
+          <td>
+            <i {{bind-attr class=':task-status iconStatus'}}></i>
+            {{status}}
+          </td>
+        </tr>
+        <tr>
+          <td>Total Tasks</td>
+          <td>{{numTasks}}</td>
+        </tr>
+        <tr>
+          <td>Successful Tasks</td>
+          <td>{{sucessfulTasks}}</td>
+        </tr>
+        <tr>
+          <td>Failed Tasks</td>
+          <td>
+            {{failedTasks}}
+          </td>
+        </tr>
+        <tr>
+          <td>Killed Tasks</td>
+          <td>{{killedTasks}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class='align-right'>
+    <table class='detail-list'>
+      <tbody>
+        <tr>
+          <td>{{t common.time.start}}</td>
+          <td>{{formatUnixTimestamp startTime}}</td>
+        </tr>
+        <tr>
+          <td>{{t common.time.end}}</td>
+          <td>{{formatUnixTimestamp endTime}}</td>
+        </tr>
+        <tr>
+          <td>{{t common.time.duration}}</td>
+          <td>{{formatDuration startTime endTime}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{{#if diagnostics}}
+  {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
+    {{formatDiagnostics diagnostics}}
+  {{/bs-panel}}
+{{/if}}

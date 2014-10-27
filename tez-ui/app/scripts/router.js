@@ -24,7 +24,13 @@ App.Router.map(function() {
 		this.route('counters'),
 		this.route('swimlane')
 	});
-	this.resource('vertex', {path: '/vertex/:vertex_id'});
+
+  this.resource('vertex', {path: '/vertex/:vertex_id'}, function(){
+    this.route('tasks');
+    this.route('counters');
+    this.route('details');
+    this.route('swimlane');
+  });
 	
 	this.resource('tasks', {path: '/tasks/:dag_id'});
 	this.resource('task', {path: '/task/:task_id'}, function(){
@@ -140,4 +146,29 @@ App.TaskRoute = Em.Route.extend({
 	setupController: function(controller, model) {
 		this._super(controller, model);
 	}
+});
+
+App.VertexRoute = Em.Route.extend({
+	model: function(params) {
+		return this.store.find('vertex', params.vertex_id);
+	},
+
+	setupController: function(controller, model) {
+		this._super(controller, model);
+	}
+});
+
+App.VertexSwimlaneRoute = Em.Route.extend({
+  model: function(params) {
+    var model = this.modelFor('vertex');
+    var queryParams = {'primaryFilter': 'TEZ_DAG_ID:' + model.get('dagID') };
+    this.store.unloadAll('task_attempt');
+    return this.store.filter('task_attempt', queryParams, function(ta) {
+      return ta.get('vertexID') == model.id;
+    });
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+  }
 });

@@ -275,12 +275,18 @@ var timelineJsonToVertexMap = {
   id: 'entity',
   name: 'otherinfo.vertexName',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
+  counterGroups: 'counterGroups',
+
   startTime: 'otherinfo.startTime',
   endTime: 'otherinfo.endTime',
+
   status: 'otherinfo.status',
   diagnostics: 'otherinfo.diagnostics',
-  counterGroups: 'counterGroups',
-  numTasks: 'otherinfo.numTasks'
+
+  failedTasks: 'otherinfo.numFailedTasks',
+  sucessfulTasks: 'otherinfo.numSucceededTasks',
+  numTasks: 'otherinfo.numTasks',
+  killedTasks: 'otherinfo.numKilledTasks',
 };
 
 App.VertexSerializer = App.TimelineSerializer.extend({
@@ -313,7 +319,7 @@ App.VertexSerializer = App.TimelineSerializer.extend({
       }, this);
       
       // delete so that we dont hang on to the json data.
-      delete rawPayload.vertex;
+      delete rawPayload.vertices;
 
       return normalizedPayload;
     } else {
