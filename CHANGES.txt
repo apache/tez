@@ -69,6 +69,7 @@ ALL CHANGES:
   TEZ-1712. SSL context gets destroyed too soon after downloading data from one of the vertices.
   TEZ-1710. Add support for cluster default AM/task launch opts.
   TEZ-1713. tez.lib.uris should not require the paths specified to be fully qualified.
+  TEZ-1715. Fix use of import java.util.* in MultiMRInput.
 
 Release 0.5.1: 2014-10-02
 
