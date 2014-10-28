@@ -120,19 +120,14 @@ public class TezClientUtils {
       throw new TezUncheckedException(message, e);
     }
 
-    if (!uri.isAbsolute()) {
-      String message = "Non-absolute URI defined in configuration for"
-          + " location of TEZ jars. providedURI=" + fileName;
-      LOG.error(message);
-      throw new TezUncheckedException(message);
-    }
     Path p = new Path(uri);
-    FileSystem pathfs = p.getFileSystem(conf);
-    p = pathfs.makeQualified(p);
-    if (pathfs.isDirectory(p)) {
-      return pathfs.listStatus(p);
+    FileSystem fs = p.getFileSystem(conf);
+    p = fs.resolvePath(p);
+
+    if (fs.isDirectory(p)) {
+      return fs.listStatus(p);
     } else {
-      FileStatus fStatus = pathfs.getFileStatus(p);
+      FileStatus fStatus = fs.getFileStatus(p);
       return new FileStatus[]{fStatus};
     }
   }
