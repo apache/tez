@@ -95,7 +95,7 @@ public class HttpConnection {
 
   private void setupConnection() throws IOException {
     connection = (HttpURLConnection) url.openConnection();
-    if (sslFactory != null) {
+    if (sslFactory != null && httpConnParams.sslShuffle) {
       try {
         ((HttpsURLConnection) connection).setSSLSocketFactory(sslFactory
           .createSSLSocketFactory());
@@ -244,16 +244,6 @@ public class HttpConnection {
   }
 
   /**
-   * Cleanup ssl factory. Should be called after all threads are shutdown.
-   */
-  public synchronized static void cleanupSSLFactory() {
-    if (sslFactory != null) {
-      sslFactory.destroy();
-      sslFactory = null;
-    }
-  }
-
-  /**
    * Cleanup the connection.
    * 
    * @param disconnect
@@ -383,24 +373,23 @@ public class HttpConnection {
 
     public synchronized HttpConnectionParamsBuilder setSSL(boolean sslEnabled,
         Configuration conf) {
-      params.sslShuffle = sslEnabled;
-      if(sslEnabled) {
-        //Create sslFactory if it is null or if it was destroyed earlier
-        if (sslFactory == null || sslFactory.getKeystoresFactory()
-            .getTrustManagers() == null) {
-          LOG.info("Initializing SSL factory in HttpConnection");
-          sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
-          try {
-            sslFactory.init();
-          } catch (Exception ex) {
-            sslFactory.destroy();
-            sslFactory = null;
-            throw new RuntimeException(ex);
+      synchronized (HttpConnectionParamsBuilder.class) {
+        params.sslShuffle = sslEnabled;
+        if (sslEnabled) {
+          //Create sslFactory if it is null or if it was destroyed earlier
+          if (sslFactory == null || sslFactory.getKeystoresFactory()
+              .getTrustManagers() == null) {
+            LOG.info("Initializing SSL factory in HttpConnection");
+            sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
+            try {
+              sslFactory.init();
+            } catch (Exception ex) {
+              sslFactory.destroy();
+              sslFactory = null;
+              throw new RuntimeException(ex);
+            }
           }
         }
-      } else {
-        //Defensive: In case SSL was initied earlier, clean it up.
-        cleanupSSLFactory();
       }
       return this;
     }

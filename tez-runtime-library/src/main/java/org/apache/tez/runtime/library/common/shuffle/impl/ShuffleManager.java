@@ -594,10 +594,6 @@ public class ShuffleManager implements FetcherCallback {
         this.fetcherExecutor.shutdownNow(); // Interrupts all running fetchers.
       }
     }
-    //All threads are shutdown.  It is safe to shutdown SSL factory
-    if (httpConnectionParams.isSSLShuffleEnabled()) {
-      HttpConnection.cleanupSSLFactory();
-    }
   }
 
   private void registerCompletedInput(FetchedInput fetchedInput) {

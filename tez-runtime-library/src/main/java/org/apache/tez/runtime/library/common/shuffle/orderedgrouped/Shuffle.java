@@ -390,10 +390,6 @@ public class Shuffle implements ExceptionReporter {
         }
       }
       fetchers.clear();
-      //All threads are shutdown.  It is safe to shutdown SSL factory
-      if (httpConnectionParams.isSSLShuffleEnabled()) {
-        HttpConnection.cleanupSSLFactory();
-      }
       // throw only the first exception while attempting to shutdown.
       if (ie != null) {
         throw ie;

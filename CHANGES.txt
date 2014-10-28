@@ -66,6 +66,7 @@ ALL CHANGES:
   TEZ-1542. Fix a Local Mode crash on concurrentModificationException.
   TEZ-1638. Fix Missing type parametrization in runtime Input/Output configs.
   TEZ-1596. Secure Shuffle utils is extremely expensive for fast queries.
+  TEZ-1712. SSL context gets destroyed too soon after downloading data from one of the vertices.
 
 Release 0.5.1: 2014-10-02
 
