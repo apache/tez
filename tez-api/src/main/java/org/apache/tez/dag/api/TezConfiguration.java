@@ -146,7 +146,7 @@ public class TezConfiguration extends Configuration {
    * be overridden per job.
    */
   public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS =
-      TEZ_AM_PREFIX + "launch.cluster-default.admin.cmd-opts";
+      TEZ_AM_PREFIX + "launch.cluster-default.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
       "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
 
