@@ -140,15 +140,35 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
   /**
+   * String value. Command line options which will be prepended to {@link #TEZ_AM_LAUNCH_CMD_OPTS}
+   * during the launch of the AppMaster process. This property will typically be configured to
+   * include default options meant to be used by all jobs in a cluster. If required, the values can
+   * be overridden per job.
+   */
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS =
+      TEZ_AM_PREFIX + "launch.cluster-default.admin.cmd-opts";
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
+      "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
+
+  /**
    * String value. Command line options provided during the launch of the Tez
    * AppMaster process. Its recommended to not set any Xmx or Xms in these launch opts so that
    * Tez can determine them automatically.
    * */
   public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
-      "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc " + 
-      "-XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC " +
-      "-Dhadoop.metrics.log.level=WARN ";
+      "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
+
+  /**
+   * String value. Command line options which will be prepended to {@link
+   * #TEZ_TASK_LAUNCH_CMD_OPTS} during the launch of Tez tasks.  This property will typically be configured to
+   * include default options meant to be used by all jobs in a cluster. If required, the values can
+   * be overridden per job.
+   */
+  public static final String TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS =
+      TEZ_TASK_PREFIX + "launch.cluster-default.cmd-opts";
+  public static final String TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
+      "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
 
   /**
    * String value. Command line options provided during the launch of Tez Task
@@ -157,10 +177,8 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
       + "launch.cmd-opts";
-  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = 
-      "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc " + 
-      "-XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC " +
-      "-Dhadoop.metrics.log.level=WARN ";
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT =
+      "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
 
   /**
    * Double value. Tez automatically determines the Xmx for the JVMs used to run

@@ -27,7 +27,6 @@ import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -454,12 +453,7 @@ public class TezClientUtils {
     List<String> vargs = new ArrayList<String>(8);
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
-    String amOpts = amConfig.getTezConfiguration().get(
-        TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
-        TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
-    amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
-        amConfig.getTezConfiguration().getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
-            TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
+    String amOpts = constructAMLaunchOpts(amConfig.getTezConfiguration(), capability);
     vargs.add(amOpts);
 
     String amLogLevel = amConfig.getTezConfiguration().get(
@@ -671,10 +665,17 @@ public class TezClientUtils {
   
   @Private
   public static String addDefaultsToTaskLaunchCmdOpts(String vOpts, Configuration conf) {
-    String vConfigOpts = conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
+    String vConfigOpts = "";
+    String taskDefaultOpts = conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS,
+        TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT);
+    if (taskDefaultOpts != null && !taskDefaultOpts.isEmpty()) {
+      vConfigOpts = taskDefaultOpts + " ";
+    }
+    vConfigOpts = vConfigOpts + conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT);
-    if (vConfigOpts != null && vConfigOpts.length() > 0) {
-      vOpts += (" " + vConfigOpts);
+    if (vConfigOpts != null && !vConfigOpts.isEmpty()) {
+      // Add options specified in the DAG at the end.
+      vOpts = vConfigOpts + " " + vOpts;
     }
     
     vOpts = maybeAddDefaultLoggingJavaOpts(conf.get(
@@ -884,6 +885,24 @@ public class TezClientUtils {
     }
 
     return true;
+  }
+
+  @Private
+  @VisibleForTesting
+  static String constructAMLaunchOpts(TezConfiguration tezConf, Resource capability) {
+    String defaultOpts = tezConf.get(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS,
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT);
+    String amOpts = "";
+    if (defaultOpts != null && !defaultOpts.isEmpty()) {
+      amOpts = defaultOpts + " ";
+    }
+    amOpts = amOpts + tezConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
+        TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
+
+    amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
+        tezConf.getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
+            TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
+    return amOpts;
   }
 
 }

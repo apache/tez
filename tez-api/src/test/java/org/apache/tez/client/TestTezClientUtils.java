@@ -184,6 +184,98 @@ public class TestTezClientUtils {
   }
 
 
+  @Test(timeout = 5000)
+  public void testAMCommandOpts() {
+    TezConfiguration tezConf = new TezConfiguration();
+    String amCommandOpts = "-Xmx 200m -Dtest.property";
+    tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, amCommandOpts);
+
+    // Test1: Rely on defaults for cluster-default opts
+    String amOptsConstructed =
+        TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
+    assertEquals(
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " " + amCommandOpts,
+        amOptsConstructed);
+
+    // Test2: Setup cluster-default command opts explicitly
+    String clusterDefaultCommandOpts =
+        "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc ";
+    tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
+    amOptsConstructed =
+        TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
+    assertEquals(clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+
+
+    // Test3: Don't setup Xmx explicitly
+    final double factor = 0.8;
+    amCommandOpts = "-Dtest.property";
+    tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, amCommandOpts);
+    amOptsConstructed =
+        TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
+    // It's OK for the Xmx value to show up before cluster default options, since Xmx will not be replaced if it already exists.
+    assertEquals(
+        " -Xmx" + ((int) (1024 * factor)) + "m" + " " + clusterDefaultCommandOpts + " " +
+            amCommandOpts,
+        amOptsConstructed);
+
+    // Test4: Ensure admin options with Xmx does not cause them to be overridden. This should almost never be done though.
+    clusterDefaultCommandOpts =
+        "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc -Xmx200m";
+    tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
+    amOptsConstructed =
+        TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
+    assertEquals(clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+  }
+
+  @Test(timeout = 5000)
+  public void testTaskCommandOpts() {
+    TezConfiguration tezConf = new TezConfiguration();
+    String taskCommandOpts = "-Xmx 200m -Dtest.property";
+    tezConf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, taskCommandOpts);
+    String expected = null;
+
+    // Test1: Rely on defaults for cluster default opts
+    String taskOptsConstructed = TezClientUtils.addDefaultsToTaskLaunchCmdOpts("", tezConf);
+    expected =
+        TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " " + taskCommandOpts;
+    assertTrue(
+        "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed +
+            "]", taskOptsConstructed.startsWith(expected));
+
+    // Test2: Setup cluster-default command opts explicitly
+    String taskClusterDefaultCommandOpts =
+        "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc ";
+    tezConf.set(TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS,
+        taskClusterDefaultCommandOpts);
+    taskOptsConstructed =
+        TezClientUtils.addDefaultsToTaskLaunchCmdOpts("", tezConf);
+    expected = taskClusterDefaultCommandOpts + " " + taskCommandOpts;
+    assertTrue(
+        "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed +
+            "]", taskOptsConstructed.startsWith(expected));
+
+    // Test3: Don't setup Xmx explicitly
+    taskCommandOpts = "-Dtest.property";
+    tezConf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, taskCommandOpts);
+    taskOptsConstructed =
+        TezClientUtils.addDefaultsToTaskLaunchCmdOpts("", tezConf);
+    expected = taskClusterDefaultCommandOpts + " " + taskCommandOpts;
+    assertTrue(
+        "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed +
+            "]", taskOptsConstructed.startsWith(expected));
+
+    // Test4: Pass in a dag-configured value.
+    String programmaticTaskOpts = "-Dset.programatically=true -Djava.net.preferIPv4Stack=false";
+    taskOptsConstructed =
+        TezClientUtils.addDefaultsToTaskLaunchCmdOpts(programmaticTaskOpts, tezConf);
+    // Container logging is always added at the end, if it's required.
+    expected = taskClusterDefaultCommandOpts + " " + taskCommandOpts + " " + programmaticTaskOpts;
+    assertTrue(
+        "Did not find Expected prefix: [" + expected + "] in string [" + taskOptsConstructed +
+            "]", taskOptsConstructed.startsWith(expected));
+  }
+
+
   @Test (timeout=5000)
   public void testDefaultMemoryJavaOpts() {
     final double factor = 0.8;
