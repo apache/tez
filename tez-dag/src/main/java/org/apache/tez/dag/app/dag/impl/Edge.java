@@ -115,25 +115,22 @@ public class Edge {
   private void createEdgeManager() {
     switch (edgeProperty.getDataMovementType()) {
       case ONE_TO_ONE:
-        edgeManagerContext = new EdgeManagerPluginContextImpl(UserPayload.create(null));
+        edgeManagerContext = new EdgeManagerPluginContextImpl(null);
         edgeManager = new OneToOneEdgeManager(edgeManagerContext);
         break;
       case BROADCAST:
-        edgeManagerContext = new EdgeManagerPluginContextImpl(UserPayload.create(null));
+        edgeManagerContext = new EdgeManagerPluginContextImpl(null);
         edgeManager = new BroadcastEdgeManager(edgeManagerContext);
         break;
       case SCATTER_GATHER:
-        edgeManagerContext = new EdgeManagerPluginContextImpl(UserPayload.create(null));
+        edgeManagerContext = new EdgeManagerPluginContextImpl(null);
         edgeManager = new ScatterGatherEdgeManager(edgeManagerContext);
         break;
       case CUSTOM:
         if (edgeProperty.getEdgeManagerDescriptor() != null) {
           UserPayload payload = null;
-          if (edgeProperty.getEdgeManagerDescriptor().getUserPayload() != null &&
-              edgeProperty.getEdgeManagerDescriptor().getUserPayload().hasPayload()) {
+          if (edgeProperty.getEdgeManagerDescriptor().getUserPayload() != null) {
             payload = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
-          } else {
-            payload = UserPayload.create(null);
           }
           edgeManagerContext = new EdgeManagerPluginContextImpl(payload);
           String edgeManagerClassName = edgeProperty.getEdgeManagerDescriptor().getClassName();

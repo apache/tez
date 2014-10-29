@@ -72,7 +72,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
           .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
-      ByteBuffer userPayload = getContext().getUserPayload().getPayload();
+      ByteBuffer userPayload =
+          getContext().getUserPayload() == null ? null : getContext().getUserPayload().getPayload();
       if (userPayload != null) {
         boolean doLocalityCheck = getContext().getUserPayload().getPayload().get(0) > 0 ? true : false;
         if (doLocalityCheck) {

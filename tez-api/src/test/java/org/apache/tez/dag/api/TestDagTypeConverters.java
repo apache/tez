@@ -37,8 +37,8 @@ public class TestDagTypeConverters {
         .setHistoryText(historytext);
     TezEntityDescriptorProto proto =
         DagTypeConverters.convertToDAGPlan(entityDescriptor);
-    Assert.assertEquals(payload.getVersion(), proto.getVersion());
-    Assert.assertArrayEquals(payload.deepCopyAsArray(), proto.getUserPayload().toByteArray());
+    Assert.assertEquals(payload.getVersion(), proto.getTezUserPayload().getVersion());
+    Assert.assertArrayEquals(payload.deepCopyAsArray(), proto.getTezUserPayload().getUserPayload().toByteArray());
     Assert.assertTrue(proto.hasHistoryText());
     Assert.assertNotEquals(historytext, proto.getHistoryText());
     Assert.assertEquals(historytext, new String(

@@ -46,7 +46,7 @@ public class TezMergedInputContextImpl implements MergedInputContext {
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
     this.groupInputName = groupInputName;
     this.groupInputsMap = groupInputsMap;
-    this.userPayload = userPayload == null ? UserPayload.create(null) : userPayload;
+    this.userPayload = userPayload;
     this.inputReadyTracker = inputReadyTracker;
     this.workDirs = workDirs;
   }
