@@ -72,6 +72,7 @@ ALL CHANGES:
   TEZ-1715. Fix use of import java.util.* in MultiMRInput.
   TEZ-1664. Add checks to ensure that the client and AM are compatible.
   TEZ-1689. Exception handling for EdgeManagerPlugin.
+  TEZ-1701. ATS fixes to flush all history events and also using batching.
 
 Release 0.5.1: 2014-10-02
 
