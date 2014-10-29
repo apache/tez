@@ -43,11 +43,11 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
-import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -63,6 +63,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.dag.impl.RootInputVertexManager;
+import org.apache.tez.dag.app.dag.impl.ScatterGatherEdgeManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
@@ -77,12 +78,17 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.Writer;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.test.TestAMRecovery.DoNothingProcessor;
+import org.apache.tez.runtime.library.processor.SleepProcessor;
+import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class TestExceptionPropagation {
 
@@ -235,7 +241,7 @@ public class TestExceptionPropagation {
       startMiniTezCluster();
       startNonSessionClient();
 
-      ExceptionLocation exLocation = ExceptionLocation.INPUT_START;
+      ExceptionLocation exLocation = ExceptionLocation.EM_GetNumSourceTaskPhysicalOutputs;
       LOG.info("NonSession mode, Test for Exception from:" + exLocation.name());
       DAG dag = createDAG(exLocation);
       DAGClient dagClient = tezClient.submitDAG(dag);
@@ -296,6 +302,13 @@ public class TestExceptionPropagation {
     // VM
     VM_INITIALIZE, VM_ON_ROOTVERTEX_INITIALIZE,VM_ON_SOURCETASK_COMPLETED, VM_ON_VERTEX_STARTED,
     VM_ON_VERTEXMANAGEREVENT_RECEIVED,
+
+    // EdgeManager
+    EM_Initialize, EM_GetNumDestinationTaskPhysicalInputs, EM_GetNumSourceTaskPhysicalOutputs,
+    EM_RouteDataMovementEventToDestination, EM_GetNumDestinationConsumerTasks,
+    EM_RouteInputErrorEventToSource,
+    // Not Supported yet
+    // EM_RouteInputSourceTaskFailedEventToDestination,
   }
 
   /**
@@ -317,17 +330,20 @@ public class TestExceptionPropagation {
         InputInitializerWithException.getIIDesc(payload);
     v1.addDataSource("input",
         DataSourceDescriptor.create(inputDesc, iiDesc, null));
-    OutputDescriptor outputDesc = OutputWithException.getOutputDesc(payload);
-    v1.addDataSink("output", DataSinkDescriptor.create(outputDesc, null, null));
     v1.setVertexManagerPlugin(RootInputVertexManagerWithException.getVMDesc(payload));
 
     Vertex v2 = 
-        Vertex.create("v2", DoNothingProcessor.getProcDesc(), 1);
+        Vertex.create("v2", 
+            ProcessorDescriptor.create(SleepProcessor.class.getName())
+              .setUserPayload(new SleepProcessorConfig(3).toUserPayload())
+            , 1);
     v2.setVertexManagerPlugin(ShuffleVertexManagerWithException.getVMDesc(exLocation));
 
     dag.addVertex(v1)
       .addVertex(v2)
-      .addEdge(Edge.create(v1, v2, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+      .addEdge(Edge.create(v1, v2, EdgeProperty.create(
+        EdgeManagerPluginDescriptor.create(CustomEdgeManager.class.getName())
+          .setUserPayload(payload),
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputWithException.getOutputDesc(payload), InputWithException.getInputDesc(payload))));
     return dag;
@@ -364,6 +380,7 @@ public class TestExceptionPropagation {
     }
   }
 
+  // input of vertex2
   public static class InputWithException extends AbstractLogicalInput {
 
     private ExceptionLocation exLocation;
@@ -419,6 +436,10 @@ public class TestExceptionPropagation {
       getContext().requestInitialMemory(0l, null); // mandatory call
       if (this.exLocation == ExceptionLocation.INPUT_INITIALIZE) {
         throw new Exception(this.exLocation.name());
+      } else if (this.exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource
+          || this.exLocation == ExceptionLocation.EM_GetNumDestinationConsumerTasks) {
+        Event errorEvent = InputReadErrorEvent.create("read error", 0, 0);
+        return Lists.newArrayList(errorEvent);
       }
       return null;
     }
@@ -429,6 +450,7 @@ public class TestExceptionPropagation {
     }
   }
 
+  // output of vertex1
   public static class OutputWithException extends AbstractLogicalOutput {
 
     private ExceptionLocation exLocation;
@@ -470,7 +492,13 @@ public class TestExceptionPropagation {
         List<Event> events = new ArrayList<Event>();
         events.add(VertexManagerEvent.create("v2", ByteBuffer.wrap(new byte[0])));
         return events;
-      } else {
+      } else if (this.exLocation == ExceptionLocation.EM_RouteDataMovementEventToDestination) {
+        // send DataMovementEvent to v2
+        List<Event> events = new ArrayList<Event>();
+        events.add(DataMovementEvent.create(0, ByteBuffer.wrap(new byte[0])));
+        return events;
+      }
+      else {
         return null;
       }
     }
@@ -508,10 +536,11 @@ public class TestExceptionPropagation {
       input.start();
       input.getReader();
 
-      OutputWithException output = (OutputWithException) outputs.get("output");
+      OutputWithException output = (OutputWithException) outputs.get("v2");
       output.start();
       output.getWriter();
 
+      Thread.sleep(3*1000);
       if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_ERROR) {
         throw new Error(this.exLocation.name());
       } else if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_EXCEPTION) {
@@ -600,7 +629,14 @@ public class TestExceptionPropagation {
 
     @Override
     public void initialize() {
-      super.initialize();
+      try {
+        super.initialize();
+      } catch (TezUncheckedException e) {
+        // workaround for testing
+        if (!e.getMessage().equals("Atleast 1 bipartite source should exist")) {
+          throw e;
+        }
+      }
       Configuration conf;
       try {
         conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
@@ -632,6 +668,87 @@ public class TestExceptionPropagation {
       UserPayload payload = TezUtils.createUserPayloadFromConf(conf);
       return VertexManagerPluginDescriptor.create(ShuffleVertexManagerWithException.class.getName())
               .setUserPayload(payload);
+    }
+  }
+
+  public static class CustomEdgeManager extends ScatterGatherEdgeManager {
+
+    private ExceptionLocation exLocation;
+
+    public CustomEdgeManager(EdgeManagerPluginContext context) {
+      super(context);
+      this.exLocation =
+          ExceptionLocation.valueOf(new String(context.getUserPayload()
+              .deepCopyAsArray()));
+    }
+
+    @Override
+    public void initialize() {
+      if (exLocation == ExceptionLocation.EM_Initialize) {
+        throw new RuntimeException(exLocation.name());
+      }
+      try {
+        super.initialize();
+      } catch (TezUncheckedException e) {
+        // workaround for testing
+        if (!e.getMessage().equals("Atleast 1 bipartite source should exist")) {
+          throw e;
+        }
+      }
+    }
+
+    @Override
+    public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
+      if (exLocation == ExceptionLocation.EM_GetNumDestinationConsumerTasks) {
+        throw new RuntimeException(exLocation.name());
+      }
+      return super.getNumDestinationConsumerTasks(sourceTaskIndex);
+    }
+
+    @Override
+    public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
+      if (exLocation == ExceptionLocation.EM_GetNumSourceTaskPhysicalOutputs) {
+        throw new RuntimeException(exLocation.name());
+      }
+      LOG.info("ExLocation:" + exLocation);
+      return super.getNumSourceTaskPhysicalOutputs(sourceTaskIndex);
+    }
+
+    @Override
+    public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
+      if (exLocation == ExceptionLocation.EM_GetNumDestinationTaskPhysicalInputs) {
+        throw new RuntimeException(exLocation.name());
+      }
+      return super.getNumDestinationTaskPhysicalInputs(destinationTaskIndex);
+    }
+
+    @Override
+    public void routeDataMovementEventToDestination(DataMovementEvent event,
+        int sourceTaskIndex, int sourceOutputIndex,
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+      if (exLocation == ExceptionLocation.EM_RouteDataMovementEventToDestination) {
+        throw new RuntimeException(exLocation.name());
+      }
+      super.routeDataMovementEventToDestination(event, sourceTaskIndex,
+          sourceOutputIndex, destinationTaskAndInputIndices);
+    }
+
+    @Override
+    public int routeInputErrorEventToSource(InputReadErrorEvent event,
+        int destinationTaskIndex, int destinationFailedInputIndex) {
+      if (exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource) {
+        throw new RuntimeException(exLocation.name());
+      }
+      return super.routeInputErrorEventToSource(event, destinationTaskIndex,
+          destinationFailedInputIndex);
+    }
+
+    @Override
+    public void routeInputSourceTaskFailedEventToDestination(
+        int sourceTaskIndex,
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+      super.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex,
+          destinationTaskAndInputIndices);
     }
   }
 }

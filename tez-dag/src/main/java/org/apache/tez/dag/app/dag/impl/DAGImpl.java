@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -1238,7 +1239,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     // Initialize the edges, now that the payload and vertices have been set.
     for (Edge e : edges.values()) {
-      e.initialize();
+      try {
+        e.initialize();
+      } catch (AMUserCodeException ex) {
+        String msg = "Exception in " + ex.getSource();
+        LOG.error(msg, ex);
+        addDiagnostic(msg + ", " + ex.getMessage() + ", "
+            + ExceptionUtils.getStackTrace(ex.getCause()));
+        finished(DAGState.FAILED);
+        return DAGState.FAILED;
+      }
     }
 
     assignDAGScheduler(this);

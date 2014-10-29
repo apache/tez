@@ -19,6 +19,7 @@
 package org.apache.tez.dag.library.vertexmanager;
 
 import com.google.common.collect.Maps;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
@@ -66,7 +67,7 @@ public class TestShuffleVertexManager {
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test(timeout = 5000)
-  public void testShuffleVertexManagerAutoParallelism() throws IOException {
+  public void testShuffleVertexManagerAutoParallelism() throws Exception {
     Configuration conf = new Configuration();
     conf.setBoolean(
         ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
@@ -166,7 +167,7 @@ public class TestShuffleVertexManager {
         new HashMap<String, EdgeManagerPlugin>();
 
     doAnswer(new Answer() {
-      public Object answer(InvocationOnMock invocation) {
+      public Object answer(InvocationOnMock invocation) throws Exception {
           when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(2);
           newEdgeManagers.clear();
           for (Entry<String, EdgeManagerPluginDescriptor> entry :
@@ -698,7 +699,7 @@ public class TestShuffleVertexManager {
     final Map<String, EdgeManagerPlugin> edgeManagerR2 =
         new HashMap<String, EdgeManagerPlugin>();
     doAnswer(new Answer() {
-      public Object answer(InvocationOnMock invocation) {
+      public Object answer(InvocationOnMock invocation) throws Exception {
         when(mockContext_R2.getVertexNumTasks(mockManagedVertexId_R2)).thenReturn(2);
         edgeManagerR2.clear();
         for (Entry<String, EdgeManagerPluginDescriptor> entry :

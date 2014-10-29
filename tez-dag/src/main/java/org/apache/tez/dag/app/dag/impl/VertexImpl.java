@@ -166,6 +166,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 
@@ -1170,8 +1171,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         } catch (AMUserCodeException e) {
           String msg = "Exception in " + e.getSource() +", vertex=" + logIdentifier;
           LOG.error(msg, e);
-          addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
-          // TODO add test for exception from EdgeManager in TEZ-1689
+          addDiagnostic(msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
           eventHandler.handle(new VertexEventTermination(vertexId, VertexTerminationCause.AM_USERCODE_FAILURE));
           return;
         }
@@ -1201,7 +1201,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates) {
+      Map<String, InputSpecUpdate> rootInputSpecUpdates) throws AMUserCodeException {
     return setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
         false);
   }
@@ -1209,7 +1209,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdates,
-      boolean recovering) {
+      boolean recovering) throws AMUserCodeException {
     if (recovering) {
       writeLock.lock();
       try {
@@ -1223,11 +1223,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
-              LOG.warn("Failed to initialize edge manager for edge"
-                  + ", sourceVertexName=" + sourceVertex.getName()
-                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
-                  e);
-              return false;
+              throw new TezUncheckedException("Fail to setCustomEdgeManage for Edge,"
+                  + "sourceVertex:" + edge.getSourceVertexName()
+                  + "destinationVertex:" + edge.getDestinationVertexName(), e);
             }
           }
         }
@@ -1272,11 +1270,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
-              LOG.warn("Failed to initialize edge manager for edge"
-                  + ", sourceVertexName=" + sourceVertex.getName()
-                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
-                  e);
-              return false;
+              throw new TezUncheckedException("Fail to setCustomEdgeManage for Edge,"
+                  + "sourceVertex:" + edge.getSourceVertexName()
+                  + "destinationVertex:" + edge.getDestinationVertexName(), e);
             }
           }
         }
@@ -1376,11 +1372,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
-              LOG.warn("Failed to initialize edge manager for edge"
-                  + ", sourceVertexName=" + sourceVertex.getName()
-                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
-                  e);
-              return false;
+              throw new TezUncheckedException(e);
             }
           }
         }
@@ -1960,7 +1952,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       String msg = "Exception in " + e.getSource()+ ", vertex:" + logIdentifier;
       LOG.error(msg, e);
       finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
-          msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+          msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
       return VertexState.FAILED;
     }
 
@@ -2542,8 +2534,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             endState = VertexState.FAILED;
             break;
           }
-          if (!vertex.setParallelism(0,
-              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true)) {
+          boolean successSetParallelism ;
+          try {
+            successSetParallelism = vertex.setParallelism(0,
+              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true);
+          } catch (Exception e) {
+            successSetParallelism = false;
+          }
+          if (!successSetParallelism) {
             String msg  = "Failed to recover edge managers, vertex=" + vertex.logIdentifier;
             LOG.error(msg);
             vertex.finished(VertexState.FAILED,
@@ -2594,8 +2592,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             endState = VertexState.FAILED;
             break;
           }
-          if (!vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
-            vertex.recoveredRootInputSpecUpdates, true)) {
+          try {
+            successSetParallelism = vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
+              vertex.recoveredRootInputSpecUpdates, true);
+          } catch (Exception e) {
+            successSetParallelism = false;
+          }
+          if (!successSetParallelism) {
             String msg = "Failed to recover edge managers for vertex:" + vertex.logIdentifier;
             LOG.error(msg);
             vertex.finished(VertexState.FAILED,
@@ -2700,7 +2703,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
             LOG.error(msg, e);
             vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
-                msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+                msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
             endState = VertexState.FAILED;
           }
         }
@@ -2995,7 +2998,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           " sent by vertex " + splitEvent.getSenderVertex() +
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
-      vertex.setParallelism(splitEvent.getNumTasks(), null, null, null);
+      try {
+        vertex.setParallelism(splitEvent.getNumTasks(), null, null, null);
+      } catch (Exception e) {
+        // ingore this exception, should not happen
+        LOG.error("Unexpected exception, Just set Parallelims to a specified value, not involve EdgeManager,"
+            + "exception should not happen here", e);
+      }
       if (vertex.getState() == VertexState.RUNNING ||
           vertex.getState() == VertexState.INITED) {
         return vertex.getState();
@@ -3501,7 +3510,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
         LOG.error(msg, e);
         if (vertex.getState() == VertexState.RUNNING) {
-          vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+          vertex.addDiagnostic(msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
           vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE, TaskTerminationCause.AM_USERCODE_FAILURE);
           return VertexState.TERMINATING;
         } else {
@@ -3923,7 +3932,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<InputSpec> getInputSpecList(int taskIndex) {
+  public synchronized List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException {
     inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
         + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
     if (rootInputDescriptors != null) {
@@ -3948,7 +3957,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) {
+  public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException {
     if (this.outputSpecList == null) {
       outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
           + this.additionalOutputSpecs.size());

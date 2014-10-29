@@ -30,12 +30,9 @@ import static org.mockito.Mockito.verify;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -62,7 +59,7 @@ public class TestEdge {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test (timeout = 5000)
-  public void testCompositeEventHandling() {
+  public void testCompositeEventHandling() throws AMUserCodeException {
     EventHandler eventHandler = mock(EventHandler.class);
     EdgeProperty edgeProp = EdgeProperty.create(DataMovementType.SCATTER_GATHER,
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, mock(OutputDescriptor.class),
