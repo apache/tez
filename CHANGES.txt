@@ -74,6 +74,7 @@ ALL CHANGES:
   TEZ-1689. Exception handling for EdgeManagerPlugin.
   TEZ-1701. ATS fixes to flush all history events and also using batching.
   TEZ-792. Default staging path should have user name.
+  TEZ-1689. addendum - fix unit test failure.
 
 Release 0.5.1: 2014-10-02
 

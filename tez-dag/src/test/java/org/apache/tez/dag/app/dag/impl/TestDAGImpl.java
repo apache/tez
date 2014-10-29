@@ -918,7 +918,7 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
+    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     Task t1= v1.getTask(0);
