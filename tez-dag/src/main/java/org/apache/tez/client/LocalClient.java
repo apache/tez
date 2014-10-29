@@ -68,6 +68,7 @@ public class LocalClient extends FrameworkClient {
   private final long TIME_OUT = 60 * 1000;
   private int appIdNumber = 1;
   private boolean isSession;
+  private TezApiVersionInfo versionInfo = new TezApiVersionInfo();
 
   public LocalClient() {
   }
@@ -314,6 +315,7 @@ public class LocalClient extends FrameworkClient {
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String userDir) {
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime, isSession, userDir);
+        new SystemClock(), appSubmitTime, isSession, userDir, versionInfo.getVersion());
   }
+
 }

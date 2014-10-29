@@ -50,6 +50,7 @@
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
+    <build.time>${maven.build.timestamp}</build.time>
   </properties>
   <scm>
     <connection>${scm.url}</connection>

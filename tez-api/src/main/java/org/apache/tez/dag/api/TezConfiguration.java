@@ -835,4 +835,14 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_AM_MODIFY_ACLS = TEZ_AM_PREFIX + "modify-acls";
 
+  /**
+   * Boolean value.
+   * Disable version check between client and AM/DAG. Default false.
+   */
+  public static final String TEZ_AM_DISABLE_CLIENT_VERSION_CHECK = TEZ_AM_PREFIX
+      + "disable.client-version-check";
+  public static final boolean TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT = false;
+
+
+
 }

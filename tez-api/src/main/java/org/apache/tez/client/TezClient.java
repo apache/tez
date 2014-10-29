@@ -102,7 +102,8 @@ public class TezClient {
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
   private Map<String, LocalResource> additionalLocalResources = Maps.newHashMap();
-  
+  private TezApiVersionInfo apiVersionInfo;
+
   private int preWarmDAGCounter = 0;
 
 
@@ -133,6 +134,8 @@ public class TezClient {
     // Set in conf for local mode AM to figure out whether in session mode or not
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
+    this.apiVersionInfo = new TezApiVersionInfo();
+    LOG.info("Tez Client Version: " + apiVersionInfo.toString());
   }
 
   /**
@@ -307,7 +310,7 @@ public class TezClient {
             TezClientUtils.createApplicationSubmissionContext(
                 sessionAppId,
                 null, clientName, amConfig,
-                tezJarResources, sessionCredentials, usingTezArchiveDeploy);
+                tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo);
   
         // Set Tez Sessions to not retry on AM crashes if recovery is disabled
         if (!amConfig.getTezConfiguration().getBoolean(
@@ -677,7 +680,7 @@ public class TezClient {
       ApplicationSubmissionContext appContext = TezClientUtils
           .createApplicationSubmissionContext( 
               appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
-              usingTezArchiveDeploy);
+              usingTezArchiveDeploy, apiVersionInfo);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId
           + ", dagName=" + dag.getName());
