@@ -42,6 +42,7 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
 import org.apache.tez.dag.app.dag.impl.Edge;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TezTaskID;
@@ -88,7 +89,7 @@ public interface Vertex extends Comparable<Vertex> {
 
   boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdate);
+      Map<String, InputSpecUpdate> rootInputSpecUpdate) throws AMUserCodeException;
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
 
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?
@@ -110,8 +111,8 @@ public interface Vertex extends Comparable<Vertex> {
   public Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> 
     getAdditionalOutputs();
 
-  List<InputSpec> getInputSpecList(int taskIndex);
-  List<OutputSpec> getOutputSpecList(int taskIndex);
+  List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException;
+  List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException;
   
   List<GroupInputSpec> getGroupInputSpecList(int taskIndex);
   void addSharedOutputs(Set<String> outputs);

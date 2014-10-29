@@ -30,7 +30,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2112,7 +2111,7 @@ public class TestVertexImpl {
         anyInt());
   }
 
-  public void setupPostDagCreation() {
+  public void setupPostDagCreation() throws AMUserCodeException {
     String dagName = "dag0";
     dispatcher = new DrainDispatcher();
     appContext = mock(AppContext.class);
@@ -2197,7 +2196,7 @@ public class TestVertexImpl {
   }
   
   @Before
-  public void setup() {
+  public void setup() throws AMUserCodeException {
     useCustomInitializer = false;
     customInitializer = null;
     setupPreDagCreation();
@@ -2270,7 +2269,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexInit() {
+  public void testVertexInit() throws AMUserCodeException {
     initAllVertices(VertexState.INITED);
 
     VertexImpl v3 = vertices.get("vertex3");
@@ -2327,7 +2326,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexSetParallelism() {
+  public void testVertexSetParallelism() throws Exception {
     initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
     Assert.assertEquals(2, v3.getTotalTasks());
@@ -2392,7 +2391,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testSetCustomEdgeManager() throws UnsupportedEncodingException {
+  public void testSetCustomEdgeManager() throws Exception {
     initAllVertices(VertexState.INITED);
     Edge edge = edges.get("e4");
     EdgeManagerPlugin em = edge.getEdgeManager();
@@ -3026,7 +3025,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexInitWithCustomVertexManager() {
+  public void testVertexInitWithCustomVertexManager() throws Exception {
     setupPreDagCreation();
     dagPlan = createDAGWithCustomVertexManager();
     setupPostDagCreation();
@@ -3074,7 +3073,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexManagerHeuristic() {
+  public void testVertexManagerHeuristic() throws AMUserCodeException {
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMixedEdges();
     setupPostDagCreation();
@@ -3095,7 +3094,7 @@ public class TestVertexImpl {
 
 
   @Test(timeout = 5000)
-  public void testVertexWithOneToOneSplit() {
+  public void testVertexWithOneToOneSplit() throws AMUserCodeException {
     // create a diamond shaped dag with 1-1 edges. 
     // split the source and remaining vertices should split equally
     // vertex with 2 incoming splits from the same source should split once
@@ -3261,7 +3260,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexWithInitializerFailure() {
+  public void testVertexWithInitializerFailure() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -3302,7 +3301,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 10000)
-  public void testVertexWithInitializerParallelismSetTo0() throws InterruptedException {
+  public void testVertexWithInitializerParallelismSetTo0() throws InterruptedException, AMUserCodeException {
     useCustomInitializer = true;
     customInitializer = new RootInitializerSettingParallelismTo0(null);
     RootInitializerSettingParallelismTo0 initializer =
@@ -3838,7 +3837,7 @@ public class TestVertexImpl {
    * If broadcast, one-to-one or custom edges are present in source, tasks should not start until
    * 1 task from each source vertex is complete.
    */
-  public void testTaskSchedulingWithCustomEdges() {
+  public void testTaskSchedulingWithCustomEdges() throws AMUserCodeException {
     setupPreDagCreation();
     dagPlan = createCustomDAGWithCustomEdges();
     setupPostDagCreation();
@@ -4178,7 +4177,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexWithMultipleInitializers1() {
+  public void testVertexWithMultipleInitializers1() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
@@ -4205,7 +4204,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexWithMultipleInitializers2() {
+  public void testVertexWithMultipleInitializers2() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
@@ -4233,7 +4232,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 500000)
-  public void testVertexWithInitializerSuccess() {
+  public void testVertexWithInitializerSuccess() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -4308,7 +4307,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexWithInputDistributor() {
+  public void testVertexWithInputDistributor() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputDistributor("TestInputInitializer");
@@ -4343,7 +4342,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexRootInputSpecUpdateAll() {
+  public void testVertexRootInputSpecUpdateAll() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -4374,7 +4373,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexRootInputSpecUpdatePerTask() {
+  public void testVertexRootInputSpecUpdatePerTask() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -4651,7 +4650,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout=5000)
-  public void testVertexGroupInput() {
+  public void testVertexGroupInput() throws AMUserCodeException {
     setupPreDagCreation();
     dagPlan = createVertexGroupDAGPlan();
     setupPostDagCreation();
@@ -4679,7 +4678,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testStartWithUninitializedCustomEdge() {
+  public void testStartWithUninitializedCustomEdge() throws Exception {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized
     setupPreDagCreation();
@@ -4726,7 +4725,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testInitStartRace() {
+  public void testInitStartRace() throws AMUserCodeException {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized
     setupPreDagCreation();
@@ -4750,7 +4749,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testInitStartRace2() {
+  public void testInitStartRace2() throws AMUserCodeException {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized
     setupPreDagCreation();
@@ -4778,7 +4777,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_Initialize() {
+  public void testExceptionFromVM_Initialize() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.Initialize);
@@ -4798,7 +4797,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnRootVertexInitialized() {
+  public void testExceptionFromVM_OnRootVertexInitialized() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnRootVertexInitialized);
@@ -4823,7 +4822,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnVertexStarted() {
+  public void testExceptionFromVM_OnVertexStarted() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnVertexStarted);
@@ -4851,7 +4850,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnSourceTaskCompleted() {
+  public void testExceptionFromVM_OnSourceTaskCompleted() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnSourceTaskCompleted);
@@ -4888,7 +4887,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnVertexManagerEventReceived() {
+  public void testExceptionFromVM_OnVertexManagerEventReceived() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnVertexManagerEventReceived);
@@ -4914,7 +4913,7 @@ public class TestVertexImpl {
   }
   
   @Test(timeout = 5000)
-  public void testExceptionFromII_Initialize() {
+  public void testExceptionFromII_Initialize() throws AMUserCodeException {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize);
     EventHandlingRootInputInitializer initializer =

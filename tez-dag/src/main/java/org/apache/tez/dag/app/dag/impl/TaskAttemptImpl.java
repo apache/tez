@@ -30,6 +30,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -71,6 +72,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
@@ -180,7 +182,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             (TaskAttemptStateInternal.NEW)
 
       .addTransition(TaskAttemptStateInternal.NEW,
-          TaskAttemptStateInternal.START_WAIT,
+          EnumSet.of(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAILED),
           TaskAttemptEventType.TA_SCHEDULE, new ScheduleTaskattemptTransition())
       .addTransition(TaskAttemptStateInternal.NEW,
           TaskAttemptStateInternal.NEW,
@@ -501,7 +503,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     return getVertexID().getDAGId();
   }
 
-  TaskSpec createRemoteTaskSpec() {
+  TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
     Vertex vertex = getVertex();
     ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
     int taskId = getTaskID().getId();
@@ -1039,17 +1041,28 @@ public class TaskAttemptImpl implements TaskAttempt,
   //////////////////////////////////////////////////////////////////////////////
 
   protected static class ScheduleTaskattemptTransition implements
-      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
+      MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
 
     @Override
-    public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
+    public TaskAttemptStateInternal transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
 
       // TODO Creating the remote task here may not be required in case of
       // recovery.
 
       // Create the remote task.
-      TaskSpec remoteTaskSpec = ta.createRemoteTaskSpec();
+      TaskSpec remoteTaskSpec;
+      try {
+        remoteTaskSpec = ta.createRemoteTaskSpec();
+        LOG.info("remoteTaskSpec:" + remoteTaskSpec);
+      } catch (AMUserCodeException e) {
+        String msg = "Exception in " + e.getSource() + ", taskAttempt=" + ta.getTaskID();
+        LOG.error(msg, e);
+        String diag = msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause());
+        new TerminatedBeforeRunningTransition(FAILED_HELPER).transition(ta,
+            new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED, diag));
+        return TaskAttemptStateInternal.FAILED;
+      }
       // Create startTaskRequest
 
       String[] requestHosts = new String[0];
@@ -1096,6 +1109,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           ta.attemptId, ta.taskResource, remoteTaskSpec, ta, locationHint,
           priority, ta.containerContext);
       ta.sendEvent(launchRequestEvent);
+      return TaskAttemptStateInternal.START_WAIT;
     }
   }
 
