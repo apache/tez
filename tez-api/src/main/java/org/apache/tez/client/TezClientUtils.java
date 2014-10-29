@@ -76,6 +76,7 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.log4j.Level;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
+import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -156,12 +157,15 @@ public class TezClientUtils {
     } else {
       // Add tez jars to local resource
       String[] tezJarUris = conf.getStrings(TezConfiguration.TEZ_LIB_URIS);
-        
+
       if (tezJarUris == null || tezJarUris.length == 0) {
         throw new TezUncheckedException("Invalid configuration of tez jars"
             + ", " + TezConfiguration.TEZ_LIB_URIS
             + " is not defined in the configuration");
       }
+
+      LOG.info("Using tez.lib.uris value from configuration: "
+          + conf.get(TezConfiguration.TEZ_LIB_URIS));
 
       if (tezJarUris.length == 1 && (
               tezJarUris[0].endsWith(".tar.gz") ||
@@ -169,6 +173,7 @@ public class TezClientUtils {
               tezJarUris[0].endsWith(".zip") ||
               tezJarUris[0].endsWith(".tar"))) {
         String fileName = tezJarUris[0];
+
         FileStatus fStatus = getLRFileStatus(fileName, conf)[0];
         LocalResourceVisibility lrVisibility;
         if (checkAncestorPermissionsForAllUsers(conf, fileName, FsAction.EXECUTE) &&
@@ -400,8 +405,8 @@ public class TezClientUtils {
   static ApplicationSubmissionContext createApplicationSubmissionContext(
       ApplicationId appId, DAG dag, String amName,
       AMConfiguration amConfig, Map<String, LocalResource> tezJarResources,
-      Credentials sessionCreds, boolean tezLrsAsArchive)
-          throws IOException, YarnException{
+      Credentials sessionCreds, boolean tezLrsAsArchive,
+      TezApiVersionInfo apiVersionInfo) throws IOException, YarnException{
 
     Preconditions.checkNotNull(sessionCreds);
     TezConfiguration conf = amConfig.getTezConfiguration();
@@ -495,6 +500,8 @@ public class TezClientUtils {
             entry.getValue(), File.pathSeparator);
       }
     }
+
+    addVersionInfoToEnv(environment, apiVersionInfo);
     
     Map<String, LocalResource> amLocalResources =
         new TreeMap<String, LocalResource>();
@@ -898,6 +905,14 @@ public class TezClientUtils {
         tezConf.getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
             TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
     return amOpts;
+  }
+
+  private static void addVersionInfoToEnv(Map<String, String> environment,
+      TezApiVersionInfo versionInfo) {
+    if (!versionInfo.getVersion().equals(VersionInfo.UNKNOWN)) {
+      TezYARNUtils.replaceInEnv(environment, TezConstants.TEZ_CLIENT_VERSION_ENV,
+          versionInfo.getVersion());
+    }
   }
 
 }

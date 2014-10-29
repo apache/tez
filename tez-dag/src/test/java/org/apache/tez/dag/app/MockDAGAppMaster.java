@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.client.TezApiVersionInfo;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -264,7 +265,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
       boolean isSession, String workingDirectory, AtomicBoolean launcherGoFlag) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
-        isSession, workingDirectory);
+        isSession, workingDirectory, new TezApiVersionInfo().getVersion());
     containerLauncher = new MockContainerLauncher(launcherGoFlag);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
   }

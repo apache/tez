@@ -91,6 +91,7 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
@@ -150,6 +151,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.codehaus.jettison.json.JSONException;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -260,13 +262,20 @@ public class DAGAppMaster extends AbstractService {
   private final AtomicInteger killedDAGs = new AtomicInteger();
   private ACLManager aclManager;
 
+  // Version checks
+  private TezDagVersionInfo dagVersionInfo;
+  private String clientVersion;
+  private boolean versionMismatch = false;
+  private String versionMismatchDiagnostics;
+
   // must be LinkedHashMap to preserve order of service addition
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, boolean isSession, String workingDirectory) {
+      Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
+      String clientVersion) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
     this.startTime = clock.getTime();
@@ -280,14 +289,25 @@ public class DAGAppMaster extends AbstractService {
     this.isSession = isSession;
     this.workingDirectory = workingDirectory;
     this.shutdownHandler = new DAGAppMasterShutdownHandler();
+    this.dagVersionInfo = new TezDagVersionInfo();
+    this.clientVersion = clientVersion;
 
     // TODO Metrics
     //this.metrics = DAGAppMetrics.create();
-    LOG.info("Created DAGAppMaster for application " + applicationAttemptId);
+    LOG.info("Created DAGAppMaster for application " + applicationAttemptId
+        + ", versionInfo=" + dagVersionInfo.toString());
   }
 
   @Override
   public synchronized void serviceInit(final Configuration conf) throws Exception {
+
+    this.amConf = conf;
+    this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+
+    boolean disableVersionCheck = conf.getBoolean(
+        TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK,
+        TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT);
 
     int maxAppAttempts = 1;
     String maxAppAttemptsEnv = System.getenv(
@@ -297,9 +317,24 @@ public class DAGAppMaster extends AbstractService {
     }
     isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
 
-    this.amConf = conf;
-    this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
-        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+    // Check client - AM version compatibility
+    LOG.info("Comparing client version with AM version"
+        + ", clientVersion=" + clientVersion
+        + ", AMVersion=" + dagVersionInfo.getVersion());
+    Simple2LevelVersionComparator versionComparator = new Simple2LevelVersionComparator();
+    if (versionComparator.compare(clientVersion, dagVersionInfo.getVersion()) != 0) {
+      versionMismatchDiagnostics = "Incompatible versions found"
+          + ", clientVersion=" + clientVersion
+          + ", AMVersion=" + dagVersionInfo.getVersion();
+      if (disableVersionCheck) {
+        LOG.warn("Ignoring client-AM version mismatch as check disabled. "
+            + versionMismatchDiagnostics);
+      } else {
+        LOG.fatal(versionMismatchDiagnostics);
+        versionMismatch = true;
+      }
+    }
+
     if (isLocal) {
        UserGroupInformation.setConfiguration(conf);
        appMasterUgi = UserGroupInformation.getCurrentUser();
@@ -390,6 +425,7 @@ public class DAGAppMaster extends AbstractService {
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
+
     recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
     recoveryFS = recoveryDataDir.getFileSystem(conf);
     currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
@@ -399,34 +435,39 @@ public class DAGAppMaster extends AbstractService {
           + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
           + " recoveryAttemptDir :" + currentRecoveryDataDir);
     }
-    if (isSession) {
-      FileInputStream sessionResourcesStream = null;
-      try {
-        sessionResourcesStream = new FileInputStream(
-          new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
-        PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
-            .parseDelimitedFrom(sessionResourcesStream);
-        amResources.putAll(DagTypeConverters.convertFromPlanLocalResources(amLocalResourceProto));
-      } finally {
-        if (sessionResourcesStream != null) {
-          sessionResourcesStream.close();
+    recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
+        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
+
+    if (!versionMismatch) {
+      if (isSession) {
+        FileInputStream sessionResourcesStream = null;
+        try {
+          sessionResourcesStream = new FileInputStream(
+              new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+          PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
+              .parseDelimitedFrom(sessionResourcesStream);
+          amResources.putAll(DagTypeConverters.convertFromPlanLocalResources(amLocalResourceProto));
+        } finally {
+          if (sessionResourcesStream != null) {
+            sessionResourcesStream.close();
+          }
         }
       }
     }
 
-    recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
-        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
-
     initServices(conf);
     super.serviceInit(conf);
 
-    AMLaunchedEvent launchedEvent = new AMLaunchedEvent(appAttemptID,
-        startTime, appSubmitTime, appMasterUgi.getShortUserName());
-    historyEventHandler.handle(
-        new DAGHistoryEvent(launchedEvent));
+    if (!versionMismatch) {
+      AMLaunchedEvent launchedEvent = new AMLaunchedEvent(appAttemptID,
+          startTime, appSubmitTime, appMasterUgi.getShortUserName());
+      historyEventHandler.handle(
+          new DAGHistoryEvent(launchedEvent));
 
-    this.state = DAGAppMasterState.INITED;
-
+      this.state = DAGAppMasterState.INITED;
+    } else {
+      this.state = DAGAppMasterState.ERROR;
+    }
   }
 
   @VisibleForTesting
@@ -923,6 +964,9 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public List<String> getDiagnostics() {
+    if (versionMismatch) {
+      return Collections.singletonList(versionMismatchDiagnostics);
+    }
     if (!isSession) {
       if(currentDAG != null) {
         return currentDAG.getDiagnostics();
@@ -1006,6 +1050,10 @@ public class DAGAppMaster extends AbstractService {
 
   public synchronized String submitDAGToAppMaster(DAGPlan dagPlan,
       Map<String, LocalResource> additionalResources) throws TezException {
+    if (this.versionMismatch) {
+      throw new TezException("Unable to accept DAG submissions as the ApplicationMaster is"
+          + " incompatible with the client. " + versionMismatchDiagnostics);
+    }
     if(currentDAG != null
         && !state.equals(DAGAppMasterState.IDLE)) {
       throw new TezException("App master already running a DAG");
@@ -1479,7 +1527,14 @@ public class DAGAppMaster extends AbstractService {
     //start all the components
     startServices();
     super.serviceStart();
-    
+
+    if (versionMismatch) {
+      // Short-circuit and return as no DAG should not be run
+      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+      shutdownHandler.shutdown();
+      return;
+    }
+
     // metrics system init is really init & start.
     // It's more test friendly to put it here.
     DefaultMetricsSystem.initialize("DAGAppMaster");
@@ -1721,6 +1776,10 @@ public class DAGAppMaster extends AbstractService {
           System.getenv(Environment.NM_HTTP_PORT.name());
       String appSubmitTimeStr =
           System.getenv(ApplicationConstants.APP_SUBMIT_TIME_ENV);
+      String clientVersion = System.getenv(TezConstants.TEZ_CLIENT_VERSION_ENV);
+      if (clientVersion == null) {
+        clientVersion = VersionInfo.UNKNOWN;
+      }
 
       validateInputParam(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV);
@@ -1730,7 +1789,6 @@ public class DAGAppMaster extends AbstractService {
           containerId.getApplicationAttemptId();
 
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
-
 
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
@@ -1747,7 +1805,7 @@ public class DAGAppMaster extends AbstractService {
               Integer.parseInt(nodePortString),
               Integer.parseInt(nodeHttpPortString), new SystemClock(), appSubmitTime,
               cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION),
-              System.getenv(Environment.PWD.name()));
+              System.getenv(Environment.PWD.name()), clientVersion);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 

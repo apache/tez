@@ -186,4 +186,8 @@ public class TezYARNUtils {
         Environment.PWD.$(), File.pathSeparator);
   }
 
+  public static void replaceInEnv(Map<String, String> env, String key, String value) {
+    env.put(StringInterner.weakIntern(key), StringInterner.weakIntern(value));
+  }
+
 }
