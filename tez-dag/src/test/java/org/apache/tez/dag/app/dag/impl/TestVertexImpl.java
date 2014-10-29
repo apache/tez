@@ -219,7 +219,7 @@ public class TestVertexImpl {
 
     @Override
     public void initialize() throws IOException {
-      if (getContext().getUserPayload().hasPayload()) {
+      if (getContext().getUserPayload() != null && getContext().getUserPayload().hasPayload()) {
         CountingOutputCommitterConfig conf =
             new CountingOutputCommitterConfig(getContext().getUserPayload());
         this.throwError = conf.throwError;
@@ -419,8 +419,9 @@ public class TestVertexImpl {
                 )
                 .addOutEdgeId("e1")
                 .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
-                   .setClassName(VertexManagerWithException.class.getName())
-                   .setUserPayload(ByteString.copyFrom(exLocation.name().getBytes())))
+                    .setClassName(VertexManagerWithException.class.getName())
+                    .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                        .setUserPayload(ByteString.copyFrom(exLocation.name().getBytes()))))
                 .build()
         )
         .addVertex(
@@ -438,8 +439,9 @@ public class TestVertexImpl {
                 )
                 .addInEdgeId("e1")
                 .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
-                   .setClassName(VertexManagerWithException.class.getName())
-                   .setUserPayload(ByteString.copyFrom(exLocation.name().getBytes())))
+                    .setClassName(VertexManagerWithException.class.getName())
+                    .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                        .setUserPayload(ByteString.copyFrom(exLocation.name().getBytes()))))
                 .build()
         )
         .addEdge(
@@ -706,24 +708,24 @@ public class TestVertexImpl {
                         .setControllerDescriptor(
                             TezEntityDescriptorProto.newBuilder().setClassName(
                                 initializerClassName))
-                    .setName("input1")
-                    .setIODescriptor(
-                        TezEntityDescriptorProto.newBuilder()
-                            .setClassName("InputClazz")
-                            .build()
-                    ).build()
+                        .setName("input1")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                                .setClassName("InputClazz")
+                                .build()
+                        ).build()
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(-1)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("")
-                    .setTaskModule("x1.y1")
-                    .build()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
                 )
                 .addOutEdgeId("e1")
-            .build()
+                .build()
         )
         .addVertex(
             VertexPlan.newBuilder()
@@ -737,11 +739,11 @@ public class TestVertexImpl {
                         .setName("input2")
                         .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
-                              .setClassName("InputClazz")
-                              .build()
+                                .setClassName("InputClazz")
+                                .build()
                         )
                         .build()
-                    )
+                )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
                         .setNumTasks(-1)
@@ -752,7 +754,7 @@ public class TestVertexImpl {
                         .build()
                 )
                 .addInEdgeId("e1")
-              .build()
+                .build()
         )
         .addVertex(
             VertexPlan.newBuilder()
@@ -766,8 +768,8 @@ public class TestVertexImpl {
                         .setName("input3")
                         .setIODescriptor(
                             TezEntityDescriptorProto.newBuilder()
-                              .setClassName("InputClazz")
-                              .build()
+                                .setClassName("InputClazz")
+                                .build()
                         )
                         .build()
                     )
@@ -782,40 +784,42 @@ public class TestVertexImpl {
                 )
                 .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
                     .setClassName(RootInputSpecUpdaterVertexManager.class.getName())
-                    .setUserPayload(ByteString.copyFrom(new byte[] {0})))
+                    .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                        .setUserPayload(ByteString.copyFrom(new byte[]{0}))))
               .build()
         )
                 .addVertex(
-            VertexPlan.newBuilder()
-                .setName("vertex4")
-                .setType(PlanVertexType.NORMAL)
-                .addInputs(
-                    RootInputLeafOutputProto.newBuilder()
-                        .setControllerDescriptor(
-                            TezEntityDescriptorProto.newBuilder().setClassName(
-                                initializerClassName))
-                        .setName("input4")
-                        .setIODescriptor(
-                            TezEntityDescriptorProto.newBuilder()
-                              .setClassName("InputClazz")
-                              .build()
+                    VertexPlan.newBuilder()
+                        .setName("vertex4")
+                        .setType(PlanVertexType.NORMAL)
+                        .addInputs(
+                            RootInputLeafOutputProto.newBuilder()
+                                .setControllerDescriptor(
+                                    TezEntityDescriptorProto.newBuilder().setClassName(
+                                        initializerClassName))
+                                .setName("input4")
+                                .setIODescriptor(
+                                    TezEntityDescriptorProto.newBuilder()
+                                        .setClassName("InputClazz")
+                                        .build()
+                                )
+                                .build()
                         )
-                        .build()
-                    )
-                .setTaskConfig(
-                    PlanTaskConfiguration.newBuilder()
-                        .setNumTasks(-1)
-                        .setVirtualCores(4)
-                        .setMemoryMb(1024)
-                        .setJavaOpts("")
-                        .setTaskModule("x3.y3")
+                        .setTaskConfig(
+                            PlanTaskConfiguration.newBuilder()
+                                .setNumTasks(-1)
+                                .setVirtualCores(4)
+                                .setMemoryMb(1024)
+                                .setJavaOpts("")
+                                .setTaskModule("x3.y3")
+                                .build()
+                        )
+                        .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                            .setClassName(RootInputSpecUpdaterVertexManager.class.getName())
+                            .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                                .setUserPayload(ByteString.copyFrom(new byte[]{1}))))
                         .build()
                 )
-                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
-                    .setClassName(RootInputSpecUpdaterVertexManager.class.getName())
-                    .setUserPayload(ByteString.copyFrom(new byte[] {1})))
-              .build()
-        )
         .addEdge(
             EdgePlan.newBuilder()
                 .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
@@ -827,7 +831,7 @@ public class TestVertexImpl {
                 .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
                 .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
                 .build()
-            )
+        )
         .build();
     return dag;
   }
@@ -1404,71 +1408,71 @@ public class TestVertexImpl {
             .build()
         )
         .addVertex(
-          VertexPlan.newBuilder()
-            .setName("vertex2")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-              PlanTaskLocationHint.newBuilder()
-                .addHost("host2")
-                .addRack("rack2")
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
+                .addOutEdgeId("e2")
                 .build()
-            )
-            .setTaskConfig(
-              PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x2.y2")
-                .build()
-            )
-            .addOutEdgeId("e2")
-            .build()
         )
         .addVertex(
-          VertexPlan.newBuilder()
-            .setName("vertex3")
-            .setType(PlanVertexType.NORMAL)
-            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
-            .addTaskLocationHint(
-              PlanTaskLocationHint.newBuilder()
-                .addHost("host3")
-                .addRack("rack3")
+            VertexPlan.newBuilder()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host3")
+                        .addRack("rack3")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .addInEdgeId("e1")
+                .addInEdgeId("e2")
+                .addOutEdgeId("e3")
+                .addOutEdgeId("e4")
                 .build()
-            )
-            .setTaskConfig(
-              PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("foo")
-                .setTaskModule("x3.y3")
-                .build()
-            )
-            .addInEdgeId("e1")
-            .addInEdgeId("e2")
-            .addOutEdgeId("e3")
-            .addOutEdgeId("e4")
-            .build()
         )
         .addVertex(
           VertexPlan.newBuilder()
             .setName("vertex4")
             .setType(PlanVertexType.NORMAL)
             .addTaskLocationHint(
-              PlanTaskLocationHint.newBuilder()
-                .addHost("host4")
-                .addRack("rack4")
-                .build()
+                PlanTaskLocationHint.newBuilder()
+                    .addHost("host4")
+                    .addRack("rack4")
+                    .build()
             )
             .setTaskConfig(
-              PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x4.y4")
-                .build()
+                PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(2)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x4.y4")
+                    .build()
             )
             .addInEdgeId("e3")
             .addOutEdgeId("e5")
@@ -1479,19 +1483,19 @@ public class TestVertexImpl {
             .setName("vertex5")
             .setType(PlanVertexType.NORMAL)
             .addTaskLocationHint(
-              PlanTaskLocationHint.newBuilder()
-                .addHost("host5")
-                .addRack("rack5")
-                .build()
+                PlanTaskLocationHint.newBuilder()
+                    .addHost("host5")
+                    .addRack("rack5")
+                    .build()
             )
             .setTaskConfig(
-              PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x5.y5")
-                .build()
+                PlanTaskConfiguration.newBuilder()
+                    .setNumTasks(2)
+                    .setVirtualCores(4)
+                    .setMemoryMb(1024)
+                    .setJavaOpts("")
+                    .setTaskModule("x5.y5")
+                    .build()
             )
             .addInEdgeId("e4")
             .addOutEdgeId("e6")
@@ -1575,9 +1579,10 @@ public class TestVertexImpl {
                     .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
                     .setEdgeManager(
                         TezEntityDescriptorProto.newBuilder()
-                        .setClassName(EdgeManagerForTest.class.getName())
-                        .setUserPayload(ByteString.copyFrom(edgePayload))
-                        .build())
+                            .setClassName(EdgeManagerForTest.class.getName())
+                            .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                                .setUserPayload((ByteString.copyFrom(edgePayload))))
+                            .build())
                     .setId("e4")
                     .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
                     .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
@@ -2833,9 +2838,11 @@ public class TestVertexImpl {
     outputs.add(RootInputLeafOutputProto.newBuilder()
         .setControllerDescriptor(
             TezEntityDescriptorProto.newBuilder().setClassName(
-                CountingOutputCommitter.class.getName()).setUserPayload(ByteString.copyFrom(
-                    new CountingOutputCommitter.CountingOutputCommitterConfig()
-                    .toUserPayload())).build())
+                CountingOutputCommitter.class.getName())
+                .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                    .setUserPayload(ByteString.copyFrom(
+                        new CountingOutputCommitter.CountingOutputCommitterConfig()
+                            .toUserPayload())).build()))
         .setName("output_v2")
         .setIODescriptor(
             TezEntityDescriptorProto.newBuilder().setClassName("output.class"))
@@ -2946,9 +2953,11 @@ public class TestVertexImpl {
     outputs.add(RootInputLeafOutputProto.newBuilder()
         .setControllerDescriptor(
             TezEntityDescriptorProto.newBuilder().setClassName(
-                CountingOutputCommitter.class.getName()).setUserPayload(ByteString.copyFrom(
+                CountingOutputCommitter.class.getName())
+                .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                .setUserPayload(ByteString.copyFrom(
                     new CountingOutputCommitter.CountingOutputCommitterConfig(
-                        true, true, false).toUserPayload())).build())
+                        true, true, false).toUserPayload())).build()))
         .setName("output_v2")
         .setIODescriptor(
             TezEntityDescriptorProto.newBuilder().setClassName("output.class"))
@@ -2990,9 +2999,11 @@ public class TestVertexImpl {
     outputs.add(RootInputLeafOutputProto.newBuilder()
         .setControllerDescriptor(
             TezEntityDescriptorProto.newBuilder().setClassName(
-                CountingOutputCommitter.class.getName()).setUserPayload(ByteString.copyFrom(
+                CountingOutputCommitter.class.getName())
+                .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                .setUserPayload(ByteString.copyFrom(
                     new CountingOutputCommitter.CountingOutputCommitterConfig(
-                        true, true, true).toUserPayload())).build())
+                        true, true, true).toUserPayload())).build()))
         .setName("output_v2")
         .setIODescriptor(
             TezEntityDescriptorProto.newBuilder().setClassName("output.class"))
@@ -4162,7 +4173,8 @@ public class TestVertexImpl {
                 .setEdgeManager(
                     TezEntityDescriptorProto.newBuilder()
                         .setClassName(EdgeManagerForTest.class.getName())
-                        .setUserPayload(ByteString.copyFrom(edgePayload))
+                        .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                            .setUserPayload(ByteString.copyFrom(edgePayload)))
                         .build())
                 .setOutputVertexName("M5")
                 .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)

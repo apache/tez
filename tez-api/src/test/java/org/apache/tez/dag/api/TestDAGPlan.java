@@ -167,19 +167,19 @@ public class TestDAGPlan {
     VertexPlan v2Proto = dagProto.getVertex(1);
     EdgePlan edgeProto = dagProto.getEdge(0);
 
-    assertEquals("processor1Bytes", new String(v1Proto.getProcessorDescriptor()
+    assertEquals("processor1Bytes", new String(v1Proto.getProcessorDescriptor().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("processor1", v1Proto.getProcessorDescriptor().getClassName());
 
-    assertEquals("processor2Bytes", new String(v2Proto.getProcessorDescriptor()
+    assertEquals("processor2Bytes", new String(v2Proto.getProcessorDescriptor().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("processor2", v2Proto.getProcessorDescriptor().getClassName());
 
-    assertEquals("inputBytes", new String(edgeProto.getEdgeDestination()
+    assertEquals("inputBytes", new String(edgeProto.getEdgeDestination().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("input", edgeProto.getEdgeDestination().getClassName());
 
-    assertEquals("outputBytes", new String(edgeProto.getEdgeSource()
+    assertEquals("outputBytes", new String(edgeProto.getEdgeSource().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("output", edgeProto.getEdgeSource().getClassName());
 
@@ -235,8 +235,8 @@ public class TestDAGPlan {
     EdgePlan edgeProto = dagProto.getEdge(0);
 
     // either v1 or v2 will be on top based on topological order 
-    String v1ProtoPayload = new String(v1Proto.getProcessorDescriptor().getUserPayload().toByteArray());
-    String v2ProtoPayload = new String(v2Proto.getProcessorDescriptor().getUserPayload().toByteArray());
+    String v1ProtoPayload = new String(v1Proto.getProcessorDescriptor().getTezUserPayload().getUserPayload().toByteArray());
+    String v2ProtoPayload = new String(v2Proto.getProcessorDescriptor().getTezUserPayload().getUserPayload().toByteArray());
     assertTrue(v1ProtoPayload.equals("processor1Bytes") || v1ProtoPayload.equals("processor3Bytes"));
     assertTrue(v2ProtoPayload.equals("processor1Bytes") || v2ProtoPayload.equals("processor3Bytes"));
     assertTrue(v1Proto.getProcessorDescriptor().getClassName().equals("processor1") ||
@@ -244,15 +244,15 @@ public class TestDAGPlan {
     assertTrue(v2Proto.getProcessorDescriptor().getClassName().equals("processor1") ||
         v2Proto.getProcessorDescriptor().getClassName().equals("processor3"));
 
-    assertEquals("processor2Bytes", new String(v3Proto.getProcessorDescriptor()
+    assertEquals("processor2Bytes", new String(v3Proto.getProcessorDescriptor().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("processor2", v3Proto.getProcessorDescriptor().getClassName());
 
-    assertEquals("inputBytes", new String(edgeProto.getEdgeDestination()
+    assertEquals("inputBytes", new String(edgeProto.getEdgeDestination().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("input", edgeProto.getEdgeDestination().getClassName());
 
-    assertEquals("outputBytes", new String(edgeProto.getEdgeSource()
+    assertEquals("outputBytes", new String(edgeProto.getEdgeSource().getTezUserPayload()
         .getUserPayload().toByteArray()));
     assertEquals("output", edgeProto.getEdgeSource().getClassName());
 

@@ -325,8 +325,7 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getSourceEdgeManagers().size());
       Assert.assertEquals(event.getSourceEdgeManagers().get("foo").getClassName(),
           deserializedEvent.getSourceEdgeManagers().get("foo").getClassName());
-      Assert.assertNotNull(deserializedEvent.getSourceEdgeManagers().get("foo").getUserPayload());
-      Assert.assertNull(deserializedEvent.getSourceEdgeManagers().get("foo").getUserPayload().getPayload());
+      Assert.assertNull(deserializedEvent.getSourceEdgeManagers().get("foo").getUserPayload());
       Assert.assertEquals(event.getSourceEdgeManagers().get("foo1").getClassName(),
           deserializedEvent.getSourceEdgeManagers().get("foo1").getClassName());
       Assert.assertEquals(event.getSourceEdgeManagers().get("foo1").getUserPayload().getVersion(),

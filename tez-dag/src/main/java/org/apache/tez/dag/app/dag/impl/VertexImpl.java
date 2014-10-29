@@ -69,7 +69,6 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
@@ -2032,15 +2031,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to RootInputVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName())
-            .setUserPayload(UserPayload.create(null)),
+            VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName()),
             this, appContext);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName())
-            .setUserPayload(UserPayload.create(null)),
+            VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName()),
             this, appContext);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
@@ -2053,8 +2050,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName())
-            .setUserPayload(UserPayload.create(null)),
+            VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName()),
             this, appContext);
       }
     }

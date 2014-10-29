@@ -69,7 +69,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         auxServiceEnv, memDist, outputDescriptor, objectRegistry);
     checkNotNull(outputIndex, "outputIndex is null");
     checkNotNull(destinationVertexName, "destinationVertexName is null");
-    this.userPayload = userPayload == null ? UserPayload.create(null) : userPayload;
+    this.userPayload = userPayload;
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
