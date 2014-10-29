@@ -100,7 +100,8 @@ public class TezConfiguration extends Configuration {
    * String value. Specifies a directory where Tez can create temporary job artifacts.
    */
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
-  public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
+  public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/"
+      + System.getProperty("user.name") + "/tez/staging";
   
   /**
    * String value that is a file path.
