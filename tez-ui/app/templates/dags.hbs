@@ -19,40 +19,37 @@
 {{partial 'utils/pageHeader'}}
 
 {{#unless loading}}
-	<div class='margin-small'>
-		<span class='align-left'>
-			{{page-nav-component
-				hasPrev=hasPrev
-				hasNext=hasNext
-				navNext='navigateNext'
-				navPrev='navigatePrev'
-				navFirst='navigateFirst'
-			}}
-		</span>
-		<div class='align-clear'> </div>
-	</div>
+  <div class='margin-small'>
+    <span class='align-left'>
+      {{page-nav-component
+        hasPrev=hasPrev
+        hasNext=hasNext
+        navNext='navigateNext'
+        navPrev='navigatePrev'
+        navFirst='navigateFirst'
+      }}
+    </span>
+    <span class='align-right'>
+      Number of Dags to Show
+      {{view Ember.Select 
+        content=countOptions 
+        value=count
+      }}
+    </span>
+    <div class='align-clear'> </div>
+  </div>
 
-	<div class='table-container'>
-	  {{table-component
-	    hasFooter=false
-	    columnsBinding='columns'
-	    contentBinding='sortedContent'
-	    forceFillColumns=true
-	  }}
-	</div>
-
-	<div class='margin-small'>
-		<span class='align-left'>
-			{{page-nav-component
-				hasPrev=hasPrev
-				hasNext=hasNext
-				navNext='navigateNext'
-				navPrev='navigatePrev'
-				navFirst='navigateFirst'
-			}}
-		</span>
-		<div class='align-clear'></div>
-	</div>
+  <div class='table-container'>
+    {{extended-table-component
+      hasFooter=false
+      enableContentSelection=true
+      columnsBinding='columns'
+      contentBinding='sortedContent'
+      forceFillColumns=true
+      hasFilter=true
+      onFilterUpdated='filterUpdated'
+    }}
+  </div>
 {{else}}
-	{{partial 'utils/loadingSpinner'}}	
+  {{partial 'utils/loadingSpinner'}}
 {{/unless}}

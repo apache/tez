@@ -28,8 +28,8 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   }.observes('content'),
 
   pageSubTitle: function() {
-    return this.get('id');
-  }.property('id'),
+    return this.get('name');
+  }.property('name'),
 
   childDisplayViews: [
     Ember.Object.create({title: 'Details', linkTo: 'vertex.index'}),

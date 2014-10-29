@@ -32,7 +32,7 @@ App.Router.map(function() {
     this.route('swimlane');
   });
 	
-	this.resource('tasks', {path: '/tasks/:dag_id'});
+	this.resource('tasks', {path: '/tasks'});
 	this.resource('task', {path: '/task/:task_id'}, function(){
 		this.route('attempts');
 		this.route('counters');
@@ -62,39 +62,29 @@ App.ApplicationRoute = Em.Route.extend({
 });*/
 
 App.DagsRoute = Em.Route.extend({
-	queryParams:  {
-		count: {
-			refreshModel: true,
-			replace: true
-		},
-		fromID: {
-			refreshModel: true,
-			replace: true
-		},
-		fromTS: {
-			refreshModel: true,
-			replace: true,
-		},
-		user: {
-			refreshModel: true,
-			replace: true
-		}
-	},
+  queryParams:  {
+    count: {
+      refreshModel: true,
+      replace: true
+    },
+    fromID: {
+      refreshModel: true,
+      replace: true
+    },
+    user: {
+      refreshModel: true,
+      replace: true
+    },
+    status: {
+    refreshModel: true,
+      replace: true
+    }
+  },
 
-	model: function(params) {
-		var controllerClass = this.controllerFor('dags');
-		var queryParams = controllerClass.getFilterParams(params);
-
-		//TODO remove this
-		this.store.unloadAll('dag');
-		this.store.unloadAll('counterGroup');
-		this.store.unloadAll('counter');
-		return this.store.findQuery('dag', queryParams);
-	},
-
-	setupController: function(controller, model) {
-		this._super(controller, model);
-	},
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  },
 });
 
 App.DagRoute = Em.Route.extend({
@@ -122,20 +112,25 @@ App.DagSwimlaneRoute = Em.Route.extend({
 });
 
 App.TasksRoute = Em.Route.extend({
-	model: function(params) {
-		var controllerClass = this.controllerFor('tasks');
-		var queryParams = controllerClass.getFilterParams(params);
-		
-		//TODO: fix this
-		this.store.unloadAll('task');
-		this.store.unloadAll('counterGroup');
-		this.store.unloadAll('counter');
-		return this.store.findQuery('task', queryParams);
-	},
+  queryParams: {
+    status: {
+      refreshModel: true,
+      replace: true
+    },
+    parentType: {
+      refreshModel: true,
+      replace: true
+    },
+    parentID: {
+      refreshModel: true,
+      replace: true
+    }
+  },
 
-	setupController: function(controller, model) {
-		this._super(controller, model);
-	}
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
 });
 
 App.TaskRoute = Em.Route.extend({
@@ -170,5 +165,65 @@ App.VertexSwimlaneRoute = Em.Route.extend({
 
   setupController: function(controller, model) {
     this._super(controller, model);
+  }
+});
+
+App.DagTasksRoute = Em.Route.extend({
+  queryParams: {
+    status: {
+      refreshModel: true,
+      replace: true
+    },
+    vertex_id: {
+      refreshModel: true,
+      replace: true
+    }
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
+});
+
+App.DagVerticesRoute = Em.Route.extend({
+  queryParams: {
+    status: {
+      refreshModel: true,
+      replace: true
+    }
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
+});
+
+App.VertexTasksRoute = Em.Route.extend({
+  queryParams: {
+    status: {
+      refreshModel: true,
+      replace: true
+    }
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
+});
+
+App.TaskAttemptsRoute = Em.Route.extend({
+  queryParams: {
+    status: {
+      refreshModel: true,
+      replace: true
+    }
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
   }
 });

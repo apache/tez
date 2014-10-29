@@ -17,73 +17,87 @@
  */
 
 App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin, {
-	reloadData: function() {
-		this.loadEntities();
-	}.observes('id'),
+  needs: "dag",
 
-	// required by the PaginatedContentMixin
-	parentEntityType: 'dag',
-	childEntityType: 'vertex',
+  // required by the PaginatedContentMixin
+  childEntityType: 'vertex',
 
-	filterValues: {},
+  queryParams: {
+    status_filter: 'status'
+  },
 
-  /*
-  reloadWhenFiltersChange: function() {
+  status_filter: null,
+
+  loadData: function() {
     var filters = {
-      id: null,
-      primary: {},
-      secondary: {}
-    };
-    var fv = this.filterValues;
-    filters.primary.TEZ_VERTEX_ID = fv.vertex_id;
-    filters.secondary.status = fv.status;
+      primary: {
+        TEZ_DAG_ID: this.get('controllers.dag.id')
+      },
+      secondary: {
+        status: this.status_filter
+      }
+    }
     this.setFiltersAndLoadEntities(filters);
-  }.observes('filterValues.task_id', 'filterValues.vertex_id', 'filterValues.status'),
-*/
-	columns: function() {
-		var idCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Vertex ID',
+  },
+
+  actions : {
+    filterUpdated: function(filterID, value) {
+      // any validations required goes here.
+      if (!!value) {
+        this.set(filterID, value);
+      } else {
+        this.set(filterID, null);
+      }
+      this.loadData();
+    }
+  },
+
+  columns: function() {
+    var idCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'Vertex Name',
       tableCellViewClass: Em.Table.TableCell.extend({
       	template: Em.Handlebars.compile(
-      		"{{#link-to 'vertex' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+      		"{{#link-to 'vertex' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
       }),
-      //filterID: 'task_id',
-      contentPath: 'id',
+      getCellContent: function(row) {
+        return {
+          id: row.get('id'),
+          name: row.get('name')
+        };
+      }
     });
 
     var nameCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Name',
-      contentPath: 'name',
+      headerCellName: 'Vertex ID',
+      contentPath: 'id',
     });
 
     var startTimeCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
       headerCellName: 'Submission Time',
       getCellContent: function(row) {
       	return App.Helpers.date.dateFormat(row.get('startTime'));
       }
     });
 
-    var endTimeCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'End Time',
+    var runTimeCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'Run Time',
       getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
+        var st = row.get('startTime');
+        var et = row.get('endTime');
+        if (st && et) {
+          return App.Helpers.date.durationSummary(st, et);
+        }
       }
     });
 
     var numTasksCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
       headerCellName: 'Tasks',
       contentPath: 'numTasks'
     });
 
     var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      textAlign: 'text-align-left',
       headerCellName: 'Status',
-      filterID: 'status',
+      filterID: 'status_filter',
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
           '<span class="ember-table-content">&nbsp;\
@@ -98,6 +112,6 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
       }
     });
 
-		return [idCol, nameCol, startTimeCol, endTimeCol, numTasksCol, statusCol];
+		return [idCol, nameCol, startTimeCol, runTimeCol, numTasksCol, statusCol];
 	}.property(),
 });

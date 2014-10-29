@@ -16,54 +16,35 @@
  * limitations under the License.
  */
 
-App.TasksController = Em.ArrayController.extend({
+App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+  // Required by the PaginatedContentMixin
+  childEntityType: 'task',
+
 	controllerName: 'TasksController',
 
 	pageTitle: 'Tasks',
 
 	pageSubTitle: 'All Tasks',
 
-	/* There is currently no efficient way in ATS to get pagination data, so we fake one.
-   * store the first task id on a page so that we can navigate back and store the last one 
-   * (not shown on page to get the id where next page starts)
-   */
-  navIDs: {
-    prevIDs: [],
-    currentID: undefined,
-    nextID: undefined
+  queryParams: {
+    parentType: true,
+    parentID: true,
+    status_filter: 'status'
   },
 
-	sortedContent: function() {
-    var sorted = Em.ArrayController.create({
-      model: this.get('content'),
-      sortProperties: ['startTime'],
-      sortAscending: false
-    });
-    this.updatePagination(sorted.toArray());
-    return sorted.slice(0, this.count);
-  }.property('content.isUpdating', 'content.isLoading'),
+  parentType: null,
+  parentID: null,
+  status_filter: null,
 
-  updatePagination: function(currentPageTaskIDs) {
-    if (!!currentPageTaskIDs && currentPageTaskIDs.length > 0) {
-      this.set('navIDs.currentID', currentPageTaskIDs[0].id);
-      var nextID = undefined;
-      if (currentPageTaskIDs.length > this.count) {
-        // save the last id, so that we can use that as firt id on next page.
-        nextID = currentPageTaskIDs[this.count].id;
+  loadData: function() {
+    var filters = {
+      primary: {},
+      secondary: {
+        status: this.status_filter
       }
-      this.set('navIDs.nextID', nextID);
     }
-  },
-
-  getFilterParams: function(params) {
-  	//TODO: other parameters.
-  	var filterParams = {};
-
-    if (params.dag_id) {
-      filterParams['primaryFilter'] = 'TEZ_DAG_ID:' + params.dag_id;
-    }
-
-    return filterParams;
+    filters.primary[this.parentType] = this.parentID;
+    this.setFiltersAndLoadEntities(filters);
   },
 
 	/* table view for tasks */

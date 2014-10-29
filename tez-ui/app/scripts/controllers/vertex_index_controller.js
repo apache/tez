@@ -23,4 +23,12 @@ App.VertexIndexController = Em.ObjectController.extend({
   iconStatus: function() {
     return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
   }.property('id', 'status', 'counterGroups'),
+
+  hasFailedTasks: function() {
+    return this.get('failedTasks') > 0;
+  }.property('id', 'counterGroups'),
+  
+  failedTasksLink: function() {
+    return '/#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
+  }.property(),
 });

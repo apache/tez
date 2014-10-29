@@ -177,9 +177,11 @@ App.Helpers.date = {
     var oneDayMs = 86400000;
 
     if (lengthOfNumber < 4) {
+      time = Math.floor(time);
       return time + ' ms';
     } else if (lengthOfNumber < 7) {
       time = (time / 1000).toFixed(2);
+      time = Math.floor(time);
       return time + ' secs';
     } else if (time < oneHourMs) {
       time = (time / oneMinMs).toFixed(2);

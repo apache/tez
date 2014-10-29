@@ -17,53 +17,51 @@
  */
 
 App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
-	reloadData: function() {
-		this.loadEntities();
-	}.observes('id'),
+  // required by the PaginatedContentMixin
+  childEntityType: 'task_attempt',
 
-	// required by the PaginatedContentMixin
-	parentEntityType: 'task',
-	childEntityType: 'task_attempt',
+  needs: 'task',
 
-	filterValues: {},
+  queryParams: {
+    status_filter: 'status'
+  },
+  status_filter: null,
 
-/*
-  reloadWhenFiltersChange: function() {
+  loadData: function() {
     var filters = {
-      id: null,
-      primary: {},
-      secondary: {}
-    };
-    var fv = this.filterValues;
-    filters.primary.TEZ_TAS = fv.vertex_id;
-    filters.secondary.status = fv.status;
+      primary: {
+        TEZ_TASK_ID: this.get('controllers.task.id')
+      },
+      secondary: {
+        status: this.status_filter
+      }
+    }
     this.setFiltersAndLoadEntities(filters);
-  }.observes('filterValues.task_id', 'filterValues.vertex_id', 'filterValues.status'),
-  */
+  },
+
+  actions : {
+    filterUpdated: function(filterID, value) {
+      // any validations required goes here.
+      if (!!value) {
+        this.set(filterID, value);
+      } else {
+        this.set(filterID, null);
+      }
+      this.loadData();
+    }
+  },
 
 	columns: function() {
 		var idCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
       headerCellName: 'Task ID',
       tableCellViewClass: Em.Table.TableCell.extend({
       	template: Em.Handlebars.compile(
       		"{{#link-to 'taskAttempt' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
       }),
-      //filterID: 'task_id',
       contentPath: 'id',
     });
 
-		/*
-    var vertexCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      textAlign: 'text-align-left',
-      headerCellName: 'Vertex ID',
-      filterID: 'vertex_id',
-      contentPath: 'vertexID'
-    });
-*/
-
     var startTimeCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
       headerCellName: 'Start Time',
       getCellContent: function(row) {
       	return App.Helpers.date.dateFormat(row.get('startTime'));
@@ -71,7 +69,6 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
     });
 
     var endTimeCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
       headerCellName: 'End Time',
       getCellContent: function(row) {
         return App.Helpers.date.dateFormat(row.get('endTime'));
@@ -79,9 +76,8 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
     });
 
     var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      textAlign: 'text-align-left',
       headerCellName: 'Status',
-      filterID: 'status',
+      filterID: 'status_filter',
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
           '<span class="ember-table-content">&nbsp;\
@@ -97,13 +93,11 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
     });
 
     var nodeIdCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
       headerCellName: 'Node ID',
       contentPath: 'nodeId'
     });
 
     var containerCol = App.ExTable.ColumnDefinition.create({
-    	textAlign: 'text-align-left',
       headerCellName: 'Container ID',
       contentPath: 'containerId'
     });

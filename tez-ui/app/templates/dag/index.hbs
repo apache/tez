@@ -26,30 +26,11 @@
 						{{status}}
 						<i {{bind-attr class=':task-status taskIconStatus'}}></i>
 					</td>
-				</tr>
-				<tr>
-					<td>Total Tasks</td>
-					<td>{{totalTasks}}</td>
-				</tr>
-				<tr>
-					<td>Successful Tasks</td>
-					<td>{{sucessfulTasks}}</td>
-				</tr>
-				<tr>
-					<td>Failed Tasks</td>
-					<td>
-						{{failedTasks}}
-					</td>
-					<td>
-						{{#if hasFailedTasks}}
-							{{!TODO: place link to the tasks that failed}}
-							{{#link-to 'tasks' id}}Failed Tasks{{/link-to}}
-						{{/if}}
-					</td>
-				</tr>
-				<tr>
-					<td>Killed Tasks</td>
-					<td>{{killedTasks}}</td>
+          <td>
+            {{#if hasFailedTasks}}
+              <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
+            {{/if}}
+          </td>
 				</tr>
 			</tbody>
 		</table>

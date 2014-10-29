@@ -16,155 +16,103 @@
  * limitations under the License.
  */
 
-App.DagsController = Em.ArrayController.extend({
+App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+  childEntityType: 'dag',
+
 	controllerName: 'DagsController',
 
 	pageTitle: 'Dags',
 
 	pageSubTitle: 'All Dags',
 
-  /* filtering and sorting related */
+  // query parameters supported through url. The same named variables in this controller get
+  // bound automatically to the ones defined in the route.
   queryParams: {
     count: true,
-    fromID: true
+    fromID: true,
+    status_filter: 'status',
+    user_filter: 'user'
   },
 
+  // paging related values. These are bound automatically to the values in url. via the queryParams
+  // defined in the route. 
   count: 10,
 
-  fromID: '',
+  fromID: null,
 
-  fromTS: '',
+  status_filter: null,
+
+  user_filter: null,
 
   fields: 'events,primaryfilters,otherinfo',
-  /* end sort & filter related */
 
-  // content is being loaded.
-  loading: true,
+  // The dropdown contents for number of items to show.
+  countOptions: [5, 10, 25, 50, 100],
 
-  /* There is currently no efficient way in ATS to get pagination data, so we fake one.
-   * store the first dag id on a page so that we can navigate back and store the last one 
-   * (not shown on page to get the id where next page starts)
-   */
-  navIDs: {
-    prevIDs: [],
-    currentID: undefined,
-    nextID: undefined
-  },
-
-  updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-  sortedContent: function() {
-    var sorted = Em.ArrayController.create({
-      model: this.get('content'),
-      sortProperties: ['startTime'],
-      sortAscending: false
-    });
-    this.updatePagination(sorted.toArray());
-    return sorted.slice(0, this.count);
-  }.property('content.isUpdating', 'content.isLoading'),
-
-  updatePagination: function(currentPageDagIDs) {
-    if (!!currentPageDagIDs && currentPageDagIDs.length > 0) {
-      this.set('navIDs.currentID', currentPageDagIDs[0].id);
-      var nextID = undefined;
-      if (currentPageDagIDs.length > this.count) {
-        // save the last id, so that we can use that as firt id on next page.
-        nextID = currentPageDagIDs[this.count].id;
+  loadData: function() {
+    var filters = {
+      primary: {
+        user: this.user_filter
+      },
+      secondary: {
+        status: this.status_filter
       }
-      this.set('navIDs.nextID', nextID);
     }
+    this.setFiltersAndLoadEntities(filters);
   },
 
-  hasPrev: function() {
-    return this.navIDs.prevIDs.length > 0;
-  }.property('navIDs.prevIDs.[]'),
+  countUpdated: function() {
+    this.loadData();
+  }.observes('count'),
 
-  hasNext: function() {
-    return !!this.navIDs.nextID;
-  }.property('navIDs.nextID'),
-
-  actions:{
-    // go to previous page
-    navigatePrev: function () {
-      var prevPageId = this.navIDs.prevIDs.popObject();
-      this.set('fromID', prevPageId);
-      this.set('loading', true);
-      this.transitionToRoute('dags');
+  actions : {
+    filterUpdated: function(filterID, value) {
+      // any validations required goes here.
+      if (!!value) {
+        this.set(filterID, value);
+      } else {
+        this.set(filterID, null);
+      }
+      this.loadData();
     },
-
-    // goto first page.
-    navigateFirst: function() {
-      var firstPageId = this.navIDs.prevIDs[0];
-      this.set('navIDs.prevIDs', []);
-      this.set('fromID', firstPageId);
-      this.set('loading', true);
-      this.transitionToRoute('dags');
-    },
-
-    // go to next page
-    navigateNext: function () {
-      this.navIDs.prevIDs.pushObject(this.navIDs.currentID);
-      this.set('fromID', this.get('navIDs.nextID'));
-      this.set('loading', true);
-      this.transitionToRoute('dags');
-    },
-  },
-
-  getFilterParams: function(params) {
-    var filterParams = {
-      limit: (parseInt(params.count) || this.get('count')) + 1,
-      fields: this.get('fields')
-    };
-    var fromID = params.fromID || this.get('fromID'), 
-        fromTS = params.fromTS || this.get('fromTS'),
-        user = params.user;
-    
-    if (fromID) {
-      filterParams['fromId'] = fromID; 
-    }
-
-    if (fromTS) {
-      filterParams['fromTs'] = fromTS;
-    }
-
-    if (user) {
-      filterParams['primaryFilter'] = 'user:' + user;
-    }
-
-    return filterParams;
   },
 
 	/* table view for dags */
   columns: function() {
     var store = this.get('store');
     var columnHelper = function(columnName, valName) {
-      return Em.Table.ColumnDefinition.create({
+      return App.ExTable.ColumnDefinition.create({
         textAlign: 'text-align-left',
         headerCellName: columnName,
-        getCellContent: function(row) {
-          return row.get(valName);
-        }
+        contentPath: valName
       });
     }
 
-    var idCol = Em.Table.ColumnDefinition.create({
+    var nameCol = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Dag Id',
+      headerCellName: 'Dag Name',
       tableCellViewClass: Em.Table.TableCell.extend({
       	template: Em.Handlebars.compile(
-          "{{#link-to 'dag' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+          "{{#link-to 'dag' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
       }),
       getCellContent: function(row) {
-      	return row.get('id');
+      	return {
+          id: row.get('id'),
+          name: row.get('name')
+        };
       }
     });
-    var nameCol = columnHelper('Name', 'name');
-    var userCol = columnHelper('Submitter', 'user');
-    var statusCol = Em.Table.ColumnDefinition.create({
+    var idCol = columnHelper('Dag ID', 'id');
+    var userCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, {
+      textAlign: 'text-align-left',
+      headerCellName: 'Submitter',
+      filterID: 'user_filter',
+      contentPath: 'user'
+    }); 
+    var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
       textAlign: 'text-align-left',
       headerCellName: 'Status',
+      filterID: 'status_filter',
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
           '<span class="ember-table-content">&nbsp;\
@@ -178,29 +126,26 @@ App.DagsController = Em.ArrayController.extend({
         };
       }
     });
-    var submittedTimeCol = Em.Table.ColumnDefinition.create({
+    var submittedTimeCol = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'Submitted Time',
       getCellContent: function(row) {
         return App.Helpers.date.dateFormat(row.get('submittedTime'));
       }
     });
-    var startTimeCol = Em.Table.ColumnDefinition.create({
+    var runTimeCol = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Start Time',
+      headerCellName: 'Run Time',
       getCellContent: function(row) {
-      	return App.Helpers.date.dateFormat(row.get('startTime'));
+        var st = row.get('startTime');
+        var et = row.get('endTime');
+        if (st && et) {
+          return App.Helpers.date.durationSummary(st, et);
+        }
       }
     });
     var appIdCol = columnHelper('Application ID', 'applicationId');
-    var endTimeCol = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-    return [idCol, nameCol, userCol, statusCol, submittedTimeCol, startTimeCol, appIdCol];
+    return [nameCol, idCol, userCol, statusCol, submittedTimeCol, runTimeCol, appIdCol];
   }.property(),
 
 

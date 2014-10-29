@@ -15,22 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-var modelToATSType = {
-	dag: 'TEZ_DAG_ID',
-	task: 'TEZ_TASK_ID',
-	vertex: 'TEZ_VERTEX_ID',
-	taskAttempt: 'TEZ_TASK_ATTEMPT_ID'
-};
-
-var childEntityTypeForParent = {
-	dag: 'task',
-	task: 'taskAttempt'
-}
 
 App.PaginatedContentMixin = Em.Mixin.create({
 	count: 5,
 	
-	fromID: '',
+	fromID: null,
 
 	/* There is currently no efficient way in ATS to get pagination data, so we fake one.
    * store the first dag id on a page so that we can navigate back and store the last one 
@@ -46,10 +35,6 @@ App.PaginatedContentMixin = Em.Mixin.create({
   _paginationFilters: {},
 	loading: true,
 
-  getChildEntityType: function(parentType) {
-    return childEntityTypeForParent[parentType];
-  },
-
   sortedContent: function() {
     var sorted = Em.ArrayController.create({
       model: this.get('entities'),
@@ -62,7 +47,6 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
 	loadEntities: function() {
 		var that = this;
-		var parentEntityType = this.get('parentEntityType');
 		var childEntityType = this.get('childEntityType');
 		this.get('store').unloadAll(childEntityType);
 		this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
@@ -83,7 +67,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
 		this.set('navIDs.prevIDs', []);
 		this.set('navIDs.currentID', '');
 		this.set('navIDs.nextID', '');
-		this.set('fromID', '');
+		this.set('fromID', null);
 	},
 
 	updatePagination: function(dataArray) {
@@ -153,9 +137,6 @@ App.PaginatedContentMixin = Em.Mixin.create({
 		var secondary = f.secondary || {};
 
 		primary = this._concatFilters(primary);
-		if (Em.empty(primary)) {
-			primary = modelToATSType[this.get('parentEntityType')] + ':' + this.get('id');
-		}
 
 		secondary = this._concatFilters(secondary);
 

@@ -46,6 +46,11 @@
           <td>
             {{failedTasks}}
           </td>
+          <td>
+            {{#if hasFailedTasks}}
+              <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
+            {{/if}}
+          </td>
         </tr>
         <tr>
           <td>Killed Tasks</td>

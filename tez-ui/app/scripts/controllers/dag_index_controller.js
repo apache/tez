@@ -48,6 +48,10 @@ App.DagIndexController = Em.ObjectController.extend({
 		return this.get('failedTasks') > 0;
 	}.property('id', 'counterGroups'),
 
+  failedTasksLink: function() {
+    return '/#tasks?status=FAILED&parentType=TEZ_DAG_ID&parentID=' + this.get('id');
+  }.property(),
+
 	actions: {
 		showFailedTasks: function() {
 			alert('not implemented');

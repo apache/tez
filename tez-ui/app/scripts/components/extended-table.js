@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
- App.ExTable = Ember.Namespace.create();
-
-//TODO: fix top calculation in FooterTableContainer
+App.ExTable = Ember.Namespace.create();
 
 App.ExTable.FilterField = Em.TextField.extend({
 	classNames: ['filter'],
@@ -31,20 +29,16 @@ App.ExTable.FilterField = Em.TextField.extend({
   	return !Em.isEmpty(this.get('value'));
   }.property('value'),
   insertNewline: function(event) {
-  	if (this.get('isInputDirty')) {
-  		this.set('filterValue', this.get('value'))
-  	}
+    if (this.get('isInputDirty')) {
+      this.set('filterValue', this.get('value'));
+      this.get('parentView.controller').send('filterUpdated', 
+        this.get('parentView.content'), this.get('value'));
+    }
   },
   cancel: function() {
-  	//TODO: ignoring cancel for now. user needs to press enter.
-  	//this.set('filterValue', this.get('value'))
+    // cancel is ignored. user needs to press enter. This is done in order to avoid 
+    // two requests when user wants to clear the current input and enter new value.
   },
-  /* TODO: remove this
-  doUpdateFilter: function(action) {
-  	if (action) {
-  		this.get('parentView.controller').send(action, this.get('parentView.content'));
-  	}
-  },*/
   isInputDirty: function() {
   	return $.trim(this.get('value')) != $.trim(this.get('filterValue'));
   }.property('value', 'filterValue')
@@ -91,23 +85,22 @@ App.ExTable.FilterCell = Ember.View.extend(Ember.AddeparMixins.StyleBindingsMixi
   height: function() {
   	return this.get('controller._filterHeight');
   }.property('controller._filterHeight'),
-  isPopulated: function() {//TODO: remove
-  	return true;
-  }.property()
-  //TODO: handle resizing if required.
+  // Currently resizing is not handled automatically. if required will need to do here.
 });
 
 App.ExTable.ColumnDefinition = Ember.Table.ColumnDefinition.extend({
-	init: function() {
-		var columnFilterValueBinding = Em.Binding.from('columnFilterValue').to('controller.filters.' + this.get('filterID'));
-		columnFilterValueBinding.connect(this);
-	},
-	filterCellView: 'App.ExTable.FilterCell',
+  init: function() {
+    if (!!this.filterID) {
+      var columnFilterValueBinding = Em.Binding
+        .oneWay('controller._parentView.context.' + this.filterID)
+        .to('columnFilterValue');
+      columnFilterValueBinding.connect(this);
+    }
+  },
+  textAlign: 'text-align-left',
+  filterCellView: 'App.ExTable.FilterCell',
   filterCellViewClass: Ember.computed.alias('filterCellView'),
   filterID: null,
-  isPopulated: function() {
-  	return !Em.isEmpty(this.get('columnFilterValue'));
-  }.property('columnFilterValue'),
 });
 
 App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
@@ -117,37 +110,15 @@ App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
 	hasFilter: true,
 	minFilterHeight: 30, //TODO: less changes
 
-	actions: {
-		updateFilter: function(columnDef) {
-			var filterID = columnDef.get('filterID');
-			filterID = filterID || columnDef.get('headerCellName').underscore();
-			var filterValue = $.trim(columnDef.get('columnFilterValue'));
-			if (filterValue === this.filters[filterID]) {
-				return; // nothing to do.
-			}
-			if (Em.empty(filterValue)) {
-				delete this.filters[filterID];
-			} else {
-				//this.filters[filterID] = filterValue;
-				this.get('filters').set(filterID, filterValue);
-			}
-			if (this.get('onFilterUpdated')) {
-				this.sendAction('onFilterUpdated', this.filters);
-			}
-		},
-
-		removeFilter: function(columnDef) {
-			var filterID = columnDef.get('filterID');
-			if (!this.filters[filterID]) {
-				return;
-			}
-			delete this.filters[filterID];
-			columnDef.set('columnFilterValue', null);
-			if (this.get('onFilterUpdated')) {
-				this.sendAction('onFilterUpdated', this.filters);
-			}
-		}
-	},
+  actions: {
+    filterUpdated: function(columnDef, value) {
+      var filterID = columnDef.get('filterID');
+      filterID = filterID || columnDef.get('headerCellName').underscore();
+      if (this.get('onFilterUpdated')) {
+      	this.sendAction('onFilterUpdated', filterID, value);
+      }
+    }
+  },
 
 	// private variables
 	// Dynamic filter height that adjusts according to the filter content height

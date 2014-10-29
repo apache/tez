@@ -16,23 +16,33 @@
  */
 
 App.Helpers.misc = {
-	getStatusClassForEntity: function(dag) {
-		if (dag.get('status') == 'FAILED') {
-			return 'failure';
-		}
+  getStatusClassForEntity: function(dag) {
+    var st = dag.get('status');
+    switch(st) {
+      case 'FAILED':
+        return 'failed';
+      case 'KILLED':
+        return 'killed';
+      case 'RUNNING':
+        return 'running';
+      case 'ERROR':
+        return 'error';
+      case 'SUCCEEDED':
+        var counterGroups = dag.get('counterGroups');
+        var numFailedTasks = this.getCounterValueForDag(counterGroups,
+          dag.get('id'), 'org.apache.tez.common.counters.DAGCounter',
+          'NUM_FAILED_TASKS'
+        ); 
 
-		var counterGroups = dag.get('counterGroups');
-		var numFailedTasks = this.getCounterValueForDag(counterGroups,
-				dag.get('id'), 'org.apache.tez.common.counters.DAGCounter',
-				'NUM_FAILED_TASKS'
-			); 
+        if (numFailedTasks > 0) {
+          return 'warning';
+        }
 
-		if (numFailedTasks > 0) {
-			return 'warning';
-		}
-
-		return 'success';
-	},
+        return 'success';
+      default:
+        return 'submitted';
+    }
+  },
 
 	getCounterValueForDag: function(counterGroups, dagID, counterGroupName, counterName) {
 		if (!counterGroups) {
@@ -53,5 +63,14 @@ App.Helpers.misc = {
 		if (!counter) return 0;
 
 		return counter.get('value');
-	}
+	},
+
+  isValidDagStatus: function(status) {
+    return $.inArray(status, ['SUBMITTED', 'INITING', 'RUNNING', 'SUCCEEDED',
+      'KILLED', 'FAILED', 'ERROR']) != -1;
+  },
+
+  isValidTaskStatus: function(status) {
+    return $.inArray(status, ['RUNNING', 'SUCCEEDED', 'FAILED', 'KILLED']) != -1;
+  }
 }
