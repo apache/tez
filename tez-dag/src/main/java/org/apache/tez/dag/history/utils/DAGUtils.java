@@ -22,9 +22,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
@@ -85,11 +89,10 @@ public class DAGUtils {
 
 
 
-  public static JSONObject generateSimpleJSONPlan(DAGPlan dagPlan,
-      Map<String, TezVertexID> vertexNameIDMap) throws JSONException {
+  public static JSONObject generateSimpleJSONPlan(DAGPlan dagPlan) throws JSONException {
     JSONObject dagJson;
     try {
-      dagJson = new JSONObject(convertDAGPlanToATSMap(dagPlan, vertexNameIDMap));
+      dagJson = new JSONObject(convertDAGPlanToATSMap(dagPlan));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
@@ -129,8 +132,7 @@ public class DAGUtils {
     return object;
   }
 
-  public static Map<String,Object> convertDAGPlanToATSMap(
-      DAGPlan dagPlan, Map<String, TezVertexID> vertexNameIDMap) throws IOException {
+  public static Map<String,Object> convertDAGPlanToATSMap(DAGPlan dagPlan) throws IOException {
 
     final String VERSION_KEY = "version";
     final int version = 1;
@@ -141,12 +143,6 @@ public class DAGUtils {
     for (DAGProtos.VertexPlan vertexPlan : dagPlan.getVertexList()) {
       Map<String,Object> vertexMap = new LinkedHashMap<String, Object>();
       vertexMap.put(VERTEX_NAME_KEY, vertexPlan.getName());
-      if (vertexNameIDMap != null && !vertexNameIDMap.isEmpty()) {
-        TezVertexID vertexID = vertexNameIDMap.get(vertexPlan.getName());
-        if (vertexID != null) {
-          vertexMap.put(VERTEX_ID_KEY, vertexID.toString());
-        }
-      }
       if (vertexPlan.hasProcessorDescriptor()) {
         vertexMap.put(PROCESSOR_CLASS_KEY,
             vertexPlan.getProcessorDescriptor().getClassName());
@@ -359,6 +355,16 @@ public class DAGUtils {
       jsonDescriptor.put(USER_PAYLOAD_AS_TEXT, descriptor.getHistoryText());
     }
     return jsonDescriptor;
+  }
+
+  public static Map<String, String> convertConfigurationToATSMap(Configuration conf) {
+    Iterator<Entry<String, String>> iter = conf.iterator();
+    Map<String, String> atsConf = new TreeMap<String, String>();
+    while (iter.hasNext()) {
+      Entry<String, String> entry = iter.next();
+      atsConf.put(entry.getKey(), entry.getValue());
+    }
+    return atsConf;
   }
 
 }

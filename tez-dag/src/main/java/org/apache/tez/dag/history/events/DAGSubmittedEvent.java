@@ -54,7 +54,6 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   private ApplicationAttemptId applicationAttemptId;
   private String user;
   private Map<String, LocalResource> cumulativeAdditionalLocalResources;
-  private Map<String, TezVertexID> vertexNameIDMap;
 
   public DAGSubmittedEvent() {
   }
@@ -62,7 +61,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   public DAGSubmittedEvent(TezDAGID dagID, long submitTime,
       DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
       Map<String, LocalResource> cumulativeAdditionalLocalResources,
-      String user, Map<String, TezVertexID> vertexNameIDMap) {
+      String user) {
     this.dagID = dagID;
     this.dagName = dagPlan.getName();
     this.submitTime = submitTime;
@@ -70,7 +69,6 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     this.applicationAttemptId = applicationAttemptId;
     this.cumulativeAdditionalLocalResources = cumulativeAdditionalLocalResources;
     this.user = user;
-    this.vertexNameIDMap = vertexNameIDMap;
   }
 
   @Override
@@ -183,10 +181,6 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   public String getUser() {
     return user;
-  }
-
-  public Map<String, TezVertexID> getVertexNameIDMap() {
-    return vertexNameIDMap;
   }
 
 }

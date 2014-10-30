@@ -108,7 +108,7 @@ public class TestDAGUtils {
     idNameMap.put("vertex2", vId2);
     idNameMap.put("vertex3", vId3);
 
-    Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan, idNameMap);
+    Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
     Assert.assertEquals(dagPlan.getName(), atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey("version"));
@@ -128,10 +128,7 @@ public class TestDAGUtils {
     for (Object o : ((Collection<?>) atsMap.get(DAGUtils.VERTICES_KEY))) {
       Map<String, Object> v = (Map<String, Object>) o;
       Assert.assertTrue(v.containsKey(DAGUtils.VERTEX_NAME_KEY));
-      Assert.assertTrue(v.containsKey(DAGUtils.VERTEX_ID_KEY));
-      String vId = (String)v.get(DAGUtils.VERTEX_ID_KEY);
       String vName = (String)v.get(DAGUtils.VERTEX_NAME_KEY);
-      Assert.assertEquals(idNameMap.get(vName).toString(), vId);
       Assert.assertTrue(v.containsKey(DAGUtils.PROCESSOR_CLASS_KEY));
       Assert.assertTrue(v.containsKey(DAGUtils.USER_PAYLOAD_AS_TEXT));
 

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -30,6 +31,7 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
+import org.apache.tez.dag.history.events.AppLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
@@ -60,6 +62,9 @@ public class HistoryEventJsonConversion {
     }
     JSONObject jsonObject = null;
     switch (historyEvent.getEventType()) {
+      case APP_LAUNCHED:
+        jsonObject = convertAppLaunchedEvent((AppLaunchedEvent) historyEvent);
+        break;
       case AM_LAUNCHED:
         jsonObject = convertAMLaunchedEvent((AMLaunchedEvent) historyEvent);
         break;
@@ -119,6 +124,24 @@ public class HistoryEventJsonConversion {
         throw new UnsupportedOperationException("Unhandled Event"
             + ", eventType=" + historyEvent.getEventType());
     }
+    return jsonObject;
+  }
+
+  private static JSONObject convertAppLaunchedEvent(AppLaunchedEvent event) throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY,
+        "tez_" + event.getApplicationId().toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE,
+        EntityTypes.TEZ_APPLICATION.name());
+
+    // Other info to tag with Tez App
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.USER, event.getUser());
+    otherInfo.put(ATSConstants.CONFIG, new JSONObject(
+        DAGUtils.convertConfigurationToATSMap(event.getConf())));
+
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
     return jsonObject;
   }
 
@@ -307,6 +330,14 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+
+    final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
+    if (dagTaskStats != null) {
+      for(Entry<String, Integer> entry : dagTaskStats.entrySet()) {
+        otherInfo.put(entry.getKey(), entry.getValue().intValue());
+      }
+    }
+
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
@@ -329,6 +360,17 @@ public class HistoryEventJsonConversion {
         HistoryEventType.DAG_INITIALIZED.name());
     events.put(initEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
+
+    JSONObject otherInfo = new JSONObject();
+
+    if (event.getVertexNameIDMap() != null) {
+      Map<String, String> nameIdStrMap = new TreeMap<String, String>();
+      for (Entry<String, TezVertexID> entry : event.getVertexNameIDMap().entrySet()) {
+        nameIdStrMap.put(entry.getKey(), entry.getValue().toString());
+      }
+      otherInfo.put(ATSConstants.VERTEX_NAME_ID_MAPPING, nameIdStrMap);
+    }
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
   }
@@ -411,7 +453,7 @@ public class HistoryEventJsonConversion {
     // Other info such as dag plan
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.DAG_PLAN,
-        DAGUtils.generateSimpleJSONPlan(event.getDAGPlan(), event.getVertexNameIDMap()));
+        DAGUtils.generateSimpleJSONPlan(event.getDAGPlan()));
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
@@ -510,6 +552,9 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+    if (event.getSuccessfulAttemptID() != null) {
+      otherInfo.put(ATSConstants.SUCCESSFUL_ATTEMPT_ID, event.getSuccessfulAttemptID().toString());
+    }
 
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
@@ -576,8 +621,8 @@ public class HistoryEventJsonConversion {
 
     final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
     if (vertexTaskStats != null) {
-      for(String key : vertexTaskStats.keySet()) {
-        otherInfo.put(key, vertexTaskStats.get(key));
+      for(Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
+        otherInfo.put(entry.getKey(), entry.getValue().intValue());
       }
     }
 

@@ -53,6 +53,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -716,6 +717,40 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
+  private ProgressBuilder getDAGProgress() {
+    int totalTaskCount = 0;
+    int totalSucceededTaskCount = 0;
+    int totalRunningTaskCount = 0;
+    int totalFailedTaskCount = 0;
+    int totalKilledTaskCount = 0;
+    int totalFailedTaskAttemptCount = 0;
+    int totalKilledTaskAttemptCount = 0;
+    readLock.lock();
+    try {
+      for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
+        ProgressBuilder progress = entry.getValue().getVertexProgress();
+        totalTaskCount += progress.getTotalTaskCount();
+        totalSucceededTaskCount += progress.getSucceededTaskCount();
+        totalRunningTaskCount += progress.getRunningTaskCount();
+        totalFailedTaskCount += progress.getFailedTaskCount();
+        totalKilledTaskCount += progress.getKilledTaskCount();
+        totalFailedTaskAttemptCount += progress.getFailedTaskAttemptCount();
+        totalKilledTaskAttemptCount += progress.getKilledTaskAttemptCount();
+      }
+      ProgressBuilder dagProgress = new ProgressBuilder();
+      dagProgress.setTotalTaskCount(totalTaskCount);
+      dagProgress.setSucceededTaskCount(totalSucceededTaskCount);
+      dagProgress.setRunningTaskCount(totalRunningTaskCount);
+      dagProgress.setFailedTaskCount(totalFailedTaskCount);
+      dagProgress.setKilledTaskCount(totalKilledTaskCount);
+      dagProgress.setFailedTaskAttemptCount(totalFailedTaskAttemptCount);
+      dagProgress.setKilledTaskAttemptCount(totalKilledTaskAttemptCount);
+      return dagProgress;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
   @Override
   public VertexStatusBuilder getVertexStatus(String vertexName,
       Set<StatusGetOpts> statusOptions) {
@@ -940,18 +975,32 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     finishTime = clock.getTime();
   }
 
+  private Map<String, Integer> constructTaskStats(ProgressBuilder progressBuilder) {
+    Map<String, Integer> taskStats = new HashMap<String, Integer>();
+    taskStats.put(ATSConstants.NUM_COMPLETED_TASKS, progressBuilder.getTotalTaskCount());
+    taskStats.put(ATSConstants.NUM_SUCCEEDED_TASKS, progressBuilder.getSucceededTaskCount());
+    taskStats.put(ATSConstants.NUM_FAILED_TASKS, progressBuilder.getFailedTaskCount());
+    taskStats.put(ATSConstants.NUM_KILLED_TASKS, progressBuilder.getKilledTaskCount());
+    taskStats.put(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS,
+        progressBuilder.getFailedTaskAttemptCount());
+    taskStats.put(ATSConstants.NUM_KILLED_TASKS_ATTEMPTS,
+        progressBuilder.getKilledTaskAttemptCount());
+    return taskStats;
+  }
+
   void logJobHistoryFinishedEvent() throws IOException {
     this.setFinishTime();
+    Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         finishTime, DAGState.SUCCEEDED, "", getAllCounters(),
-        this.userName, this.dagName);
+        this.userName, this.dagName, taskStats);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(dagId, finishEvt));
   }
 
   void logJobHistoryInitedEvent() {
     DAGInitializedEvent initEvt = new DAGInitializedEvent(this.dagId,
-        this.initTime, this.userName, this.dagName);
+        this.initTime, this.userName, this.dagName, this.getVertexNameIDMapping());
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(dagId, initEvt));
   }
@@ -964,10 +1013,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   void logJobHistoryUnsuccesfulEvent(DAGState state) throws IOException {
+    Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         clock.getTime(), state,
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
-        getAllCounters(), this.userName, this.dagName);
+        getAllCounters(), this.userName, this.dagName, taskStats);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(dagId, finishEvt));
   }

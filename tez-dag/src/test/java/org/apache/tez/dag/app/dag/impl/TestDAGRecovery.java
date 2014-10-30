@@ -100,7 +100,7 @@ public class TestDAGRecovery {
   private void restoreFromDAGInitializedEvent() {
     DAGState recoveredState =
         dag.restoreFromEvent(new DAGInitializedEvent(dagId, initTime, user,
-            dagName));
+            dagName, null));
     assertEquals(DAGState.INITED, recoveredState);
     assertEquals(initTime, dag.initTime);
     assertEquals(6, dag.getVertices().size());
@@ -144,7 +144,7 @@ public class TestDAGRecovery {
   private void restoreFromDAGFinishedEvent(DAGState finalState) {
     DAGState recoveredState =
         dag.restoreFromEvent(new DAGFinishedEvent(dagId, startTime, finishTime,
-            finalState, "", tezCounters, user, dagName));
+            finalState, "", tezCounters, user, dagName, null));
     assertEquals(finishTime, dag.finishTime);
     assertFalse(dag.recoveryCommitInProgress);
     assertEquals(finalState, recoveredState);

@@ -50,9 +50,11 @@ public class ATSConstants {
   public static final String APP_SUBMIT_TIME = "appSubmitTime";
 
   /* Tez-specific info */
+  public static final String CONFIG = "config";
   public static final String DAG_PLAN = "dagPlan";
   public static final String DAG_NAME = "dagName";
   public static final String VERTEX_NAME = "vertexName";
+  public static final String VERTEX_NAME_ID_MAPPING = "vertexNameIdMapping";
   public static final String SCHEDULED_TIME = "scheduledTime";
   public static final String INIT_REQUESTED_TIME = "initRequestedTime";
   public static final String INIT_TIME = "initTime";
@@ -62,6 +64,7 @@ public class ATSConstants {
   public static final String TIME_TAKEN = "timeTaken";
   public static final String STATUS = "status";
   public static final String DIAGNOSTICS = "diagnostics";
+  public static final String SUCCESSFUL_ATTEMPT_ID = "successfulAttemptId";
   public static final String COUNTERS = "counters";
   public static final String STATS = "stats";
   public static final String NUM_TASKS = "numTasks";
@@ -70,6 +73,8 @@ public class ATSConstants {
   public static final String NUM_SUCCEEDED_TASKS = "numSucceededTasks";
   public static final String NUM_FAILED_TASKS = "numFailedTasks";
   public static final String NUM_KILLED_TASKS = "numKilledTasks";
+  public static final String NUM_FAILED_TASKS_ATTEMPTS = "numFailedTaskAttempts";
+  public static final String NUM_KILLED_TASKS_ATTEMPTS = "numKilledTaskAttempts";
   public static final String PROCESSOR_CLASS_NAME = "processorClassName";
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";

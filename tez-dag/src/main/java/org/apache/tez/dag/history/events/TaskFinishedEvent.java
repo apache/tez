@@ -56,6 +56,7 @@ public class TaskFinishedEvent implements HistoryEvent {
     this.state = state;
     this.diagnostics = diagnostics;
     this.tezCounters = counters;
+    this.successfulAttemptID = successfulAttemptID;
   }
 
   public TaskFinishedEvent() {
