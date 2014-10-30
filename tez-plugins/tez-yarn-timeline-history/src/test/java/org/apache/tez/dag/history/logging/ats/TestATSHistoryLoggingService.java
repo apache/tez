@@ -32,10 +32,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +45,7 @@ public class TestATSHistoryLoggingService {
   private AppContext appContext;
   private Configuration conf;
   private int atsInvokeCounter;
+  private int atsEntitiesCounter;
   private SystemClock clock = new SystemClock();
 
   @Before
@@ -56,14 +57,17 @@ public class TestATSHistoryLoggingService {
     conf.setLong(TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS,
         1000l);
     atsInvokeCounter = 0;
+    atsEntitiesCounter = 0;
     atsHistoryLoggingService.init(conf);
     atsHistoryLoggingService.timelineClient = mock(TimelineClient.class);
     atsHistoryLoggingService.start();
     when(appContext.getClock()).thenReturn(clock);
-    when(atsHistoryLoggingService.timelineClient.putEntities(any(TimelineEntity.class))).thenAnswer(
+    when(atsHistoryLoggingService.timelineClient.putEntities(
+        Matchers.<TimelineEntity[]>anyVararg())).thenAnswer(
         new Answer<Object>() {
           @Override
           public Object answer(InvocationOnMock invocation) throws Throwable {
+            atsEntitiesCounter += invocation.getArguments().length;
             ++atsInvokeCounter;
             try {
               Thread.sleep(500);
@@ -89,20 +93,26 @@ public class TestATSHistoryLoggingService {
     DAGHistoryEvent historyEvent = new DAGHistoryEvent(tezDAGID,
         new DAGStartedEvent(tezDAGID, 1001l, "user1", "dagName1"));
 
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 100; ++i) {
       atsHistoryLoggingService.handle(historyEvent);
     }
 
     try {
-      Thread.sleep(2500l);
+      Thread.sleep(500l);
     } catch (InterruptedException e) {
       // Do nothing
     }
     atsHistoryLoggingService.stop();
 
-    Assert.assertTrue(atsInvokeCounter >= 4);
-    Assert.assertTrue(atsInvokeCounter < 10);
+    Assert.assertTrue("ATSEntitiesCounter = " + atsEntitiesCounter, atsEntitiesCounter >= 10);
+    Assert.assertTrue("ATSEntitiesCounter = " + atsEntitiesCounter, atsEntitiesCounter < 50);
+    Assert.assertTrue("ATSInvokeCounter = " + atsInvokeCounter, atsInvokeCounter >= 1);
+    Assert.assertTrue("ATSInvokeCounter = " + atsInvokeCounter, atsInvokeCounter <= 10);
 
+    Assert.assertTrue("ATSInvokeCounter = " + atsInvokeCounter
+            + ", ATSEntitiesCounter = " + atsEntitiesCounter,
+        atsEntitiesCounter >=
+            ((atsInvokeCounter-1) * TezConfiguration.YARN_ATS_MAX_EVENTS_PER_BATCH_DEFAULT));
   }
 
 }

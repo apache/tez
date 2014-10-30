@@ -733,7 +733,24 @@ public class TezConfiguration extends Configuration {
   public static final String YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS =
       TEZ_PREFIX + "yarn.ats.event.flush.timeout.millis";
   public static final long YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT =
-      3000l;
+      -1;
+
+  /**
+   * Int value. Max no. of events to send in a single batch to ATS.
+   * Expert level setting.
+   */
+  public static final String YARN_ATS_MAX_EVENTS_PER_BATCH =
+      TEZ_PREFIX + "yarn.ats.max.events.per.batch";
+  public static final int YARN_ATS_MAX_EVENTS_PER_BATCH_DEFAULT = 5;
+
+
+  /**
+   * Int value. Time, in milliseconds, to wait for an event before sending a batch to ATS.
+   * Expert level setting.
+   */
+  public static final String YARN_ATS_MAX_POLLING_TIME_PER_EVENT = TEZ_PREFIX
+      + "yarn.ats.max.polling.time.per.event.millis";
+  public static final int YARN_ATS_MAX_POLLING_TIME_PER_EVENT_DEFAULT = 10;
 
   /**
    * Boolean value. Enable recovery of DAGs. This allows a restarted app master to recover the 
