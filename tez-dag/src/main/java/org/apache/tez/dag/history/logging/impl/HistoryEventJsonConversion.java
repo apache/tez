@@ -409,8 +409,13 @@ public class HistoryEventJsonConversion {
     JSONArray relatedEntities = new JSONArray();
     JSONObject tezAppEntity = new JSONObject();
     tezAppEntity.put(ATSConstants.ENTITY,
-        "tez_" + event.getApplicationAttemptId().toString());
+        "tez_" + event.getApplicationAttemptId().getApplicationId().toString());
     tezAppEntity.put(ATSConstants.ENTITY_TYPE,
+        EntityTypes.TEZ_APPLICATION.name());
+    JSONObject tezAppAttemptEntity = new JSONObject();
+    tezAppAttemptEntity.put(ATSConstants.ENTITY,
+        "tez_" + event.getApplicationAttemptId().toString());
+    tezAppAttemptEntity.put(ATSConstants.ENTITY_TYPE,
         EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
     JSONObject appEntity = new JSONObject();
     appEntity.put(ATSConstants.ENTITY,
@@ -429,6 +434,7 @@ public class HistoryEventJsonConversion {
         ATSConstants.USER);
 
     relatedEntities.put(tezAppEntity);
+    relatedEntities.put(tezAppAttemptEntity);
     relatedEntities.put(appEntity);
     relatedEntities.put(appAttemptEntity);
     relatedEntities.put(userEntity);

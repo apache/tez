@@ -267,7 +267,10 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
     Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
-    Assert.assertEquals(4, timelineEntity.getRelatedEntities().size());
+    Assert.assertEquals(5, timelineEntity.getRelatedEntities().size());
+    Assert.assertTrue(
+        timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_APPLICATION.name()).contains(
+            "tez_" + applicationId.toString()));
     Assert.assertTrue(
         timelineEntity.getRelatedEntities().get(EntityTypes.TEZ_APPLICATION_ATTEMPT.name()).contains(
             "tez_" + applicationAttemptId.toString()));

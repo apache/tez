@@ -318,6 +318,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.setEntityId(event.getDagID().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_DAG_ID.name());
 
+    atsEntity.addRelatedEntity(EntityTypes.TEZ_APPLICATION.name(),
+        "tez_" + event.getApplicationAttemptId().getApplicationId().toString());
     atsEntity.addRelatedEntity(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(),
         "tez_" + event.getApplicationAttemptId().toString());
     atsEntity.addRelatedEntity(ATSConstants.APPLICATION_ID,

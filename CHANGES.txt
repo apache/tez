@@ -90,6 +90,7 @@ ALL CHANGES:
   TEZ-1700. Replace containerId from TaskLocationHint with [TaskIndex+Vertex]
   based affinity
   TEZ-1716. Additional ATS data for UI.
+  TEZ-1722. DAG should be related to Application Id in ATS data.
 
 Release 0.5.1: 2014-10-02
 
