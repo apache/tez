@@ -14,6 +14,8 @@ INCOMPATIBLE CHANGES
   TEZ-1666. UserPayload should be null if the payload is not specified.
     0.5.1 client cannot talk to 0.5.2 AMs (TEZ-1666 and TEZ-1664).
     context.getUserPayload can now return null, apps may need to add defensive code.
+  TEZ-1699. Vertex.setParallelism should throw an exception for invalid
+  invocations
 
 ALL CHANGES:
   TEZ-1620. Wait for application finish before stopping MiniTezCluster
@@ -78,6 +80,11 @@ ALL CHANGES:
   TEZ-1701. ATS fixes to flush all history events and also using batching.
   TEZ-792. Default staging path should have user name.
   TEZ-1689. addendum - fix unit test failure.
+  TEZ-1666. UserPayload should be null if the payload is not specified.
+    0.5.1 client cannot talk to 0.5.2 AMs (TEZ-1666 and TEZ-1664).
+    context.getUserPayload can now return null, apps may need to add defensive code.
+  TEZ-1699. Vertex.setParallelism should throw an exception for invalid
+  invocations
 
 Release 0.5.1: 2014-10-02
 

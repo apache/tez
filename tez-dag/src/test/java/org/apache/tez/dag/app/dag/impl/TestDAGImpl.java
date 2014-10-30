@@ -889,7 +889,7 @@ public class TestDAGImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test()
+  @Test(timeout = 5000)
   public void testEdgeManager_GetNumDestinationTaskPhysicalInputs() {
     setupDAGWithCustomEdge(ExceptionLocation.GetNumDestinationTaskPhysicalInputs);
     dispatcher.getEventHandler().handle(
@@ -912,7 +912,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test()
+  @Test(timeout = 5000)
   public void testEdgeManager_GetNumSourceTaskPhysicalOutputs() {
     setupDAGWithCustomEdge(ExceptionLocation.GetNumSourceTaskPhysicalOutputs);
     dispatcher.getEventHandler().handle(
@@ -932,7 +932,7 @@ public class TestDAGImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test()
+  @Test(timeout = 5000)
   public void testEdgeManager_RouteDataMovementEventToDestination() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination);
     dispatcher.getEventHandler().handle(
@@ -962,7 +962,7 @@ public class TestDAGImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test()
+  @Test(timeout = 5000)
   public void testEdgeManager_RouteInputSourceTaskFailedEventToDestination() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination);
     dispatcher.getEventHandler().handle(
@@ -992,7 +992,7 @@ public class TestDAGImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test()
+  @Test(timeout = 5000)
   public void testEdgeManager_GetNumDestinationConsumerTasks() {
     setupDAGWithCustomEdge(ExceptionLocation.GetNumDestinationConsumerTasks);
     dispatcher.getEventHandler().handle(
@@ -1023,7 +1023,7 @@ public class TestDAGImpl {
   }
   
   @SuppressWarnings("unchecked")
-  @Test()
+  @Test(timeout = 5000)
   public void testEdgeManager_RouteInputErrorEventToSource() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputErrorEventToSource);
     dispatcher.getEventHandler().handle(

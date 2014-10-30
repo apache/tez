@@ -72,6 +72,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -2348,7 +2349,7 @@ public class TestVertexImpl {
     Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(
        v1.getName(), mockEdgeManagerDescriptor);
-    assertTrue(v3.setParallelism(1, null, edgeManagerDescriptors, null));
+    v3.setParallelism(1, null, edgeManagerDescriptors, null);
     assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
         EdgeManagerForTest);
     Assert.assertEquals(1, v3.getTotalTasks());
@@ -2357,7 +2358,46 @@ public class TestVertexImpl {
     assertTrue(tasks.keySet().iterator().next().equals(firstTask));
 
   }
+
+  @Test(timeout = 5000)
+  public void testVertexSetParallelismIncreaseException() throws Exception {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v3 = vertices.get("vertex3");
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v3.getTasks();
+    Assert.assertEquals(2, tasks.size());
+
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(vertices.get("vertex2"));
+    startVertex(v1);
+
+    // increase not supported
+    try {
+      v3.setParallelism(100, null, null, null);
+      Assert.fail();
+    } catch (TezUncheckedException e) { }
+  }
   
+  @Test(timeout = 5000)
+  public void testVertexSetParallelismMultipleException() throws Exception {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v3 = vertices.get("vertex3");
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v3.getTasks();
+    Assert.assertEquals(2, tasks.size());
+
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(vertices.get("vertex2"));
+    startVertex(v1);
+    v3.setParallelism(1, null, null, null);
+
+    // multiple invocations not supported
+    try {
+      v3.setParallelism(1, null, null, null);
+      Assert.fail();
+    } catch (TezUncheckedException e) { }
+  }
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexPendingTaskEvents() {
@@ -2415,8 +2455,7 @@ public class TestVertexImpl {
 
     Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(v3.getName(), edgeManagerDescriptor);
-    assertTrue(v5.setParallelism(v5.getTotalTasks() - 1, null,
-        edgeManagerDescriptors, null)); // Must decrease.
+    v5.setParallelism(v5.getTotalTasks() - 1, null, edgeManagerDescriptors, null); // Must decrease.
 
     VertexImpl v5Impl = (VertexImpl) v5;
 
@@ -2938,11 +2977,6 @@ public class TestVertexImpl {
     
   }
 
-  @Test(timeout = 5000)
-  public void testCommitterInitAndSetup() {
-    // FIXME need to add a test for this
-  }
-
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testBadCommitter() throws Exception {
@@ -3252,10 +3286,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
   }
 
-  @Test(timeout = 5000)
-  public void testHistoryEventGeneration() {
-  }
-
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testInvalidEvent() {
@@ -3391,7 +3421,7 @@ public class TestVertexImpl {
         initializer.stateUpdates.get(1).getVertexState());
   }
 
-  @Test(timeout = 1000000)
+  @Test(timeout = 10000)
   public void testInputInitializerEventMultipleAttempts() throws Exception {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null);

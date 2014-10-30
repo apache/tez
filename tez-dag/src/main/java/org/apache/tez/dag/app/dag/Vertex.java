@@ -87,7 +87,7 @@ public interface Vertex extends Comparable<Vertex> {
   @Nullable
   TaskLocationHint getTaskLocationHint(TezTaskID taskID);
 
-  boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+  void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdate) throws AMUserCodeException;
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);

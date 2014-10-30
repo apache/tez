@@ -123,9 +123,8 @@ public interface VertexManagerPluginContext {
    * @param sourceEdgeManagers Edge Managers to be updated
    * @param rootInputSpecUpdate Updated Root Input specifications, if any.
    *        If none specified, a default of 1 physical input is used
-   * @return true if the operation was allowed.
    */
-  public boolean setVertexParallelism(int parallelism,
+  public void setVertexParallelism(int parallelism,
       @Nullable VertexLocationHint locationHint,
       @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate);
