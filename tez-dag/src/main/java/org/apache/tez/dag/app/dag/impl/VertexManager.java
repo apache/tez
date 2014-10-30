@@ -108,11 +108,11 @@ public class VertexManager {
     }
 
     @Override
-    public boolean setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+    public void setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
         Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
         Map<String, InputSpecUpdate> rootInputSpecUpdate) {
       try {
-        return managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
+        managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
             rootInputSpecUpdate);
       } catch (AMUserCodeException e) {
         // workaround: convert it to TezUncheckedException which would be caught in VM

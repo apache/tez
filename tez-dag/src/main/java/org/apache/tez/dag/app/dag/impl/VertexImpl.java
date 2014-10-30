@@ -1198,14 +1198,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+  public void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdates) throws AMUserCodeException {
-    return setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
-        false);
+    setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates, false);
   }
 
-  private boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+  private void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdates,
       boolean recovering) throws AMUserCodeException {
@@ -1235,7 +1234,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           LOG.info("Got updated RootInputsSpecs during recovery: " + rootInputSpecUpdates.toString());
           this.rootInputSpecs.putAll(rootInputSpecUpdates);
         }
-        return true;
+        return;
       } finally {
         writeLock.unlock();
       }
@@ -1246,8 +1245,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     writeLock.lock();
     try {
       if (parallelismSet == true) {
-        LOG.info("Parallelism can only be set dynamically once per vertex: " + logIdentifier);
-        return false;
+        String msg = "Parallelism can only be set dynamically once per vertex: " + logIdentifier; 
+        LOG.info(msg);
+        throw new TezUncheckedException(msg);
       }
 
       parallelismSet = true;
@@ -1311,9 +1311,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (parallelism >= numTasks) {
           // not that hard to support perhaps. but checking right now since there
           // is no use case for it and checking may catch other bugs.
-          LOG.warn("Increasing parallelism is not supported, vertexId="
-              + logIdentifier);
-          return false;
+          String msg = "Increasing parallelism is not supported, vertexId=" + logIdentifier; 
+          LOG.warn(msg);
+          throw new TezUncheckedException(msg);
         }
         if (parallelism == numTasks) {
           LOG.info("setParallelism same as current value: " + parallelism +
@@ -1342,10 +1342,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           Map.Entry<TezTaskID, Task> entry = iter.next();
           Task task = entry.getValue();
           if (task.getState() != TaskState.NEW) {
-            LOG.warn(
-                "All tasks must be in initial state when changing parallelism"
-                    + " for vertex: " + getVertexId() + " name: " + getName());
-            return false;
+            String msg = "All tasks must be in initial state when changing parallelism"
+                + " for vertex: " + getVertexId() + " name: " + getName(); 
+            LOG.warn(msg);
+            throw new TezUncheckedException(msg);
           }
           if (i <= parallelism) {
             continue;
@@ -1407,8 +1407,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } finally {
       writeLock.unlock();
     }
-
-    return true;
   }
 
   public void setVertexLocationHint(VertexLocationHint vertexLocationHint) {
@@ -2532,8 +2530,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           boolean successSetParallelism ;
           try {
-            successSetParallelism = vertex.setParallelism(0,
+            vertex.setParallelism(0,
               null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true);
+            successSetParallelism = true;
           } catch (Exception e) {
             successSetParallelism = false;
           }
@@ -2589,8 +2588,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             break;
           }
           try {
-            successSetParallelism = vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
+            vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
               vertex.recoveredRootInputSpecUpdates, true);
+            successSetParallelism = true;
           } catch (Exception e) {
             successSetParallelism = false;
           }
