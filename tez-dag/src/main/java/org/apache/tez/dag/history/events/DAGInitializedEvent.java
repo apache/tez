@@ -21,10 +21,12 @@ package org.apache.tez.dag.history.events;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 
 public class DAGInitializedEvent implements HistoryEvent {
@@ -33,16 +35,18 @@ public class DAGInitializedEvent implements HistoryEvent {
   private long initTime;
   private String user;
   private String dagName;
+  private Map<String, TezVertexID> vertexNameIDMap;
 
   public DAGInitializedEvent() {
   }
 
   public DAGInitializedEvent(TezDAGID dagID, long initTime,
-      String user, String dagName) {
+      String user, String dagName, Map<String, TezVertexID> vertexNameIDMap) {
     this.dagID = dagID;
     this.initTime = initTime;
     this.user = user;
     this.dagName = dagName;
+    this.vertexNameIDMap = vertexNameIDMap;
   }
 
   @Override
@@ -107,6 +111,10 @@ public class DAGInitializedEvent implements HistoryEvent {
 
   public String getDagName() {
     return dagName;
+  }
+
+  public Map<String, TezVertexID> getVertexNameIDMap() {
+    return vertexNameIDMap;
   }
 
 }

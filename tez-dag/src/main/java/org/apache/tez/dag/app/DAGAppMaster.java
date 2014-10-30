@@ -145,6 +145,7 @@ import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
+import org.apache.tez.dag.history.events.AppLaunchedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
@@ -459,6 +460,12 @@ public class DAGAppMaster extends AbstractService {
     super.serviceInit(conf);
 
     if (!versionMismatch) {
+      if (this.appAttemptID.getAttemptId() == 1) {
+        AppLaunchedEvent appLaunchedEvent = new AppLaunchedEvent(appAttemptID.getApplicationId(),
+            startTime, appSubmitTime, appMasterUgi.getShortUserName(), this.amConf);
+        historyEventHandler.handle(
+            new DAGHistoryEvent(appLaunchedEvent));
+      }
       AMLaunchedEvent launchedEvent = new AMLaunchedEvent(appAttemptID,
           startTime, appSubmitTime, appMasterUgi.getShortUserName());
       historyEventHandler.handle(
@@ -749,7 +756,7 @@ public class DAGAppMaster extends AbstractService {
       if (LOG.isDebugEnabled()) {
         LOG.info("JSON dump for submitted DAG, dagId=" + dagId.toString()
             + ", json="
-            + DAGUtils.generateSimpleJSONPlan(dagPB, newDag.getVertexNameIDMapping()).toString());
+            + DAGUtils.generateSimpleJSONPlan(dagPB).toString());
       }
     } catch (JSONException e) {
       LOG.warn("Failed to generate json for DAG", e);
@@ -1915,7 +1922,7 @@ public class DAGAppMaster extends AbstractService {
     // for an app later
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
-        newDAG.getUserName(), newDAG.getVertexNameIDMapping());
+        newDAG.getUserName());
     try {
       historyEventHandler.handleCriticalEvent(
           new DAGHistoryEvent(newDAG.getID(), submittedEvent));

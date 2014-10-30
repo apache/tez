@@ -18,9 +18,12 @@
 
 package org.apache.tez.dag.history.events;
 
+import static org.junit.Assert.fail;
+
 import java.nio.ByteBuffer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -114,6 +117,20 @@ public class TestHistoryEventsProtoConversion {
     LOG.info("Deserialized Event toString: " + deserializedEvent.toString());
   }
 
+  private void testAppLaunchedEvent() throws Exception {
+    AppLaunchedEvent event = new AppLaunchedEvent(ApplicationId.newInstance(0, 1),
+        100, 100, null, new Configuration(false));
+    try {
+      testProtoConversion(event);
+      fail("Expected to fail on conversion");
+    } catch (UnsupportedOperationException e) {
+      // Expected
+    }
+
+    LOG.info("Initial Event toString: " + event.toString());
+
+  }
+
   private void testAMLaunchedEvent() throws Exception {
     AMLaunchedEvent event = new AMLaunchedEvent(
         ApplicationAttemptId.newInstance(
@@ -148,7 +165,7 @@ public class TestHistoryEventsProtoConversion {
         ApplicationId.newInstance(0, 1), 1), 1001l,
         DAGPlan.newBuilder().setName("foo").build(),
         ApplicationAttemptId.newInstance(
-            ApplicationId.newInstance(0, 1), 1), null, "", null);
+            ApplicationId.newInstance(0, 1), 1), null, "");
     DAGSubmittedEvent deserializedEvent = (DAGSubmittedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
@@ -167,7 +184,7 @@ public class TestHistoryEventsProtoConversion {
   private void testDAGInitializedEvent() throws Exception {
     DAGInitializedEvent event = new DAGInitializedEvent(
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l,
-        "user", "dagName");
+        "user", "dagName", null);
     DAGInitializedEvent deserializedEvent = (DAGInitializedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getDagID(),
@@ -192,7 +209,7 @@ public class TestHistoryEventsProtoConversion {
     {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
-          DAGState.FAILED, null, null, "user", "dagName");
+          DAGState.FAILED, null, null, "user", "dagName", null);
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
@@ -213,7 +230,7 @@ public class TestHistoryEventsProtoConversion {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
           DAGState.FAILED, "bad diagnostics", tezCounters,
-          "user", "dagName");
+          "user", "dagName", null);
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
@@ -531,7 +548,7 @@ public class TestHistoryEventsProtoConversion {
       event = new VertexRecoverableEventsGeneratedEvent(
           TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), null);
-      Assert.fail("Invalid creation should have errored out");
+      fail("Invalid creation should have errored out");
     } catch (RuntimeException e) {
       // Expected
     }
@@ -617,6 +634,9 @@ public class TestHistoryEventsProtoConversion {
   public void testDefaultProtoConversion() throws Exception {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       switch (eventType) {
+        case APP_LAUNCHED:
+          testAppLaunchedEvent();
+          break;
         case AM_LAUNCHED:
           testAMLaunchedEvent();
           break;

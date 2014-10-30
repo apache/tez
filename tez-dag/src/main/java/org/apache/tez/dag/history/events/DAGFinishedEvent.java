@@ -21,6 +21,7 @@ package org.apache.tez.dag.history.events;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -51,13 +52,15 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   private String user;
   private String dagName;
 
+  Map<String, Integer> dagTaskStats;
+
   public DAGFinishedEvent() {
   }
 
   public DAGFinishedEvent(TezDAGID dagId, long startTime,
       long finishTime, DAGState state,
       String diagnostics, TezCounters counters,
-      String user, String dagName) {
+      String user, String dagName, Map<String, Integer> dagTaskStats) {
     this.dagID = dagId;
     this.startTime = startTime;
     this.finishTime = finishTime;
@@ -66,6 +69,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
     this.tezCounters = counters;
     this.user = user;
     this.dagName = dagName;
+    this.dagTaskStats = dagTaskStats;
   }
 
   @Override
@@ -194,4 +198,9 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   public String getDagName() {
     return dagName;
   }
+
+  public Map<String, Integer> getDagTaskStats() {
+    return dagTaskStats;
+  }
+
 }

@@ -19,6 +19,7 @@
 package org.apache.tez.dag.history;
 
 public enum HistoryEventType {
+  APP_LAUNCHED,
   AM_LAUNCHED,
   AM_STARTED,
   DAG_SUBMITTED,

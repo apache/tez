@@ -1520,6 +1520,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     taskStats.put(ATSConstants.NUM_SUCCEEDED_TASKS, succeededTaskCount);
     taskStats.put(ATSConstants.NUM_FAILED_TASKS, failedTaskCount);
     taskStats.put(ATSConstants.NUM_KILLED_TASKS, killedTaskCount);
+    taskStats.put(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS, failedTaskAttemptCount.get());
+    taskStats.put(ATSConstants.NUM_KILLED_TASKS_ATTEMPTS, killedTaskAttemptCount.get());
 
     VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, initTimeRequested,
         initedTime, startTimeRequested, startedTime, finishTime, finalState, diagnostics,
