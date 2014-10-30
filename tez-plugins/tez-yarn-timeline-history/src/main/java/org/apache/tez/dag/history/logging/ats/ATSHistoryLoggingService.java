@@ -19,12 +19,16 @@
 package org.apache.tez.dag.history.logging.ats;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse.TimelinePutError;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
@@ -56,6 +60,10 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   private HashSet<TezDAGID> skippedDAGs = new HashSet<TezDAGID>();
   private long maxTimeToWaitOnShutdown;
+  private boolean waitForeverOnShutdown = false;
+
+  private int maxEventsPerBatch;
+  private long maxPollingTimeMillis;
 
   public ATSHistoryLoggingService() {
     super(ATSHistoryLoggingService.class.getName());
@@ -69,17 +77,29 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     maxTimeToWaitOnShutdown = conf.getLong(
         TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS,
         TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT);
+    maxEventsPerBatch = conf.getInt(
+        TezConfiguration.YARN_ATS_MAX_EVENTS_PER_BATCH,
+        TezConfiguration.YARN_ATS_MAX_EVENTS_PER_BATCH_DEFAULT);
+    maxPollingTimeMillis = conf.getInt(
+        TezConfiguration.YARN_ATS_MAX_POLLING_TIME_PER_EVENT,
+        TezConfiguration.YARN_ATS_MAX_POLLING_TIME_PER_EVENT_DEFAULT);
+    if (maxTimeToWaitOnShutdown < 0) {
+      waitForeverOnShutdown = true;
+    }
   }
 
   @Override
   public void serviceStart() {
     LOG.info("Starting ATSService");
     timelineClient.start();
+
     eventHandlingThread = new Thread(new Runnable() {
       @Override
       public void run() {
-        DAGHistoryEvent event;
-        while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
+        List<DAGHistoryEvent> events = new LinkedList<DAGHistoryEvent>();
+        boolean interrupted = false;
+        while (!stopped.get() && !Thread.currentThread().isInterrupted()
+              && !interrupted) {
 
           // Log the size of the event-queue every so often.
           if (eventCounter != 0 && eventCounter % 1000 == 0) {
@@ -92,20 +112,18 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
             ++eventCounter;
           }
 
-          try {
-            event = eventQueue.take();
-          } catch (InterruptedException e) {
-            LOG.info("EventQueue take interrupted. Returning");
-            return;
-          }
-
           synchronized (lock) {
-            ++eventsProcessed;
             try {
-              handleEvent(event);
+              getEventBatch(events);
+            } catch (InterruptedException e) {
+              // Finish processing events and then return
+              interrupted = true;
+            }
+            eventsProcessed += events.size();
+            try {
+              handleEvents(events);
             } catch (Exception e) {
-              // TODO handle failures - treat as fatal or ignore?
-              LOG.warn("Error handling event", e);
+              LOG.warn("Error handling events", e);
             }
           }
         }
@@ -126,21 +144,27 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       if (!eventQueue.isEmpty()) {
         LOG.warn("ATSService being stopped"
             + ", eventQueueBacklog=" + eventQueue.size()
-            + ", maxTimeLeftToFlush=" + maxTimeToWaitOnShutdown);
+            + ", maxTimeLeftToFlush=" + maxTimeToWaitOnShutdown
+            + ", waitForever=" + waitForeverOnShutdown);
         long startTime = appContext.getClock().getTime();
-        if (maxTimeToWaitOnShutdown > 0) {
-          long endTime = startTime + maxTimeToWaitOnShutdown;
-          while (endTime >= appContext.getClock().getTime()) {
-            DAGHistoryEvent event = eventQueue.poll();
-            if (event == null) {
-              break;
-            }
-            try {
-              handleEvent(event);
-            } catch (Exception e) {
-              LOG.warn("Error handling event", e);
-              break;
-            }
+        long endTime = startTime + maxTimeToWaitOnShutdown;
+        List<DAGHistoryEvent> events = new LinkedList<DAGHistoryEvent>();
+        while (waitForeverOnShutdown || (endTime >= appContext.getClock().getTime())) {
+          try {
+            getEventBatch(events);
+          } catch (InterruptedException e) {
+            LOG.info("ATSService interrupted while shutting down. Exiting."
+                  + " EventQueueBacklog=" + eventQueue.size());
+          }
+          if (events.isEmpty()) {
+            LOG.info("Event queue empty, stopping ATS Service");
+            break;
+          }
+          try {
+            handleEvents(events);
+          } catch (Exception e) {
+            LOG.warn("Error handling event", e);
+            break;
           }
         }
       }
@@ -152,13 +176,33 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     timelineClient.stop();
   }
 
+  private void getEventBatch(List<DAGHistoryEvent> events) throws InterruptedException {
+    events.clear();
+    int counter = 0;
+    while (counter < maxEventsPerBatch) {
+      DAGHistoryEvent event = eventQueue.poll(maxPollingTimeMillis, TimeUnit.MILLISECONDS);
+      if (event == null) {
+        break;
+      }
+      if (!isValidEvent(event)) {
+        continue;
+      }
+      ++counter;
+      events.add(event);
+      if (event.getHistoryEvent().getEventType().equals(HistoryEventType.DAG_SUBMITTED)) {
+        // Special case this as it might be a large payload
+        break;
+      }
+    }
+  }
+
+
   public void handle(DAGHistoryEvent event) {
     eventQueue.add(event);
   }
 
-  private void handleEvent(DAGHistoryEvent event) {
+  private boolean isValidEvent(DAGHistoryEvent event) {
     HistoryEventType eventType = event.getHistoryEvent().getEventType();
-
     TezDAGID dagId = event.getDagID();
 
     if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
@@ -167,43 +211,52 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       String dagName = dagSubmittedEvent.getDAGName();
       if (dagName != null
           && dagName.startsWith(
-              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+          TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
         // Skip recording pre-warm DAG events
         skippedDAGs.add(dagId);
-        return;
+        return false;
       }
     }
     if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
       // Remove from set to keep size small
       // No more events should be seen after this point.
       if (skippedDAGs.remove(dagId)) {
-        return;
+        return false;
       }
     }
 
     if (dagId != null && skippedDAGs.contains(dagId)) {
       // Skip pre-warm DAGs
-      return;
+      return false;
+    }
+
+    return true;
+  }
+
+
+
+  private void handleEvents(List<DAGHistoryEvent> events) {
+    TimelineEntity[] entities = new TimelineEntity[events.size()];
+    for (int i = 0; i < events.size(); ++i) {
+      entities[i] = HistoryEventTimelineConversion.convertToTimelineEntity(
+          events.get(i).getHistoryEvent());
     }
 
     try {
       TimelinePutResponse response =
-          timelineClient.putEntities(
-              HistoryEventTimelineConversion.convertToTimelineEntity(event.getHistoryEvent()));
+          timelineClient.putEntities(entities);
       if (response != null
         && !response.getErrors().isEmpty()) {
         TimelinePutError err = response.getErrors().get(0);
         if (err.getErrorCode() != 0) {
-          LOG.warn("Could not post history event to ATS, eventType="
-              + eventType
+          LOG.warn("Could not post history events to ATS"
               + ", atsPutError=" + err.getErrorCode());
         }
       }
       // Do nothing additional, ATS client library should handle throttling
       // or auto-disable as needed
     } catch (Exception e) {
-      LOG.warn("Could not handle history event, eventType="
-          + eventType, e);
+      LOG.warn("Could not handle history events", e);
     }
   }
 
