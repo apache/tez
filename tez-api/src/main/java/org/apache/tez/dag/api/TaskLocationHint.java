@@ -23,7 +23,7 @@ import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
-import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
 import com.google.common.base.Preconditions;
 
@@ -36,16 +36,40 @@ import com.google.common.base.Preconditions;
 @Evolving
 public class TaskLocationHint {
 
-  // Container to which to affinitize
-  ContainerId containerId;
+  @Unstable
+  /**
+   * Specifies location affinity to the given vertex and given task in that vertex
+   */
+  public class TaskBasedLocationAffinity {
+    private String vertexName;
+    private int taskIndex;
+    public TaskBasedLocationAffinity(String vertexName, int taskIndex) {
+      this.vertexName = vertexName;
+      this.taskIndex = taskIndex;
+    }
+    public String getVertexName() {
+      return vertexName;
+    }
+    public int getTaskIndex() {
+      return taskIndex;
+    }
+    @Override
+    public String toString() {
+      return "[Vertex: " + vertexName + ", TaskIndex: " + taskIndex + "]";
+    }
+  }
+
   // Host names if any to be used
   private Set<String> hosts;
   // Rack names if any to be used
   private Set<String> racks;
+  
+  private TaskBasedLocationAffinity affinitizedTask;
 
-  private TaskLocationHint(ContainerId containerId) {
-    Preconditions.checkNotNull(containerId);
-    this.containerId = containerId;
+  private TaskLocationHint(String vertexName, int taskIndex) {
+    Preconditions.checkNotNull(vertexName);
+    Preconditions.checkArgument(taskIndex >= 0);
+    this.affinitizedTask = new TaskBasedLocationAffinity(vertexName, taskIndex);
   }
 
   private TaskLocationHint(Set<String> hosts, Set<String> racks) {
@@ -62,11 +86,17 @@ public class TaskLocationHint {
   }
 
   /**
-   * Provide a location hint using a container to which the task may be affinitized
-   * Tez will try to run the task on that container or node local to it
+   * Provide a location hint that affinitizes to the given task in the given vertex. Tez will try 
+   * to run in the same container as the given task or node local to it. Locality may degrade to
+   * rack local or further depending on cluster resource allocations.<br>
+   * This is expected to be used only during dynamic optimizations via {@link VertexManagerPlugin}s
+   * and not in while creating the dag using the DAG API.
+   * @param vertexName
+   * @param taskIndex
+   * @return
    */
-  public static TaskLocationHint createTaskLocationHint(ContainerId containerId) {
-    return new TaskLocationHint(containerId);
+  public static TaskLocationHint createTaskLocationHint(String vertexName, int taskIndex) {
+    return new TaskLocationHint(vertexName, taskIndex);
   }
 
   /**
@@ -77,8 +107,8 @@ public class TaskLocationHint {
     return new TaskLocationHint(hosts, racks);
   }
 
-  public ContainerId getAffinitizedContainer() {
-    return containerId;
+  public TaskBasedLocationAffinity getAffinitizedTask() {
+    return affinitizedTask;
   }
 
   public Set<String> getHosts() {
@@ -99,9 +129,9 @@ public class TaskLocationHint {
     result = ( racks != null) ?
         prime * result + racks.hashCode() :
         result + prime;
-    result = ( containerId != null) ?
-        prime * result + containerId.hashCode() :
-        result + prime;
+    if (affinitizedTask != null) {
+      result = prime * result + affinitizedTask.getVertexName().hashCode() + affinitizedTask.getTaskIndex();
+    }
     return result;
   }
 
@@ -131,11 +161,16 @@ public class TaskLocationHint {
     } else if (other.racks != null) {
       return false;
     }
-    if (containerId != null) {
-      if (!containerId.equals(other.containerId)) {
+    if (affinitizedTask != null) {
+      if (other.affinitizedTask == null) {
         return false;
       }
-    } else if (other.containerId != null) {
+      if (affinitizedTask.getTaskIndex() != other.affinitizedTask.getTaskIndex()) {
+        return false;
+      } else if (!affinitizedTask.getVertexName().equals(other.affinitizedTask.getVertexName())) {
+        return false;
+      }
+    } else if (other.affinitizedTask != null){
       return false;
     }
     return true;

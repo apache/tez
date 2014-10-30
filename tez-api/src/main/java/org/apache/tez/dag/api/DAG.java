@@ -719,11 +719,12 @@ public class DAG {
         if (vertexLocationHint.getTaskLocationHints() != null) {
           for (TaskLocationHint hint : vertexLocationHint.getTaskLocationHints()) {
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
-
-            if (hint.getAffinitizedContainer() != null) {
+            // we can allow this later on if needed
+            if (hint.getAffinitizedTask() != null) {
               throw new TezUncheckedException(
-                  "Container affinity may not be specified via the DAG API");
+                  "Task based affinity may not be specified via the DAG API");
             }
+
             if (hint.getHosts() != null) {
               taskLocationHintBuilder.addAllHost(hint.getHosts());
             }

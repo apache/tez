@@ -16,6 +16,8 @@ INCOMPATIBLE CHANGES
     context.getUserPayload can now return null, apps may need to add defensive code.
   TEZ-1699. Vertex.setParallelism should throw an exception for invalid
   invocations
+  TEZ-1700. Replace containerId from TaskLocationHint with [TaskIndex+Vertex]
+  based affinity
 
 ALL CHANGES:
   TEZ-1620. Wait for application finish before stopping MiniTezCluster
@@ -85,6 +87,8 @@ ALL CHANGES:
     context.getUserPayload can now return null, apps may need to add defensive code.
   TEZ-1699. Vertex.setParallelism should throw an exception for invalid
   invocations
+  TEZ-1700. Replace containerId from TaskLocationHint with [TaskIndex+Vertex]
+  based affinity
 
 Release 0.5.1: 2014-10-02
 

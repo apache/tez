@@ -788,6 +788,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         this.launchTime = tEvent.getStartTime();
         recoveryStartEventSeen = true;
         recoveredState = TaskAttemptState.RUNNING;
+        this.containerId = tEvent.getContainerId();
         sendEvent(createDAGCounterUpdateEventTALaunched(this));
         return recoveredState;
       }

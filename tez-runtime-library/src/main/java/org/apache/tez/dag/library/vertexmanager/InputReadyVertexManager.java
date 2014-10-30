@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -47,7 +46,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
   boolean taskIsStarted[];
   int oneToOneSrcTasksDoneCount[];
-  Container oneToOneLocationHints[];
+  TaskLocationHint oneToOneLocationHints[];
   int numOneToOneEdges;
 
   public InputReadyVertexManager(VertexManagerPluginContext context) {
@@ -115,7 +114,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
             "Managed task number must equal 1-1 source task number");
       }
       oneToOneSrcTasksDoneCount = new int[oneToOneSrcTaskCount];
-      oneToOneLocationHints = new Container[oneToOneSrcTaskCount];
+      oneToOneLocationHints = new TaskLocationHint[oneToOneSrcTaskCount];
     }
 
     for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
@@ -149,7 +148,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
         oneToOneSrcTasksDoneCount[taskId.intValue()]++;
         // keep the latest container that completed as the location hint
         // After there is standard data size info available then use it
-        oneToOneLocationHints[taskId.intValue()] = getContext().getTaskContainer(vertex, taskId);
+        oneToOneLocationHints[taskId.intValue()] = TaskLocationHint.createTaskLocationHint(vertex, taskId);
       }
     }
     
@@ -192,11 +191,11 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
           taskIsStarted[i] = true;
           TaskLocationHint locationHint = null;
           if (oneToOneLocationHints[i] != null) {
-            locationHint = TaskLocationHint.createTaskLocationHint(oneToOneLocationHints[i].getId());
+            locationHint = oneToOneLocationHints[i];
           }
           LOG.info("Starting task " + i + " for vertex: "
               + getContext().getVertexName() + " with location: "
-              + ((locationHint != null) ? locationHint.getAffinitizedContainer() : "null"));
+              + ((locationHint != null) ? locationHint.getAffinitizedTask() : "null"));
           tasksToStart.add(new TaskWithLocationHint(new Integer(i), locationHint));
         }
       }
