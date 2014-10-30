@@ -43,12 +43,14 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
+import org.apache.tez.dag.api.TaskLocationHint.TaskBasedLocationAffinity;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
@@ -67,6 +69,8 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventNodeCountUpdated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
+
+import com.google.common.base.Preconditions;
 
 
 public class TaskSchedulerEventHandler extends AbstractService
@@ -263,14 +267,29 @@ public class TaskSchedulerEventHandler extends AbstractService
     String hosts[] = null;
     String racks[] = null;
     if (locationHint != null) {
-      if (locationHint.getAffinitizedContainer() != null) {
-        taskScheduler.allocateTask(taskAttempt,
-            event.getCapability(),
-            locationHint.getAffinitizedContainer(),
-            Priority.newInstance(event.getPriority()),
-            event.getContainerContext(),
-            event);
-        return;
+      TaskBasedLocationAffinity taskAffinity = locationHint.getAffinitizedTask();
+      if (taskAffinity != null) {
+        Vertex vertex = appContext.getCurrentDAG().getVertex(taskAffinity.getVertexName());
+        Preconditions.checkNotNull(vertex, "Invalid vertex in task based affinity " + taskAffinity 
+            + " for attempt: " + taskAttempt.getID());
+        int taskIndex = taskAffinity.getTaskIndex(); 
+        Preconditions.checkState(taskIndex >=0 && taskIndex < vertex.getTotalTasks(), 
+            "Invalid taskIndex in task based affinity " + taskAffinity 
+            + " for attempt: " + taskAttempt.getID());
+        TaskAttempt affinityAttempt = vertex.getTask(taskIndex).getSuccessfulAttempt();
+        if (affinityAttempt != null) {
+          Preconditions.checkNotNull(affinityAttempt.getAssignedContainerID(), affinityAttempt.getID());
+          taskScheduler.allocateTask(taskAttempt,
+              event.getCapability(),
+              affinityAttempt.getAssignedContainerID(),
+              Priority.newInstance(event.getPriority()),
+              event.getContainerContext(),
+              event);
+          return;
+        }
+        LOG.info("Attempt: " + taskAttempt.getID() + " has task based affinity to " + taskAffinity 
+            + " but no locality information exists for it. Ignoring hint.");
+        // fall through with null hosts/racks
       } else {
         hosts = (locationHint.getHosts() != null) ? locationHint
             .getHosts().toArray(
@@ -325,6 +344,9 @@ public class TaskSchedulerEventHandler extends AbstractService
 
         while (!stopEventHandling && !Thread.currentThread().isInterrupted()) {
           try {
+            if (TaskSchedulerEventHandler.this.eventQueue.peek() == null) {
+              notifyForTest();
+            }
             event = TaskSchedulerEventHandler.this.eventQueue.take();
           } catch (InterruptedException e) {
             if(!stopEventHandling) {
@@ -341,13 +363,18 @@ public class TaskSchedulerEventHandler extends AbstractService
             // Kill the AM.
             sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.INTERNAL_ERROR));
             return;
+          } finally {
+            notifyForTest();
           }
         }
       }
     };
     this.eventHandlingThread.start();
   }
-
+  
+  protected void notifyForTest() {
+  }
+  
   @Override
   public void serviceStop() {
     synchronized(this) {
