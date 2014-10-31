@@ -224,8 +224,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   int numSuccessSourceAttemptCompletions = 0;
 
-  List<InputSpec> inputSpecList;
-  List<OutputSpec> outputSpecList;
   List<GroupInputSpec> groupInputSpecList;
   Set<String> sharedOutputs = Sets.newHashSet();
 
@@ -3931,7 +3929,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // TODO Eventually remove synchronization.
   @Override
   public synchronized List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException {
-    inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
+    List<InputSpec> inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
         + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
     if (rootInputDescriptors != null) {
       for (Entry<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
@@ -3956,14 +3954,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // TODO Eventually remove synchronization.
   @Override
   public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException {
-    if (this.outputSpecList == null) {
-      outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
-          + this.additionalOutputSpecs.size());
-      outputSpecList.addAll(additionalOutputSpecs);
-      for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
-        OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
-        outputSpecList.add(outputSpec);
-      }
+    List<OutputSpec> outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
+        + this.additionalOutputSpecs.size());
+    outputSpecList.addAll(additionalOutputSpecs);
+    for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
+      OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
+      outputSpecList.add(outputSpec);
     }
     return outputSpecList;
   }

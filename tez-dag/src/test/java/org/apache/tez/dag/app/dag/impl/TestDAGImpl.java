@@ -644,6 +644,7 @@ public class TestDAGImpl {
     return dag;
   }
 
+  // v1 -> v2
   private DAGPlan createDAGWithCustomEdge(ExceptionLocation exLocation) {
     LOG.info("Setting up dag plan");
     DAGPlan dag = DAGPlan.newBuilder()
@@ -920,7 +921,9 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+    // After TEZ-1711, all task attempts of v1 fail which result in task fail, and finally
+    // dag failed.
+    Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     Task t1= v1.getTask(0);
