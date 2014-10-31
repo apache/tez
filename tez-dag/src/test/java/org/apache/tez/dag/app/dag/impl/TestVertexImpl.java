@@ -4974,28 +4974,27 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromII_InitFailedAfterInitialized() throws AMUserCodeException {
     useCustomInitializer = true;
-    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize2);
-    EventHandlingRootInputInitializer initializer =
-        (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
     setupPostDagCreation();
 
-    VertexImplWithRunningInputInitializer v1 =
-        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
-    // INIT_SUCCEEDED followed by INIT_FAILURE
+    VertexImplWithControlledInitializerManager v1 =
+        (VertexImplWithControlledInitializerManager)vertices.get("vertex1");
     initVertex(v1);
-    dispatcher.getEventHandler().handle(new VertexEventRootInputInitialized(
-        v1.getVertexId(), "input1", null));
+    RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
+    initializerManager1.completeInputInitialization(0);
+    Assert.assertEquals(VertexState.INITED, v1.getState());
+    String errorMsg = "ErrorWhenInitFailureAtInited";
+    dispatcher.getEventHandler().handle(new VertexEventRootInputFailed(v1.getVertexId(), "input1",
+        new AMUserCodeException(Source.InputInitializer, new Exception(errorMsg))));
     dispatcher.await();
-
     String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
-    assertTrue(diagnostics.contains(IIExceptionLocation.Initialize2.name()));
+    assertTrue(diagnostics.contains(errorMsg));
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
@@ -5004,24 +5003,23 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testExceptionFromII_InitFailedAfterRunning() throws AMUserCodeException {
     useCustomInitializer = true;
-    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize2);
-    EventHandlingRootInputInitializer initializer =
-        (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
     setupPostDagCreation();
 
-    VertexImplWithRunningInputInitializer v1 =
-        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+    VertexImplWithControlledInitializerManager v1 =
+        (VertexImplWithControlledInitializerManager)vertices.get("vertex1");
     initVertex(v1);
-    dispatcher.getEventHandler().handle(new VertexEventRootInputInitialized(
-        v1.getVertexId(), "input1", null));
-    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(),
-        VertexEventType.V_START));
+    RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
+    initializerManager1.completeInputInitialization(0);
+    startVertex(v1);
+    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+    String errorMsg = "ErrorWhenInitFailureAtRunning";
+    dispatcher.getEventHandler().handle(new VertexEventRootInputFailed(v1.getVertexId(), "input1",
+        new AMUserCodeException(Source.InputInitializer, new Exception(errorMsg))));
     dispatcher.await();
-
     String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
-    assertTrue(diagnostics.contains(IIExceptionLocation.Initialize2.name()));
+    assertTrue(diagnostics.contains(errorMsg));
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
@@ -5276,7 +5274,6 @@ public class TestVertexImpl {
   
   public static enum IIExceptionLocation {
     Initialize,
-    Initialize2, // for test case that InputInitFailed after InputInitSucceeded
     HandleInputInitializerEvent,
     OnVertexStateUpdated
   }
@@ -5313,16 +5310,6 @@ public class TestVertexImpl {
     public List<Event> initialize() throws Exception {
       if (exLocation == IIExceptionLocation.Initialize) {
         throw new Exception(exLocation.name());
-      }
-      if (exLocation == IIExceptionLocation.Initialize2) {
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          // InputInitializerManager is been shutdown if Initialized succeeded,
-          // catch the exception and throw the exception to simulate the case that 
-          // init failure after init succeeded
-          throw new Exception(exLocation.name());
-        }
       }
       context.registerForVertexStateUpdates("vertex1", null);
       initStarted.set(true);
