@@ -95,6 +95,7 @@ ALL CHANGES:
   TEZ-1703. Exception handling for InputInitializer.
   TEZ-1698. Cut down on ResourceCalculatorProcessTree overheads in Tez.
   TEZ-1703. addendum - fix flaky test.
+  TEZ-1725. Fix nanosecond to millis conversion in TezMxBeanResourceCalculator.
 
 Release 0.5.1: 2014-10-02
 
