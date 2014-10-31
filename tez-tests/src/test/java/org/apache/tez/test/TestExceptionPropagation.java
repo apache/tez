@@ -48,6 +48,7 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -62,9 +63,10 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.dag.impl.OneToOneEdgeManager;
 import org.apache.tez.dag.app.dag.impl.RootInputVertexManager;
-import org.apache.tez.dag.app.dag.impl.ScatterGatherEdgeManager;
-import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -84,8 +86,8 @@ import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.processor.SleepProcessor;
-import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
+import org.apache.tez.test.TestAMRecovery.DoNothingProcessor;
+import org.apache.tez.test.dag.MultiAttemptDAG.NoOpInput;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -210,7 +212,7 @@ public class TestExceptionPropagation {
    * @throws Exception
    * 
    */
-  @Test(timeout = 120000)
+  @Test(timeout = 180000)
   public void testExceptionPropagationSession() throws Exception {
     try {
       startSessionClient();
@@ -309,6 +311,10 @@ public class TestExceptionPropagation {
     EM_RouteInputErrorEventToSource,
     // Not Supported yet
     // EM_RouteInputSourceTaskFailedEventToDestination,
+
+    // II
+    II_Initialize, II_HandleInputInitializerEvents, II_OnVertexStateUpdated
+
   }
 
   /**
@@ -333,22 +339,31 @@ public class TestExceptionPropagation {
     v1.setVertexManagerPlugin(RootInputVertexManagerWithException.getVMDesc(payload));
 
     Vertex v2 = 
-        Vertex.create("v2", 
-            ProcessorDescriptor.create(SleepProcessor.class.getName())
-              .setUserPayload(new SleepProcessorConfig(3).toUserPayload())
-            , 1);
-    v2.setVertexManagerPlugin(ShuffleVertexManagerWithException.getVMDesc(exLocation));
+        Vertex.create("v2", DoNothingProcessor.getProcDesc(), 1);
+    v2.addDataSource("input2",
+        DataSourceDescriptor.create(InputDescriptor.create(NoOpInput.class.getName()),
+          InputInitializerWithException2.getIIDesc(payload), null));
 
     dag.addVertex(v1)
-      .addVertex(v2)
-      .addEdge(Edge.create(v1, v2, EdgeProperty.create(
-        EdgeManagerPluginDescriptor.create(CustomEdgeManager.class.getName())
-          .setUserPayload(payload),
-        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
-        OutputWithException.getOutputDesc(payload), InputWithException.getInputDesc(payload))));
+      .addVertex(v2);
+    if (exLocation.name().startsWith("EM_")) {
+      dag.addEdge(Edge.create(v1, v2, EdgeProperty.create(
+          EdgeManagerPluginDescriptor.create(CustomEdgeManager.class.getName())
+            .setUserPayload(payload),
+          DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+          OutputWithException.getOutputDesc(payload), InputWithException.getInputDesc(payload))));
+    } else {
+      // set Customized VertexManager here, it can't been used for CustomEdge
+      v2.setVertexManagerPlugin(InputReadyVertexManagerWithException.getVMDesc(exLocation));
+      dag.addEdge(Edge.create(v1, v2, EdgeProperty.create(DataMovementType.ONE_TO_ONE,
+          DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+          OutputWithException.getOutputDesc(payload), InputWithException.getInputDesc(payload))));
+    }
+
     return dag;
   }
 
+  // InputInitializer of vertex1
   public static class InputInitializerWithException extends InputInitializer {
 
     private ExceptionLocation exLocation;
@@ -380,7 +395,65 @@ public class TestExceptionPropagation {
     }
   }
 
-  // input of vertex2
+  // InputInitializer of vertex2
+  public static class InputInitializerWithException2 extends InputInitializer {
+
+    private ExceptionLocation exLocation;
+    private Object condition = new Object();
+
+    public InputInitializerWithException2(
+        InputInitializerContext initializerContext) {
+      super(initializerContext);
+      this.exLocation =
+          ExceptionLocation.valueOf(new String(getContext().getUserPayload()
+              .deepCopyAsArray()));
+    }
+
+    @Override
+    public List<Event> initialize() throws Exception {
+      if (exLocation == ExceptionLocation.II_Initialize) {
+        throw new Exception(exLocation.name());
+      }
+      if (exLocation == ExceptionLocation.II_OnVertexStateUpdated) {
+        getContext().registerForVertexStateUpdates("v1", null);
+      }
+
+      if (exLocation == ExceptionLocation.II_HandleInputInitializerEvents
+          || exLocation == ExceptionLocation.II_OnVertexStateUpdated) {
+        // wait for handleInputInitializerEvent() and onVertexStateUpdated() is invoked
+        synchronized (condition) {
+          condition.wait();
+        }
+      }
+
+      return null;
+    }
+
+    @Override
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events)
+        throws Exception {
+      if (exLocation == ExceptionLocation.II_HandleInputInitializerEvents) {
+        throw new RuntimeException(exLocation.name());
+      }
+    }
+
+    @Override
+    public void onVertexStateUpdated(VertexStateUpdate stateUpdate)
+        throws Exception {
+      if (exLocation == ExceptionLocation.II_OnVertexStateUpdated) {
+        throw new Exception(exLocation.name());
+      }
+      super.onVertexStateUpdated(stateUpdate);
+    }
+
+    public static InputInitializerDescriptor getIIDesc(UserPayload payload) {
+      return InputInitializerDescriptor.create(
+          InputInitializerWithException2.class.getName())
+          .setUserPayload(payload);
+    }
+  }
+
+  // Input of vertex2
   public static class InputWithException extends AbstractLogicalInput {
 
     private ExceptionLocation exLocation;
@@ -436,10 +509,12 @@ public class TestExceptionPropagation {
       getContext().requestInitialMemory(0l, null); // mandatory call
       if (this.exLocation == ExceptionLocation.INPUT_INITIALIZE) {
         throw new Exception(this.exLocation.name());
-      } else if (this.exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource
-          || this.exLocation == ExceptionLocation.EM_GetNumDestinationConsumerTasks) {
-        Event errorEvent = InputReadErrorEvent.create("read error", 0, 0);
-        return Lists.newArrayList(errorEvent);
+      } else if ( getContext().getSourceVertexName().equals("v1")) {
+        if (this.exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource
+            || this.exLocation == ExceptionLocation.EM_GetNumDestinationConsumerTasks) {
+          Event errorEvent = InputReadErrorEvent.create("read error", 0, 0);
+          return Lists.newArrayList(errorEvent);
+        }
       }
       return null;
     }
@@ -450,7 +525,7 @@ public class TestExceptionPropagation {
     }
   }
 
-  // output of vertex1
+  // Output of vertex1
   public static class OutputWithException extends AbstractLogicalOutput {
 
     private ExceptionLocation exLocation;
@@ -497,8 +572,12 @@ public class TestExceptionPropagation {
         List<Event> events = new ArrayList<Event>();
         events.add(DataMovementEvent.create(0, ByteBuffer.wrap(new byte[0])));
         return events;
-      }
-      else {
+      } else if (this.exLocation == ExceptionLocation.II_HandleInputInitializerEvents) {
+        // send InputInitliazer to InputInitializer of v2
+        List<Event> events = new ArrayList<Event>();
+        events.add(InputInitializerEvent.create("v2", "input2", ByteBuffer.wrap(new byte[0])));
+        return events;
+      } else {
         return null;
       }
     }
@@ -576,6 +655,7 @@ public class TestExceptionPropagation {
     }
   }
 
+  // VertexManager of vertex1
   public static class RootInputVertexManagerWithException extends RootInputVertexManager {
 
     private ExceptionLocation exLocation;
@@ -618,12 +698,13 @@ public class TestExceptionPropagation {
     }
   }
 
-  public static class ShuffleVertexManagerWithException extends ShuffleVertexManager {
+  // VertexManager of vertex2
+  public static class InputReadyVertexManagerWithException extends InputReadyVertexManager {
 
     private ExceptionLocation exLocation;
     private static final String Test_ExceptionLocation = "Test.ExceptionLocation";
 
-    public ShuffleVertexManagerWithException(VertexManagerPluginContext context) {
+    public InputReadyVertexManagerWithException(VertexManagerPluginContext context) {
       super(context);
     }
 
@@ -666,12 +747,13 @@ public class TestExceptionPropagation {
       Configuration conf = new Configuration();
       conf.set(Test_ExceptionLocation, exLocation.name());
       UserPayload payload = TezUtils.createUserPayloadFromConf(conf);
-      return VertexManagerPluginDescriptor.create(ShuffleVertexManagerWithException.class.getName())
+      return VertexManagerPluginDescriptor.create(InputReadyVertexManagerWithException.class.getName())
               .setUserPayload(payload);
     }
   }
 
-  public static class CustomEdgeManager extends ScatterGatherEdgeManager {
+  // EdgeManager for edge linking vertex1 and vertex2
+  public static class CustomEdgeManager extends OneToOneEdgeManager {
 
     private ExceptionLocation exLocation;
 

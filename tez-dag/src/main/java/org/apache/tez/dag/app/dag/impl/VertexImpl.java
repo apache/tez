@@ -335,7 +335,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexState.INITED, VertexState.FAILED),
               VertexEventType.V_READY_TO_INIT,
               new VertexInitializedTransition())
-          .addTransition(VertexState.INITIALIZING, VertexState.FAILED,
+          .addTransition(VertexState.INITIALIZING,
+              EnumSet.of(VertexState.FAILED),
               VertexEventType.V_ROOT_INPUT_FAILED,
               new RootInputInitFailedTransition())
           .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
@@ -367,6 +368,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Transitions from INITED state
           // SOURCE_VERTEX_STARTED - for sources which determine parallelism,
           // they must complete before this vertex can start.
+          .addTransition(VertexState.INITED,
+              EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_ROOT_INPUT_FAILED,
+              new RootInputInitFailedTransition())
           .addTransition
               (VertexState.INITED,
                   EnumSet.of(VertexState.INITED, VertexState.ERROR),
@@ -399,6 +404,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               INTERNAL_ERROR_TRANSITION)
 
           // Transitions from RUNNING state
+          .addTransition(VertexState.RUNNING,
+              EnumSet.of(VertexState.TERMINATING),
+              VertexEventType.V_ROOT_INPUT_FAILED,
+              new RootInputInitFailedTransition())
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_ATTEMPT_COMPLETED,
               TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
@@ -451,6 +460,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
@@ -483,6 +493,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               new TaskCompletedAfterVertexSuccessTransition())
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   // after we are done reruns of source tasks should not affect
                   // us. These reruns may be triggered by other consumer vertices.
@@ -501,6 +512,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_START,
@@ -522,6 +534,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_INIT,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_START,
@@ -541,6 +554,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.ERROR,
               VertexState.ERROR,
               EnumSet.of(VertexEventType.V_INIT,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_START,
                   VertexEventType.V_ROUTE_EVENT,
@@ -1654,7 +1668,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
       else if (vertex.terminationCause == VertexTerminationCause.AM_USERCODE_FAILURE) {
         vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed/killed due to VertexManager failed. "
+        String diagnosticMsg = "Vertex failed/killed due to VertexManagerPlugin/EdgeManagerPlugin failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount
+            + " killedTasks:"
+            + vertex.killedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.abortVertex(State.FAILED);
+        return vertex.finished(VertexState.FAILED);
+      }
+      else if (vertex.terminationCause == VertexTerminationCause.ROOT_INPUT_INIT_FAILURE) {
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex failed/killed due to ROOT_INPUT_INIT_FAILURE failed. "
             + "failedTasks:"
             + vertex.failedTaskCount
             + " killedTasks:"
@@ -1665,7 +1690,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
       else {
         //should never occur
-        throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex"
+        throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex:" + vertex.logIdentifier
             + ", failedTaskCount=" + vertex.failedTaskCount
             + ", killedTaskCount=" + vertex.killedTaskCount
             + ", successfulTaskCount=" + vertex.succeededTaskCount
@@ -3202,19 +3227,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private static class RootInputInitFailedTransition implements
-      SingleArcTransition<VertexImpl, VertexEvent> {
+      MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
     @Override
-    public void transition(VertexImpl vertex, VertexEvent event) {
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRootInputFailed fe = (VertexEventRootInputFailed) event;
       String msg = "Vertex Input: " + fe.getInputName()
           + " initializer failed, vertex=" + vertex.getLogIdentifier();
-      if (fe.getError() != null) {
-        msg = msg + ExceptionUtils.getStackTrace(fe.getError());
+      LOG.error(msg, fe.getError());
+      if (vertex.getState() == VertexState.RUNNING) {
+        vertex.addDiagnostic(msg
+              + ", " + ExceptionUtils.getStackTrace(fe.getError().getCause()));
+        vertex.tryEnactKill(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE,
+            TaskTerminationCause.AM_USERCODE_FAILURE);
+        return VertexState.TERMINATING;
+      } else {
+        vertex.finished(VertexState.FAILED,
+            VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, msg
+              + ", " + ExceptionUtils.getStackTrace(fe.getError().getCause()));
+        return VertexState.FAILED;
       }
-      LOG.error(msg);
-      vertex.finished(VertexState.FAILED,
-          VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, msg);
     }
   }
 

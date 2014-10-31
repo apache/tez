@@ -101,7 +101,8 @@ public abstract class InputInitializer {
    * @param stateUpdate an event indicating the name of the vertex, and it's updated state.
    *                    Additional information may be available for specific events, Look at the
    *                    type hierarchy for {@link org.apache.tez.dag.api.event.VertexStateUpdate}
+   * @throws Exception
    */
-  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
   }
 }
