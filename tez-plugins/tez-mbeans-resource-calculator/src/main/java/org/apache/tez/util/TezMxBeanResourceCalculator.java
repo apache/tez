@@ -31,7 +31,6 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
 
   private final com.sun.management.OperatingSystemMXBean osBean;
   private final Runtime runtime;
-  private final AtomicLong cumulativeCPU;
 
   /**
    * Create process-tree instance with specified root process.
@@ -45,7 +44,6 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
     runtime = Runtime.getRuntime();
     osBean =
         (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-    cumulativeCPU = new AtomicLong();
   }
 
   @Override public void updateProcessTree() {
@@ -67,8 +65,7 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
 
   @Override public long getCumulativeCpuTime() {
     //convert to milliseconds
-    return TimeUnit.MILLISECONDS.convert(cumulativeCPU.addAndGet(osBean.getProcessCpuTime()),
-        TimeUnit.MILLISECONDS);
+    return TimeUnit.MILLISECONDS.convert(osBean.getProcessCpuTime(), TimeUnit.NANOSECONDS);
   }
 
   @Override public boolean checkPidPgrpidForMatch() {

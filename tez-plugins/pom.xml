@@ -30,7 +30,9 @@
     <profile>
       <id>hadoop24</id>
       <activation>
-         <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!skipATS</name>
+        </property>
       </activation>
       <modules>
         <module>tez-yarn-timeline-history</module>
