@@ -36,6 +36,30 @@
         <module>tez-yarn-timeline-history</module>
       </modules>
     </profile>
+    <profile>
+      <id>jdk6check</id>
+      <activation>
+        <property>
+          <name>java.vendor.url</name>
+          <value>http://java.sun.com/</value>
+        </property>
+      </activation>
+      <modules>
+        <module>tez-mbeans-resource-calculator</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>jdk7check</id>
+      <activation>
+        <property>
+          <name>java.vendor.url</name>
+          <value>http://java.oracle.com/</value>
+        </property>
+      </activation>
+      <modules>
+        <module>tez-mbeans-resource-calculator</module>
+      </modules>
+    </profile>
   </profiles>
 
   <build>
