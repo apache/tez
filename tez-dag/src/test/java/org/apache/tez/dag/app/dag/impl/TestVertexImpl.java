@@ -125,6 +125,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.VertexManagerWithException.VMExceptionLocation;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
@@ -4647,7 +4648,8 @@ public class TestVertexImpl {
       super.runInputInitializers(inputs);
       eventHandler.handle(new VertexEventRootInputFailed(vertexID, inputs
           .get(0).getName(),
-          new RuntimeException("MockInitializerFailed")));
+          new AMUserCodeException(Source.InputInitializer,
+              new RuntimeException("MockInitializerFailed"))));
       dispatcher.await();
     }
 
@@ -4969,9 +4971,164 @@ public class TestVertexImpl {
     initVertex(v1);
     String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
     assertTrue(diagnostics.contains(IIExceptionLocation.Initialize.name()));
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
   
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testExceptionFromII_InitFailedAfterInitialized() throws AMUserCodeException {
+    useCustomInitializer = true;
+    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize2);
+    EventHandlingRootInputInitializer initializer =
+        (EventHandlingRootInputInitializer) customInitializer;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithIIException();
+    setupPostDagCreation();
+
+    VertexImplWithRunningInputInitializer v1 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+    // INIT_SUCCEEDED followed by INIT_FAILURE
+    initVertex(v1);
+    dispatcher.getEventHandler().handle(new VertexEventRootInputInitialized(
+        v1.getVertexId(), "input1", null));
+    dispatcher.await();
+
+    String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
+    assertTrue(diagnostics.contains(IIExceptionLocation.Initialize2.name()));
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
+    Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testExceptionFromII_InitFailedAfterRunning() throws AMUserCodeException {
+    useCustomInitializer = true;
+    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize2);
+    EventHandlingRootInputInitializer initializer =
+        (EventHandlingRootInputInitializer) customInitializer;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithIIException();
+    setupPostDagCreation();
+
+    VertexImplWithRunningInputInitializer v1 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+    initVertex(v1);
+    dispatcher.getEventHandler().handle(new VertexEventRootInputInitialized(
+        v1.getVertexId(), "input1", null));
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(),
+        VertexEventType.V_START));
+    dispatcher.await();
+
+    String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
+    assertTrue(diagnostics.contains(IIExceptionLocation.Initialize2.name()));
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
+    Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testExceptionFromII_HandleInputInitializerEvent() throws AMUserCodeException, InterruptedException {
+    useCustomInitializer = true;
+    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.HandleInputInitializerEvent);
+    EventHandlingRootInputInitializer initializer =
+        (EventHandlingRootInputInitializer) customInitializer;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithRunningInitializer();
+    setupPostDagCreation();
+
+    VertexImplWithRunningInputInitializer v1 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+    VertexImplWithRunningInputInitializer v2 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex2");
+
+    initVertex(v1);
+    startVertex(v1);
+    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+    Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
+    dispatcher.await();
+
+    // Wait for the initializer to be invoked - which may be a separate thread.
+    while (!initializer.initStarted.get()) {
+      Thread.sleep(10);
+    }
+    Assert.assertFalse(initializer.eventReceived.get());
+    Assert.assertFalse(initializer.initComplete.get());
+
+    // Signal the initializer by sending an event - via vertex1
+    InputInitializerEvent event = InputInitializerEvent.create("vertex2", "input1", null);
+    // Create taskId and taskAttemptId for the single task that exists in vertex1
+    TezTaskID t0_v1 = TezTaskID.getInstance(v1.getVertexId(), 0);
+    TezTaskAttemptID ta0_t0_v1 = TezTaskAttemptID.getInstance(t0_v1, 0);
+    TezEvent tezEvent = new TezEvent(event,
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", "vertex2", ta0_t0_v1));
+
+    // at least one task attempt is succeed, otherwise input initialize events won't been handled.
+    dispatcher.getEventHandler().handle(new TaskEvent(t0_v1, TaskEventType.T_ATTEMPT_LAUNCHED));
+    dispatcher.getEventHandler().handle(new TaskEventTAUpdate(ta0_t0_v1, TaskEventType.T_ATTEMPT_SUCCEEDED));
+    dispatcher.getEventHandler()
+        .handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezEvent)));
+    dispatcher.await();
+
+    // it would cause v2 fail as its II throw exception in handleInputInitializerEvent
+    String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
+    assertTrue(diagnostics.contains(IIExceptionLocation.HandleInputInitializerEvent.name()));
+    Assert.assertEquals(VertexState.FAILED, v2.getState());
+    Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v2.getTerminationCause());
+  }
+
+  @Test(timeout = 5000)
+  public void testExceptionFromII_OnVertexStateUpdated() throws AMUserCodeException, InterruptedException {
+    useCustomInitializer = true;
+    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.OnVertexStateUpdated);
+    EventHandlingRootInputInitializer initializer =
+        (EventHandlingRootInputInitializer) customInitializer;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithRunningInitializer();
+    setupPostDagCreation();
+
+    VertexImplWithRunningInputInitializer v1 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+    VertexImplWithRunningInputInitializer v2 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex2");
+
+    initVertex(v1);
+    startVertex(v1);  // v2 would get the state update from v1
+    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+    Assert.assertEquals(VertexState.FAILED, v2.getState());
+    String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
+    assertTrue(diagnostics.contains(IIExceptionLocation.OnVertexStateUpdated.name()));
+    Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v2.getTerminationCause());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testExceptionFromII_InitSucceededAfterInitFailure() throws AMUserCodeException, InterruptedException {
+    useCustomInitializer = true;
+    customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.OnVertexStateUpdated);
+    EventHandlingRootInputInitializer initializer =
+        (EventHandlingRootInputInitializer) customInitializer;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithRunningInitializer();
+    setupPostDagCreation();
+
+    VertexImplWithRunningInputInitializer v1 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
+    VertexImplWithRunningInputInitializer v2 =
+        (VertexImplWithRunningInputInitializer) vertices.get("vertex2");
+
+    initVertex(v1);
+    startVertex(v1);  // v2 would get the state update from v1
+    // it should be OK receive INIT_SUCCEEDED event after INIT_FAILED event
+    dispatcher.getEventHandler().handle(new VertexEventRootInputInitialized(
+        v2.getVertexId(), "input1", null));
+
+    Assert.assertEquals(VertexState.RUNNING, v1.getState());
+    Assert.assertEquals(VertexState.FAILED, v2.getState());
+    String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
+    assertTrue(diagnostics.contains(IIExceptionLocation.OnVertexStateUpdated.name()));
+    Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v2.getTerminationCause());
+  }
 
   @InterfaceAudience.Private
   public static class RootInputSpecUpdaterVertexManager extends VertexManagerPlugin {
@@ -5119,6 +5276,9 @@ public class TestVertexImpl {
   
   public static enum IIExceptionLocation {
     Initialize,
+    Initialize2, // for test case that InputInitFailed after InputInitSucceeded
+    HandleInputInitializerEvent,
+    OnVertexStateUpdated
   }
 
   @InterfaceAudience.Private
@@ -5154,6 +5314,16 @@ public class TestVertexImpl {
       if (exLocation == IIExceptionLocation.Initialize) {
         throw new Exception(exLocation.name());
       }
+      if (exLocation == IIExceptionLocation.Initialize2) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          // InputInitializerManager is been shutdown if Initialized succeeded,
+          // catch the exception and throw the exception to simulate the case that 
+          // init failure after init succeeded
+          throw new Exception(exLocation.name());
+        }
+      }
       context.registerForVertexStateUpdates("vertex1", null);
       initStarted.set(true);
       lock.lock();
@@ -5175,6 +5345,9 @@ public class TestVertexImpl {
     @Override
     public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws
         Exception {
+      if (exLocation == IIExceptionLocation.HandleInputInitializerEvent) {
+        throw new Exception(exLocation.name());
+      }
       initializerEvents.addAll(events);
       if (initializerEvents.size() == numExpectedEvents) {
         eventReceived.set(true);
@@ -5197,6 +5370,9 @@ public class TestVertexImpl {
     }
 
     public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+      if (exLocation == IIExceptionLocation.OnVertexStateUpdated) {
+        throw new RuntimeException(exLocation.name());
+      }
       stateUpdates.add(stateUpdate);
     }
   }

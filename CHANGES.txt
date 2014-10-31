@@ -92,6 +92,7 @@ ALL CHANGES:
   TEZ-1716. Additional ATS data for UI.
   TEZ-1722. DAG should be related to Application Id in ATS data.
   TEZ-1711. Don't cache outputSpecList in VertexImpl.getOutputSpecList(taskIndex)
+  TEZ-1703. Exception handling for InputInitializer.
 
 Release 0.5.1: 2014-10-02
 

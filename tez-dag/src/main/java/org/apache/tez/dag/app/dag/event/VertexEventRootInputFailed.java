@@ -18,20 +18,21 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
 import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexEventRootInputFailed extends VertexEvent {
   
   private final String inputName;
-  private final Throwable error;
+  private final AMUserCodeException error;
 
-  public VertexEventRootInputFailed(TezVertexID vertexId, String inputName, Throwable error) {
+  public VertexEventRootInputFailed(TezVertexID vertexId, String inputName, AMUserCodeException error) {
     super(vertexId, VertexEventType.V_ROOT_INPUT_FAILED);
     this.inputName = inputName;
     this.error = error;
   }
   
-  public Throwable getError() {
+  public AMUserCodeException getError() {
     return this.error;
   }
   
