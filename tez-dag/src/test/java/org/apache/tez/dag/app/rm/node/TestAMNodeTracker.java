@@ -322,9 +322,18 @@ public class TestAMNodeTracker {
   }
 
   private static NodeReport generateNodeReport(NodeId nodeId, NodeState nodeState) {
-    NodeReport nodeReport = NodeReport.newInstance(nodeId, nodeState, nodeId.getHost() + ":3433",
-        "/default-rack", Resource.newInstance(0, 0), Resource.newInstance(10240, 12), 10,
-        nodeState.toString(), System.currentTimeMillis());
+    NodeReport nodeReport = mock(NodeReport.class);
+    doReturn(nodeId).when(nodeReport).getNodeId();
+    doReturn(nodeState).when(nodeReport).getNodeState();
+    String httpAddress = nodeId.getHost() + ":3433";
+    doReturn(httpAddress).when(nodeReport).getHttpAddress();
+    doReturn("/default-rack").when(nodeReport).getRackName();
+    doReturn(Resource.newInstance(0, 0)).when(nodeReport).getUsed();
+    doReturn(Resource.newInstance(10240, 12)).when(nodeReport).getCapability();
+    doReturn(10).when(nodeReport).getNumContainers();
+    doReturn(nodeState.toString()).when(nodeReport).getHealthReport();
+    long healthReportTime = System.currentTimeMillis();
+    doReturn(healthReportTime).when(nodeReport).getLastHealthReportTime();
     return nodeReport;
   }
 }
