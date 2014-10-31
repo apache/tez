@@ -96,6 +96,7 @@ ALL CHANGES:
   TEZ-1698. Cut down on ResourceCalculatorProcessTree overheads in Tez.
   TEZ-1703. addendum - fix flaky test.
   TEZ-1725. Fix nanosecond to millis conversion in TezMxBeanResourceCalculator.
+  TEZ-1726. Build broken against Hadoop-2.6.0 due to change in NodeReport.
 
 Release 0.5.1: 2014-10-02
 
