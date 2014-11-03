@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -88,9 +89,11 @@ public class MergeManager {
   private final Set<MapOutput> inMemoryMapOutputs = 
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
   private final InMemoryMerger inMemoryMerger;
-  
-  private final Set<FileChunk> onDiskMapOutputs = new TreeSet<FileChunk>();
-  private final OnDiskMerger onDiskMerger;
+
+  @VisibleForTesting
+  final Set<FileChunk> onDiskMapOutputs = new TreeSet<FileChunk>();
+  @VisibleForTesting
+  final OnDiskMerger onDiskMerger;
   
   private final long memoryLimit;
   private final int postMergeMemLimit;
@@ -131,7 +134,7 @@ public class MergeManager {
   /**
    * Construct the MergeManager. Must call start before it becomes usable.
    */
-  public MergeManager(Configuration conf, 
+  public MergeManager(Configuration conf,
                       FileSystem localFS,
                       LocalDirAllocator localDirAllocator,  
                       InputContext inputContext,
@@ -213,7 +216,7 @@ public class MergeManager {
     }
     
     LOG.info("InitialRequest: ShuffleMem=" + memLimit + ", postMergeMem=" + maxRedBuffer
-        + ", RuntimeTotalAvailable=" + this.initialMemoryAvailable + "Updated to: ShuffleMem="
+        + ", RuntimeTotalAvailable=" + this.initialMemoryAvailable + ". Updated to: ShuffleMem="
         + this.memoryLimit + ", postMergeMem: " + this.postMergeMemLimit);
 
     this.ioSortFactor = 
@@ -253,7 +256,7 @@ public class MergeManager {
       throw new RuntimeException("Invlaid configuration: "
           + "maxSingleShuffleLimit should be less than mergeThreshold"
           + "maxSingleShuffleLimit: " + this.maxSingleShuffleLimit
-          + "mergeThreshold: " + this.mergeThreshold);
+          + ", mergeThreshold: " + this.mergeThreshold);
     }
     
     boolean allowMemToMemMerge = 
@@ -494,6 +497,7 @@ public class MergeManager {
         return;
       }
 
+
       InputAttemptIdentifier dummyMapId = inputs.get(0).getAttemptIdentifier(); 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
       long mergeOutputSize = 
@@ -629,7 +633,7 @@ public class MergeManager {
       }
 
       // Note the output of the merge
-      closeOnDiskFile(new FileChunk(outputPath, 0, outFileLen, false));
+      closeOnDiskFile(new FileChunk(outputPath, 0, outFileLen));
     }
 
   }
@@ -637,7 +641,8 @@ public class MergeManager {
   /**
    * Merges multiple on-disk segments
    */
-  private class OnDiskMerger extends MergeThread<FileChunk> {
+  @VisibleForTesting
+  class OnDiskMerger extends MergeThread<FileChunk> {
 
     public OnDiskMerger(MergeManager manager) {
       super(manager, ioSortFactor, exceptionReporter);
@@ -668,7 +673,7 @@ public class MergeManager {
       for (FileChunk fileChunk : inputs) {
         final long offset = fileChunk.getOffset();
         final long size = fileChunk.getLength();
-        final boolean preserve = fileChunk.preserveAfterUse();
+        final boolean preserve = fileChunk.isLocalFile();
         final Path file = fileChunk.getPath();
         approxOutputSize += size;
         Segment segment = new Segment(conf, rfs, file, offset, size, codec, ifileReadAhead,
@@ -681,9 +686,19 @@ public class MergeManager {
         ChecksumFileSystem.getChecksumLength(approxOutputSize, bytesPerSum);
 
       // 2. Start the on-disk merge process
-      Path outputPath = 
-        localDirAllocator.getLocalPathForWrite(inputs.get(0).getPath().toString(),
-            approxOutputSize, conf).suffix(Constants.MERGED_OUTPUT_PREFIX);
+      FileChunk file0 = inputs.get(0);
+      String namePart;
+      if (file0.isLocalFile()) {
+        // This is setup the same way a type DISK MapOutput is setup when fetching.
+        namePart = mapOutputFile.getSpillFileName(
+            file0.getInputAttemptIdentifier().getInputIdentifier().getInputIndex());
+
+      } else {
+        namePart = file0.getPath().getName().toString();
+      }
+      Path outputPath = localDirAllocator.getLocalPathForWrite(namePart, approxOutputSize, conf);
+      outputPath = outputPath.suffix(Constants.MERGED_OUTPUT_PREFIX);
+
       Writer writer = 
         new Writer(conf, rfs, outputPath, 
                         (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
@@ -712,7 +727,7 @@ public class MergeManager {
       }
 
       final long outputLen = localFS.getFileStatus(outputPath).getLen();
-      closeOnDiskFile(new FileChunk(outputPath, 0, outputLen, false));
+      closeOnDiskFile(new FileChunk(outputPath, 0, outputLen));
 
       LOG.info(inputContext.getUniqueIdentifier() +
           " Finished merging " + inputs.size() + 
@@ -857,7 +872,7 @@ public class MergeManager {
 
         final FileStatus fStatus = localFS.getFileStatus(outputPath);
         // add to list of final disk outputs.
-        onDiskMapOutputs.add(new FileChunk(outputPath, 0, fStatus.getLen(), false));
+        onDiskMapOutputs.add(new FileChunk(outputPath, 0, fStatus.getLen()));
 
         LOG.info("Merged " + numMemDiskSegments + " segments, " +
                  inMemToDiskBytes + " bytes to disk to satisfy " +
@@ -885,7 +900,7 @@ public class MergeManager {
           file.toString().endsWith(Constants.MERGED_OUTPUT_PREFIX) ? null : mergedMapOutputsCounter;
 
       final long fileOffset = fileChunk.getOffset();
-      final boolean preserve = fileChunk.preserveAfterUse();
+      final boolean preserve = fileChunk.isLocalFile();
       diskSegments.add(new Segment(job, fs, file, fileOffset, fileLength, codec, ifileReadAhead,
                                    ifileReadAheadLength, ifileBufferSize, preserve, counter));
     }
