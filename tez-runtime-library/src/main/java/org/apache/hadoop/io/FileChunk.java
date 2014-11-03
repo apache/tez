@@ -18,22 +18,34 @@
 
 package org.apache.hadoop.io;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
+import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 @Private
 public class FileChunk implements Comparable<FileChunk> {
 
   private final long offset;
   private final long length;
-  private final boolean preserveAfterUse;
+  private final boolean isLocalFile;
   private final Path path;
+  private final InputAttemptIdentifier identifier;
 
-  public FileChunk(Path path, long offset, long length, boolean preserveAfterUse) {
+  public FileChunk(Path path, long offset, long length, boolean isLocalFile,
+                   InputAttemptIdentifier identifier) {
     this.path = path;
     this.offset = offset;
     this.length = length;
-    this.preserveAfterUse = preserveAfterUse;
+    this.isLocalFile = isLocalFile;
+    this.identifier = identifier;
+    if (isLocalFile) {
+      Preconditions.checkNotNull(identifier);
+    }
+  }
+
+  public FileChunk(Path path, long offset, long length) {
+    this(path, offset, length, false, null);
   }
 
   @Override
@@ -87,11 +99,15 @@ public class FileChunk implements Comparable<FileChunk> {
     return length;
   }
 
-  public boolean preserveAfterUse() {
-    return preserveAfterUse;
-  }
-
   public Path getPath() {
     return path;
+  }
+
+  public boolean isLocalFile() {
+    return this.isLocalFile;
+  }
+
+  public InputAttemptIdentifier getInputAttemptIdentifier() {
+    return this.identifier;
   }
 }

@@ -89,8 +89,11 @@ class MapOutput {
     this.disk = null;
 
     if (type == Type.DISK || type == Type.DISK_DIRECT) {
-      boolean preserve = (type == Type.DISK_DIRECT); // type disk are temp files.
-      this.outputPath = new FileChunk(outputPath, offset, size, preserve);
+      if (type == Type.DISK_DIRECT) {
+        this.outputPath = new FileChunk(outputPath, offset, size, true, attemptIdentifier);
+      } else {
+        this.outputPath = new FileChunk(outputPath, offset, size, false, attemptIdentifier);
+      }
     } else {
       this.outputPath = null;
     }

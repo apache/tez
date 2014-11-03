@@ -441,7 +441,7 @@ class FetcherOrderedGrouped extends Thread {
         LOG.debug("header: " + srcAttemptId + ", len: " + compressedLength + 
             ", decomp len: " + decompressedLength);
       }
-      
+
       // Get the location for the map output - either in-memory or on-disk
       try {
         mapOutput = merger.reserve(srcAttemptId, decompressedLength, compressedLength, id);
@@ -467,7 +467,7 @@ class FetcherOrderedGrouped extends Thread {
       // Go!
       LOG.info("fetcher#" + id + " about to shuffle output of map " + 
                mapOutput.getAttemptIdentifier() + " decomp: " +
-               decompressedLength + " len: " + compressedLength);
+               decompressedLength + " len: " + compressedLength + " to " + mapOutput.getType());
       if (mapOutput.getType() == Type.MEMORY) {
         ShuffleUtils.shuffleToMemory(mapOutput.getMemory(), input,
           (int) decompressedLength, (int) compressedLength, codec, ifileReadAhead,
