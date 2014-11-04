@@ -71,6 +71,7 @@ public class TestDAGUtils {
         dummyTaskCount, dummyTaskResource);
 
     DAG dag = DAG.create("testDag");
+    dag.setDAGInfo("dagInfo");
     String groupName1 = "uv12";
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class")
@@ -110,6 +111,9 @@ public class TestDAGUtils {
 
     Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
+    Assert.assertEquals("testDag", atsMap.get(DAGUtils.DAG_NAME_KEY));
+    Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
+    Assert.assertEquals("dagInfo", atsMap.get(DAGUtils.DAG_INFO_KEY));
     Assert.assertEquals(dagPlan.getName(), atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey("version"));
     Assert.assertEquals(1, atsMap.get("version"));

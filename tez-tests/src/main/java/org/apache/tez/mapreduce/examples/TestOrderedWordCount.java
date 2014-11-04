@@ -270,6 +270,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     vertices.add(finalReduceVertex);
 
     DAG dag = DAG.create("OrderedWordCount" + dagIndex);
+    dag.setDAGInfo("{ \"context\": \"Tez\", \"description\": \"TestOrderedWordCount Job\" }");
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
     }

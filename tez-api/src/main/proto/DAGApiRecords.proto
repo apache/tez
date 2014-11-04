@@ -164,6 +164,7 @@ message DAGPlan {
   optional bytes credentials_binary = 5;
   repeated PlanVertexGroupInfo vertex_groups = 6;
   repeated PlanLocalResource local_resource = 7;
+  optional string dag_info = 8;
 }
 
 // DAG monitoring messages

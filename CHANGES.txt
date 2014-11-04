@@ -98,6 +98,7 @@ ALL CHANGES:
   TEZ-1726. Build broken against Hadoop-2.6.0 due to change in NodeReport.
   TEZ-1579. MR examples should be setting mapreduce.framework.name to yarn-tez.
   TEZ-1731. OnDiskMerger can end up clobbering files across tasks with LocalDiskFetch enabled.
+  TEZ-1735. Allow setting basic info per DAG for Tez UI.
 
 Release 0.5.1: 2014-10-02
 
