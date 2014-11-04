@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -108,6 +109,7 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
@@ -2324,6 +2326,100 @@ public class TestVertexImpl {
         .getOutputDescriptor().getClassName()));
   }
 
+  class TestUpdateListener implements VertexStateUpdateListener {
+    List<VertexStateUpdate> events = Lists.newLinkedList();
+    @Override
+    public void onStateUpdated(VertexStateUpdate event) {
+      events.add(event);
+    }
+  }
+  
+  @Test (timeout=5000)
+  public void testVertexConfigureEvent() throws Exception {
+    initAllVertices(VertexState.INITED);
+    TestUpdateListener listener = new TestUpdateListener();
+    updateTracker
+        .registerForVertexUpdates("vertex3",
+            EnumSet.of(org.apache.tez.dag.api.event.VertexState.CONFIGURED),
+            listener);
+    // completely configured event received for vertex when it inits
+    Assert.assertEquals(1, listener.events.size());
+    Assert.assertEquals("vertex3", listener.events.get(0).getVertexName());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
+        listener.events.get(0).getVertexState());
+    updateTracker.unregisterForVertexUpdates("vertex3", listener);
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Test (timeout=5000)
+  public void testVertexConfigureEventWithReconfigure() throws Exception {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    // initialize() will make VM call planned() and started() will make VM call done()
+    dagPlan = createDAGPlanWithVMException("TestVMStateUpdate", VMExceptionLocation.NoExceptionDoReconfigure);
+    setupPostDagCreation();
+
+    TestUpdateListener listener = new TestUpdateListener();
+    updateTracker
+      .registerForVertexUpdates("vertex2",
+          EnumSet.of(org.apache.tez.dag.api.event.VertexState.CONFIGURED),
+          listener);
+
+    VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
+        .get("vertex1");
+    VertexImpl v2 = vertices.get("vertex2");
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(),
+        VertexEventType.V_INIT));
+    // wait to ensure init is completed, so that rootInitManager is not null
+    dispatcher.await();
+    RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
+    initializerManager1.completeInputInitialization();
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITED, v2.getState());
+    Assert.assertEquals(0, listener.events.size()); // configured event not sent
+    startVertex(v1, true);
+    Assert.assertEquals(VertexState.RUNNING, v2.getState());
+    Assert.assertEquals(1, listener.events.size()); // configured event sent after VM
+    Assert.assertEquals("vertex2", listener.events.get(0).getVertexName());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
+        listener.events.get(0).getVertexState());
+    updateTracker.unregisterForVertexUpdates("vertex2", listener);    
+  }
+
+  @Test (timeout=5000)
+  public void testVertexConfigureEventBadReconfigure() {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v3 = vertices.get("vertex3");
+    VertexImpl v2 = vertices.get("vertex2");
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(v2);
+    startVertex(v1);
+    try {
+      // cannot call doneReconfiguringVertex() without calling vertexReconfigurationPlanned()
+      v3.doneReconfiguringVertex();
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertTrue(e.getMessage().contains("invoked only after vertexReconfigurationPlanned"));
+    }
+  }
+  
+  @Test (timeout=5000)
+  public void testVertexConfigureEventBadSetParallelism() throws Exception {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v3 = vertices.get("vertex3");
+    VertexImpl v2 = vertices.get("vertex2");
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(v2);
+    startVertex(v1);
+    try {
+      // cannot reconfigure a fully configured vertex without first notifying
+      v3.setParallelism(1, null, null, null, true);
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertTrue(e.getMessage().contains("context.vertexReconfigurationPlanned() before re-configuring"));
+    }
+  }
+
   @Test(timeout = 5000)
   public void testVertexStart() {
     initAllVertices(VertexState.INITED);
@@ -2333,6 +2429,19 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
+  public void testVertexReconfigurePlannedAfterInit() throws Exception {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v3 = vertices.get("vertex3");
+
+    try {
+      v3.vertexReconfigurationPlanned();
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertTrue(e.getMessage().contains("context.vertexReconfigurationPlanned() cannot be called after initialize()"));
+    }
+  }
+  
+  @Test(timeout = 5000)
   public void testVertexSetParallelism() throws Exception {
     initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
@@ -2341,6 +2450,7 @@ public class TestVertexImpl {
     Assert.assertEquals(2, tasks.size());
     TezTaskID firstTask = tasks.keySet().iterator().next();
 
+    v3.vertexReconfigurationPlanned(true);
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
@@ -2350,7 +2460,8 @@ public class TestVertexImpl {
     Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(
        v1.getName(), mockEdgeManagerDescriptor);
-    v3.setParallelism(1, null, edgeManagerDescriptors, null);
+    v3.setParallelism(1, null, edgeManagerDescriptors, null, true);
+    v3.doneReconfiguringVertex();
     assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
         EdgeManagerForTest);
     Assert.assertEquals(1, v3.getTotalTasks());
@@ -2368,15 +2479,19 @@ public class TestVertexImpl {
     Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
 
+    v3.vertexReconfigurationPlanned(true);
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
 
     // increase not supported
     try {
-      v3.setParallelism(100, null, null, null);
+      v3.setParallelism(100, null, null, null, true);
+      v3.doneReconfiguringVertex();
       Assert.fail();
-    } catch (TezUncheckedException e) { }
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Increasing parallelism is not supported"));
+    }
   }
   
   @Test(timeout = 5000)
@@ -2387,16 +2502,20 @@ public class TestVertexImpl {
     Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
 
+    v3.vertexReconfigurationPlanned(true);
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    v3.setParallelism(1, null, null, null);
+    v3.setParallelism(1, null, null, null, true);
 
     // multiple invocations not supported
     try {
-      v3.setParallelism(1, null, null, null);
+      v3.setParallelism(1, null, null, null, true);
       Assert.fail();
-    } catch (TezUncheckedException e) { }
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Parallelism can only be set dynamically once per vertex"));
+    }
+    v3.doneReconfiguringVertex();
   }
 
   @SuppressWarnings("unchecked")
@@ -2451,12 +2570,14 @@ public class TestVertexImpl {
     edgeManagerDescriptor.setUserPayload(userPayload);
 
     Vertex v3 = vertices.get("vertex3");
-    Vertex v5 = vertices.get("vertex5"); // Vertex5 linked to v3 (v3 src, v5
+    VertexImpl v5 = vertices.get("vertex5"); // Vertex5 linked to v3 (v3 src, v5
                                          // dest)
 
+    v5.vertexReconfigurationPlanned(true);
     Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(v3.getName(), edgeManagerDescriptor);
-    v5.setParallelism(v5.getTotalTasks() - 1, null, edgeManagerDescriptors, null); // Must decrease.
+    v5.setParallelism(v5.getTotalTasks() - 1, null, edgeManagerDescriptors, null, true); // Must decrease.
+    v5.doneReconfiguringVertex();
 
     VertexImpl v5Impl = (VertexImpl) v5;
 
@@ -3096,8 +3217,8 @@ public class TestVertexImpl {
     Assert.assertEquals(-1, v1.getTotalTasks());
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     // set the parallelism
-    v1.setParallelism(numTasks, null, null, null);
-    v2.setParallelism(numTasks, null, null, null);
+    v1.setParallelism(numTasks, null, null, null, true);
+    v2.setParallelism(numTasks, null, null, null, true);
     dispatcher.await();
     // parallelism set and vertex starts with pending start event
     Assert.assertEquals(numTasks, v1.getTotalTasks());
@@ -3112,7 +3233,7 @@ public class TestVertexImpl {
     // v3 still initializing with source vertex started. So should start running
     // once num tasks is defined
     Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
-    v3.setParallelism(numTasks, null, null, null);
+    v3.setParallelism(numTasks, null, null, null, false);
     dispatcher.await();
     Assert.assertEquals(numTasks, v3.getTotalTasks());
     Assert.assertEquals(VertexState.RUNNING, v3.getState());
@@ -3223,8 +3344,9 @@ public class TestVertexImpl {
     // fudge vertex manager so that tasks dont start running
     v1.vertexManager = new VertexManager(
         VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
-        v1, appContext);
+        v1, appContext, mock(StateChangeNotifier.class));
     v1.vertexManager.initialize();
+    v1.vertexReconfigurationPlanned(true);
     startVertex(v1);
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
@@ -3236,7 +3358,8 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
     // change parallelism
     int newNumTasks = 3;
-    v1.setParallelism(newNumTasks, null, null, null);
+    v1.setParallelism(newNumTasks, null, null, null, true);
+    v1.doneReconfiguringVertex();
     dispatcher.await();
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
@@ -3260,7 +3383,7 @@ public class TestVertexImpl {
     // fudge vertex manager so that tasks dont start running
     v1.vertexManager = new VertexManager(
         VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
-        v1, appContext);
+        v1, appContext, mock(StateChangeNotifier.class));
     v1.vertexManager.initialize();
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
@@ -3268,7 +3391,9 @@ public class TestVertexImpl {
     Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
     // change parallelism
     int newNumTasks = 3;
-    v1.setParallelism(newNumTasks, null, null, null);
+    v1.vertexReconfigurationPlanned(true);
+    v1.setParallelism(newNumTasks, null, null, null, true);
+    v1.doneReconfiguringVertex();
     dispatcher.await();
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(newNumTasks, vertices.get("vertex3").getTotalTasks());
@@ -3414,12 +3539,14 @@ public class TestVertexImpl {
 
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
 
-    // At this point, 2 events should have been received - since the dispatcher is complete.
-    Assert.assertEquals(2, initializer.stateUpdates.size());
-    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
+    // At this point, 3 events should have been received - since the dispatcher is complete.
+    Assert.assertEquals(3, initializer.stateUpdates.size());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
         initializer.stateUpdates.get(0).getVertexState());
-    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
         initializer.stateUpdates.get(1).getVertexState());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+        initializer.stateUpdates.get(2).getVertexState());
   }
 
   @Test(timeout = 10000)
@@ -3704,11 +3831,13 @@ public class TestVertexImpl {
     Assert.assertEquals(0, initializerWrapper.getPendingEvents().get(v1.getName()).size());
 
     Assert.assertTrue(initializer.eventReceived.get());
-    Assert.assertEquals(2, initializer.stateUpdates.size());
-    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
+    Assert.assertEquals(3, initializer.stateUpdates.size());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
         initializer.stateUpdates.get(0).getVertexState());
-    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
         initializer.stateUpdates.get(1).getVertexState());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+        initializer.stateUpdates.get(2).getVertexState());
   }
 
   @Test(timeout = 10000)
@@ -3789,11 +3918,13 @@ public class TestVertexImpl {
     // KK Add checks to validate thte RootInputManager doesn't remember the events either
 
     Assert.assertTrue(initializer.eventReceived.get());
-    Assert.assertEquals(2, initializer.stateUpdates.size());
-    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
+    Assert.assertEquals(3, initializer.stateUpdates.size());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
         initializer.stateUpdates.get(0).getVertexState());
-    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
         initializer.stateUpdates.get(1).getVertexState());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.SUCCEEDED,
+        initializer.stateUpdates.get(2).getVertexState());
   }
 
   @SuppressWarnings("unchecked")
@@ -3873,6 +4004,7 @@ public class TestVertexImpl {
     Assert.assertEquals(0, initializerWrapper.getPendingEvents().get(v1.getName()).size());
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   /**
    * Ref: TEZ-1494
@@ -3911,7 +4043,7 @@ public class TestVertexImpl {
     assertTrue(m9.getState().equals(VertexState.INITED));
     assertTrue(m5.getState().equals(VertexState.INITED));
     assertTrue(m8.getState().equals(VertexState.INITED));
-    assertTrue(m7.getVertexManager().getPlugin() instanceof ImmediateStartVertexManager);
+    assertTrue(m5.getVertexManager().getPlugin() instanceof ImmediateStartVertexManager);
 
     //Start M9
     dispatcher.getEventHandler().handle(new VertexEvent(m9.getVertexId(),
@@ -3921,41 +4053,13 @@ public class TestVertexImpl {
     //Start M2; Let tasks complete in M2; Also let 1 task complete in R3
     dispatcher.getEventHandler().handle(new VertexEvent(m2.getVertexId(), VertexEventType.V_START));
     dispatcher.await();
-    VertexEventTaskAttemptCompleted taskAttemptCompleted = new VertexEventTaskAttemptCompleted
-        (TezTaskAttemptID.getInstance(TezTaskID.getInstance(m2.getVertexId(),0), 0), TaskAttemptStateInternal.SUCCEEDED);
-    VertexEventTaskCompleted taskCompleted = new VertexEventTaskCompleted(TezTaskID.getInstance(m2
-        .getVertexId(), 0), TaskState.SUCCEEDED);
-    dispatcher.getEventHandler().handle(taskAttemptCompleted);
-    dispatcher.getEventHandler().handle(taskCompleted);
-    dispatcher.await();
-    taskAttemptCompleted = new VertexEventTaskAttemptCompleted
-        (TezTaskAttemptID.getInstance(TezTaskID.getInstance(r3.getVertexId(),0), 0),
-            TaskAttemptStateInternal.SUCCEEDED);
-    taskCompleted = new VertexEventTaskCompleted(TezTaskID.getInstance(r3
-        .getVertexId(), 0), TaskState.SUCCEEDED);
-    dispatcher.getEventHandler().handle(taskAttemptCompleted);
-    dispatcher.getEventHandler().handle(taskCompleted);
-    dispatcher.await();
-    assertTrue(m2.getState().equals(VertexState.SUCCEEDED));
-    assertTrue(m5.numSuccessSourceAttemptCompletions == 1);
-    assertTrue(m5.getState().equals(VertexState.INITED));
 
-    //R3 should be in running state as it has one task completed, and rest are pending
+    //R3 should be in running state
     assertTrue(r3.getState().equals(VertexState.RUNNING));
 
     //Let us start M7; M5 should start not start as it is dependent on M8 as well
     dispatcher.getEventHandler().handle(new VertexEvent(m7.getVertexId(),VertexEventType.V_START));
     dispatcher.await();
-    //Let one of the tasks get over in M7 as well.
-    taskAttemptCompleted = new VertexEventTaskAttemptCompleted
-        (TezTaskAttemptID.getInstance(TezTaskID.getInstance(m7.getVertexId(),0), 0),
-            TaskAttemptStateInternal.SUCCEEDED);
-    taskCompleted = new VertexEventTaskCompleted(TezTaskID.getInstance(m7
-        .getVertexId(), 0), TaskState.SUCCEEDED);
-    dispatcher.getEventHandler().handle(taskAttemptCompleted);
-    dispatcher.getEventHandler().handle(taskCompleted);
-    dispatcher.await();
-    assertTrue(m5.numSuccessSourceAttemptCompletions == 2);
 
     //M5 should be in INITED state, as it depends on M8
     assertTrue(m5.getState().equals(VertexState.INITED));
@@ -3969,24 +4073,8 @@ public class TestVertexImpl {
 
     assertTrue(m9.getState().equals(VertexState.SUCCEEDED));
 
-    //M5 in running state. But tasks should not be scheduled until M8 finishes a task.
+    //M5 in running state. All source vertices have started and are configured
     assertTrue(m5.getState().equals(VertexState.RUNNING));
-    for(Task task : m5.getTasks().values()) {
-      assertTrue(task.getState().equals(TaskState.NEW));
-    }
-
-    //Let one of the tasks get over in M8 as well. This should trigger tasks to be scheduled in M5
-    taskAttemptCompleted = new VertexEventTaskAttemptCompleted
-        (TezTaskAttemptID.getInstance(TezTaskID.getInstance(m8.getVertexId(),0), 0),
-            TaskAttemptStateInternal.SUCCEEDED);
-    taskCompleted = new VertexEventTaskCompleted(TezTaskID.getInstance(m8
-        .getVertexId(), 0), TaskState.SUCCEEDED);
-    dispatcher.getEventHandler().handle(taskAttemptCompleted);
-    dispatcher.getEventHandler().handle(taskCompleted);
-    dispatcher.await();
-
-    assertTrue(m5.numSuccessSourceAttemptCompletions == 3);
-    //Ensure all tasks in M5 are in scheduled state
     for(Task task : m5.getTasks().values()) {
       assertTrue(task.getState().equals(TaskState.SCHEDULED));
     }
@@ -4756,7 +4844,7 @@ public class TestVertexImpl {
     
     Map<String, EdgeManagerPluginDescriptor> edges = Maps.newHashMap();
     edges.put("B", mockEdgeManagerDescriptor);
-    vC.setParallelism(2, vertexLocationHint, edges, null);
+    vC.setParallelism(2, vertexLocationHint, edges, null, true);
 
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, vA.getState());
@@ -4956,6 +5044,33 @@ public class TestVertexImpl {
     Assert.assertTrue(diagnostics.contains(VMExceptionLocation.OnVertexManagerEventReceived.name()));
   }
   
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testExceptionFromVM_OnVertexManagerVertexStateUpdated() throws AMUserCodeException {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithVMException("TestVMStateUpdate", VMExceptionLocation.OnVertexManagerVertexStateUpdated);
+    setupPostDagCreation();
+
+    VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
+        .get("vertex1");
+    VertexImpl v2 = vertices.get("vertex2");
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(),
+        VertexEventType.V_INIT));
+    // wait to ensure init is completed, so that rootInitManager is not null
+    dispatcher.await();
+    RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
+    initializerManager1.completeInputInitialization();
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITED, v2.getState());
+    startVertex(v1, false);
+
+    Assert.assertEquals(VertexState.FAILED, v2.getState());
+    String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
+    assertTrue(diagnostics.contains(VMExceptionLocation.OnVertexManagerVertexStateUpdated.name()));
+    Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, v2.getTerminationCause());
+  }
+  
   @Test(timeout = 5000)
   public void testExceptionFromII_Initialize() throws AMUserCodeException {
     useCustomInitializer = true;
@@ -5092,6 +5207,7 @@ public class TestVertexImpl {
 
     initVertex(v1);
     startVertex(v1);  // v2 would get the state update from v1
+    dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v1.getState());
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
@@ -5215,10 +5331,12 @@ public class TestVertexImpl {
   public static class VertexManagerWithException extends RootInputVertexManager{
 
     public static enum VMExceptionLocation {
+      NoExceptionDoReconfigure,
       OnRootVertexInitialized,
       OnSourceTaskCompleted,
       OnVertexStarted,
       OnVertexManagerEventReceived,
+      OnVertexManagerVertexStateUpdated,
       Initialize,
     }
     
@@ -5235,6 +5353,9 @@ public class TestVertexImpl {
           new String(getContext().getUserPayload().deepCopyAsArray()));
       if (this.exLocation == VMExceptionLocation.Initialize) {
         throw new RuntimeException(this.exLocation.name());
+      }
+      if (this.exLocation == VMExceptionLocation.NoExceptionDoReconfigure) {
+        getContext().vertexReconfigurationPlanned();
       }
     }
     
@@ -5261,12 +5382,24 @@ public class TestVertexImpl {
         throw new RuntimeException(this.exLocation.name());
       }
       super.onVertexStarted(completions);
+      if (this.exLocation == VMExceptionLocation.NoExceptionDoReconfigure) {
+        getContext().doneReconfiguringVertex();
+      }
     }
     
     @Override
     public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
       super.onVertexManagerEventReceived(vmEvent);
       if (this.exLocation == VMExceptionLocation.OnVertexManagerEventReceived) {
+        throw new RuntimeException(this.exLocation.name());
+      }
+    }
+    
+    @Override
+    public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+      super.onVertexStateUpdated(stateUpdate);
+      // depends on ImmediateStartVertexManager to register for state update
+      if (this.exLocation == VMExceptionLocation.OnVertexManagerVertexStateUpdated) {
         throw new RuntimeException(this.exLocation.name());
       }
     }

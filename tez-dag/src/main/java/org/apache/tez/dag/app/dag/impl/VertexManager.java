@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
@@ -46,11 +47,16 @@ import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
+import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
@@ -75,18 +81,27 @@ public class VertexManager {
   UserPayload payload = null;
   AppContext appContext;
   BlockingQueue<TezEvent> rootInputInitEventQueue;
+  StateChangeNotifier stateChangeNotifier;
 
   private static final Log LOG = LogFactory.getLog(VertexManager.class);
 
-  class VertexManagerPluginContextImpl implements VertexManagerPluginContext {
-    // TODO Add functionality to allow VertexManagers to send VertexManagerEvents
+  class VertexManagerPluginContextImpl implements VertexManagerPluginContext, VertexStateUpdateListener {
 
     private EventMetaData rootEventSourceMetadata = new EventMetaData(EventProducerConsumerType.INPUT,
         managedVertex.getName(), "NULL_VERTEX", null);
     private Map<String, EventMetaData> destinationEventMetadataMap = Maps.newHashMap();
+    private final List<String> notificationRegisteredVertices = Lists.newArrayList();
+    AtomicBoolean isComplete = new AtomicBoolean(false);
 
+    private void checkAndThrowIfDone() {
+      if (isComplete()) {
+        throw new TezUncheckedException("Cannot invoke context methods after reporting done");
+      }
+    }
+    
     @Override
-    public Map<String, EdgeProperty> getInputVertexEdgeProperties() {
+    public synchronized Map<String, EdgeProperty> getInputVertexEdgeProperties() {
+      checkAndThrowIfDone();
       // TODO Something similar for Initial Inputs - payload etc visible
       Map<Vertex, Edge> inputs = managedVertex.getInputVertices();
       Map<String, EdgeProperty> vertexEdgeMap =
@@ -98,22 +113,25 @@ public class VertexManager {
     }
 
     @Override
-    public String getVertexName() {
+    public synchronized String getVertexName() {
+      checkAndThrowIfDone();
       return managedVertex.getName();
     }
 
     @Override
-    public int getVertexNumTasks(String vertexName) {
+    public synchronized int getVertexNumTasks(String vertexName) {
+      checkAndThrowIfDone();
       return appContext.getCurrentDAG().getVertex(vertexName).getTotalTasks();
     }
 
     @Override
-    public void setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+    public synchronized void setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
         Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
         Map<String, InputSpecUpdate> rootInputSpecUpdate) {
+      checkAndThrowIfDone();
       try {
         managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
-            rootInputSpecUpdate);
+            rootInputSpecUpdate, true);
       } catch (AMUserCodeException e) {
         // workaround: convert it to TezUncheckedException which would be caught in VM
         throw new TezUncheckedException(e);
@@ -121,13 +139,15 @@ public class VertexManager {
     }
 
     @Override
-    public void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
+    public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
+      checkAndThrowIfDone();
       managedVertex.scheduleTasks(tasks);
     }
 
     @Nullable
     @Override
-    public Set<String> getVertexInputNames() {
+    public synchronized Set<String> getVertexInputNames() {
+      checkAndThrowIfDone();
       Set<String> inputNames = null;
       Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
           inputs = managedVertex.getAdditionalInputs();
@@ -138,13 +158,15 @@ public class VertexManager {
     }
 
     @Override
-    public UserPayload getUserPayload() {
+    public synchronized UserPayload getUserPayload() {
+      checkAndThrowIfDone();
       return payload;
     }
 
     @Override
-    public void addRootInputEvents(final String inputName,
+    public synchronized void addRootInputEvents(final String inputName,
         Collection<InputDataInformationEvent> events) {
+      checkAndThrowIfDone();
       verifyIsRootInput(inputName);
       Collection<TezEvent> tezEvents = Collections2.transform(events,
           new Function<InputDataInformationEvent, TezEvent>() {
@@ -166,13 +188,15 @@ public class VertexManager {
 
 
     @Override
-    public void setVertexLocationHint(VertexLocationHint locationHint) {
+    public synchronized void setVertexLocationHint(VertexLocationHint locationHint) {
+      checkAndThrowIfDone();
       Preconditions.checkNotNull(locationHint, "locationHint is null");
       managedVertex.setVertexLocationHint(locationHint);
     }
 
     @Override
-    public int getDAGAttemptNumber() {
+    public synchronized int getDAGAttemptNumber() {
+      checkAndThrowIfDone();
       return appContext.getApplicationAttemptId().getAttemptId();
     }
 
@@ -192,22 +216,26 @@ public class VertexManager {
     }
 
     @Override
-    public Resource getVertexTaskResource() {
+    public synchronized Resource getVertexTaskResource() {
+      checkAndThrowIfDone();
       return managedVertex.getTaskResource();
     }
 
     @Override
-    public Resource getTotalAvailableResource() {
+    public synchronized Resource getTotalAvailableResource() {
+      checkAndThrowIfDone();
       return appContext.getTaskScheduler().getTotalResources();
     }
 
     @Override
-    public int getNumClusterNodes() {
+    public synchronized int getNumClusterNodes() {
+      checkAndThrowIfDone();
       return appContext.getTaskScheduler().getNumClusterNodes();
     }
 
     @Override
-    public Container getTaskContainer(String vertexName, Integer taskIndex) {
+    public synchronized Container getTaskContainer(String vertexName, Integer taskIndex) {
+      checkAndThrowIfDone();
       Vertex vertex = appContext.getCurrentDAG().getVertex(vertexName);
       Task task = vertex.getTask(taskIndex.intValue());
       TaskAttempt attempt = task.getSuccessfulAttempt();
@@ -216,16 +244,82 @@ public class VertexManager {
       }
       return null;
     }
+
+    @Override
+    public synchronized void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
+      checkAndThrowIfDone();
+      synchronized(notificationRegisteredVertices) {
+        notificationRegisteredVertices.add(vertexName);
+      }
+      stateChangeNotifier.registerForVertexUpdates(vertexName, stateSet, this);
+    }
+
+    private void unregisterForVertexStateUpdates() {
+      synchronized (notificationRegisteredVertices) {
+        for (String vertexName : notificationRegisteredVertices) {
+          stateChangeNotifier.unregisterForVertexUpdates(vertexName, this);
+        }
+
+      }
+    }
+    
+    boolean isComplete() {
+      return (isComplete.get() == true);
+    }
+
+    // TODO add later after TEZ-1714 @Override
+    public synchronized void vertexManagerDone() {
+      checkAndThrowIfDone();
+      LOG.info("Vertex Manager reported done for : " + managedVertex.getLogIdentifier());
+      this.isComplete.set(true);
+      unregisterForVertexStateUpdates();
+    }
+
+    @Override
+    public synchronized void vertexReconfigurationPlanned() {
+      checkAndThrowIfDone();
+      managedVertex.vertexReconfigurationPlanned();
+    }
+
+    @Override
+    public synchronized void doneReconfiguringVertex() {
+      checkAndThrowIfDone();
+      managedVertex.doneReconfiguringVertex();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public synchronized void onStateUpdated(VertexStateUpdate event) {
+      if (isComplete()) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Dropping state update for vertex=" + event.getVertexName() + ", state=" +
+              event.getVertexState() +
+              " since vertexmanager for " + managedVertex.getLogIdentifier() + " is complete.");
+        }
+      } else {
+        try {
+          plugin.onVertexStateUpdated(event);
+        } catch (Exception e) {
+          // state change must be triggered via an event transition
+          appContext.getEventHandler().handle(
+              new VertexEventManagerUserCodeError(managedVertex.getVertexId(),
+                  new AMUserCodeException(Source.VertexManager, e)));
+        }
+      }
+    }
+
   }
 
   public VertexManager(VertexManagerPluginDescriptor pluginDesc,
-      Vertex managedVertex, AppContext appContext) {
+      Vertex managedVertex, AppContext appContext, StateChangeNotifier stateChangeNotifier) {
     checkNotNull(pluginDesc, "pluginDesc is null");
     checkNotNull(managedVertex, "managedVertex is null");
     checkNotNull(appContext, "appContext is null");
+    checkNotNull(stateChangeNotifier, "notifier is null");
     this.pluginDesc = pluginDesc;
     this.managedVertex = managedVertex;
     this.appContext = appContext;
+    this.stateChangeNotifier = stateChangeNotifier;
     // don't specify the size of rootInputInitEventQueue, otherwise it will fail when addAll
     this.rootInputInitEventQueue = new LinkedBlockingQueue<TezEvent>();
   }
@@ -242,7 +336,9 @@ public class VertexManager {
       payload = pluginDesc.getUserPayload();
     }
     try {
-      plugin.initialize(); 
+      if (!pluginContext.isComplete()) {
+        plugin.initialize();
+      }
     } catch (Exception e) {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
@@ -265,7 +361,9 @@ public class VertexManager {
       }
     }
     try {
-      plugin.onVertexStarted(pluginCompletionsMap);
+      if (!pluginContext.isComplete()) {
+        plugin.onVertexStarted(pluginCompletionsMap);
+      }
     } catch (Exception e) {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
@@ -276,7 +374,9 @@ public class VertexManager {
     String vertexName =
         appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();
     try {
-      plugin.onSourceTaskCompleted(vertexName, taskId);
+      if (!pluginContext.isComplete()) {
+        plugin.onSourceTaskCompleted(vertexName, taskId);
+      }
     } catch (Exception e) {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
@@ -284,7 +384,9 @@ public class VertexManager {
 
   public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws AMUserCodeException {
     try {
-      plugin.onVertexManagerEventReceived(vmEvent);
+      if (!pluginContext.isComplete()) {
+        plugin.onVertexManagerEventReceived(vmEvent);
+      }
     } catch (Exception e) {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
@@ -293,7 +395,9 @@ public class VertexManager {
   public List<TezEvent> onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) throws AMUserCodeException {
     try {
-      plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
+      if (!pluginContext.isComplete()) {
+        plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
+      }
     } catch (Exception e) {
       throw new AMUserCodeException(Source.VertexManager, e);
     }

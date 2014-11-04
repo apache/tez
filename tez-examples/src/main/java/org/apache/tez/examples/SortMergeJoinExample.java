@@ -43,6 +43,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.examples.HashJoinExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -250,13 +251,16 @@ public class SortMergeJoinExample extends Configured implements Tool {
      * the join of the two sorted output from inputVertex1 and inputVerex2. It
      * is load balanced across numPartitions.
      */
-    Vertex joinVertex =
-        Vertex.create(joiner,
-            ProcessorDescriptor.create(SortMergeJoinProcessor.class.getName()),
-            numPartitions).addDataSink(
+    Vertex joinVertex = Vertex
+        .create(joiner, ProcessorDescriptor.create(SortMergeJoinProcessor.class.getName()),
+            numPartitions)
+        .setVertexManagerPlugin(
+            ShuffleVertexManager.createConfigBuilder(tezConf).setAutoReduceParallelism(true)
+                .build())
+        .addDataSink(
             joinOutput,
-            MROutput.createConfigBuilder(new Configuration(tezConf),
-                TextOutputFormat.class, outPath.toUri().toString()).build());
+            MROutput.createConfigBuilder(new Configuration(tezConf), TextOutputFormat.class,
+                outPath.toUri().toString()).build());
 
     /**
      * The output of inputVertex1 and inputVertex2 will be partitioned into

@@ -543,8 +543,9 @@ public class TestAMRecovery {
 
     @Override
     public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+      int dagAttemptNumber = getContext().getDAGAttemptNumber();
       super.onSourceTaskCompleted(srcVertexName, taskId);
-      if (getContext().getDAGAttemptNumber() == 1) {
+      if (dagAttemptNumber == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
           if (taskId == 0) {
             System.exit(-1);
@@ -647,8 +648,8 @@ public class TestAMRecovery {
 
     @Override
     public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-      super.onSourceTaskCompleted(srcVertexName, taskId);
       int curAttempt = getContext().getDAGAttemptNumber();
+      super.onSourceTaskCompleted(srcVertexName, taskId);
       int failOnAttempt = conf.getInt(FAIL_ON_ATTEMPT, 1);
       LOG.info("failOnAttempt:" + failOnAttempt);
       LOG.info("curAttempt:" + curAttempt);

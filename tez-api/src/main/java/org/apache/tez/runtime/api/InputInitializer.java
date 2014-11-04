@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.api;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -97,7 +98,8 @@ public abstract class InputInitializer {
    *
    * Extensive processing should not be performed via this method call. Instead this should just be
    * used as a notification mechanism to the main initialization, which is via the initialize method.
-   *
+   * <br>This method may be invoked concurrently with {@link #initialize()} etc. and 
+   * multi-threading/concurrency implications must be considered.
    * @param stateUpdate an event indicating the name of the vertex, and it's updated state.
    *                    Additional information may be available for specific events, Look at the
    *                    type hierarchy for {@link org.apache.tez.dag.api.event.VertexStateUpdate}

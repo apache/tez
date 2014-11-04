@@ -37,6 +37,7 @@ import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
@@ -61,7 +62,7 @@ public class TestVertexManager {
     VertexManager vm =
         new VertexManager(
             VertexManagerPluginDescriptor.create(RootInputVertexManager.class
-                .getName()), mockVertex, mockAppContext);
+                .getName()), mockVertex, mockAppContext, mock(StateChangeNotifier.class));
     vm.initialize();
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
@@ -101,7 +102,7 @@ public class TestVertexManager {
     VertexManager vm =
         new VertexManager(
             VertexManagerPluginDescriptor.create(CustomVertexManager.class
-                .getName()), mockVertex, mockAppContext);
+                .getName()), mockVertex, mockAppContext, mock(StateChangeNotifier.class));
     vm.initialize();
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();

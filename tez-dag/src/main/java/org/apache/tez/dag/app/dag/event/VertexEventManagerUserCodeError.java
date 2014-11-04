@@ -18,49 +18,19 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-/**
- * Event types handled by Task.
- */
-public enum VertexEventType {
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
+import org.apache.tez.dag.records.TezVertexID;
 
-  //Producer:Client, Job
-  V_TERMINATE,
-
-  //Producer:Job
-  V_INIT,
+public class VertexEventManagerUserCodeError extends VertexEvent {
+  final AMUserCodeException e;
   
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
+  public VertexEventManagerUserCodeError(TezVertexID vertexId, AMUserCodeException e) {
+    super(vertexId, VertexEventType.V_MANAGER_USER_CODE_ERROR);
+    this.e = e;
+  }
   
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
-  
-  //Producer:Any component
-  V_INTERNAL_ERROR,
-  V_MANAGER_USER_CODE_ERROR,
-  
-  V_ROUTE_EVENT,
-  V_ONE_TO_ONE_SOURCE_SPLIT,
-  
-  //Producer: VertexInputInitializer
-  V_ROOT_INPUT_INITIALIZED,
-  V_ROOT_INPUT_FAILED,
-
-  // Recover Event, Producer:DAG
-  V_RECOVER,
-  
-  // Producer: Vertex
-  V_READY_TO_INIT,
-
-  // Recover Event, Producer:Vertex
-  V_SOURCE_VERTEX_RECOVERED,
-  
-  // Producer: Edge
-  V_NULL_EDGE_INITIALIZED
+  public AMUserCodeException getError() {
+    return e;
+  }
 
 }

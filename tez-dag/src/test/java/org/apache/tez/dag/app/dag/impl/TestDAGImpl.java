@@ -898,13 +898,10 @@ public class TestDAGImpl {
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
     LOG.info(v2.getTasks().size());
     Task t1= v2.getTask(0);
-    dispatcher.getEventHandler().handle(new TaskEvent(t1.getTaskId(), TaskEventType.T_SCHEDULE));
-    dispatcher.await();
     TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
 
     Assert.assertEquals(TaskAttemptStateInternal.FAILED, ta1.getInternalState());
@@ -947,7 +944,6 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    v2.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     dispatcher.await();
     Task t1= v2.getTask(0);
     TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
@@ -977,7 +973,6 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    v2.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     dispatcher.await();
 
     Task t1= v2.getTask(0);
@@ -1007,7 +1002,6 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    v2.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     dispatcher.await();
 
     Task t1= v2.getTask(0);
@@ -1038,7 +1032,6 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    v2.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     dispatcher.await();
 
     Task t1= v2.getTask(0);

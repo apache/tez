@@ -89,8 +89,11 @@ public interface Vertex extends Comparable<Vertex> {
 
   void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdate) throws AMUserCodeException;
+      Map<String, InputSpecUpdate> rootInputSpecUpdate, boolean fromVertexManager)
+      throws AMUserCodeException;
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
+  void vertexReconfigurationPlanned();
+  void doneReconfiguringVertex();
 
   // CHANGE THESE TO LISTS AND MAINTAIN ORDER?
   void setInputVertices(Map<Vertex, Edge> inVertices);
