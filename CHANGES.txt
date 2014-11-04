@@ -99,6 +99,7 @@ ALL CHANGES:
   TEZ-1579. MR examples should be setting mapreduce.framework.name to yarn-tez.
   TEZ-1731. OnDiskMerger can end up clobbering files across tasks with LocalDiskFetch enabled.
   TEZ-1735. Allow setting basic info per DAG for Tez UI.
+  TEZ-1728. Remove local host name from Fetcher thread name.
 
 Release 0.5.1: 2014-10-02
 
