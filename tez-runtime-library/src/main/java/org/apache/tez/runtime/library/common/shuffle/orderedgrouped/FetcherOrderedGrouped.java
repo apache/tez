@@ -35,7 +35,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.net.NetUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -96,8 +95,6 @@ class FetcherOrderedGrouped extends Thread {
   HttpConnection httpConnection;
   HttpConnectionParams httpConnectionParams;
 
-  final static String localhostName = NetUtils.getHostname();
-
   // Initiative value is 0, which means it hasn't retried yet.
   private long retryStartTime = 0;
   
@@ -142,7 +139,7 @@ class FetcherOrderedGrouped extends Thread {
     this.localDiskFetchEnabled = localDiskFetchEnabled;
 
     this.logIdentifier = "fetcher [" + TezUtilsInternal
-        .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id + " " + localhostName;
+        .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
     setName(logIdentifier);
     setDaemon(true);
   }  
