@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +37,7 @@ import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -51,6 +53,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
@@ -59,8 +62,10 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
 import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
@@ -72,6 +77,7 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -649,6 +655,48 @@ public class TestVertexRecovery {
     assertOutputCommitters(vertex3);
 
   }
+  
+  
+  @Test
+  public void testRecovery_VertexManagerErrorOnRecovery() {
+    VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
+    restoreFromInitializedEvent(vertex1);
+    vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
+        VertexState.RUNNING));
+    dispatcher.await();
+    assertEquals(VertexState.RUNNING, vertex1.getState());
+    assertEquals(vertex1.getTotalTasks(), vertex1.getTasks().size());
+    // verify OutputCommitter is initialized
+    assertOutputCommitters(vertex1);
+
+    VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
+    VertexState recoveredState =
+        vertex3.restoreFromEvent(new VertexInitializedEvent(vertex3
+            .getVertexId(), "vertex3", initRequestedTime, initedTime, 0, "",
+            null));
+    assertEquals(VertexState.INITED, recoveredState);
+    // wait for recovery of vertex2
+    assertEquals(VertexState.RECOVERING, vertex3.getState());
+    vertex3.handle(new VertexEventManagerUserCodeError(vertex3.getVertexId(), 
+        new AMUserCodeException(Source.VertexManager, new TezUncheckedException("test"))));
+
+    assertEquals(1, vertex3.numRecoveredSourceVertices);
+    assertEquals(1, vertex3.numInitedSourceVertices);
+    assertEquals(1, vertex3.numStartedSourceVertices);
+    assertEquals(1, vertex3.getDistanceFromRoot());
+    VertexImpl vertex2 = (VertexImpl) dag.getVertex("vertex2");
+    restoreFromInitializedEvent(vertex2);
+    vertex2.handle(new VertexEventRecoverVertex(vertex2.getVertexId(),
+        VertexState.RUNNING));
+    dispatcher.await();
+    assertEquals(VertexState.RUNNING, vertex2.getState());
+
+    // v3 FAILED due to user code error
+    assertEquals(VertexState.FAILED, vertex3.getState());
+    Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, vertex3.getTerminationCause());
+    assertEquals(2, vertex3.numRecoveredSourceVertices);
+  }
+
 
   /**
    * vertex1 (New) -> restoreFromInitialized -> StartRecoveryTransition<br>

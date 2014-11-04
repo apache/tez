@@ -110,6 +110,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
 import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
@@ -320,7 +321,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               (VertexState.RECOVERING, VertexState.RECOVERING,
                   VertexEventType.V_TERMINATE,
                   new TerminateDuringRecoverTransition())
-
+          .addTransition
+              (VertexState.RECOVERING, EnumSet.of(VertexState.RECOVERING),
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
+                  new VertexManagerUserCodeErrorTransition())
+          
           // Transitions from INITIALIZING state
           .addTransition(VertexState.INITIALIZING,
               EnumSet.of(VertexState.INITIALIZING, VertexState.INITED,
@@ -353,6 +358,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexState.INITIALIZING, VertexState.FAILED),
               VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
+          .addTransition(VertexState.INITIALIZING, EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
           .addTransition(VertexState.INITIALIZING, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
               new TerminateInitingVertexTransition())
@@ -399,6 +407,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITED, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
               new TerminateInitedVertexTransition())
+          .addTransition(VertexState.INITED, EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
           .addTransition(VertexState.INITED, VertexState.ERROR,
               VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
@@ -429,6 +440,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.RUNNING, VertexState.TERMINATING,
               VertexEventType.V_TERMINATE,
               new VertexKilledTransition())
+          .addTransition(VertexState.RUNNING, EnumSet.of(VertexState.TERMINATING),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_RESCHEDULED,
               new TaskRescheduledTransition())
@@ -460,6 +474,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
@@ -512,6 +527,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_TASK_RESCHEDULED,
@@ -534,6 +550,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
                   VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_INIT,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
@@ -559,6 +576,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_START,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
@@ -627,6 +645,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
+  
+  private boolean vertexToBeReconfiguredByManager = false;
+  AtomicBoolean vmIsInitialized = new AtomicBoolean(false);
+  AtomicBoolean completelyConfiguredSent = new AtomicBoolean(false);
 
   @VisibleForTesting
   Map<Vertex, Edge> sourceVertices;
@@ -1212,14 +1234,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates) throws AMUserCodeException {
-    setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates, false);
+      Map<String, InputSpecUpdate> rootInputSpecUpdates, boolean fromVertexManager)
+      throws AMUserCodeException {
+    setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
+        false, fromVertexManager);
   }
 
   private void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdates,
-      boolean recovering) throws AMUserCodeException {
+      boolean recovering, boolean fromVertexManager) throws AMUserCodeException {
     if (recovering) {
       writeLock.lock();
       try {
@@ -1255,6 +1279,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     + parallelism + " for vertex: " + logIdentifier);
     setVertexLocationHint(vertexLocationHint);
     writeLock.lock();
+    
     try {
       if (parallelismSet == true) {
         String msg = "Parallelism can only be set dynamically once per vertex: " + logIdentifier; 
@@ -1262,6 +1287,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         throw new TezUncheckedException(msg);
       }
 
+      if (fromVertexManager && canInitVertex()) {
+        // vertex is fully defined. setParallelism has been called. VertexManager should have 
+        // informed us about this. Otherwise we would have notified listeners that we are fully 
+        // defined before we are actually fully defined
+        Preconditions.checkState(vertexToBeReconfiguredByManager, "Vertex is fully configured but still"
+            + " the reconfiguration API has been called. VertexManager must notify the framework using " 
+            + " context.vertexReconfigurationPlanned() before re-configuring the vertex.");
+      }
+      
       parallelismSet = true;
 
       // Input initializer/Vertex Manager/1-1 split expected to set parallelism.
@@ -1421,6 +1455,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  @Override
   public void setVertexLocationHint(VertexLocationHint vertexLocationHint) {
     writeLock.lock();
     try {
@@ -1431,6 +1466,46 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } finally {
       writeLock.unlock();
     }
+  }
+  
+  @Override
+  public void vertexReconfigurationPlanned() {
+    vertexReconfigurationPlanned(false);
+  }
+  
+  public void vertexReconfigurationPlanned(boolean testOverride) {
+    writeLock.lock();
+    try {
+      if (testOverride) {
+        Preconditions.checkState(vmIsInitialized.get() && completelyConfiguredSent.get(),
+            "test should override only failed cases");
+      } else {
+        Preconditions.checkState(!vmIsInitialized.get(),
+            "context.vertexReconfigurationPlanned() cannot be called after initialize()");
+        Preconditions.checkState(!completelyConfiguredSent.get(), "vertexReconfigurationPlanned() "
+            + " cannot be invoked after the vertex has been configured.");
+      }
+      this.vertexToBeReconfiguredByManager = true;
+    } finally {
+      writeLock.unlock();
+    }      
+  }
+
+  @Override
+  public void doneReconfiguringVertex() {
+    writeLock.lock();
+    try {
+      Preconditions.checkState(vertexToBeReconfiguredByManager, "doneReconfiguringVertex() can be "
+          + "invoked only after vertexReconfigurationPlanned() is invoked");
+      this.vertexToBeReconfiguredByManager = false;
+      if (completelyConfiguredSent.compareAndSet(false, true)) {
+        // vertex already started and at that time this event was not sent. Send now.
+        stateChangeNotifier.stateChanged(vertexId, new VertexStateUpdate(vertexName,
+            org.apache.tez.dag.api.event.VertexState.CONFIGURED));
+      }
+    } finally {
+      writeLock.unlock();
+    }    
   }
 
   @Override
@@ -1970,6 +2045,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     try {
       vertexManager.initialize();
+      vmIsInitialized.set(true);
     } catch (AMUserCodeException e) {
       String msg = "Exception in " + e.getSource()+ ", vertex:" + logIdentifier;
       LOG.error(msg, e);
@@ -2042,7 +2118,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               .getVertexManagerPlugin());
       LOG.info("Setting user vertex manager plugin: "
           + pluginDesc.getClassName() + " on vertex: " + getName());
-      vertexManager = new VertexManager(pluginDesc, this, appContext);
+      vertexManager = new VertexManager(pluginDesc, this, appContext, stateChangeNotifier);
     } else {
       // Intended order of picking a vertex manager
       // If there is an InputInitializer then we use the RootInputVertexManager. May be fixed by TEZ-703
@@ -2055,26 +2131,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             + logIdentifier);
         vertexManager = new VertexManager(
             VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName()),
-            this, appContext);
+            this, appContext, stateChangeNotifier);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
             VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName()),
-            this, appContext);
+            this, appContext, stateChangeNotifier);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
         // shuffle vertex manager needs a conf payload
         vertexManager = new VertexManager(ShuffleVertexManager.createConfigBuilder(conf).build(),
-            this, appContext);
+            this, appContext, stateChangeNotifier);
       } else {
         // schedule all tasks upon vertex start. Default behavior.
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
             VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName()),
-            this, appContext);
+            this, appContext, stateChangeNotifier);
       }
     }
   }
@@ -2222,7 +2298,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   new TaskEventRecoverTask(task.getTaskId()));
             }
             try {
-              vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
+              vertex.recoveryCodeSimulatingStart();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
               String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
@@ -2274,7 +2350,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                         taskState));
               }
               try {
-                vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
+                vertex.recoveryCodeSimulatingStart();
                 endState = VertexState.RUNNING;
               } catch (AMUserCodeException e) {
                 String msg = "Exception in " + e.getSource() +", vertex:" + vertex.getLogIdentifier();
@@ -2334,6 +2410,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return endState;
     }
 
+  }
+  
+  private void recoveryCodeSimulatingStart() throws AMUserCodeException {
+    vertexManager.onVertexStarted(pendingReportedSrcCompletions);
+    // This code is duplicated from startVertex() because recovery does not follow normal
+    // transitions. To be removed after recovery code is fixed.
+    maybeSendConfiguredEvent();
   }
 
   private void routeRecoveredEvents(VertexState vertexState,
@@ -2556,7 +2639,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           boolean successSetParallelism ;
           try {
             vertex.setParallelism(0,
-              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true);
+              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true, false);
             successSetParallelism = true;
           } catch (Exception e) {
             successSetParallelism = false;
@@ -2614,7 +2697,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           try {
             vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
-              vertex.recoveredRootInputSpecUpdates, true);
+              vertex.recoveredRootInputSpecUpdates, true, false);
             successSetParallelism = true;
           } catch (Exception e) {
             successSetParallelism = false;
@@ -2634,7 +2717,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   new TaskEventRecoverTask(task.getTaskId()));
             }
             try {
-              vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
+              vertex.recoveryCodeSimulatingStart();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
               String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
@@ -2674,7 +2757,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             }
             // Wait for all tasks to recover and report back
             try {
-              vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
+              vertex.recoveryCodeSimulatingStart();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
               String msg = "Exception in " + e.getSource() +", vertex:" + vertex.getLogIdentifier();
@@ -2825,10 +2908,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
       // Create tasks based on initial configuration, but don't start them yet.
       if (vertex.numTasks == -1) {
+        // this block must always return VertexState.INITIALIZING
         LOG.info("Num tasks is -1. Expecting VertexManager/InputInitializers/1-1 split"
             + " to set #tasks for the vertex " + vertex.getVertexId());
 
         if (vertex.inputsWithInitializers != null) {
+          LOG.info("Vertex will initialize from input initializer. " + vertex.logIdentifier);
           vertex.setupInputInitializerManager();
           return VertexState.INITIALIZING;
         } else {
@@ -2857,8 +2942,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       } else {
         LOG.info("Creating " + vertex.numTasks + " for vertex: " + vertex.logIdentifier);
         vertex.createTasks();
-
+        // this block may return VertexState.INITIALIZING
         if (vertex.inputsWithInitializers != null) {
+          LOG.info("Vertex will initialize from input initializer. " + vertex.logIdentifier);
           vertex.setupInputInitializerManager();
           return VertexState.INITIALIZING;
         }
@@ -2867,6 +2953,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           return VertexState.INITIALIZING;
         }
         LOG.info("Directly initializing vertex: " + vertex.logIdentifier);
+        // vertex is completely configured. Send out notification now.
+        vertex.maybeSendConfiguredEvent();
         boolean isInitialized = vertex.initializeVertex();
         if (isInitialized) {
           return VertexState.INITED;
@@ -3020,7 +3108,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
       try {
-        vertex.setParallelism(splitEvent.getNumTasks(), null, null, null);
+        vertex.setParallelism(splitEvent.getNumTasks(), null, null, null, false);
       } catch (Exception e) {
         // ingore this exception, should not happen
         LOG.error("Unexpected exception, Just set Parallelims to a specified value, not involve EdgeManager,"
@@ -3130,8 +3218,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return vertex.startVertex();
     }
   }
+  
+  private void maybeSendConfiguredEvent() {
+    // the vertex is fully configured by the time it starts. Always notify completely configured
+    // unless the vertex manager has told us that it is going to reconfigure it further
+    Preconditions.checkState(canInitVertex());
+    if (!this.vertexToBeReconfiguredByManager) {
+      // this vertex will not be reconfigured by its manager
+      if (completelyConfiguredSent.compareAndSet(false, true)) {
+        stateChangeNotifier.stateChanged(vertexId, new VertexStateUpdate(vertexName,
+            org.apache.tez.dag.api.event.VertexState.CONFIGURED));
+      }
+    }    
+  }
 
   private VertexState startVertex() {
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // IMPORTANT - Until Recovery is fixed to use normal state transitions, if any code is added 
+    // here then please check if it needs to be duplicated in recoveryCodeSimulatingStart().
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     Preconditions.checkState(getState() == VertexState.INITED,
         "Vertex must be inited " + logIdentifier);
 
@@ -3147,7 +3252,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
     pendingReportedSrcCompletions.clear();
     logJobHistoryVertexStartedEvent();
-
+    
+    // the vertex is fully configured by the time it starts. Always notify completely configured
+    // unless the vertex manager has told us that it is going to reconfigure it further.
+    // If the vertex was pre-configured then the event would have been sent out earlier. Calling again 
+    // would be a no-op. If the vertex was not fully configured and waiting for that to complete then
+    // we would start immediately after that. Either parallelism updated (now) or IPO changed (future) 
+    // or vertex added (future). Simplify these cases by sending the event now automatically for the 
+    // user as if they had invoked the planned()/done() API's.
+    maybeSendConfiguredEvent();
+    
     // TODO: Metrics
     //job.metrics.runningJob(job);
 
@@ -3309,6 +3423,36 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  private static class VertexManagerUserCodeErrorTransition implements
+    MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventManagerUserCodeError errEvent = ((VertexEventManagerUserCodeError) event);
+      AMUserCodeException e = errEvent.getError();
+      String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
+      LOG.error(msg, e);
+      
+      if (vertex.getState() == VertexState.RECOVERING) {
+        LOG.info("Received a user code error during recovering, setting recovered"
+            + " state to FAILED");
+        vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+        vertex.terminationCause = VertexTerminationCause.AM_USERCODE_FAILURE;
+        vertex.recoveredState = VertexState.FAILED;
+        return VertexState.RECOVERING;
+      } else if (vertex.getState() == VertexState.RUNNING) {
+        vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+        vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE,
+            TaskTerminationCause.AM_USERCODE_FAILURE);
+        return VertexState.TERMINATING;
+      } else {
+        vertex.finished(VertexState.FAILED,
+            VertexTerminationCause.AM_USERCODE_FAILURE, msg
+              + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+        return VertexState.FAILED;
+      }
+    }
+  }
+  
   /**
    * Here, the Vertex is being told that one of it's source task-attempts
    * completed.

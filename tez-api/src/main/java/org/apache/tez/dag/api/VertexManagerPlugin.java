@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
@@ -99,4 +100,24 @@ public abstract class VertexManagerPlugin {
   public final VertexManagerPluginContext getContext() {
     return this.context;
   }
+  
+  /**
+   * Receive notifications on vertex state changes.
+   * <p/>
+   * State changes will be received based on the registration via
+   * {@link VertexManagerPluginContext#registerForVertexStateUpdates(String, java.util.Set)}
+   * . Notifications will be received for all registered state changes, and not
+   * just for the latest state update. They will be in order in which the state
+   * change occurred.
+   * </p><br>This method may be invoked concurrently with {@link #onVertexStarted(Map)} etc. and 
+   * multi-threading/concurrency implications must be considered.
+   *  
+   * @param stateUpdate
+   *          an event indicating the name of the vertex, and it's updated
+   *          state. Additional information may be available for specific
+   *          events, Look at the type hierarchy for
+   *          {@link org.apache.tez.dag.api.event.VertexStateUpdate}
+   */
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
+  }  
  }

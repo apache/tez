@@ -30,6 +30,7 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TaskLocationHint;
+import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
@@ -169,4 +170,53 @@ public interface VertexManagerPluginContext {
    * @return DAG Attempt number
    */
   public int getDAGAttemptNumber();
+  
+  /**
+   * Register to get notifications on updates to the specified vertex. Notifications will be sent
+   * via {@link VertexManagerPlugin#onVertexStateUpdated(org.apache.tez.dag.api.event.VertexStateUpdate)}
+   *
+   * This method can only be invoked once. Duplicate invocations will result in an error.
+   *
+   * @param vertexName the vertex name for which notifications are required.
+   * @param stateSet   the set of states for which notifications are required. null implies all
+   */
+  void registerForVertexStateUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
+  
+  /**
+   * Optional API. No need to call this when the vertex is not fully defined to
+   * start with. E.g. vertex parallelism is not defined, or edges are not
+   * configured. In that case, Tez will assume that the vertex needs
+   * reconfiguration. If the vertex is already fully defined, but the
+   * {@link VertexManagerPlugin} wants to reconfigure the vertex, then it must
+   * use this API to inform Tez about its intention. Without invoking this
+   * method, it is invalid to re-configure the vertex, e.g. via the
+   * {@link #setVertexParallelism(int, VertexLocationHint, Map, Map)} method if
+   * the vertex is already fully defined. This can be invoked at any time until
+   * {@link VertexManagerPlugin#initialize()} has completed. Its invalid to
+   * invoke this method after {@link VertexManagerPlugin#initialize()} has
+   * completed<br>
+   * If this API is invoked, then {@link #doneReconfiguringVertex()} must be
+   * invoked after the {@link VertexManagerPlugin} is done reconfiguring the
+   * vertex, . Actions like scheduling tasks or sending events do not count as
+   * reconfiguration.
+   */
+  public void vertexReconfigurationPlanned();
+  
+  /**
+   * Optional API. This needs to be called only if {@link #vertexReconfigurationPlanned()} has been 
+   * invoked. This must be called after {@link #vertexReconfigurationPlanned()} is called.
+   */
+  public void doneReconfiguringVertex();
+  
+  /**
+   * Optional API. This API can be invoked to declare that the
+   * {@link VertexManagerPlugin} is done with its work. After this the system
+   * will not invoke the plugin methods any more. Its invalid for the plugin to
+   * make further invocations of the context APIs after this. This can be used
+   * to stop receiving further {@link VertexState} notifications after the
+   * plugin has made all changes.
+   */
+  // TODO must be done later after TEZ-1714
+  //public void vertexManagerDone();
+
 }

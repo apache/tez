@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -44,6 +45,8 @@ import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -52,13 +55,16 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.ShuffleEd
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Starts scheduling tasks when number of completed source tasks crosses 
@@ -125,11 +131,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   int totalNumBipartiteSourceTasks = 0;
   int numBipartiteSourceTasksCompleted = 0;
   int numVertexManagerEventsReceived = 0;
-  List<Integer> pendingTasks;
+  List<Integer> pendingTasks = Lists.newLinkedList();
   int totalTasksToSchedule = 0;
+  private AtomicBoolean onVertexStartedDone = new AtomicBoolean(false);
   
   //Track source vertex and its finished tasks
-  private final Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
+  private final Map<String, SourceVertexInfo> srcVertexInfo = Maps.newConcurrentMap();
   boolean sourceVerticesScheduled = false;
   @VisibleForTesting
   int bipartiteSources = 0;
@@ -137,7 +144,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   class SourceVertexInfo {
     EdgeProperty edgeProperty;
-    int numFinishedTasks;
+    boolean vertexIsConfigured;
     BitSet finishedTaskSet;
 
     SourceVertexInfo(EdgeProperty edgeProperty) {
@@ -321,8 +328,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   
   @Override
   public void onVertexStarted(Map<String, List<Integer>> completions) {
-    pendingTasks = Lists.newArrayListWithCapacity(
-        getContext().getVertexNumTasks(getContext().getVertexName()));
     // track the tasks in this vertex
     updatePendingTasks();
     updateSourceTaskCount();
@@ -338,6 +343,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         }
       }
     }
+    onVertexStartedDone.set(true);
     // for the special case when source has 0 tasks or min fraction == 0
     schedulePendingTasks();
   }
@@ -346,7 +352,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   public void onSourceTaskCompleted(String srcVertexName, Integer srcTaskId) {
     updateSourceTaskCount();
     SourceVertexInfo srcInfo = srcVertexInfo.get(srcVertexName);
-    srcInfo.numFinishedTasks++;
 
     if (srcInfo.edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
       //handle duplicate events for bipartite sources
@@ -524,6 +529,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         //try to determine parallelism later when more info is available.
         return;
       }
+      getContext().doneReconfiguringVertex();
     }
     List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasksToSchedule);
     while(!pendingTasks.isEmpty() && numTasksToSchedule > 0) {
@@ -532,6 +538,10 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       pendingTasks.remove(0);
     }
     getContext().scheduleVertexTasks(scheduledTasks);
+    if (pendingTasks.size() == 0) {
+      // done scheduling all tasks
+      // TODO TEZ-1714 locking issues. getContext().vertexManagerDone();
+    }
   }
 
   /**
@@ -542,13 +552,13 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   boolean canScheduleTasks() {
     for(Map.Entry<String, SourceVertexInfo> entry : srcVertexInfo.entrySet()) {
       String sourceVertex = entry.getKey();
-      int completedTasks = entry.getValue().numFinishedTasks;
       int numSourceTasks = getContext().getVertexNumTasks(sourceVertex);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("vertex=" + getContext().getVertexName() + ", srcVertex="+ entry.getKey() +
-                ", finishedTasks=" + entry.getValue().numFinishedTasks);
-      }
-      if (numSourceTasks > 0 && completedTasks <= 0) {
+      if (numSourceTasks > 0 && !entry.getValue().vertexIsConfigured) {
+        // vertex not configured
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Waiting for vertex: " + entry.getKey() + " in vertex: "
+              + getContext().getVertexName());
+        }
         return false;
       }
     }
@@ -557,6 +567,10 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   }
 
   void schedulePendingTasks() {
+    if (!onVertexStartedDone.get()) {
+      // vertex not started yet
+      return;
+    }
     int numPendingTasks = pendingTasks.size();
     if (numPendingTasks == 0) {
       return;
@@ -668,6 +682,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     Map<String, EdgeProperty> inputs = getContext().getInputVertexEdgeProperties();
     for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
       srcVertexInfo.put(entry.getKey(), new SourceVertexInfo(entry.getValue()));
+      getContext().registerForVertexStateUpdates(entry.getKey(),
+          EnumSet.of(VertexState.CONFIGURED));
       if (entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
         bipartiteSources++;
       }
@@ -675,11 +691,31 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     if(bipartiteSources == 0) {
       throw new TezUncheckedException("Atleast 1 bipartite source should exist");
     }
+    
+    if (enableAutoParallelism) {
+      getContext().vertexReconfigurationPlanned();
+    }
     // dont track the source tasks here since those tasks may themselves be
     // dynamically changed as the DAG progresses.
 
   }
 
+  @Override
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+    Preconditions.checkArgument(stateUpdate.getVertexState() == VertexState.CONFIGURED,
+        "Received incorrect state notification : " + stateUpdate.getVertexState() + " for vertex: "
+            + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+    Preconditions.checkArgument(srcVertexInfo.containsKey(stateUpdate.getVertexName()),
+        "Received incorrect vertex notification : " + stateUpdate.getVertexState() + " for vertex: "
+            + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+    SourceVertexInfo vInfo = srcVertexInfo.get(stateUpdate.getVertexName()); 
+    Preconditions.checkState(vInfo.vertexIsConfigured == false);
+    vInfo.vertexIsConfigured = true;
+    LOG.info("Received configured notification : " + stateUpdate.getVertexState() + " for vertex: "
+      + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+    schedulePendingTasks();
+  }
+  
   @Override
   public void onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) {

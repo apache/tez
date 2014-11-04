@@ -28,12 +28,14 @@ import org.apache.hadoop.classification.InterfaceStability;
 @InterfaceStability.Unstable
 public enum VertexState {
   /**
-   * Indicates that the Vertex had entered the SUCCEEDED state. A vertex could go back into RUNNING state after SUCCEEDING
+   * Indicates that the Vertex had entered the SUCCEEDED state. A vertex could
+   * go back into RUNNING state after SUCCEEDING
    */
   SUCCEEDED,
   /**
-   * Indicates that the Vertex had entered the RUNNING state. This state can be reached after SUCCEEDED, if some
-   * tasks belonging to the vertex are restarted due to errors
+   * Indicates that the Vertex had entered the RUNNING state. This state can be
+   * reached after SUCCEEDED, if some tasks belonging to the vertex are
+   * restarted due to errors
    */
   RUNNING,
   /**
@@ -47,5 +49,12 @@ public enum VertexState {
   /**
    * Indicates that the parallelism for the vertex had changed.
    */
-  PARALLELISM_UPDATED
+  PARALLELISM_UPDATED,
+  /**
+   * Indicates that the vertex has been completely configured. Parallelism, edges, edge
+   * properties, inputs/outputs have been set and will not be changed any
+   * further. Listeners can depend on the vertex's configured state after
+   * receiving this notification.
+   */
+  CONFIGURED
 }

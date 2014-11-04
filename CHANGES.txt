@@ -100,6 +100,8 @@ ALL CHANGES:
   TEZ-1731. OnDiskMerger can end up clobbering files across tasks with LocalDiskFetch enabled.
   TEZ-1735. Allow setting basic info per DAG for Tez UI.
   TEZ-1728. Remove local host name from Fetcher thread name.
+  TEZ-1547. Make use of state change notifier in VertexManagerPlugins and fix
+  TEZ-1494 without latency penalty
 
 Release 0.5.1: 2014-10-02
 
