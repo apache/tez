@@ -49,6 +49,7 @@ import org.codehaus.jettison.json.JSONObject;
 public class DAGUtils {
 
   public static final String DAG_NAME_KEY = "dagName";
+  public static final String DAG_INFO_KEY = "dagInfo";
   public static final String VERTICES_KEY = "vertices";
   public static final String EDGES_KEY = "edges";
   public static final String VERTEX_GROUPS_KEY = "vertexGroups";
@@ -138,6 +139,9 @@ public class DAGUtils {
     final int version = 1;
     Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
     dagMap.put(DAG_NAME_KEY, dagPlan.getName());
+    if (dagPlan.hasDagInfo()) {
+      dagMap.put(DAG_INFO_KEY, dagPlan.getDagInfo());
+    }
     dagMap.put(VERSION_KEY, version);
     ArrayList<Object> verticesList = new ArrayList<Object>();
     for (DAGProtos.VertexPlan vertexPlan : dagPlan.getVertexList()) {
