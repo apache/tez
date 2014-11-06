@@ -11,6 +11,7 @@ ALL CHANGES:
   TEZ-1604. Task View for Tez UI
   TEZ-1603. Vertex View for Tez UI.
   TEZ-1720. Allow filters in all tables and also to pass in filters using url params.
+  TEZ-1708. Make UI part of TEZ build process.
 
 Release 0.5.2: Unreleased
 

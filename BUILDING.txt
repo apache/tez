@@ -26,6 +26,7 @@ Maven main modules:
         - tez-plugins .................(Tez plugins)
         - tez-tests ...................(Tez tests and additional test examples)
         - tez-dist ....................(Tez dist)
+        - tez-ui ......................(Tez web user interface)
 
 ----------------------------------------------------------------------------------
 Maven build goals:
