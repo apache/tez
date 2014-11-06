@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-1733. TezMerger should sort FileChunks on size when merging
+  TEZ-1738. Tez tfile parser for log parsing
 
 Release 0.5.2: Unreleased
 
