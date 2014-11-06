@@ -72,18 +72,18 @@ public class FileChunk implements Comparable<FileChunk> {
 
   @Override
   public int compareTo(FileChunk that) {
+    long lc;
+    lc = length - that.length;
+    if (lc != 0) {
+      return lc < 0 ? -1 : 1;
+    }
+
     int c = path.compareTo(that.path);
     if (c != 0) {
       return c;
     }
 
-    long lc;
     lc = offset - that.offset;
-    if (lc != 0) {
-      return lc < 0 ? -1 : 1;
-    }
-
-    lc = length - that.length;
     if (lc != 0) {
       return lc < 0 ? -1 : 1;
     }

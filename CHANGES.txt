@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1733. TezMerger should sort FileChunks on size when merging
 
 Release 0.5.2: Unreleased
 
