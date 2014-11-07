@@ -212,7 +212,7 @@ public class TestExceptionPropagation {
    * @throws Exception
    * 
    */
-  @Test(timeout = 180000)
+  @Test(timeout = 300000)
   public void testExceptionPropagationSession() throws Exception {
     try {
       startSessionClient();
