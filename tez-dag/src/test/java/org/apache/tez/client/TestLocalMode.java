@@ -44,7 +44,7 @@ import org.junit.Test;
 
 public class TestLocalMode {
 
-  @Test(timeout = 10000)
+  @Test(timeout = 30000)
   public void testMultipleClientsWithSession() throws TezException, InterruptedException,
       IOException {
     TezConfiguration tezConf1 = new TezConfiguration();

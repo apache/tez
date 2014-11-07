@@ -9,6 +9,7 @@ ALL CHANGES:
   TEZ-1733. TezMerger should sort FileChunks on size when merging
   TEZ-1738. Tez tfile parser for log parsing
   TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
+  TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
 
 Release 0.5.3: Unreleased
 
