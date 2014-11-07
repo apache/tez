@@ -10,6 +10,7 @@ ALL CHANGES:
   TEZ-1738. Tez tfile parser for log parsing
   TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
   TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
+  TEZ-1742. Improve response time of internal preemption
 
 Release 0.5.3: Unreleased
 
