@@ -9,6 +9,11 @@ ALL CHANGES:
   TEZ-1733. TezMerger should sort FileChunks on size when merging
   TEZ-1738. Tez tfile parser for log parsing
 
+Release 0.5.3: Unreleased
+
+ALL CHANGES:
+  TEZ-1745. TestATSHistoryLoggingService::testATSHistoryLoggingServiceShutdown can be flaky.
+
 Release 0.5.2: Unreleased
 
 INCOMPATIBLE CHANGES

@@ -119,6 +119,11 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
               // Finish processing events and then return
               interrupted = true;
             }
+
+            if (events.isEmpty()) {
+              continue;
+            }
+
             eventsProcessed += events.size();
             try {
               handleEvents(events);
@@ -242,6 +247,9 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
           events.get(i).getHistoryEvent());
     }
 
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Sending event batch to Timeline, batchSize=" + events.size());
+    }
     try {
       TimelinePutResponse response =
           timelineClient.putEntities(entities);
