@@ -15,6 +15,7 @@ Release 0.5.3: Unreleased
 ALL CHANGES:
   TEZ-1745. TestATSHistoryLoggingService::testATSHistoryLoggingServiceShutdown can be flaky.
   TEZ-1747. Increase test timeout for TestSecureShuffle.
+  TEZ-1746. Flaky test in TestVertexImpl and TestExceptionPropagation.
 
 Release 0.5.2: Unreleased
 

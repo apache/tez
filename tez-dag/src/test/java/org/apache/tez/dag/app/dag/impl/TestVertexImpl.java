@@ -513,19 +513,6 @@ public class TestVertexImpl {
                         .setTaskModule("x2.y2")
                         .build()
                 )
-                .addInputs(
-                    RootInputLeafOutputProto.newBuilder()
-                        .setControllerDescriptor(
-                            TezEntityDescriptorProto.newBuilder().setClassName(
-                                "IrrelevantInitializerClassName"))
-                        .setName("input1")
-                        .setIODescriptor(
-                            TezEntityDescriptorProto.newBuilder()
-                                .setClassName("InputClazz")
-                                .build()
-                        )
-                        .build()
-                )
                 .addInEdgeId("e1")
                 .build()
         )
@@ -5072,7 +5059,7 @@ public class TestVertexImpl {
   }
   
   @Test(timeout = 5000)
-  public void testExceptionFromII_Initialize() throws AMUserCodeException {
+  public void testExceptionFromII_Initialize() throws AMUserCodeException, InterruptedException {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize);
     EventHandlingRootInputInitializer initializer =
@@ -5084,6 +5071,11 @@ public class TestVertexImpl {
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
     initVertex(v1);
+    // Wait for the initializer to been invoked, and fail the vertex finally.
+    while (v1.getState() != VertexState.FAILED) {
+      Thread.sleep(10);
+    }
+
     String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
     assertTrue(diagnostics.contains(IIExceptionLocation.Initialize.name()));
     Assert.assertEquals(VertexState.FAILED, v1.getState());
@@ -5206,6 +5198,10 @@ public class TestVertexImpl {
         (VertexImplWithRunningInputInitializer) vertices.get("vertex2");
 
     initVertex(v1);
+    // Wait for the initializer to be invoked - which may be a separate thread.
+    while (!initializer.initStarted.get()) {
+      Thread.sleep(10);
+    }
     startVertex(v1);  // v2 would get the state update from v1
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v1.getState());
@@ -5232,6 +5228,10 @@ public class TestVertexImpl {
         (VertexImplWithRunningInputInitializer) vertices.get("vertex2");
 
     initVertex(v1);
+    // Wait for the initializer to be invoked - which may be a separate thread.
+    while (!initializer.initStarted.get()) {
+      Thread.sleep(10);
+    }
     startVertex(v1);  // v2 would get the state update from v1
     // it should be OK receive INIT_SUCCEEDED event after INIT_FAILED event
     dispatcher.getEventHandler().handle(new VertexEventRootInputInitialized(
@@ -5441,11 +5441,11 @@ public class TestVertexImpl {
 
     @Override
     public List<Event> initialize() throws Exception {
+      context.registerForVertexStateUpdates("vertex1", null);
+      initStarted.set(true);
       if (exLocation == IIExceptionLocation.Initialize) {
         throw new Exception(exLocation.name());
       }
-      context.registerForVertexStateUpdates("vertex1", null);
-      initStarted.set(true);
       lock.lock();
       try {
         if (!eventReceived.get()) {
