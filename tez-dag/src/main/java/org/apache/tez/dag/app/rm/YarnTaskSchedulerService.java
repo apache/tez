@@ -123,6 +123,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   
   Resource totalResources = Resource.newInstance(0, 0);
   Resource allocatedResources = Resource.newInstance(0, 0);
+  long numHeartbeats = 0;
+  long heartbeatAtLastPreemption = 0;
+  int numHeartbeatsBetweenPreemptions = 0;
   
   final String appHostName;
   final int appHostPort;
@@ -141,6 +144,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   long idleContainerTimeoutMin;
   long idleContainerTimeoutMax = 0;
   int sessionNumMinHeldContainers = 0;
+  int preemptionPercentage = 0; 
+  
   Set<ContainerId> sessionMinHeldContainers = Sets.newHashSet();
   
   RandomDataGenerator random = new RandomDataGenerator();
@@ -328,6 +333,17 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT);
     Preconditions.checkArgument(sessionNumMinHeldContainers >= 0, 
         "Session minimum held containers should be >=0");
+    
+    preemptionPercentage = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_PERCENTAGE, 
+        TezConfiguration.TEZ_AM_PREEMPTION_PERCENTAGE_DEFAULT);
+    Preconditions.checkArgument(preemptionPercentage >= 0 && preemptionPercentage <= 100,
+        "Preemption percentage should be between 0-100");
+    
+    numHeartbeatsBetweenPreemptions = conf.getInt(
+        TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS,
+        TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT);
+    Preconditions.checkArgument(numHeartbeatsBetweenPreemptions >= 1, 
+        "Heartbeats between preemptions should be >=1");
 
     delayedContainerManager = new DelayedContainerManager();
     LOG.info("TaskScheduler initialized with configuration: " +
@@ -336,6 +352,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             ", reuseRackLocal: " + reuseRackLocal +
             ", reuseNonLocal: " + reuseNonLocal + 
             ", localitySchedulingDelay: " + localitySchedulingDelay +
+            ", preemptionPercentage: " + preemptionPercentage +
+            ", numHeartbeatsBetweenPreemptions" + numHeartbeatsBetweenPreemptions +
             ", idleContainerMinTimeout=" + idleContainerTimeoutMin +
             ", idleContainerMaxTimeout=" + idleContainerTimeoutMax +
             ", sessionMinHeldContainers=" + sessionNumMinHeldContainers);
@@ -847,6 +865,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
                " taskAllocations: " + taskAllocations.size());
     }
 
+    numHeartbeats++;
     preemptIfNeeded();
 
     return appClientDelegate.getProgress();
@@ -1031,34 +1050,72 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     }
     return false; 
   }
+
+  private int scaleDownByPreemptionPercentage(int original) {
+    return (original + (preemptionPercentage - 1)) / preemptionPercentage;
+  }
   
   void preemptIfNeeded() {
-    ContainerId preemptedContainer = null;
+    if (preemptionPercentage == 0) {
+      // turned off
+      return;
+    }
+    ContainerId[] preemptedContainers = null;
+    int numPendingRequestsToService = 0;
     synchronized (this) {
-      Resource freeResources = Resources.subtract(totalResources,
-        allocatedResources);
+      Resource freeResources = amRmClient.getAvailableResources();
       if (LOG.isDebugEnabled()) {
         LOG.debug("Allocated resource memory: " + allocatedResources.getMemory() +
           " cpu:" + allocatedResources.getVirtualCores() + 
-          " delayedContainers: " + delayedContainerManager.delayedContainers.size());
+          " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
+          " heartbeats: " + numHeartbeats + " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption);
       }
       assert freeResources.getMemory() >= 0;
   
       CookieContainerRequest highestPriRequest = null;
+      int numHighestPriRequests = 0;
       for(CookieContainerRequest request : taskRequests.values()) {
         if(highestPriRequest == null) {
           highestPriRequest = request;
+          numHighestPriRequests = 1;
         } else if(isHigherPriority(request.getPriority(),
                                      highestPriRequest.getPriority())){
           highestPriRequest = request;
+          numHighestPriRequests = 1;
+        } else if (request.getPriority().equals(highestPriRequest.getPriority())) {
+          numHighestPriRequests++;
         }
       }
-      if(highestPriRequest != null &&
-         !fitsIn(highestPriRequest.getCapability(), freeResources)) {
-        // highest priority request will not fit in existing free resources
-        // free up some more
-        // TODO this is subject to error wrt RM resource normalization
-        
+      
+      if (highestPriRequest == null) {
+        // nothing pending
+        return;
+      }
+      
+      if(fitsIn(highestPriRequest.getCapability(), freeResources)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Highest pri request: " + highestPriRequest + " fits in available resources "
+              + freeResources);
+        }
+        return;
+      }
+      // highest priority request will not fit in existing free resources
+      // free up some more
+      // TODO this is subject to error wrt RM resource normalization
+      
+      numPendingRequestsToService = scaleDownByPreemptionPercentage(numHighestPriRequests);
+      
+      if (numPendingRequestsToService < 1) {
+        return;
+      }
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Trying to service " + numPendingRequestsToService + " out of total "
+            + numHighestPriRequests + " pending requests at pri: "
+            + highestPriRequest.getPriority());
+      }
+      
+      for (int i=0; i<numPendingRequestsToService; ++i) {
         // This request must have been considered for matching with all existing 
         // containers when request was made.
         Container lowestPriNewContainer = null;
@@ -1093,6 +1150,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
               " with priority: " + lowestPriNewContainer.getPriority() + 
               " to free resource for request: " + highestPriRequest +
               " . Current free resources: " + freeResources);
+          numPendingRequestsToService--;
           releaseUnassignedContainers(Collections.singletonList(lowestPriNewContainer));
           // We are returning an unused resource back the RM. The RM thinks it 
           // has serviced our initial request and will not re-allocate this back
@@ -1116,54 +1174,91 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
               break;
             }
           }
-          
+          // come back and free more new containers if needed
+          continue;
+        }
+      }
+      
+      if (numPendingRequestsToService < 1) {
+        return;
+      }
+
+      // there are no reused or new containers to release. try to preempt running containers
+      // this assert will be a no-op in production but can help identify 
+      // invalid assumptions during testing
+      assert delayedContainerManager.delayedContainers.isEmpty();
+      
+      if ((numHeartbeats - heartbeatAtLastPreemption) <= numHeartbeatsBetweenPreemptions) {
+        return;
+      }
+        
+      Priority preemptedTaskPriority = null;
+      int numEntriesAtPreemptedPriority = 0;
+      for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
+        HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
+        CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
+        Priority taskPriority = lastTaskInfo.getPriority();
+        Object signature = lastTaskInfo.getCookie().getContainerSignature();
+        if(!isHigherPriority(highestPriRequest.getPriority(), taskPriority)) {
+          // higher or same priority
+          continue;
+        }
+        if (containerSignatureMatcher.isExactMatch(
+            highestPriRequest.getCookie().getContainerSignature(),
+            signature)) {
+          // exact match with different priorities
+          continue;
+        }
+        if (preemptedTaskPriority == null ||
+            !isHigherPriority(taskPriority, preemptedTaskPriority)) {
+          // keep the lower priority
+          preemptedTaskPriority = taskPriority;
+          if (taskPriority.equals(preemptedTaskPriority)) {
+            numEntriesAtPreemptedPriority++;
+          } else {
+            // this is at a lower priority than existing
+            numEntriesAtPreemptedPriority = 1;
+          }
+        }
+      }
+      if(preemptedTaskPriority != null) {
+        int newNumPendingRequestsToService = scaleDownByPreemptionPercentage(Math.min(
+            numEntriesAtPreemptedPriority, numHighestPriRequests));
+        numPendingRequestsToService = Math.min(newNumPendingRequestsToService,
+            numPendingRequestsToService);
+        if (numPendingRequestsToService < 1) {
           return;
         }
-        
-        // this assert will be a no-op in production but can help identify 
-        // invalid assumptions during testing
-        assert delayedContainerManager.delayedContainers.isEmpty();
-        
-        // there are no reused or new containers to release
-        // try to preempt running containers
-        Map.Entry<Object, Container> preemptedEntry = null;
-        for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
-          HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
-          CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
-          Priority taskPriority = lastTaskInfo.getPriority();
-          Object signature = lastTaskInfo.getCookie().getContainerSignature();
-          if(!isHigherPriority(highestPriRequest.getPriority(), taskPriority)) {
-            // higher or same priority
-            continue;
-          }
-          if (containerSignatureMatcher.isExactMatch(
-              highestPriRequest.getCookie().getContainerSignature(),
-              signature)) {
-            // exact match with different priorities
-            continue;
-          }
-          if(preemptedEntry == null ||
-             !isHigherPriority(taskPriority, 
-                 preemptedEntry.getValue().getPriority())) {
-            // keep the lower priority or the one added later
-            preemptedEntry = entry;
+        LOG.info("Trying to service " + numPendingRequestsToService + " out of total "
+            + numHighestPriRequests + " pending requests at pri: "
+            + highestPriRequest.getPriority() + " by preempting from "
+            + numEntriesAtPreemptedPriority + " running tasks at priority: " + preemptedTaskPriority);
+        // found something to preempt. get others of the same priority
+        preemptedContainers = new ContainerId[numPendingRequestsToService];
+        int currIndex = 0;
+        for (Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
+          Container container = entry.getValue();
+          if (preemptedTaskPriority.equals(container.getPriority())) {
+            // taskAllocations map will iterate from oldest to newest assigned containers
+            // keep the N newest containersIds with the matching priority
+            preemptedContainers[currIndex++ % numPendingRequestsToService] = container.getId();
           }
         }
-        if(preemptedEntry != null) {
-          // found something to preempt
-          LOG.info("Preempting task: " + preemptedEntry.getKey() +
-              " to free resource for request: " + highestPriRequest +
-              " . Current free resources: " + freeResources);
-          preemptedContainer = preemptedEntry.getValue().getId();
-          // app client will be notified when after container is killed
-          // and we get its completed container status
-        }
+        // app client will be notified when after container is killed
+        // and we get its completed container status
       }
     }
     
     // upcall outside locks
-    if (preemptedContainer != null) {
-      appClientDelegate.preemptContainer(preemptedContainer);
+    if (preemptedContainers != null) {
+      heartbeatAtLastPreemption = numHeartbeats;
+      for(int i=0; i<numPendingRequestsToService; ++i) {
+        ContainerId cId = preemptedContainers[i];
+        if (cId != null) {
+          LOG.info("Preempting container: " + cId + " currently allocated to a task.");
+          appClientDelegate.preemptContainer(cId);
+        }
+      }
     }
   }
 

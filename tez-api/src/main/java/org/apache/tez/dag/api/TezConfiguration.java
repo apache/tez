@@ -570,6 +570,28 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_SESSION_MIN_HELD_CONTAINERS = 
       TEZ_AM_PREFIX + "session.min.held-containers";
   public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
+  
+  /**
+   * Int value. Specifies the percentage of tasks eligible to be preempted that
+   * will actually be preempted in a given round of Tez internal preemption.
+   * This slows down preemption and gives more time for free resources to be
+   * allocated by the cluster (if any) and gives more time for preemptable tasks
+   * to finish. Valid values are 0-100. Higher values will preempt quickly at
+   * the cost of losing work. Setting to 0 turns off preemption. Expert level
+   * setting.
+   */
+  public static final String TEZ_AM_PREEMPTION_PERCENTAGE = 
+      TEZ_AM_PREFIX + "preemption.percentage";
+  public static final int TEZ_AM_PREEMPTION_PERCENTAGE_DEFAULT = 10;
+  
+  /**
+   * Int value. The number of RM heartbeats to wait after preempting running tasks before preempting
+   * more running tasks. After preempting a task, we need to wait at least 1 heartbeat so that the 
+   * RM can act on the released resources and assign new ones to us. Expert level setting.
+   */
+  public static final String TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS = 
+      TEZ_AM_PREFIX + "preemption.heartbeats-between-preemptions";
+  public static final int TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT = 3;
 
   /**
    * String value to a file path.
