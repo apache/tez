@@ -187,10 +187,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // Transitions from RUNNING state
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_ATTEMPT_LAUNCHED) //more attempts may start later
-    // This is an optional event.
-    .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
-        TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE,
-        new AttemptProcessingCompleteTransition())
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_ADD_SPEC_ATTEMPT, new RedundantScheduleTransition())
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.SUCCEEDED,
@@ -229,12 +225,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(
             TaskEventType.T_TERMINATE,
             TaskEventType.T_ATTEMPT_LAUNCHED,
-            TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE,
             TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // Transitions from SUCCEEDED state
-      // TODO May required different handling if OUTPUT_CONSUMABLE is one of
-      // the stages. i.e. Task would only SUCCEED after all output consumed.
     .addTransition(TaskStateInternal.SUCCEEDED, //only possible for map tasks
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.SUCCEEDED, TaskStateInternal.FAILED),
         TaskEventType.T_ATTEMPT_FAILED, new TaskRetroactiveFailureTransition())
@@ -297,9 +290,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       new RecoverdAttemptsComparator();
 
    */
-
-  private TezTaskAttemptID outputConsumableAttempt;
-  private boolean outputConsumableAttemptSuccessSent = false;
 
   //should be set to one which comes first
   //saying COMMIT_PENDING
@@ -750,30 +740,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  // TODO remove hacky name lookup
-  @Override
-  public boolean needsWaitAfterOutputConsumable() {
-    Vertex vertex = getVertex();
-    ProcessorDescriptor processorDescriptor = vertex.getProcessorDescriptor();
-    if (processorDescriptor != null &&
-        processorDescriptor.getClassName().contains("InitialTaskWithInMemSort")) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-
-  @Override
-  public TezTaskAttemptID getOutputConsumableAttempt() {
-    readLock.lock();
-    try {
-      return this.outputConsumableAttempt;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
@@ -877,18 +843,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private void sendTaskAttemptCompletionEvent(TezTaskAttemptID attemptId,
       TaskAttemptStateInternal attemptState) {
-    // raise the completion event only if the container is assigned
-    // to nextAttemptNumber
-    if (needsWaitAfterOutputConsumable()) {
-      // An event may have been sent out during the OUTPUT_READY state itself.
-      // Make sure the same event is not being sent out again.
-      if (attemptId == outputConsumableAttempt
-          && attemptState == TaskAttemptStateInternal.SUCCEEDED) {
-        if (outputConsumableAttemptSuccessSent) {
-          return;
-        }
-      }
-    }
     eventHandler.handle(new VertexEventTaskAttemptCompleted(attemptId, attemptState));
   }
 
@@ -1037,38 +991,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  private static class AttemptProcessingCompleteTransition implements
-      SingleArcTransition<TaskImpl, TaskEvent> {
-
-    @Override
-    public void transition(TaskImpl task, TaskEvent event) {
-      TaskEventTAUpdate taEvent = (TaskEventTAUpdate) event;
-      TezTaskAttemptID attemptId = taEvent.getTaskAttemptID();
-
-      if (task.outputConsumableAttempt == null) {
-        task.sendTaskAttemptCompletionEvent(attemptId,
-            TaskAttemptStateInternal.SUCCEEDED);
-        task.outputConsumableAttempt = attemptId;
-        task.outputConsumableAttemptSuccessSent = true;
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("TezTaskAttemptID: " + attemptId
-              + " set as the OUTPUT_READY attempt");
-        }
-      } else {
-        // Nothing to do. This task will eventually be told to die, or will be
-        // killed.
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("TezTaskAttemptID: "
-              + attemptId + " reporting OUTPUT_READY."
-              + " Will be asked to die since another attempt "
-              + task.outputConsumableAttempt + " already has output ready");
-        }
-        task.eventHandler.handle(new TaskAttemptEventKillRequest(attemptId,
-            "Alternate attemptId already serving output"));
-      }
-
-    }
-  }
 
   private static class AttemptSucceededTransition
       implements SingleArcTransition<TaskImpl, TaskEvent> {
@@ -1313,12 +1235,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           castEvent.getTaskAttemptID().equals(task.commitAttempt)) {
         task.commitAttempt = null;
       }
-      if (castEvent.getTaskAttemptID().equals(task.outputConsumableAttempt)) {
-        task.outputConsumableAttempt = null;
-        task.handleTaskAttemptCompletion(castEvent.getTaskAttemptID(),
-            TaskAttemptStateInternal.FAILED);
-      }
-
       // The attempt would have informed the scheduler about it's failure
 
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);

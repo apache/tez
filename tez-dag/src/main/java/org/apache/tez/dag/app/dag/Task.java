@@ -55,25 +55,6 @@ public interface Task {
    * @return whether the attempt's output can be committed or not.
    */
   boolean canCommit(TezTaskAttemptID taskAttemptID);
-
-  
-  /**
-   * Do the running tasks need to stick around after they're done processing and
-   * generating output. Required for tasks which have custom output handling
-   * such as in-memory shuffle.
-   * 
-   * @return whether the task needs to stick around.
-   */
-  boolean needsWaitAfterOutputConsumable();
-  
-  /**
-   * Get the attempt id which has reported in as output ready. null if not
-   * applicable.
-   * 
-   * @return the attempt id which has reported in as output ready. null if not
-   * applicable.
-   */
-  TezTaskAttemptID getOutputConsumableAttempt();
   
   public Vertex getVertex();
   

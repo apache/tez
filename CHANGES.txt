@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
   TEZ-1733. TezMerger should sort FileChunks on size when merging
   TEZ-1738. Tez tfile parser for log parsing
+  TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
 
 Release 0.5.3: Unreleased
 

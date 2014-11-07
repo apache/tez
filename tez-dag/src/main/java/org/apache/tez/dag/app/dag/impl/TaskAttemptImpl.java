@@ -236,10 +236,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.RUNNING,
           TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
           DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-      .addTransition(TaskAttemptStateInternal.RUNNING,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
-          new OutputConsumableTransition())
       // Optional, may not come in for all tasks.
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
@@ -279,57 +275,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptEventType.TA_OUTPUT_FAILED,
           new OutputReportedFailedTransition())
 
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_OUTPUT_CONSUMABLE)
-      // Stuck RPC. The client retries in a loop.
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
-          new SucceededTransition())
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_FAILED,
-          new TerminatedWhileRunningTransition(FAILED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_TIMED_OUT,
-          new TerminatedWhileRunningTransition(FAILED_HELPER))
-      // TODO CREUSE Ensure TaskCompletionEvents are updated to reflect this.
-      // Something needs to go out to the job.
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.KILL_IN_PROGRESS,
-          TaskAttemptEventType.TA_KILL_REQUEST,
-          new TerminatedWhileRunningTransition(KILLED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.KILL_IN_PROGRESS,
-          TaskAttemptEventType.TA_NODE_FAILED,
-          new TerminatedWhileRunningTransition(KILLED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_CONTAINER_TERMINATING,
-          new TerminatedWhileRunningTransition(FAILED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAILED,
-          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
-          new ContainerCompletedBeforeRunningTransition())
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.KILLED,
-          TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
-          new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
-      .addTransition(
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-              TaskAttemptStateInternal.OUTPUT_CONSUMABLE),
-          TaskAttemptEventType.TA_OUTPUT_FAILED,
-          new OutputReportedFailedTransition())
-
       .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_CONTAINER_TERMINATED,
@@ -344,7 +289,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -367,7 +311,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -387,7 +330,6 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_SCHEDULE,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -408,7 +350,6 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_SCHEDULE,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -762,7 +703,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     case START_WAIT:
       return TaskAttemptState.STARTING;
     case RUNNING:
-    case OUTPUT_CONSUMABLE:
       return TaskAttemptState.RUNNING;
     case FAILED:
     case FAIL_IN_PROGRESS:
@@ -1295,18 +1235,6 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       ta.updateProgressSplits();
 
-    }
-  }
-
-  protected static class OutputConsumableTransition implements
-      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
-
-    @Override
-    public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      //TaskAttemptEventOutputConsumable orEvent = (TaskAttemptEventOutputConsumable) event;
-      //ta.shufflePort = orEvent.getOutputContext().getShufflePort();
-      ta.sendEvent(new TaskEventTAUpdate(ta.attemptId,
-          TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE));
     }
   }
 

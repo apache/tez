@@ -29,7 +29,6 @@ public enum TaskAttemptStateInternal {
   NEW,
   START_WAIT,
   RUNNING,
-  OUTPUT_CONSUMABLE, 
   KILL_IN_PROGRESS, 
   FAIL_IN_PROGRESS,
   KILLED,
