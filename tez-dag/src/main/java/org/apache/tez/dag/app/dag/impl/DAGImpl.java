@@ -54,6 +54,7 @@ import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -75,6 +76,7 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGReport;
 import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.DAGState;
@@ -1333,8 +1335,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static void assignDAGScheduler(DAGImpl dag) {
-    LOG.info("Using Natural order dag scheduler");
-    dag.dagScheduler = new DAGSchedulerNaturalOrder(dag, dag.eventHandler);
+    String dagSchedulerClassName = dag.conf.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS,
+        TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT);
+    LOG.info("Using DAG Scheduler: " + dagSchedulerClassName);
+    dag.dagScheduler = ReflectionUtils.createClazzInstance(dagSchedulerClassName, new Class<?>[] {
+        DAG.class, EventHandler.class}, new Object[] {dag, dag.eventHandler});
   }
 
   private static VertexImpl createVertex(DAGImpl dag, String vertexName, int vId) {

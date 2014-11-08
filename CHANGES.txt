@@ -19,6 +19,7 @@ ALL CHANGES:
   TEZ-1747. Increase test timeout for TestSecureShuffle.
   TEZ-1746. Flaky test in TestVertexImpl and TestExceptionPropagation.
   TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
+  TEZ-1750. Add a DAGScheduler which schedules tasks only when sources have been scheduled.
 
 Release 0.5.2: 2014-11-07
 
