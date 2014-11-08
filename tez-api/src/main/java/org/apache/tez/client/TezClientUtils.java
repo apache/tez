@@ -779,12 +779,17 @@ public class TezClientUtils {
         if (appState == YarnApplicationState.FINISHED
             || appState == YarnApplicationState.KILLED
             || appState == YarnApplicationState.FAILED) {
-          throw new SessionNotRunning("Application not running"
+          String msg = "Application not running"
               + ", applicationId=" + applicationId
               + ", yarnApplicationState=" + appReport.getYarnApplicationState()
               + ", finalApplicationStatus="
               + appReport.getFinalApplicationStatus()
-              + ", trackingUrl=" + appReport.getTrackingUrl());
+              + ", trackingUrl=" + appReport.getTrackingUrl()
+              + ", diagnostics="
+              + (appReport.getDiagnostics() != null ? appReport.getDiagnostics()
+                  : TezClient.NO_CLUSTER_DIAGNOSTICS_MSG);
+          LOG.info(msg);
+          throw new SessionNotRunning(msg);
         }
         return null;
       }
