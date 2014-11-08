@@ -1051,8 +1051,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     return false; 
   }
 
-  private int scaleDownByPreemptionPercentage(int original) {
-    return (original + (preemptionPercentage - 1)) / preemptionPercentage;
+  static int scaleDownByPreemptionPercentage(int original, int percent) {
+    return (int) Math.ceil((original * percent)/100.f);
   }
   
   void preemptIfNeeded() {
@@ -1103,8 +1103,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // free up some more
       // TODO this is subject to error wrt RM resource normalization
       
-      numPendingRequestsToService = scaleDownByPreemptionPercentage(numHighestPriRequests);
-      
+      numPendingRequestsToService = scaleDownByPreemptionPercentage(numHighestPriRequests,
+          preemptionPercentage);
+
       if (numPendingRequestsToService < 1) {
         return;
       }
@@ -1223,7 +1224,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       }
       if(preemptedTaskPriority != null) {
         int newNumPendingRequestsToService = scaleDownByPreemptionPercentage(Math.min(
-            numEntriesAtPreemptedPriority, numHighestPriRequests));
+            numEntriesAtPreemptedPriority, numHighestPriRequests), preemptionPercentage);
         numPendingRequestsToService = Math.min(newNumPendingRequestsToService,
             numPendingRequestsToService);
         if (numPendingRequestsToService < 1) {
@@ -1237,8 +1238,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         preemptedContainers = new ContainerId[numPendingRequestsToService];
         int currIndex = 0;
         for (Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
+          HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
+          CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
+          Priority taskPriority = lastTaskInfo.getPriority();
           Container container = entry.getValue();
-          if (preemptedTaskPriority.equals(container.getPriority())) {
+          if (preemptedTaskPriority.equals(taskPriority)) {
             // taskAllocations map will iterate from oldest to newest assigned containers
             // keep the N newest containersIds with the matching priority
             preemptedContainers[currIndex++ % numPendingRequestsToService] = container.getId();
