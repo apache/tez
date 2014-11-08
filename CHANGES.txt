@@ -9,7 +9,6 @@ ALL CHANGES:
   TEZ-1733. TezMerger should sort FileChunks on size when merging
   TEZ-1738. Tez tfile parser for log parsing
   TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
-  TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
 
 Release 0.5.3: Unreleased
 
@@ -18,6 +17,7 @@ ALL CHANGES:
   TEZ-1745. TestATSHistoryLoggingService::testATSHistoryLoggingServiceShutdown can be flaky.
   TEZ-1747. Increase test timeout for TestSecureShuffle.
   TEZ-1746. Flaky test in TestVertexImpl and TestExceptionPropagation.
+  TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
 
 Release 0.5.2: 2014-11-07
 
