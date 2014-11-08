@@ -1328,7 +1328,7 @@ public class TestTaskScheduler {
     Container mockContainer3B = mock(Container.class, RETURNS_DEEP_STUBS);
     when(mockContainer3B.getNodeId().getHost()).thenReturn("host1");
     when(mockContainer3B.getResource()).thenReturn(taskAsk);
-    when(mockContainer3B.getPriority()).thenReturn(pri6);
+    when(mockContainer3B.getPriority()).thenReturn(pri2); // high priority container 
     ContainerId mockCId3B = mock(ContainerId.class);
     when(mockContainer3B.getId()).thenReturn(mockCId3B);
     containers.add(mockContainer3B);
@@ -1391,6 +1391,8 @@ public class TestTaskScheduler {
         scheduler.taskAllocations.get(mockTask3).getId());
     Assert.assertEquals(mockCId3A,
         scheduler.taskAllocations.get(mockTask3KillA).getId());
+    // high priority container assigned to lower pri task. This task should still be preempted 
+    // because the task priority is relevant for preemption and not the container priority
     Assert.assertEquals(mockCId3B,
         scheduler.taskAllocations.get(mockTask3KillB).getId());
 
@@ -1460,6 +1462,9 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
 
     // mockTaskPri3KillB gets preempted to clear 10% of outstanding running preemptable tasks
+    // this is also a higher priority container than the pending task priority but was running a 
+    // lower priority task. Task priority is relevant for preemption and not container priority as
+    // containers can run tasks of different priorities
     scheduler.getProgress();
     drainableAppCallback.drain();
     verify(mockRMClient, times(2)).releaseAssignedContainer((ContainerId)any());
@@ -1632,6 +1637,20 @@ public class TestTaskScheduler {
         FinalApplicationStatus.SUCCEEDED, "", "");
     when(appClient.getFinalAppStatus()).thenReturn(finalStatus);
     taskScheduler.close();
+  }
+  
+  @Test (timeout=5000)
+  public void testScaleDownPercentage() {
+    Assert.assertEquals(100, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(100, 100));
+    Assert.assertEquals(70, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(100, 70));
+    Assert.assertEquals(50, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(100, 50));
+    Assert.assertEquals(10, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(100, 10));
+    Assert.assertEquals(5, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(100, 5));
+    Assert.assertEquals(1, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(100, 1));
+    Assert.assertEquals(1, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(5, 5));
+    Assert.assertEquals(1, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(1, 10));
+    Assert.assertEquals(1, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(1, 70));
+    Assert.assertEquals(1, YarnTaskSchedulerService.scaleDownByPreemptionPercentage(1, 1));
   }
 
   private Container createContainer(int id, String host, Resource resource,
