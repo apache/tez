@@ -84,12 +84,16 @@ import com.google.protobuf.ServiceException;
 public class TezClient {
 
   private static final Log LOG = LogFactory.getLog(TezClient.class);
+  
+  @VisibleForTesting
+  static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";
 
   private final String clientName;
   private ApplicationId sessionAppId;
   private ApplicationId lastSubmittedAppId;
   private AMConfiguration amConfig;
   private FrameworkClient frameworkClient;
+  private String diagnostics;
   private boolean isSession;
   private boolean sessionStarted = false;
   private boolean sessionStopped = false;
@@ -510,9 +514,14 @@ public class TezClient {
       case ACCEPTED:
       case SUBMITTED:
         return TezAppMasterStatus.INITIALIZING;
-      case FINISHED:
       case FAILED:
       case KILLED:
+        diagnostics = appReport.getDiagnostics();
+        LOG.info("App did not succeed. Diagnostics: "
+            + (appReport.getDiagnostics() != null ? appReport.getDiagnostics()
+                : NO_CLUSTER_DIAGNOSTICS_MSG));
+        return TezAppMasterStatus.SHUTDOWN;
+      case FINISHED:
         return TezAppMasterStatus.SHUTDOWN;
       case RUNNING:
         if (!isSession) {
@@ -600,7 +609,8 @@ public class TezClient {
     while (true) {
       TezAppMasterStatus status = getAppMasterStatus();
       if (status.equals(TezAppMasterStatus.SHUTDOWN)) {
-        throw new SessionNotRunning("TezSession has already shutdown");
+        throw new SessionNotRunning("TezSession has already shutdown. "
+            + ((diagnostics != null) ? diagnostics : NO_CLUSTER_DIAGNOSTICS_MSG));
       }
       if (status.equals(TezAppMasterStatus.READY)) {
         return;
@@ -647,7 +657,7 @@ public class TezClient {
     if (!sessionStarted) {
       throw new SessionNotRunning("Session not started");
     } else if (sessionStopped) {
-      throw new SessionNotRunning("Session stopped");
+      throw new SessionNotRunning("Session stopped by user");
     }
   }
   

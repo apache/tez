@@ -441,18 +441,6 @@ public class DAGClientImpl extends DAGClient {
     }
   }
 
-  private ApplicationReport getApplicationReport() {
-    ApplicationReport appReport = null;
-    try {
-      appReport = frameworkClient.getApplicationReport(appId);
-    } catch (YarnException e) {
-      // do nothing
-    } catch (IOException e) {
-      // do nothing
-    }
-    return appReport;
-  }
-
   private void switchToTimelineClient() throws IOException, TezException {
     realClient.close();
     realClient = new DAGClientTimelineImpl(appId, dagId, conf, frameworkClient);

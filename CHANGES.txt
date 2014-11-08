@@ -4,6 +4,7 @@ Apache Tez Change Log
 Release 0.5.3: Unreleased
 
 ALL CHANGES:
+  TEZ-1758. TezClient should provide YARN diagnostics when the AM crashes
   TEZ-1742. Improve response time of internal preemption
   TEZ-1745. TestATSHistoryLoggingService::testATSHistoryLoggingServiceShutdown can be flaky.
   TEZ-1747. Increase test timeout for TestSecureShuffle.
