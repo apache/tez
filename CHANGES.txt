@@ -8,7 +8,7 @@ ALL CHANGES:
   TEZ-1747. Increase test timeout for TestSecureShuffle.
   TEZ-1746. Flaky test in TestVertexImpl and TestExceptionPropagation.
 
-Release 0.5.2: Unreleased
+Release 0.5.2: 2014-11-07
 
 INCOMPATIBLE CHANGES
   TEZ-1666. UserPayload should be null if the payload is not specified.
