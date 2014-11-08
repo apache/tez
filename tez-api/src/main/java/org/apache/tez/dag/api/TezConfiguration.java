@@ -339,6 +339,12 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_CLIENT_AM_PORT_RANGE =
       TEZ_AM_PREFIX + "client.am.port-range";
 
+  /**
+   * String value. The class to be used for DAG Scheduling. Expert level setting.
+   */
+  public static final String TEZ_AM_DAG_SCHEDULER_CLASS = TEZ_AM_PREFIX + "dag.scheduler.class";
+  public static final String TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT =
+      "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder";
 
   /** Int value. The amount of memory in MB to be used by the AppMaster */
   public static final String TEZ_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
@@ -367,7 +373,7 @@ public class TezConfiguration extends Configuration {
   /**
    * Int value. The maximum heartbeat interval between the AM and RM in milliseconds
    * Increasing this reduces the communication between the AM and the RM and can
-   * help in scaling up. Expert level setting. Expert level setting.
+   * help in scaling up. Expert level setting.
    */
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
       + "am-rm.heartbeat.interval-ms.max";
