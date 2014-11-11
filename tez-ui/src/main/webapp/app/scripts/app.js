@@ -17,17 +17,20 @@
  */
 
 var App = window.App = Em.Application.createWithMixins(Bootstrap, {
-	// Basic logging, e.g. "Transitioned into 'post'"
+  // Basic logging, e.g. "Transitioned into 'post'"
   LOG_TRANSITIONS: true,
 
   // Extremely detailed logging, highlighting every internal
   // step made while transitioning into a route, including
   // `beforeModel`, `model`, and `afterModel` hooks, and
   // information about redirects and aborted transitions
-  LOG_TRANSITIONS_INTERNAL: true
-});
+  LOG_TRANSITIONS_INTERNAL: true,
 
-App.AtsBaseUrl = "http://localhost:8188";
+  env: {
+    standalone: window.parent === window,
+    timelineBaseUrl: "http://localhost:8188"
+  }
+});
 
 require('scripts/router');
 require('scripts/store');
@@ -35,7 +38,16 @@ require('scripts/store');
 App.Helpers = Em.Namespace.create();
 App.Mappers = Em.Namespace.create();
 
-//TODO: initializer.
+Ember.Application.initializer({
+  name: "initApp",
+
+  initialize: function(container, application) {
+    application.ApplicationAdapter = App.TimelineRESTAdapter.extend({
+      host: App.env.timelineBaseUrl
+    });
+    application.ApplicationSerializer = App.TimelineSerializer.extend();
+  }
+});
 
 /* Order and include */
 /* TODO: cleanup */
@@ -49,6 +61,3 @@ require('scripts/mappers/**/*');
 require('scripts/controllers/**/*');
 require('scripts/components/*');
 require('scripts/adapters/*');
-
-App.ApplicationAdapter = App.TimelineRESTAdapter.extend();
-App.ApplicationSerializer = App.TimelineSerializer.extend();

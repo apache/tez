@@ -23,7 +23,6 @@ var typeToPathMap = {
 };
 
 App.TimelineRESTAdapter = DS.RESTAdapter.extend({
-	host: App.AtsBaseUrl,
 	namespace: 'ws/v1/timeline',
 
 	pathForType: function(type) {
