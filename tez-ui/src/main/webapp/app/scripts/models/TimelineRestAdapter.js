@@ -16,10 +16,11 @@
  */
 
 var typeToPathMap = {
-	dag: 'TEZ_DAG_ID',
-	vertex: 'TEZ_VERTEX_ID',
+  dag: 'TEZ_DAG_ID',
+  vertex: 'TEZ_VERTEX_ID',
   task: 'TEZ_TASK_ID',
-	taskAttempt: 'TEZ_TASK_ATTEMPT_ID'
+  taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+  tezApp: 'TEZ_APPLICATION'
 };
 
 App.TimelineRESTAdapter = DS.RESTAdapter.extend({
@@ -328,5 +329,93 @@ App.VertexSerializer = App.TimelineSerializer.extend({
 
   normalize: function(type, hash, prop) {
     return Em.JsonMapper.map(hash, timelineJsonToVertexMap);
+  },
+});
+
+var timelineJsonToAppDetailMap = {
+  id: 'appId',
+  attemptId: 'currentAppAttemptId',
+
+  name: 'name',
+  queue: 'queue',
+  user: 'user',
+  type: 'type',
+
+  startedTime: 'startedTime',
+  elapsedTime: 'elapsedTime',
+  finishedTime: 'finishedTime',
+  submittedTime: 'submittedTime',
+
+  appState: 'appState',
+
+  finalAppStatus: 'finalAppStatus',
+  diagnostics: 'otherinfo.diagnostics',
+};
+
+App.AppDetailSerializer = App.TimelineSerializer.extend({
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(hash, timelineJsonToAppDetailMap);
+  },
+});
+
+var timelineJsonToTezAppMap = {
+  id: 'entity',
+
+  appId: 'appId',
+
+  entityType: 'entitytype',
+
+  startedTime: 'startedTime',
+  domain: 'domain',
+
+  dags: 'relatedentities.TEZ_DAG_ID',
+  configs: 'configs'
+};
+
+App.TezAppSerializer = App.TimelineSerializer.extend({
+  _normalizeSinglePayload: function(rawPayload){
+    var configs = rawPayload.otherinfo.config,
+    appId = rawPayload.entity.substr(4),
+    kVData = [],
+    id;
+
+    rawPayload.appId = appId;
+    rawPayload.configs = [];
+
+    for(var key in configs) {
+      id = appId + key;
+      rawPayload.configs.push(id);
+      kVData.push({
+        id: id,
+        key: key,
+        value: configs[key]
+      });
+    }
+
+    return {
+      tezApp: rawPayload,
+      kVData: kVData
+    };
+  },
+  normalizePayload: function(rawPayload) {
+    if (!!rawPayload.tezApps) {
+      var normalizedPayload = {
+        tezApps: [],
+        kVData: []
+      },
+      push = Array.prototype.push;
+      rawPayload.tezApps.forEach(function(app){
+        var n = this._normalizeSinglePayload(app);
+        normalizedPayload.tezApps.push(n.tezApp);
+        push.apply(normalizedPayload.kVData,n.kVData);
+      });
+      return normalizedPayload;
+    }
+    else {
+      return this._normalizeSinglePayload(rawPayload.tezApp)
+    }
+  },
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(hash, timelineJsonToTezAppMap);
   },
 });

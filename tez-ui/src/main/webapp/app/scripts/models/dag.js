@@ -217,6 +217,40 @@ App.Vertex = DS.Model.extend({
   }.property('duration')
 });
 
+App.AppDetail = DS.Model.extend({
+  attemptId: DS.attr('string'),
+
+  user: DS.attr('string'),
+  name: DS.attr('string'),
+  queue: DS.attr('string'),
+  type: DS.attr('string'),
+
+  appState: DS.attr('string'),
+  finalAppStatus: DS.attr('string'),
+  progress: DS.attr('string'),
+
+  startedTime: DS.attr('number'),
+  elapsedTime: DS.attr('number'),
+  finishedTime: DS.attr('number'),
+  submittedTime: DS.attr('number'),
+
+  diagnostics: DS.attr('string'),
+});
+
+App.TezApp = DS.Model.extend({
+  appId: DS.attr('string'),
+  entityType: DS.attr('string'),
+  domain: DS.attr('string'),
+
+  startedTime: DS.attr('number'),
+
+  appDetail: DS.belongsTo('appDetail', { async: true }),
+  dags: DS.hasMany('dag', { async: true }),
+
+  configs: DS.hasMany('kVData', { async: false })
+});
+
+
 App.Task = App.AbstractEntity.extend({
   status: DS.attr('status'),
 
@@ -233,6 +267,11 @@ App.Task = App.AbstractEntity.extend({
   numAttempts: DS.attr('number'),
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
+});
+
+App.KVDatum = DS.Model.extend({
+  key: DS.attr('string'),
+  value: DS.attr('string'),
 });
 
 App.VertexState = {

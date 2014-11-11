@@ -28,7 +28,8 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
 
   env: {
     standalone: window.parent === window,
-    timelineBaseUrl: "http://localhost:8188"
+    timelineBaseUrl: "http://localhost:8188",
+    RMWebUrl: "http://localhost:8088"
   }
 });
 
@@ -46,6 +47,15 @@ Ember.Application.initializer({
       host: App.env.timelineBaseUrl
     });
     application.ApplicationSerializer = App.TimelineSerializer.extend();
+
+    application.AppDetailAdapter = DS.RESTAdapter.extend({
+      namespace: 'ws/v1/applicationhistory',
+      host: App.env.timelineBaseUrl,
+      pathForType: function() {
+        return "apps";
+      },
+    });
+
   }
 });
 

@@ -13,6 +13,7 @@ ALL CHANGES:
   TEZ-1720. Allow filters in all tables and also to pass in filters using url params.
   TEZ-1708. Make UI part of TEZ build process.
   TEZ-1617. Shim layer for Tez UI for use within Ambari.
+  TEZ-1741. App view.
 
 Release 0.5.2: Unreleased
 

@@ -19,11 +19,16 @@
 App.Router.map(function() {
 	this.resource('dags', { path: '/' });
 	this.resource('dag', { path: '/dag/:dag_id'}, function() {
-		this.route('vertices'),
-		this.route('tasks'),
-		this.route('counters'),
-		this.route('swimlane')
+		this.route('vertices');
+		this.route('tasks');
+		this.route('counters');
+		this.route('swimlane');
 	});
+
+  this.resource('tez-app', {path: '/tez-app/:app_id'}, function(){
+    this.route('dags');
+    this.route('configs');
+  });
 
   this.resource('vertex', {path: '/vertex/:vertex_id'}, function(){
     this.route('tasks');
@@ -227,3 +232,49 @@ App.TaskAttemptsRoute = Em.Route.extend({
     controller.loadData();
   }
 });
+
+App.TezAppRoute = Em.Route.extend({
+  model: function(params) {
+    var store = this.store;
+    return store.find('tezApp', 'tez_' + params.app_id).then(function(tezApp){
+      return store.find('appDetail', tezApp.get('appId')).then(function(appDetails){
+        tezApp.set('appDetail', appDetails);
+        return tezApp;
+      });
+    });
+  },
+});
+
+App.TezAppDagsRoute = Em.Route.extend({
+  queryParams:  {
+    count: {
+      refreshModel: true,
+      replace: true
+    },    
+    fromID: {
+      refreshModel: true,
+      replace: true
+    },
+    user: {
+      refreshModel: true,
+      replace: true
+    },
+    status: {
+      refreshModel: true,
+      replace: true
+    }
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
+});
+
+App.TezAppConfigsRoute = Em.Route.extend({
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
+});
+
