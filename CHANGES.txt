@@ -12,6 +12,7 @@ ALL CHANGES:
   TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
   TEZ-1750. Add a DAGScheduler which schedules tasks only when sources have been scheduled.
   TEZ-1761. TestRecoveryParser::testGetLastInProgressDAG fails in similar manner to TEZ-1686.
+  TEZ-1687. Use logIdentifier of Vertex for logging.
 
 Release 0.5.2: 2014-11-07
 
