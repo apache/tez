@@ -61,6 +61,32 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
     this.setFiltersAndLoadEntities(filters);
   },
 
+  loadEntities: function() {
+    var that = this,
+    store = this.get('store'),
+    childEntityType = this.get('childEntityType'),
+    fetcher;
+
+    store.unloadAll(childEntityType);
+    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+      var loaders = [];
+      that.set('entities', entities);
+      entities.forEach(function (dag) {
+        // Pivot attempt selection logic
+        fetcher = store.find('appDetail', dag.get('applicationId') );
+        fetcher.then(function (app) {
+          dag.set('app', app);
+        });
+        loaders.push(fetcher);
+      });
+      Em.RSVP.allSettled(loaders).then(function(){
+        that.set('loading', false);
+      });
+    }).catch(function(jqXHR){
+      alert('failed');
+    });
+  },
+
   countUpdated: function() {
     this.loadData();
   }.observes('count'),
@@ -155,7 +181,14 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
         return  row.get('applicationId')
       }
     });
-    return [nameCol, idCol, userCol, statusCol, submittedTimeCol, runTimeCol, appIdCol];
+    var queue = App.ExTable.ColumnDefinition.create({
+      textAlign: 'text-align-left',
+      headerCellName: 'Queue',
+      getCellContent: function(row) {
+        return (row.get('app') && row.get('app').get('queue')) || 'Not Available';
+      }
+    });
+    return [nameCol, idCol, userCol, statusCol, submittedTimeCol, runTimeCol, appIdCol, queue];
   }.property(),
 
 
