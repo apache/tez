@@ -104,7 +104,7 @@ public class TestAMRecovery {
     }
     if (miniTezCluster == null) {
       miniTezCluster =
-          new MiniTezCluster(TestAMRecovery.class.getName(), 2, 1, 1);
+          new MiniTezCluster(TestAMRecovery.class.getName(), 1, 1, 1);
       Configuration miniTezconf = new Configuration(conf);
       miniTezconf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, MAX_AM_ATTEMPT);
       miniTezconf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
@@ -127,7 +127,6 @@ public class TestAMRecovery {
       try {
         LOG.info("Stopping MiniTezCluster");
         miniTezCluster.stop();
-        miniTezCluster = null;
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -166,7 +165,6 @@ public class TestAMRecovery {
     tezConf.setBoolean(
         RecoveryService.TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED,
         true);
-    tezConf.setInt(TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX, 100);
     tezSession = TezClient.create("TestDAGRecovery", tezConf);
     tezSession.start();
   }
@@ -184,16 +182,6 @@ public class TestAMRecovery {
     tezSession = null;
   }
 
-  private void printHistoryEvents(List<HistoryEvent> historyEvents, int attemptId) {
-    LOG.info("RecoveryLogs from attempt:" + attemptId);
-    for(HistoryEvent historyEvent : historyEvents) {
-      LOG.info("Parsed event from recovery stream"
-          + ", eventType=" + historyEvent.getEventType()
-          + ", event=" + historyEvent);
-    }
-    LOG.info("");
-  }
-
   /**
    * Fine-grained recovery task-level, In a vertex (v1), task 0 is done task 1
    * is running. History flush happens. AM dies. Once AM is recovered, task 0 is
@@ -207,15 +195,13 @@ public class TestAMRecovery {
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.BROADCAST, true);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
-    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
-    printHistoryEvents(historyEvents1, 1);
-    printHistoryEvents(historyEvents2, 2);
-
     assertEquals(5, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
     assertEquals(1, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
+    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
+    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
     // task_0 of v1 is finished in attempt 1, task_1 of v1 is not finished in
     // attempt 1
@@ -241,15 +227,13 @@ public class TestAMRecovery {
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.BROADCAST, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
-    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
-    printHistoryEvents(historyEvents1, 1);
-    printHistoryEvents(historyEvents2, 2);
-
     assertEquals(4, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
     assertEquals(0, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
+    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
+    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
     // task_0 of v1 is finished in attempt 1, task_1 of v1 is not finished in
     // attempt 1
@@ -275,15 +259,13 @@ public class TestAMRecovery {
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, true);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
-    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
-    printHistoryEvents(historyEvents1, 1);
-    printHistoryEvents(historyEvents2, 2);
-
     assertEquals(5, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
     assertEquals(1, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
+    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
+    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
     // task_0 of v1 is finished in attempt 1, task_1 of v1 is not finished in
     // attempt 1
@@ -310,15 +292,13 @@ public class TestAMRecovery {
         createDAG(ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
-    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
-    printHistoryEvents(historyEvents1, 1);
-    printHistoryEvents(historyEvents2, 2);
-
     assertEquals(4, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
     assertEquals(0, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
+    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
+    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
     // task_0 of v1 is finished in attempt 1, task_1 of v1 is not finished in
     // attempt 1
@@ -345,15 +325,13 @@ public class TestAMRecovery {
         createDAG(ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, true);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
-    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
-    printHistoryEvents(historyEvents1, 1);
-    printHistoryEvents(historyEvents2, 2);
-
     assertEquals(5, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
     assertEquals(1, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
+    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
+    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
     // task_0 of v1 is finished in attempt 1, task_1 of v1 is not finished in
     // attempt 1
@@ -380,15 +358,13 @@ public class TestAMRecovery {
         createDAG(ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
-    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
-    printHistoryEvents(historyEvents1, 1);
-    printHistoryEvents(historyEvents2, 2);
-
     assertEquals(4, counters.findCounter(DAGCounter.TOTAL_LAUNCHED_TASKS).getValue());
     assertEquals(0, counters.findCounter(DAGCounter.NUM_KILLED_TASKS).getValue());
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+
+    List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
+    List<HistoryEvent> historyEvents2 = readRecoveryLog(2);
 
     // task_0 of v1 is finished in attempt 1, task_1 of v1 is not finished in
     // attempt 1
