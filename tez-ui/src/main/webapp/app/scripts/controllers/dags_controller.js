@@ -139,6 +139,8 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       textAlign: 'text-align-left',
       headerCellName: 'Status',
       filterID: 'status_filter',
+      filterType: 'dropdown',
+      dropdownValues: App.Helpers.misc.dagStatusUIOptions,
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
           '<span class="ember-table-content">&nbsp;\

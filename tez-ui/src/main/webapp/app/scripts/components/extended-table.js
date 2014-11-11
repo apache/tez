@@ -18,7 +18,7 @@
 
 App.ExTable = Ember.Namespace.create();
 
-App.ExTable.FilterField = Em.TextField.extend({
+App.ExTable.FilterTextField = Em.TextField.extend({
 	classNames: ['filter'],
   classNameBindings: ['isPopulated','isInputDirty:input-dirty'],
   type: 'search',
@@ -28,6 +28,7 @@ App.ExTable.FilterField = Em.TextField.extend({
   isPopulated: function() {
   	return !Em.isEmpty(this.get('value'));
   }.property('value'),
+
   insertNewline: function(event) {
     if (this.get('isInputDirty')) {
       this.set('filterValue', this.get('value'));
@@ -41,6 +42,20 @@ App.ExTable.FilterField = Em.TextField.extend({
   },
   isInputDirty: function() {
   	return $.trim(this.get('value')) != $.trim(this.get('filterValue'));
+  }.property('value', 'filterValue')
+});
+
+App.ExTable.FilterDropdownField = Em.Select.extend({
+  valueBinding: Em.Binding.oneWay('filterValue'),
+  change: function(key) {
+    if (this.get('isInputDirty')) {
+      this.set('filterValue', this.get('value'));
+      this.get('parentView.controller')
+        .send('filterUpdated', this.get('parentView.content'), this.get('value'));
+    }
+  },
+  isInputDirty: function() {
+    return $.trim(this.get('value')) != $.trim(this.get('filterValue'));
   }.property('value', 'filterValue')
 });
 
@@ -68,22 +83,59 @@ App.ExTable.FilterBlock = Ember.Table.TableBlock.extend({
   }.property('columns')
 });
 
-App.ExTable.FilterTableContainer = Ember.Table.TableContainer.extend(Ember.Table.ShowHorizontalScrollMixin, {
+App.ExTable.FilterTableContainer = Ember.Table.TableContainer.extend(
+    Ember.Table.ShowHorizontalScrollMixin, {
   templateName: 'components/extended-table/filter-container',
-  classNames: ['ember-table-table-container', 'ember-table-fixed-table-container', 'ember-table-header-container'],
+  classNames: [
+    'ember-table-table-container', 
+    'ember-table-fixed-table-container', 
+    'ember-table-header-container'
+  ],
   height: Ember.computed.alias('controller._filterHeight'),
   width: Ember.computed.alias('controller._tableContainerWidth')
 });
 
 App.ExTable.FilterCell = Ember.View.extend(Ember.AddeparMixins.StyleBindingsMixin, {
+  init: function() {
+    var inputFieldView = null;
+    if (this.get('content.isFilterable')) {
+      var filterType = this.get('content.filterType');
+      switch (filterType) {
+        case 'dropdown':
+          inputFieldView = App.ExTable.FilterDropdownField.create({
+            content: this.get('content.dropdownValues'),
+            optionValuePath: 'content.id',
+            optionLabelPath: 'content.label',
+            classNames: 'inline-display'
+          });
+        break;
+        case 'textbox':
+          inputFieldView = App.ExTable.FilterTextField.create({
+            filterValueBinding: 'content.columnFilterValue',
+            classNames: 'inline-display'
+          });
+        break;
+        default:
+          console.log('Unknown filter type ' + filterType + ' defined on column ' + 
+            this.get('content.headerCellName') + '.Will be ignored');
+        break;
+      }
+    }
+    if (!inputFieldView) {
+      // if no filter is specified or type is unknown, use empty view.
+      inputFieldView = Em.View.create();
+    }
+    this.set('inputFieldView', inputFieldView);
+    this._super();
+  },
   templateName: 'components/extended-table/filter-cell',
   classNames: ['ember-table-cell', 'ember-table-header-cell'],
   classNameBindings: ['column.textAlign'],
   styleBindings: ['width', 'height'],
- 	column: Ember.computed.alias('content'),
+  column: Ember.computed.alias('content'),
   width: Ember.computed.alias('column.columnWidth'),
   height: function() {
-  	return this.get('controller._filterHeight');
+    return this.get('controller._filterHeight');
   }.property('controller._filterHeight'),
   // Currently resizing is not handled automatically. if required will need to do here.
 });
@@ -96,7 +148,9 @@ App.ExTable.ColumnDefinition = Ember.Table.ColumnDefinition.extend({
         .to('columnFilterValue');
       columnFilterValueBinding.connect(this);
     }
+    this._super();
   },
+  filterType: 'textbox', // default is textbox
   textAlign: 'text-align-left',
   filterCellView: 'App.ExTable.FilterCell',
   filterCellViewClass: Ember.computed.alias('filterCellView'),

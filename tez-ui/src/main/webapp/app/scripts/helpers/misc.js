@@ -72,5 +72,33 @@ App.Helpers.misc = {
 
   isValidTaskStatus: function(status) {
     return $.inArray(status, ['RUNNING', 'SUCCEEDED', 'FAILED', 'KILLED']) != -1;
-  }
+  },
+
+  dagStatusUIOptions: [
+    { label: 'All', id: null },
+    { label: 'Submitted', id: 'SUBMITTED' },
+    { label: 'Running', id: 'RUNNING' },
+    { label: 'Succeeded', id: 'SUCCEEDED' },
+    { label: 'Failed', id: 'FAILED' },
+    { label: 'Killed', id: 'KILLED' },
+    { label: 'Error', id: 'ERROR' },
+  ],
+
+  vertexStatusUIOptions: [
+    { label: 'All', id: null },
+    { label: 'Running', id: 'RUNNING' },
+    { label: 'Succeeded', id: 'SUCCEEDED' },
+    { label: 'Failed', id: 'FAILED' },
+    { label: 'Killed', id: 'KILLED' },
+    { label: 'Error', id: 'ERROR' },
+  ],
+
+  taskStatusUIOptions: [
+    { label: 'All', id: null },
+    { label: 'Running', id: 'RUNNING' },
+    { label: 'Succeeded', id: 'SUCCEEDED' },
+    { label: 'Failed', id: 'FAILED' },
+    { label: 'Killed', id: 'KILLED' },
+  ],
+
 }

@@ -118,6 +118,8 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
     var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
       headerCellName: 'Status',
       filterID: 'status_filter',
+      filterType: 'dropdown',
+      dropdownValues: App.Helpers.misc.taskStatusUIOptions,
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
           '<span class="ember-table-content">&nbsp;\

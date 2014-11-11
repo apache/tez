@@ -16,6 +16,7 @@ ALL CHANGES:
   TEZ-1741. App view.
   TEZ-1751. Log view & download links in task and task attempt view.
   TEZ-1753. Queue in dags view.
+  TEZ-1765. Allow dropdown lists in table filters.
 
 Release 0.5.2: Unreleased
 

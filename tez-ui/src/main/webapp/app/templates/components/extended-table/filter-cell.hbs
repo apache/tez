@@ -1,7 +1,5 @@
 <div class="ember-table-content-container" style='cursor: auto;'>
   <span class="ember-table-content" style='white-space: nowrap; cursor: auto;'>
-    {{#if view.content.isFilterable}}
-    	{{view App.ExTable.FilterField filterValueBinding='view.content.columnFilterValue' class='inline-display'}}
-    {{/if}}
+    {{view view.inputFieldView}}
   </span>
 </div>
