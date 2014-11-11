@@ -255,6 +255,10 @@ App.Task = App.AbstractEntity.extend({
   status: DS.attr('status'),
 
   dagID: DS.attr('string'),
+
+  successfulAttemptId: DS.attr('string'),
+
+  attempts: DS.attr('array'),
   
   vertexID: DS.attr('string'),
 
@@ -265,6 +269,8 @@ App.Task = App.AbstractEntity.extend({
   diagnostics: DS.attr('string'),
 
   numAttempts: DS.attr('number'),
+
+  pivotAttempt: DS.belongsTo('taskAttempt'),
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });

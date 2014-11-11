@@ -39,5 +39,8 @@ App.TaskAttempt = App.AbstractEntity.extend({
 
   dagID: DS.attr('string'),
 
+  inProgressLog: DS.attr('string'),
+  completedLog: DS.attr('string'),
+
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });

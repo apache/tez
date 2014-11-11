@@ -39,6 +39,33 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
     this.setFiltersAndLoadEntities(filters);
   },
 
+  loadEntities: function() {
+    var that = this,
+    store = this.get('store'),
+    fetcher;
+    childEntityType = this.get('childEntityType');
+
+    store.unloadAll(childEntityType);
+    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+      that.set('entities', entities);
+      var pivotLoaders = [];
+      entities.forEach(function (task) {
+        // Pivot attempt selection logic
+        fetcher = store.find('taskAttempt', task.get('successfulAttemptId') || task.get('attempts').lastObject );
+        fetcher.then(function (attempt) {
+          task.set('pivotAttempt', attempt);
+        });
+        pivotLoaders.push(fetcher);
+      });
+      Em.RSVP.allSettled(pivotLoaders).then(function(){
+        that.set('loading', false);
+      });
+    }).catch(function(jqXHR){
+      if(console) console.log(jqXHR);
+      alert('failed');
+    });
+  },
+
   actions : {
     filterUpdated: function(filterID, value) {
       // any validations required goes here.
@@ -110,6 +137,29 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
       contentPath: 'node'
     });
 
-    return [idCol, vertexCol, startTimeCol, endTimeCol, statusCol];
+    var logs = App.ExTable.ColumnDefinition.create({
+      textAlign: 'text-align-left',
+      headerCellName: 'Logs',
+      tableCellViewClass: Em.Table.TableCell.extend({
+        template: Em.Handlebars.compile(
+          '<span class="ember-table-content">\
+            {{#unless view.cellContent}}\
+              Not Available\
+            {{else}}\
+              <a href="//{{unbound view.cellContent}}">View</a>\
+              &nbsp;\
+              <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+            {{/unless}}\
+          </span>')
+      }),
+      getCellContent: function(row) {
+        var attempt = row.get('pivotAttempt');
+        var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
+        if(logFile) logFile += "/syslog_" + attempt.get('id');
+        return logFile;
+      }
+    });
+
+    return [idCol, vertexCol, startTimeCol, endTimeCol, statusCol, logs];
   }.property(),
 });

@@ -14,6 +14,7 @@ ALL CHANGES:
   TEZ-1708. Make UI part of TEZ build process.
   TEZ-1617. Shim layer for Tez UI for use within Ambari.
   TEZ-1741. App view.
+  TEZ-1751. Log view & download links in task and task attempt view.
 
 Release 0.5.2: Unreleased
 

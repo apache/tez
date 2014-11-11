@@ -102,7 +102,28 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
       contentPath: 'containerId'
     });
 
-		return [idCol, startTimeCol, endTimeCol, statusCol, nodeIdCol, containerCol];
+    var logs = App.ExTable.ColumnDefinition.create({
+      textAlign: 'text-align-left',
+      headerCellName: 'Logs',
+      tableCellViewClass: Em.Table.TableCell.extend({
+        template: Em.Handlebars.compile(
+          '<span class="ember-table-content">\
+            {{#unless view.cellContent}}\
+              Not Available\
+            {{else}}\
+              <a href="//{{unbound view.cellContent}}">View</a>\
+              &nbsp;\
+              <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+            {{/unless}}\
+          </span>')
+      }),
+      getCellContent: function(row) {
+        var logFile = row.get('inProgressLog') || row.get('completedLog');
+        if(logFile) logFile += "/syslog_" + row.get('id');
+        return logFile;
+      }
+    });
+    return [idCol, startTimeCol, endTimeCol, statusCol, nodeIdCol, containerCol, logs];
 	}.property(),
 });
 

@@ -157,6 +157,10 @@ var timelineJsonToTaskAttemptMap = {
   status: 'otherinfo.status',
   diagnostics: 'otherinfo.diagnostics',
   counterGroups: 'counterGroups',
+
+  inProgressLog: 'otherinfo.inProgressLogsURL',
+  completedLog: 'otherinfo.completedLogsURL',
+
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   containerId: { custom: function (source) {
@@ -223,6 +227,8 @@ var timelineJsonToTaskMap = {
   status: 'otherinfo.status',
   diagnostics: 'otherinfo.diagnostics',
   counterGroups: 'counterGroups',
+  successfulAttemptId: 'otherinfo.successfulAttemptId',
+  attempts: 'relatedentities.TEZ_TASK_ATTEMPT_ID',
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   numAttempts: 'relatedentities'
