@@ -179,7 +179,7 @@ public class VertexManager {
           });
 
       if (LOG.isDebugEnabled()) {
-        LOG.debug("vertex:" + managedVertex.getName() + "; Added " + events.size() + " for input " +
+        LOG.debug("vertex:" + managedVertex.getLogIdentifier() + "; Added " + events.size() + " for input " +
                 "name " + inputName);
       }
       rootInputInitEventQueue.addAll(tezEvents);
@@ -402,7 +402,7 @@ public class VertexManager {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
     if (LOG.isDebugEnabled()) {
-      LOG.debug("vertex:" + managedVertex.getName() + "; after call of VertexManagerPlugin.onRootVertexInitialized"
+      LOG.debug("vertex:" + managedVertex.getLogIdentifier() + "; after call of VertexManagerPlugin.onRootVertexInitialized"
           + " on input:" + inputName + ", current task events size is " + rootInputInitEventQueue.size());
     }
     List<TezEvent> resultEvents = new ArrayList<TezEvent>();

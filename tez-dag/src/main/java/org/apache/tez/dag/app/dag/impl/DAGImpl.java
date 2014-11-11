@@ -772,7 +772,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     for (Vertex v : vertices.values()) {
       if (v.getInputVerticesCount() == 0) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Initing root vertex " + v.getName());
+          LOG.debug("Initing root vertex " + v.getLogIdentifier());
         }
         eventHandler.handle(new VertexEvent(v.getVertexId(),
             VertexEventType.V_INIT));
@@ -781,7 +781,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     for (Vertex v : vertices.values()) {
       if (v.getInputVerticesCount() == 0) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Starting root vertex " + v.getName());
+          LOG.debug("Starting root vertex " + v.getLogIdentifier());
         }
         eventHandler.handle(new VertexEvent(v.getVertexId(),
             VertexEventType.V_START));
@@ -851,7 +851,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           break;
         }
         if (vertex.getOutputCommitters() == null) {
-          LOG.info("No output committers for vertex: " + vertex.getName());
+          LOG.info("No output committers for vertex: " + vertex.getLogIdentifier());
           continue;
         }
         Map<String, OutputCommitter> outputCommitters =
@@ -868,14 +868,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           }
         }
         if (outputCommitters.isEmpty()) {
-          LOG.info("No exclusive output committers for vertex: " + vertex.getName());
+          LOG.info("No exclusive output committers for vertex: " + vertex.getLogIdentifier());
           continue;
         }
         for (Map.Entry<String, OutputCommitter> entry : outputCommitters.entrySet()) {
           LOG.info("Committing output: " + entry.getKey() + " for vertex: "
-              + vertex.getVertexId());
+              + vertex.getLogIdentifier());
           if (vertex.getState() != VertexState.SUCCEEDED) {
-            throw new TezUncheckedException("Vertex: " + vertex.getName() +
+            throw new TezUncheckedException("Vertex: " + vertex.getLogIdentifier() +
                 " not in SUCCEEDED state. State= " + vertex.getState());
           }
           if (!commitOutput(entry.getKey(), entry.getValue())) {
@@ -897,7 +897,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         Map<String, OutputCommitter> outputCommitters = vertex
             .getOutputCommitters();
         if (outputCommitters == null || outputCommitters.isEmpty()) {
-          LOG.info("No output committers for vertex: " + vertex.getName());
+          LOG.info("No output committers for vertex: " + vertex.getLogIdentifier());
           continue;
         }
         for (Map.Entry<String, OutputCommitter> entry : outputCommitters
@@ -907,7 +907,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               || vertex.getState() != VertexState.SUCCEEDED // never commit unsuccessful outputs
               ) {
             LOG.info("Aborting output: " + entry.getKey() + " for vertex: "
-                + vertex.getVertexId());
+                + vertex.getLogIdentifier());
             try {
               getDagUGI().doAs(new PrivilegedExceptionAction<Void>() {
                 @Override
@@ -918,7 +918,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               });
             } catch (Exception e) {
               LOG.info("Exception in aborting output: " + entry.getKey()
-                  + " for vertex: " + vertex.getVertexId(), e);
+                  + " for vertex: " + vertex.getLogIdentifier(), e);
             }
           }
           // else successful outputs have already been committed
@@ -1422,7 +1422,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             if (v.getInputVerticesCount() == 0) {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Sending Running Recovery event to root vertex "
-                    + v.getName());
+                    + v.getLogIdentifier());
               }
               dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
                   VertexState.RUNNING));
@@ -1478,7 +1478,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             if (v.getInputVerticesCount() == 0) {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Sending Running Recovery event to root vertex "
-                    + v.getName());
+                    + v.getLogIdentifier());
               }
               dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
                   VertexState.RUNNING));
@@ -1702,7 +1702,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       job.reRunningVertices.remove(vertex.getVertexId());
 
-      LOG.info("Vertex " + vertex.getVertexId() + " completed."
+      LOG.info("Vertex " + vertex.getLogIdentifier() + " completed."
           + ", numCompletedVertices=" + job.numCompletedVertices
           + ", numSuccessfulVertices=" + job.numSuccessfulVertices
           + ", numFailedVertices=" + job.numFailedVertices
@@ -1732,7 +1732,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       boolean failed = job.vertexReRunning(vertex);
 
 
-      LOG.info("Vertex " + vertex.getVertexId() + " re-running."
+      LOG.info("Vertex " + vertex.getLogIdentifier() + " re-running."
           + ", numCompletedVertices=" + job.numCompletedVertices
           + ", numSuccessfulVertices=" + job.numSuccessfulVertices
           + ", numFailedVertices=" + job.numFailedVertices
@@ -1839,7 +1839,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         for (VertexGroupInfo groupInfo : groupList) {
           if (groupInfo.committed) {
             LOG.info("Aborting job as committed vertex: "
-                + vertex.getVertexId() + " is re-running");
+                + vertex.getLogIdentifier() + " is re-running");
             enactKill(DAGTerminationCause.COMMIT_FAILURE,
                 VertexTerminationCause.COMMIT_FAILURE);
             return true;
