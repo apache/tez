@@ -27,7 +27,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -139,7 +138,7 @@ public class TestHistoryEventJsonConversion {
           event = new VertexParallelismUpdatedEvent(tezVertexID, 1, null, null, null, 10);
           break;
         case VERTEX_FINISHED:
-          event = new VertexFinishedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
+          event = new VertexFinishedEvent(tezVertexID, "v1", 1, random.nextInt(), random.nextInt(),
               random.nextInt(), random.nextInt(), random.nextInt(), VertexState.ERROR,
               null, null, null, null);
           break;

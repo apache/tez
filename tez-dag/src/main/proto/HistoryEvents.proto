@@ -198,4 +198,5 @@ message SummaryEventProto {
 message VertexFinishStateProto {
   optional string vertex_id = 1;
   optional int32 state = 2;
+  optional int32 num_tasks = 3;
 }

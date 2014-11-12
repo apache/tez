@@ -1135,6 +1135,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         } else {
           vertexCompleteSeen = true;
         }
+        numTasks = finishedEvent.getNumTasks();
         recoveryCommitInProgress = false;
         recoveredState = finishedEvent.getState();
         diagnostics.add(finishedEvent.getDiagnostics());
@@ -1610,7 +1611,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     taskStats.put(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS, failedTaskAttemptCount.get());
     taskStats.put(ATSConstants.NUM_KILLED_TASKS_ATTEMPTS, killedTaskAttemptCount.get());
 
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, initTimeRequested,
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, numTasks, initTimeRequested,
         initedTime, startTimeRequested, startedTime, finishTime, finalState, diagnostics,
         getAllCounters(), getVertexStats(), taskStats);
     this.appContext.getHistoryHandler().handleCriticalEvent(
