@@ -147,12 +147,33 @@ div.indent {
 	}
 }
 
-.countertable-group-header {
-	background-color: lightgray;
-}
+.countertable {
+  width: 100%;
+  .margin-medium;
 
-.countertable-row {
-	margin: 0px 0px 0px 15px;
+  th, td {
+    border: 1px solid #dcdcdc;
+    padding: 5px 5px;
+  }
+
+  th, td.filter {
+    background-color: #f0f0f0;
+    font-style: italic;
+    font-weight: bold;
+  }
+
+  th:first-child {
+        width: 70%;
+  }
+
+  tr {
+    margin: 0px 0px 0px 15px;
+    &.group-header td {
+      background-color: #f8f8f8;
+      font-style: italic;
+      font-weight: bold;
+    }
+  }
 }
 
 .inline-display {

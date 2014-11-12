@@ -16,6 +16,28 @@
 * limitations under the License.
 }}
 
-<div class='table-container margin-medium' style='width: 50%;'>
-  {{counter-table-component data=counterGroups}}
-</div>
+<table class='countertable'>
+  <thead>
+    <tr>
+      <th>Counter Name</th>
+      <th>Counter Value</th>
+    </tr>
+    <tr>
+      <td class='filter'>{{input size='60' type='search' results='1' placeholder='Search...' valueBinding='nameFilter'}}</td>
+      <td class='filter'></td>
+    </tr>
+    <tbody>
+      {{#each counterGroup in filteredData}}
+        <tr class='group-header'>
+          <td colspan='2'>{{unbound counterGroup.displayName}}</td>
+        </tr>
+        {{#each counter in counterGroup.counters}}
+          <tr>
+            <td>{{unbound counter.displayName}}</td>
+            <td>{{unbound counter.value}}</td>
+          </tr>
+        {{/each}}
+      {{/each}}
+    </tbody>
+  </thead>
+</table>

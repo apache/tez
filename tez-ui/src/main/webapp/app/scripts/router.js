@@ -66,6 +66,13 @@ App.ApplicationRoute = Em.Route.extend({
 	}
 });*/
 
+App.DagCountersRoute = App.VertexCountersRoute = 
+  App.TaskCountersRoute = App.TaskAttemptCountersRoute = Em.Route.extend({
+  renderTemplate: function() {
+    this.render('common/counters');
+  }
+});
+
 App.DagsRoute = Em.Route.extend({
   queryParams:  {
     count: {

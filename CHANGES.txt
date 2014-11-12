@@ -17,6 +17,7 @@ ALL CHANGES:
   TEZ-1751. Log view & download links in task and task attempt view.
   TEZ-1753. Queue in dags view.
   TEZ-1765. Allow dropdown lists in table filters.
+  TEZ-1606. Counters View for DAG, Vertex, and Task.
 
 Release 0.5.2: Unreleased
 

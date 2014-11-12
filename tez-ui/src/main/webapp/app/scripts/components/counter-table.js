@@ -16,68 +16,43 @@
  * limitations under the License.
  */
 
-App.CounterTableComponent = Ember.Table.EmberTableComponent.extend({
-	hasFooter: false,
-	hasHeader: true,
-	forceFillColumns: true,
-	data: null,
+App.CounterTableComponent = Em.Component.extend({
+  layoutName: 'components/counter-table',
+  nameFilter: null,
+  filteredData: function() {
+    var rawData = this.get('data') || [];
+    if (Em.isEmpty(this.nameFilter)) {
+      return rawData;
+    }
 
-	columns: function() {
-		var groupColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Group',
-      getCellContent: function(row) {
-      	return row.get('counterGroup');
+    var filtered = [],
+        filterStringRegex = new RegExp(this.nameFilter, 'i');
+
+    rawData.forEach(function(cg) {
+      var tmpcg = {
+        name: cg.get('name'),
+        displayName: cg.get('displayName'),
+        counters: []
+      };
+
+      var counters = cg.get('counters');
+
+      if (filterStringRegex.test(tmpcg.displayName)) {
+        // if counter group name matches, match all counters for the group
+        tmpcg.counters = counters;
+      } else {
+        counters.forEach(function(counter) {
+          if (filterStringRegex.test(counter.get('displayName'))) {
+            tmpcg.counters.push(counter);
+          }
+        });
       }
-    });
 
-		var nameColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Counter Name',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span {{bind-attr class=":ember-table-content view.cellContent.isCG:countertable-group-header:countertable-row"}}>\
-          	{{view.cellContent.name}}\
-           </span>')
-      }),
-      getCellContent: function(row) {
-      	return {
-      		isCG: row.get('counters') != undefined,
-      		name: row.get('name')
-      	};
-      }
-    });
+      filtered.push(tmpcg);
+    })
 
-		var valueColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Value',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span {{bind-attr class=":ember-table-content view.cellContent.isCG:countertable-group-header"}}>\
-          	{{view.cellContent.value}}\
-           </span>')
-      }),
-      getCellContent: function(row) {
-      	return {
-      		isCG: row.get('counters') != undefined,
-      		value: row.get('value')
-      	};
-      }
-    });
-
-    return [nameColumn, valueColumn];
-	}.property(),
-
-	content: function() {
-		var allCounters = [];
-		if (!!this.data) {
-			this.data.forEach(function(cg){
-				allCounters.push(cg);
-				[].push.apply(allCounters, cg.get('counters').content);
-			});
-		}
-		return allCounters;
-	}.property('data'),
+    return filtered;
+  }.property('data', 'nameFilter')
 });
 
 Em.Handlebars.helper('counter-table-component', App.CounterTableComponent);
