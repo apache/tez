@@ -47,6 +47,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -67,11 +68,14 @@ import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexFinishStateProto;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
@@ -215,6 +219,49 @@ public class TestVertexRecovery {
     return dag;
   }
 
+  private DAGPlan createDAGPlanSingleVertex() {
+    DAGPlan dag =
+        DAGPlan
+            .newBuilder()
+            .setName("testverteximpl")
+            .addVertex(
+                VertexPlan
+                    .newBuilder()
+                    .setName("vertex1")
+                    .setType(PlanVertexType.NORMAL)
+                    .addTaskLocationHint(
+                        PlanTaskLocationHint.newBuilder().addHost("host1")
+                            .addRack("rack1").build())
+                    .setTaskConfig(
+                        PlanTaskConfiguration.newBuilder().setNumTasks(-1)
+                            .setVirtualCores(4).setMemoryMb(1024)
+                            .setJavaOpts("").setTaskModule("x1.y1").build())
+                    .addInputs(RootInputLeafOutputProto.newBuilder()
+                            .setIODescriptor(
+                                TezEntityDescriptorProto.newBuilder()
+                                    .setClassName("input").build())
+                            .setName("inputx")
+                            .setControllerDescriptor(
+                                TezEntityDescriptorProto
+                                    .newBuilder()
+                                    .setClassName("inputinitlizer"))
+                            .build())
+                    .addOutputs(
+                        DAGProtos.RootInputLeafOutputProto
+                            .newBuilder()
+                            .setIODescriptor(
+                                TezEntityDescriptorProto.newBuilder()
+                                    .setClassName("output").build())
+                            .setName("outputx")
+                            .setControllerDescriptor(
+                                TezEntityDescriptorProto
+                                    .newBuilder()
+                                    .setClassName(
+                                        CountingOutputCommitter.class.getName())))
+                    .build()).build();
+    return dag;
+  }
+
   class VertexEventHanlder implements EventHandler<VertexEvent> {
 
     private List<VertexEvent> events = new ArrayList<VertexEvent>();
@@ -313,6 +360,44 @@ public class TestVertexRecovery {
     // no VertexEvent pass to downstream vertex
     assertEquals(0, vertexEventHandler.getEvents().size());
 
+  }
+
+  /**
+   * vertex1(New) -> StartRecoveryTransition(SUCCEEDED)
+   * @throws IOException 
+   */
+  @Test
+  public void testRecovery_Desired_SUCCEEDED_OnlySummaryLog() throws IOException {
+    DAGPlan dagPlan = createDAGPlanSingleVertex();
+    dag =
+        new DAGImpl(dagId, new Configuration(), dagPlan,
+            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            new Credentials(), new SystemClock(), user,
+            mock(TaskHeartbeatHandler.class), mockAppContext);
+    when(mockAppContext.getCurrentDAG()).thenReturn(dag);
+    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_INIT));
+
+    VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
+    VertexFinishedEvent vertexFinishEvent = new VertexFinishedEvent();
+    vertexFinishEvent.fromSummaryProtoStream(SummaryEventProto.newBuilder()
+        .setDagId(dag.getID().toString())
+        .setEventType(HistoryEventType.VERTEX_FINISHED.ordinal())
+        .setTimestamp(100L)
+        .setEventPayload(VertexFinishStateProto.newBuilder()
+            .setNumTasks(2)
+            .setState(VertexState.SUCCEEDED.ordinal())
+            .setVertexId(vertex1.getVertexId().toString()).build().toByteString())
+        .build());
+    VertexState recoveredState = vertex1.restoreFromEvent(vertexFinishEvent);
+    // numTasks is recovered from summary log
+    assertEquals(2, vertex1.numTasks);
+    assertEquals(VertexState.SUCCEEDED, recoveredState);
+    vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
+        VertexState.SUCCEEDED));
+    dispatcher.await();
+    assertEquals(VertexState.SUCCEEDED, vertex1.getState());
+    assertEquals(vertex1.numTasks, vertex1.succeededTaskCount);
+    assertEquals(vertex1.numTasks, vertex1.completedTaskCount);
   }
 
   /**
@@ -576,7 +661,7 @@ public class TestVertexRecovery {
     long finishTime = startTime + 100L;
     recoveredState =
         vertex1.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
-            "vertex1", initRequestedTime, initedTime, startRequestedTime,
+            "vertex1", 1, initRequestedTime, initedTime, startRequestedTime,
             startTime, finishTime, VertexState.SUCCEEDED, "",
             new TezCounters(), new VertexStats(), null));
     assertEquals(finishTime, vertex1.finishTime);
@@ -847,7 +932,7 @@ public class TestVertexRecovery {
     assertEquals(VertexState.RUNNING, recoveredState);
 
     recoveredState = vertex1.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
-        "vertex1", initRequestedTime, initedTime, initRequestedTime + 300L,
+        "vertex1", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
         initRequestedTime + 400L, initRequestedTime + 500L,
         VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats(), null));
     assertEquals(VertexState.SUCCEEDED, recoveredState);

@@ -140,7 +140,7 @@ public class TestHistoryEventTimelineConversion {
           event = new VertexParallelismUpdatedEvent(tezVertexID, 1, null, null, null, 1);
           break;
         case VERTEX_FINISHED:
-          event = new VertexFinishedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
+          event = new VertexFinishedEvent(tezVertexID, "v1", 1, random.nextInt(), random.nextInt(),
               random.nextInt(), random.nextInt(), random.nextInt(), VertexState.ERROR,
               null, null, null, null);
           break;
@@ -448,7 +448,7 @@ public class TestHistoryEventTimelineConversion {
     taskStats.put("BAR", 200);
     VertexStats vertexStats = new VertexStats();
 
-    VertexFinishedEvent event = new VertexFinishedEvent(tezVertexID, "v1", initRequestedTime,
+    VertexFinishedEvent event = new VertexFinishedEvent(tezVertexID, "v1", 1,initRequestedTime,
         initedTime, startRequestedTime, startTime, finishTime, VertexState.ERROR,
         "diagnostics", null, vertexStats, taskStats);
 
