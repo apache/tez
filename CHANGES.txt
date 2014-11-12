@@ -23,6 +23,7 @@ ALL CHANGES:
   TEZ-1761. TestRecoveryParser::testGetLastInProgressDAG fails in similar manner to TEZ-1686.
   TEZ-1687. Use logIdentifier of Vertex for logging.
   TEZ-1737. Should add taskNum in VertexFinishedEvent.
+  TEZ-1770. Handle ConnectExceptions correctly when establishing connections to an NM which may be down.
 
 Release 0.5.2: 2014-11-07
 

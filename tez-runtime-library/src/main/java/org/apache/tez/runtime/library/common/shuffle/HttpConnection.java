@@ -156,12 +156,14 @@ public class HttpConnection {
     connection.setConnectTimeout(unit);
     int connectionFailures = 0;
     while (true) {
+      long connectStartTime = System.currentTimeMillis();
       try {
         connection.connect();
         connectionSucceeed = true;
         break;
       } catch (IOException ioe) {
         // Don't attempt another connect if already cleanedup.
+        connectionFailures++;
         if (cleanup) {
           LOG.info("Cleanup is set to true. Not attempting to"
               + " connect again. Last exception was: ["
@@ -173,15 +175,32 @@ public class HttpConnection {
         // throw an exception if we have waited for timeout amount of time
         // note that the updated value if timeout is used here
         if (connectionTimeout <= 0) {
-          throw ioe;
+          throw new IOException(
+              "Failed to connect to " + url + ", #connectionFailures=" + connectionFailures, ioe);
         }
+        long elapsed = System.currentTimeMillis() - connectStartTime;
+        if (elapsed < unit) {
+          try {
+            long sleepTime = unit - elapsed;
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Sleeping for " + sleepTime + " while establishing connection to " + url +
+                  ", since connectAttempt returned in " + elapsed + " ms");
+            }
+            Thread.sleep(sleepTime);
+          } catch (InterruptedException e) {
+            throw new IOException(
+                "Connection establishment sleep interrupted, #connectionFailures=" +
+                    connectionFailures, e);
+          }
+        }
+
         // reset the connect timeout for the last try
         if (connectionTimeout < unit) {
           unit = connectionTimeout;
           // reset the connect time out for the final connect
           connection.setConnectTimeout(unit);
         }
-        connectionFailures++;
+
       }
     }
     if (LOG.isDebugEnabled()) {
