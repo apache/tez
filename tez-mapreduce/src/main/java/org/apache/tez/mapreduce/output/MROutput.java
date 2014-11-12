@@ -66,6 +66,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Output;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 /**
  * {@link MROutput} is an {@link Output} which allows key/values pairs
@@ -183,6 +184,11 @@ public class MROutput extends AbstractLogicalOutput {
           OutputDescriptor.create(outputClassName).setUserPayload(createUserPayload()),
           (doCommit ? OutputCommitterDescriptor.create(
               MROutputCommitter.class.getName()) : null), null);
+      if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+          TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+        ds.getOutputDescriptor().setHistoryText(TezUtils.convertToHistoryText(conf));
+      }
+
       if (uris != null) {
         ds.addURIsForCredentials(uris);
       }

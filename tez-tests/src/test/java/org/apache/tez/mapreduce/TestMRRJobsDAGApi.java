@@ -77,6 +77,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -118,6 +119,7 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
 import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
@@ -691,8 +693,12 @@ public class TestMRRJobsDAGApi {
     Vertex stage3Vertex = Vertex.create("reduce", ProcessorDescriptor.create(
             ReduceProcessor.class.getName()).setUserPayload(stage3Payload),
         1, Resource.newInstance(256, 1));
-    stage3Vertex.addDataSink("MROutput",
-        MROutputLegacy.createConfigBuilder(stage3Conf, NullOutputFormat.class).build());
+    stage3Conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+        true);
+    DataSinkDescriptor dataSinkDescriptor =
+        MROutputLegacy.createConfigBuilder(stage3Conf, NullOutputFormat.class).build();
+    Assert.assertFalse(dataSinkDescriptor.getOutputDescriptor().getHistoryText().isEmpty());
+    stage3Vertex.addDataSink("MROutput", dataSinkDescriptor);
 
     // TODO env, resources
 

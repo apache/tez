@@ -139,6 +139,14 @@ public class UnorderedPartitionedKVOutputConfig {
     }
   }
 
+  @InterfaceAudience.Private
+  String toHistoryText() {
+    if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+      return TezUtils.convertToHistoryText(conf);
+    }
+    return null;
+  }
 
   public static Builder newBuilder(String keyClass, String valClass, String partitionerClassName) {
     return newBuilder(keyClass, valClass, partitionerClassName, null);

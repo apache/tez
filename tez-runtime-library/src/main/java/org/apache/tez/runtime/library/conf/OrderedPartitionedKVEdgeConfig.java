@@ -104,6 +104,16 @@ public class OrderedPartitionedKVEdgeConfig
   }
 
   @Override
+  public String getOutputHistoryText() {
+    return outputConf.toHistoryText();
+  }
+
+  @Override
+  public String getInputHistoryText() {
+    return inputConf.toHistoryText();
+  }
+
+  @Override
   public String getInputClassName() {
     return inputConf.getInputClassName();
   }
@@ -123,6 +133,7 @@ public class OrderedPartitionedKVEdgeConfig
             getOutputClassName()).setUserPayload(getOutputPayload()),
         InputDescriptor.create(
             getInputClassName()).setUserPayload(getInputPayload()));
+    Utils.setEdgePropertyHistoryText(this, edgeProperty);
     return edgeProperty;
   }
 
@@ -140,6 +151,7 @@ public class OrderedPartitionedKVEdgeConfig
             EdgeProperty.SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(getOutputClassName()).setUserPayload(getOutputPayload()),
             InputDescriptor.create(getInputClassName()).setUserPayload(getInputPayload()));
+    Utils.setEdgePropertyHistoryText(this, edgeProperty);
     return edgeProperty;
   }
 

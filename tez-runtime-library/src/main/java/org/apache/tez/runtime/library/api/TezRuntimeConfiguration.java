@@ -294,6 +294,13 @@ public class TezRuntimeConfiguration {
   // TODO TEZ-1233 - allow this property to be set per vertex
   // TODO TEZ-1231 - move these properties out since they are not relevant for Inputs / Outputs
 
+  /**
+   * Value: Boolean
+   * Whether to publish configuration information to History logger. Default false.
+   */
+  public static final String TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT =
+      TEZ_RUNTIME_PREFIX + "convert.user-payload.to.history-text";
+  public static final boolean TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT = false;
 
   @Unstable
   @Private
@@ -345,6 +352,7 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);
     tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH);
     tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH);
+    tezRuntimeKeys.add(TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT);
 
     defaultConf.addResource("core-default.xml");
     defaultConf.addResource("core-site.xml");

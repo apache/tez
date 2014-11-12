@@ -50,7 +50,6 @@ public class ATSConstants {
   public static final String APP_SUBMIT_TIME = "appSubmitTime";
 
   /* Tez-specific info */
-  public static final String CONFIG = "config";
   public static final String DAG_PLAN = "dagPlan";
   public static final String DAG_NAME = "dagName";
   public static final String VERTEX_NAME = "vertexName";
@@ -99,4 +98,9 @@ public class ATSConstants {
       "yarn.timeline-service.webapp.address";
   public static final String TIMELINE_SERVICE_WEBAPP_HTTPS_ADDRESS_CONF_NAME =
       "yarn.timeline-service.webapp.https.address";
+
+  /* History text related Keys */
+  public static final String DESCRIPTION = "desc";
+  public static final String CONFIG = "config";
+
 }

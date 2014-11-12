@@ -103,9 +103,11 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
           // Log the size of the event-queue every so often.
           if (eventCounter != 0 && eventCounter % 1000 == 0) {
-            LOG.info("Event queue stats"
-                + ", eventsProcessedSinceLastUpdate=" + eventsProcessed
-                + ", eventQueueSize=" + eventQueue.size());
+            if (eventsProcessed != 0 && !events.isEmpty()) {
+              LOG.info("Event queue stats"
+                  + ", eventsProcessedSinceLastUpdate=" + eventsProcessed
+                  + ", eventQueueSize=" + eventQueue.size());
+            }
             eventCounter = 0;
             eventsProcessed = 0;
           } else {

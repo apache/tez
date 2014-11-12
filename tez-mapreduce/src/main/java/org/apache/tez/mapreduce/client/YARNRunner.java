@@ -420,6 +420,11 @@ public class YARNRunner implements ClientProtocol {
     Vertex vertex = Vertex.create(vertexName,
         ProcessorDescriptor.create(processorName).setUserPayload(vertexUserPayload),
         numTasks, taskResource);
+    if (stageConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+      vertex.getProcessorDescriptor().setHistoryText(TezUtils.convertToHistoryText(stageConf));
+    }
+
     if (isMap) {
       vertex.addDataSource("MRInput",
           configureMRInputWithLegacySplitsGenerated(stageConf, true));
@@ -428,6 +433,10 @@ public class YARNRunner implements ClientProtocol {
     if (stageNum == totalStages -1) {
       OutputDescriptor od = OutputDescriptor.create(MROutputLegacy.class.getName())
           .setUserPayload(vertexUserPayload);
+      if (stageConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+          TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+        od.setHistoryText(TezUtils.convertToHistoryText(stageConf));
+      }
       vertex.addDataSink("MROutput", DataSinkDescriptor.create(od,
           OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), null));
     }
@@ -806,6 +815,11 @@ public class YARNRunner implements ClientProtocol {
     }
 
     DataSourceDescriptor dsd = DataSourceDescriptor.create(inputDescriptor, null, null);
+    if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+      dsd.getInputDescriptor().setHistoryText(TezUtils.convertToHistoryText(conf));
+    }
+
     return dsd;
   }
 
