@@ -136,6 +136,7 @@ message VertexFinishedProto {
   optional int64 finish_time = 3;
   optional int32 state = 4;
   optional string diagnostics = 5;
+  optional int32 num_tasks = 6;
 }
 
 message TaskStartedProto {
