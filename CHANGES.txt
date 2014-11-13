@@ -10,6 +10,7 @@ ALL CHANGES:
   TEZ-1738. Tez tfile parser for log parsing
   TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
   TEZ-1736. Add support for Inputs/Outputs in runtime-library to generate history text data.
+  TEZ-1774. AppLaunched event for Timeline does not have start time set.
 
 Release 0.5.3: Unreleased
 
