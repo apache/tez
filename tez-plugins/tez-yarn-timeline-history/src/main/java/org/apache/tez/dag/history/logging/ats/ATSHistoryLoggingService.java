@@ -255,10 +255,15 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
           timelineClient.putEntities(entities);
       if (response != null
         && !response.getErrors().isEmpty()) {
-        TimelinePutError err = response.getErrors().get(0);
-        if (err.getErrorCode() != 0) {
-          LOG.warn("Could not post history events to ATS"
-              + ", atsPutError=" + err.getErrorCode());
+        int count = response.getErrors().size();
+        for (int i = 0; i < count; ++i) {
+          TimelinePutError err = response.getErrors().get(i);
+          if (err.getErrorCode() != 0) {
+            LOG.warn("Could not post history event to ATS"
+                + ", atsPutError=" + err.getErrorCode()
+                + ", entityId=" + entities[i].getEntityId()
+                + ", eventType=" + events.get(i).getHistoryEvent().getEventType());
+          }
         }
       }
       // Do nothing additional, ATS client library should handle throttling

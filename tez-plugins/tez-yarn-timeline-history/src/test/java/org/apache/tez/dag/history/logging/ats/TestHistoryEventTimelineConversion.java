@@ -205,6 +205,8 @@ public class TestHistoryEventTimelineConversion {
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
 
+    Assert.assertEquals(launchTime, timelineEntity.getStartTime().longValue());
+
     Assert.assertEquals(EntityTypes.TEZ_APPLICATION.name(), timelineEntity.getEntityType());
     Assert.assertEquals("tez_" + applicationId.toString(), timelineEntity.getEntityId());
 
@@ -404,6 +406,8 @@ public class TestHistoryEventTimelineConversion {
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
     Assert.assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
+
+    Assert.assertEquals(initedTime, timelineEntity.getStartTime().longValue());
 
     Assert.assertEquals(1, timelineEntity.getRelatedEntities().size());
     Assert.assertTrue(

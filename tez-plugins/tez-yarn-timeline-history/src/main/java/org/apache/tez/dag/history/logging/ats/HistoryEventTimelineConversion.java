@@ -142,6 +142,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.CONFIG,
         DAGUtils.convertConfigurationToATSMap(event.getConf()));
 
+    atsEntity.setStartTime(event.getLaunchTime());
+
     return atsEntity;
   }
 
@@ -529,6 +531,8 @@ public class HistoryEventTimelineConversion {
     initEvt.setEventType(HistoryEventType.VERTEX_INITIALIZED.name());
     initEvt.setTimestamp(event.getInitedTime());
     atsEntity.addEvent(initEvt);
+
+    atsEntity.setStartTime(event.getInitedTime());
 
     atsEntity.addOtherInfo(ATSConstants.VERTEX_NAME, event.getVertexName());
     atsEntity.addOtherInfo(ATSConstants.INIT_REQUESTED_TIME, event.getInitRequestedTime());
