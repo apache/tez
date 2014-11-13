@@ -15,6 +15,7 @@ ALL CHANGES:
   TEZ-1687. Use logIdentifier of Vertex for logging.
   TEZ-1737. Should add taskNum in VertexFinishedEvent.
   TEZ-1770. Handle ConnectExceptions correctly when establishing connections to an NM which may be down.
+  TEZ-1774. AppLaunched event for Timeline does not have start time set.
 
 Release 0.5.2: 2014-11-07
 
