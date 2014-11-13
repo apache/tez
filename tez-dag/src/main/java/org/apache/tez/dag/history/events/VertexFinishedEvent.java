@@ -98,6 +98,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
     VertexFinishedProto.Builder builder = VertexFinishedProto.newBuilder();
     builder.setVertexName(vertexName)
         .setVertexId(vertexID.toString())
+        .setNumTasks(numTasks)
         .setState(state.ordinal())
         .setFinishTime(finishTime);
     if (diagnostics != null) {
@@ -109,6 +110,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
   public void fromProto(VertexFinishedProto proto) {
     this.vertexName = proto.getVertexName();
     this.vertexID = TezVertexID.fromString(proto.getVertexId());
+    this.numTasks = proto.getNumTasks();
     this.finishTime = proto.getFinishTime();
     this.state = VertexState.values()[proto.getState()];
     if (proto.hasDiagnostics())  {
