@@ -10,6 +10,8 @@ ALL CHANGES:
   TEZ-1738. Tez tfile parser for log parsing
   TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
   TEZ-1736. Add support for Inputs/Outputs in runtime-library to generate history text data.
+  TEZ-1721. Update INSTALL instructions for clarifying tez client jars
+    compatibility with runtime tarball on HDFS.
 
 Release 0.5.3: Unreleased
 

@@ -59,6 +59,10 @@ Replace x.y.z with the tez release number that you are using. E.g. 0.5.0
             ```
         -   Ensure tez.use.cluster.hadoop-libs is not set in tez-site.xml,
             or if it is set, the value should be false
+    -  Please note that the tarball version should match the version of
+       the client jars used when submitting Tez jobs to the cluster.
+       Please refer to the [Version Compatibility Guide](https://cwiki.apache.org/confluence/display/TEZ/Version+Compatibility)
+       for more details on version compatibility and detecting mismatches.
 4.  Optional: If running existing MapReduce jobs on Tez. Modify
     mapred-site.xml to change "mapreduce.framework.name" property from
     its default value of "yarn" to "yarn-tez"
