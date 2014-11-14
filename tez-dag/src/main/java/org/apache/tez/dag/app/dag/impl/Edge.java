@@ -190,7 +190,7 @@ public class Edge {
   public void setSourceVertex(Vertex sourceVertex) {
     if (this.sourceVertex != null && this.sourceVertex != sourceVertex) {
       throw new TezUncheckedException("Source vertex exists: "
-          + sourceVertex.getLogIdentifier());
+          + sourceVertex.getName());
     }
     this.sourceVertex = sourceVertex;
   }
@@ -199,7 +199,7 @@ public class Edge {
     if (this.destinationVertex != null
         && this.destinationVertex != destinationVertex) {
       throw new TezUncheckedException("Destination vertex exists: "
-          + destinationVertex.getLogIdentifier());
+          + destinationVertex.getName());
     }
     this.destinationVertex = destinationVertex;
   }
@@ -277,7 +277,7 @@ public class Edge {
         Task srcTask = sourceVertex.getTask(srcTaskIndex);
         if (srcTask == null) {
           throw new TezUncheckedException("Unexpected null task." +
-              " sourceVertex=" + sourceVertex.getLogIdentifier() +
+              " sourceVertex=" + sourceVertex.getVertexId() +
               " srcIndex = " + srcTaskIndex +
               " destAttemptId=" + destAttemptId +
               " destIndex=" + destTaskIndex + 
@@ -355,9 +355,9 @@ public class Edge {
         Task destTask = destinationVertex.getTask(destTaskIndex);
         if (destTask == null) {
           throw new TezUncheckedException("Unexpected null task." +
-              " sourceVertex=" + sourceVertex.getLogIdentifier() +
+              " sourceVertex=" + sourceVertex.getVertexId() +
               " srcTaskIndex = " + srcTaskIndex +
-              " destVertex=" + destinationVertex.getLogIdentifier() +
+              " destVertex=" + destinationVertex.getVertexId() +
               " destTaskIndex=" + destTaskIndex + 
               " destNumTasks=" + destinationVertex.getTotalTasks() + 
               " edgeManager=" + edgeManager.getClass().getName());
@@ -453,9 +453,9 @@ public class Edge {
 
   private String generateCommonDebugString(int srcTaskIndex, TezEvent tezEvent) {
     return new StringBuilder()
-        .append(" sourceVertex=").append(sourceVertex.getLogIdentifier())
+        .append(" sourceVertex=").append(sourceVertex.getVertexId())
         .append(" srcIndex = ").append(srcTaskIndex)
-        .append(" destAttemptId=").append(destinationVertex.getLogIdentifier())
+        .append(" destAttemptId=").append(destinationVertex.getVertexId())
         .append(" edgeManager=").append(edgeManager.getClass().getName())
         .append(" Event type=").append(tezEvent.getEventType()).toString();
   }
