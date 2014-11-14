@@ -43,7 +43,6 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
 
   private TezVertexID vertexID;
   private String vertexName;
-  private int numTasks;
   private long initRequestedTime;
   private long initedTime;
   private long startRequestedTime;
@@ -56,14 +55,13 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
   private VertexStats vertexStats;
   private Map<String, Integer> vertexTaskStats;
 
-  public VertexFinishedEvent(TezVertexID vertexId, String vertexName, int numTasks, long initRequestedTime,
+  public VertexFinishedEvent(TezVertexID vertexId, String vertexName, long initRequestedTime,
                              long initedTime, long startRequestedTime, long startedTime,
                              long finishTime, VertexState state, String diagnostics,
                              TezCounters counters, VertexStats vertexStats,
                              Map<String, Integer> vertexTaskStats) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
-    this.numTasks = numTasks;
     this.initRequestedTime = initRequestedTime;
     this.initedTime = initedTime;
     this.startRequestedTime = startRequestedTime;
@@ -184,17 +182,12 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
     return vertexTaskStats;
   }
 
-  public int getNumTasks() {
-    return numTasks;
-  }
-
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     VertexFinishStateProto finishStateProto =
         VertexFinishStateProto.newBuilder()
             .setState(state.ordinal())
             .setVertexId(vertexID.toString())
-            .setNumTasks(numTasks)
             .build();
 
     SummaryEventProto.Builder builder = RecoveryProtos.SummaryEventProto.newBuilder()
@@ -212,7 +205,6 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
         VertexFinishStateProto.parseFrom(proto.getEventPayload());
     this.vertexID = TezVertexID.fromString(finishStateProto.getVertexId());
     this.state = VertexState.values()[finishStateProto.getState()];
-    this.numTasks = finishStateProto.getNumTasks();
     this.finishTime = proto.getTimestamp();
     this.fromSummary = true;
   }
