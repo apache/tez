@@ -148,8 +148,6 @@ App.DagSerializer = App.TimelineSerializer.extend({
   },
 });
 
-var containerIdRegex = /.*(container_.*?)\/.*/;
-var nodeIdRegex = /([^\/]*)\//;
 var timelineJsonToTaskAttemptMap = {
   id: 'entity',
   startTime: 'otherinfo.startTime',
@@ -163,20 +161,9 @@ var timelineJsonToTaskAttemptMap = {
 
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
-  containerId: { custom: function (source) {
-    var inProgressLogsURL = Em.get(source, 'otherinfo.inProgressLogsURL');
-    var match = containerIdRegex.exec(inProgressLogsURL);
-    return match[1];
-  }},
-  nodeId: {
-    custom: function(source) {
-      var inProgressLogsURL = Em.get(source, 'otherinfo.inProgressLogsURL');
-      var match = nodeIdRegex.exec(inProgressLogsURL);
-      return match[1];
-    }
-  }
+  containerId: 'otherinfo.containerId',
+  nodeId: 'otherinfo.nodeId'
 };
-
 
 App.TaskAttemptSerializer = App.TimelineSerializer.extend({
   _normalizeSingleTaskAttemptPayload: function(taskAttempt) {
@@ -229,7 +216,6 @@ var timelineJsonToTaskMap = {
   counterGroups: 'counterGroups',
   successfulAttemptId: 'otherinfo.successfulAttemptId',
   attempts: 'relatedentities.TEZ_TASK_ATTEMPT_ID',
-  vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   numAttempts: 'relatedentities'
 };
@@ -281,6 +267,7 @@ var timelineJsonToVertexMap = {
   id: 'entity',
   name: 'otherinfo.vertexName',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
+  processorClassName: 'otherinfo.stats.processorClassName',
   counterGroups: 'counterGroups',
 
   startTime: 'otherinfo.startTime',
@@ -293,6 +280,19 @@ var timelineJsonToVertexMap = {
   sucessfulTasks: 'otherinfo.numSucceededTasks',
   numTasks: 'otherinfo.numTasks',
   killedTasks: 'otherinfo.numKilledTasks',
+
+  firstTaskStartTime: 'otherinfo.stats.firstTaskStartTime',
+  lastTaskFinishTime:  'otherinfo.stats.lastTaskFinishTime',
+
+  firstTasksToStart:  'otherinfo.stats.firstTasksToStart',
+  lastTasksToFinish:  'otherinfo.stats.lastTasksToFinish',
+
+  minTaskDuration:  'otherinfo.stats.minTaskDuration',
+  maxTaskDuration:  'otherinfo.stats.maxTaskDuration',
+  avgTaskDuration:  'otherinfo.stats.avgTaskDuration',
+
+  shortestDurationTasks:  'otherinfo.stats.shortestDurationTasks',
+  longestDurationTasks:  'otherinfo.stats.longestDurationTasks'
 };
 
 App.VertexSerializer = App.TimelineSerializer.extend({

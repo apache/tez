@@ -53,12 +53,15 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       that.set('entities', entities);
       var pivotLoaders = [];
       entities.forEach(function (task) {
-        // Pivot attempt selection logic
-        fetcher = store.find('taskAttempt', task.get('successfulAttemptId') || task.get('attempts').lastObject );
-        fetcher.then(function (attempt) {
-          task.set('pivotAttempt', attempt);
-        });
-        pivotLoaders.push(fetcher);
+        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts').lastObject;
+        if (!!taskAttemptId) {
+          // Pivot attempt selection logic
+          fetcher = store.find('taskAttempt', taskAttemptId);
+          fetcher.then(function (attempt) {
+            task.set('pivotAttempt', attempt);
+          });
+          pivotLoaders.push(fetcher);
+        }
       });
       Em.RSVP.allSettled(pivotLoaders).then(function(){
         that.set('loading', false);
@@ -104,8 +107,15 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       }
     });
 
-    var runTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Run Time',
+    var endTimeCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'End Time',
+      getCellContent: function(row) {
+        return App.Helpers.date.dateFormat(row.get('endTime'));
+      }
+    });
+
+    var durationCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'Duration',
       getCellContent: function(row) {
         var st = row.get('startTime');
         var et = row.get('endTime');
@@ -170,6 +180,6 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       }
     });
 
-		return [idCol, vertexCol, startTimeCol, runTimeCol, statusCol, actionsCol, logs];
+		return [idCol, vertexCol, startTimeCol, endTimeCol, durationCol, statusCol, actionsCol, logs];
 	}.property(),
 });

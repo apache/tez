@@ -24,10 +24,9 @@ App.TezAppConfigsController = Em.ObjectController.extend(App.PaginatedContentMix
   value: null,
 
   loadEntities: function() {
-    var that = this,
     count = 0,
     filter = this.getFilterProperties(),
-    configs = configs = this.get('configs').content,
+    configs = this.get('configs').content,
     filtered = [],
     i = 0;
 
@@ -39,7 +38,7 @@ App.TezAppConfigsController = Em.ObjectController.extend(App.PaginatedContentMix
 
     // Filter the available data
     for(; i < configs.length && filtered.length < filter.limit; i++){
-      if((that.key === null || configs[i].get('key').indexOf(that.key) !=-1) && (that.value === null || configs[i].get('value').indexOf(that.value) != -1)) {
+      if((this.key === null || configs[i].get('key').indexOf(this.key) !=-1) && (this.value === null || configs[i].get('value').indexOf(this.value) != -1)) {
         filtered.push(configs[i]);
       }
     }

@@ -33,9 +33,6 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
   }
 });
 
-require('scripts/router');
-require('scripts/store');
-
 App.Helpers = Em.Namespace.create();
 App.Mappers = Em.Namespace.create();
 
@@ -64,6 +61,8 @@ Ember.Application.initializer({
 require('scripts/translations');
 require('scripts/mixins/*');
 require('scripts/helpers/*');
+require('scripts/router');
+require('scripts/store');
 require('scripts/views/**/*');
 require('scripts/models/**/*');
 require('scripts/mappers/server_data_mapper.js');

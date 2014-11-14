@@ -31,7 +31,9 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
     count: true,
     fromID: true,
     status_filter: 'status',
-    user_filter: 'user'
+    user_filter: 'user',
+    appId_filter: 'appid',
+    dagName_filter: 'dag_name'
   },
 
   // paging related values. These are bound automatically to the values in url. via the queryParams
@@ -44,15 +46,21 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
 
   user_filter: null,
 
+  appId_filter: null,
+
+  dagName_filter: null,
+
   fields: 'events,primaryfilters,otherinfo',
 
   // The dropdown contents for number of items to show.
-  countOptions: [5, 10, 25, 50, 100],
+  countOptions: [5, 10, 25, 50],
 
   loadData: function() {
     var filters = {
       primary: {
-        user: this.user_filter
+        user: this.user_filter,
+        applicationId: this.appId_filter,
+        dagName: this.dagName_filter
       },
       secondary: {
         status: this.status_filter
@@ -114,12 +122,13 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       });
     }
 
-    var nameCol = App.ExTable.ColumnDefinition.create({
+    var nameCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, {
       textAlign: 'text-align-left',
       headerCellName: 'Dag Name',
+      filterID: 'dagName_filter',
       tableCellViewClass: Em.Table.TableCell.extend({
       	template: Em.Handlebars.compile(
-          "{{#link-to 'dag' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
+          "{{#link-to 'dag.vertices' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
       }),
       getCellContent: function(row) {
       	return {
@@ -154,16 +163,23 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
         };
       }
     });
-    var submittedTimeCol = App.ExTable.ColumnDefinition.create({
+    var startTime = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Submitted Time',
+      headerCellName: 'Start Time',
       getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('submittedTime'));
+        return App.Helpers.date.dateFormat(row.get('startTime'));
       }
     });
-    var runTimeCol = App.ExTable.ColumnDefinition.create({
+    var endTime = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Run Time',
+      headerCellName: 'End Time',
+      getCellContent: function(row) {
+        return App.Helpers.date.dateFormat(row.get('endTime'));
+      }
+    });
+    var durationCol = App.ExTable.ColumnDefinition.create({
+      textAlign: 'text-align-left',
+      headerCellName: 'Duration',
       getCellContent: function(row) {
         var st = row.get('startTime');
         var et = row.get('endTime');
@@ -172,9 +188,10 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
         }
       }
     });
-    var appIdCol = App.ExTable.ColumnDefinition.create({
+    var appIdCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, {
       textAlign: 'text-align-left',
       headerCellName: 'Application ID',
+      filterID: 'appId_filter',
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
           "{{#link-to 'tez-app' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
@@ -190,7 +207,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
         return (row.get('app') && row.get('app').get('queue')) || 'Not Available';
       }
     });
-    return [nameCol, idCol, userCol, statusCol, submittedTimeCol, runTimeCol, appIdCol, queue];
+    return [nameCol, idCol, userCol, statusCol, startTime, endTime, durationCol, appIdCol, queue];
   }.property(),
 
 

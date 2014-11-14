@@ -75,22 +75,12 @@ App.DagCountersRoute = App.VertexCountersRoute =
 
 App.DagsRoute = Em.Route.extend({
   queryParams:  {
-    count: {
-      refreshModel: true,
-      replace: true
-    },
-    fromID: {
-      refreshModel: true,
-      replace: true
-    },
-    user: {
-      refreshModel: true,
-      replace: true
-    },
-    status: {
-    refreshModel: true,
-      replace: true
-    }
+    count: App.Helpers.misc.defaultQueryParamsConfig,
+    fromID: App.Helpers.misc.defaultQueryParamsConfig,
+    user: App.Helpers.misc.defaultQueryParamsConfig,
+    status: App.Helpers.misc.defaultQueryParamsConfig,
+    appid: App.Helpers.misc.defaultQueryParamsConfig,
+    dag_name: App.Helpers.misc.defaultQueryParamsConfig
   },
 
   setupController: function(controller, model) {
@@ -125,18 +115,9 @@ App.DagSwimlaneRoute = Em.Route.extend({
 
 App.TasksRoute = Em.Route.extend({
   queryParams: {
-    status: {
-      refreshModel: true,
-      replace: true
-    },
-    parentType: {
-      refreshModel: true,
-      replace: true
-    },
-    parentID: {
-      refreshModel: true,
-      replace: true
-    }
+    status: App.Helpers.misc.defaultQueryParamsConfig,
+    parentType: App.Helpers.misc.defaultQueryParamsConfig,
+    parentID: App.Helpers.misc.defaultQueryParamsConfig
   },
 
   setupController: function(controller, model) {
@@ -168,11 +149,9 @@ App.VertexRoute = Em.Route.extend({
 App.VertexSwimlaneRoute = Em.Route.extend({
   model: function(params) {
     var model = this.modelFor('vertex');
-    var queryParams = {'primaryFilter': 'TEZ_DAG_ID:' + model.get('dagID') };
+    var queryParams = {'primaryFilter': 'TEZ_VERTEX_ID:' + model.id };
     this.store.unloadAll('task_attempt');
-    return this.store.filter('task_attempt', queryParams, function(ta) {
-      return ta.get('vertexID') == model.id;
-    });
+    return this.store.find('task_attempt', queryParams);
   },
 
   setupController: function(controller, model) {
@@ -182,14 +161,8 @@ App.VertexSwimlaneRoute = Em.Route.extend({
 
 App.DagTasksRoute = Em.Route.extend({
   queryParams: {
-    status: {
-      refreshModel: true,
-      replace: true
-    },
-    vertex_id: {
-      refreshModel: true,
-      replace: true
-    }
+    status: App.Helpers.misc.defaultQueryParamsConfig,
+    vertex_id: App.Helpers.misc.defaultQueryParamsConfig 
   },
 
   setupController: function(controller, model) {
@@ -200,10 +173,7 @@ App.DagTasksRoute = Em.Route.extend({
 
 App.DagVerticesRoute = Em.Route.extend({
   queryParams: {
-    status: {
-      refreshModel: true,
-      replace: true
-    }
+    status: App.Helpers.misc.defaultQueryParamsConfig 
   },
 
   setupController: function(controller, model) {
@@ -214,10 +184,7 @@ App.DagVerticesRoute = Em.Route.extend({
 
 App.VertexTasksRoute = Em.Route.extend({
   queryParams: {
-    status: {
-      refreshModel: true,
-      replace: true
-    }
+    status: App.Helpers.misc.defaultQueryParamsConfig
   },
 
   setupController: function(controller, model) {
@@ -228,10 +195,7 @@ App.VertexTasksRoute = Em.Route.extend({
 
 App.TaskAttemptsRoute = Em.Route.extend({
   queryParams: {
-    status: {
-      refreshModel: true,
-      replace: true
-    }
+    status: App.Helpers.misc.defaultQueryParamsConfig 
   },
 
   setupController: function(controller, model) {
@@ -254,22 +218,10 @@ App.TezAppRoute = Em.Route.extend({
 
 App.TezAppDagsRoute = Em.Route.extend({
   queryParams:  {
-    count: {
-      refreshModel: true,
-      replace: true
-    },    
-    fromID: {
-      refreshModel: true,
-      replace: true
-    },
-    user: {
-      refreshModel: true,
-      replace: true
-    },
-    status: {
-      refreshModel: true,
-      replace: true
-    }
+    count: App.Helpers.misc.defaultQueryParamsConfig,    
+    fromID: App.Helpers.misc.defaultQueryParamsConfig,
+    user: App.Helpers.misc.defaultQueryParamsConfig,
+    status: App.Helpers.misc.defaultQueryParamsConfig
   },
 
   setupController: function(controller, model) {

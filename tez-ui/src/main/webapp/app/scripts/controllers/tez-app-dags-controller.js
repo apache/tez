@@ -30,7 +30,6 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
   user_filter: null,
 
   loadData: function() {
-    console.log(new Error().stack);
     var filters = {
       primary: {
         applicationId: this.get('appId'),
@@ -120,19 +119,18 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
         return App.Helpers.date.dateFormat(row.get('submittedTime'));
       }
     });
-    var runTimeCol = App.ExTable.ColumnDefinition.create({
+    var durationCol = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
-      headerCellName: 'Run Time',
+      headerCellName: 'Duration',
       getCellContent: function(row) {
         var st = row.get('startTime');
         var et = row.get('endTime');
-        console.log(st, et);
         if (st && et) {
           return App.Helpers.date.durationSummary(st, et);
         }
       }
     });
-    return [nameCol, idCol, userCol, statusCol, submittedTimeCol, runTimeCol];
+    return [nameCol, idCol, userCol, statusCol, submittedTimeCol, durationCol];
   }.property(),
 
 });

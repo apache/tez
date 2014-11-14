@@ -73,20 +73,23 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
     });
 
     var startTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Submission Time',
+      headerCellName: 'Start Time',
       getCellContent: function(row) {
       	return App.Helpers.date.dateFormat(row.get('startTime'));
       }
     });
 
-    var runTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Run Time',
+    var endTimeCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'End Time',
       getCellContent: function(row) {
-        var st = row.get('startTime');
-        var et = row.get('endTime');
-        if (st && et) {
-          return App.Helpers.date.durationSummary(st, et);
-        }
+        return App.Helpers.date.dateFormat(row.get('endTime'));
+      }
+    });
+
+    var firstTaskStartTime = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'First Task Start Time',
+      getCellContent: function(row) {
+        return App.Helpers.date.dateFormat(row.get('firstTaskStartTime'));
       }
     });
 
@@ -114,6 +117,6 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
       }
     });
 
-		return [idCol, nameCol, startTimeCol, runTimeCol, numTasksCol, statusCol];
+		return [idCol, nameCol, startTimeCol, endTimeCol, firstTaskStartTime, statusCol, numTasksCol];
 	}.property(),
 });

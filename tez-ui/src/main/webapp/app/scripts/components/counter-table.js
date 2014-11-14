@@ -35,20 +35,17 @@ App.CounterTableComponent = Em.Component.extend({
         counters: []
       };
 
-      var counters = cg.get('counters');
+      var counters = cg.get('counters') || [];
+      counters.forEach(function(counter) {
+        if (filterStringRegex.test(counter.get('displayName'))) {
+          tmpcg.counters.push(counter);
+        }
+      });
 
-      if (filterStringRegex.test(tmpcg.displayName)) {
-        // if counter group name matches, match all counters for the group
-        tmpcg.counters = counters;
-      } else {
-        counters.forEach(function(counter) {
-          if (filterStringRegex.test(counter.get('displayName'))) {
-            tmpcg.counters.push(counter);
-          }
-        });
+      // show counter groups only if filter match is not empty.
+      if (tmpcg.counters.length > 0) {
+        filtered.push(tmpcg);
       }
-
-      filtered.push(tmpcg);
     })
 
     return filtered;

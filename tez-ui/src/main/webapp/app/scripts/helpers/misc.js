@@ -101,4 +101,9 @@ App.Helpers.misc = {
     { label: 'Killed', id: 'KILLED' },
   ],
 
+  defaultQueryParamsConfig: {
+    refreshModel: true,
+    replace: true
+  }
+
 }

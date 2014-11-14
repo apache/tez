@@ -118,6 +118,26 @@ App.Vertex = DS.Model.extend({
 
   endTime: DS.attr('number'),
 
+  firstTaskStartTime: DS.attr('number'),
+
+  firstTasksToStart: DS.attr('string'),
+
+  lastTaskFinishTime: DS.attr('number'),
+
+  lastTasksToFinish: DS.attr('string'),
+
+  minTaskDuration: DS.attr('number'),
+
+  maxTaskDuration: DS.attr('number'),
+
+  avgTaskDuration: DS.attr('number'),
+
+  shortestDurationTasks: DS.attr('string'),
+
+  longestDurationTasks: DS.attr('string'),
+
+  processorClassName: DS.attr('string'),
+
   /**
    * Provides the duration of this job. If the job has not started, duration
    * will be given as 0. If the job has not ended, duration will be till now.

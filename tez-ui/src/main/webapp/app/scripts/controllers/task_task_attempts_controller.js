@@ -75,6 +75,17 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
       }
     });
 
+    var durationCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'Duration',
+      getCellContent: function(row) {
+        var st = row.get('startTime');
+        var et = row.get('endTime');
+        if (st && et) {
+          return App.Helpers.date.durationSummary(st, et);
+        }
+      }
+    });
+
     var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
       headerCellName: 'Status',
       filterID: 'status_filter',
@@ -125,8 +136,8 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         return logFile;
       }
     });
-    return [idCol, startTimeCol, endTimeCol, statusCol, nodeIdCol, containerCol, logs];
-	}.property(),
+    return [idCol, startTimeCol, endTimeCol, durationCol, statusCol, nodeIdCol, containerCol, logs];
+  }.property(),
 });
 
 
