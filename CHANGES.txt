@@ -12,6 +12,7 @@ ALL CHANGES:
   TEZ-1736. Add support for Inputs/Outputs in runtime-library to generate history text data.
   TEZ-1721. Update INSTALL instructions for clarifying tez client jars
     compatibility with runtime tarball on HDFS.
+  TEZ-1690. TestMultiMRInput tests fail because of user collisions.
 
 Release 0.5.3: Unreleased
 
