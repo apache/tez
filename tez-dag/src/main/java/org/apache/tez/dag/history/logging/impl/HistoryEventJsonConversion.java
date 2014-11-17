@@ -18,11 +18,20 @@
 
 package org.apache.tez.dag.history.logging.impl;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import java.util.Map.Entry;
+import java.util.TreeMap;
+
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
+import org.apache.tez.dag.history.events.AppLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
@@ -35,9 +44,11 @@ import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
+import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.dag.history.utils.DAGUtils;
+import org.apache.tez.dag.records.TezVertexID;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -51,6 +62,9 @@ public class HistoryEventJsonConversion {
     }
     JSONObject jsonObject = null;
     switch (historyEvent.getEventType()) {
+      case APP_LAUNCHED:
+        jsonObject = convertAppLaunchedEvent((AppLaunchedEvent) historyEvent);
+        break;
       case AM_LAUNCHED:
         jsonObject = convertAMLaunchedEvent((AMLaunchedEvent) historyEvent);
         break;
@@ -96,11 +110,13 @@ public class HistoryEventJsonConversion {
       case TASK_ATTEMPT_FINISHED:
         jsonObject = convertTaskAttemptFinishedEvent((TaskAttemptFinishedEvent) historyEvent);
         break;
+      case VERTEX_PARALLELISM_UPDATED:
+        jsonObject = convertVertexParallelismUpdatedEvent((VertexParallelismUpdatedEvent) historyEvent);
+        break;
       case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
       case VERTEX_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_FINISHED:
-      case VERTEX_PARALLELISM_UPDATED:
       case DAG_COMMIT_STARTED:
         throw new UnsupportedOperationException("Invalid Event, does not support history"
             + ", eventType=" + historyEvent.getEventType());
@@ -108,6 +124,24 @@ public class HistoryEventJsonConversion {
         throw new UnsupportedOperationException("Unhandled Event"
             + ", eventType=" + historyEvent.getEventType());
     }
+    return jsonObject;
+  }
+
+  private static JSONObject convertAppLaunchedEvent(AppLaunchedEvent event) throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY,
+        "tez_" + event.getApplicationId().toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE,
+        EntityTypes.TEZ_APPLICATION.name());
+
+    // Other info to tag with Tez App
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.USER, event.getUser());
+    otherInfo.put(ATSConstants.CONFIG, new JSONObject(
+        DAGUtils.convertConfigurationToATSMap(event.getConf())));
+
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
     return jsonObject;
   }
 
@@ -296,6 +330,14 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+
+    final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
+    if (dagTaskStats != null) {
+      for(Entry<String, Integer> entry : dagTaskStats.entrySet()) {
+        otherInfo.put(entry.getKey(), entry.getValue().intValue());
+      }
+    }
+
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
@@ -318,6 +360,17 @@ public class HistoryEventJsonConversion {
         HistoryEventType.DAG_INITIALIZED.name());
     events.put(initEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
+
+    JSONObject otherInfo = new JSONObject();
+
+    if (event.getVertexNameIDMap() != null) {
+      Map<String, String> nameIdStrMap = new TreeMap<String, String>();
+      for (Entry<String, TezVertexID> entry : event.getVertexNameIDMap().entrySet()) {
+        nameIdStrMap.put(entry.getKey(), entry.getValue().toString());
+      }
+      otherInfo.put(ATSConstants.VERTEX_NAME_ID_MAPPING, nameIdStrMap);
+    }
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
   }
@@ -356,8 +409,13 @@ public class HistoryEventJsonConversion {
     JSONArray relatedEntities = new JSONArray();
     JSONObject tezAppEntity = new JSONObject();
     tezAppEntity.put(ATSConstants.ENTITY,
-        "tez_" + event.getApplicationAttemptId().toString());
+        "tez_" + event.getApplicationAttemptId().getApplicationId().toString());
     tezAppEntity.put(ATSConstants.ENTITY_TYPE,
+        EntityTypes.TEZ_APPLICATION.name());
+    JSONObject tezAppAttemptEntity = new JSONObject();
+    tezAppAttemptEntity.put(ATSConstants.ENTITY,
+        "tez_" + event.getApplicationAttemptId().toString());
+    tezAppAttemptEntity.put(ATSConstants.ENTITY_TYPE,
         EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
     JSONObject appEntity = new JSONObject();
     appEntity.put(ATSConstants.ENTITY,
@@ -376,6 +434,7 @@ public class HistoryEventJsonConversion {
         ATSConstants.USER);
 
     relatedEntities.put(tezAppEntity);
+    relatedEntities.put(tezAppAttemptEntity);
     relatedEntities.put(appEntity);
     relatedEntities.put(appAttemptEntity);
     relatedEntities.put(userEntity);
@@ -499,6 +558,9 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+    if (event.getSuccessfulAttemptID() != null) {
+      otherInfo.put(ATSConstants.SUCCESSFUL_ATTEMPT_ID, event.getSuccessfulAttemptID().toString());
+    }
 
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
@@ -559,6 +621,17 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+
+    otherInfo.put(ATSConstants.STATS,
+        DAGUtils.convertVertexStatsToJSON(event.getVertexStats()));
+
+    final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
+    if (vertexTaskStats != null) {
+      for(Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
+        otherInfo.put(entry.getKey(), entry.getValue().intValue());
+      }
+    }
+
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
@@ -599,7 +672,8 @@ public class HistoryEventJsonConversion {
     return jsonObject;
   }
 
-  private static JSONObject convertVertexStartedEvent(VertexStartedEvent event) throws JSONException {
+  private static JSONObject convertVertexStartedEvent(VertexStartedEvent event)
+      throws JSONException {
     JSONObject jsonObject = new JSONObject();
     jsonObject.put(ATSConstants.ENTITY, event.getVertexID().toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
@@ -628,6 +702,44 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.START_TIME, event.getStartTime());
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
+    return jsonObject;
+  }
+
+  private static JSONObject convertVertexParallelismUpdatedEvent(
+      VertexParallelismUpdatedEvent event) throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY, event.getVertexID().toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE, EntityTypes.TEZ_VERTEX_ID.name());
+
+    // Events
+    JSONArray events = new JSONArray();
+    JSONObject updateEvent = new JSONObject();
+    updateEvent.put(ATSConstants.TIMESTAMP, event.getUpdateTime());
+    updateEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.VERTEX_PARALLELISM_UPDATED.name());
+
+    JSONObject eventInfo = new JSONObject();
+    eventInfo.put(ATSConstants.OLD_NUM_TASKS, event.getOldNumTasks());
+    eventInfo.put(ATSConstants.NUM_TASKS, event.getNumTasks());
+    if (event.getSourceEdgeManagers() != null && !event.getSourceEdgeManagers().isEmpty()) {
+      JSONObject updatedEdgeManagers = new JSONObject();
+      for (Entry<String, EdgeManagerPluginDescriptor> entry :
+          event.getSourceEdgeManagers().entrySet()) {
+        updatedEdgeManagers.put(entry.getKey(),
+            new JSONObject(DAGUtils.convertEdgeManagerPluginDescriptor(entry.getValue())));
+      }
+      eventInfo.put(ATSConstants.UPDATED_EDGE_MANAGERS, updatedEdgeManagers);
+    }
+    updateEvent.put(ATSConstants.EVENT_INFO, eventInfo);
+    events.put(updateEvent);
+    jsonObject.put(ATSConstants.EVENTS, events);
+
+    // Other info
+    JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.NUM_TASKS, event.getNumTasks());
+    jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
+
+    // TODO add more on all other updated information
     return jsonObject;
   }
 

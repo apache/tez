@@ -48,6 +48,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -74,6 +75,7 @@ public class TestTezClient {
     DAGClientAMProtocolBlockingPB sessionAmProxy;
     YarnClient mockYarnClient;
     ApplicationId mockAppId;
+    boolean callRealGetSessionAMProxy;
 
     public TezClientForTest(String name, TezConfiguration tezConf,
         @Nullable Map<String, LocalResource> localResources,
@@ -89,7 +91,10 @@ public class TestTezClient {
     @Override
     protected DAGClientAMProtocolBlockingPB getSessionAMProxy(ApplicationId appId) 
         throws TezException, IOException {
-      return sessionAmProxy;
+      if (!callRealGetSessionAMProxy) {
+        return sessionAmProxy;
+      }
+      return super.getSessionAMProxy(appId);
     }
   }
   
@@ -315,6 +320,64 @@ public class TestTezClient {
     thread.interrupt();
     thread.join();
     Assert.assertThat(exceptionReference.get(),CoreMatchers. instanceOf(InterruptedException.class));
+    client.stop();
+  }
+  
+  @Test(timeout = 5000)
+  public void testWaitTillReadyAppFailed() throws Exception {
+    final TezClientForTest client = configure();
+    client.start();
+    String msg = "Application Test Failed";
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.NEW).thenReturn(YarnApplicationState.FAILED);
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getDiagnostics()).thenReturn(
+        msg);
+    try {
+      client.waitTillReady();
+      Assert.fail();
+    } catch (SessionNotRunning e) {
+      Assert.assertTrue(e.getMessage().contains(msg));
+    }
+    client.stop();
+  }
+  
+  @Test(timeout = 5000)
+  public void testWaitTillReadyAppFailedNoDiagnostics() throws Exception {
+    final TezClientForTest client = configure();
+    client.start();
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.NEW).thenReturn(YarnApplicationState.FAILED);
+    try {
+      client.waitTillReady();
+      Assert.fail();
+    } catch (SessionNotRunning e) {
+      Assert.assertTrue(e.getMessage().contains(TezClient.NO_CLUSTER_DIAGNOSTICS_MSG));
+    }
+    client.stop();
+  }
+  
+  @Test(timeout = 5000)
+  public void testSubmitDAGAppFailed() throws Exception {
+    final TezClientForTest client = configure();
+    client.start();
+    
+    client.callRealGetSessionAMProxy = true;
+    String msg = "Application Test Failed";
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.KILLED);
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getDiagnostics()).thenReturn(
+        msg);
+
+    Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
+        Resource.newInstance(1, 1));
+    DAG dag = DAG.create("DAG").addVertex(vertex);
+    
+    try {
+      client.submitDAG(dag);
+      Assert.fail();
+    } catch (SessionNotRunning e) {
+      Assert.assertTrue(e.getMessage().contains(msg));
+    }
     client.stop();
   }
 

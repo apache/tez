@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,15 +32,21 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.TextFormat;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
@@ -219,6 +226,27 @@ public class TezUtilsInternal {
     }
     int logIndex = RANDOM.nextInt(logDirs.length);
     return logDirs[logIndex];
+  }
+
+  /**
+   * Convert DAGPlan to text. Skip sensitive informations like credentials.
+   *
+   * @param dagPlan
+   * @return
+   */
+  public static String convertDagPlanToString(DAGProtos.DAGPlan dagPlan) throws IOException {
+    StringBuilder sb = new StringBuilder();
+    for (Map.Entry<Descriptors.FieldDescriptor, Object> entry : dagPlan.getAllFields().entrySet()) {
+      if (entry.getKey().getNumber() != DAGProtos.DAGPlan.CREDENTIALS_BINARY_FIELD_NUMBER) {
+        TextFormat.printField(entry.getKey(), entry.getValue(), sb);
+      } else {
+        Credentials credentials =
+            DagTypeConverters.convertByteStringToCredentials(dagPlan.getCredentialsBinary());
+        TextFormat.printField(entry.getKey(),
+            ByteString.copyFrom(TezCommonUtils.getCredentialsInfo(credentials,"dag").getBytes()), sb);
+      }
+    }
+    return sb.toString();
   }
 
 }

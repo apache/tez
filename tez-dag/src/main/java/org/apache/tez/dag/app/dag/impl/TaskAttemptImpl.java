@@ -30,6 +30,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -71,6 +72,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
@@ -180,7 +182,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             (TaskAttemptStateInternal.NEW)
 
       .addTransition(TaskAttemptStateInternal.NEW,
-          TaskAttemptStateInternal.START_WAIT,
+          EnumSet.of(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAILED),
           TaskAttemptEventType.TA_SCHEDULE, new ScheduleTaskattemptTransition())
       .addTransition(TaskAttemptStateInternal.NEW,
           TaskAttemptStateInternal.NEW,
@@ -234,10 +236,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.RUNNING,
           TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
           DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-      .addTransition(TaskAttemptStateInternal.RUNNING,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
-          new OutputConsumableTransition())
       // Optional, may not come in for all tasks.
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
@@ -277,57 +275,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptEventType.TA_OUTPUT_FAILED,
           new OutputReportedFailedTransition())
 
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptEventType.TA_OUTPUT_CONSUMABLE)
-      // Stuck RPC. The client retries in a loop.
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
-          new SucceededTransition())
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_FAILED,
-          new TerminatedWhileRunningTransition(FAILED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_TIMED_OUT,
-          new TerminatedWhileRunningTransition(FAILED_HELPER))
-      // TODO CREUSE Ensure TaskCompletionEvents are updated to reflect this.
-      // Something needs to go out to the job.
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.KILL_IN_PROGRESS,
-          TaskAttemptEventType.TA_KILL_REQUEST,
-          new TerminatedWhileRunningTransition(KILLED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.KILL_IN_PROGRESS,
-          TaskAttemptEventType.TA_NODE_FAILED,
-          new TerminatedWhileRunningTransition(KILLED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_CONTAINER_TERMINATING,
-          new TerminatedWhileRunningTransition(FAILED_HELPER))
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.FAILED,
-          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
-          new ContainerCompletedBeforeRunningTransition())
-      .addTransition(TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          TaskAttemptStateInternal.KILLED,
-          TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
-          new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
-      .addTransition(
-          TaskAttemptStateInternal.OUTPUT_CONSUMABLE,
-          EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-              TaskAttemptStateInternal.OUTPUT_CONSUMABLE),
-          TaskAttemptEventType.TA_OUTPUT_FAILED,
-          new OutputReportedFailedTransition())
-
       .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_CONTAINER_TERMINATED,
@@ -342,7 +289,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -365,7 +311,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           EnumSet.of(TaskAttemptEventType.TA_STARTED_REMOTELY,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -385,7 +330,6 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_SCHEDULE,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -406,7 +350,6 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_SCHEDULE,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
               TaskAttemptEventType.TA_STATUS_UPDATE,
-              TaskAttemptEventType.TA_OUTPUT_CONSUMABLE,
               TaskAttemptEventType.TA_COMMIT_PENDING,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
@@ -501,7 +444,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     return getVertexID().getDAGId();
   }
 
-  TaskSpec createRemoteTaskSpec() {
+  TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
     Vertex vertex = getVertex();
     ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
     int taskId = getTaskID().getId();
@@ -760,7 +703,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     case START_WAIT:
       return TaskAttemptState.STARTING;
     case RUNNING:
-    case OUTPUT_CONSUMABLE:
       return TaskAttemptState.RUNNING;
     case FAILED:
     case FAIL_IN_PROGRESS:
@@ -778,11 +720,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @Override
-  public boolean getIsRescheduled() {
-    return isRescheduled;
-  }
-
-  @Override
   public TaskAttemptState restoreFromEvent(HistoryEvent historyEvent) {
     switch (historyEvent.getEventType()) {
       case TASK_ATTEMPT_STARTED:
@@ -791,6 +728,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         this.launchTime = tEvent.getStartTime();
         recoveryStartEventSeen = true;
         recoveredState = TaskAttemptState.RUNNING;
+        this.containerId = tEvent.getContainerId();
         sendEvent(createDAGCounterUpdateEventTALaunched(this));
         return recoveredState;
       }
@@ -1008,7 +946,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getTask().getVertex().getName(),
         launchTime, containerId, containerNodeId,
-        inProgressLogsUrl, completedLogsUrl);
+        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), startEvt));
   }
@@ -1044,17 +982,28 @@ public class TaskAttemptImpl implements TaskAttempt,
   //////////////////////////////////////////////////////////////////////////////
 
   protected static class ScheduleTaskattemptTransition implements
-      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
+      MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
 
     @Override
-    public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
+    public TaskAttemptStateInternal transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
 
       // TODO Creating the remote task here may not be required in case of
       // recovery.
 
       // Create the remote task.
-      TaskSpec remoteTaskSpec = ta.createRemoteTaskSpec();
+      TaskSpec remoteTaskSpec;
+      try {
+        remoteTaskSpec = ta.createRemoteTaskSpec();
+        LOG.info("remoteTaskSpec:" + remoteTaskSpec);
+      } catch (AMUserCodeException e) {
+        String msg = "Exception in " + e.getSource() + ", taskAttempt=" + ta.getTaskID();
+        LOG.error(msg, e);
+        String diag = msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause());
+        new TerminatedBeforeRunningTransition(FAILED_HELPER).transition(ta,
+            new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED, diag));
+        return TaskAttemptStateInternal.FAILED;
+      }
       // Create startTaskRequest
 
       String[] requestHosts = new String[0];
@@ -1087,12 +1036,21 @@ public class TaskAttemptImpl implements TaskAttempt,
         LOG.debug("Asking for container launch with taskAttemptContext: "
             + remoteTaskSpec);
       }
+      
       // Send out a launch request to the scheduler.
+      int priority;
+      if (ta.isRescheduled) {
+        // higher priority for rescheduled attempts
+        priority = scheduleEvent.getPriorityHighLimit();
+      } else {
+        priority = (scheduleEvent.getPriorityHighLimit() + scheduleEvent.getPriorityLowLimit()) / 2;
+      }
 
       AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
           ta.attemptId, ta.taskResource, remoteTaskSpec, ta, locationHint,
-          scheduleEvent.getPriority(), ta.containerContext);
+          priority, ta.containerContext);
       ta.sendEvent(launchRequestEvent);
+      return TaskAttemptStateInternal.START_WAIT;
     }
   }
 
@@ -1277,18 +1235,6 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       ta.updateProgressSplits();
 
-    }
-  }
-
-  protected static class OutputConsumableTransition implements
-      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
-
-    @Override
-    public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      //TaskAttemptEventOutputConsumable orEvent = (TaskAttemptEventOutputConsumable) event;
-      //ta.shufflePort = orEvent.getOutputContext().getShufflePort();
-      ta.sendEvent(new TaskEventTAUpdate(ta.attemptId,
-          TaskEventType.T_ATTEMPT_OUTPUT_CONSUMABLE));
     }
   }
 

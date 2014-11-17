@@ -96,4 +96,8 @@ public class TezConstants {
   public static final String TEZ_DAG_MODIFY_ACLS = TezConfiguration.TEZ_AM_PREFIX + "dag.modify-acls";
 
   public static final long TEZ_DAG_SLEEP_TIME_BEFORE_EXIT = 5000;
+
+  /// Version-related Environment variables
+  public static final String TEZ_CLIENT_VERSION_ENV = "TEZ_CLIENT_VERSION";
+
 }

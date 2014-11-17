@@ -83,6 +83,16 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
   }
 
   @Override
+  public String getOutputHistoryText() {
+    return outputConf.toHistoryText();
+  }
+
+  @Override
+  public String getInputHistoryText() {
+    return inputConf.toHistoryText();
+  }
+
+  @Override
   public String getInputClassName() {
     return UnorderedKVInput.class.getName();
   }
@@ -104,6 +114,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
             getOutputClassName()).setUserPayload(getOutputPayload()),
         InputDescriptor.create(
             getInputClassName()).setUserPayload(getInputPayload()));
+    Utils.setEdgePropertyHistoryText(this, edgeProperty);
     return edgeProperty;
   }
 
@@ -124,6 +135,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
             getOutputClassName()).setUserPayload(getOutputPayload()),
         InputDescriptor.create(
             getInputClassName()).setUserPayload(getInputPayload()));
+    Utils.setEdgePropertyHistoryText(this, edgeProperty);
     return edgeProperty;
   }
 
@@ -141,6 +153,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
             EdgeProperty.SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(getOutputClassName()).setUserPayload(getOutputPayload()),
             InputDescriptor.create(getInputClassName()).setUserPayload(getInputPayload()));
+    Utils.setEdgePropertyHistoryText(this, edgeProperty);
     return edgeProperty;
   }
 
@@ -193,6 +206,13 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
     }
 
     @Override
+    /**
+     * Edge config options are derived from client-side tez-site.xml (recommended).
+     * Optionally invoke setFromConfiguration to override these config options via commandline arguments.
+     *
+     * @param conf
+     * @return this object for further chained method calls
+     */
     public Builder setFromConfiguration(Configuration conf) {
       outputBuilder.setFromConfiguration(conf);
       inputBuilder.setFromConfiguration(conf);

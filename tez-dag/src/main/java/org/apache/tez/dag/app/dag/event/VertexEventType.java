@@ -42,6 +42,7 @@ public enum VertexEventType {
   
   //Producer:Any component
   V_INTERNAL_ERROR,
+  V_MANAGER_USER_CODE_ERROR,
   
   V_ROUTE_EVENT,
   V_ONE_TO_ONE_SOURCE_SPLIT,

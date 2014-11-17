@@ -20,6 +20,7 @@ package org.apache.tez.client;
 
 import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -83,12 +84,16 @@ import com.google.protobuf.ServiceException;
 public class TezClient {
 
   private static final Log LOG = LogFactory.getLog(TezClient.class);
+  
+  @VisibleForTesting
+  static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";
 
   private final String clientName;
   private ApplicationId sessionAppId;
   private ApplicationId lastSubmittedAppId;
   private AMConfiguration amConfig;
   private FrameworkClient frameworkClient;
+  private String diagnostics;
   private boolean isSession;
   private boolean sessionStarted = false;
   private boolean sessionStopped = false;
@@ -96,11 +101,13 @@ public class TezClient {
   private Credentials sessionCredentials = new Credentials();
   private long clientTimeout;
   Map<String, LocalResource> cachedTezJarResources;
+  boolean usingTezArchiveDeploy = false;
   private static final long SLEEP_FOR_READY = 500;
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
   private Map<String, LocalResource> additionalLocalResources = Maps.newHashMap();
-  
+  private TezApiVersionInfo apiVersionInfo;
+
   private int preWarmDAGCounter = 0;
 
 
@@ -131,6 +138,8 @@ public class TezClient {
     // Set in conf for local mode AM to figure out whether in session mode or not
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
+    this.apiVersionInfo = new TezApiVersionInfo();
+    LOG.info("Tez Client Version: " + apiVersionInfo.toString());
   }
 
   /**
@@ -305,7 +314,7 @@ public class TezClient {
             TezClientUtils.createApplicationSubmissionContext(
                 sessionAppId,
                 null, clientName, amConfig,
-                tezJarResources, sessionCredentials);
+                tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo);
   
         // Set Tez Sessions to not retry on AM crashes if recovery is disabled
         if (!amConfig.getTezConfiguration().getBoolean(
@@ -367,7 +376,7 @@ public class TezClient {
     
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
-        TezClientUtils.usingTezLibsFromArchive(tezJarResources), sessionCredentials);
+        usingTezArchiveDeploy, sessionCredentials);
 
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan).build();
@@ -505,9 +514,14 @@ public class TezClient {
       case ACCEPTED:
       case SUBMITTED:
         return TezAppMasterStatus.INITIALIZING;
-      case FINISHED:
       case FAILED:
       case KILLED:
+        diagnostics = appReport.getDiagnostics();
+        LOG.info("App did not succeed. Diagnostics: "
+            + (appReport.getDiagnostics() != null ? appReport.getDiagnostics()
+                : NO_CLUSTER_DIAGNOSTICS_MSG));
+        return TezAppMasterStatus.SHUTDOWN;
+      case FINISHED:
         return TezAppMasterStatus.SHUTDOWN;
       case RUNNING:
         if (!isSession) {
@@ -595,7 +609,8 @@ public class TezClient {
     while (true) {
       TezAppMasterStatus status = getAppMasterStatus();
       if (status.equals(TezAppMasterStatus.SHUTDOWN)) {
-        throw new SessionNotRunning("TezSession has already shutdown");
+        throw new SessionNotRunning("TezSession has already shutdown. "
+            + ((diagnostics != null) ? diagnostics : NO_CLUSTER_DIAGNOSTICS_MSG));
       }
       if (status.equals(TezAppMasterStatus.READY)) {
         return;
@@ -642,7 +657,7 @@ public class TezClient {
     if (!sessionStarted) {
       throw new SessionNotRunning("Session not started");
     } else if (sessionStopped) {
-      throw new SessionNotRunning("Session stopped");
+      throw new SessionNotRunning("Session stopped by user");
     }
   }
   
@@ -674,7 +689,8 @@ public class TezClient {
       Map<String, LocalResource> tezJarResources = getTezJarResources(credentials);
       ApplicationSubmissionContext appContext = TezClientUtils
           .createApplicationSubmissionContext( 
-              appId, dag, dag.getName(), amConfig, tezJarResources, credentials);
+              appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
+              usingTezArchiveDeploy, apiVersionInfo);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId
           + ", dagName=" + dag.getName());
@@ -701,8 +717,9 @@ public class TezClient {
   private synchronized Map<String, LocalResource> getTezJarResources(Credentials credentials)
       throws IOException {
     if (cachedTezJarResources == null) {
-      cachedTezJarResources = TezClientUtils.setupTezJarsLocalResources(
-          amConfig.getTezConfiguration(), credentials);
+      cachedTezJarResources = new HashMap<String, LocalResource>();
+      usingTezArchiveDeploy = TezClientUtils.setupTezJarsLocalResources(
+          amConfig.getTezConfiguration(), credentials, cachedTezJarResources);
     }
     return cachedTezJarResources;
   }

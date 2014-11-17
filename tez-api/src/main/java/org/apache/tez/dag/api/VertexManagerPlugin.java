@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
@@ -54,36 +55,41 @@ public abstract class VertexManagerPlugin {
   /**
    * Initialize the plugin. Called when the vertex is initializing. This happens 
    * after all source vertices and inputs have initialized
+   * @throws Exception
    */
-  public abstract void initialize();
+  public abstract void initialize() throws Exception;
 
   /**
    * Notification that the vertex is ready to start running tasks
    * @param completions Source vertices and all their tasks that have already completed
+   * @throws Exception
    */
-  public abstract void onVertexStarted(Map<String, List<Integer>> completions);
+  public abstract void onVertexStarted(Map<String, List<Integer>> completions) throws Exception;
 
   /**
    * Notification of a source vertex completion.
    * @param srcVertexName
    * @param taskId Index of the task that completed
+   * @throws Exception
    */
-  public abstract void onSourceTaskCompleted(String srcVertexName, Integer taskId);
+  public abstract void onSourceTaskCompleted(String srcVertexName, Integer taskId) throws Exception;
 
   /**
    * Notification of an event directly sent to this vertex manager
    * @param vmEvent
+   * @throws Exception
    */
-  public abstract void onVertexManagerEventReceived(VertexManagerEvent vmEvent);
+  public abstract void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws Exception;
 
   /**
    * Notification that the inputs of this vertex have initialized
    * @param inputName
    * @param inputDescriptor
    * @param events
+   * @throws Exception
    */
   public abstract void onRootVertexInitialized(String inputName,
-      InputDescriptor inputDescriptor, List<Event> events);
+      InputDescriptor inputDescriptor, List<Event> events) throws Exception;
 
   /**
    * Return ahe {@link org.apache.tez.dag.api.VertexManagerPluginContext} for this specific instance of
@@ -94,4 +100,24 @@ public abstract class VertexManagerPlugin {
   public final VertexManagerPluginContext getContext() {
     return this.context;
   }
+  
+  /**
+   * Receive notifications on vertex state changes.
+   * <p/>
+   * State changes will be received based on the registration via
+   * {@link VertexManagerPluginContext#registerForVertexStateUpdates(String, java.util.Set)}
+   * . Notifications will be received for all registered state changes, and not
+   * just for the latest state update. They will be in order in which the state
+   * change occurred.
+   * </p><br>This method may be invoked concurrently with {@link #onVertexStarted(Map)} etc. and 
+   * multi-threading/concurrency implications must be considered.
+   *  
+   * @param stateUpdate
+   *          an event indicating the name of the vertex, and it's updated
+   *          state. Additional information may be available for specific
+   *          events, Look at the type hierarchy for
+   *          {@link org.apache.tez.dag.api.event.VertexStateUpdate}
+   */
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
+  }  
  }

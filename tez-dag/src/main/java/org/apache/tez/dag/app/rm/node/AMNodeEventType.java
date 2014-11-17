@@ -22,11 +22,13 @@ public enum AMNodeEventType {
   //Producer: Scheduler
   N_CONTAINER_ALLOCATED,
   
-  //Producer: TaskAttempt
+  //Producer: TaskSchedulerEventHandler
   N_TA_SUCCEEDED,
+
+  // Producer: TaskSchedulerEventHnadler, Task(retroactive failure)
   N_TA_ENDED,
   
-  //Producer: RMCommunicator
+  //Producer: TaskScheduler via TaskSchedulerEventHandler
   N_TURNED_UNHEALTHY,
   N_TURNED_HEALTHY,
   N_NODE_COUNT_UPDATED, // for blacklisting.
@@ -34,8 +36,5 @@ public enum AMNodeEventType {
   //Producer: AMNodeManager
   N_IGNORE_BLACKLISTING_ENABLED,
   N_IGNORE_BLACKLISTING_DISABLED,
-  
-  // Producer: AMNode - Will not reach AMNodeImpl. Used to compute whether
-  // blacklisting should be ignored.
-  N_NODE_WAS_BLACKLISTED
+
 }

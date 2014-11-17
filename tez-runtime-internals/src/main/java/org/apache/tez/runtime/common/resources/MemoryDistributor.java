@@ -74,8 +74,8 @@ public class MemoryDistributor {
    */
   public MemoryDistributor(int numTotalInputs, int numTotalOutputs, Configuration conf) {
     this.conf = conf;
-    isEnabled = conf.getBoolean(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED,
-        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED_DEFAULT);
+    isEnabled = conf.getBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED_DEFAULT);
     
 
     this.numTotalInputs = numTotalInputs;
@@ -119,8 +119,8 @@ public class MemoryDistributor {
         }
       });
     } else {
-      String allocatorClassName = conf.get(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
-          TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT);
+      String allocatorClassName = conf.get(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
+          TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS_DEFAULT);
       LOG.info("Using Allocator class: " + allocatorClassName);
       InitialMemoryAllocator allocator = ReflectionUtils.createClazzInstance(allocatorClassName);
       allocator.setConf(conf);

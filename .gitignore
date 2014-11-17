@@ -7,4 +7,5 @@
 .classpath
 .project
 .settings
+pom.xml.versionsBackup
 target

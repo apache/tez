@@ -50,7 +50,6 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -91,6 +90,7 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -104,25 +104,8 @@ public class TestTaskAttempt {
     }
   }
 
-  // @Test
-  // // Verifies # tasks, attempts and diagnostics for a failing job.
-  // // TODO Move to TestTask - to verify # retries
-  // public void testMRAppHistoryForMap() throws Exception {
-  // MRApp app = new FailingAttemptsMRApp(1, 0);
-  // testMRAppHistory(app);
-  // }
-  //
-  // @Test
-  // // Verifies # tasks, attempts and diagnostics for a failing job.
-  // // Move to TestTask - to verify # retries
-  // public void testMRAppHistoryForReduce() throws Exception {
-  // MRApp app = new FailingAttemptsMRApp(0, 1);
-  // testMRAppHistory(app);
-  // }
-
   @Test(timeout = 5000)
   public void testLocalityRequest() {
-
     TaskAttemptImpl.ScheduleTaskattemptTransition sta =
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
 
@@ -159,7 +142,61 @@ public class TestTaskAttempt {
       assertEquals(host, true, taImpl.taskHosts.contains(host));
     }
   }
+  
+  @Test(timeout = 5000)
+  public void testPriority() {
+    TaskAttemptImpl.ScheduleTaskattemptTransition sta =
+        new TaskAttemptImpl.ScheduleTaskattemptTransition();
 
+    EventHandler eventHandler = mock(EventHandler.class);
+    TezTaskID taskID = TezTaskID.getInstance(
+        TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
+    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
+        mock(TaskHeartbeatHandler.class), mock(AppContext.class),
+        null, false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+
+    TaskAttemptImpl taImplReScheduled = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
+        mock(TaskHeartbeatHandler.class), mock(AppContext.class),
+        null, true, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+
+    TaskAttemptEventSchedule sEvent = mock(TaskAttemptEventSchedule.class);
+    when(sEvent.getPriorityLowLimit()).thenReturn(3);
+    when(sEvent.getPriorityHighLimit()).thenReturn(1);
+    sta.transition(taImpl, sEvent);
+    verify(eventHandler, times(1)).handle(arg.capture());
+    AMSchedulerEventTALaunchRequest launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
+    Assert.assertEquals(2, launchEvent.getPriority());
+    sta.transition(taImplReScheduled, sEvent);
+    verify(eventHandler, times(2)).handle(arg.capture());
+    launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
+    Assert.assertEquals(1, launchEvent.getPriority());
+
+    when(sEvent.getPriorityLowLimit()).thenReturn(6);
+    when(sEvent.getPriorityHighLimit()).thenReturn(4);
+    sta.transition(taImpl, sEvent);
+    verify(eventHandler, times(3)).handle(arg.capture());
+    launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
+    Assert.assertEquals(5, launchEvent.getPriority());
+    sta.transition(taImplReScheduled, sEvent);
+    verify(eventHandler, times(4)).handle(arg.capture());
+    launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
+    Assert.assertEquals(4, launchEvent.getPriority());
+
+    when(sEvent.getPriorityLowLimit()).thenReturn(5);
+    when(sEvent.getPriorityHighLimit()).thenReturn(5);
+    sta.transition(taImpl, sEvent);
+    verify(eventHandler, times(5)).handle(arg.capture());
+    launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
+    Assert.assertEquals(5, launchEvent.getPriority());
+    sta.transition(taImplReScheduled, sEvent);
+    verify(eventHandler, times(6)).handle(arg.capture());
+    launchEvent = (AMSchedulerEventTALaunchRequest)arg.getValue();
+    Assert.assertEquals(5, launchEvent.getPriority());
+  }
 
   @Test(timeout = 5000)
   // Tests that an attempt is made to resolve the localized hosts to racks.
@@ -207,93 +244,6 @@ public class TestTaskAttempt {
     assertEquals(0, expected.size());
   }
 
-  // @Test(timeout = 5000)
-  // // Verifies accounting of slot_milli counters. Time spent in running tasks.
-  // // TODO Fix this test to work without MRApp.
-  // public void testSlotMillisCounterUpdate() throws Exception {
-  // verifySlotMillis(2048, 2048, 1024);
-  // verifySlotMillis(2048, 1024, 1024);
-  // verifySlotMillis(10240, 1024, 2048);
-  // }
-
-  // public void verifySlotMillis(int mapMemMb, int reduceMemMb,
-  // int minContainerSize) throws Exception {
-  // Clock actualClock = new SystemClock();
-  // ControlledClock clock = new ControlledClock(actualClock);
-  // clock.setTime(10);
-  // MRApp app =
-  // new MRApp(1, 1, false, "testSlotMillisCounterUpdate", true, clock);
-  // Configuration conf = new Configuration();
-  // conf.setInt(MRJobConfig.MAP_MEMORY_MB, mapMemMb);
-  // conf.setInt(MRJobConfig.REDUCE_MEMORY_MB, reduceMemMb);
-  // app.setClusterInfo(new ClusterInfo(Resource.newInstance(minContainerSize, 1),
-  // Resource.newInstance(10240,1)));
-  //
-  // Job job = app.submit(conf);
-  // app.waitForState(job, JobState.RUNNING);
-  // Map<TaskId, Task> tasks = job.getTasks();
-  // Assert.assertEquals("Num tasks is not correct", 2, tasks.size());
-  // Iterator<Task> taskIter = tasks.values().iterator();
-  // Task mTask = taskIter.next();
-  // app.waitForState(mTask, TaskState.RUNNING);
-  // Task rTask = taskIter.next();
-  // app.waitForState(rTask, TaskState.RUNNING);
-  // Map<TaskAttemptId, TaskAttempt> mAttempts = mTask.getAttempts();
-  // Assert.assertEquals("Num attempts is not correct", 1, mAttempts.size());
-  // Map<TaskAttemptId, TaskAttempt> rAttempts = rTask.getAttempts();
-  // Assert.assertEquals("Num attempts is not correct", 1, rAttempts.size());
-  // TaskAttempt mta = mAttempts.values().iterator().next();
-  // TaskAttempt rta = rAttempts.values().iterator().next();
-  // app.waitForState(mta, TaskAttemptState.RUNNING);
-  // app.waitForState(rta, TaskAttemptState.RUNNING);
-  //
-  // clock.setTime(11);
-  // app.getContext()
-  // .getEventHandler()
-  // .handle(new TaskAttemptEvent(mta.getID(), TaskAttemptEventType.TA_DONE));
-  // app.getContext()
-  // .getEventHandler()
-  // .handle(new TaskAttemptEvent(rta.getID(), TaskAttemptEventType.TA_DONE));
-  // app.waitForState(job, JobState.SUCCEEDED);
-  // Assert.assertEquals(mta.getFinishTime(), 11);
-  // Assert.assertEquals(mta.getLaunchTime(), 10);
-  // Assert.assertEquals(rta.getFinishTime(), 11);
-  // Assert.assertEquals(rta.getLaunchTime(), 10);
-  // Assert.assertEquals((int) Math.ceil((float) mapMemMb / minContainerSize),
-  // job.getAllCounters().findCounter(JobCounter.SLOTS_MILLIS_MAPS)
-  // .getValue());
-  // Assert.assertEquals(
-  // (int) Math.ceil((float) reduceMemMb / minContainerSize), job
-  // .getAllCounters().findCounter(JobCounter.SLOTS_MILLIS_REDUCES)
-  // .getValue());
-  // }
-  //
-
-  // private void testMRAppHistory(MRApp app) throws Exception {
-  // Configuration conf = new Configuration();
-  // Job job = app.submit(conf);
-  // app.waitForState(job, JobState.FAILED);
-  // Map<TaskId, Task> tasks = job.getTasks();
-  //
-  // Assert.assertEquals("Num tasks is not correct", 1, tasks.size());
-  // Task task = tasks.values().iterator().next();
-  // Assert.assertEquals("Task state not correct", TaskState.FAILED, task
-  // .getReport().getTaskState());
-  // Map<TaskAttemptId, TaskAttempt> attempts = tasks.values().iterator().next()
-  // .getAttempts();
-  // Assert.assertEquals("Num attempts is not correct", 4, attempts.size());
-  //
-  // Iterator<TaskAttempt> it = attempts.values().iterator();
-  // TaskAttemptReport report = it.next().getReport();
-  // Assert.assertEquals("Attempt state not correct", TaskAttemptState.FAILED,
-  // report.getTaskAttemptState());
-  // Assert.assertEquals("Diagnostic Information is not Correct",
-  // "Test Diagnostic Event", report.getDiagnosticInfo());
-  // report = it.next().getReport();
-  // Assert.assertEquals("Attempt state not correct", TaskAttemptState.FAILED,
-  // report.getTaskAttemptState());
-  // }
-
   @Test(timeout = 5000)
   // Ensure the dag does not go into an error state if a attempt kill is
   // received while STARTING
@@ -333,8 +283,7 @@ public class TestTaskAttempt {
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, Priority
-        .newInstance(3)));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null));
     // At some KILLING state.
@@ -392,7 +341,7 @@ public class TestTaskAttempt {
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
@@ -484,7 +433,7 @@ public class TestTaskAttempt {
         mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
         resource, createFakeContainerContext(), false);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
@@ -548,7 +497,7 @@ public class TestTaskAttempt {
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
@@ -638,7 +587,7 @@ public class TestTaskAttempt {
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
@@ -727,7 +676,7 @@ public class TestTaskAttempt {
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
@@ -824,7 +773,7 @@ public class TestTaskAttempt {
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
@@ -915,7 +864,7 @@ public class TestTaskAttempt {
         mock(TaskHeartbeatHandler.class), appCtx, locationHint, false,
         resource, createFakeContainerContext(), false);
 
-    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));

@@ -18,8 +18,10 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -27,11 +29,15 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Starts all tasks immediately on vertex start
@@ -40,18 +46,10 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
 
   private static final Log LOG = LogFactory.getLog(ImmediateStartVertexManager.class);
 
-  private final Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
+  private final Map<String, Boolean> srcVertexConfigured = Maps.newConcurrentMap();
   private int managedTasks;
   private boolean tasksScheduled = false;
-
-  class SourceVertexInfo {
-    EdgeProperty edgeProperty;
-    int numFinishedTasks;
-
-    SourceVertexInfo(EdgeProperty edgeProperty) {
-      this.edgeProperty = edgeProperty;
-    }
-  }
+  private AtomicBoolean onVertexStartedDone = new AtomicBoolean(false);
 
   public ImmediateStartVertexManager(VertexManagerPluginContext context) {
     super(context);
@@ -63,37 +61,35 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
     Map<String, EdgeProperty> edges = getContext().getInputVertexEdgeProperties();
     for (Map.Entry<String, EdgeProperty> entry : edges.entrySet()) {
       String srcVertex = entry.getKey();
-      EdgeProperty edgeProp = entry.getValue();
-      LOG.info("Task count in " + srcVertex + ": " + getContext().getVertexNumTasks(srcVertex));
       //track vertices with task count > 0
       if (getContext().getVertexNumTasks(srcVertex) > 0) {
-        srcVertexInfo.put(srcVertex, new SourceVertexInfo(edgeProp));
+        LOG.info("Task count in " + srcVertex + ": " + getContext().getVertexNumTasks(srcVertex));
+        srcVertexConfigured.put(srcVertex, false);
+        getContext().registerForVertexStateUpdates(srcVertex, EnumSet.of(VertexState.CONFIGURED));
       } else {
         LOG.info("Vertex: " + getContext().getVertexName() + "; Ignoring " + srcVertex
             + " as it has got 0 tasks");
       }
     }
-
-    //handle completions
-    for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
-      for (Integer task : entry.getValue()) {
-        handleSourceTaskFinished(entry.getKey(), task);
-      }
-    }
+    onVertexStartedDone.set(true);
     scheduleTasks();
   }
 
-  private void handleSourceTaskFinished(String vertex, Integer taskId) {
-    SourceVertexInfo srcInfo = srcVertexInfo.get(vertex);
-    //Not mandatory to check for duplicate completions here
-    srcInfo.numFinishedTasks++;
-  }
-
   private void scheduleTasks() {
-    if (!canScheduleTasks()) {
+    if (!onVertexStartedDone.get()) {
+      // vertex not started yet
+      return;
+    }
+    if (tasksScheduled) {
+      // already scheduled
       return;
     }
 
+    if (!canScheduleTasks()) {
+      return;
+    }
+    
+    tasksScheduled = true;
     List<TaskWithLocationHint> tasksToStart = Lists.newArrayListWithCapacity(managedTasks);
     for (int i = 0; i < managedTasks; ++i) {
       tasksToStart.add(new TaskWithLocationHint(new Integer(i), null));
@@ -103,35 +99,42 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
       LOG.info("Starting " + tasksToStart.size() + " in " + getContext().getVertexName());
       getContext().scheduleVertexTasks(tasksToStart);
     }
-    tasksScheduled = true;
+    // all tasks scheduled. Can call vertexManagerDone().
+    // TODO TEZ-1714 for locking issues getContext().vertexManagerDone();
   }
 
   private boolean canScheduleTasks() {
-    //Check if at least 1 task is finished from each source vertex (in case of broadcast &
-    // one-to-one or custom)
-    for (Map.Entry<String, SourceVertexInfo> entry : srcVertexInfo.entrySet()) {
-      SourceVertexInfo srcVertexInfo = entry.getValue();
-      switch(srcVertexInfo.edgeProperty.getDataMovementType()) {
-      case ONE_TO_ONE:
-      case BROADCAST:
-      case CUSTOM:
-        if (srcVertexInfo.numFinishedTasks == 0) {
-          //do not schedule tasks until a task from source task is complete
-          return false;
+    // check for source vertices completely configured
+    for (Map.Entry<String, Boolean> entry : srcVertexConfigured.entrySet()) {
+      if (!entry.getValue().booleanValue()) {
+        // vertex not configured
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Waiting for vertex: " + entry.getKey() + " in vertex: " + getContext().getVertexName());
         }
-      default:
-        break;
+        return false;
       }
     }
+
     return true;
+  }
+  
+  @Override
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+    Preconditions.checkArgument(stateUpdate.getVertexState() == VertexState.CONFIGURED,
+        "Received incorrect state notification : " + stateUpdate.getVertexState() + " for vertex: "
+            + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+    Preconditions.checkArgument(srcVertexConfigured.containsKey(stateUpdate.getVertexName()),
+        "Received incorrect vertex notification : " + stateUpdate.getVertexState() + " for vertex: "
+            + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+    Preconditions.checkState(srcVertexConfigured.put(stateUpdate.getVertexName(), true)
+        .booleanValue() == false);
+    LOG.info("Received configured notification: " + stateUpdate.getVertexState() + " for vertex: "
+        + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+    scheduleTasks();
   }
 
   @Override
   public void onSourceTaskCompleted(String srcVertexName, Integer attemptId) {
-    handleSourceTaskFinished(srcVertexName, attemptId);
-    if (!tasksScheduled) {
-      scheduleTasks();
-    }
   }
 
   @Override

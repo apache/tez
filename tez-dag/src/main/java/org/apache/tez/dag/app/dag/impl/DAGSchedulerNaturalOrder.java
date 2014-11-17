@@ -20,7 +20,6 @@ package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGScheduler;
@@ -55,20 +54,16 @@ public class DAGSchedulerNaturalOrder implements DAGScheduler {
     int vertexDistanceFromRoot = vertex.getDistanceFromRoot();
 
     // natural priority. Handles failures and retries.
-    int priority = (vertexDistanceFromRoot + 1) * 2;
-    
-    if(attempt.getIsRescheduled()) {
-      // higher priority for retries of failed attempts. Only makes sense in
-      // case the task is faulty and we want to retry before other tasks in 
-      // the same vertex to fail fast. But looks like this may happen also for
-      // other cases like retry because outputs were unavailable.
-      priority--;
-    }
+    int priorityLowLimit = (vertexDistanceFromRoot + 1) * 3;
+    int priorityHighLimit = priorityLowLimit - 2;
 
-    LOG.info("Scheduling " + attempt.getID() + " at priority " + priority);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Scheduling " + attempt.getID() + " between priorityLow: " + priorityLowLimit
+          + " and priorityHigh: " + priorityHighLimit);
+    }
     
     TaskAttemptEventSchedule attemptEvent = new TaskAttemptEventSchedule(
-        attempt.getID(), Priority.newInstance(priority));
+        attempt.getID(), priorityLowLimit, priorityHighLimit);
                                       
     sendEvent(attemptEvent);
   }

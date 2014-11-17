@@ -43,6 +43,7 @@ public class ATSConstants {
   public static final String APPLICATION_ATTEMPT_ID = "applicationAttemptId";
   public static final String CONTAINER_ID = "containerId";
   public static final String NODE_ID = "nodeId";
+  public static final String NODE_HTTP_ADDRESS = "nodeHttpAddress";
   public static final String USER = "user";
 
   /* Keys used in other info */
@@ -52,6 +53,7 @@ public class ATSConstants {
   public static final String DAG_PLAN = "dagPlan";
   public static final String DAG_NAME = "dagName";
   public static final String VERTEX_NAME = "vertexName";
+  public static final String VERTEX_NAME_ID_MAPPING = "vertexNameIdMapping";
   public static final String SCHEDULED_TIME = "scheduledTime";
   public static final String INIT_REQUESTED_TIME = "initRequestedTime";
   public static final String INIT_TIME = "initTime";
@@ -61,17 +63,22 @@ public class ATSConstants {
   public static final String TIME_TAKEN = "timeTaken";
   public static final String STATUS = "status";
   public static final String DIAGNOSTICS = "diagnostics";
+  public static final String SUCCESSFUL_ATTEMPT_ID = "successfulAttemptId";
   public static final String COUNTERS = "counters";
   public static final String STATS = "stats";
   public static final String NUM_TASKS = "numTasks";
+  public static final String OLD_NUM_TASKS = "oldNumTasks";
   public static final String NUM_COMPLETED_TASKS = "numCompletedTasks";
   public static final String NUM_SUCCEEDED_TASKS = "numSucceededTasks";
   public static final String NUM_FAILED_TASKS = "numFailedTasks";
   public static final String NUM_KILLED_TASKS = "numKilledTasks";
+  public static final String NUM_FAILED_TASKS_ATTEMPTS = "numFailedTaskAttempts";
+  public static final String NUM_KILLED_TASKS_ATTEMPTS = "numKilledTaskAttempts";
   public static final String PROCESSOR_CLASS_NAME = "processorClassName";
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";
   public static final String EXIT_STATUS = "exitStatus";
+  public static final String UPDATED_EDGE_MANAGERS = "updatedEdgeManagers";
 
   /* Counters-related keys */
   public static final String COUNTER_GROUPS = "counterGroups";
@@ -91,4 +98,9 @@ public class ATSConstants {
       "yarn.timeline-service.webapp.address";
   public static final String TIMELINE_SERVICE_WEBAPP_HTTPS_ADDRESS_CONF_NAME =
       "yarn.timeline-service.webapp.https.address";
+
+  /* History text related Keys */
+  public static final String DESCRIPTION = "desc";
+  public static final String CONFIG = "config";
+
 }

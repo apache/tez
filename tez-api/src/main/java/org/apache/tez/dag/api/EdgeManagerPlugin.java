@@ -58,25 +58,27 @@ public abstract class EdgeManagerPlugin {
    * EdgeManagerPlugin instance is created and setup by the user. The initialize
    * method will be called with the original {@link EdgeManagerPluginContext} when the
    * EdgeManagerPlugin is replaced.
-   *
+   * @throws Exception
    */
-  public abstract void initialize();
+  public abstract void initialize() throws Exception;
   
   /**
    * Get the number of physical inputs on the destination task
    * @param destinationTaskIndex Index of destination task for which number of 
    * inputs is needed
    * @return Number of physical inputs on the destination task
+   * @throws Exception
    */
-  public abstract int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex);
+  public abstract int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) throws Exception;
 
   /**
    * Get the number of physical outputs on the source task
    * @param sourceTaskIndex Index of the source task for which number of outputs 
    * is needed
    * @return Number of physical outputs on the source task
+   * @throws Exception
    */
-  public abstract int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex);
+  public abstract int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) throws Exception;
   
   /**
    * Return the routing information to inform consumers about the source task
@@ -94,10 +96,11 @@ public abstract class EdgeManagerPlugin {
    *          event
    * @param destinationTaskAndInputIndices
    *          Map via which the routing information is returned
+   * @throws Exception
    */
   public abstract void routeDataMovementEventToDestination(DataMovementEvent event,
       int sourceTaskIndex, int sourceOutputIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices);
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
   
   /**
    * Return the routing information to inform consumers about the failure of a
@@ -112,15 +115,17 @@ public abstract class EdgeManagerPlugin {
    *          Source task
    * @param destinationTaskAndInputIndices
    *          Map via which the routing information is returned
+   * @throws Exception
    */
   public abstract void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices);
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
 
   /**
    * Get the number of destination tasks that consume data from the source task
    * @param sourceTaskIndex Source task index
+   * @throws Exception
    */
-  public abstract int getNumDestinationConsumerTasks(int sourceTaskIndex);
+  public abstract int getNumDestinationConsumerTasks(int sourceTaskIndex) throws Exception;
   
   /**
    * Return the source task index to which to send the input error event
@@ -133,9 +138,10 @@ public abstract class EdgeManagerPlugin {
    *          Index of the physical input on the destination task that reported 
    *          the error
    * @return Index of the source task that created the unavailable input
+   * @throws Exception
    */
   public abstract int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex, int destinationFailedInputIndex);
+      int destinationTaskIndex, int destinationFailedInputIndex) throws Exception;
 
   /**
    * Return ahe {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for this specific instance of

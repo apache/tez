@@ -40,6 +40,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitIndex;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.security.Credentials;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -65,6 +66,7 @@ import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -250,16 +252,23 @@ public class MRInput extends MRInputBase {
       }
       MRHelpers.translateMRConfToTez(conf);
 
-      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(conf, inputSplitInfo.getSplitsProto());
+      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(conf,
+          inputSplitInfo.getSplitsProto());
       Credentials credentials = null;
       if (getCredentialsForSourceFilesystem && inputSplitInfo.getCredentials() != null) {
         credentials = inputSplitInfo.getCredentials();
       }
-      return DataSourceDescriptor.create(
+      DataSourceDescriptor ds = DataSourceDescriptor.create(
           InputDescriptor.create(inputClassName).setUserPayload(payload),
           InputInitializerDescriptor.create(MRInputSplitDistributor.class.getName()),
           inputSplitInfo.getNumTasks(), credentials,
           VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()), null);
+      if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+          TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+        ds.getInputDescriptor().setHistoryText(TezUtils.convertToHistoryText(conf));
+      }
+
+      return ds;
     }
 
     private DataSourceDescriptor createCustomDataSource() throws IOException {
@@ -279,6 +288,12 @@ public class MRInput extends MRInputBase {
       DataSourceDescriptor ds = DataSourceDescriptor
           .create(InputDescriptor.create(inputClassName).setUserPayload(payload),
               customInitializerDescriptor, null);
+
+      if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+          TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+        ds.getInputDescriptor().setHistoryText(TezUtils.convertToHistoryText(conf));
+      }
+
       if (uris != null) {
         ds.addURIsForCredentials(uris);
       }
@@ -297,9 +312,16 @@ public class MRInput extends MRInputBase {
       } else {
         payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
       }
+
       DataSourceDescriptor ds = DataSourceDescriptor.create(
           InputDescriptor.create(inputClassName).setUserPayload(payload),
           InputInitializerDescriptor.create(MRInputAMSplitGenerator.class.getName()), null);
+
+      if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+          TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+        ds.getInputDescriptor().setHistoryText(TezUtils.convertToHistoryText(conf));
+      }
+
       if (uris != null) {
         ds.addURIsForCredentials(uris);
       }

@@ -149,7 +149,7 @@ public class TestSecureShuffle {
    *
    * @throws Exception
    */
-  @Test(timeout = 60000)
+  @Test(timeout = 240000)
   public void testSecureShuffle() throws Exception {
     //With tez-ssl setting
     miniTezCluster.getConfig().setBoolean(

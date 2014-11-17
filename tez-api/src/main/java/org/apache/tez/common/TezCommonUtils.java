@@ -21,6 +21,7 @@ package org.apache.tez.common;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -193,11 +194,17 @@ public class TezCommonUtils {
    * 
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
+   * @param strAppId
+   *          Application ID
+   * @param dagPBName
+   *          DAG PB Name
    * @return path to store the plan in text
    */
   @Private
-  public static Path getTezTextPlanStagingPath(Path tezSysStagingPath) {
-    return new Path(tezSysStagingPath, TezConstants.TEZ_PB_PLAN_TEXT_NAME);
+  public static Path getTezTextPlanStagingPath(Path tezSysStagingPath, String strAppId,
+      String dagPBName) {
+    String fileName = strAppId + "-" + dagPBName + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
+    return new Path(tezSysStagingPath, fileName);
   }
 
   /**
@@ -330,17 +337,28 @@ public class TezCommonUtils {
     return bytes;
   }
 
+  public static String getCredentialsInfo(Credentials credentials, String identifier) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Credentials: #" + identifier + "Tokens=").append(credentials.numberOfTokens());
+    if (credentials.numberOfTokens() > 0) {
+      sb.append(", Services=");
+      Iterator<Token<?>> tokenItr = credentials.getAllTokens().iterator();
+      if (tokenItr.hasNext()) {
+        Token token = tokenItr.next();
+        sb.append(token.getService()).append("(").append(token.getKind()).append(")");
+
+      }
+      while(tokenItr.hasNext()) {
+        Token token = tokenItr.next();
+        sb.append(",").append(token.getService()).append("(").append(token.getKind()).append(")");
+      }
+    }
+    return sb.toString();
+  }
+
   public static void logCredentials(Log log, Credentials credentials, String identifier) {
     if (log.isDebugEnabled()) {
-      StringBuilder sb = new StringBuilder();
-      sb.append("#" + identifier + "Tokens=").append(credentials.numberOfTokens());
-      if (credentials.numberOfTokens() > 0) {
-        sb.append(", Services: ");
-        for (Token<?> t : credentials.getAllTokens()) {
-          sb.append(t.getService()).append(",");
-        }
-      }
-      log.debug(sb.toString());
+      log.debug(getCredentialsInfo(credentials, identifier));
     }
   }
 

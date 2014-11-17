@@ -43,20 +43,20 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
   
   @Override
   public void setup() {
-    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ENABLED, true);
-    conf.set(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS,
+    conf.setBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED, true);
+    conf.set(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
         WeightedScalingMemoryDistributor.class.getName());
-    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION, 0.3d);
-    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.0d);
+    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION, 0.3d);
+    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.0d);
   }
   
   @Test(timeout = 5000)
   public void testSimpleWeightedScaling() {
     Configuration conf = new Configuration(this.conf);
-    conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS,
+    conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS,
         WeightedScalingMemoryDistributor.generateWeightStrings(0, 1, 2, 3, 1, 1));
     System.err.println(Joiner.on(",").join(conf.getStringCollection(
-        TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS)));
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS)));
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 
@@ -100,10 +100,10 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
   @Test(timeout = 5000)
   public void testAdditionalReserveFractionWeightedScaling() {
     Configuration conf = new Configuration(this.conf);
-    conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS,
+    conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS,
         WeightedScalingMemoryDistributor.generateWeightStrings(0, 2, 3, 6, 1, 1));
-    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.025d);
-    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX, 0.2d);
+    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.025d);
+    conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX, 0.2d);
 
     MemoryDistributor dist = new MemoryDistributor(2, 2, conf);
 

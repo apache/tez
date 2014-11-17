@@ -235,7 +235,7 @@
         <email>jeagles@apache.org</email>
         <timezone>-6</timezone>
         <roles>
-          <role>Committer</role>
+          <role>PMC</role>
         </roles>
         <organization>
           Yahoo!
@@ -464,6 +464,18 @@
         <timezone>-8</timezone>
         <roles>
           <role>PMC</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>
+      <developer>
+        <id>zjffdu</id>
+        <name>Jeff Zhang</name>
+        <email>zjffdu@apache.org</email>
+        <timezone>+8</timezone>
+        <roles>
+          <role>Committer</role>
         </roles>
         <organization>
           Hortonworks

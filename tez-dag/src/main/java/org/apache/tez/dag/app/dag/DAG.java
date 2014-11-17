@@ -85,4 +85,6 @@ public interface DAG {
 
   ACLManager getACLManager();
 
+  Map<String, TezVertexID> getVertexNameIDMapping();
+
 }

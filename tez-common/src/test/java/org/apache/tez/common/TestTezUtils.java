@@ -23,13 +23,16 @@ import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.UserPayload;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.protobuf.ByteString;
 
 public class TestTezUtils {
-  @Test
+
+  @Test (timeout=2000)
   public void testByteStringToAndFromConf() throws IOException {
     Configuration conf = getConf();
     Assert.assertEquals(conf.size(), 6);
@@ -41,7 +44,7 @@ public class TestTezUtils {
     checkConf(conf);
   }
 
-  @Test
+  @Test (timeout=2000)
   public void testPayloadToAndFromConf() throws IOException {
     Configuration conf = getConf();
     Assert.assertEquals(conf.size(), 6);
@@ -52,8 +55,8 @@ public class TestTezUtils {
     Assert.assertEquals(conf.size(), 6);
     checkConf(conf);
   }
-  
-  @Test
+
+  @Test (timeout=2000)
   public void testCleanVertexName() {
     String testString = "special characters & spaces and longer than "
         + TezUtilsInternal.MAX_VERTEX_NAME_LENGTH + " characters";
@@ -64,7 +67,7 @@ public class TestTezUtils {
     Assert.assertTrue(cleaned.matches("\\w+"));
   }
 
-  @Test
+  @Test (timeout=2000)
   public void testBitSetToByteArray() {
     BitSet bitSet = createBitSet(0);
     byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
@@ -75,7 +78,7 @@ public class TestTezUtils {
     Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
   }
 
-  @Test
+  @Test (timeout=2000)
   public void testBitSetFromByteArray() {
     BitSet bitSet = createBitSet(0);
     byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
@@ -93,7 +96,7 @@ public class TestTezUtils {
     Assert.assertTrue(TezUtilsInternal.fromByteArray(bytes).equals(bitSet));
   }
 
-  @Test
+  @Test (timeout=2000)
   public void testBitSetConversion() {
     for (int i = 0 ; i < 16 ; i++) {
       BitSet bitSet = createBitSetWithSingleEntry(i);
@@ -144,6 +147,46 @@ public class TestTezUtils {
     Assert.assertEquals(tmp[0], "S1");
     Assert.assertEquals(tmp[1], "S2");
     Assert.assertEquals(tmp[2], "S3");
+
+  }
+
+  @Test (timeout=2000)
+  public void testConvertToHistoryText() throws JSONException {
+    Configuration conf = getConf();
+
+    String confToJson = TezUtils.convertToHistoryText(conf);
+
+    JSONObject jsonObject = new JSONObject(confToJson);
+
+    Assert.assertFalse(jsonObject.has(ATSConstants.DESCRIPTION));
+    Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
+
+    JSONObject confObject = jsonObject.getJSONObject(ATSConstants.CONFIG);
+    Assert.assertNotNull(confObject);
+    Assert.assertEquals("value1", confObject.getString("test1"));
+    Assert.assertEquals("true", confObject.getString("test2"));
+    Assert.assertEquals("1.2345", confObject.getString("test3"));
+    Assert.assertEquals("34567", confObject.getString("test4"));
+    Assert.assertEquals("1234567890", confObject.getString("test5"));
+    Assert.assertEquals("S1,S2,S3", confObject.getString("test6"));
+
+    String desc = "desc123";
+    confToJson = TezUtils.convertToHistoryText(desc, conf);
+    jsonObject = new JSONObject(confToJson);
+
+    Assert.assertTrue(jsonObject.has(ATSConstants.DESCRIPTION));
+    String descFromJson = jsonObject.getString(ATSConstants.DESCRIPTION);
+    Assert.assertEquals(desc, descFromJson);
+
+    Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
+    confObject = jsonObject.getJSONObject("config");
+    Assert.assertNotNull(confObject);
+    Assert.assertEquals("value1", confObject.getString("test1"));
+    Assert.assertEquals("true", confObject.getString("test2"));
+    Assert.assertEquals("1.2345", confObject.getString("test3"));
+    Assert.assertEquals("34567", confObject.getString("test4"));
+    Assert.assertEquals("1234567890", confObject.getString("test5"));
+    Assert.assertEquals("S1,S2,S3", confObject.getString("test6"));
 
   }
 }

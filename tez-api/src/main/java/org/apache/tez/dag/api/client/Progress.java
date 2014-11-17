@@ -54,7 +54,15 @@ public class Progress {
   public int getKilledTaskCount() {
     return proxy.getKilledTaskCount();
   }
-  
+
+  public int getFailedTaskAttemptCount() {
+    return proxy.getFailedTaskAttemptCount();
+  }
+
+  public int getKilledTaskAttemptCount() {
+    return proxy.getKilledTaskAttemptCount();
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof Progress){
@@ -63,7 +71,9 @@ public class Progress {
           && getSucceededTaskCount() == other.getSucceededTaskCount()
           && getRunningTaskCount() == other.getRunningTaskCount()
           && getFailedTaskCount() == other.getFailedTaskCount()
-          && getKilledTaskCount() == other.getKilledTaskCount();
+          && getKilledTaskCount() == other.getKilledTaskCount()
+          && getFailedTaskAttemptCount() == other.getFailedTaskAttemptCount()
+          && getKilledTaskAttemptCount() == other.getKilledTaskAttemptCount();
     }
     return false;
   }
@@ -81,6 +91,14 @@ public class Progress {
     sb.append(getFailedTaskCount());
     sb.append(" Killed: "); 
     sb.append(getKilledTaskCount());
+    if (getFailedTaskAttemptCount() > 0) {
+      sb.append(" FailedTaskAttempts: ");
+      sb.append(getFailedTaskAttemptCount());
+    }
+    if (getKilledTaskAttemptCount() > 0) {
+      sb.append(" KilledTaskAttempts: ");
+      sb.append(getKilledTaskAttemptCount());
+    }
     return sb.toString();
   }
 

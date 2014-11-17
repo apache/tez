@@ -53,6 +53,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -69,8 +70,8 @@ public class TestMultiMRInput {
     defaultConf.set("fs.defaultFS", "file:///");
     try {
       localFs = FileSystem.getLocal(defaultConf);
-      testTmpDir = System.getProperty("test.build.data", "/tmp");
-      TEST_ROOT_DIR = new Path(testTmpDir, TestMultiMRInput.class.getSimpleName());
+      testTmpDir = System.getProperty("test.build.data", "target");
+      TEST_ROOT_DIR = new Path(testTmpDir, TestMultiMRInput.class.getSimpleName() + "-tmpDir");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -263,6 +264,11 @@ public class TestMultiMRInput {
     doReturn("taskVertexName").when(inputContext).getTaskVertexName();
     doReturn(UserPayload.create(ByteBuffer.wrap(payload))).when(inputContext).getUserPayload();
     return inputContext;
+  }
+
+  @AfterClass
+  public static void cleanUp() throws IOException {
+    localFs.delete(TEST_ROOT_DIR, true);
   }
 
   public static LinkedHashMap<LongWritable, Text> createInputData(FileSystem fs, Path workDir,

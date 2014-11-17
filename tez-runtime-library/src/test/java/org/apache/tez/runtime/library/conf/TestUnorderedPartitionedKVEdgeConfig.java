@@ -21,21 +21,25 @@
 package org.apache.tez.runtime.library.conf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
 public class TestUnorderedPartitionedKVEdgeConfig {
 
-  @Test
+  @Test (timeout=2000)
   public void testNullParams() {
     try {
       UnorderedPartitionedKVEdgeConfig.newBuilder(null, "VALUE", "PARTITIONER");
@@ -59,7 +63,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     }
   }
 
-  @Test
+  @Test (timeout=2000)
   public void testDefaultConfigsUsed() {
     UnorderedPartitionedKVEdgeConfig.Builder builder =
         UnorderedPartitionedKVEdgeConfig.newBuilder("KEY", "VALUE", "PARTITIONER");
@@ -92,7 +96,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
         ("SerClass2,SerClass1"));
   }
 
-  @Test
+  @Test (timeout=2000)
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     UnorderedPartitionedKVEdgeConfig.Builder builder =
@@ -116,7 +120,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
   }
 
-  @Test
+  @Test (timeout=2000)
   public void tetCommonConf() {
 
     Configuration fromConf = new Configuration(false);
@@ -185,4 +189,36 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     assertEquals("fs", inputConf.get("fs.shouldExist"));
 
   }
+
+  private void checkHistoryText(String historyText) {
+    assertNotNull(historyText);
+    assertTrue(historyText.contains(
+        TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT));
+  }
+
+  @Test (timeout=2000)
+  public void testHistoryText() {
+    UnorderedPartitionedKVEdgeConfig.Builder builder =
+        UnorderedPartitionedKVEdgeConfig.newBuilder("KEY", "VALUE", "PARTITIONER");
+    Configuration fromConf = new Configuration(false);
+    fromConf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+        true);
+    builder.setFromConfiguration(fromConf);
+
+    UnorderedPartitionedKVEdgeConfig kvEdgeConfig = builder.build();
+
+    checkHistoryText(kvEdgeConfig.getInputHistoryText());
+    checkHistoryText(kvEdgeConfig.getOutputHistoryText());
+
+    EdgeProperty defaultEdgeProperty = builder.build().createDefaultEdgeProperty();
+    checkHistoryText(defaultEdgeProperty.getEdgeDestination().getHistoryText());
+    checkHistoryText(defaultEdgeProperty.getEdgeSource().getHistoryText());
+
+    EdgeManagerPluginDescriptor descriptor = mock(EdgeManagerPluginDescriptor.class);
+    EdgeProperty edgeProperty = builder.build().createDefaultCustomEdgeProperty(descriptor);
+    checkHistoryText(edgeProperty.getEdgeDestination().getHistoryText());
+    checkHistoryText(edgeProperty.getEdgeSource().getHistoryText());
+
+  }
+
 }

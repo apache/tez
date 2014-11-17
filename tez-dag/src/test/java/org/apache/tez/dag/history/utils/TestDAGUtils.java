@@ -20,11 +20,13 @@ package org.apache.tez.dag.history.utils;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -40,6 +42,8 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Assert;
@@ -67,6 +71,7 @@ public class TestDAGUtils {
         dummyTaskCount, dummyTaskResource);
 
     DAG dag = DAG.create("testDag");
+    dag.setDAGInfo("dagInfo");
     String groupName1 = "uv12";
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class")
@@ -94,8 +99,21 @@ public class TestDAGUtils {
   @SuppressWarnings("unchecked")
   public void testConvertDAGPlanToATSMap() throws IOException, JSONException {
     DAGPlan dagPlan = createDAG();
+    Map<String,TezVertexID> idNameMap = new HashMap<String, TezVertexID>();
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    TezDAGID dagId = TezDAGID.getInstance(appId, 1);
+    TezVertexID vId1 = TezVertexID.getInstance(dagId, 1);
+    TezVertexID vId2 = TezVertexID.getInstance(dagId, 2);
+    TezVertexID vId3 = TezVertexID.getInstance(dagId, 3);
+    idNameMap.put("vertex1", vId1);
+    idNameMap.put("vertex2", vId2);
+    idNameMap.put("vertex3", vId3);
+
     Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
+    Assert.assertEquals("testDag", atsMap.get(DAGUtils.DAG_NAME_KEY));
+    Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
+    Assert.assertEquals("dagInfo", atsMap.get(DAGUtils.DAG_INFO_KEY));
     Assert.assertEquals(dagPlan.getName(), atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey("version"));
     Assert.assertEquals(1, atsMap.get("version"));
@@ -104,7 +122,6 @@ public class TestDAGUtils {
     Assert.assertTrue(atsMap.containsKey(DAGUtils.VERTEX_GROUPS_KEY));
 
     Assert.assertEquals(3, ((Collection<?>) atsMap.get(DAGUtils.VERTICES_KEY)).size());
-    Set<String> vNames = Sets.newHashSet("vertex1", "vertex2", "vertex3");
 
     Set<String> inEdgeIds = new HashSet<String>();
     Set<String> outEdgeIds = new HashSet<String>();
@@ -115,6 +132,7 @@ public class TestDAGUtils {
     for (Object o : ((Collection<?>) atsMap.get(DAGUtils.VERTICES_KEY))) {
       Map<String, Object> v = (Map<String, Object>) o;
       Assert.assertTrue(v.containsKey(DAGUtils.VERTEX_NAME_KEY));
+      String vName = (String)v.get(DAGUtils.VERTEX_NAME_KEY);
       Assert.assertTrue(v.containsKey(DAGUtils.PROCESSOR_CLASS_KEY));
       Assert.assertTrue(v.containsKey(DAGUtils.USER_PAYLOAD_AS_TEXT));
 
@@ -125,8 +143,7 @@ public class TestDAGUtils {
         outEdgeIds.addAll(((Collection<String>) v.get(DAGUtils.OUT_EDGE_IDS_KEY)));
       }
 
-      String vName = (String) v.get(DAGUtils.VERTEX_NAME_KEY);
-      Assert.assertTrue(vNames.contains(vName));
+      Assert.assertTrue(idNameMap.containsKey(vName));
       String procPayload = vName + " Processor HistoryText";
       Assert.assertEquals(procPayload, v.get(DAGUtils.USER_PAYLOAD_AS_TEXT));
 

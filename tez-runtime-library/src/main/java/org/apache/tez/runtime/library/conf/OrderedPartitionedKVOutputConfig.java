@@ -133,19 +133,19 @@ public class OrderedPartitionedKVOutputConfig {
     }
 
     @Override
-    public SpecificBuilder setAdditionalConfiguration(String key, String value) {
+    public SpecificBuilder<E> setAdditionalConfiguration(String key, String value) {
       builder.setAdditionalConfiguration(key, value);
       return this;
     }
 
     @Override
-    public SpecificBuilder setAdditionalConfiguration(Map<String, String> confMap) {
+    public SpecificBuilder<E> setAdditionalConfiguration(Map<String, String> confMap) {
       builder.setAdditionalConfiguration(confMap);
       return this;
     }
 
     @Override
-    public SpecificBuilder setFromConfiguration(Configuration conf) {
+    public SpecificBuilder<E> setFromConfiguration(Configuration conf) {
       builder.setFromConfiguration(conf);
       return this;
     }
@@ -187,6 +187,15 @@ public class OrderedPartitionedKVOutputConfig {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @InterfaceAudience.Private
+  String toHistoryText() {
+    if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT_DEFAULT)) {
+      return TezUtils.convertToHistoryText(conf);
+    }
+    return null;
   }
 
   public static Builder newBuilder(String keyClass, String valueClass, String partitionerClassName) {

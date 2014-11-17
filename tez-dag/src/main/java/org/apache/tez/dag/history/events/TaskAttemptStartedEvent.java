@@ -39,11 +39,13 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   private long startTime;
   private ContainerId containerId;
   private NodeId nodeId;
+  private String nodeHttpAddress;
 
   public TaskAttemptStartedEvent(TezTaskAttemptID taId,
       String vertexName, long startTime,
       ContainerId containerId, NodeId nodeId,
-      String inProgressLogsUrl, String completedLogsUrl) {
+      String inProgressLogsUrl, String completedLogsUrl,
+      String nodeHttpAddress) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.startTime = startTime;
@@ -51,6 +53,7 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     this.nodeId = nodeId;
     this.inProgressLogsUrl = inProgressLogsUrl;
     this.completedLogsUrl = completedLogsUrl;
+    this.nodeHttpAddress = nodeHttpAddress;
   }
 
   public TaskAttemptStartedEvent() {
@@ -134,6 +137,10 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
 
   public String getCompletedLogsUrl() {
     return completedLogsUrl;
+  }
+
+  public String getNodeHttpAddress() {
+    return nodeHttpAddress;
   }
 
 }

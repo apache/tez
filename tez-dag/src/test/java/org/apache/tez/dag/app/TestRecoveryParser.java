@@ -60,7 +60,7 @@ public class TestRecoveryParser {
   public void testGetLastCompletedDAG() {
     Map<TezDAGID, DAGSummaryData> summaryDataMap =
         new HashMap<TezDAGID, DAGSummaryData>();
-    int lastCompletedDAGId = new Random().nextInt(100);
+    int lastCompletedDAGId = new Random().nextInt(20) + 1;
     for (int i = 1; i <= lastCompletedDAGId; ++i) {
       ApplicationId appId = ApplicationId.newInstance(1, 1);
       TezDAGID dagId = TezDAGID.getInstance(appId, i);
@@ -76,8 +76,8 @@ public class TestRecoveryParser {
   public void testGetLastInProgressDAG() {
     Map<TezDAGID, DAGSummaryData> summaryDataMap =
         new HashMap<TezDAGID, DAGSummaryData>();
-    int dagNum = 100;
-    int lastInProgressDAGId = new Random().nextInt(dagNum);
+    int dagNum = 20;
+    int lastInProgressDAGId = new Random().nextInt(dagNum) + 1;
     for (int i = 1; i <= dagNum; ++i) {
       ApplicationId appId = ApplicationId.newInstance(1, 1);
       TezDAGID dagId = TezDAGID.getInstance(appId, i);

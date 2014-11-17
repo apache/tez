@@ -42,9 +42,11 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
 
   private TezVertexID vertexID;
   private int numTasks;
+  private int oldNumTasks;
   private VertexLocationHint vertexLocationHint;
   private Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers;
   private Map<String, InputSpecUpdate> rootInputSpecUpdates;
+  private long updateTime;
 
   public VertexParallelismUpdatedEvent() {
   }
@@ -52,12 +54,14 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   public VertexParallelismUpdatedEvent(TezVertexID vertexID,
       int numTasks, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates) {
+      Map<String, InputSpecUpdate> rootInputSpecUpdates, int oldNumTasks) {
     this.vertexID = vertexID;
     this.numTasks = numTasks;
     this.vertexLocationHint = vertexLocationHint;
     this.sourceEdgeManagers = sourceEdgeManagers;
     this.rootInputSpecUpdates = rootInputSpecUpdates;
+    this.updateTime = System.currentTimeMillis();
+    this.oldNumTasks = oldNumTasks;
   }
 
   @Override
@@ -72,7 +76,7 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
 
   @Override
   public boolean isHistoryEvent() {
-    return false;
+    return true;
   }
 
   public VertexParallelismUpdatedProto toProto() {
@@ -189,4 +193,13 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   public Map<String, InputSpecUpdate> getRootInputSpecUpdates() {
     return rootInputSpecUpdates;
   }
+
+  public long getUpdateTime() {
+    return updateTime;
+  }
+
+  public int getOldNumTasks() {
+    return oldNumTasks;
+  }
+
 }

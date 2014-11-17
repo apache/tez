@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -33,6 +34,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.client.TezApiVersionInfo;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -238,12 +240,34 @@ public class MockDAGAppMaster extends DAGAppMaster {
     
   }
 
+  public class MockDAGAppMasterShutdownHandler extends DAGAppMasterShutdownHandler {
+    public AtomicInteger shutdownInvoked = new AtomicInteger(0);
+    public AtomicInteger shutdownInvokedWithoutDelay = new AtomicInteger(0);
+
+    @Override
+    public void shutdown() {
+      shutdownInvokedWithoutDelay.incrementAndGet();
+    }
+
+    @Override
+    public void shutdown(boolean now) {
+      shutdownInvoked.incrementAndGet();
+    }
+
+    public boolean wasShutdownInvoked() {
+      return shutdownInvoked.get() > 0 ||
+          shutdownInvokedWithoutDelay.get() > 0;
+    }
+
+  }
+
   public MockDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
       String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
       boolean isSession, String workingDirectory, AtomicBoolean launcherGoFlag) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
-        isSession, workingDirectory);
+        isSession, workingDirectory, new TezApiVersionInfo().getVersion());
     containerLauncher = new MockContainerLauncher(launcherGoFlag);
+    shutdownHandler = new MockDAGAppMasterShutdownHandler();
   }
   
   // use mock container launcher for tests
@@ -256,4 +280,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
   public MockContainerLauncher getContainerLauncher() {
     return containerLauncher;
   }
+
+  public MockDAGAppMasterShutdownHandler getShutdownHandler() {
+    return (MockDAGAppMasterShutdownHandler) this.shutdownHandler;
+  }
+
 }

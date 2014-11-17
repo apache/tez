@@ -38,7 +38,7 @@ public class EnvironmentUpdateUtils {
    * @param key System environment variable
    * @param value Value to assign to system environment variable
    */
-  public static void put(String key, String value){
+  public synchronized static void put(String key, String value){
     Map<String, String> environment = new HashMap<String, String>(System.getenv());
     environment.put(key, value);
     if (!Shell.WINDOWS) {
@@ -57,7 +57,7 @@ public class EnvironmentUpdateUtils {
    * environment variable and the value is the value to assign the system
    * environment variable
    */
-  public static void putAll(Map<String, String> additionalEnvironment) {
+  public synchronized static void putAll(Map<String, String> additionalEnvironment) {
     Map<String, String> environment = new HashMap<String, String>(System.getenv());
     environment.putAll(additionalEnvironment);
     if (!Shell.WINDOWS) {

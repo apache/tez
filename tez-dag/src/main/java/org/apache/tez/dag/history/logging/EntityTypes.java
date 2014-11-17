@@ -19,6 +19,7 @@
 package org.apache.tez.dag.history.logging;
 
 public enum EntityTypes {
+  TEZ_APPLICATION,
   TEZ_APPLICATION_ATTEMPT,
   TEZ_CONTAINER_ID,
   TEZ_DAG_ID,

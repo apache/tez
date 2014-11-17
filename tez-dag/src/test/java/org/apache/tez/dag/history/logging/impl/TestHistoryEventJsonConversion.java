@@ -18,12 +18,17 @@
 
 package org.apache.tez.dag.history.logging.impl;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.tez.common.ATSConstants;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -33,6 +38,7 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
+import org.apache.tez.dag.history.events.AppLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
@@ -52,11 +58,14 @@ import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
 import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
+import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,6 +102,10 @@ public class TestHistoryEventJsonConversion {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       HistoryEvent event = null;
       switch (eventType) {
+        case APP_LAUNCHED:
+          event = new AppLaunchedEvent(applicationId, random.nextInt(), random.nextInt(),
+              user, new Configuration(false));
+          break;
         case AM_LAUNCHED:
           event = new AMLaunchedEvent(applicationAttemptId, random.nextInt(), random.nextInt(),
               user);
@@ -105,14 +118,14 @@ public class TestHistoryEventJsonConversion {
               null, user);
           break;
         case DAG_INITIALIZED:
-          event = new DAGInitializedEvent(tezDAGID, random.nextInt(), user, dagPlan.getName());
+          event = new DAGInitializedEvent(tezDAGID, random.nextInt(), user, dagPlan.getName(), null);
           break;
         case DAG_STARTED:
           event = new DAGStartedEvent(tezDAGID, random.nextInt(), user, dagPlan.getName());
           break;
         case DAG_FINISHED:
           event = new DAGFinishedEvent(tezDAGID, random.nextInt(), random.nextInt(), DAGState.ERROR,
-              null, null, user, dagPlan.getName());
+              null, null, user, dagPlan.getName(), null);
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
@@ -122,10 +135,10 @@ public class TestHistoryEventJsonConversion {
           event = new VertexStartedEvent(tezVertexID, random.nextInt(), random.nextInt());
           break;
         case VERTEX_PARALLELISM_UPDATED:
-          event = new VertexParallelismUpdatedEvent();
+          event = new VertexParallelismUpdatedEvent(tezVertexID, 1, null, null, null, 10);
           break;
         case VERTEX_FINISHED:
-          event = new VertexFinishedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
+          event = new VertexFinishedEvent(tezVertexID, "v1", 1, random.nextInt(), random.nextInt(),
               random.nextInt(), random.nextInt(), random.nextInt(), VertexState.ERROR,
               null, null, null, null);
           break;
@@ -138,7 +151,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case TASK_ATTEMPT_STARTED:
           event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1", random.nextInt(), containerId,
-              nodeId, null, null);
+              nodeId, null, null, "nodeHttpAddress");
           break;
         case TASK_ATTEMPT_FINISHED:
           event = new TaskAttemptFinishedEvent(tezTaskAttemptID, "v1", random.nextInt(),
@@ -175,5 +188,46 @@ public class TestHistoryEventJsonConversion {
       HistoryEventJsonConversion.convertToJson(event);
     }
   }
+
+  @Test
+  public void testConvertVertexParallelismUpdatedEvent() throws JSONException {
+    TezVertexID vId = TezVertexID.getInstance(
+        TezDAGID.getInstance(
+            ApplicationId.newInstance(1l, 1), 1), 1);
+    Map<String, EdgeManagerPluginDescriptor> edgeMgrs =
+        new HashMap<String, EdgeManagerPluginDescriptor>();
+    edgeMgrs.put("a", EdgeManagerPluginDescriptor.create("a.class").setHistoryText("text"));
+    VertexParallelismUpdatedEvent event = new VertexParallelismUpdatedEvent(vId, 1, null,
+        edgeMgrs, null, 10);
+
+    JSONObject jsonObject = HistoryEventJsonConversion.convertToJson(event);
+    Assert.assertNotNull(jsonObject);
+    Assert.assertEquals(vId.toString(), jsonObject.getString(ATSConstants.ENTITY));
+    Assert.assertEquals(ATSConstants.TEZ_VERTEX_ID, jsonObject.get(ATSConstants.ENTITY_TYPE));
+
+    JSONArray events = jsonObject.getJSONArray(ATSConstants.EVENTS);
+    Assert.assertEquals(1, events.length());
+
+    JSONObject evt = events.getJSONObject(0);
+    Assert.assertEquals(HistoryEventType.VERTEX_PARALLELISM_UPDATED.name(),
+        evt.getString(ATSConstants.EVENT_TYPE));
+
+    JSONObject evtInfo = evt.getJSONObject(ATSConstants.EVENT_INFO);
+    Assert.assertEquals(1, evtInfo.getInt(ATSConstants.NUM_TASKS));
+    Assert.assertEquals(10, evtInfo.getInt(ATSConstants.OLD_NUM_TASKS));
+    Assert.assertNotNull(evtInfo.getJSONObject(ATSConstants.UPDATED_EDGE_MANAGERS));
+
+    JSONObject updatedEdgeMgrs = evtInfo.getJSONObject(ATSConstants.UPDATED_EDGE_MANAGERS);
+    Assert.assertEquals(1, updatedEdgeMgrs.length());
+    Assert.assertNotNull(updatedEdgeMgrs.getJSONObject("a"));
+    JSONObject updatedEdgeMgr = updatedEdgeMgrs.getJSONObject("a");
+
+    Assert.assertEquals("a.class", updatedEdgeMgr.getString(DAGUtils.EDGE_MANAGER_CLASS_KEY));
+
+    JSONObject otherInfo = jsonObject.getJSONObject(ATSConstants.OTHER_INFO);
+    Assert.assertEquals(1, otherInfo.getInt(ATSConstants.NUM_TASKS));
+
+  }
+
 
 }

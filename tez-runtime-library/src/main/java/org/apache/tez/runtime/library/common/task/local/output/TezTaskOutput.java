@@ -160,6 +160,13 @@ public abstract class TezTaskOutput {
   public abstract Path getInputFileForWrite(
       int taskIdentifier, long size) throws IOException;
 
+  /**
+   * Construct a spill file name, given a spill number
+   * @param spillNum
+   * @return
+   */
+  public abstract String getSpillFileName(int spillNum);
+
   /** Removes all of the files related to a task. */
   public abstract void removeAll() throws IOException;
 }

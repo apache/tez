@@ -48,7 +48,6 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
-import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -87,7 +86,8 @@ public class DAG {
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
   private DAGAccessControls dagAccessControls;
   Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
-  
+  String dagInfo;
+
   private Stack<String> topologicalVertexStack = new Stack<String>();
 
   private DAG(String name) {
@@ -148,7 +148,24 @@ public class DAG {
     this.credentials = credentials;
     return this;
   }
-  
+
+  /**
+   * Set description info for this DAG that can be used for visualization purposes.
+   * @param dagInfo JSON blob as a serialized string.
+   *                Recognized keys by the UI are:
+   *                    "context" - The application context in which this DAG is being used.
+   *                                For example, this could be set to "Hive" or "Pig" if
+   *                                this is being run as part of a Hive or Pig script.
+   *                    "description" - General description on what this DAG is going to do.
+   *                                In the case of Hive, this could be the SQL query text.
+   * @return {@link DAG}
+   */
+  public synchronized DAG setDAGInfo(String dagInfo) {
+    Preconditions.checkNotNull(dagInfo);
+    this.dagInfo = dagInfo;
+    return this;
+  }
+
   /**
    * Create a group of vertices that share a common output. This can be used to implement 
    * unions efficiently.
@@ -589,6 +606,9 @@ public class DAG {
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
 
     dagBuilder.setName(this.name);
+    if (this.dagInfo != null && !this.dagInfo.isEmpty()) {
+      dagBuilder.setDagInfo(this.dagInfo);
+    }
     
     if (!vertexGroups.isEmpty()) {
       for (VertexGroup av : vertexGroups) {
@@ -719,11 +739,12 @@ public class DAG {
         if (vertexLocationHint.getTaskLocationHints() != null) {
           for (TaskLocationHint hint : vertexLocationHint.getTaskLocationHints()) {
             PlanTaskLocationHint.Builder taskLocationHintBuilder = PlanTaskLocationHint.newBuilder();
-
-            if (hint.getAffinitizedContainer() != null) {
+            // we can allow this later on if needed
+            if (hint.getAffinitizedTask() != null) {
               throw new TezUncheckedException(
-                  "Container affinity may not be specified via the DAG API");
+                  "Task based affinity may not be specified via the DAG API");
             }
+
             if (hint.getHosts() != null) {
               taskLocationHintBuilder.addAllHost(hint.getHosts());
             }

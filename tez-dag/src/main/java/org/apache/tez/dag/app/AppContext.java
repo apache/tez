@@ -32,7 +32,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
-import org.apache.tez.dag.app.rm.node.AMNodeMap;
+import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
@@ -77,7 +77,7 @@ public interface AppContext {
 
   AMContainerMap getAllContainers();
 
-  AMNodeMap getAllNodes();
+  AMNodeTracker getNodeTracker();
 
   TaskSchedulerEventHandler getTaskScheduler();
 

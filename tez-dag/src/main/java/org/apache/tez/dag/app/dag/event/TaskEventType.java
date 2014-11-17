@@ -34,7 +34,6 @@ public enum TaskEventType {
 
   //Producer:TaskAttempt
   T_ATTEMPT_LAUNCHED,
-  T_ATTEMPT_OUTPUT_CONSUMABLE,
   T_ATTEMPT_FAILED,
   T_ATTEMPT_SUCCEEDED,
   T_ATTEMPT_KILLED,

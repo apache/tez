@@ -50,7 +50,6 @@ import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
@@ -72,7 +71,8 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
           .next();
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       kvWriter.write(word, new IntWritable(getContext().getTaskIndex()));
-      ByteBuffer userPayload = getContext().getUserPayload().getPayload();
+      ByteBuffer userPayload =
+          getContext().getUserPayload() == null ? null : getContext().getUserPayload().getPayload();
       if (userPayload != null) {
         boolean doLocalityCheck = getContext().getUserPayload().getPayload().get(0) > 0 ? true : false;
         if (doLocalityCheck) {

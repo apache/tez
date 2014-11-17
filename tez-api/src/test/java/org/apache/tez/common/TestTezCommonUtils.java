@@ -18,7 +18,6 @@
 
 package org.apache.tez.common;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.logging.Log;
@@ -159,11 +158,13 @@ public class TestTezCommonUtils {
   @Test
   public void testTezTextPlanStagingPath() throws Exception {
     String strAppId = "testAppId";
-    Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
-    Path confStageDir = TezCommonUtils.getTezTextPlanStagingPath(stageDir);
+    String dagPBName = "testDagPBName";
+    Path tezSysStagingPath = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
+    Path confStageDir =
+        TezCommonUtils.getTezTextPlanStagingPath(tezSysStagingPath, strAppId, dagPBName);
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
-        + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
+        + strAppId + "-" + dagPBName + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
     Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 

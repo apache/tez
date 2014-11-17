@@ -23,17 +23,24 @@ import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 
 /**
@@ -43,6 +50,7 @@ import org.apache.tez.dag.api.records.DAGProtos;
 @InterfaceAudience.Public
 public class TezUtils {
 
+  private static final Log LOG = LogFactory.getLog(TezUtils.class);
 
   /**
    * Allows changing the log level for task / AM logging. </p>
@@ -148,4 +156,32 @@ public class TezUtils {
       conf.set(setting.getKey(), setting.getValue());
     }
   }
+
+  public static String convertToHistoryText(String description, Configuration conf) {
+    // Add a version if this serialization is changed
+    JSONObject jsonObject = new JSONObject();
+    try {
+      if (description != null && !description.isEmpty()) {
+        jsonObject.put(ATSConstants.DESCRIPTION, description);
+      }
+      if (conf != null) {
+        JSONObject confJson = new JSONObject();
+        Iterator<Entry<String, String>> iter = conf.iterator();
+        while (iter.hasNext()) {
+          Entry<String, String> entry = iter.next();
+          confJson.put(entry.getKey(), entry.getValue());
+        }
+        jsonObject.put(ATSConstants.CONFIG, confJson);
+      }
+    } catch (JSONException e) {
+      throw new TezUncheckedException("Error when trying to convert description/conf to JSON", e);
+    }
+    return jsonObject.toString();
+  }
+
+  public static String convertToHistoryText(Configuration conf) {
+    return convertToHistoryText(null, conf);
+  }
+
+
 }

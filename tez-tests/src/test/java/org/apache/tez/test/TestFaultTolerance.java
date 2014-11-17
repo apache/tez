@@ -109,8 +109,12 @@ public class TestFaultTolerance {
       dfsCluster = null;
     }
   }
-  
+
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
+    runDAGAndVerify(dag, finalState, -1);
+  }
+
+  void runDAGAndVerify(DAG dag, DAGStatus.State finalState, int checkFailedAttempts) throws Exception {
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
@@ -122,7 +126,12 @@ public class TestFaultTolerance {
       Thread.sleep(100);
       dagStatus = dagClient.getDAGStatus(null);
     }
-    
+
+    if (checkFailedAttempts > 0) {
+      Assert.assertEquals(checkFailedAttempts,
+          dagStatus.getDAGProgress().getFailedTaskAttemptCount());
+    }
+
     Assert.assertEquals(finalState, dagStatus.getState());
   }
   
@@ -170,7 +179,7 @@ public class TestFaultTolerance {
         TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 4);
 
     DAG dag = SimpleTestDAG.createDAG("testBasicTaskFailure", testConf);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, 1);
   }
   
   @Test (timeout=60000)
@@ -191,7 +200,7 @@ public class TestFaultTolerance {
             TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 7);
     
     DAG dag = SimpleTestDAG.createDAG("testTaskMultipleFailures", testConf);
-    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, 4);
   }
   
   @Test (timeout=60000)

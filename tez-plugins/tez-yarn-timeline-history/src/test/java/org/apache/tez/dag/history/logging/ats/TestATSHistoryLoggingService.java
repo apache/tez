@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.history.logging.ats;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
@@ -32,19 +34,22 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestATSHistoryLoggingService {
 
+  private static final Log LOG = LogFactory.getLog(TestATSHistoryLoggingService.class);
+
   private ATSHistoryLoggingService atsHistoryLoggingService;
   private AppContext appContext;
   private Configuration conf;
   private int atsInvokeCounter;
+  private int atsEntitiesCounter;
   private SystemClock clock = new SystemClock();
 
   @Before
@@ -55,18 +60,22 @@ public class TestATSHistoryLoggingService {
     conf = new Configuration(false);
     conf.setLong(TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS,
         1000l);
+    conf.setInt(TezConfiguration.YARN_ATS_MAX_EVENTS_PER_BATCH, 2);
     atsInvokeCounter = 0;
+    atsEntitiesCounter = 0;
     atsHistoryLoggingService.init(conf);
     atsHistoryLoggingService.timelineClient = mock(TimelineClient.class);
     atsHistoryLoggingService.start();
     when(appContext.getClock()).thenReturn(clock);
-    when(atsHistoryLoggingService.timelineClient.putEntities(any(TimelineEntity.class))).thenAnswer(
+    when(atsHistoryLoggingService.timelineClient.putEntities(
+        Matchers.<TimelineEntity[]>anyVararg())).thenAnswer(
         new Answer<Object>() {
           @Override
           public Object answer(InvocationOnMock invocation) throws Throwable {
             ++atsInvokeCounter;
+            atsEntitiesCounter += invocation.getArguments().length;
             try {
-              Thread.sleep(500);
+              Thread.sleep(500l);
             } catch (InterruptedException e) {
               // do nothing
             }
@@ -89,7 +98,7 @@ public class TestATSHistoryLoggingService {
     DAGHistoryEvent historyEvent = new DAGHistoryEvent(tezDAGID,
         new DAGStartedEvent(tezDAGID, 1001l, "user1", "dagName1"));
 
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 100; ++i) {
       atsHistoryLoggingService.handle(historyEvent);
     }
 
@@ -100,9 +109,35 @@ public class TestATSHistoryLoggingService {
     }
     atsHistoryLoggingService.stop();
 
-    Assert.assertTrue(atsInvokeCounter >= 4);
-    Assert.assertTrue(atsInvokeCounter < 10);
+    LOG.info("ATS entitiesSent=" + atsEntitiesCounter
+        + ", timelineInvocations=" + atsInvokeCounter);
 
+    Assert.assertTrue(atsEntitiesCounter >= 4);
+    Assert.assertTrue(atsEntitiesCounter < 20);
+
+  }
+
+  @Test(timeout=20000)
+  public void testATSEventBatching() {
+    TezDAGID tezDAGID = TezDAGID.getInstance(
+        ApplicationId.newInstance(100l, 1), 1);
+    DAGHistoryEvent historyEvent = new DAGHistoryEvent(tezDAGID,
+        new DAGStartedEvent(tezDAGID, 1001l, "user1", "dagName1"));
+
+    for (int i = 0; i < 100; ++i) {
+      atsHistoryLoggingService.handle(historyEvent);
+    }
+
+    try {
+      Thread.sleep(1000l);
+    } catch (InterruptedException e) {
+      // Do nothing
+    }
+    LOG.info("ATS entitiesSent=" + atsEntitiesCounter
+        + ", timelineInvocations=" + atsInvokeCounter);
+
+    Assert.assertTrue(atsEntitiesCounter > atsInvokeCounter);
+    Assert.assertEquals(atsEntitiesCounter/2, atsInvokeCounter);
   }
 
 }

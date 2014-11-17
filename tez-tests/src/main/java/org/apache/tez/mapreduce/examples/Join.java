@@ -18,6 +18,8 @@
 
 package org.apache.tez.mapreduce.examples;
 
+import static org.apache.tez.mapreduce.examples.ExampleDriver.getTezDecoratedConfiguration;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -74,10 +76,9 @@ public class Join extends Configured implements Tool {
   /**
    * The main driver for sort program.
    * Invoke this method to submit the map/reduce job.
-   * @throws IOException When there is communication problems with the 
+   * @throws Exception When there is communication problems with the
    *                     job tracker.
    */
-  @SuppressWarnings("unchecked")
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
     JobClient client = new JobClient(conf);
@@ -169,7 +170,7 @@ public class Join extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Join(), args);
+    int res = ToolRunner.run(getTezDecoratedConfiguration(), new Join(), args);
     System.exit(res);
   }
 

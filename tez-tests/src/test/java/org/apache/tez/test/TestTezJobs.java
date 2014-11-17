@@ -28,10 +28,17 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.ByteBuffer;
+import java.util.BitSet;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -46,15 +53,31 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSourceDescriptor;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.InputInitializerDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.examples.SimpleSessionExample;
 import org.apache.tez.examples.JoinDataGen;
 import org.apache.tez.examples.HashJoinExample;
 import org.apache.tez.examples.JoinValidate;
 import org.apache.tez.examples.SortMergeJoinExample;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.InputInitializer;
+import org.apache.tez.runtime.api.InputInitializerContext;
+import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.library.processor.SimpleProcessor;
+import org.apache.tez.runtime.library.processor.SleepProcessor;
+import org.apache.tez.test.dag.MultiAttemptDAG;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -533,6 +556,121 @@ public class TestTezJobs {
     } finally {
       if (tezClient != null) {
         tezClient.stop();
+      }
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testInputInitializerEvents() throws TezException, InterruptedException, IOException {
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    TezClient tezClient = TezClient.create("TestInputInitializerEvents", tezConf);
+    tezClient.start();
+
+    try {
+      DAG dag = DAG.create("TestInputInitializerEvents");
+      Vertex vertex1 = Vertex.create(VERTEX_WITH_INITIALIZER_NAME, ProcessorDescriptor.create(
+          SleepProcessor.class.getName())
+          .setUserPayload(new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1)
+          .addDataSource(INPUT1_NAME,
+              DataSourceDescriptor
+                  .create(InputDescriptor.create(MultiAttemptDAG.NoOpInput.class.getName()),
+                      InputInitializerDescriptor.create(InputInitializerForTest.class.getName()),
+                      null));
+      Vertex vertex2 = Vertex.create(EVENT_GENERATING_VERTEX_NAME,
+          ProcessorDescriptor.create(InputInitializerEventGeneratingProcessor.class.getName()), 5);
+
+      dag.addVertex(vertex1).addVertex(vertex2);
+
+      DAGClient dagClient = tezClient.submitDAG(dag);
+      dagClient.waitForCompletion();
+      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    } finally {
+      tezClient.stop();
+    }
+  }
+
+  private static final String VERTEX_WITH_INITIALIZER_NAME = "VertexWithInitializer";
+  private static final String EVENT_GENERATING_VERTEX_NAME = "EventGeneratingVertex";
+  private static final String INPUT1_NAME = "Input1";
+
+  public static class InputInitializerEventGeneratingProcessor extends SimpleProcessor {
+
+    public InputInitializerEventGeneratingProcessor(
+        ProcessorContext context) {
+      super(context);
+    }
+
+    @Override
+    public void run() throws Exception {
+      if (getContext().getTaskIndex() == 1 && getContext().getTaskAttemptNumber() == 0) {
+        throw new IOException("Failing task 2, attempt 0");
+      }
+
+      InputInitializerEvent initializerEvent = InputInitializerEvent.create(
+          VERTEX_WITH_INITIALIZER_NAME, INPUT1_NAME,
+          ByteBuffer.allocate(4).putInt(0, getContext().getTaskIndex()));
+      List<Event> events = Lists.newArrayList();
+      events.add(initializerEvent);
+      getContext().sendEvents(events);
+    }
+  }
+
+  public static class InputInitializerForTest extends InputInitializer {
+
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition condition = lock.newCondition();
+    private final BitSet eventsSeen = new BitSet();
+
+    public InputInitializerForTest(
+        InputInitializerContext initializerContext) {
+      super(initializerContext);
+      getContext().registerForVertexStateUpdates(EVENT_GENERATING_VERTEX_NAME, EnumSet.of(
+          VertexState.SUCCEEDED));
+    }
+
+    @Override
+    public List<Event> initialize() throws Exception {
+      lock.lock();
+      try {
+        condition.await();
+      } finally {
+        lock.unlock();
+      }
+      return null;
+    }
+
+
+    @Override
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
+      lock.lock();
+      try {
+        for (InputInitializerEvent event : events) {
+          Preconditions.checkArgument(
+              event.getSourceVertexName().equals(EVENT_GENERATING_VERTEX_NAME));
+          int index = event.getUserPayload().getInt(0);
+          Preconditions.checkState(!eventsSeen.get(index));
+          eventsSeen.set(index);
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
+
+    @Override
+    public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+      lock.lock();
+      try {
+        Preconditions.checkArgument(stateUpdate.getVertexState() == VertexState.SUCCEEDED);
+        if (eventsSeen.cardinality() ==
+            getContext().getVertexNumTasks(EVENT_GENERATING_VERTEX_NAME)) {
+          condition.signal();
+        } else {
+          throw new IllegalStateException(
+              "Received VertexState SUCCEEDED before receiving all InputInitializerEvents");
+        }
+      } finally {
+        lock.unlock();
       }
     }
   }

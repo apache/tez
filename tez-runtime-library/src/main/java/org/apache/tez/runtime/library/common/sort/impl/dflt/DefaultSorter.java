@@ -111,6 +111,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private final int indexCacheMemoryLimit;
   private int totalIndexCacheMemory;
 
+  private long totalKeys = 0;
+  private long sameKey = 0;
+
   public DefaultSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
@@ -304,6 +307,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       kvmeta.put(kvindex + VALLEN, distanceTo(valstart, valend));
       // advance kvindex
       kvindex = (int)(((long)kvindex - NMETA + kvmeta.capacity()) % kvmeta.capacity());
+      totalKeys++;
     } catch (MapBufferTooSmallException e) {
       LOG.info("Record too large for in-memory buffer: " + e.getMessage());
       spillSingleRecord(key, value, partition);
@@ -390,12 +394,16 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       return kvip - kvjp;
     }
     // sort by key
-    return comparator.compare(kvbuffer,
+    int result = comparator.compare(kvbuffer,
         kvmeta.get(kvi + KEYSTART),
         kvmeta.get(kvi + VALSTART) - kvmeta.get(kvi + KEYSTART),
         kvbuffer,
         kvmeta.get(kvj + KEYSTART),
         kvmeta.get(kvj + VALSTART) - kvmeta.get(kvj + KEYSTART));
+    if (result == 0) {
+      sameKey++;
+    }
+    return result;
   }
 
   final byte META_BUFFER_TMP[] = new byte[METASIZE];
@@ -715,6 +723,10 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         : kvmeta.capacity() + kvstart) / NMETA;
   }
 
+  private boolean isRLENeeded() {
+    return (sameKey > (0.1 * totalKeys)) || (sameKey < 0);
+  }
+
   protected void sortAndSpill()
       throws IOException, InterruptedException {
     final int mstart = getMetaStart();
@@ -742,12 +754,13 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
       int spindex = mstart;
       final InMemValBytes value = createInMemValBytes();
+      boolean rle = isRLENeeded();
       for (int i = 0; i < partitions; ++i) {
         IFile.Writer writer = null;
         try {
           long segmentStart = out.getPos();
           writer = new Writer(conf, out, keyClass, valClass, codec,
-                                    spilledRecordsCounter, null);
+                                    spilledRecordsCounter, null, rle);
           if (combiner == null) {
             // spill directly
             DataInputBuffer key = new DataInputBuffer();

@@ -76,7 +76,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(inputs, "input map is null");
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
-    this.userPayload = userPayload == null ? UserPayload.create(null) : userPayload;
+    this.userPayload = userPayload;
     this.inputIndex = inputIndex;
     this.sourceVertexName = sourceVertexName;
     this.sourceInfo = new EventMetaData(

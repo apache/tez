@@ -222,9 +222,15 @@ public class TezLocalTaskOutputFiles extends TezTaskOutput {
   public Path getInputFileForWrite(int taskId,
                                    long size)
       throws IOException {
-    return lDirAlloc.getLocalPathForWrite(String.format(
-        Constants.TEZ_RUNTIME_TASK_INPUT_FILE_FORMAT_STRING, Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR, taskId),
+    return lDirAlloc.getLocalPathForWrite(getSpillFileName(taskId),
         size, conf);
+  }
+
+  @Override
+  public String getSpillFileName(int spillNum) {
+    return (String.format(
+        Constants.TEZ_RUNTIME_TASK_INPUT_FILE_FORMAT_STRING, Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR,
+        spillNum));
   }
 
   /** Removes all of the files related to a task. */

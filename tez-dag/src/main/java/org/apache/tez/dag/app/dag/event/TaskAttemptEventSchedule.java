@@ -17,22 +17,25 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-
-
 
 public class TaskAttemptEventSchedule extends TaskAttemptEvent {
 
-  private final Priority priority;
+  private final int priLowLimit;
+  private final int priHighLimit;
 
-  public TaskAttemptEventSchedule(TezTaskAttemptID id, Priority priority) {
+  public TaskAttemptEventSchedule(TezTaskAttemptID id, int lowLimit, int highLimit) {
     super(id, TaskAttemptEventType.TA_SCHEDULE);
-    this.priority = priority;
+    this.priHighLimit = highLimit;
+    this.priLowLimit = lowLimit;
   }
 
-  public Priority getPriority() {
-    return this.priority;
+  public int getPriorityLowLimit() {
+    return priLowLimit;
+  }
+  
+  public int getPriorityHighLimit() {
+    return priHighLimit;
   }
 
 }

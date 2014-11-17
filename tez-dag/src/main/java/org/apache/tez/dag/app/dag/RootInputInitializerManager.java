@@ -19,6 +19,8 @@
 package org.apache.tez.dag.app.dag;
 
 import javax.annotation.Nullable;
+
+import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,7 +55,9 @@ import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
 import org.apache.tez.dag.app.dag.impl.TezRootInputInitializerContextImpl;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
@@ -111,6 +115,15 @@ public class RootInputInitializerManager {
 
       InitializerWrapper initializerWrapper =
           new InitializerWrapper(input, initializer, context, vertex, entityStateTracker, appContext);
+
+      // Register pending vertex update registrations
+      List<VertexUpdateRegistrationHolder> vertexUpdateRegistrations = pendingVertexRegistrations.removeAll(input.getName());
+      if (vertexUpdateRegistrations != null) {
+        for (VertexUpdateRegistrationHolder h : vertexUpdateRegistrations) {
+          initializerWrapper.registerForVertexStateUpdates(h.vertexName, h.stateSet);
+        }
+      }
+
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi));
@@ -164,12 +177,30 @@ public class RootInputInitializerManager {
     }
   }
 
+  private static class VertexUpdateRegistrationHolder {
+    private VertexUpdateRegistrationHolder(String vertexName, Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
+      this.vertexName = vertexName;
+      this.stateSet = stateSet;
+    }
+    private final String vertexName;
+    private final Set<org.apache.tez.dag.api.event.VertexState> stateSet;
+  }
+
+  // This doesn't need to be thread safe, since initializers are not created in separate threads,
+  // they're only executed in separate threads.
+  private final ListMultimap<String, VertexUpdateRegistrationHolder> pendingVertexRegistrations =
+      LinkedListMultimap.create();
+
   public void registerForVertexUpdates(String vertexName, String inputName,
                                        @Nullable Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
     Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
     Preconditions.checkNotNull(inputName, "InputName cannot be null");
     InitializerWrapper initializer = initializerMap.get(inputName);
-    initializer.registerForVertexStateUpdates(vertexName, stateSet);
+    if (initializer == null) {
+      pendingVertexRegistrations.put(inputName, new VertexUpdateRegistrationHolder(vertexName, stateSet));
+    } else {
+      initializer.registerForVertexStateUpdates(vertexName, stateSet);
+    }
   }
 
   @VisibleForTesting
@@ -248,12 +279,18 @@ public class RootInputInitializerManager {
     @SuppressWarnings("unchecked")
     @Override
     public void onFailure(Throwable t) {
+      // catch real root cause of failure, it would throw UndeclaredThrowableException
+      // if using UGI.doAs
+      if (t instanceof UndeclaredThrowableException) {
+        t = t.getCause();
+      }
       initializer.setComplete();
       LOG.info(
           "Failed InputInitializer for Input: " + initializer.getInput().getName() +
               " on vertex " + initializer.getVertexLogIdentifier());
       eventHandler
-          .handle(new VertexEventRootInputFailed(vertexID, initializer.getInput().getName(), t));
+          .handle(new VertexEventRootInputFailed(vertexID, initializer.getInput().getName(),
+              new AMUserCodeException(Source.InputInitializer,t)));
     }
   }
 
@@ -267,6 +304,7 @@ public class RootInputInitializerManager {
     private final InputInitializerContext context;
     private final AtomicBoolean isComplete = new AtomicBoolean(false);
     private final String vertexLogIdentifier;
+    private final TezVertexID vertexId;
     private final StateChangeNotifier stateChangeNotifier;
     private final List<String> notificationRegisteredVertices = Lists.newArrayList();
     private final AppContext appContext;
@@ -279,6 +317,7 @@ public class RootInputInitializerManager {
       this.initializer = initializer;
       this.context = context;
       this.vertexLogIdentifier = vertex.getLogIdentifier();
+      this.vertexId = vertex.getVertexId();
       this.stateChangeNotifier = stateChangeNotifier;
       this.appContext = appContext;
     }
@@ -321,6 +360,7 @@ public class RootInputInitializerManager {
       }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void onStateUpdated(VertexStateUpdate event) {
       if (isComplete()) {
@@ -330,7 +370,13 @@ public class RootInputInitializerManager {
               " since initializer " + input.getName() + " is already complete.");
         }
       } else {
-        initializer.onVertexStateUpdated(event);
+        try {
+          initializer.onVertexStateUpdated(event);
+        } catch (Exception e) {
+          appContext.getEventHandler().handle(
+              new VertexEventRootInputFailed(vertexId, input.getName(),
+                  new AMUserCodeException(Source.InputInitializer,e)));
+        }
       }
     }
 
@@ -428,14 +474,15 @@ public class RootInputInitializerManager {
       sendEvents(toForwardEvents);
     }
 
+    @SuppressWarnings("unchecked")
     private void sendEvents(List<InputInitializerEvent> events) {
       if (events != null && !events.isEmpty()) {
         try {
           initializer.handleInputInitializerEvent(events);
         } catch (Exception e) {
-          throw new TezUncheckedException(
-              "Initializer for input: " + getInput().getName() + " on vertex: " + getVertexLogIdentifier() +
-                  " failed to process events", e);
+          appContext.getEventHandler().handle(
+              new VertexEventRootInputFailed(vertexId, input.getName(),
+                  new AMUserCodeException(Source.InputInitializer,e)));
         }
       }
     }

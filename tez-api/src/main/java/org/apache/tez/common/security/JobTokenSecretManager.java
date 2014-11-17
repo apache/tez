@@ -18,9 +18,12 @@
 
 package org.apache.tez.common.security;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.TreeMap;
 
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -34,8 +37,10 @@ import org.apache.hadoop.security.token.Token;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
+  private static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA1";
   private final SecretKey masterKey;
   private final Map<String, SecretKey> currentJobTokens;
+  private final Mac mac;
 
   /**
    * Convert the byte[] to a secret key
@@ -45,7 +50,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
   public static SecretKey createSecretKey(byte[] key) {
     return SecretManager.createSecretKey(key);
   }
-  
+
   /**
    * Compute the HMAC hash of the message using the key
    * @param msg the message to hash
@@ -55,15 +60,39 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
   public static byte[] computeHash(byte[] msg, SecretKey key) {
     return createPassword(msg, key);
   }
-  
+
+  /**
+   * Compute the HMAC hash of the message using the key
+   * @param msg the message to hash
+   * @return the computed hash
+   */
+  public byte[] computeHash(byte[] msg) {
+    synchronized(mac) {
+      return mac.doFinal(msg);
+    }
+  }
+
   /**
    * Default constructor
    */
   public JobTokenSecretManager() {
-    this.masterKey = generateSecret();
-    this.currentJobTokens = new TreeMap<String, SecretKey>();
+    this(null);
   }
-  
+
+  public JobTokenSecretManager(SecretKey key) {
+    this.masterKey = (key == null) ? generateSecret() : key;
+    this.currentJobTokens = new TreeMap<String, SecretKey>();
+    try {
+      mac = Mac.getInstance(DEFAULT_HMAC_ALGORITHM);
+      mac.init(masterKey);
+    } catch (NoSuchAlgorithmException nsa) {
+      throw new IllegalArgumentException("Can't find " + DEFAULT_HMAC_ALGORITHM + " algorithm.", nsa);
+    } catch (InvalidKeyException ike) {
+      throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
+    }
+  }
+
+
   /**
    * Create a new password/secret for the given job token identifier.
    * @param identifier the job token identifier
@@ -71,8 +100,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
    */
   @Override
   public byte[] createPassword(JobTokenIdentifier identifier) {
-    byte[] result = createPassword(identifier.getBytes(), masterKey);
-    return result;
+    return computeHash(identifier.getBytes());
   }
 
   /**

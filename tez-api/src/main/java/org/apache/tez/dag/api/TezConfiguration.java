@@ -35,6 +35,36 @@ public class TezConfiguration extends Configuration {
 
   public final static String TEZ_SITE_XML = "tez-site.xml";
 
+  static {
+    Configuration.addDeprecations(new DeprecationDelta[]
+        {
+            new DeprecationDelta("tez.am.counters.max.keys", TezConfiguration.TEZ_COUNTERS_MAX),
+            new DeprecationDelta("tez.am.counters.groups.max.keys",
+                TezConfiguration.TEZ_COUNTERS_MAX_GROUPS),
+            new DeprecationDelta("tez.am.counters.name.max.keys",
+                TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH),
+            new DeprecationDelta("tez.am.counters.group-name.max.keys",
+                TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH),
+
+            new DeprecationDelta("tez.task.scale.task.memory.enabled",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED),
+            new DeprecationDelta("tez.task.scale.task.memory.allocator.class",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS),
+            new DeprecationDelta("tez.task.scale.task.memory.reserve-fraction",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION),
+            new DeprecationDelta(
+                "tez.task.scale.task.memory.additional-reservation.fraction.per-io",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO),
+            new DeprecationDelta("tez.task.scale.task.memory.additional-reservation.fraction.max",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX),
+            new DeprecationDelta("tez.task.scale.task.memory.ratios",
+                TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS),
+
+            new DeprecationDelta("tez.task.max-events-per-heartbeat.max",
+                TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT)
+        });
+  }
+
   public TezConfiguration() {
     this(true);
   }
@@ -70,7 +100,8 @@ public class TezConfiguration extends Configuration {
    * String value. Specifies a directory where Tez can create temporary job artifacts.
    */
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
-  public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/tez/staging";
+  public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/"
+      + System.getProperty("user.name") + "/tez/staging";
   
   /**
    * String value that is a file path.
@@ -110,15 +141,35 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
   /**
+   * String value. Command line options which will be prepended to {@link #TEZ_AM_LAUNCH_CMD_OPTS}
+   * during the launch of the AppMaster process. This property will typically be configured to
+   * include default options meant to be used by all jobs in a cluster. If required, the values can
+   * be overridden per job.
+   */
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS =
+      TEZ_AM_PREFIX + "launch.cluster-default.cmd-opts";
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
+      "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
+
+  /**
    * String value. Command line options provided during the launch of the Tez
    * AppMaster process. Its recommended to not set any Xmx or Xms in these launch opts so that
    * Tez can determine them automatically.
    * */
   public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = 
-      "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc " + 
-      "-XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC " +
-      "-Dhadoop.metrics.log.level=WARN ";
+      "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
+
+  /**
+   * String value. Command line options which will be prepended to {@link
+   * #TEZ_TASK_LAUNCH_CMD_OPTS} during the launch of Tez tasks.  This property will typically be configured to
+   * include default options meant to be used by all jobs in a cluster. If required, the values can
+   * be overridden per job.
+   */
+  public static final String TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS =
+      TEZ_TASK_PREFIX + "launch.cluster-default.cmd-opts";
+  public static final String TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
+      "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
 
   /**
    * String value. Command line options provided during the launch of Tez Task
@@ -127,10 +178,8 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
       + "launch.cmd-opts";
-  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = 
-      "-server -Djava.net.preferIPv4Stack=true -XX:+PrintGCDetails -verbose:gc " + 
-      "-XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC " +
-      "-Dhadoop.metrics.log.level=WARN ";
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT =
+      "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
 
   /**
    * Double value. Tez automatically determines the Xmx for the JVMs used to run
@@ -185,13 +234,33 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
 
   /**
-   * Int value. Configuration to limit the counters per app master. This can be used to
+   * Int value. Configuration to limit the counters per dag (AppMaster and Task). This can be used
+   * to
    * limit the amount of memory being used in the app master to store the
    * counters. Expert level setting.
    */
   @Unstable
-  public static final String TEZ_AM_COUNTERS_MAX_KEYS = TEZ_AM_PREFIX + "counters.max.keys";
-  public static final int TEZ_AM_COUNTERS_MAX_KEYS_DEFAULT = 1200;
+  public static final String TEZ_COUNTERS_MAX = TEZ_PREFIX + "counters.max";
+  public static final int TEZ_COUNTERS_MAX_DEFAULT = 1200;
+
+  /**
+   * Int value. Configuration to limit the number of counter groups for a DAG. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
+  public static final String TEZ_COUNTERS_MAX_GROUPS = TEZ_PREFIX + "counters.max.groups";
+  public static final int TEZ_COUNTERS_MAX_GROUPS_DEFAULT = 500;
+
+  /**
+   * Int value. Configuration to limit the length of counter names. This can be used to
+   * limit the amount of memory being used in the app master to store the
+   * counters. Expert level setting.
+   */
+  @Unstable
+  public static final String TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH =
+      TEZ_PREFIX + "counters.counter-name.max-length";
+  public static final int TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH_DEFAULT = 64;
 
   /**
    * Int value. Configuration to limit the counter group names per app master. This can be used to
@@ -199,31 +268,11 @@ public class TezConfiguration extends Configuration {
    * counters. Expert level setting.
    */
   @Unstable
-  public static final String TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS =
-      TEZ_AM_PREFIX + "counters.group-name.max.keys";
-  public static final int TEZ_AM_COUNTERS_GROUP_NAME_MAX_KEYS_DEFAULT = 128;
+  public static final String TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH =
+      TEZ_PREFIX + "counters.group-name.max-length";
+  public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 128;
 
 
-  /**
-   * Int value. Configuration to limit the counter names per app master. This can be used to
-   * limit the amount of memory being used in the app master to store the
-   * counters. Expert level setting.
-   */
-  @Unstable
-  public static final String TEZ_AM_COUNTERS_NAME_MAX_KEYS =
-      TEZ_AM_PREFIX + "counters.name.max.keys";
-  public static final int TEZ_AM_COUNTERS_NAME_MAX_KEYS_DEFAULT = 64;
-
-
-  /**
-   * Int value. Configuration to limit the counter groups per app master. This can be used to
-   * limit the amount of memory being used in the app master to store the
-   * counters. Expert level setting.
-   */
-  @Unstable
-  public static final String TEZ_AM_COUNTERS_GROUPS_MAX_KEYS =
-      TEZ_AM_PREFIX + "counters.groups.max.keys";
-  public static final int TEZ_AM_COUNTERS_GROUPS_MAX_KEYS_DEFAULT = 500;
 
   /**
    * Int value. Upper limit on the number of threads user to launch containers in the app
@@ -241,7 +290,7 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_AM_MAX_TASK_FAILURES_PER_NODE = TEZ_AM_PREFIX
       + "maxtaskfailures.per.node";
-  public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 3;
+  public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 10;
 
   /**
    * Int value. Specifies the number of times the app master can be launched in order to recover 
@@ -290,6 +339,12 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_CLIENT_AM_PORT_RANGE =
       TEZ_AM_PREFIX + "client.am.port-range";
 
+  /**
+   * String value. The class to be used for DAG Scheduling. Expert level setting.
+   */
+  public static final String TEZ_AM_DAG_SCHEDULER_CLASS = TEZ_AM_PREFIX + "dag.scheduler.class";
+  public static final String TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT =
+      "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder";
 
   /** Int value. The amount of memory in MB to be used by the AppMaster */
   public static final String TEZ_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
@@ -318,7 +373,7 @@ public class TezConfiguration extends Configuration {
   /**
    * Int value. The maximum heartbeat interval between the AM and RM in milliseconds
    * Increasing this reduces the communication between the AM and the RM and can
-   * help in scaling up. Expert level setting. Expert level setting.
+   * help in scaling up. Expert level setting.
    */
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
       + "am-rm.heartbeat.interval-ms.max";
@@ -350,15 +405,15 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.counter.interval-ms.max";
   public static final int TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS_DEFAULT =
-      1000;
+      4000;
 
   /**
    * Int value. Maximum number of of events to fetch from the AM by the tasks in a single heartbeat.
    * Expert level setting. Expert level setting.
    */
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
-      + "max-events-per-heartbeat.max";
-  public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 100;
+      + "max-events-per-heartbeat";
+  public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 500;
 
   /**
    * Whether to generate counters per IO or not. Enabling this will rename
@@ -391,20 +446,20 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ENABLED = TEZ_TASK_PREFIX
-      + "scale.task.memory.enabled";
+  public static final String TEZ_TASK_SCALE_MEMORY_ENABLED = TEZ_TASK_PREFIX
+      + "scale.memory.enabled";
   @Private
-  public static final boolean TEZ_TASK_SCALE_TASK_MEMORY_ENABLED_DEFAULT = true;
+  public static final boolean TEZ_TASK_SCALE_MEMORY_ENABLED_DEFAULT = true;
 
   /**
    * The allocator to use for initial memory allocation
    */
   @Private
   @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
-      + "scale.task.memory.allocator.class";
+  public static final String TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
+      + "scale.memory.allocator.class";
   @Private
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ALLOCATOR_CLASS_DEFAULT =
+  public static final String TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS_DEFAULT =
       "org.apache.tez.runtime.library.resources.WeightedScalingMemoryDistributor";
 
   /**
@@ -413,10 +468,35 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
-      + "scale.task.memory.reserve-fraction";
+  public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
+      + "scale.memory.reserve-fraction";
   @Private
-  public static final double TEZ_TASK_SCALE_TASK_MEMORY_RESERVE_FRACTION_DEFAULT = 0.3d; 
+  public static final double TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION_DEFAULT = 0.3d;
+
+  /**
+   * Fraction of available memory to reserve per input/output. This amount is
+   * removed from the total available pool before allocation and is for factoring in overheads.
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
+      TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.per-io";
+
+  @Private
+  @Unstable
+  /**
+   * Max cumulative total reservation for additional IOs.
+   */
+  public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
+      TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.max";
+  /*
+   * Weighted ratios for individual component types in the RuntimeLibrary.
+   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
+   */
+  @Private
+  @Unstable
+  public static final String TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS =
+      TEZ_TASK_PREFIX + "scale.memory.ratios";
 
   @Private
   @Unstable
@@ -425,31 +505,6 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS =
       TEZ_TASK_PREFIX + "resource.calculator.process-tree.class";
-
-  /**
-   * Fraction of available memory to reserve per input/output. This amount is
-   * removed from the total available pool before allocation and is for factoring in overheads.
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
-      TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.per-io";
-
-  @Private
-  @Unstable
-  /**
-   * Max cumulative total reservation for additional IOs.
-   */
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
-      TEZ_TASK_PREFIX + "scale.task.memory.additional-reservation.fraction.max";
-  /*
-   * Weighted ratios for individual component types in the RuntimeLibrary.
-   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
-   */
-  @Private
-  @Unstable
-  public static final String TEZ_TASK_SCALE_TASK_MEMORY_WEIGHTED_RATIOS = 
-      TEZ_TASK_PREFIX + "scale.task.memory.ratios";
 
 
   /**
@@ -521,6 +576,28 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_SESSION_MIN_HELD_CONTAINERS = 
       TEZ_AM_PREFIX + "session.min.held-containers";
   public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
+  
+  /**
+   * Int value. Specifies the percentage of tasks eligible to be preempted that
+   * will actually be preempted in a given round of Tez internal preemption.
+   * This slows down preemption and gives more time for free resources to be
+   * allocated by the cluster (if any) and gives more time for preemptable tasks
+   * to finish. Valid values are 0-100. Higher values will preempt quickly at
+   * the cost of losing work. Setting to 0 turns off preemption. Expert level
+   * setting.
+   */
+  public static final String TEZ_AM_PREEMPTION_PERCENTAGE = 
+      TEZ_AM_PREFIX + "preemption.percentage";
+  public static final int TEZ_AM_PREEMPTION_PERCENTAGE_DEFAULT = 10;
+  
+  /**
+   * Int value. The number of RM heartbeats to wait after preempting running tasks before preempting
+   * more running tasks. After preempting a task, we need to wait at least 1 heartbeat so that the 
+   * RM can act on the released resources and assign new ones to us. Expert level setting.
+   */
+  public static final String TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS = 
+      TEZ_AM_PREFIX + "preemption.heartbeats-between-preemptions";
+  public static final int TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT = 3;
 
   /**
    * String value to a file path.
@@ -544,8 +621,22 @@ public class TezConfiguration extends Configuration {
    * </ol>
    */
   public static final String TEZ_LIB_URIS = TEZ_PREFIX + "lib.uris";
-  
-  /** 
+
+  /**
+   * Auxiliary resources to be localized for the Tez AM and all its containers.
+   *
+   * Value is comma-separated list of fully-resolved directories or file paths. All resources
+   * are made available into the working directory of the AM and/or containers i.e. $CWD.
+   *
+   * If directories are specified, they are not traversed recursively. Only files directly under the
+   * specified directory are localized.
+   *
+   * All duplicate resources are ignored.
+   *
+   */
+  public static final String TEZ_AUX_URIS = TEZ_PREFIX + "aux.uris";
+
+  /**
    * Boolean value. Allows to ignore 'tez.lib.uris'. Useful during development as well as 
    * raw Tez application where classpath is propagated with application
    * via {@link LocalResource}s. This is mainly useful for developer/debugger scenarios.
@@ -560,6 +651,16 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_USE_CLUSTER_HADOOP_LIBS = TEZ_PREFIX + "use.cluster.hadoop-libs";
   public static final boolean TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT = false;
+
+  /**
+   * String value.
+   *
+   * Specify additional classpath information to be used for Tez AM and all containers.
+   * This will be prepended to the classpath before all framework specific components have been
+   * specified.
+   */
+  public static final String TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX =
+      TEZ_PREFIX + "cluster.additional.classpath.prefix";
 
   /**
    * Session-related properties
@@ -595,11 +696,11 @@ public class TezConfiguration extends Configuration {
 
   @Unstable
   /**
-   * Boolean value. Generate debug artifacts like DAG visualization.
+   * Boolean value. Generate debug artifacts like DAG plan in text format.
    */
   public static final String TEZ_GENERATE_DEBUG_ARTIFACTS =
       TEZ_PREFIX + "generate.debug.artifacts";
-  public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = true;
+  public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = false;
 
   /**
    * Set of tasks for which specific launch command options need to be added.
@@ -660,7 +761,24 @@ public class TezConfiguration extends Configuration {
   public static final String YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS =
       TEZ_PREFIX + "yarn.ats.event.flush.timeout.millis";
   public static final long YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT =
-      3000l;
+      -1;
+
+  /**
+   * Int value. Max no. of events to send in a single batch to ATS.
+   * Expert level setting.
+   */
+  public static final String YARN_ATS_MAX_EVENTS_PER_BATCH =
+      TEZ_PREFIX + "yarn.ats.max.events.per.batch";
+  public static final int YARN_ATS_MAX_EVENTS_PER_BATCH_DEFAULT = 5;
+
+
+  /**
+   * Int value. Time, in milliseconds, to wait for an event before sending a batch to ATS.
+   * Expert level setting.
+   */
+  public static final String YARN_ATS_MAX_POLLING_TIME_PER_EVENT = TEZ_PREFIX
+      + "yarn.ats.max.polling.time.per.event.millis";
+  public static final int YARN_ATS_MAX_POLLING_TIME_PER_EVENT_DEFAULT = 10;
 
   /**
    * Boolean value. Enable recovery of DAGs. This allows a restarted app master to recover the 
@@ -762,5 +880,15 @@ public class TezConfiguration extends Configuration {
    * groups
    */
   public static final String TEZ_AM_MODIFY_ACLS = TEZ_AM_PREFIX + "modify-acls";
+
+  /**
+   * Boolean value.
+   * Disable version check between client and AM/DAG. Default false.
+   */
+  public static final String TEZ_AM_DISABLE_CLIENT_VERSION_CHECK = TEZ_AM_PREFIX
+      + "disable.client-version-check";
+  public static final boolean TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT = false;
+
+
 
 }

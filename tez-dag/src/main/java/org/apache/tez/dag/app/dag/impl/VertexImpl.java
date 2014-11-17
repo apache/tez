@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -68,7 +69,6 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
@@ -110,6 +110,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
 import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
@@ -157,6 +158,7 @@ import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -164,6 +166,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 
@@ -222,8 +225,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   int numSuccessSourceAttemptCompletions = 0;
 
-  List<InputSpec> inputSpecList;
-  List<OutputSpec> outputSpecList;
   List<GroupInputSpec> groupInputSpecList;
   Set<String> sharedOutputs = Sets.newHashSet();
 
@@ -265,10 +266,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 EnumSet.of(VertexState.NEW),
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
                   new NullEdgeInitializedTransition())
-          .addTransition(VertexState.NEW, VertexState.NEW,
+          .addTransition(VertexState.NEW,
+                EnumSet.of(VertexState.NEW),
                 VertexEventType.V_ROUTE_EVENT,
                 ROUTE_EVENT_TRANSITION)
-          .addTransition(VertexState.NEW,  VertexState.NEW,
+          .addTransition(VertexState.NEW,
+                EnumSet.of(VertexState.NEW),
                 VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                 SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition
@@ -318,7 +321,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               (VertexState.RECOVERING, VertexState.RECOVERING,
                   VertexEventType.V_TERMINATE,
                   new TerminateDuringRecoverTransition())
-
+          .addTransition
+              (VertexState.RECOVERING, EnumSet.of(VertexState.RECOVERING),
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
+                  new VertexManagerUserCodeErrorTransition())
+          
           // Transitions from INITIALIZING state
           .addTransition(VertexState.INITIALIZING,
               EnumSet.of(VertexState.INITIALIZING, VertexState.INITED,
@@ -333,7 +340,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexState.INITED, VertexState.FAILED),
               VertexEventType.V_READY_TO_INIT,
               new VertexInitializedTransition())
-          .addTransition(VertexState.INITIALIZING, VertexState.FAILED,
+          .addTransition(VertexState.INITIALIZING,
+              EnumSet.of(VertexState.FAILED),
               VertexEventType.V_ROOT_INPUT_FAILED,
               new RootInputInitFailedTransition())
           .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
@@ -342,12 +350,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
               VertexEventType.V_SOURCE_VERTEX_STARTED,
               new SourceVertexStartedTransition())
-          .addTransition(VertexState.INITIALIZING,  VertexState.INITIALIZING,
+          .addTransition(VertexState.INITIALIZING,
+              EnumSet.of(VertexState.INITIALIZING),
               VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
-          .addTransition(VertexState.INITIALIZING, VertexState.INITIALIZING,
+          .addTransition(VertexState.INITIALIZING,
+              EnumSet.of(VertexState.INITIALIZING, VertexState.FAILED),
               VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
+          .addTransition(VertexState.INITIALIZING, EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
           .addTransition(VertexState.INITIALIZING, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
               new TerminateInitingVertexTransition())
@@ -363,6 +376,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Transitions from INITED state
           // SOURCE_VERTEX_STARTED - for sources which determine parallelism,
           // they must complete before this vertex can start.
+          .addTransition(VertexState.INITED,
+              EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_ROOT_INPUT_FAILED,
+              new RootInputInitFailedTransition())
           .addTransition
               (VertexState.INITED,
                   EnumSet.of(VertexState.INITED, VertexState.ERROR),
@@ -375,28 +392,38 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               EnumSet.of(VertexState.INITED),
               VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
               new OneToOneSourceSplitTransition())
-          .addTransition(VertexState.INITED,  VertexState.INITED,
+          .addTransition(VertexState.INITED,
+              EnumSet.of(VertexState.INITED),
               VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(VertexState.INITED,
-              EnumSet.of(VertexState.RUNNING, VertexState.INITED),
+              EnumSet.of(VertexState.RUNNING, VertexState.INITED, VertexState.TERMINATING),
               VertexEventType.V_START,
               new StartTransition())
           .addTransition(VertexState.INITED,
-              VertexState.INITED, VertexEventType.V_ROUTE_EVENT,
+              EnumSet.of(VertexState.INITED, VertexState.FAILED),
+              VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
           .addTransition(VertexState.INITED, VertexState.KILLED,
               VertexEventType.V_TERMINATE,
               new TerminateInitedVertexTransition())
+          .addTransition(VertexState.INITED, EnumSet.of(VertexState.FAILED),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
           .addTransition(VertexState.INITED, VertexState.ERROR,
               VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
 
           // Transitions from RUNNING state
+          .addTransition(VertexState.RUNNING,
+              EnumSet.of(VertexState.TERMINATING),
+              VertexEventType.V_ROOT_INPUT_FAILED,
+              new RootInputInitFailedTransition())
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_ATTEMPT_COMPLETED,
               TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
-          .addTransition(VertexState.RUNNING, VertexState.RUNNING,
+          .addTransition(VertexState.RUNNING,
+              EnumSet.of(VertexState.RUNNING, VertexState.TERMINATING),
               VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition
@@ -413,6 +440,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition(VertexState.RUNNING, VertexState.TERMINATING,
               VertexEventType.V_TERMINATE,
               new VertexKilledTransition())
+          .addTransition(VertexState.RUNNING, EnumSet.of(VertexState.TERMINATING),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
           .addTransition(VertexState.RUNNING, VertexState.RUNNING,
               VertexEventType.V_TASK_RESCHEDULED,
               new TaskRescheduledTransition())
@@ -427,7 +457,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               INTERNAL_ERROR_TRANSITION)
           .addTransition(
               VertexState.RUNNING,
-              VertexState.RUNNING, VertexEventType.V_ROUTE_EVENT,
+              EnumSet.of(VertexState.RUNNING, VertexState.TERMINATING),
+              VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
 
           // Transitions from TERMINATING state.
@@ -443,6 +474,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
@@ -463,7 +496,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
           // Ignore-able events
           .addTransition(
-              VertexState.SUCCEEDED, VertexState.SUCCEEDED,
+              VertexState.SUCCEEDED,
+              EnumSet.of(VertexState.SUCCEEDED, VertexState.FAILED),
               // accumulate these in case we get restarted
               VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
@@ -474,6 +508,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               new TaskCompletedAfterVertexSuccessTransition())
           .addTransition(VertexState.SUCCEEDED, VertexState.SUCCEEDED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   // after we are done reruns of source tasks should not affect
                   // us. These reruns may be triggered by other consumer vertices.
@@ -492,6 +527,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.FAILED, VertexState.FAILED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_START,
@@ -513,6 +550,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // Ignore-able events
           .addTransition(VertexState.KILLED, VertexState.KILLED,
               EnumSet.of(VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_INIT,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_START,
@@ -532,10 +571,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.ERROR,
               VertexState.ERROR,
               EnumSet.of(VertexEventType.V_INIT,
+                  VertexEventType.V_ROOT_INPUT_FAILED,
                   VertexEventType.V_SOURCE_VERTEX_STARTED,
                   VertexEventType.V_START,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TERMINATE,
+                  VertexEventType.V_MANAGER_USER_CODE_ERROR,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
@@ -575,6 +616,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   int killedTaskCount = 0;
 
+  // Both failed and killed task attempt counts are incremented via direct calls
+  // and not via state machine changes as they always increase. In no situation, does
+  // the counter need to be reset or changed back as failed attempts never go back to succeeded.
+  // Likewise for killed attempts.
+  // The same cannot apply to succeeded task attempts if they are tracked as they might be
+  // subsequently declared as failed.
+  @VisibleForTesting
+  AtomicInteger failedTaskAttemptCount = new AtomicInteger(0);
+  @VisibleForTesting
+  AtomicInteger killedTaskAttemptCount = new AtomicInteger(0);
+
   @VisibleForTesting
   long initTimeRequested; // Time at which INIT request was received.
   @VisibleForTesting
@@ -593,6 +645,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final String vertexName;
   private final ProcessorDescriptor processorDescriptor;
+  
+  private boolean vertexToBeReconfiguredByManager = false;
+  AtomicBoolean vmIsInitialized = new AtomicBoolean(false);
+  AtomicBoolean completelyConfiguredSent = new AtomicBoolean(false);
 
   @VisibleForTesting
   Map<Vertex, Edge> sourceVertices;
@@ -899,6 +955,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       progress.setRunningTaskCount(getRunningTasks());
       progress.setFailedTaskCount(failedTaskCount);
       progress.setKilledTaskCount(killedTaskCount);
+      progress.setFailedTaskAttemptCount(failedTaskAttemptCount.get());
+      progress.setKilledTaskAttemptCount(killedTaskAttemptCount.get());
       return progress;
     } finally {
       this.readLock.unlock();
@@ -1077,6 +1135,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         } else {
           vertexCompleteSeen = true;
         }
+        numTasks = finishedEvent.getNumTasks();
         recoveryCommitInProgress = false;
         recoveredState = finishedEvent.getState();
         diagnostics.add(finishedEvent.getDiagnostics());
@@ -1105,6 +1164,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return this.logIdentifier;
   }
 
+  @Override
+  public void incrementFailedTaskAttemptCount() {
+    this.failedTaskAttemptCount.incrementAndGet();
+  }
+
+  @Override
+  public void incrementKilledTaskAttemptCount() {
+    this.killedTaskAttemptCount.incrementAndGet();
+  }
+
+  @Override
+  public int getFailedTaskAttemptCount() {
+    return this.failedTaskAttemptCount.get();
+  }
+
+  @Override
+  public int getKilledTaskAttemptCount() {
+    return this.killedTaskAttemptCount.get();
+  }
+
   private void setTaskLocationHints(VertexLocationHint vertexLocationHint) {
     if (vertexLocationHint != null &&
         vertexLocationHint.getTaskLocationHints() != null &&
@@ -1121,8 +1200,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       tasksNotYetScheduled = false;
       if (!pendingTaskEvents.isEmpty()) {
         LOG.info("Routing pending task events for vertex: " + logIdentifier);
-        VertexImpl.ROUTE_EVENT_TRANSITION.transition(this,
-            new VertexEventRouteEvent(getVertexId(), pendingTaskEvents));
+        try {
+          handleRoutedTezEvents(this, pendingTaskEvents, false);
+        } catch (AMUserCodeException e) {
+          String msg = "Exception in " + e.getSource() +", vertex=" + logIdentifier;
+          LOG.error(msg, e);
+          addDiagnostic(msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+          eventHandler.handle(new VertexEventTermination(vertexId, VertexTerminationCause.AM_USERCODE_FAILURE));
+          return;
+        }
         pendingTaskEvents.clear();
       }
       for (TaskWithLocationHint task : tasksToSchedule) {
@@ -1147,17 +1233,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   @Override
-  public boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+  public void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates) {
-    return setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
-        false);
+      Map<String, InputSpecUpdate> rootInputSpecUpdates, boolean fromVertexManager)
+      throws AMUserCodeException {
+    setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
+        false, fromVertexManager);
   }
 
-  private boolean setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
+  private void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdates,
-      boolean recovering) {
+      boolean recovering, boolean fromVertexManager) throws AMUserCodeException {
     if (recovering) {
       writeLock.lock();
       try {
@@ -1165,17 +1252,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           for(Map.Entry<String, EdgeManagerPluginDescriptor> entry :
               sourceEdgeManagers.entrySet()) {
             LOG.info("Recovering edge manager for source:"
-                + entry.getKey() + " destination: " + getVertexId());
+                + entry.getKey() + " destination: " + getLogIdentifier());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
-              LOG.warn("Failed to initialize edge manager for edge"
-                  + ", sourceVertexName=" + sourceVertex.getName()
-                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
-                  e);
-              return false;
+              throw new TezUncheckedException("Fail to setCustomEdgeManage for Edge,"
+                  + "sourceVertex:" + edge.getSourceVertexName()
+                  + "destinationVertex:" + edge.getDestinationVertexName(), e);
             }
           }
         }
@@ -1186,7 +1271,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           LOG.info("Got updated RootInputsSpecs during recovery: " + rootInputSpecUpdates.toString());
           this.rootInputSpecs.putAll(rootInputSpecUpdates);
         }
-        return true;
+        return;
       } finally {
         writeLock.unlock();
       }
@@ -1195,12 +1280,23 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     + parallelism + " for vertex: " + logIdentifier);
     setVertexLocationHint(vertexLocationHint);
     writeLock.lock();
+    
     try {
       if (parallelismSet == true) {
-        LOG.info("Parallelism can only be set dynamically once per vertex: " + logIdentifier);
-        return false;
+        String msg = "Parallelism can only be set dynamically once per vertex: " + logIdentifier; 
+        LOG.info(msg);
+        throw new TezUncheckedException(msg);
       }
 
+      if (fromVertexManager && canInitVertex()) {
+        // vertex is fully defined. setParallelism has been called. VertexManager should have 
+        // informed us about this. Otherwise we would have notified listeners that we are fully 
+        // defined before we are actually fully defined
+        Preconditions.checkState(vertexToBeReconfiguredByManager, "Vertex is fully configured but still"
+            + " the reconfiguration API has been called. VertexManager must notify the framework using " 
+            + " context.vertexReconfigurationPlanned() before re-configuring the vertex.");
+      }
+      
       parallelismSet = true;
 
       // Input initializer/Vertex Manager/1-1 split expected to set parallelism.
@@ -1214,17 +1310,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if(sourceEdgeManagers != null) {
           for(Map.Entry<String, EdgeManagerPluginDescriptor> entry : sourceEdgeManagers.entrySet()) {
             LOG.info("Replacing edge manager for source:"
-                + entry.getKey() + " destination: " + getVertexId());
+                + entry.getKey() + " destination: " + getLogIdentifier());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
-              LOG.warn("Failed to initialize edge manager for edge"
-                  + ", sourceVertexName=" + sourceVertex.getName()
-                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
-                  e);
-              return false;
+              throw new TezUncheckedException("Fail to setCustomEdgeManage for Edge,"
+                  + "sourceVertex:" + edge.getSourceVertexName()
+                  + "destinationVertex:" + edge.getDestinationVertexName(), e);
             }
           }
         }
@@ -1248,7 +1342,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         stateChangeNotifier.stateChanged(vertexId,
             new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
         this.createTasks();
-        LOG.info("Vertex " + getVertexId() +
+        LOG.info("Vertex " + getLogIdentifier() +
             " parallelism set to " + parallelism);
         if (canInitVertex()) {
           getEventHandler().handle(new VertexEvent(getVertexId(), VertexEventType.V_READY_TO_INIT));
@@ -1264,9 +1358,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (parallelism >= numTasks) {
           // not that hard to support perhaps. but checking right now since there
           // is no use case for it and checking may catch other bugs.
-          LOG.warn("Increasing parallelism is not supported, vertexId="
-              + logIdentifier);
-          return false;
+          String msg = "Increasing parallelism is not supported, vertexId=" + logIdentifier; 
+          LOG.warn(msg);
+          throw new TezUncheckedException(msg);
         }
         if (parallelism == numTasks) {
           LOG.info("setParallelism same as current value: " + parallelism +
@@ -1295,10 +1389,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           Map.Entry<TezTaskID, Task> entry = iter.next();
           Task task = entry.getValue();
           if (task.getState() != TaskState.NEW) {
-            LOG.warn(
-                "All tasks must be in initial state when changing parallelism"
-                    + " for vertex: " + getVertexId() + " name: " + getName());
-            return false;
+            String msg = "All tasks must be in initial state when changing parallelism"
+                + " for vertex: " + getLogIdentifier();
+            LOG.warn(msg);
+            throw new TezUncheckedException(msg);
           }
           if (i <= parallelism) {
             continue;
@@ -1318,17 +1412,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if(sourceEdgeManagers != null) {
           for(Map.Entry<String, EdgeManagerPluginDescriptor> entry : sourceEdgeManagers.entrySet()) {
             LOG.info("Replacing edge manager for source:"
-                + entry.getKey() + " destination: " + getVertexId());
+                + entry.getKey() + " destination: " + getLogIdentifier());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
               edge.setCustomEdgeManager(entry.getValue());
             } catch (Exception e) {
-              LOG.warn("Failed to initialize edge manager for edge"
-                  + ", sourceVertexName=" + sourceVertex.getName()
-                  + ", destinationVertexName=" + edge.getDestinationVertexName(),
-                  e);
-              return false;
+              throw new TezUncheckedException(e);
             }
           }
         }
@@ -1336,7 +1426,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         VertexParallelismUpdatedEvent parallelismUpdatedEvent =
             new VertexParallelismUpdatedEvent(vertexId, numTasks,
                 vertexLocationHint,
-                sourceEdgeManagers, rootInputSpecUpdates);
+                sourceEdgeManagers, rootInputSpecUpdates, oldNumTasks);
         appContext.getHistoryHandler().handle(new DAGHistoryEvent(getDAGId(),
             parallelismUpdatedEvent));
 
@@ -1364,10 +1454,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } finally {
       writeLock.unlock();
     }
-
-    return true;
   }
 
+  @Override
   public void setVertexLocationHint(VertexLocationHint vertexLocationHint) {
     writeLock.lock();
     try {
@@ -1378,6 +1467,46 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } finally {
       writeLock.unlock();
     }
+  }
+  
+  @Override
+  public void vertexReconfigurationPlanned() {
+    vertexReconfigurationPlanned(false);
+  }
+  
+  public void vertexReconfigurationPlanned(boolean testOverride) {
+    writeLock.lock();
+    try {
+      if (testOverride) {
+        Preconditions.checkState(vmIsInitialized.get() && completelyConfiguredSent.get(),
+            "test should override only failed cases");
+      } else {
+        Preconditions.checkState(!vmIsInitialized.get(),
+            "context.vertexReconfigurationPlanned() cannot be called after initialize()");
+        Preconditions.checkState(!completelyConfiguredSent.get(), "vertexReconfigurationPlanned() "
+            + " cannot be invoked after the vertex has been configured.");
+      }
+      this.vertexToBeReconfiguredByManager = true;
+    } finally {
+      writeLock.unlock();
+    }      
+  }
+
+  @Override
+  public void doneReconfiguringVertex() {
+    writeLock.lock();
+    try {
+      Preconditions.checkState(vertexToBeReconfiguredByManager, "doneReconfiguringVertex() can be "
+          + "invoked only after vertexReconfigurationPlanned() is invoked");
+      this.vertexToBeReconfiguredByManager = false;
+      if (completelyConfiguredSent.compareAndSet(false, true)) {
+        // vertex already started and at that time this event was not sent. Send now.
+        stateChangeNotifier.stateChanged(vertexId, new VertexStateUpdate(vertexName,
+            org.apache.tez.dag.api.event.VertexState.CONFIGURED));
+      }
+    } finally {
+      writeLock.unlock();
+    }    
   }
 
   @Override
@@ -1479,8 +1608,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     taskStats.put(ATSConstants.NUM_SUCCEEDED_TASKS, succeededTaskCount);
     taskStats.put(ATSConstants.NUM_FAILED_TASKS, failedTaskCount);
     taskStats.put(ATSConstants.NUM_KILLED_TASKS, killedTaskCount);
+    taskStats.put(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS, failedTaskAttemptCount.get());
+    taskStats.put(ATSConstants.NUM_KILLED_TASKS_ATTEMPTS, killedTaskAttemptCount.get());
 
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, initTimeRequested,
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, numTasks, initTimeRequested,
         initedTime, startTimeRequested, startedTime, finishTime, finalState, diagnostics,
         getAllCounters(), getVertexStats(), taskStats);
     this.appContext.getHistoryHandler().handleCriticalEvent(
@@ -1539,7 +1670,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                             new VertexCommitStartedEvent(vertex.vertexId,
                                 vertex.clock.getTime())));
                   } catch (IOException e) {
-                    LOG.error("Failed to persist commit start event to recovery, vertexId="
+                    LOG.error("Failed to persist commit start event to recovery, vertex="
                         + vertex.logIdentifier, e);
                     vertex.trySetTerminationCause(VertexTerminationCause.INTERNAL_ERROR);
                     return vertex.finished(VertexState.FAILED);
@@ -1611,9 +1742,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.abortVertex(State.FAILED);
         return vertex.finished(VertexState.FAILED);
       }
+      else if (vertex.terminationCause == VertexTerminationCause.AM_USERCODE_FAILURE) {
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex failed/killed due to VertexManagerPlugin/EdgeManagerPlugin failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount
+            + " killedTasks:"
+            + vertex.killedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.abortVertex(State.FAILED);
+        return vertex.finished(VertexState.FAILED);
+      }
+      else if (vertex.terminationCause == VertexTerminationCause.ROOT_INPUT_INIT_FAILURE) {
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex failed/killed due to ROOT_INPUT_INIT_FAILURE failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount
+            + " killedTasks:"
+            + vertex.killedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.abortVertex(State.FAILED);
+        return vertex.finished(VertexState.FAILED);
+      }
       else {
         //should never occur
-        throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex"
+        throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex:" + vertex.logIdentifier
             + ", failedTaskCount=" + vertex.failedTaskCount
             + ", killedTaskCount=" + vertex.killedTaskCount
             + ", successfulTaskCount=" + vertex.succeededTaskCount
@@ -1643,11 +1796,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   VertexState finished(VertexState finalState,
-      VertexTerminationCause terminationCause) {
+      VertexTerminationCause terminationCause, String diag) {
     if (finishTime == 0) setFinishTime();
+    if (terminationCause != null) {
+      trySetTerminationCause(terminationCause);
+    }
+    if (rootInputInitializerManager != null) {
+      rootInputInitializerManager.shutdown();
+      rootInputInitializerManager = null;
+    }
 
     switch (finalState) {
       case ERROR:
+        addDiagnostic("Vertex: " + logIdentifier + " error due to:" + terminationCause);
+        if (!StringUtils.isEmpty(diag)) {
+          addDiagnostic(diag);
+        }
         eventHandler.handle(new DAGEvent(getDAGId(),
             DAGEventType.INTERNAL_ERROR));
         try {
@@ -1658,6 +1822,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         break;
       case KILLED:
       case FAILED:
+        addDiagnostic("Vertex " + logIdentifier + " killed/failed due to:" + terminationCause);
+        if (!StringUtils.isEmpty(diag)) {
+          addDiagnostic(diag);
+        }
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState, terminationCause));
         try {
@@ -1686,7 +1854,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   VertexState finished(VertexState finalState) {
-    return finished(finalState, null);
+    return finished(finalState, null, null);
   }
 
 
@@ -1740,7 +1908,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     try {
       initializeCommitters();
     } catch (Exception e) {
-      LOG.warn("Vertex Committer init failed, vertexId=" + logIdentifier, e);
+      LOG.warn("Vertex Committer init failed, vertex=" + logIdentifier, e);
       addDiagnostic("Vertex init failed : "
           + ExceptionUtils.getStackTrace(e));
       trySetTerminationCause(VertexTerminationCause.INIT_FAILURE);
@@ -1876,7 +2044,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     assignVertexManager();
 
-    vertexManager.initialize();
+    try {
+      vertexManager.initialize();
+      vmIsInitialized.set(true);
+    } catch (AMUserCodeException e) {
+      String msg = "Exception in " + e.getSource()+ ", vertex:" + logIdentifier;
+      LOG.error(msg, e);
+      finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+          msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+      return VertexState.FAILED;
+    }
 
     // Setup tasks early if possible. If the VertexManager is not being used
     // to set parallelism, sending events to Tasks is safe (and less confusing
@@ -1941,8 +2118,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .convertVertexManagerPluginDescriptorFromDAGPlan(vertexPlan
               .getVertexManagerPlugin());
       LOG.info("Setting user vertex manager plugin: "
-          + pluginDesc.getClassName() + " on vertex: " + getName());
-      vertexManager = new VertexManager(pluginDesc, this, appContext);
+          + pluginDesc.getClassName() + " on vertex: " + getLogIdentifier());
+      vertexManager = new VertexManager(pluginDesc, this, appContext, stateChangeNotifier);
     } else {
       // Intended order of picking a vertex manager
       // If there is an InputInitializer then we use the RootInputVertexManager. May be fixed by TEZ-703
@@ -1954,30 +2131,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to RootInputVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName())
-            .setUserPayload(UserPayload.create(null)),
-            this, appContext);
+            VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName()),
+            this, appContext, stateChangeNotifier);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName())
-            .setUserPayload(UserPayload.create(null)),
-            this, appContext);
+            VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName()),
+            this, appContext, stateChangeNotifier);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
         // shuffle vertex manager needs a conf payload
         vertexManager = new VertexManager(ShuffleVertexManager.createConfigBuilder(conf).build(),
-            this, appContext);
+            this, appContext, stateChangeNotifier);
       } else {
         // schedule all tasks upon vertex start. Default behavior.
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName())
-            .setUserPayload(UserPayload.create(null)),
-            this, appContext);
+            VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName()),
+            this, appContext, stateChangeNotifier);
       }
     }
   }
@@ -2065,10 +2239,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           try {
             vertex.initializeCommitters();
           } catch (Exception e) {
-            LOG.info("Failed to initialize committers"
-                + ", vertex=" + vertex.logIdentifier, e);
+            String msg = "Failed to initialize committers"
+                + ", vertex=" + vertex.logIdentifier + ","
+                + ExceptionUtils.getStackTrace(e);
+            LOG.error(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.INIT_FAILURE);
+                VertexTerminationCause.INIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
@@ -2095,9 +2271,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           try {
             vertex.initializeCommitters();
           } catch (Exception e) {
-            LOG.info("Failed to initialize committers", e);
+            String msg = "Failed to initialize committers"
+                + ", vertex=" + vertex.logIdentifier + ","
+                + ExceptionUtils.getStackTrace(e);
+            LOG.error(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.INIT_FAILURE);
+                VertexTerminationCause.INIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
@@ -2105,10 +2284,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           // if commit in progress and desired state is not a succeeded one,
           // move to failed
           if (vertex.recoveryCommitInProgress) {
-            LOG.info("Recovered vertex was in the middle of a commit"
-                + ", failing Vertex=" + vertex.logIdentifier);
+            String msg = "Recovered vertex was in the middle of a commit"
+                + ", failing Vertex=" + vertex.logIdentifier;
+            LOG.warn(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.COMMIT_FAILURE);
+                VertexTerminationCause.COMMIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
@@ -2118,8 +2298,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               vertex.eventHandler.handle(
                   new TaskEventRecoverTask(task.getTaskId()));
             }
-            vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
-            endState = VertexState.RUNNING;
+            try {
+              vertex.recoveryCodeSimulatingStart();
+              endState = VertexState.RUNNING;
+            } catch (AMUserCodeException e) {
+              String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
+              LOG.error(msg, e);
+              vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+                  msg + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+              endState = VertexState.FAILED;
+            }
           } else {
             // why succeeded here
             endState = VertexState.SUCCEEDED;
@@ -2132,13 +2320,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           if (vertex.recoveredState == VertexState.SUCCEEDED
               && vertex.hasCommitter
               && vertex.summaryCompleteSeen && !vertex.vertexCompleteSeen) {
-            LOG.warn("Cannot recover vertex as all recovery events not"
-                + " found, vertexId=" + vertex.logIdentifier
+            String msg = "Cannot recover vertex as all recovery events not"
+                + " found, vertex=" + vertex.logIdentifier
                 + ", hasCommitters=" + vertex.hasCommitter
                 + ", summaryCompletionSeen=" + vertex.summaryCompleteSeen
-                + ", finalCompletionSeen=" + vertex.vertexCompleteSeen);
+                + ", finalCompletionSeen=" + vertex.vertexCompleteSeen;
+            LOG.warn(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.COMMIT_FAILURE);
+                VertexTerminationCause.COMMIT_FAILURE, msg);
             endState = VertexState.FAILED;
           } else {
             vertex.tasksNotYetScheduled = false;
@@ -2161,8 +2350,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                     new TaskEventRecoverTask(task.getTaskId(),
                         taskState));
               }
-              vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
-              endState = VertexState.RUNNING;
+              try {
+                vertex.recoveryCodeSimulatingStart();
+                endState = VertexState.RUNNING;
+              } catch (AMUserCodeException e) {
+                String msg = "Exception in " + e.getSource() +", vertex:" + vertex.getLogIdentifier();
+                LOG.error(msg, e);
+                vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+                    msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+                endState = VertexState.FAILED;
+              }
             } else {
               endState = vertex.recoveredState;
               vertex.finished(endState);
@@ -2215,6 +2412,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
 
   }
+  
+  private void recoveryCodeSimulatingStart() throws AMUserCodeException {
+    vertexManager.onVertexStarted(pendingReportedSrcCompletions);
+    // This code is duplicated from startVertex() because recovery does not follow normal
+    // transitions. To be removed after recovery code is fixed.
+    maybeSendConfiguredEvent();
+  }
 
   private void routeRecoveredEvents(VertexState vertexState,
       List<TezEvent> tezEvents) {
@@ -2250,14 +2454,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (destEdge == null) {
         throw new TezUncheckedException("Bad destination vertex: " +
             sourceMeta.getEdgeVertexName() + " for event vertex: " +
-            getVertexId());
+            getLogIdentifier());
       }
       if (LOG.isDebugEnabled()) {
         LOG.debug("Routing recovered event"
             + ", vertex=" + logIdentifier
             + ", eventType=" + tezEvent.getEventType()
             + ", sourceInfo=" + sourceMeta
-            + ", destinationVertex" + destVertex.getName());
+            + ", destinationVertex=" + destVertex.getLogIdentifier());
       }
       eventHandler.handle(new VertexEventRouteEvent(destVertex
           .getVertexId(), Collections.singletonList(tezEvent), true));
@@ -2292,8 +2496,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       Preconditions.checkState(
           (vertex.sourceVertices == null || vertex.sourceVertices.containsKey(otherVertex) ||
           vertex.targetVertices == null || vertex.targetVertices.containsKey(otherVertex)),
-          "Not connected to vertex " + otherVertex.getName() + " from vertex: " + vertex.logIdentifier);
-      LOG.info("Edge initialized for connection to vertex " + otherVertex.getName() +
+          "Not connected to vertex " + otherVertex.getLogIdentifier() + " from vertex: " + vertex.logIdentifier);
+      LOG.info("Edge initialized for connection to vertex " + otherVertex.getLogIdentifier() +
           " at vertex : " + vertex.logIdentifier);
       vertex.uninitializedEdges.remove(edge);
       if(vertex.getState() == VertexState.INITIALIZING && vertex.canInitVertex()) {
@@ -2425,19 +2629,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           try {
             vertex.initializeCommitters();
           } catch (Exception e) {
-            LOG.info("Failed to initialize committers, vertex="
-                + vertex.logIdentifier, e);
+            String msg = "Failed to initialize committers, vertex="
+                + vertex.logIdentifier + "," + ExceptionUtils.getStackTrace(e);
+            LOG.error(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.INIT_FAILURE);
+                VertexTerminationCause.INIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
-          if (!vertex.setParallelism(0,
-              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true)) {
-            LOG.info("Failed to recover edge managers, vertex="
-                + vertex.logIdentifier);
+          boolean successSetParallelism ;
+          try {
+            vertex.setParallelism(0,
+              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true, false);
+            successSetParallelism = true;
+          } catch (Exception e) {
+            successSetParallelism = false;
+          }
+          if (!successSetParallelism) {
+            String msg  = "Failed to recover edge managers, vertex=" + vertex.logIdentifier;
+            LOG.error(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.INIT_FAILURE);
+                VertexTerminationCause.INIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
@@ -2469,24 +2681,33 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             LOG.info("Recovered vertex was in the middle of a commit"
                 + ", failing Vertex=" + vertex.logIdentifier);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.COMMIT_FAILURE);
+                VertexTerminationCause.COMMIT_FAILURE, null);
             endState = VertexState.FAILED;
             break;
           }
           try {
             vertex.initializeCommitters();
           } catch (Exception e) {
-            LOG.info("Failed to initialize committers", e);
+            String msg = "Failed to initialize committers, vertex="
+                + vertex.logIdentifier + "," + ExceptionUtils.getStackTrace(e);
+            LOG.error(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.INIT_FAILURE);
+                VertexTerminationCause.INIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
-          if (!vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
-            vertex.recoveredRootInputSpecUpdates, true)) {
-            LOG.info("Failed to recover edge managers");
+          try {
+            vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
+              vertex.recoveredRootInputSpecUpdates, true, false);
+            successSetParallelism = true;
+          } catch (Exception e) {
+            successSetParallelism = false;
+          }
+          if (!successSetParallelism) {
+            String msg = "Failed to recover edge managers for vertex:" + vertex.logIdentifier;
+            LOG.error(msg);
             vertex.finished(VertexState.FAILED,
-                VertexTerminationCause.INIT_FAILURE);
+                VertexTerminationCause.INIT_FAILURE, msg);
             endState = VertexState.FAILED;
             break;
           }
@@ -2496,8 +2717,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               vertex.eventHandler.handle(
                   new TaskEventRecoverTask(task.getTaskId()));
             }
-            vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
-            endState = VertexState.RUNNING;
+            try {
+              vertex.recoveryCodeSimulatingStart();
+              endState = VertexState.RUNNING;
+            } catch (AMUserCodeException e) {
+              String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
+              LOG.error(msg, e);
+              vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+                  msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+              endState = VertexState.FAILED;
+            }
           } else {
             endState = VertexState.SUCCEEDED;
             vertex.finished(endState);
@@ -2528,8 +2757,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                       taskState));
             }
             // Wait for all tasks to recover and report back
-            vertex.vertexManager.onVertexStarted(vertex.pendingReportedSrcCompletions);
-            endState = VertexState.RUNNING;
+            try {
+              vertex.recoveryCodeSimulatingStart();
+              endState = VertexState.RUNNING;
+            } catch (AMUserCodeException e) {
+              String msg = "Exception in " + e.getSource() +", vertex:" + vertex.getLogIdentifier();
+              LOG.error(msg, e);
+              vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+                  msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+              endState = VertexState.FAILED;
+            }
           } else {
             endState = vertex.recoveredState;
             vertex.finished(endState);
@@ -2564,10 +2801,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.routeRecoveredEvents(endState, vertex.recoveredEvents);
         vertex.recoveredEvents.clear();
         if (!vertex.pendingRouteEvents.isEmpty()) {
-          VertexImpl.ROUTE_EVENT_TRANSITION.transition(vertex,
-              new VertexEventRouteEvent(vertex.getVertexId(),
-                  vertex.pendingRouteEvents));
-          vertex.pendingRouteEvents.clear();
+          try {
+            handleRoutedTezEvents(vertex, vertex.pendingRouteEvents, false);
+            vertex.pendingRouteEvents.clear();
+          } catch (AMUserCodeException e) {
+            String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
+            LOG.error(msg, e);
+            vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+                msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+            endState = VertexState.FAILED;
+          }
         }
       } else {
         // Ensure no recovered events
@@ -2666,10 +2909,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
       // Create tasks based on initial configuration, but don't start them yet.
       if (vertex.numTasks == -1) {
+        // this block must always return VertexState.INITIALIZING
         LOG.info("Num tasks is -1. Expecting VertexManager/InputInitializers/1-1 split"
-            + " to set #tasks for the vertex " + vertex.getVertexId());
+            + " to set #tasks for the vertex " + vertex.getLogIdentifier());
 
         if (vertex.inputsWithInitializers != null) {
+          LOG.info("Vertex will initialize from input initializer. " + vertex.logIdentifier);
           vertex.setupInputInitializerManager();
           return VertexState.INITIALIZING;
         } else {
@@ -2691,15 +2936,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             LOG.info("Vertex will initialize via custom vertex manager. " + vertex.logIdentifier);
             return VertexState.INITIALIZING;
           }
-          throw new TezUncheckedException(vertex.getVertexId() +
+          throw new TezUncheckedException(vertex.getLogIdentifier() +
           " has -1 tasks but does not have input initializers, " +
           "1-1 uninited sources or custom vertex manager to set it at runtime");
         }
       } else {
-        LOG.info("Creating " + vertex.numTasks + " for vertex: " + vertex.logIdentifier);
+        LOG.info("Creating " + vertex.numTasks + " tasks for vertex: " + vertex.logIdentifier);
         vertex.createTasks();
-
+        // this block may return VertexState.INITIALIZING
         if (vertex.inputsWithInitializers != null) {
+          LOG.info("Vertex will initialize from input initializer. " + vertex.logIdentifier);
           vertex.setupInputInitializerManager();
           return VertexState.INITIALIZING;
         }
@@ -2708,6 +2954,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           return VertexState.INITIALIZING;
         }
         LOG.info("Directly initializing vertex: " + vertex.logIdentifier);
+        // vertex is completely configured. Send out notification now.
+        vertex.maybeSendConfiguredEvent();
         boolean isInitialized = vertex.initializeVertex();
         if (isInitialized) {
           return VertexState.INITED;
@@ -2776,13 +3024,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexEventRootInputInitialized liInitEvent = (VertexEventRootInputInitialized) event;
       VertexState state = vertex.getState();
       if (state == VertexState.INITIALIZING) {
-        List<TezEvent> inputInfoEvents =
-            vertex.vertexManager.onRootVertexInitialized(
-            liInitEvent.getInputName(),
-            vertex.getAdditionalInputs().get(liInitEvent.getInputName())
-                .getIODescriptor(), liInitEvent.getEvents());
-        if (inputInfoEvents != null && !inputInfoEvents.isEmpty()) {
-          ROUTE_EVENT_TRANSITION.transition(vertex, new VertexEventRouteEvent(vertex.vertexId, inputInfoEvents));
+        try {
+          List<TezEvent> inputInfoEvents =
+              vertex.vertexManager.onRootVertexInitialized(
+              liInitEvent.getInputName(),
+              vertex.getAdditionalInputs().get(liInitEvent.getInputName())
+                  .getIODescriptor(), liInitEvent.getEvents());
+          if (inputInfoEvents != null && !inputInfoEvents.isEmpty()) {
+            VertexImpl.handleRoutedTezEvents(vertex, inputInfoEvents, false);
+          }
+        } catch (AMUserCodeException e) {
+            String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
+            LOG.error(msg, e);
+            vertex.finished(VertexState.FAILED,
+                VertexTerminationCause.AM_USERCODE_FAILURE, msg
+                + "," + ExceptionUtils.getStackTrace(e.getCause()));
+            return VertexState.FAILED;
         }
       }
 
@@ -2826,7 +3083,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             .checkState(
                 (state == VertexState.INITIALIZING
                     || state == VertexState.INITED || state == VertexState.RUNNING),
-                " Unexpected 1-1 split for vertex " + vertex.getVertexId()
+                " Unexpected 1-1 split for vertex " + vertex.getLogIdentifier()
                     + " in state " + vertex.getState() + " . Split in vertex "
                     + originalSplitSource + " sent by vertex "
                     + splitEvent.getSenderVertex() + " numTasks "
@@ -2834,30 +3091,36 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (vertex.originalOneToOneSplitSource.equals(originalSplitSource)) {
           // ignore another split event that may have come from a different
           // path in the DAG. We have already split because of that source
-          LOG.info("Ignoring split of vertex " + vertex.getVertexId() +
+          LOG.info("Ignoring split of vertex " + vertex.getLogIdentifier() +
               " because of split in vertex " + originalSplitSource +
               " sent by vertex " + splitEvent.getSenderVertex() +
               " numTasks " + splitEvent.getNumTasks());
           return state;
         }
         // cannot split from multiple sources
-        throw new TezUncheckedException("Vertex: " + vertex.getVertexId() +
+        throw new TezUncheckedException("Vertex: " + vertex.getLogIdentifier() +
             " asked to split by: " + originalSplitSource +
             " but was already split by:" + vertex.originalOneToOneSplitSource);
       }
 
-      LOG.info("Splitting vertex " + vertex.getVertexId() +
+      LOG.info("Splitting vertex " + vertex.getLogIdentifier() +
           " because of split in vertex " + originalSplitSource +
           " sent by vertex " + splitEvent.getSenderVertex() +
           " numTasks " + splitEvent.getNumTasks());
       vertex.originalOneToOneSplitSource = originalSplitSource;
-      vertex.setParallelism(splitEvent.getNumTasks(), null, null, null);
+      try {
+        vertex.setParallelism(splitEvent.getNumTasks(), null, null, null, false);
+      } catch (Exception e) {
+        // ingore this exception, should not happen
+        LOG.error("Unexpected exception, Just set Parallelims to a specified value, not involve EdgeManager,"
+            + "exception should not happen here", e);
+      }
       if (vertex.getState() == VertexState.RUNNING ||
           vertex.getState() == VertexState.INITED) {
         return vertex.getState();
       } else {
         Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING,
-            " Unexpected 1-1 split for vertex " + vertex.getVertexId() +
+            " Unexpected 1-1 split for vertex " + vertex.getLogIdentifier() +
                 " in state " + vertex.getState() +
                 " . Split in vertex " + originalSplitSource +
                 " sent by vertex " + splitEvent.getSenderVertex() +
@@ -2882,7 +3145,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
       vertex.numStartedSourceVertices++;
       LOG.info("Source vertex started: " + startEvent.getSourceVertexId() +
-          " for vertex: " + vertex.getVertexId() + " numStartedSources: " +
+          " for vertex: " + vertex.logIdentifier + " numStartedSources: " +
           vertex.numStartedSourceVertices + " numSources: " + vertex.sourceVertices.size());
 
       if (vertex.numStartedSourceVertices < vertex.sourceVertices.size()) {
@@ -2956,16 +3219,50 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return vertex.startVertex();
     }
   }
+  
+  private void maybeSendConfiguredEvent() {
+    // the vertex is fully configured by the time it starts. Always notify completely configured
+    // unless the vertex manager has told us that it is going to reconfigure it further
+    Preconditions.checkState(canInitVertex());
+    if (!this.vertexToBeReconfiguredByManager) {
+      // this vertex will not be reconfigured by its manager
+      if (completelyConfiguredSent.compareAndSet(false, true)) {
+        stateChangeNotifier.stateChanged(vertexId, new VertexStateUpdate(vertexName,
+            org.apache.tez.dag.api.event.VertexState.CONFIGURED));
+      }
+    }    
+  }
 
   private VertexState startVertex() {
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // IMPORTANT - Until Recovery is fixed to use normal state transitions, if any code is added 
+    // here then please check if it needs to be duplicated in recoveryCodeSimulatingStart().
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     Preconditions.checkState(getState() == VertexState.INITED,
         "Vertex must be inited " + logIdentifier);
 
     startedTime = clock.getTime();
-    vertexManager.onVertexStarted(pendingReportedSrcCompletions);
+    try {
+      vertexManager.onVertexStarted(pendingReportedSrcCompletions);
+    } catch (AMUserCodeException e) {
+      String msg = "Exception in " + e.getSource() +", vertex=" + logIdentifier;
+      LOG.error(msg, e);
+      addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+      tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE, TaskTerminationCause.AM_USERCODE_FAILURE);
+      return VertexState.TERMINATING;
+    }
     pendingReportedSrcCompletions.clear();
     logJobHistoryVertexStartedEvent();
-
+    
+    // the vertex is fully configured by the time it starts. Always notify completely configured
+    // unless the vertex manager has told us that it is going to reconfigure it further.
+    // If the vertex was pre-configured then the event would have been sent out earlier. Calling again 
+    // would be a no-op. If the vertex was not fully configured and waiting for that to complete then
+    // we would start immediately after that. Either parallelism updated (now) or IPO changed (future) 
+    // or vertex added (future). Simplify these cases by sending the event now automatically for the 
+    // user as if they had invoked the planned()/done() API's.
+    maybeSendConfiguredEvent();
+    
     // TODO: Metrics
     //job.metrics.runningJob(job);
 
@@ -3045,27 +3342,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private static class RootInputInitFailedTransition implements
-      SingleArcTransition<VertexImpl, VertexEvent> {
+      MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
     @Override
-    public void transition(VertexImpl vertex, VertexEvent event) {
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRootInputFailed fe = (VertexEventRootInputFailed) event;
-      vertex.trySetTerminationCause(VertexTerminationCause.INIT_FAILURE);
-      vertex.addDiagnostic("Vertex Input: " + fe.getInputName()
-          + " initializer failed.");
-      if (fe.getError() != null) {
-        LOG.error("Vertex Input: " + fe.getInputName() + " initializer failed",
-            fe.getError());
-        if (fe.getError().getMessage() != null) {
-          vertex.addDiagnostic(fe.getError().getMessage());
-        }
+      String msg = "Vertex Input: " + fe.getInputName()
+          + " initializer failed, vertex=" + vertex.getLogIdentifier();
+      LOG.error(msg, fe.getError());
+      if (vertex.getState() == VertexState.RUNNING) {
+        vertex.addDiagnostic(msg
+              + ", " + ExceptionUtils.getStackTrace(fe.getError().getCause()));
+        vertex.tryEnactKill(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE,
+            TaskTerminationCause.AM_USERCODE_FAILURE);
+        return VertexState.TERMINATING;
+      } else {
+        vertex.finished(VertexState.FAILED,
+            VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, msg
+              + ", " + ExceptionUtils.getStackTrace(fe.getError().getCause()));
+        return VertexState.FAILED;
       }
-      if (vertex.rootInputInitializerManager != null) {
-        vertex.rootInputInitializerManager.shutdown();
-        vertex.rootInputInitializerManager = null;
-      }
-      vertex.finished(VertexState.FAILED,
-          VertexTerminationCause.ROOT_INPUT_INIT_FAILURE);
     }
   }
 
@@ -3099,10 +3395,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       super.transition(vertex, event);
-      if (vertex.rootInputInitializerManager != null) {
-        vertex.rootInputInitializerManager.shutdown();
-        vertex.rootInputInitializerManager = null;
-      }
     }
   }
 
@@ -3121,6 +3413,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         case INVALID_NUM_OF_TASKS:
         case INIT_FAILURE:
         case INTERNAL_ERROR:
+        case AM_USERCODE_FAILURE:
         case OTHER_VERTEX_FAILURE: vertex.tryEnactKill(trigger, TaskTerminationCause.OTHER_VERTEX_FAILURE); break;
         default://should not occur
           throw new TezUncheckedException("VertexKilledTransition: event.terminationCause is unexpected: " + trigger);
@@ -3131,17 +3424,47 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  private static class VertexManagerUserCodeErrorTransition implements
+    MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventManagerUserCodeError errEvent = ((VertexEventManagerUserCodeError) event);
+      AMUserCodeException e = errEvent.getError();
+      String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
+      LOG.error(msg, e);
+      
+      if (vertex.getState() == VertexState.RECOVERING) {
+        LOG.info("Received a user code error during recovering, setting recovered"
+            + " state to FAILED");
+        vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+        vertex.terminationCause = VertexTerminationCause.AM_USERCODE_FAILURE;
+        vertex.recoveredState = VertexState.FAILED;
+        return VertexState.RECOVERING;
+      } else if (vertex.getState() == VertexState.RUNNING) {
+        vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+        vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE,
+            TaskTerminationCause.AM_USERCODE_FAILURE);
+        return VertexState.TERMINATING;
+      } else {
+        vertex.finished(VertexState.FAILED,
+            VertexTerminationCause.AM_USERCODE_FAILURE, msg
+              + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+        return VertexState.FAILED;
+      }
+    }
+  }
+  
   /**
    * Here, the Vertex is being told that one of it's source task-attempts
    * completed.
    */
   private static class SourceTaskAttemptCompletedEventTransition implements
-  SingleArcTransition<VertexImpl, VertexEvent> {
+  MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
     @Override
-    public void transition(VertexImpl vertex, VertexEvent event) {
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventTaskAttemptCompleted completionEvent =
           ((VertexEventSourceTaskAttemptCompleted) event).getCompletionEvent();
-      LOG.info("Source task attempt completed for vertex: " + vertex.getVertexId()
+      LOG.info("Source task attempt completed for vertex: " + vertex.getLogIdentifier()
             + " attempt: " + completionEvent.getTaskAttemptId()
             + " with state: " + completionEvent.getTaskAttemptState()
             + " vertexState: " + vertex.getState());
@@ -3152,13 +3475,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.numSuccessSourceAttemptCompletions++;
 
         if (vertex.getState() == VertexState.RUNNING) {
-          // Inform the vertex manager about the source task completing.
-          vertex.vertexManager.onSourceTaskCompleted(completionEvent
-              .getTaskAttemptId().getTaskID());
+          try {
+            // Inform the vertex manager about the source task completing.
+            vertex.vertexManager.onSourceTaskCompleted(completionEvent
+                .getTaskAttemptId().getTaskID());
+          } catch (AMUserCodeException e) {
+            String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
+            LOG.error(msg, e);
+            vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+            vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE, TaskTerminationCause.AM_USERCODE_FAILURE);
+            return VertexState.TERMINATING;
+          }
         } else {
           vertex.pendingReportedSrcCompletions.add(completionEvent.getTaskAttemptId());
         }
       }
+      return vertex.getState();
     }
   }
 
@@ -3275,9 +3607,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             " completed with state " + vEvent.getState() + " after vertex succeeded.";
       }
       LOG.info(diagnosticMsg);
-      vertex.addDiagnostic(diagnosticMsg);
       vertex.abortVertex(finalStatus);
-      vertex.finished(finalState, VertexTerminationCause.OWN_TASK_FAILURE);
+      vertex.finished(finalState, VertexTerminationCause.OWN_TASK_FAILURE, diagnosticMsg);
       return finalState;
     }
   }
@@ -3290,7 +3621,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       if (vertex.outputCommitters == null // no committer
           || vertex.outputCommitters.isEmpty() // no committer
           || !vertex.commitVertexOutputs) { // committer does not commit on vertex success
-        LOG.info(vertex.getVertexId() + " back to running due to rescheduling "
+        LOG.info(vertex.getLogIdentifier() + " back to running due to rescheduling "
             + ((VertexEventTaskReschedule)event).getTaskID());
         (new TaskRescheduledTransition()).transition(vertex, event);
         // inform the DAG that we are re-running
@@ -3299,14 +3630,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       }
 
       // terminate any running tasks
-      String diagnosticMsg = vertex.getVertexId() + " failed due to post-commit rescheduling of "
+      String diagnosticMsg = vertex.getLogIdentifier() + " failed due to post-commit rescheduling of "
           + ((VertexEventTaskReschedule)event).getTaskID();
       LOG.info(diagnosticMsg);
       vertex.tryEnactKill(VertexTerminationCause.OWN_TASK_FAILURE,
           TaskTerminationCause.OWN_TASK_FAILURE);
-      vertex.addDiagnostic(diagnosticMsg);
       vertex.abortVertex(VertexStatus.State.FAILED);
-      vertex.finished(VertexState.FAILED, VertexTerminationCause.OWN_TASK_FAILURE);
+      vertex.finished(VertexState.FAILED, VertexTerminationCause.OWN_TASK_FAILURE, diagnosticMsg);
       return VertexState.FAILED;
     }
   }
@@ -3341,185 +3671,203 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 //  }
 
   private static class RouteEventTransition  implements
-  SingleArcTransition<VertexImpl, VertexEvent> {
+  MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
     @Override
-    public void transition(VertexImpl vertex, VertexEvent event) {
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventRouteEvent rEvent = (VertexEventRouteEvent) event;
       boolean recovered = rEvent.isRecovered();
       List<TezEvent> tezEvents = rEvent.getEvents();
-
-      if (vertex.getAppContext().isRecoveryEnabled()
-          && !recovered
-          && !tezEvents.isEmpty()) {
-        List<TezEvent> recoveryEvents =
-            Lists.newArrayList();
-        for (TezEvent tezEvent : tezEvents) {
-          if (!isEventFromVertex(vertex, tezEvent.getSourceInfo())) {
-            continue;
-          }
-          if  (tezEvent.getEventType().equals(EventType.COMPOSITE_DATA_MOVEMENT_EVENT)
-            || tezEvent.getEventType().equals(EventType.DATA_MOVEMENT_EVENT)
-            || tezEvent.getEventType().equals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT)
-            || tezEvent.getEventType().equals(EventType.ROOT_INPUT_INITIALIZER_EVENT)) {
-            recoveryEvents.add(tezEvent);
-          }
-        }
-        if (!recoveryEvents.isEmpty()) {
-          VertexRecoverableEventsGeneratedEvent historyEvent =
-              new VertexRecoverableEventsGeneratedEvent(vertex.vertexId,
-                  recoveryEvents);
-          vertex.appContext.getHistoryHandler().handle(
-              new DAGHistoryEvent(vertex.getDAGId(), historyEvent));
+      try {
+        VertexImpl.handleRoutedTezEvents(vertex, tezEvents, recovered);
+      } catch (AMUserCodeException e) {
+        String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
+        LOG.error(msg, e);
+        if (vertex.getState() == VertexState.RUNNING) {
+          vertex.addDiagnostic(msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
+          vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE, TaskTerminationCause.AM_USERCODE_FAILURE);
+          return VertexState.TERMINATING;
+        } else {
+          vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
+              msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
+          return VertexState.FAILED;
         }
       }
-      for(TezEvent tezEvent : tezEvents) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Vertex: " + vertex.getName() + " routing event: "
-              + tezEvent.getEventType()
-              + " Recovered:" + recovered);
+      return vertex.getState();
+    }
+  }
+
+  private static void handleRoutedTezEvents(VertexImpl vertex, List<TezEvent> tezEvents, boolean recovered) throws AMUserCodeException {
+    if (vertex.getAppContext().isRecoveryEnabled()
+        && !recovered
+        && !tezEvents.isEmpty()) {
+      List<TezEvent> recoveryEvents =
+          Lists.newArrayList();
+      for (TezEvent tezEvent : tezEvents) {
+        if (!isEventFromVertex(vertex, tezEvent.getSourceInfo())) {
+          continue;
         }
-        EventMetaData sourceMeta = tezEvent.getSourceInfo();
-        switch(tezEvent.getEventType()) {
-        case INPUT_FAILED_EVENT:
-        case DATA_MOVEMENT_EVENT:
-        case COMPOSITE_DATA_MOVEMENT_EVENT:
-          {
-            if (isEventFromVertex(vertex, sourceMeta)) {
-              // event from this vertex. send to destination vertex
-              TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
-              if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT) {
-                ((DataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
-              } else if (tezEvent.getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT) {
-                ((CompositeDataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
-              } else {
-                ((InputFailedEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
-              }
-              Vertex destVertex = vertex.getDAG().getVertex(sourceMeta.getEdgeVertexName());
-              Edge destEdge = vertex.targetVertices.get(destVertex);
-              if (destEdge == null) {
-                throw new TezUncheckedException("Bad destination vertex: " +
-                    sourceMeta.getEdgeVertexName() + " for event vertex: " +
-                    vertex.getVertexId());
-              }
-              vertex.eventHandler.handle(new VertexEventRouteEvent(destVertex
-                  .getVertexId(), Collections.singletonList(tezEvent)));
-            } else {
-              // event not from this vertex. must have come from source vertex.
-              // send to tasks
-              if (vertex.tasksNotYetScheduled) {
-                vertex.pendingTaskEvents.add(tezEvent);
-              } else {
-                Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
-                    sourceMeta.getTaskVertexName()));
-                if (srcEdge == null) {
-                  throw new TezUncheckedException("Bad source vertex: " +
-                      sourceMeta.getTaskVertexName() + " for destination vertex: " +
-                      vertex.getVertexId());
-                }
-                srcEdge.sendTezEventToDestinationTasks(tezEvent);
-              }
-            }
-          }
-          break;
-        case ROOT_INPUT_DATA_INFORMATION_EVENT:
-          if (vertex.tasksNotYetScheduled) {
-            vertex.pendingTaskEvents.add(tezEvent);
-          } else {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            InputDataInformationEvent riEvent = (InputDataInformationEvent) tezEvent
-                .getEvent();
-            Task targetTask = vertex.getTask(riEvent.getTargetIndex());
-            targetTask.registerTezEvent(tezEvent);
-          }
-          break;
-        case VERTEX_MANAGER_EVENT:
+        if  (tezEvent.getEventType().equals(EventType.COMPOSITE_DATA_MOVEMENT_EVENT)
+          || tezEvent.getEventType().equals(EventType.DATA_MOVEMENT_EVENT)
+          || tezEvent.getEventType().equals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT)
+          || tezEvent.getEventType().equals(EventType.ROOT_INPUT_INITIALIZER_EVENT)) {
+          recoveryEvents.add(tezEvent);
+        }
+      }
+      if (!recoveryEvents.isEmpty()) {
+        VertexRecoverableEventsGeneratedEvent historyEvent =
+            new VertexRecoverableEventsGeneratedEvent(vertex.vertexId,
+                recoveryEvents);
+        vertex.appContext.getHistoryHandler().handle(
+            new DAGHistoryEvent(vertex.getDAGId(), historyEvent));
+      }
+    }
+    for(TezEvent tezEvent : tezEvents) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Vertex: " + vertex.getName() + " routing event: "
+            + tezEvent.getEventType()
+            + " Recovered:" + recovered);
+      }
+      EventMetaData sourceMeta = tezEvent.getSourceInfo();
+      switch(tezEvent.getEventType()) {
+      case INPUT_FAILED_EVENT:
+      case DATA_MOVEMENT_EVENT:
+      case COMPOSITE_DATA_MOVEMENT_EVENT:
         {
-          // VM events on task success only can be changed as part of TEZ-1532
-          VertexManagerEvent vmEvent = (VertexManagerEvent) tezEvent.getEvent();
-          Vertex target = vertex.getDAG().getVertex(vmEvent.getTargetVertexName());
-          Preconditions.checkArgument(target != null,
-              "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
-          if (target == vertex) {
-            vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
-          } else {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            vertex.eventHandler.handle(new VertexEventRouteEvent(target
+          if (isEventFromVertex(vertex, sourceMeta)) {
+            // event from this vertex. send to destination vertex
+            TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
+            if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT) {
+              ((DataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
+            } else if (tezEvent.getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT) {
+              ((CompositeDataMovementEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
+            } else {
+              ((InputFailedEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
+            }
+            Vertex destVertex = vertex.getDAG().getVertex(sourceMeta.getEdgeVertexName());
+            Edge destEdge = vertex.targetVertices.get(destVertex);
+            if (destEdge == null) {
+              throw new TezUncheckedException("Bad destination vertex: " +
+                  sourceMeta.getEdgeVertexName() + " for event vertex: " +
+                  vertex.getLogIdentifier());
+            }
+            vertex.eventHandler.handle(new VertexEventRouteEvent(destVertex
                 .getVertexId(), Collections.singletonList(tezEvent)));
-          }
-        }
-          break;
-        case ROOT_INPUT_INITIALIZER_EVENT:
-        {
-          InputInitializerEvent riEvent = (InputInitializerEvent) tezEvent.getEvent();
-          Vertex target = vertex.getDAG().getVertex(riEvent.getTargetVertexName());
-          Preconditions.checkArgument(target != null,
-              "Event sent to unknown vertex: " + riEvent.getTargetVertexName());
-          riEvent.setSourceVertexName(tezEvent.getSourceInfo().getTaskVertexName());
-          if (target == vertex) {
-            if (vertex.rootInputDescriptors == null ||
-                !vertex.rootInputDescriptors.containsKey(riEvent.getTargetInputName())) {
-              throw new TezUncheckedException(
-                  "InputInitializerEvent targeted at unknown initializer on vertex " +
-                      vertex.logIdentifier + ", Event=" + riEvent);
-            }
-            if (vertex.getState() == VertexState.NEW) {
-              vertex.pendingInitializerEvents.add(tezEvent);
-            } else  if (vertex.getState() == VertexState.INITIALIZING) {
-              vertex.rootInputInitializerManager.handleInitializerEvents(Collections.singletonList(tezEvent));
-            } else {
-              // Currently, INITED and subsequent states means Initializer complete / failure
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Dropping event" + tezEvent + " since state is not INITIALIZING in " + vertex.getLogIdentifier() + ", state=" + vertex.getState());
-              }
-            }
           } else {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            vertex.eventHandler.handle(new VertexEventRouteEvent(target.getVertexId(),
-                Collections.singletonList(tezEvent)));
+            // event not from this vertex. must have come from source vertex.
+            // send to tasks
+            if (vertex.tasksNotYetScheduled) {
+              vertex.pendingTaskEvents.add(tezEvent);
+            } else {
+              Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
+                  sourceMeta.getTaskVertexName()));
+              if (srcEdge == null) {
+                throw new TezUncheckedException("Bad source vertex: " +
+                    sourceMeta.getTaskVertexName() + " for destination vertex: " +
+                    vertex.getLogIdentifier());
+              }
+              srcEdge.sendTezEventToDestinationTasks(tezEvent);
+            }
           }
         }
-          break;
-        case INPUT_READ_ERROR_EVENT:
-          {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
-                sourceMeta.getEdgeVertexName()));
-            srcEdge.sendTezEventToSourceTasks(tezEvent);
-          }
-          break;
-        case TASK_STATUS_UPDATE_EVENT:
-          {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            TaskStatusUpdateEvent sEvent =
-                (TaskStatusUpdateEvent) tezEvent.getEvent();
-            vertex.getEventHandler().handle(
-                new TaskAttemptEventStatusUpdate(sourceMeta.getTaskAttemptID(),
-                    sEvent));
-          }
-          break;
-        case TASK_ATTEMPT_COMPLETED_EVENT:
-          {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            vertex.getEventHandler().handle(
-                new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
-                    TaskAttemptEventType.TA_DONE));
-          }
-          break;
-        case TASK_ATTEMPT_FAILED_EVENT:
-          {
-            checkEventSourceMetadata(vertex, sourceMeta);
-            TaskAttemptFailedEvent taskFailedEvent =
-                (TaskAttemptFailedEvent) tezEvent.getEvent();
-            vertex.getEventHandler().handle(
-                new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
-                    TaskAttemptEventType.TA_FAILED,
-                    "Error: " + taskFailedEvent.getDiagnostics()));
-          }
-          break;
-        default:
-          throw new TezUncheckedException("Unhandled tez event type: "
-              + tezEvent.getEventType());
+        break;
+      case ROOT_INPUT_DATA_INFORMATION_EVENT:
+        if (vertex.tasksNotYetScheduled) {
+          vertex.pendingTaskEvents.add(tezEvent);
+        } else {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          InputDataInformationEvent riEvent = (InputDataInformationEvent) tezEvent
+              .getEvent();
+          Task targetTask = vertex.getTask(riEvent.getTargetIndex());
+          targetTask.registerTezEvent(tezEvent);
         }
+        break;
+      case VERTEX_MANAGER_EVENT:
+      {
+        // VM events on task success only can be changed as part of TEZ-1532
+        VertexManagerEvent vmEvent = (VertexManagerEvent) tezEvent.getEvent();
+        Vertex target = vertex.getDAG().getVertex(vmEvent.getTargetVertexName());
+        Preconditions.checkArgument(target != null,
+            "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
+        if (target == vertex) {
+          vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
+        } else {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          vertex.eventHandler.handle(new VertexEventRouteEvent(target
+              .getVertexId(), Collections.singletonList(tezEvent)));
+        }
+      }
+        break;
+      case ROOT_INPUT_INITIALIZER_EVENT:
+      {
+        InputInitializerEvent riEvent = (InputInitializerEvent) tezEvent.getEvent();
+        Vertex target = vertex.getDAG().getVertex(riEvent.getTargetVertexName());
+        Preconditions.checkArgument(target != null,
+            "Event sent to unknown vertex: " + riEvent.getTargetVertexName());
+        riEvent.setSourceVertexName(tezEvent.getSourceInfo().getTaskVertexName());
+        if (target == vertex) {
+          if (vertex.rootInputDescriptors == null ||
+              !vertex.rootInputDescriptors.containsKey(riEvent.getTargetInputName())) {
+            throw new TezUncheckedException(
+                "InputInitializerEvent targeted at unknown initializer on vertex " +
+                    vertex.logIdentifier + ", Event=" + riEvent);
+          }
+          if (vertex.getState() == VertexState.NEW) {
+            vertex.pendingInitializerEvents.add(tezEvent);
+          } else  if (vertex.getState() == VertexState.INITIALIZING) {
+            vertex.rootInputInitializerManager.handleInitializerEvents(Collections.singletonList(tezEvent));
+          } else {
+            // Currently, INITED and subsequent states means Initializer complete / failure
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Dropping event" + tezEvent + " since state is not INITIALIZING in " + vertex.getLogIdentifier() + ", state=" + vertex.getState());
+            }
+          }
+        } else {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          vertex.eventHandler.handle(new VertexEventRouteEvent(target.getVertexId(),
+              Collections.singletonList(tezEvent)));
+        }
+      }
+        break;
+      case INPUT_READ_ERROR_EVENT:
+        {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
+              sourceMeta.getEdgeVertexName()));
+          srcEdge.sendTezEventToSourceTasks(tezEvent);
+        }
+        break;
+      case TASK_STATUS_UPDATE_EVENT:
+        {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          TaskStatusUpdateEvent sEvent =
+              (TaskStatusUpdateEvent) tezEvent.getEvent();
+          vertex.getEventHandler().handle(
+              new TaskAttemptEventStatusUpdate(sourceMeta.getTaskAttemptID(),
+                  sEvent));
+        }
+        break;
+      case TASK_ATTEMPT_COMPLETED_EVENT:
+        {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          vertex.getEventHandler().handle(
+              new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
+                  TaskAttemptEventType.TA_DONE));
+        }
+        break;
+      case TASK_ATTEMPT_FAILED_EVENT:
+        {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          TaskAttemptFailedEvent taskFailedEvent =
+              (TaskAttemptFailedEvent) tezEvent.getEvent();
+          vertex.getEventHandler().handle(
+              new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
+                  TaskAttemptEventType.TA_FAILED,
+                  "Error: " + taskFailedEvent.getDiagnostics()));
+        }
+        break;
+      default:
+        throw new TezUncheckedException("Unhandled tez event type: "
+            + tezEvent.getEventType());
       }
     }
   }
@@ -3529,10 +3877,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
       LOG.error("Invalid event " + event.getType() + " on Vertex "
-          + vertex.getVertexId());
+          + vertex.getLogIdentifier());
       vertex.eventHandler.handle(new DAGEventDiagnosticsUpdate(
           vertex.getDAGId(), "Invalid event " + event.getType()
-          + " on Vertex " + vertex.getVertexId()));
+          + " on Vertex " + vertex.getLogIdentifier()));
       vertex.setFinishTime();
       vertex.finished(VertexState.ERROR);
     }
@@ -3757,8 +4105,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<InputSpec> getInputSpecList(int taskIndex) {
-    inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
+  public synchronized List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException {
+    List<InputSpec> inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
         + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
     if (rootInputDescriptors != null) {
       for (Entry<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
@@ -3771,7 +4119,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     for (Entry<Vertex, Edge> entry : this.getInputVertices().entrySet()) {
       InputSpec inputSpec = entry.getValue().getDestinationSpec(taskIndex);
       if (LOG.isDebugEnabled()) {
-        LOG.debug("For vertex : " + this.getName()
+        LOG.debug("For vertex : " + this.getLogIdentifier()
             + ", Using InputSpec : " + inputSpec);
       }
       // TODO DAGAM This should be based on the edge type.
@@ -3782,15 +4130,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) {
-    if (this.outputSpecList == null) {
-      outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
-          + this.additionalOutputSpecs.size());
-      outputSpecList.addAll(additionalOutputSpecs);
-      for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
-        OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
-        outputSpecList.add(outputSpec);
-      }
+  public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException {
+    List<OutputSpec> outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
+        + this.additionalOutputSpecs.size());
+    outputSpecList.addAll(additionalOutputSpecs);
+    for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
+      OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
+      outputSpecList.add(outputSpec);
     }
     return outputSpecList;
   }

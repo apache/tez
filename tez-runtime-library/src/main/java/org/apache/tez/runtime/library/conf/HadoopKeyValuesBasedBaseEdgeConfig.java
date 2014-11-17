@@ -46,6 +46,19 @@ abstract class HadoopKeyValuesBasedBaseEdgeConfig {
    */
   public abstract UserPayload getInputPayload();
 
+
+  /**
+   * Get the history text for the configured Output
+   * @return output configuration as a string in json format
+   */
+  public abstract String getOutputHistoryText();
+
+  /**
+   * Get the history text for the configured Input
+   * @return input configuration as a string in json format
+   */
+  public abstract String getInputHistoryText();
+
   /**
    * Get the input class name
    * @return the input class name

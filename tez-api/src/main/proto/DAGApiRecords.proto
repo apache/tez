@@ -112,9 +112,13 @@ message PlanTaskConfiguration {
 
 message TezEntityDescriptorProto {
   optional string class_name = 1;
-  optional bytes user_payload = 2;
+  optional TezUserPayloadProto tez_user_payload = 2;
   optional bytes history_text = 3;
-  optional int32 version = 4;
+}
+
+message TezUserPayloadProto {
+  optional bytes user_payload = 1;
+  optional int32 version = 2;
 }
 
 message RootInputLeafOutputProto {
@@ -160,6 +164,7 @@ message DAGPlan {
   optional bytes credentials_binary = 5;
   repeated PlanVertexGroupInfo vertex_groups = 6;
   repeated PlanLocalResource local_resource = 7;
+  optional string dag_info = 8;
 }
 
 // DAG monitoring messages
@@ -169,6 +174,8 @@ message ProgressProto {
   optional int32 runningTaskCount = 3;
   optional int32 failedTaskCount = 4;
   optional int32 killedTaskCount = 5;
+  optional int32 failedTaskAttemptCount = 6;
+  optional int32 killedTaskAttemptCount = 7;
 }
 
 enum VertexStatusStateProto {
