@@ -124,6 +124,7 @@ public interface Vertex extends Comparable<Vertex> {
   int getInputVerticesCount();
   int getOutputVerticesCount();
   void scheduleTasks(List<TaskWithLocationHint> tasks);
+  void scheduleSpeculativeTask(TezTaskID taskId);
   Resource getTaskResource();
 
   ProcessorDescriptor getProcessorDescriptor();

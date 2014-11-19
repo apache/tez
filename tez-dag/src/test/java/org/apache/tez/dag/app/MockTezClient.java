@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -32,9 +33,9 @@ public class MockTezClient extends TezClient {
   
   MockTezClient(String name, TezConfiguration tezConf, boolean isSession,
       Map<String, LocalResource> localResources, Credentials credentials,
-      AtomicBoolean mockAppLauncherGoFlag) {
+      Clock clock, AtomicBoolean mockAppLauncherGoFlag) {
     super(name, tezConf, isSession, localResources, credentials);
-    this.client = new MockLocalClient(mockAppLauncherGoFlag);
+    this.client = new MockLocalClient(mockAppLauncherGoFlag, clock);
   }
   
   protected FrameworkClient createFrameworkClient() {

@@ -46,7 +46,6 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -1016,6 +1015,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (task.historyTaskStartGenerated) {
         task.logJobHistoryTaskFinishedEvent();
       }
+      TaskAttempt successfulAttempt = task.attempts.get(successTaId);
 
       // issue kill to all other attempts
       for (TaskAttempt attempt : task.attempts.values()) {
@@ -1024,9 +1024,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             //  TA_KILL message to an attempt that doesn't need one for
             //  other reasons.
             !attempt.isFinished()) {
-          LOG.info("Issuing kill to other attempt " + attempt.getID());
+          LOG.info("Issuing kill to other attempt " + attempt.getID() + " as attempt: " +
+            task.successfulAttempt + " has succeeded");
+          String diagnostics = null;
+          if (attempt.getLaunchTime() < successfulAttempt.getLaunchTime()) {
+            diagnostics = "Killed this attempt as other speculative attempt : " + successTaId
+                + " succeeded";
+          } else {
+            diagnostics = "Killed this speculative attempt as original attempt: " + successTaId
+                + " succeeded";
+          }
           task.eventHandler.handle(new TaskAttemptEventKillRequest(attempt
-              .getID(), "Alternate attempt succeeded"));
+              .getID(), diagnostics));
         }
       }
       // send notification to DAG scheduler
@@ -1336,12 +1345,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
-      // verify that this occurs only for map task
-      // TODO: consider moving it to MapTaskImpl
-      if (task.leafVertex) {
-        LOG.error("Unexpected event for task of leaf vertex " + event.getType());
-        task.internalError(event.getType());
-      }
 
       TaskEventTAUpdate attemptEvent = (TaskEventTAUpdate) event;
       TezTaskAttemptID attemptId = attemptEvent.getTaskAttemptID();
@@ -1365,6 +1368,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         return TaskStateInternal.SCHEDULED;
       } else {
         // nothing to do
+        LOG.info("Ignoring kill of attempt: " + attemptId + " because attempt: " +
+                 task.successfulAttempt + " is already successful");
         return TaskStateInternal.SUCCEEDED;
       }
     }

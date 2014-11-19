@@ -29,16 +29,18 @@ import org.apache.tez.client.LocalClient;
 public class MockLocalClient extends LocalClient {
   MockDAGAppMaster mockApp;
   AtomicBoolean mockAppLauncherGoFlag;
+  Clock mockClock;
   
-  public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag) {
+  public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock) {
     this.mockAppLauncherGoFlag = mockAppLauncherGoFlag;
+    this.mockClock = clock;
   }
   
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String userDir) {
     mockApp = new MockDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime, isSession, userDir, mockAppLauncherGoFlag);
+        (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, mockAppLauncherGoFlag);
     return mockApp;
   }
   

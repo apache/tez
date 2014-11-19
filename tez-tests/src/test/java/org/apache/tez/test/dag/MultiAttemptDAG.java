@@ -121,6 +121,7 @@ public class MultiAttemptDAG {
         String payload = new String(getContext().getUserPayload().deepCopyAsArray());
         int successAttemptId = Integer.valueOf(payload);
         LOG.info("Checking whether to crash AM or schedule tasks"
+            + ", vertex: " + getContext().getVertexName()
             + ", successfulAttemptID=" + successAttemptId
             + ", currentAttempt=" + getContext().getDAGAttemptNumber());
         if (successAttemptId > getContext().getDAGAttemptNumber()) {

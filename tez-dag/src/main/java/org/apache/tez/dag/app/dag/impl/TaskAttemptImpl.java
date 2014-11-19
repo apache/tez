@@ -54,6 +54,7 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
@@ -83,6 +84,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptStatusUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -413,7 +415,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.reportedStatus = new TaskAttemptStatus();
+    this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
     this.stateMachine = stateMachineFactory.make(this);
@@ -1151,9 +1153,19 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Inform the Task
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId,
           TaskEventType.T_ATTEMPT_LAUNCHED));
+      
+      if (ta.isSpeculationEnabled()) {
+        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.RUNNING,
+            ta.launchTime, true));
+      }
 
       ta.taskHeartbeatHandler.register(ta.attemptId);
     }
+  }
+  
+  private boolean isSpeculationEnabled() {
+    return conf.getBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED,
+        TezConfiguration.TEZ_AM_SPECULATION_ENABLED_DEFAULT);
   }
 
   protected static class TerminatedBeforeRunningTransition extends
@@ -1235,6 +1247,10 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       ta.updateProgressSplits();
 
+      if (ta.isSpeculationEnabled()) {
+        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, ta.getState(),
+            ta.clock.getTime()));
+      }
     }
   }
 
@@ -1259,6 +1275,14 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       // Unregister from the TaskHeartbeatHandler.
       ta.taskHeartbeatHandler.unregister(ta.attemptId);
+      
+      ta.reportedStatus.state = TaskAttemptState.SUCCEEDED;
+      ta.reportedStatus.progress = 1.0f;
+      
+      if (ta.isSpeculationEnabled()) {
+        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.SUCCEEDED,
+            ta.clock.getTime()));
+      }
 
       // TODO maybe. For reuse ... Stacking pulls for a reduce task, even if the
       // TA finishes independently. // Will likely be the Job's responsibility.
@@ -1278,6 +1302,11 @@ public class TaskAttemptImpl implements TaskAttempt,
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       super.transition(ta, event);
       ta.taskHeartbeatHandler.unregister(ta.attemptId);
+      ta.reportedStatus.state = helper.getTaskAttemptState(); // FAILED or KILLED
+      if (ta.isSpeculationEnabled()) {
+        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, helper.getTaskAttemptState(),
+            ta.clock.getTime()));
+      }
     }
   }
 

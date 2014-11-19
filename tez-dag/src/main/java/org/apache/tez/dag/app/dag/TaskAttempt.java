@@ -40,10 +40,14 @@ import org.apache.tez.dag.records.TezVertexID;
 public interface TaskAttempt {
 
   public static class TaskAttemptStatus {
+    public TezTaskAttemptID id;
     public TaskAttemptState state;
-    public DAGCounter localityCounter;
     public float progress;
     public TezCounters counters;
+    
+    public TaskAttemptStatus(TezTaskAttemptID id) {
+      this.id = id;
+    }
 
     // insert these counters till they come natively from the task itself.
     // HDFS-5098

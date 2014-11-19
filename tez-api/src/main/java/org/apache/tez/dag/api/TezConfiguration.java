@@ -272,7 +272,21 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "counters.group-name.max-length";
   public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 128;
 
-
+  @Unstable
+  /**
+   * Boolean value. Enable speculative execution of slower tasks. This can help reduce job latency 
+   * when some tasks are running slower due bad/slow machines
+   */
+  public static final String TEZ_AM_SPECULATION_ENABLED = TEZ_AM_PREFIX + "speculation.enabled";
+  public static final boolean TEZ_AM_SPECULATION_ENABLED_DEFAULT = false;
+  
+  /**
+   * Float value. Specifies how many standard deviations away from the mean task execution time 
+   * should be considered as an outlier/slow task.
+   */
+  @Unstable
+  public static final String TEZ_AM_LEGACY_SPECULATIVE_SLOWTASK_THRESHOLD = 
+                                     TEZ_AM_PREFIX + "legacy.speculative.slowtask.threshold";
 
   /**
    * Int value. Upper limit on the number of threads user to launch containers in the app

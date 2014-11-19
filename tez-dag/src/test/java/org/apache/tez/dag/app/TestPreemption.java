@@ -92,7 +92,7 @@ public class TestPreemption {
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
     MockTezClient tezClient = new MockTezClient("testPreemption", tezconf, false, null, null,
-        mockAppLauncherGoFlag);
+        null, mockAppLauncherGoFlag);
     tezClient.start();
     
     DAGClient dagClient = tezClient.submitDAG(createDAG(DataMovementType.SCATTER_GATHER));
@@ -148,7 +148,7 @@ public class TestPreemption {
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
     MockTezClient tezClient = new MockTezClient("testPreemption", tezconf, true, null, null,
-        mockAppLauncherGoFlag);
+        null, mockAppLauncherGoFlag);
     tezClient.start();
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
     return tezClient;

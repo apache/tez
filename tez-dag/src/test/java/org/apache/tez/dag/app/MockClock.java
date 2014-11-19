@@ -15,22 +15,22 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.records.TezTaskAttemptID;
+package org.apache.tez.dag.app;
 
-public class TaskAttemptEventKillRequest extends TaskAttemptEvent implements DiagnosableEvent {
+import org.apache.hadoop.yarn.util.Clock;
 
-  private final String message;
-
-  public TaskAttemptEventKillRequest(TezTaskAttemptID id, String message) {
-    super(id, TaskAttemptEventType.TA_KILL_REQUEST);
-    this.message = message;
-  }
+public class MockClock implements Clock {
+  
+  long time = 1000;
 
   @Override
-  public String getDiagnosticInfo() {
-    return message;
+  public long getTime() {
+    return time;
+  }
+  
+  public void incrementTime(long inc) {
+    time += inc;
   }
 
 }

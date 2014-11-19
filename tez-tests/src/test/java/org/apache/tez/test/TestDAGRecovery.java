@@ -132,7 +132,7 @@ public class TestDAGRecovery {
 
     tezConf = new TezConfiguration(miniTezCluster.getConfig());
     tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 0);
-    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "DEBUG");
+    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "INFO");
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
     tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
