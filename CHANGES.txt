@@ -13,6 +13,9 @@ ALL CHANGES:
   TEZ-1721. Update INSTALL instructions for clarifying tez client jars
     compatibility with runtime tarball on HDFS.
   TEZ-1690. TestMultiMRInput tests fail because of user collisions.
+  TEZ-1687. Use logIdentifier of Vertex for logging.
+  TEZ-1737. Should add taskNum in VertexFinishedEvent.
+  TEZ-1772. Failing tests post TEZ-1737.
 
 Release 0.5.3: Unreleased
 
@@ -25,11 +28,8 @@ ALL CHANGES:
   TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
   TEZ-1750. Add a DAGScheduler which schedules tasks only when sources have been scheduled.
   TEZ-1761. TestRecoveryParser::testGetLastInProgressDAG fails in similar manner to TEZ-1686.
-  TEZ-1687. Use logIdentifier of Vertex for logging.
-  TEZ-1737. Should add taskNum in VertexFinishedEvent.
   TEZ-1770. Handle ConnectExceptions correctly when establishing connections to an NM which may be down.
   TEZ-1774. AppLaunched event for Timeline does not have start time set.
-  TEZ-1772. Failing tests post TEZ-1737.
 
 Release 0.5.2: 2014-11-07
 
