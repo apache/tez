@@ -25,8 +25,6 @@ App.TaskAttempt = App.AbstractEntity.extend({
 
 	entityType: App.EntityType.TASK_ATTEMPT,
 
-  // dagId
-  dagId: DS.attr('string'),
 
 	// container
 	containerId: DS.attr('string'),
@@ -35,8 +33,8 @@ App.TaskAttempt = App.AbstractEntity.extend({
   // status of the task attempt
 	status: DS.attr('string'),
 
+  taskID: DS.attr('string'),
   vertexID: DS.attr('string'),
-
   dagID: DS.attr('string'),
 
   inProgressLog: DS.attr('string'),

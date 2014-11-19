@@ -88,19 +88,21 @@ App.DagsRoute = Em.Route.extend({
   },
 
   setupController: function(controller, model) {
+    $(document).attr('title', 'All Dags');
     this._super(controller, model);
     controller.loadData();
   },
 });
 
 App.DagRoute = Em.Route.extend({
-	model: function(params) {
-		return this.store.find('dag', params.dag_id);
-	},
+  model: function(params) {
+    return this.store.find('dag', params.dag_id);
+  },
 
-	setupController: function(controller, model) {
-		this._super(controller, model);
-	}
+  setupController: function(controller, model) {
+    $(document).attr('title', 'Dag: %@ (%@)'.fmt(model.get('name'), model.id));
+    this._super(controller, model);
+  }
 });
 
 App.DagSwimlaneRoute = Em.Route.extend({
@@ -131,23 +133,25 @@ App.TasksRoute = Em.Route.extend({
 });
 
 App.TaskRoute = Em.Route.extend({
-	model: function(params) {
-		return this.store.find('task', params.task_id);
-	},
+  model: function(params) {
+    return this.store.find('task', params.task_id);
+  },
 
-	setupController: function(controller, model) {
-		this._super(controller, model);
-	}
+  setupController: function(controller, model) {
+    $(document).attr('title', 'Task: %@'.fmt(model.id));
+    this._super(controller, model);
+  }
 });
 
 App.VertexRoute = Em.Route.extend({
-	model: function(params) {
-		return this.store.find('vertex', params.vertex_id);
-	},
+  model: function(params) {
+    return this.store.find('vertex', params.vertex_id);
+  },
 
-	setupController: function(controller, model) {
-		this._super(controller, model);
-	}
+  setupController: function(controller, model) {
+    $(document).attr('title', 'Vertex: %@ (%@)'.fmt(model.get('name'), model.id));
+    this._super(controller, model);
+  }
 });
 
 App.VertexSwimlaneRoute = Em.Route.extend({
@@ -210,6 +214,7 @@ App.TaskAttemptsRoute = Em.Route.extend({
   },
 
   setupController: function(controller, model) {
+    $(document).attr('title', 'Task Attempt: %@'.fmt(model.id));
     this._super(controller, model);
     controller.loadData();
   }
@@ -242,6 +247,10 @@ App.TezAppRoute = Em.Route.extend({
       });
     });
   },
+  setupController: function(controller, model) {
+    $(document).attr('title', 'Application: %@'.fmt(model.id));
+    this._super(controller, model);
+  }
 });
 
 App.TezAppDagsRoute = Em.Route.extend({

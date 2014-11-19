@@ -165,6 +165,7 @@ var timelineJsonToTaskAttemptMap = {
   inProgressLog: 'otherinfo.inProgressLogsURL',
   completedLog: 'otherinfo.completedLogsURL',
 
+  taskID: 'primaryfilters.TEZ_TASK_ID.0',
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   containerId: 'otherinfo.containerId',

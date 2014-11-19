@@ -49,7 +49,7 @@ App.DagIndexController = Em.ObjectController.extend({
 	}.property('id', 'counterGroups'),
 
   failedTasksLink: function() {
-    return '/#tasks?status=FAILED&parentType=TEZ_DAG_ID&parentID=' + this.get('id');
+    return '#tasks?status=FAILED&parentType=TEZ_DAG_ID&parentID=' + this.get('id');
   }.property(),
 
 	actions: {

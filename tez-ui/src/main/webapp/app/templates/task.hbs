@@ -17,6 +17,15 @@
 }}
 
 {{partial "utils/pageHeader"}}
+
+<div class='breadcrumb-container'>
+  {{#link-to 'dags'}}All Dags{{/link-to}}
+  <i></i>
+  {{#link-to 'dag.vertices' dagID}}Dag{{/link-to}}
+  <i></i>
+  {{#link-to 'vertex.tasks' vertexID}}Vertex{{/link-to}}
+</div>
+
 {{#unless loading}}
 	{{!--
 	<div class='margin-small-horizontal'>
@@ -34,7 +43,7 @@
 			<table class='detail-list'>
 				<tbody>
 					<tr>
-						<td>{{t common.id}}</td>
+						<td>Task ID</td>
 						<td>{{id}}</td>
 					</tr>
 					<tr>

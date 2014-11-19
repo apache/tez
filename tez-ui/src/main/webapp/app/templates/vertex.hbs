@@ -17,13 +17,20 @@
 }}
 
 {{partial "utils/pageHeader"}}
+
+<div class='breadcrumb-container'>
+  {{#link-to 'dags'}}All Dags{{/link-to}}
+  <i></i>
+  {{#link-to 'dag.vertices' dagID}}Dag{{/link-to}}
+</div>
+
 {{#unless loading}}
   <div class='type-table fill-full '>
     <div class='align-left'>
       <table class='detail-list'>
         <tbody>
           <tr>
-            <td>{{t common.id}}</td>
+            <td>Vertex ID</td>
             <td>{{id}}</td>
           </tr>
           <tr>

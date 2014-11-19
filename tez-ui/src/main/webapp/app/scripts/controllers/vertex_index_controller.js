@@ -29,6 +29,6 @@ App.VertexIndexController = Em.ObjectController.extend({
   }.property('id', 'counterGroups'),
   
   failedTasksLink: function() {
-    return '/#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
+    return '#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
   }.property(),
 });
