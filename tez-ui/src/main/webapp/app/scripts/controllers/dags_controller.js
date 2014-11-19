@@ -80,17 +80,27 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       var loaders = [];
       that.set('entities', entities);
       entities.forEach(function (dag) {
-        // Pivot attempt selection logic
-        fetcher = store.find('appDetail', dag.get('applicationId') );
-        fetcher.then(function (app) {
-          dag.set('app', app);
-        });
-        loaders.push(fetcher);
+        var appId = dag.get('applicationId');
+        if(appId) {
+          // Pivot attempt selection logic
+          fetcher = store.find('appDetail', appId);
+          fetcher.then(function (app) {
+            dag.set('appDetail', app);
+          });
+          loaders.push(fetcher);
+          //Load tezApp details
+          fetcher = store.find('tezApp', 'tez_' + appId);
+          fetcher.then(function (app) {
+            dag.set('tezApp', app);
+          });
+          loaders.push(fetcher);
+        }
       });
       Em.RSVP.allSettled(loaders).then(function(){
         that.set('loading', false);
       });
     }).catch(function(jqXHR){
+      if(console) console.log(jqXHR);
       alert('failed');
     });
   },
@@ -194,17 +204,24 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       filterID: 'appId_filter',
       tableCellViewClass: Em.Table.TableCell.extend({
         template: Em.Handlebars.compile(
-          "{{#link-to 'tez-app' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+          "{{#if view.cellContent.enableLink}}\
+             {{#link-to 'tez-app' view.cellContent.appId class='ember-table-content'}}{{view.cellContent.appId}}{{/link-to}}\
+           {{else}}\
+             <span class='ember-table-content'>{{view.cellContent.appId}}</span>\
+           {{/if}}")
       }),
       getCellContent: function(row) {
-        return  row.get('applicationId')
+        return  {
+          enableLink: row.get('tezApp'),
+          appId: row.get('applicationId')
+        }
       }
     });
     var queue = App.ExTable.ColumnDefinition.create({
       textAlign: 'text-align-left',
       headerCellName: 'Queue',
       getCellContent: function(row) {
-        return (row.get('app') && row.get('app').get('queue')) || 'Not Available';
+        return row.get('appDetail.queue') || 'Not Available';
       }
     });
     return [nameCol, idCol, userCol, statusCol, startTime, endTime, durationCol, appIdCol, queue];

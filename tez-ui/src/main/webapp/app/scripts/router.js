@@ -32,6 +32,10 @@ App.Router.map(function() {
 
   this.resource('vertex', {path: '/vertex/:vertex_id'}, function(){
     this.route('tasks');
+    this.route('inputs');
+    this.resource('vertexInput', {path: '/input/:input_id'}, function(){
+      this.route('configs');
+    });
     this.route('counters');
     this.route('details');
     this.route('swimlane');
@@ -159,6 +163,13 @@ App.VertexSwimlaneRoute = Em.Route.extend({
   }
 });
 
+App.VertexInputsRoute = Em.Route.extend({
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadEntities();
+  }
+});
+
 App.DagTasksRoute = Em.Route.extend({
   queryParams: {
     status: App.Helpers.misc.defaultQueryParamsConfig,
@@ -204,11 +215,28 @@ App.TaskAttemptsRoute = Em.Route.extend({
   }
 });
 
+App.VertexInputConfigsRoute = App.TezAppConfigsRoute = Em.Route.extend({
+  renderTemplate: function() {
+    this.render('common/configs');
+  }
+});
+
+App.VertexInputRoute = Em.Route.extend({
+  model: function (params) {
+    var model = this.modelFor('vertex');
+    return model.get('inputs').findBy('id', params.input_id);
+  },
+  setupController: function(controller, model) {
+    this._super(controller, model);
+  }
+});
+
 App.TezAppRoute = Em.Route.extend({
   model: function(params) {
     var store = this.store;
-    return store.find('tezApp', 'tez_' + params.app_id).then(function(tezApp){
-      return store.find('appDetail', tezApp.get('appId')).then(function(appDetails){
+    return store.find('tezApp', 'tez_' + params.app_id).then(function (tezApp){
+      if(!tezApp.get('appId')) return tezApp;
+      return store.find('appDetail', tezApp.get('appId')).then(function (appDetails){
         tezApp.set('appDetail', appDetails);
         return tezApp;
       });
@@ -229,11 +257,3 @@ App.TezAppDagsRoute = Em.Route.extend({
     controller.loadData();
   }
 });
-
-App.TezAppConfigsRoute = Em.Route.extend({
-  setupController: function(controller, model) {
-    this._super(controller, model);
-    controller.loadData();
-  }
-});
-

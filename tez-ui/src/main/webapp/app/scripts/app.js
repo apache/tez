@@ -53,6 +53,45 @@ Ember.Application.initializer({
       },
     });
 
+    application.VertexAdapter = App.ApplicationAdapter.extend({
+      _setInputs: function (store, data) {
+        var dagId = Ember.get(data, 'primaryfilters.TEZ_DAG_ID.0'),
+            vertexName = Ember.get(data, 'otherinfo.vertexName');
+        if(dagId) {
+          return store.find('dag', dagId).then(function (dag) {
+            if(dag.get('vertices') instanceof Array) {
+              var vertexData = dag.get('vertices').findBy('vertexName', vertexName);
+              if(vertexData && vertexData.additionalInputs) {
+                data.inputs = vertexData.additionalInputs;
+              }
+            }
+            return data;
+          });
+        }
+        else {
+          return Em.RSVP.Promise(data);
+        }
+      },
+      find: function(store, type, id) {
+        var that = this;
+        return this._super(store, type, id).then(function (data) {
+          return that._setInputs(store, data);
+        });
+      },
+      findQuery: function(store, type, queryObj, records) {
+        var that = this;
+        return that._super(store, type, queryObj, records ).then(function (data) {
+          var fetchers = [];
+          data.entities.forEach(function (datum) {
+            fetchers.push(that._setInputs(store, datum));
+          });
+          return Em.RSVP.allSettled(fetchers).then(function () {
+            return data;
+          });
+        });
+      }
+    });
+
   }
 });
 

@@ -16,26 +16,27 @@
  * limitations under the License.
  */
 
-App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-  controllerName: 'VertexController',
+App.KvTableComponent = Em.Component.extend({
+  layoutName: 'components/kv-table',
+  filterExp: null,
 
-  pageTitle: 'Vertex',
+  filteredKVs: function() {
+    var kvList = this.get('data') || [],
+        filteredKvs = [],
+        filterStringRegex = new RegExp(this.filterExp, 'i');
 
-  loading: true,
+    if (Em.isEmpty(this.filterExp)) {
+      return kvList;
+    }
 
-  updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
+    kvList.forEach(function (kv) {
+      if (filterStringRegex.test(kv.get('key')) || filterStringRegex.test(kv.get('value'))) {
+        filteredKvs.push(kv);
+      }
+    });
 
-  pageSubTitle: function() {
-    return this.get('name');
-  }.property('name'),
-
-  childDisplayViews: [
-    Ember.Object.create({title: 'Details', linkTo: 'vertex.index'}),
-    Ember.Object.create({title: 'Tasks', linkTo: 'vertex.tasks'}),
-    Ember.Object.create({title: 'Counters', linkTo: 'vertex.counters'}),
-    Ember.Object.create({title: 'Swimlane', linkTo: 'vertex.swimlane'}),
-    Ember.Object.create({title: 'Inputs', linkTo: 'vertex.inputs'}),
-  ],
+    return filteredKvs;
+  }.property('data', 'filterExp')
 });
+
+Em.Handlebars.helper('kv-table-component', App.KvTableComponent);

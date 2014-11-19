@@ -36,6 +36,6 @@ App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   childDisplayViews: [
     Ember.Object.create({title: 'Details', linkTo: 'tez-app.index'}),
     Ember.Object.create({title: 'Dags', linkTo: 'tez-app.dags'}),
-    Ember.Object.create({title: 'Configs', linkTo: 'tez-app.configs'}),
+    Ember.Object.create({title: 'Configuration', linkTo: 'tez-app.configs'}),
   ],
 });

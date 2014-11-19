@@ -101,6 +101,12 @@ var timelineJsonToDagMap = {
   applicationId: 'otherinfo.applicationId',
   status: 'otherinfo.status',
   diagnostics: 'otherinfo.diagnostics',
+
+  planName: 'otherinfo.dagPlan.dagName',
+  planVersion: 'otherinfo.dagPlan.version',
+  vertices: 'otherinfo.dagPlan.vertices',
+  edges: 'otherinfo.dagPlan.edges',
+
   counterGroups: 'counterGroups'
 };
 
@@ -269,6 +275,7 @@ var timelineJsonToVertexMap = {
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   processorClassName: 'otherinfo.stats.processorClassName',
   counterGroups: 'counterGroups',
+  inputs: 'inputs',
 
   startTime: 'otherinfo.startTime',
   endTime: 'otherinfo.endTime',
@@ -298,14 +305,26 @@ var timelineJsonToVertexMap = {
 App.VertexSerializer = App.TimelineSerializer.extend({
   _normalizeSingleVertexPayload: function(vertex) {
     var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('vertex', vertex.entity, 
-      vertex);
-    vertex.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
+        vertex);
+        vertex.counterGroups = normalizedCounterGroupData.counterGroupsIDs,
+        vertexInputs = [],
+        inputIds = [];
 
     delete vertex.otherinfo.counters;
+
+    if(vertex.inputs) {
+      vertex.inputs.forEach(function (input, index) {
+        input.entity = vertex.entity + '-input' + index;
+        inputIds.push(input.entity);
+        vertexInputs.push(input);
+      });
+      vertex.inputs = inputIds;
+    }
 
     return {
       vertex: vertex,
       counterGroups: normalizedCounterGroupData.counterGroups,
+      vertexInputs: vertexInputs,
       counters: normalizedCounterGroupData.counters
     };
   },
@@ -315,6 +334,7 @@ App.VertexSerializer = App.TimelineSerializer.extend({
       var normalizedPayload = {
         vertices: [],
         counterGroups: [],
+        vertexInputs: [],
         counters: []
       };
       rawPayload.vertices.forEach(function(vertex){
@@ -322,6 +342,7 @@ App.VertexSerializer = App.TimelineSerializer.extend({
         normalizedPayload.vertices.push(n.vertex);
         [].push.apply(normalizedPayload.counterGroups, n.counterGroups);
         [].push.apply(normalizedPayload.counters, n.counters);
+        [].push.apply(normalizedPayload.vertexInputs, n.vertexInputs);
       }, this);
       
       // delete so that we dont hang on to the json data.
@@ -336,6 +357,44 @@ App.VertexSerializer = App.TimelineSerializer.extend({
   normalize: function(type, hash, prop) {
     return Em.JsonMapper.map(hash, timelineJsonToVertexMap);
   },
+});
+
+App.VertexInputSerializer = App.TimelineSerializer.extend({
+  _map: {
+    id: 'entity',
+    inputName: 'name',
+    inputClass: 'class',
+    inputInitializer: 'initializer',
+    configs: 'configs'
+  },
+  _normalizeData: function(data) {
+    var userPayload = JSON.parse(data.userPayloadAsText || null),
+        store = this.get('store'),
+        configs,
+        configKey,
+        configIndex = 0,
+        id;
+
+    data.configs = [];
+
+    if(userPayload) {
+      configs = userPayload.config || userPayload.dist;
+      for(configKey in configs) {
+        id = data.entity + configIndex++;
+        data.configs.push(id);
+        store.push('KVDatum', {
+          id: id,
+          key: configKey,
+          value: configs[configKey]
+        });
+      }
+    }
+
+    return data;
+  },
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(this._normalizeData(hash), this._map);
+  }
 });
 
 var timelineJsonToAppDetailMap = {

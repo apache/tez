@@ -16,31 +16,24 @@
 * limitations under the License.
 }}
 
-{{#unless loading}}
-  <div class='margin-small'>
-    <span class='align-right'>
-      {{page-nav-component
-        hasPrev=hasPrev
-        hasNext=hasNext
-        navNext='navigateNext'
-        navPrev='navigatePrev'
-        navFirst='navigateFirst'
-      }}
-    </span>
-    <div class='align-clear'> </div>
-  </div>
-
-  <div class='table-container'>
-  {{extended-table-component 
-    hasFooter=false
-    enableContentSelection=true
-    columnsBinding="columns"
-    contentBinding="sortedContent"
-    forceFillColumns=true
-    hasFilter=true
-    onFilterUpdated='filterUpdated'
-  }}
-  </div>
-{{else}}
-  {{partial 'utils/loadingSpinner'}}
-{{/unless}}
+<table class='kv-table'>
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Value</th>
+    </tr>
+    <tr>
+      <td class='filter' colspan='2'>
+        {{input size='60' type='search' results='1' placeholder='Search...' valueBinding='filterExp'}}
+      </td>
+    </tr>
+    <tbody>
+      {{#each kv in filteredKVs}}
+        <tr>
+          <td>{{unbound kv.key}}</td>
+          <td>{{unbound kv.value}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </thead>
+</table>

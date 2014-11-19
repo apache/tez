@@ -163,7 +163,7 @@ div.indent {
   }
 
   th:first-child {
-        width: 70%;
+    width: 70%;
   }
 
   tr {
@@ -173,6 +173,29 @@ div.indent {
       font-style: italic;
       font-weight: bold;
     }
+  }
+}
+
+.kv-table {
+  width: 100%;
+  margin-top: 10px;
+  table-layout: fixed;
+
+  th, td {
+    border: 1px solid #dcdcdc;
+    padding: 5px 5px;
+    width: 50%;
+    overflow: scroll;
+  }
+
+  th, td.filter {
+    background-color: #f0f0f0;
+    font-style: italic;
+    font-weight: bold;
+  }
+
+  input[type=search] {
+    width: 100%;
   }
 }
 

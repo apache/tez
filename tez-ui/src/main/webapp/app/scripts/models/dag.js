@@ -36,7 +36,9 @@ App.Dag = App.AbstractEntity.extend({
 
 	// application ID of this dag.
 	applicationId: DS.attr('string'),
-  app: DS.belongsTo('appDetail', {async: true}),
+
+  tezApp: DS.belongsTo('tezApp', {async: true}),
+  appDetail: DS.belongsTo('appDetail', {async: true}),
 
 	// status
 	status: DS.attr('string'),
@@ -44,9 +46,11 @@ App.Dag = App.AbstractEntity.extend({
 	// diagnostics info if any.
 	diagnostics: DS.attr('string'),
 
-	//vertices: DS.hasMany('vertex'),
-
-	//edges: DS.hasMany('edge'),
+  // Dag plan reated data
+  planName: DS.attr('string'),
+  planVersion: DS.attr('number'),
+  vertices: DS.attr('array'), // Serialize when required
+  edges: DS.attr('array'), // Serialize when required
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });
@@ -217,6 +221,8 @@ App.Vertex = DS.Model.extend({
 
   recordWriteCount: DS.attr('number'),
 
+  inputs: DS.hasMany('vertexInput'),
+
   totalReadBytes: function () {
     return this.get('fileReadBytes') + this.get('hdfsReadBytes');
   }.property('fileReadBytes', 'hdfsReadBytes'),
@@ -236,6 +242,16 @@ App.Vertex = DS.Model.extend({
   durationDisplay: function () {
     return App.Helpers.date.timingFormat(this.get('duration'), true);
   }.property('duration')
+});
+
+App.VertexInput = DS.Model.extend({
+  entity: DS.attr('string'),
+
+  inputName: DS.attr('string'),
+  inputClass: DS.attr('string'),
+  inputInitializer: DS.attr('string'),
+
+  configs: DS.hasMany('kVData', { async: false })
 });
 
 App.AppDetail = DS.Model.extend({

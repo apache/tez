@@ -53,6 +53,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
 			that.set('entities', entities);
 			that.set('loading', false);
 		}).catch(function(jqXHR){
+			if(console) console.log(jqXHR);
 			alert('failed');
 		});
 	},

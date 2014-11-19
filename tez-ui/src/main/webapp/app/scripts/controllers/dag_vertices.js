@@ -110,13 +110,36 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
           &nbsp;&nbsp;{{view.cellContent.status}}</span>')
       }),
       getCellContent: function(row) {
-      	return { 
+        return {
           status: row.get('status'),
           statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
         };
       }
     });
 
-		return [idCol, nameCol, startTimeCol, endTimeCol, firstTaskStartTime, statusCol, numTasksCol];
-	}.property(),
+    var configsCol = App.ExTable.ColumnDefinition.create({
+      headerCellName: 'Input Configurations',
+      tableCellViewClass: Em.Table.TableCell.extend({
+        template: Em.Handlebars.compile(
+          " {{#if view.cellContent.inputId}}\
+              {{#if view.cellContent.showConfigs}}\
+               {{#link-to 'vertexInput.configs' view.cellContent.vertexId view.cellContent.inputId class='ember-table-content'}}View configurations{{/link-to}}\
+              {{else}}\
+               {{#link-to 'vertex.inputs' view.cellContent.vertexId class='ember-table-content'}}View Inputs{{/link-to}}\
+              {{/if}}\
+            {{else}}\
+              <span class='ember-table-content'>No Inputs</span>\
+            {{/if}}")
+      }),
+      getCellContent: function(row) {
+        return {
+          showConfigs: row.get('inputs.content.length') == 1 && row.get('inputs.content.0.configs.length') > 0,
+          inputId: row.get('inputs.content.0.id'),
+          vertexId: row.get('id')
+        };
+      }
+    });
+
+    return [idCol, nameCol, startTimeCol, endTimeCol, firstTaskStartTime, statusCol, numTasksCol, configsCol];
+  }.property(),
 });
