@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
-App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   needs: "dag",
+
+  controllerName: 'DagVerticesController',
 
   // required by the PaginatedContentMixin
   childEntityType: 'vertex',
@@ -52,94 +54,108 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
     }
   },
 
-  columns: function() {
-    var idCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Vertex Name',
-      tableCellViewClass: Em.Table.TableCell.extend({
-      	template: Em.Handlebars.compile(
-      		"{{#link-to 'vertex' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
-      }),
-      getCellContent: function(row) {
-        return {
-          id: row.get('id'),
-          name: row.get('name')
-        };
-      }
-    });
-
-    var nameCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Vertex ID',
-      contentPath: 'id',
-    });
-
-    var startTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Start Time',
-      getCellContent: function(row) {
-      	return App.Helpers.date.dateFormat(row.get('startTime'));
-      }
-    });
-
-    var endTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-
-    var firstTaskStartTime = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'First Task Start Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('firstTaskStartTime'));
-      }
-    });
-
-    var numTasksCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Tasks',
-      contentPath: 'numTasks'
-    });
-
-    var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      headerCellName: 'Status',
-      filterID: 'status_filter',
-      filterType: 'dropdown',
-      dropdownValues: App.Helpers.misc.vertexStatusUIOptions,
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">&nbsp;\
-          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-      }),
-      getCellContent: function(row) {
-        return {
-          status: row.get('status'),
-          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
-        };
-      }
-    });
-
-    var configsCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Input Configurations',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          " {{#if view.cellContent.inputId}}\
-              {{#if view.cellContent.showConfigs}}\
-               {{#link-to 'vertexInput.configs' view.cellContent.vertexId view.cellContent.inputId class='ember-table-content'}}View configurations{{/link-to}}\
+  defaultColumnConfigs: function() {
+    return [
+      {
+        id: 'vertexName',
+        headerCellName: 'Vertex Name',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'vertex' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
+        }),
+        getCellContent: function(row) {
+          return {
+            id: row.get('id'),
+            name: row.get('name')
+          };
+        }
+      },
+      {
+        id: 'id',
+        headerCellName: 'Vertex ID',
+        contentPath: 'id',
+      },
+      {
+        id: 'startTime',
+        headerCellName: 'Start Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'firstTaskStartTime',
+        headerCellName: 'First Task Start Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('firstTaskStartTime'));
+        }
+      },
+      {
+        id: 'tasks',
+        headerCellName: 'Tasks',
+        contentPath: 'numTasks'
+      },
+      {
+        id: 'processorClass',
+        headerCellName: 'Processor Class',
+        contentPath: 'processorClassName'
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        filterID: 'status_filter',
+        filterType: 'dropdown',
+        dropdownValues: App.Helpers.misc.vertexStatusUIOptions,
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">&nbsp;\
+            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+        }),
+        getCellContent: function(row) {
+          return {
+            status: row.get('status'),
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+          };
+        }
+      },
+      {
+        id: 'configurations',
+        headerCellName: 'Input Configurations',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            " {{#if view.cellContent.inputId}}\
+                {{#if view.cellContent.showConfigs}}\
+                 {{#link-to 'vertexInput.configs' view.cellContent.vertexId view.cellContent.inputId class='ember-table-content'}}View configurations{{/link-to}}\
+                {{else}}\
+                 {{#link-to 'vertex.inputs' view.cellContent.vertexId class='ember-table-content'}}View Inputs{{/link-to}}\
+                {{/if}}\
               {{else}}\
-               {{#link-to 'vertex.inputs' view.cellContent.vertexId class='ember-table-content'}}View Inputs{{/link-to}}\
-              {{/if}}\
-            {{else}}\
-              <span class='ember-table-content'>No Inputs</span>\
-            {{/if}}")
-      }),
-      getCellContent: function(row) {
-        return {
-          showConfigs: row.get('inputs.content.length') == 1 && row.get('inputs.content.0.configs.length') > 0,
-          inputId: row.get('inputs.content.0.id'),
-          vertexId: row.get('id')
-        };
+                <span class='ember-table-content'>No Inputs</span>\
+              {{/if}}")
+        }),
+        getCellContent: function(row) {
+          return {
+            showConfigs: row.get('inputs.content.length') == 1 && row.get('inputs.content.0.configs.length') > 0,
+            inputId: row.get('inputs.content.0.id'),
+            vertexId: row.get('id')
+          };
+        }
       }
-    });
-
-    return [idCol, nameCol, startTimeCol, endTimeCol, firstTaskStartTime, statusCol, numTasksCol, configsCol];
+    ];
   }.property(),
+
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.vertex') || []
+    );
+  }.property(),
+
 });

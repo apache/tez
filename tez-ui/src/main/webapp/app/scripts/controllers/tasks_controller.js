@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   // Required by the PaginatedContentMixin
   childEntityType: 'task',
 
-	controllerName: 'TasksController',
+  controllerName: 'TasksController',
 
-	pageTitle: 'Tasks',
+  pageTitle: 'Tasks',
 
-	pageSubTitle: 'All Tasks',
+  pageSubTitle: 'All Tasks',
 
   queryParams: {
     parentType: true,
@@ -47,66 +47,62 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
     this.setFiltersAndLoadEntities(filters);
   },
 
-	/* table view for tasks */
-  columns: function() {
-    var store = this.get('store');
-    var columnHelper = function(columnName, valName) {
-      return Em.Table.ColumnDefinition.create({
-        textAlign: 'text-align-left',
-        headerCellName: columnName,
+  defaultColumnConfigs: function() {
+
+    return [
+      {
+        id: 'taskId',
+        headerCellName: 'Task Id',
+        contentPath: 'id',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+        })
+      },
+      {
+        id: 'vertexId',
+        headerCellName: 'Vertex ID',
+        contentPath: 'vertexID'
+      },
+      {
+        id: 'submissionTime',
+        headerCellName: 'Submission Time',
         getCellContent: function(row) {
-          return row.get(valName);
+          return App.Helpers.date.dateFormat(row.get('startTime'));
         }
-      });
-    }
-
-    var idColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Task Id',
-      tableCellViewClass: Em.Table.TableCell.extend({
-      	template: Em.Handlebars.compile(
-          "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
-      }),
-      getCellContent: function(row) {
-      	return row.get('id');
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">&nbsp;\
+            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+        }),
+        getCellContent: function(row) {
+          return {
+            status: row.get('status'),
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+          };
+        }
       }
-    });
-
-    var vertexColumn = columnHelper('Vertex ID', 'vertexID');
-
-    var startTimeColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Submission Time',
-      getCellContent: function(row) {
-      	return App.Helpers.date.dateFormat(row.get('startTime'));
-      }
-    });
-
-    var endTimeColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-
-    var statusColumn = Em.Table.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Status',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">&nbsp;\
-          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-      }),
-      getCellContent: function(row) {
-      	return { 
-          status: row.get('status'),
-          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
-        };
-      }
-    });
+    ];
     
-    return [idColumn, vertexColumn, startTimeColumn, endTimeColumn, statusColumn];
   }.property(),
+
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.task') || []
+    );
+  }.property(),
+
 });

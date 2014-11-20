@@ -24,12 +24,10 @@ var typeToPathMap = {
 };
 
 App.TimelineRESTAdapter = DS.RESTAdapter.extend({
-	namespace: 'ws/v1/timeline',
-
+	namespace: App.Configs.restNamespace.timeline,
 	pathForType: function(type) {
 		return typeToPathMap[type];
-	},
-
+	}
 });
 
 App.TimelineSerializer = DS.RESTSerializer.extend({
@@ -224,7 +222,7 @@ var timelineJsonToTaskMap = {
   successfulAttemptId: 'otherinfo.successfulAttemptId',
   attempts: 'relatedentities.TEZ_TASK_ATTEMPT_ID',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
-  numAttempts: 'relatedentities'
+  numAttempts: 'relatedentities.TEZ_TASK_ATTEMPT_ID.length'
 };
 
 App.TaskSerializer = App.TimelineSerializer.extend({
@@ -274,7 +272,7 @@ var timelineJsonToVertexMap = {
   id: 'entity',
   name: 'otherinfo.vertexName',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
-  processorClassName: 'otherinfo.stats.processorClassName',
+  processorClassName: 'processorClassName',
   counterGroups: 'counterGroups',
   inputs: 'inputs',
 
@@ -305,11 +303,14 @@ var timelineJsonToVertexMap = {
 
 App.VertexSerializer = App.TimelineSerializer.extend({
   _normalizeSingleVertexPayload: function(vertex) {
-    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('vertex', vertex.entity, 
-        vertex);
-        vertex.counterGroups = normalizedCounterGroupData.counterGroupsIDs,
-        vertexInputs = [],
-        inputIds = [];
+    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('vertex', vertex.entity,
+        vertex),
+    processorClassName = Ember.get(vertex, 'otherinfo.processorClassName'),
+    vertexInputs = [],
+    inputIds = [];
+
+    vertex.processorClassName = processorClassName.substr(processorClassName.lastIndexOf('.') + 1),
+    vertex.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
 
     delete vertex.otherinfo.counters;
 

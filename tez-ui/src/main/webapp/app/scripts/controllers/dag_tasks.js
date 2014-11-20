@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
-App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   needs: "dag",
+
+  controllerName: 'DagTasksController',
 
   // required by the PaginatedContentMixin
   childEntityType: 'task',
@@ -53,7 +55,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
       that.set('entities', entities);
       var pivotLoaders = [];
       entities.forEach(function (task) {
-        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts').lastObject;
+        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
         if (!!taskAttemptId) {
           // Pivot attempt selection logic
           fetcher = store.find('taskAttempt', taskAttemptId);
@@ -84,102 +86,111 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, {
     }
   },
 
-	columns: function() {
-		var idCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Task ID',
-      tableCellViewClass: Em.Table.TableCell.extend({
-      	template: Em.Handlebars.compile(
-      		"{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
-      }),
-      contentPath: 'id',
-    });
-
-    var vertexCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      headerCellName: 'Vertex ID',
-      filterID: 'vertex_id_filter',
-      contentPath: 'vertexID'
-    });
-
-    var startTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Start Time',
-      getCellContent: function(row) {
-      	return App.Helpers.date.dateFormat(row.get('startTime'));
-      }
-    });
-
-    var endTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-
-    var durationCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Duration',
-      getCellContent: function(row) {
-        var st = row.get('startTime');
-        var et = row.get('endTime');
-        if (st && et) {
-          return App.Helpers.date.durationSummary(st, et);
+  defaultColumnConfigs: function() {
+    return [
+      {
+        id: 'id',
+        headerCellName: 'Task ID',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+        }),
+        contentPath: 'id',
+      },
+      {
+        id: 'vertexID',
+        headerCellName: 'Vertex ID',
+        filterID: 'vertex_id_filter',
+        contentPath: 'vertexID'
+      },
+      {
+        id: 'startTime',
+        headerCellName: 'Start Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'duration',
+        headerCellName: 'Duration',
+        getCellContent: function(row) {
+          var st = row.get('startTime');
+          var et = row.get('endTime');
+          if (st && et) {
+            return App.Helpers.date.durationSummary(st, et);
+          }
+        }
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        filterID: 'status_filter',
+        filterType: 'dropdown',
+        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">&nbsp;\
+            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+        }),
+        getCellContent: function(row) {
+          return {
+            status: row.get('status'),
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+          };
+        }
+      },
+      {
+        id: 'actions',
+        headerCellName: 'Actions',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">\
+            {{#link-to "task.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
+            {{#link-to "task.attempts" view.cellContent}}attempts{{/link-to}}\
+            </span>'
+            )
+        }),
+        contentPath: 'id'
+      },
+      {
+        id: 'logs',
+        textAlign: 'text-align-left',
+        headerCellName: 'Logs',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">\
+              {{#unless view.cellContent}}\
+                Not Available\
+              {{else}}\
+                <a href="//{{unbound view.cellContent}}">View</a>\
+                &nbsp;\
+                <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+              {{/unless}}\
+            </span>')
+        }),
+        getCellContent: function(row) {
+          var attempt = row.get('pivotAttempt');
+          var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
+          if(logFile) logFile += "/syslog_" + attempt.get('id');
+          return logFile;
         }
       }
-    });
+    ];
+  }.property(),
 
-    var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      headerCellName: 'Status',
-      filterID: 'status_filter',
-      filterType: 'dropdown',
-      dropdownValues: App.Helpers.misc.taskStatusUIOptions,
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">&nbsp;\
-          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-      }),
-      getCellContent: function(row) {
-      	return { 
-          status: row.get('status'),
-          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
-        };
-      }
-    });
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.task') || []
+    );
+  }.property()
 
-    var actionsCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Actions',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">\
-          {{#link-to "task.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
-          {{#link-to "task.attempts" view.cellContent}}attempts{{/link-to}}\
-          </span>'
-          )
-      }),
-      contentPath: 'id'
-    });
-
-    var logs = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Logs',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">\
-            {{#unless view.cellContent}}\
-              Not Available\
-            {{else}}\
-              <a href="//{{unbound view.cellContent}}">View</a>\
-              &nbsp;\
-              <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
-            {{/unless}}\
-          </span>')
-      }),
-      getCellContent: function(row) {
-        var attempt = row.get('pivotAttempt');
-        var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
-        if(logFile) logFile += "/syslog_" + attempt.get('id');
-        return logFile;
-      }
-    });
-
-		return [idCol, vertexCol, startTimeCol, endTimeCol, durationCol, statusCol, actionsCol, logs];
-	}.property(),
 });

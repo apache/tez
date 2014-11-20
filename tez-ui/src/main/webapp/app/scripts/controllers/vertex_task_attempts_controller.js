@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   // Required by the PaginatedContentMixin
   childEntityType: 'taskAttempt',
+
+  controllerName: 'VertexTaskAttemptsController',
 
   needs: 'vertex',
 
@@ -51,121 +53,130 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
     }
   },
 
-  columns: function() {
-    var idCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Task ID',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
-      }),
-      contentPath: 'taskID',
-    });
-
-    var attemptNoCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Attempt No',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          "{{#link-to 'taskAttempt' view.cellContent.attemptID class='ember-table-content'}}{{view.cellContent.attemptNo}}{{/link-to}}")
-      }),
-      getCellContent: function(row) {
-        var attemptID = row.get('id') || '',
-            attemptNo = attemptID.split(/[_]+/).pop();
-        return {
-          attemptNo: attemptNo,
-          attemptID: attemptID
-        };
-      }
-    });
-
-    var startTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Start Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('startTime'));
-      }
-    });
-
-    var endTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-
-    var durationCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'duration',
-      getCellContent: function(row) {
-        var st = row.get('startTime');
-        var et = row.get('endTime');
-        if (st && et) {
-          return App.Helpers.date.durationSummary(st, et);
+  defaultColumnConfigs: function() {
+    return [
+      {
+        id: 'taskId',
+        headerCellName: 'Task ID',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+        }),
+        contentPath: 'taskID',
+      },
+      {
+        id: 'attemptNo',
+        headerCellName: 'Attempt No',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'taskAttempt' view.cellContent.attemptID class='ember-table-content'}}{{view.cellContent.attemptNo}}{{/link-to}}")
+        }),
+        getCellContent: function(row) {
+          var attemptID = row.get('id') || '',
+              attemptNo = attemptID.split(/[_]+/).pop();
+          return {
+            attemptNo: attemptNo,
+            attemptID: attemptID
+          };
+        }
+      },
+      {
+        id: 'startTime',
+        headerCellName: 'Start Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'duration',
+        headerCellName: 'Duration',
+        getCellContent: function(row) {
+          var st = row.get('startTime');
+          var et = row.get('endTime');
+          if (st && et) {
+            return App.Helpers.date.durationSummary(st, et);
+          }
+        }
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        filterID: 'status_filter',
+        filterType: 'dropdown',
+        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">&nbsp;\
+            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+        }),
+        getCellContent: function(row) {
+          return {
+            status: row.get('status'),
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+          };
+        }
+      },
+      {
+        id: 'containerId',
+        headerCellName: 'Container',
+        contentPath: 'containerId'
+      },
+      {
+        id: 'nodeId',
+        headerCellName: 'Node',
+        contentPath: 'nodeId'
+      },
+      {
+        id: 'actions',
+        headerCellName: 'Actions',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">\
+            {{#link-to "taskAttempt.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
+            </span>'
+            )
+        }),
+        contentPath: 'id'
+      },
+      {
+        id: 'logs',
+        headerCellName: 'Logs',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">\
+              {{#unless view.cellContent}}\
+                Not Available\
+              {{else}}\
+                <a href="//{{unbound view.cellContent}}">View</a>\
+                &nbsp;\
+                <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+              {{/unless}}\
+            </span>')
+        }),
+        getCellContent: function(row) {
+          var attempt = row.get('pivotAttempt');
+          var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
+          if(logFile) logFile += "/syslog_" + attempt.get('id');
+          return logFile;
         }
       }
-    });
+    ];
 
-    var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      headerCellName: 'Status',
-      filterID: 'status_filter',
-      filterType: 'dropdown',
-      dropdownValues: App.Helpers.misc.taskStatusUIOptions,
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">&nbsp;\
-          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-      }),
-      getCellContent: function(row) {
-        return {
-          status: row.get('status'),
-          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
-        };
-      }
-    });
-
-    var containerCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Container',
-      contentPath: 'containerId'
-    });
-
-    var nodeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Node',
-      contentPath: 'nodeId'
-    });
-
-    var actionsCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Actions',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">\
-          {{#link-to "taskAttempt.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
-          </span>'
-          )
-      }),
-      contentPath: 'id'
-    });
-
-    var logs = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Logs',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">\
-            {{#unless view.cellContent}}\
-              Not Available\
-            {{else}}\
-              <a href="//{{unbound view.cellContent}}">View</a>\
-              &nbsp;\
-              <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
-            {{/unless}}\
-          </span>')
-      }),
-      getCellContent: function(row) {
-        var attempt = row.get('pivotAttempt');
-        var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
-        if(logFile) logFile += "/syslog_" + attempt.get('id');
-        return logFile;
-      }
-    });
-
-    return [idCol, attemptNoCol, startTimeCol, endTimeCol, durationCol, statusCol, containerCol, nodeCol, actionsCol, logs];
   }.property(),
+
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.taskAttempt') || []
+    );
+  }.property(),
+
 });

@@ -29,6 +29,9 @@
         navFirst='navigateFirst'
       }}
     </span>
+    <span class="left-divider align-left">
+      <i {{bind-attr class=':fa-action :fa-cog'}} {{action 'selectColumns'}}></i>
+    </span>
     <span class='align-right'>
       Number of Dags to Show
       {{view Ember.Select 

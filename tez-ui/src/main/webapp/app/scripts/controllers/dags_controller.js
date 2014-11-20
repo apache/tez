@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   childEntityType: 'dag',
 
 	controllerName: 'DagsController',
@@ -121,111 +121,116 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
     },
   },
 
-	/* table view for dags */
-  columns: function() {
-    var store = this.get('store');
-    var columnHelper = function(columnName, valName) {
-      return App.ExTable.ColumnDefinition.create({
-        textAlign: 'text-align-left',
-        headerCellName: columnName,
-        contentPath: valName
-      });
-    }
-
-    var nameCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, {
-      textAlign: 'text-align-left',
-      headerCellName: 'Dag Name',
-      filterID: 'dagName_filter',
-      tableCellViewClass: Em.Table.TableCell.extend({
-      	template: Em.Handlebars.compile(
-          "{{#link-to 'dag.vertices' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
-      }),
-      getCellContent: function(row) {
-      	return {
-          id: row.get('id'),
-          name: row.get('name')
-        };
-      }
-    });
-    var idCol = columnHelper('Dag ID', 'id');
-    var userCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, {
-      textAlign: 'text-align-left',
-      headerCellName: 'Submitter',
-      filterID: 'user_filter',
-      contentPath: 'user'
-    }); 
-    var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      textAlign: 'text-align-left',
-      headerCellName: 'Status',
-      filterID: 'status_filter',
-      filterType: 'dropdown',
-      dropdownValues: App.Helpers.misc.dagStatusUIOptions,
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">&nbsp;\
-          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-      }),
-      getCellContent: function(row) {
-      	return { 
-          status: row.get('status'),
-          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
-        };
-      }
-    });
-    var startTime = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Start Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('startTime'));
-      }
-    });
-    var endTime = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-    var durationCol = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Duration',
-      getCellContent: function(row) {
-        var st = row.get('startTime');
-        var et = row.get('endTime');
-        if (st && et) {
-          return App.Helpers.date.durationSummary(st, et);
+  /*
+   * Columns that would be displayed by default
+   * @return Array of column configs
+   */
+  defaultColumnConfigs: function () {
+    return [
+      {
+        id: 'dagName',
+        headerCellName: 'Dag Name',
+        filterID: 'dagName_filter',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'dag.vertices' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
+        }),
+        getCellContent: function(row) {
+          return {
+            id: row.get('id'),
+            name: row.get('name')
+          };
+        }
+      },
+      {
+        id: 'id',
+        headerCellName: 'Id',
+        contentPath: 'id'
+      },
+      {
+        id: 'user',
+        headerCellName: 'Submitter',
+        filterID: 'user_filter',
+        contentPath: 'user'
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        filterID: 'status_filter',
+        filterType: 'dropdown',
+        dropdownValues: App.Helpers.misc.dagStatusUIOptions,
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">&nbsp;\
+            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+        }),
+        getCellContent: function(row) {
+          return {
+            status: row.get('status'),
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+          };
+        }
+      },
+      {
+        id: 'startTime',
+        headerCellName: 'Start Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'duration',
+        headerCellName: 'Duration',
+        getCellContent: function(row) {
+          var st = row.get('startTime');
+          var et = row.get('endTime');
+          if (st && et) {
+            return App.Helpers.date.durationSummary(st, et);
+          }
+        }
+      },
+      {
+        id: 'appId',
+        headerCellName: 'Application ID',
+        filterID: 'appId_filter',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#if view.cellContent.enableLink}}\
+               {{#link-to 'tez-app' view.cellContent.appId class='ember-table-content'}}{{view.cellContent.appId}}{{/link-to}}\
+             {{else}}\
+               <span class='ember-table-content'>{{view.cellContent.appId}}</span>\
+             {{/if}}")
+        }),
+        getCellContent: function(row) {
+          return  {
+            enableLink: row.get('tezApp'),
+            appId: row.get('applicationId')
+          }
+        }
+      },
+      {
+        id: 'queue',
+        headerCellName: 'Queue',
+        getCellContent: function(row) {
+          return row.get('appDetail.queue') || 'Not Available';
         }
       }
-    });
-    var appIdCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, {
-      textAlign: 'text-align-left',
-      headerCellName: 'Application ID',
-      filterID: 'appId_filter',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          "{{#if view.cellContent.enableLink}}\
-             {{#link-to 'tez-app' view.cellContent.appId class='ember-table-content'}}{{view.cellContent.appId}}{{/link-to}}\
-           {{else}}\
-             <span class='ember-table-content'>{{view.cellContent.appId}}</span>\
-           {{/if}}")
-      }),
-      getCellContent: function(row) {
-        return  {
-          enableLink: row.get('tezApp'),
-          appId: row.get('applicationId')
-        }
-      }
-    });
-    var queue = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Queue',
-      getCellContent: function(row) {
-        return row.get('appDetail.queue') || 'Not Available';
-      }
-    });
-    return [nameCol, idCol, userCol, statusCol, startTime, endTime, durationCol, appIdCol, queue];
+    ];
   }.property(),
 
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.dag') || []
+    );
+  }.property(),
 
 });

@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
-App.VertexInputsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.VertexInputsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   needs: 'vertex',
+
+  controllerName: 'VertexInputsController',
 
   loadEntities: function() {
     var content = this.get('inputs').content;
@@ -38,40 +40,51 @@ App.VertexInputsController = Em.ObjectController.extend(App.PaginatedContentMixi
     }
   },
 
-  columns: function() {
-    var nameCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Name',
-      contentPath: 'inputName',
-    });
-
-    var classCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Class',
-      contentPath: 'inputClass',
-    });
-
-    var initializerCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Initializer',
-      contentPath: 'inputInitializer',
-    });
-
-    var configCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Configurations',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          "{{#if view.cellContent.count}}\
-            {{#link-to 'vertexInput.configs' view.cellContent.id class='ember-table-content'}}View Configurations{{/link-to}}\
-          {{else}}\
-            <span class='ember-table-content'>Not Available</span>\
-          {{/if}}")
-      }),
-      getCellContent: function(row) {
-        return {
-          count: row.get('configs.content.length'),
-          id: row.get('id')
-        };
+  defaultColumnConfigs: function() {
+    return [
+      {
+        id: 'inputId',
+        headerCellName: 'Name',
+        contentPath: 'inputName',
+      },
+      {
+        id: 'inputClass',
+        headerCellName: 'Class',
+        contentPath: 'inputClass',
+      },
+      {
+        id: 'inputInitializer',
+        headerCellName: 'Initializer',
+        contentPath: 'inputInitializer',
+      },
+      {
+        id: 'configurations',
+        headerCellName: 'Configurations',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#if view.cellContent.count}}\
+              {{#link-to 'vertexInput.configs' view.cellContent.id class='ember-table-content'}}View Configurations{{/link-to}}\
+            {{else}}\
+              <span class='ember-table-content'>Not Available</span>\
+            {{/if}}")
+        }),
+        getCellContent: function(row) {
+          return {
+            count: row.get('configs.content.length'),
+            id: row.get('id')
+          };
+        }
       }
-    });
+    ];
 
     return [nameCol, classCol, initializerCol, configCol];
   }.property(),
+
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.input') || []
+    );
+  }.property(),
+
 });

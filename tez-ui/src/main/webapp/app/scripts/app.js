@@ -27,14 +27,16 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
   LOG_TRANSITIONS_INTERNAL: true,
 
   env: {
-    standalone: window.parent === window,
-    timelineBaseUrl: "http://localhost:8188",
-    RMWebUrl: "http://localhost:8088"
+    isStandalone: true // Can ne set false in the wrapper initializer
   }
 });
 
 App.Helpers = Em.Namespace.create();
 App.Mappers = Em.Namespace.create();
+App.Configs = Em.Namespace.create();
+
+require('scripts/configs');
+$.extend(App.env, App.Configs.envDefaults);
 
 Ember.Application.initializer({
   name: "initApp",
@@ -46,7 +48,7 @@ Ember.Application.initializer({
     application.ApplicationSerializer = App.TimelineSerializer.extend();
 
     application.AppDetailAdapter = DS.RESTAdapter.extend({
-      namespace: 'ws/v1/applicationhistory',
+      namespace: App.Configs.restNamespace.applicationHistory,
       host: App.env.timelineBaseUrl,
       pathForType: function() {
         return "apps";
@@ -100,12 +102,17 @@ Ember.Application.initializer({
 require('scripts/translations');
 require('scripts/mixins/*');
 require('scripts/helpers/*');
+
 require('scripts/router');
 require('scripts/store');
 require('scripts/views/**/*');
 require('scripts/models/**/*');
+
 require('scripts/mappers/server_data_mapper.js');
 require('scripts/mappers/**/*');
+
+require('scripts/controllers/table-page-controller.js');
 require('scripts/controllers/**/*');
+
 require('scripts/components/*');
 require('scripts/adapters/*');

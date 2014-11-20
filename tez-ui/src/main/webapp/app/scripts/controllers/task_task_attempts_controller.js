@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, {
+App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
   // required by the PaginatedContentMixin
   childEntityType: 'task_attempt',
+
+  controllerName: 'TaskAttemptsController',
 
   needs: 'task',
 
@@ -51,93 +53,103 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
     }
   },
 
-	columns: function() {
-		var idCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Task ID',
-      tableCellViewClass: Em.Table.TableCell.extend({
-      	template: Em.Handlebars.compile(
-      		"{{#link-to 'taskAttempt' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
-      }),
-      contentPath: 'id',
-    });
-
-    var startTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Start Time',
-      getCellContent: function(row) {
-      	return App.Helpers.date.dateFormat(row.get('startTime'));
-      }
-    });
-
-    var endTimeCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'End Time',
-      getCellContent: function(row) {
-        return App.Helpers.date.dateFormat(row.get('endTime'));
-      }
-    });
-
-    var durationCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Duration',
-      getCellContent: function(row) {
-        var st = row.get('startTime');
-        var et = row.get('endTime');
-        if (st && et) {
-          return App.Helpers.date.durationSummary(st, et);
+  defaultColumnConfigs: function() {
+    return [
+      {
+        id: 'taskId',
+        headerCellName: 'Task ID',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'taskAttempt' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+        }),
+        contentPath: 'id',
+      },
+      {
+        id: 'startTime',
+        headerCellName: 'Start Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'duration',
+        headerCellName: 'Duration',
+        getCellContent: function(row) {
+          var st = row.get('startTime');
+          var et = row.get('endTime');
+          if (st && et) {
+            return App.Helpers.date.durationSummary(st, et);
+          }
+        }
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        filterID: 'status_filter',
+        filterType: 'dropdown',
+        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">&nbsp;\
+            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
+            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+        }),
+        getCellContent: function(row) {
+          return {
+            status: row.get('status'),
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+          };
+        }
+      },
+      {
+        id: 'nodeId',
+        headerCellName: 'Node ID',
+        contentPath: 'nodeId'
+      },
+      {
+        id: 'containerId',
+        headerCellName: 'Container ID',
+        contentPath: 'containerId'
+      },
+      {
+        id: 'logs',
+        headerCellName: 'Logs',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">\
+              {{#unless view.cellContent}}\
+                Not Available\
+              {{else}}\
+                <a href="//{{unbound view.cellContent}}">View</a>\
+                &nbsp;\
+                <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+              {{/unless}}\
+            </span>')
+        }),
+        getCellContent: function(row) {
+          var logFile = row.get('inProgressLog') || row.get('completedLog');
+          if(logFile) logFile += "/syslog_" + row.get('id');
+          return logFile;
         }
       }
-    });
+    ];
 
-    var statusCol = App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin,{
-      headerCellName: 'Status',
-      filterID: 'status_filter',
-      filterType: 'dropdown',
-      dropdownValues: App.Helpers.misc.taskStatusUIOptions,
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">&nbsp;\
-          <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-          &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-      }),
-      getCellContent: function(row) {
-      	return { 
-          status: row.get('status'),
-          statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
-        };
-      }
-    });
-
-    var nodeIdCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Node ID',
-      contentPath: 'nodeId'
-    });
-
-    var containerCol = App.ExTable.ColumnDefinition.create({
-      headerCellName: 'Container ID',
-      contentPath: 'containerId'
-    });
-
-    var logs = App.ExTable.ColumnDefinition.create({
-      textAlign: 'text-align-left',
-      headerCellName: 'Logs',
-      tableCellViewClass: Em.Table.TableCell.extend({
-        template: Em.Handlebars.compile(
-          '<span class="ember-table-content">\
-            {{#unless view.cellContent}}\
-              Not Available\
-            {{else}}\
-              <a href="//{{unbound view.cellContent}}">View</a>\
-              &nbsp;\
-              <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
-            {{/unless}}\
-          </span>')
-      }),
-      getCellContent: function(row) {
-        var logFile = row.get('inProgressLog') || row.get('completedLog');
-        if(logFile) logFile += "/syslog_" + row.get('id');
-        return logFile;
-      }
-    });
-    return [idCol, startTimeCol, endTimeCol, durationCol, statusCol, nodeIdCol, containerCol, logs];
   }.property(),
+
+  columnConfigs: function() {
+    return this.get('defaultColumnConfigs').concat(
+      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
+      App.get('Configs.table.entitieSpecificColumns.taskAttempt') || []
+    );
+  }.property(),
+
 });
 
 

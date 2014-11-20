@@ -74,6 +74,60 @@ App.Helpers.misc = {
     return $.inArray(status, ['RUNNING', 'SUCCEEDED', 'FAILED', 'KILLED']) != -1;
   },
 
+  /*
+   * Normalizes counter style configurations
+   * @param counterConfigs Array
+   * @return Normalized configurations
+   */
+  normalizeCounterConfigs: function (counterConfigs) {
+    return counterConfigs.map(function (configuration) {
+      configuration.id = '%@/%@'.fmt(configuration.groupId, configuration.counterId),
+      configuration.getCellContent = App.Helpers.misc.getCounterCellContent;
+      return configuration;
+    });
+  },
+
+  /*
+   * Creates column definitions form configuration object array
+   * @param columnConfigs Array
+   * @return columnDefinitions Array
+   */
+  createColumnsFromConfigs: function (columnConfigs) {
+    return columnConfigs.map(function (columnConfig) {
+      if(columnConfig.getCellContentHelper) {
+        columnConfig.getCellContent = App.Helpers.get(columnConfig.getCellContentHelper);
+      }
+      columnConfig.minWidth = columnConfig.minWidth || 150;
+
+      return columnConfig.filterID ?
+          App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, columnConfig) :
+          App.ExTable.ColumnDefinition.create(columnConfig);
+    });
+  },
+
+  /*
+   * Returns a counter value from for a row
+   * @param row
+   * @return value
+   */
+  getCounterCellContent: function (row) {
+    var contentPath = this.id.split('/'),
+        group = contentPath[0],
+        counter = contentPath[1],
+        id = row.get('id'),
+        value = 'Not Available';
+
+    try{
+      value = row.get('counterGroups').
+          findBy('id', '%@/%@'.fmt(id, group)).
+          get('counters').
+          findBy('id', '%@/%@/%@'.fmt(id, group, counter)).
+          get('value');
+    }catch(e){}
+
+    return value;
+  },
+
   dagStatusUIOptions: [
     { label: 'All', id: null },
     { label: 'Submitted', id: 'SUBMITTED' },

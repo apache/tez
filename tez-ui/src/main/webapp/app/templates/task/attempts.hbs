@@ -1,5 +1,8 @@
 {{#unless loading}}
 	<div class='margin-small'>
+		<span class="left-divider align-right">
+		  <i {{bind-attr class=':fa-action :fa-cog'}} {{action 'selectColumns'}}></i>
+		</span>
 		<span class='align-right'>
 			{{page-nav-component
 				hasPrev=hasPrev

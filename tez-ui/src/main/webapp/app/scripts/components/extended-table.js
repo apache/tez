@@ -160,9 +160,11 @@ App.ExTable.ColumnDefinition = Ember.Table.ColumnDefinition.extend({
 App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
 	layoutName: 'components/extended-table/extable',
 	filters: {},
-
 	hasFilter: true,
 	minFilterHeight: 30, //TODO: less changes
+
+  enableContentSelection: false,
+  selectionMode: 'none',
 
   actions: {
     filterUpdated: function(columnDef, value) {
@@ -171,12 +173,41 @@ App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
       if (this.get('onFilterUpdated')) {
       	this.sendAction('onFilterUpdated', filterID, value);
       }
+    },
+  },
+
+  doForceFillColumns: function() {
+    var additionWidthPerColumn, availableContentWidth, columnsToResize, contentWidth, fixedColumnsWidth, remainingWidth, tableColumns, totalWidth;
+    totalWidth = this.get('_width');
+
+    fixedColumnsWidth = this.get('_fixedColumnsWidth');
+    tableColumns = this.get('tableColumns');
+    contentWidth = this._getTotalWidth(tableColumns);
+
+    availableContentWidth = totalWidth - fixedColumnsWidth;
+    remainingWidth = availableContentWidth - contentWidth;
+    columnsToResize = tableColumns.filterProperty('canAutoResize');
+
+    additionWidthPerColumn = Math.floor(remainingWidth / columnsToResize.length);
+    if(availableContentWidth <= this._getTotalWidth(tableColumns, 'minWidth')) {
+      return columnsToResize;
     }
+    return columnsToResize.forEach(function(column) {
+      var columnWidth = column.get('columnWidth') + additionWidthPerColumn;
+      return column.set('columnWidth', columnWidth);
+    });
   },
 
 	// private variables
 	// Dynamic filter height that adjusts according to the filter content height
 	_contentFilterHeight: null,
+
+  _onColumnsChange: Ember.observer(function() {
+    return Ember.run.next(this, function() {
+      return Ember.run.once(this, this.updateLayout);
+    });
+  }, 'columns.length'),
+
   _filterHeight: function() {
     var minHeight = this.get('minFilterHeight');
     var contentFilterHeight = this.get('_contentFilterHeight');
