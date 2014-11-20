@@ -47,6 +47,10 @@ Em.Handlebars.helper('formatDuration', function(startTime, endTime) {
 	return App.Helpers.date.durationSummary(startTime, endTime);
 });
 
+Em.Handlebars.helper('formatTimeMillis', function(duration) {
+  return App.Helpers.date.timingFormat(duration, true);
+});
+
 function replaceAll(str, str1, str2, ignore) 
 {
     return str.replace(new RegExp(str1.replace(/([\/\,\!\\\^\$\{\}\[\]\(\)\.\*\+\?\|\<\>\-\&])/g,"\\$&"),(ignore?"gi":"g")),(typeof(str2)=="string")?str2.replace(/\$/g,"$$$$"):str2);

@@ -31,4 +31,16 @@ App.VertexIndexController = Em.ObjectController.extend({
   failedTasksLink: function() {
     return '#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
   }.property(),
+
+  hasFirstTaskStarted: function() {
+    return !!this.get('firstTaskStartTime') && !!this.get('firstTasksToStart');
+  }.property(),
+
+  hasLastTaskFinished: function() {
+    return !!this.get('lastTaskFinishTime') && !!this.get('lastTasksToFinish');
+  }.property(),
+
+  hasStats: function() {
+    return !!this.get('avgTaskDuration') || !!this.get('minTaskDuration') || !!this.get('maxTaskDuration');
+  }.property()
 });

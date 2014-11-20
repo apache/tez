@@ -56,6 +56,27 @@
           <td>Killed Tasks</td>
           <td>{{killedTasks}}</td>
         </tr>
+        {{#if hasFirstTaskStarted}}
+          <tr>
+            <td>First Task Start Time</td>
+            <td>{{formatUnixTimestamp firstTaskStartTime}}
+            <td>
+              {{#each taskid in firstTasksToStart}}
+                {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
+              {{/each}}
+            </td>
+          </tr>
+        {{/if}}
+        {{#if hasLastTaskFinished}}
+          <tr>
+            <td>Last Task Finish Time</td>
+            <td>{{formatUnixTimestamp lastTaskFinishTime}}
+            <td>
+              {{#each taskid in lastTasksToFinish}}
+                {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
+              {{/each}}
+          </tr>
+        {{/if}}
       </tbody>
     </table>
   </div>
@@ -77,6 +98,50 @@
       </tbody>
     </table>
   </div>
+
+  <div class='align-clear margin-medium'></div>
+  {{#if hasStats}}
+    <div class='align-left'>
+      <table class='detail-list'>
+        <thead>
+          <tr>
+            <th>Task Stats</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if avgTaskDuration}}
+            <tr>
+              <td>Average Duration</td>
+              <td>{{formatTimeMillis avgTaskDuration}}</td>
+            </tr>
+          {{/if}}
+          {{#if minTaskDuration}}
+            <tr>
+              <td>Minimum Duration</td>
+              <td>{{formatTimeMillis minTaskDuration}}</td>
+              <td>
+                {{#each taskid in shortestDurationTasks}}
+                  {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
+                {{/each}}
+              </td>
+            </tr>
+          {{/if}}
+          {{#if maxTaskDuration}}
+            <tr>
+              <td>Maximum Duration</td>
+              <td>{{formatTimeMillis maxTaskDuration}}</td>
+              <td>
+                {{#each taskid in longestDurationTasks}}
+                  {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
+                {{/each}}
+              </td>
+            </tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  {{/if}}
+
 </div>
 
 {{#if diagnostics}}

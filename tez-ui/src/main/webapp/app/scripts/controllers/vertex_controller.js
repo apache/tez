@@ -34,6 +34,7 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   childDisplayViews: [
     Ember.Object.create({title: 'Details', linkTo: 'vertex.index'}),
     Ember.Object.create({title: 'Tasks', linkTo: 'vertex.tasks'}),
+    Ember.Object.create({title: 'Task Attempts', linkTo: 'vertex.taskAttempts'}),
     Ember.Object.create({title: 'Counters', linkTo: 'vertex.counters'}),
     Ember.Object.create({title: 'Swimlane', linkTo: 'vertex.swimlane'}),
     Ember.Object.create({title: 'Inputs', linkTo: 'vertex.inputs'}),

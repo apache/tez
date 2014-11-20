@@ -16,31 +16,31 @@
 * limitations under the License.
 }}
 
-{{#if needToShowInputDetails}}
-  <div class='align-left margin-medium-horizontal'>
-    <table class='detail-list'>
-      <thead>
-        <tr>
-          <th>Input Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Name</td>
-          <td>{{inputName}}</td>
-        </tr>
-        <tr>
-          <td>Class</td>
-          <td>{{inputClass}}</td>
-        </tr>
-        <tr>
-          <td>Initializer</td>
-          <td>{{inputInitializer}}</td>
-        </tr>
-      </tbody>
-    </table>
+{{#unless loading}}
+  <div class='margin-small'>
+    <span class='align-left'>
+      {{page-nav-component
+        hasPrev=hasPrev
+        hasNext=hasNext
+        navNext='navigateNext'
+        navPrev='navigatePrev'
+        navFirst='navigateFirst'
+      }}
+    </span>
+    <div class='align-clear'> </div>
   </div>
-{{/if}}
-<div class='table-container'>
-  {{kv-table-component data=configs}}
-</div>
+
+  <div class='table-container'>
+  {{extended-table-component
+    hasFooter=false
+    enableContentSelection=true
+    columnsBinding="columns"
+    contentBinding="sortedContent"
+    forceFillColumns=true
+    hasFilter=true
+    onFilterUpdated='filterUpdated'
+  }}
+  </div>
+{{else}}
+  {{partial 'utils/loadingSpinner'}}
+{{/unless}}

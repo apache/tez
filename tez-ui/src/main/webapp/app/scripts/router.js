@@ -36,6 +36,7 @@ App.Router.map(function() {
     this.resource('vertexInput', {path: '/input/:input_id'}, function(){
       this.route('configs');
     });
+    this.route('taskAttempts');
     this.route('counters');
     this.route('details');
     this.route('swimlane');
@@ -208,6 +209,17 @@ App.VertexTasksRoute = Em.Route.extend({
   }
 });
 
+App.VertexTaskAttemptsRoute = Em.Route.extend({
+  queryParams: {
+    status: App.Helpers.misc.defaultQueryParamsConfig
+  },
+
+  setupController: function(controller, model) {
+    this._super(controller, model);
+    controller.loadData();
+  }
+});
+
 App.TaskAttemptsRoute = Em.Route.extend({
   queryParams: {
     status: App.Helpers.misc.defaultQueryParamsConfig 
@@ -223,6 +235,10 @@ App.TaskAttemptsRoute = Em.Route.extend({
 App.VertexInputConfigsRoute = App.TezAppConfigsRoute = Em.Route.extend({
   renderTemplate: function() {
     this.render('common/configs');
+  },
+  setupController: function(controller, model) {
+    this._super(controller, model)
+    controller.set('needToShowInputDetails', this.routeName === 'vertexInput.configs');
   }
 });
 
