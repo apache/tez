@@ -18,6 +18,7 @@ ALL CHANGES:
   TEZ-1687. Use logIdentifier of Vertex for logging.
   TEZ-1737. Should add taskNum in VertexFinishedEvent.
   TEZ-1772. Failing tests post TEZ-1737.
+  TEZ-1785. Remove unused snappy-java dependency.
 
 Release 0.5.3: Unreleased
 
