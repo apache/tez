@@ -20,17 +20,20 @@ package org.apache.tez.dag.app.rm.container;
 
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 public class AMContainerEventCompleted extends AMContainerEvent {
 
   private final int exitStatus;
   private final String diagnostics;
+  private final TaskAttemptTerminationCause errCause;
 
   public AMContainerEventCompleted(ContainerId containerId, 
-      int exitStatus, String diagnostics) {
+      int exitStatus, String diagnostics, TaskAttemptTerminationCause errCause) {
     super(containerId, AMContainerEventType.C_COMPLETED);
     this.exitStatus = exitStatus;
     this.diagnostics = diagnostics;
+    this.errCause = errCause;
   }
 
   public boolean isPreempted() {
@@ -41,12 +44,20 @@ public class AMContainerEventCompleted extends AMContainerEvent {
     return (exitStatus == ContainerExitStatus.DISKS_FAILED);
   }
   
+  public boolean isClusterAction() {
+    return isPreempted() || isDiskFailed();
+  }
+  
   public String getDiagnostics() {
     return diagnostics;
   }
   
   public int getContainerExitStatus() {
     return exitStatus;
+  }
+  
+  public TaskAttemptTerminationCause getTerminationCause() {
+    return errCause;
   }
 
 }

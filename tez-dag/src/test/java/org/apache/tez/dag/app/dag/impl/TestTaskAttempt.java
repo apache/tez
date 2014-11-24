@@ -87,6 +87,7 @@ import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -300,9 +301,11 @@ public class TestTaskAttempt {
 
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
-    taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null,
+        TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
     // At some KILLING state.
-    taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null));
+    taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null,
+        TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
     // taImpl.handle(new TaskAttemptEventContainerTerminating(taskAttemptID,
     // null));
     assertFalse(eventHandler.internalError);
@@ -366,7 +369,7 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsAtRunning)).handle(arg.capture());
 
     taImpl.handle(new TaskAttemptEventContainerTerminating(taskAttemptID,
-        "Terminating"));
+        "Terminating", TaskAttemptTerminationCause.APPLICATION_ERROR));
     assertFalse(
         "InternalError occurred trying to handle TA_CONTAINER_TERMINATING",
         eventHandler.internalError);
@@ -376,6 +379,7 @@ public class TestTaskAttempt {
 
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals("Terminating", taImpl.getDiagnostics().get(0));
+    assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
 
     int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
@@ -392,13 +396,16 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID,
-        "Terminated"));
+        "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
 
     assertEquals(2, taImpl.getDiagnostics().size());
     assertEquals("Terminated", taImpl.getDiagnostics().get(1));
+    
+    // check that original error cause is retained
+    assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
   }
 
 
@@ -452,13 +459,14 @@ public class TestTaskAttempt {
         null));
     assertEquals("Task attempt is not in running state", taImpl.getState(),
         TaskAttemptState.RUNNING);
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, "Terminated"));
+    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, "Terminated",
+        TaskAttemptTerminationCause.CONTAINER_EXITED));
     assertFalse(
         "InternalError occurred trying to handle TA_CONTAINER_TERMINATED",
         eventHandler.internalError);
 
     assertEquals("Terminated", taImpl.getDiagnostics().get(0));
-
+    assertEquals(TaskAttemptTerminationCause.CONTAINER_EXITED, taImpl.getTerminationCause());
     // TODO Ensure TA_TERMINATING after this is ingored.
   }
 
@@ -541,14 +549,15 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID,
-        "Terminated"));
+        "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
 
     // Verify that the diagnostic message included in the Terminated event is not
-    // captured - TA already succeeded.
+    // captured - TA already succeeded. Error cause is the default value.
     assertEquals(0, taImpl.getDiagnostics().size());
+    assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
   @Test(timeout = 5000)
@@ -636,8 +645,9 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
 
     // Verify that the diagnostic message included in the Terminated event is not
-    // captured - TA already succeeded.
+    // captured - TA already succeeded. Error cause should be the default value
     assertEquals(0, taImpl.getDiagnostics().size());
+    assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
   @Test(timeout = 5000)
@@ -718,7 +728,8 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     // Send out a Node Failure.
-    taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned"));
+    taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned",
+        TaskAttemptTerminationCause.NODE_FAILED));
     // Verify in KILLED state
     assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
         taImpl.getState());
@@ -734,6 +745,7 @@ public class TestTaskAttempt {
     // Verify still in KILLED state
     assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
         taImpl.getState());
+    assertEquals(TaskAttemptTerminationCause.NODE_FAILED, taImpl.getTerminationCause());
   }
   
   @Test(timeout = 5000)
@@ -814,7 +826,8 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     // Send out a Node Failure.
-    taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned"));
+    taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned", 
+        TaskAttemptTerminationCause.NODE_FAILED));
 
     // Verify no additional events
     int expectedEventsNodeFailure = expectedEvenstAfterTerminating + 0;
@@ -824,6 +837,8 @@ public class TestTaskAttempt {
     // Verify still in SUCCEEDED state
     assertEquals("Task attempt is not in the  SUCCEEDED state", TaskAttemptState.SUCCEEDED,
         taImpl.getState());
+    // error cause remains as default value
+    assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
   @Test//(timeout = 5000)
@@ -909,6 +924,8 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
+    // default value of error cause
+    assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
 
     // different destination attempt reports error. now threshold crossed
     TezTaskAttemptID mockDestId2 = mock(TezTaskAttemptID.class);
@@ -923,6 +940,7 @@ public class TestTaskAttempt {
     finishEvent = (TaskAttemptFinishedEvent)histEvent.getHistoryEvent();
     long newFinishTime = finishEvent.getFinishTime();
     Assert.assertEquals(finishTime, newFinishTime);
+    assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl.getTerminationCause());
 
     assertEquals(true, taImpl.inputFailedReported);
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
@@ -1059,7 +1077,8 @@ public class TestTaskAttempt {
         mockHeartbeatHandler, appCtx, locationHint, false,
         resource, createFakeContainerContext(), true);
     Assert.assertEquals(TaskAttemptStateInternal.NEW, taImpl.getInternalState());
-    taImpl.handle(new TaskAttemptEventKillRequest(taImpl.getID(), "kill it"));
+    taImpl.handle(new TaskAttemptEventKillRequest(taImpl.getID(), "kill it",
+                TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
     Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
 
     Assert.assertEquals(0, taImpl.taskAttemptStartedEventLogged);

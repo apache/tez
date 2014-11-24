@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 
@@ -60,6 +61,6 @@ public class TaskHeartbeatHandler extends HeartbeatHandlerBase<TezTaskAttemptID>
   protected void handleTimeOut(TezTaskAttemptID attemptId) {
     eventHandler.handle(new TaskAttemptEventAttemptFailed(attemptId,
         TaskAttemptEventType.TA_TIMED_OUT, "AttemptID:" + attemptId.toString()
-        + " Timed out after " + timeOut / 1000 + " secs"));
+        + " Timed out after " + timeOut / 1000 + " secs", TaskAttemptTerminationCause.TASK_HEARTBEAT_ERROR));
   }
 }

@@ -67,17 +67,21 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminatedBySystem;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
@@ -87,9 +91,7 @@ import com.google.common.collect.Maps;
 
 
 public class TestAMContainer {
-
-
-  @Test
+  @Test (timeout=5000)
   // Assign before launch.
   public void tetSingleSuccessfulTaskFlow() {
     WrappedContainer wc = new WrappedContainer();
@@ -135,7 +137,7 @@ public class TestAMContainer {
     assertNull(wc.amContainer.getRunningTaskAttempt());
     verify(wc.tal).unregisterTaskAttempt(wc.taskAttemptID);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
@@ -146,7 +148,7 @@ public class TestAMContainer {
     assertFalse(wc.amContainer.isInErrorState());
   }
 
-  @Test
+  @Test (timeout=5000)
   // Assign after launch.
   public void testSingleSuccessfulTaskFlow2() {
     WrappedContainer wc = new WrappedContainer();
@@ -191,7 +193,7 @@ public class TestAMContainer {
     assertNull(wc.amContainer.getRunningTaskAttempt());
     verify(wc.tal).unregisterTaskAttempt(wc.taskAttemptID);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
@@ -202,7 +204,7 @@ public class TestAMContainer {
     assertFalse(wc.amContainer.isInErrorState());
   }
 
-  @Test
+  @Test (timeout=5000)
   public void testSingleSuccessfulTaskFlowStopRequest() {
     WrappedContainer wc = new WrappedContainer();
 
@@ -225,7 +227,7 @@ public class TestAMContainer {
     wc.verifyState(AMContainerState.STOPPING);
     wc.verifyNoOutgoingEvents();
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
@@ -238,7 +240,7 @@ public class TestAMContainer {
     assertFalse(wc.amContainer.isInErrorState());
   }
 
-  @Test
+  @Test (timeout=5000)
   public void testSingleSuccessfulTaskFlowFailedNMStopRequest() {
     WrappedContainer wc = new WrappedContainer();
 
@@ -264,7 +266,7 @@ public class TestAMContainer {
     assertTrue(wc.verifyCountAndGetOutgoingEvents(1).get(0).getType() ==
         AMSchedulerEventType.S_CONTAINER_DEALLOCATE);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
@@ -278,7 +280,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testMultipleAllocationsAtIdle() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -303,7 +305,7 @@ public class TestAMContainer {
     assertTrue(wc.amContainer.isInErrorState());
 
     wc.nmStopSent();
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     // 1 Inform scheduler. 2 TERMINATED to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
@@ -317,7 +319,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testAllocationAtRunning() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -343,7 +345,7 @@ public class TestAMContainer {
     assertTrue(wc.amContainer.isInErrorState());
 
     wc.nmStopSent();
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     // 1 Inform scheduler. 2 TERMINATED to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
@@ -357,7 +359,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testMultipleAllocationsAtLaunching() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -382,7 +384,7 @@ public class TestAMContainer {
     assertTrue(wc.amContainer.isInErrorState());
 
     wc.nmStopSent();
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     // 1 Inform scheduler. 2 TERMINATED to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
@@ -396,7 +398,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testContainerTimedOutAtRunning() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -418,7 +420,7 @@ public class TestAMContainer {
         NMCommunicatorEventType.CONTAINER_STOP_REQUEST);
     // TODO Should this be an RM DE-ALLOCATE instead ?
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
@@ -432,7 +434,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testLaunchFailure() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -449,22 +451,28 @@ public class TestAMContainer {
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING,
         AMSchedulerEventType.S_CONTAINER_DEALLOCATE);
+    for (Event e : outgoingEvents) {
+      if (e.getType() == TaskAttemptEventType.TA_CONTAINER_TERMINATING) {
+        Assert.assertEquals(TaskAttemptTerminationCause.CONTAINER_LAUNCH_FAILED,
+            ((TaskAttemptEventContainerTerminating)e).getTerminationCause());        
+      }
+    }
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED);
-
+    
     // Valid transition. Container complete, but not with an error.
     assertFalse(wc.amContainer.isInErrorState());
   }
 
-  @Test
+  @Test (timeout=5000)
   public void testContainerCompletedAtAllocated() {
     WrappedContainer wc = new WrappedContainer();
     wc.verifyState(AMContainerState.ALLOCATED);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
     wc.verifyNoOutgoingEvents();
 
@@ -472,7 +480,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   // Verify that incoming NM launched events to COMPLETED containers are
   // handled.
   public void testContainerCompletedAtLaunching() {
@@ -484,7 +492,7 @@ public class TestAMContainer {
 
     wc.assignTaskAttempt(wc.taskAttemptID);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
     verify(wc.tal).registerRunningContainer(wc.containerID);
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -492,6 +500,70 @@ public class TestAMContainer {
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED);
+    Assert.assertEquals(TaskAttemptTerminationCause.CONTAINER_LAUNCH_FAILED,
+        ((TaskAttemptEventContainerTerminated)outgoingEvents.get(0)).getTerminationCause());
+
+    assertFalse(wc.amContainer.isInErrorState());
+
+    // Container launched generated by NM call.
+    wc.containerLaunched();
+    wc.verifyNoOutgoingEvents();
+
+    assertFalse(wc.amContainer.isInErrorState());
+  }
+  
+  @SuppressWarnings("rawtypes")
+  @Test (timeout=5000)
+  public void testContainerCompletedAtLaunchingSpecificClusterError() {
+    WrappedContainer wc = new WrappedContainer();
+    List<Event> outgoingEvents;
+
+    wc.launchContainer();
+
+
+    wc.assignTaskAttempt(wc.taskAttemptID);
+
+    wc.containerCompleted(ContainerExitStatus.DISKS_FAILED, TaskAttemptTerminationCause.NODE_DISK_ERROR);
+    wc.verifyState(AMContainerState.COMPLETED);
+    verify(wc.tal).registerRunningContainer(wc.containerID);
+    verify(wc.tal).unregisterRunningContainer(wc.containerID);
+
+    outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
+    verifyUnOrderedOutgoingEventTypes(outgoingEvents,
+        TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM);
+    Assert.assertEquals(TaskAttemptTerminationCause.NODE_DISK_ERROR,
+        ((TaskAttemptEventContainerTerminatedBySystem)outgoingEvents.get(0)).getTerminationCause());
+
+    assertFalse(wc.amContainer.isInErrorState());
+
+    // Container launched generated by NM call.
+    wc.containerLaunched();
+    wc.verifyNoOutgoingEvents();
+
+    assertFalse(wc.amContainer.isInErrorState());
+  }
+  
+  @SuppressWarnings("rawtypes")
+  @Test (timeout=5000)
+  public void testContainerCompletedAtLaunchingSpecificError() {
+    WrappedContainer wc = new WrappedContainer();
+    List<Event> outgoingEvents;
+
+    wc.launchContainer();
+
+
+    wc.assignTaskAttempt(wc.taskAttemptID);
+
+    wc.containerCompleted(ContainerExitStatus.ABORTED, TaskAttemptTerminationCause.NODE_FAILED);
+    wc.verifyState(AMContainerState.COMPLETED);
+    verify(wc.tal).registerRunningContainer(wc.containerID);
+    verify(wc.tal).unregisterRunningContainer(wc.containerID);
+
+    outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
+    verifyUnOrderedOutgoingEventTypes(outgoingEvents,
+        TaskAttemptEventType.TA_CONTAINER_TERMINATED);
+    Assert.assertEquals(TaskAttemptTerminationCause.NODE_FAILED,
+        ((TaskAttemptEventContainerTerminated)outgoingEvents.get(0)).getTerminationCause());
 
     assertFalse(wc.amContainer.isInErrorState());
 
@@ -503,7 +575,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testContainerCompletedAtIdle() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -514,7 +586,7 @@ public class TestAMContainer {
     wc.containerLaunched();
     wc.verifyState(AMContainerState.IDLE);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
     verify(wc.tal).registerRunningContainer(wc.containerID);
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -538,7 +610,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testContainerCompletedAtRunning() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -550,7 +622,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.verifyState(AMContainerState.RUNNING);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
     verify(wc.tal).registerRunningContainer(wc.containerID);
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -574,7 +646,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testContainerPreemptedAtRunning() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -586,7 +658,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.verifyState(AMContainerState.RUNNING);
 
-    wc.containerCompleted(ContainerExitStatus.PREEMPTED);
+    wc.containerCompleted(ContainerExitStatus.PREEMPTED, TaskAttemptTerminationCause.EXTERNAL_PREEMPTION);
     wc.verifyState(AMContainerState.COMPLETED);
     verify(wc.tal).registerRunningContainer(wc.containerID);
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -594,6 +666,8 @@ public class TestAMContainer {
     verify(wc.chh).unregister(wc.containerID);
 
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
+    Assert.assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION,
+        ((TaskAttemptEventContainerTerminatedBySystem)outgoingEvents.get(0)).getTerminationCause());
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM);
 
@@ -608,9 +682,47 @@ public class TestAMContainer {
 
     assertFalse(wc.amContainer.isInErrorState());
   }
+
+  @SuppressWarnings("rawtypes")
+  @Test (timeout=5000)
+  public void testContainerInternallyPreemptedAtRunning() {
+    WrappedContainer wc = new WrappedContainer();
+    List<Event> outgoingEvents;
+
+    wc.launchContainer();
+
+    wc.assignTaskAttempt(wc.taskAttemptID);
+    wc.containerLaunched();
+    wc.pullTaskToRun();
+    wc.verifyState(AMContainerState.RUNNING);
+
+    wc.containerCompleted(ContainerExitStatus.INVALID, TaskAttemptTerminationCause.INTERNAL_PREEMPTION);
+    wc.verifyState(AMContainerState.COMPLETED);
+    verify(wc.tal).registerRunningContainer(wc.containerID);
+    verify(wc.tal).unregisterRunningContainer(wc.containerID);
+    verify(wc.chh).register(wc.containerID);
+    verify(wc.chh).unregister(wc.containerID);
+
+    outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
+    Assert.assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
+        ((TaskAttemptEventContainerTerminated)outgoingEvents.get(0)).getTerminationCause());
+    verifyUnOrderedOutgoingEventTypes(outgoingEvents,
+        TaskAttemptEventType.TA_CONTAINER_TERMINATED);
+
+    assertFalse(wc.amContainer.isInErrorState());
+
+    // Pending task complete. (Ideally, container should be dead at this point
+    // and this event should not be generated. Network timeout on NM-RM heartbeat
+    // can cause it to be genreated)
+    wc.taskAttemptSucceeded(wc.taskAttemptID);
+    wc.verifyNoOutgoingEvents();
+    wc.verifyHistoryStopEvent();
+
+    assertFalse(wc.amContainer.isInErrorState());
+  }
   
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testContainerDiskFailedAtRunning() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -622,7 +734,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.verifyState(AMContainerState.RUNNING);
 
-    wc.containerCompleted(ContainerExitStatus.DISKS_FAILED);
+    wc.containerCompleted(ContainerExitStatus.DISKS_FAILED, TaskAttemptTerminationCause.NODE_DISK_ERROR);
     wc.verifyState(AMContainerState.COMPLETED);
     verify(wc.tal).registerRunningContainer(wc.containerID);
     verify(wc.tal).unregisterRunningContainer(wc.containerID);
@@ -630,6 +742,8 @@ public class TestAMContainer {
     verify(wc.chh).unregister(wc.containerID);
 
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
+    Assert.assertEquals(TaskAttemptTerminationCause.NODE_DISK_ERROR,
+        ((TaskAttemptEventContainerTerminatedBySystem)outgoingEvents.get(0)).getTerminationCause());
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM);
 
@@ -646,7 +760,7 @@ public class TestAMContainer {
   }
   
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testTaskAssignedToCompletedContainer() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -657,7 +771,7 @@ public class TestAMContainer {
     wc.pullTaskToRun();
     wc.taskAttemptSucceeded(wc.taskAttemptID);
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
 
     TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
@@ -677,7 +791,7 @@ public class TestAMContainer {
     assertTrue(wc.amContainer.isInErrorState());
   }
 
-  @Test
+  @Test (timeout=5000)
   public void testTaskPullAtLaunching() {
     WrappedContainer wc = new WrappedContainer();
 
@@ -690,7 +804,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testNodeFailedAtIdle() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -712,11 +826,11 @@ public class TestAMContainer {
     for (Event event : outgoingEvents) {
       if (event.getType() == TaskAttemptEventType.TA_NODE_FAILED) {
         TaskAttemptEventNodeFailed nfEvent = (TaskAttemptEventNodeFailed) event;
-        assertEquals("nodeFailed", nfEvent.getDiagnosticInfo());
+        assertTrue(nfEvent.getDiagnosticInfo().contains("nodeFailed"));
       }
     }
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
@@ -726,7 +840,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testNodeFailedAtIdleMultipleAttempts() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -756,13 +870,13 @@ public class TestAMContainer {
     for (Event event : outgoingEvents) {
       if (event.getType() == TaskAttemptEventType.TA_NODE_FAILED) {
         TaskAttemptEventNodeFailed nfEvent = (TaskAttemptEventNodeFailed) event;
-        assertEquals("nodeFailed", nfEvent.getDiagnosticInfo());
+        assertTrue(nfEvent.getDiagnosticInfo().contains("nodeFailed"));
       }
     }
 
     assertFalse(wc.amContainer.isInErrorState());
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyNoOutgoingEvents();
     wc.verifyHistoryStopEvent();
 
@@ -772,7 +886,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testNodeFailedAtRunningMultipleAttempts() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -801,11 +915,11 @@ public class TestAMContainer {
     for (Event event : outgoingEvents) {
       if (event.getType() == TaskAttemptEventType.TA_NODE_FAILED) {
         TaskAttemptEventNodeFailed nfEvent = (TaskAttemptEventNodeFailed) event;
-        assertEquals("nodeFailed", nfEvent.getDiagnosticInfo());
+        assertTrue(nfEvent.getDiagnosticInfo().contains("nodeFailed"));
       }
     }
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyHistoryStopEvent();
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
@@ -818,7 +932,7 @@ public class TestAMContainer {
   }
 
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test (timeout=5000)
   public void testNodeFailedAtCompletedMultipleSuccessfulTAs() {
     WrappedContainer wc = new WrappedContainer();
     List<Event> outgoingEvents;
@@ -835,7 +949,7 @@ public class TestAMContainer {
     wc.taskAttemptSucceeded(taID2);
     wc.stopRequest();
     wc.nmStopSent();
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
 
     wc.nodeFailed();
@@ -849,7 +963,7 @@ public class TestAMContainer {
     assertEquals(2, wc.amContainer.getAllTaskAttempts().size());
   }
 
-  @Test
+  @Test (timeout=5000)
   public void testDuplicateCompletedEvents() {
     WrappedContainer wc = new WrappedContainer();
 
@@ -865,17 +979,17 @@ public class TestAMContainer {
     wc.taskAttemptSucceeded(taID2);
     wc.stopRequest();
     wc.nmStopSent();
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyState(AMContainerState.COMPLETED);
 
     wc.verifyNoOutgoingEvents();
 
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     wc.verifyNoOutgoingEvents();
     wc.verifyHistoryStopEvent();
   }
   
-  @Test
+  @Test (timeout=5000)
   public void testLocalResourceAddition() {
     WrappedContainer wc = new WrappedContainer();
 
@@ -926,13 +1040,13 @@ public class TestAMContainer {
     wc.taskAttemptSucceeded(taID3);
 
     // Verify references are cleared after a container completes.
-    wc.containerCompleted(false);
+    wc.containerCompleted();
     assertNull(wc.amContainer.containerLocalResources);
     assertNull(wc.amContainer.additionalLocalResources);
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test (timeout=5000)
   public void testCredentialsTransfer() {
     WrappedContainerMultipleDAGs wc = new WrappedContainerMultipleDAGs();
 
@@ -1183,15 +1297,15 @@ public class TestAMContainer {
           AMContainerEventType.C_NM_STOP_FAILED));
     }
 
-    public void containerCompleted(boolean preempted) {
+    public void containerCompleted() {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEventCompleted(containerID, 
-          (preempted ? ContainerExitStatus.PREEMPTED : ContainerExitStatus.SUCCESS), null));
+      amContainer.handle(new AMContainerEventCompleted(containerID, ContainerExitStatus.SUCCESS, null,
+          TaskAttemptTerminationCause.CONTAINER_EXITED));
     }
     
-    public void containerCompleted(int exitStatus) {
+    public void containerCompleted(int exitStatus, TaskAttemptTerminationCause errCause) {
       reset(eventHandler);
-      amContainer.handle(new AMContainerEventCompleted(containerID, exitStatus, null));
+      amContainer.handle(new AMContainerEventCompleted(containerID, exitStatus, null, errCause));
     }
 
     public void containerTimedOut() {

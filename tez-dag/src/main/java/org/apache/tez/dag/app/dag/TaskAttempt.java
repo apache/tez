@@ -29,6 +29,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -69,6 +70,7 @@ public interface TaskAttempt {
   
   TaskAttemptReport getReport();
   List<String> getDiagnostics();
+  TaskAttemptTerminationCause getTerminationCause();
   TezCounters getCounters();
   float getProgress();
   TaskAttemptState getState();

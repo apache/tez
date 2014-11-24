@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -85,6 +86,7 @@ import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -92,6 +94,7 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 
@@ -742,7 +745,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (state != TaskState.RUNNING) {
         LOG.info("Task not running. Issuing kill to bad commit attempt " + taskAttemptID);
         eventHandler.handle(new TaskAttemptEventKillRequest(taskAttemptID
-            , "Task not running. Bad attempt."));
+            , "Task not running. Bad attempt.", TaskAttemptTerminationCause.TERMINATED_ORPHANED));
         return false;
       }
       if (commitAttempt == null) {
@@ -1098,7 +1101,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
               + task.outputConsumableAttempt + " already has output ready");
         }
         task.eventHandler.handle(new TaskAttemptEventKillRequest(attemptId,
-            "Alternate attemptId already serving output"));
+            "Alternate attemptId already serving output", TaskAttemptTerminationCause.UNKNOWN_ERROR));
       }
 
     }
@@ -1126,6 +1129,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           task.taskId, TaskState.SUCCEEDED));
       LOG.info("Task succeeded with attempt " + task.successfulAttempt);
       task.logJobHistoryTaskFinishedEvent();
+      TaskAttempt successfulAttempt = task.attempts.get(successTaId);
 
       // issue kill to all other attempts
       for (TaskAttempt attempt : task.attempts.values()) {
@@ -1134,9 +1138,21 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             //  TA_KILL message to an attempt that doesn't need one for
             //  other reasons.
             !attempt.isFinished()) {
-          LOG.info("Issuing kill to other attempt " + attempt.getID());
+          LOG.info("Issuing kill to other attempt " + attempt.getID() + " as attempt: " +
+            task.successfulAttempt + " has succeeded");
+          String diagnostics = null;
+          TaskAttemptTerminationCause errCause = null;
+          if (attempt.getLaunchTime() < successfulAttempt.getLaunchTime()) {
+            diagnostics = "Killed this attempt as other speculative attempt : " + successTaId
+                + " succeeded";
+            errCause = TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION;
+          } else {
+            diagnostics = "Killed this speculative attempt as original attempt: " + successTaId
+                + " succeeded";
+            errCause = TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION;
+          }
           task.eventHandler.handle(new TaskAttemptEventKillRequest(attempt
-              .getID(), "Alternate attempt succeeded"));
+              .getID(), diagnostics, errCause));
         }
       }
       // send notification to DAG scheduler
@@ -1509,14 +1525,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg) {
+  private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg, TaskAttemptTerminationCause errorCause) {
     if (commitAttempt != null && commitAttempt.equals(attempt)) {
       LOG.info("Removing commit attempt: " + commitAttempt);
       commitAttempt = null;
     }
     if (attempt != null && !attempt.isFinished()) {
-      eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(),
-          logMsg));
+      eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(), logMsg, errorCause));
     }
   }
 
@@ -1538,8 +1553,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       // issue kill to all non finished attempts
       for (TaskAttempt attempt : task.attempts.values()) {
-        task.killUnfinishedAttempt
-            (attempt, "Task KILL is received. Killing attempt!");
+        task.killUnfinishedAttempt(attempt, "Task KILL is received. Killing attempt. Diagnostics: "
+            + terminateEvent.getDiagnosticInfo(), terminateEvent.getTerminationCause());
       }
     }
   }

@@ -67,6 +67,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.runtime.task.TezChild;
 
 
@@ -273,14 +274,14 @@ public class LocalContainerLauncher extends AbstractService implements
         LOG.info("Container: " + containerId + " completed successfully");
         appContext.getEventHandler().handle(
             new AMContainerEventCompleted(containerId, result.getExitStatus().getExitCode(),
-                null));
+                null, TaskAttemptTerminationCause.CONTAINER_EXITED));
       } else {
         LOG.info("Container: " + containerId + " completed but with errors");
         appContext.getEventHandler().handle(
             new AMContainerEventCompleted(containerId, result.getExitStatus().getExitCode(),
                 result.getErrorMessage() == null ?
                     (result.getThrowable() == null ? null : result.getThrowable().getMessage()) :
-                    result.getErrorMessage()));
+                    result.getErrorMessage(), TaskAttemptTerminationCause.APPLICATION_ERROR));
       }
     }
 
@@ -295,13 +296,13 @@ public class LocalContainerLauncher extends AbstractService implements
         appContext.getEventHandler()
             .handle(new AMContainerEventCompleted(containerId,
                 TezChild.ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE.getExitCode(),
-                t.getMessage()));
+                t.getMessage(), TaskAttemptTerminationCause.APPLICATION_ERROR));
       } else {
         LOG.info("Ignoring CancellationException - triggered by LocalContainerLauncher");
         appContext.getEventHandler()
             .handle(new AMContainerEventCompleted(containerId,
                 TezChild.ContainerExecutionResult.ExitStatus.SUCCESS.getExitCode(),
-                "CancellationException"));
+                "CancellationException", TaskAttemptTerminationCause.CONTAINER_EXITED));
       }
     }
   }

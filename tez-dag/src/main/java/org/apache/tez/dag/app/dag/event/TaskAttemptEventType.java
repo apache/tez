@@ -29,9 +29,8 @@ public enum TaskAttemptEventType {
 //Producer: TaskAttemptListener
   TA_STARTED_REMOTELY,
   TA_STATUS_UPDATE,
-  TA_DIAGNOSTICS_UPDATE,
   TA_OUTPUT_CONSUMABLE,  // TODO History event to indicate this ?
-  TA_COMMIT_PENDING,
+  TA_DIAGNOSTICS_UPDATE, // REMOVE THIS - UNUSED
   TA_DONE,
   TA_FAILED,
   TA_TIMED_OUT,

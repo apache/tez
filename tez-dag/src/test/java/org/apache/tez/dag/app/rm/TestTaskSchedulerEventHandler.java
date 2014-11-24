@@ -49,6 +49,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.junit.Assert;
 import org.junit.Before;
@@ -179,7 +180,34 @@ public class TestTaskSchedulerEventHandler {
     Assert.assertEquals("Container preempted externally. Container preempted by RM.", 
         completedEvent.getDiagnostics());
     Assert.assertTrue(completedEvent.isPreempted());
+    Assert.assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION,
+        completedEvent.getTerminationCause());
     Assert.assertFalse(completedEvent.isDiskFailed());
+
+    schedulerHandler.stop();
+    schedulerHandler.close();
+  }
+  
+  @Test (timeout = 5000)
+  public void testContainerInternalPreempted() throws IOException {
+    Configuration conf = new Configuration(false);
+    schedulerHandler.init(conf);
+    schedulerHandler.start();
+    
+    ContainerId mockCId = mock(ContainerId.class);
+    verify(mockTaskScheduler, times(0)).deallocateContainer((ContainerId)any());
+    schedulerHandler.preemptContainer(mockCId);
+    verify(mockTaskScheduler, times(1)).deallocateContainer(mockCId);
+    Assert.assertEquals(1, mockEventHandler.events.size());
+    Event event = mockEventHandler.events.get(0);
+    Assert.assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
+    AMContainerEventCompleted completedEvent = (AMContainerEventCompleted) event;
+    Assert.assertEquals(mockCId, completedEvent.getContainerId());
+    Assert.assertEquals("Container preempted internally", completedEvent.getDiagnostics());
+    Assert.assertFalse(completedEvent.isPreempted());
+    Assert.assertFalse(completedEvent.isDiskFailed());
+    Assert.assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
+        completedEvent.getTerminationCause());
 
     schedulerHandler.stop();
     schedulerHandler.close();
@@ -211,6 +239,8 @@ public class TestTaskSchedulerEventHandler {
         completedEvent.getDiagnostics());
     Assert.assertFalse(completedEvent.isPreempted());
     Assert.assertTrue(completedEvent.isDiskFailed());
+    Assert.assertEquals(TaskAttemptTerminationCause.NODE_DISK_ERROR,
+        completedEvent.getTerminationCause());
 
     schedulerHandler.stop();
     schedulerHandler.close();

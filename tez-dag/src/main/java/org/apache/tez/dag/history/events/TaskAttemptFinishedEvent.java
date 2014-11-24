@@ -29,6 +29,7 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptFinishedProto;
 
@@ -43,21 +44,23 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   private TaskAttemptState state;
   private String diagnostics;
   private TezCounters tezCounters;
+  private TaskAttemptTerminationCause error;
 
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
       String vertexName,
       long startTime,
       long finishTime,
       TaskAttemptState state,
-      String diagnostics,
-      TezCounters counters) {
+      TaskAttemptTerminationCause error,
+      String diagnostics, TezCounters counters) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.startTime = startTime;
     this.finishTime = finishTime;
     this.state = state;
     this.diagnostics = diagnostics;
-    tezCounters = counters;
+    this.tezCounters = counters;
+    this.error = error;
   }
 
   public TaskAttemptFinishedEvent() {
@@ -87,6 +90,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     if (diagnostics != null) {
       builder.setDiagnostics(diagnostics);
     }
+    if (error != null) {
+      builder.setErrorEnum(error.name());
+    }
     if (tezCounters != null) {
       builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
     }
@@ -99,6 +105,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     this.state = TaskAttemptState.values()[proto.getState()];
     if (proto.hasDiagnostics()) {
       this.diagnostics = proto.getDiagnostics();
+    }
+    if (proto.hasErrorEnum()) {
+      this.error = TaskAttemptTerminationCause.valueOf(proto.getErrorEnum());
     }
     if (proto.hasCounters()) {
       this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
@@ -129,6 +138,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         + ", finishTime=" + finishTime
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
+        + ", errorEnum=" + (error != null ? error.name() : "")
         + ", diagnostics=" + diagnostics
         + ", counters=" + (tezCounters == null ? "null" :
           tezCounters.toString()
@@ -145,6 +155,10 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   public String getDiagnostics() {
     return diagnostics;
+  }
+  
+  public TaskAttemptTerminationCause getTaskAttemptError() {
+    return error;
   }
 
   public long getFinishTime() {

@@ -69,6 +69,7 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventNodeCountUpdated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 import com.google.common.base.Preconditions;
 
@@ -426,19 +427,22 @@ public class TaskSchedulerEventHandler extends AbstractService
     // Inform the Containers about completion.
     AMContainer amContainer = appContext.getAllContainers().get(containerStatus.getContainerId());
     if (amContainer != null) {
-      String message = null;
+      String message = "Container completed. ";
+      TaskAttemptTerminationCause errCause = TaskAttemptTerminationCause.CONTAINER_EXITED;
       int exitStatus = containerStatus.getExitStatus();
       if (exitStatus == ContainerExitStatus.PREEMPTED) {
         message = "Container preempted externally. ";
+        errCause = TaskAttemptTerminationCause.EXTERNAL_PREEMPTION;
       } else if (exitStatus == ContainerExitStatus.DISKS_FAILED) {
         message = "Container disk failed. ";
-      } else {
+        errCause = TaskAttemptTerminationCause.NODE_DISK_ERROR;
+      } else if (exitStatus != ContainerExitStatus.SUCCESS){
         message = "Container failed. ";
       }
       if (containerStatus.getDiagnostics() != null) {
         message += containerStatus.getDiagnostics();
       }
-      sendEvent(new AMContainerEventCompleted(amContainer.getContainerId(), exitStatus, message));
+      sendEvent(new AMContainerEventCompleted(amContainer.getContainerId(), exitStatus, message, errCause));
     }
   }
 
@@ -554,8 +558,8 @@ public class TaskSchedulerEventHandler extends AbstractService
   public void preemptContainer(ContainerId containerId) {
     taskScheduler.deallocateContainer(containerId);
     // Inform the Containers about completion.
-    sendEvent(new AMContainerEventCompleted(containerId,
-        ContainerExitStatus.PREEMPTED, "Container preempted internally"));
+    sendEvent(new AMContainerEventCompleted(containerId, ContainerExitStatus.INVALID,
+        "Container preempted internally", TaskAttemptTerminationCause.INTERNAL_PREEMPTION));
   }
 
   public void setShouldUnregisterFlag() {

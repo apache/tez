@@ -139,6 +139,7 @@ import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -1802,12 +1803,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
    */
   void tryEnactKill(VertexTerminationCause trigger,
       TaskTerminationCause taskterminationCause) {
+    // In most cases the dag is shutting down due to some error
+    TaskAttemptTerminationCause errCause = TaskAttemptTerminationCause.TERMINATED_AT_SHUTDOWN;
+    if (taskterminationCause == TaskTerminationCause.DAG_KILL) {
+      errCause = TaskAttemptTerminationCause.TERMINATED_BY_CLIENT;
+    }
     if(trySetTerminationCause(trigger)){
-      LOG.info("Killing tasks in vertex: " + logIdentifier + " due to trigger: "
-          + trigger);
+      String msg = "Killing tasks in vertex: " + logIdentifier + " due to trigger: " + trigger; 
+      LOG.info(msg);
       for (Task task : tasks.values()) {
-        eventHandler.handle(
-            new TaskEventTermination(task.getTaskId(), taskterminationCause));
+        eventHandler.handle( // attempt was terminated because the vertex is shutting down
+            new TaskEventTermination(task.getTaskId(), errCause, msg));
       }
     }
   }
@@ -3840,12 +3846,32 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       case TASK_ATTEMPT_FAILED_EVENT:
         {
           checkEventSourceMetadata(vertex, sourceMeta);
+          TaskAttemptTerminationCause errCause = null;
+          switch (sourceMeta.getEventGenerator()) {
+          case INPUT:
+            errCause = TaskAttemptTerminationCause.INPUT_READ_ERROR;
+            break;
+          case PROCESSOR:
+            errCause = TaskAttemptTerminationCause.APPLICATION_ERROR;
+            break;
+          case OUTPUT:
+            errCause = TaskAttemptTerminationCause.OUTPUT_WRITE_ERROR;
+            break;
+          case SYSTEM:
+            errCause = TaskAttemptTerminationCause.FRAMEWORK_ERROR;
+            break;
+          default:
+            throw new TezUncheckedException("Unknown EventProducerConsumerType: " +
+                sourceMeta.getEventGenerator());
+          }
           TaskAttemptFailedEvent taskFailedEvent =
               (TaskAttemptFailedEvent) tezEvent.getEvent();
           vertex.getEventHandler().handle(
               new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
                   TaskAttemptEventType.TA_FAILED,
-                  "Error: " + taskFailedEvent.getDiagnostics()));
+                  "Error: " + taskFailedEvent.getDiagnostics(), 
+                  errCause)
+              );
         }
         break;
       default:

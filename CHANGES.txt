@@ -7,6 +7,8 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-1773. Add attempt failure cause enum to the attempt failed/killed
+  history record
   TEZ-2203. Intern strings in tez counters
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
