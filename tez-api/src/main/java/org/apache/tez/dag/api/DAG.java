@@ -113,7 +113,7 @@ public class DAG {
    */
   public synchronized DAG addTaskLocalFiles(Map<String, LocalResource> localFiles) {
     Preconditions.checkNotNull(localFiles);
-    TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles);
+    TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles, "DAG " + getName());
     return this;
   }
   
@@ -661,11 +661,14 @@ public class DAG {
           dagCredentials.addAll(dataSource.getCredentials());
         }
         if (dataSource.getAdditionalLocalFiles() != null) {
-          TezCommonUtils.addAdditionalLocalResources(dataSource.getAdditionalLocalFiles(), vertexLRs);
+          TezCommonUtils
+              .addAdditionalLocalResources(dataSource.getAdditionalLocalFiles(), vertexLRs,
+                  "Vertex " + vertex.getName());
         }
       }
       if (tezJarResources != null) {
-        TezCommonUtils.addAdditionalLocalResources(tezJarResources, vertexLRs);
+        TezCommonUtils
+            .addAdditionalLocalResources(tezJarResources, vertexLRs, "Vertex " + vertex.getName());
       }
       if (binaryConfig != null) {
         vertexLRs.put(TezConstants.TEZ_PB_BINARY_CONF_NAME, binaryConfig);

@@ -24,6 +24,7 @@ ALL CHANGES:
   TEZ-1685. Remove YARNMaster which is never used.
   TEZ-1797. Create necessary content for Tez DOAP file.
   TEZ-1650. Please create a DOAP file for your TLP.
+  TEZ-1697. DAG submission fails if a local resource added is already part of tez.lib.uris
 
 Release 0.5.3: Unreleased
 

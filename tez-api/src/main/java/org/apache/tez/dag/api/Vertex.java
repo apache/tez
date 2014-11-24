@@ -254,7 +254,7 @@ public class Vertex {
    */
   public Vertex addTaskLocalFiles(Map<String, LocalResource> localFiles) {
     if (localFiles != null) {
-      TezCommonUtils.addAdditionalLocalResources(localFiles, taskLocalResources);
+      TezCommonUtils.addAdditionalLocalResources(localFiles, taskLocalResources, "Vertex " + getName());
     }
     return this;
   }

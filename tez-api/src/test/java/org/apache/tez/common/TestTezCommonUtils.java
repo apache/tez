@@ -19,16 +19,23 @@
 package org.apache.tez.common;
 
 import java.io.IOException;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.tez.client.TestTezClientUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -240,6 +247,71 @@ public class TestTezCommonUtils {
     String[] tokens = new String[4];
     TezCommonUtils.tokenizeString(s, ":").toArray(tokens);
     Assert.assertArrayEquals(expectedTokens, tokens);
+  }
+
+
+  @Test(timeout = 5000)
+  public void testAddAdditionalLocalResources() {
+    String lrName = "LR";
+    Map<String, LocalResource> originalLrs;
+    originalLrs= Maps.newHashMap();
+    originalLrs.put(lrName, LocalResource.newInstance(
+        URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+
+
+    Map<String, LocalResource> additionalLrs;
+
+    // Same path, same size.
+    originalLrs= Maps.newHashMap();
+    originalLrs.put(lrName, LocalResource.newInstance(
+        URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    additionalLrs = Maps.newHashMap();
+    additionalLrs.put(lrName, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
+
+    // Same path, different size.
+    originalLrs= Maps.newHashMap();
+    originalLrs.put(lrName, LocalResource.newInstance(
+        URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    additionalLrs = Maps.newHashMap();
+    additionalLrs.put(lrName, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 100, 1));
+    try {
+      TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
+      Assert.fail("Duplicate LRs with different sizes expected to fail");
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+    }
+
+    // Different path, same size, diff timestamp
+    originalLrs= Maps.newHashMap();
+    originalLrs.put(lrName, LocalResource.newInstance(
+        URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    additionalLrs = Maps.newHashMap();
+    additionalLrs.put(lrName, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test2"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 100));
+    TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
+
+    // Different path, different size
+    originalLrs= Maps.newHashMap();
+    originalLrs.put(lrName, LocalResource.newInstance(
+        URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+    additionalLrs = Maps.newHashMap();
+    additionalLrs.put(lrName, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test2"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 100, 1));
+    try {
+      TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
+      Assert.fail("Duplicate LRs with different sizes expected to fail");
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
+    }
+
   }
 
 }
