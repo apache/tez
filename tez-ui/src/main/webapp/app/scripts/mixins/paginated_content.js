@@ -17,7 +17,7 @@
  */
 
 App.PaginatedContentMixin = Em.Mixin.create({
-	count: 10,
+	count: 5,
 	
 	fromID: null,
 
@@ -48,9 +48,6 @@ App.PaginatedContentMixin = Em.Mixin.create({
 	loadEntities: function() {
 		var that = this;
 		var childEntityType = this.get('childEntityType');
-
-    that.set('loading', true);
-
 		this.get('store').unloadAll(childEntityType);
 		this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
 			that.set('entities', entities);

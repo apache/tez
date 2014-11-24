@@ -18,13 +18,35 @@
 
 {{#unless loading}}
   {{#if inputsAvailable}}
-    <div class='margin-small align-children-right'>
-      {{partial 'partials/table-controls'}}
+    <div class='margin-small'>
+      <span class="left-divider align-right">
+        <i {{bind-attr class=':fa-action :fa-cog'}} {{action 'selectColumns'}}></i>
+      </span>
+      <span class='align-right'>
+        {{page-nav-component
+          hasPrev=hasPrev
+          hasNext=hasNext
+          navNext='navigateNext'
+          navPrev='navigatePrev'
+          navFirst='navigateFirst'
+        }}
+      </span>
+      <div class='align-clear'> </div>
     </div>
-    {{partial 'partials/table'}}
+
+    <div class='table-container'>
+    {{extended-table-component
+      hasFooter=false
+      enableContentSelection=false
+      columnsBinding="columns"
+      contentBinding="sortedContent"
+      forceFillColumns=true
+      hasFilter=true
+    }}
+    </div>
   {{else}}
     <h1>Inputs are not available!</h1>
   {{/if}}
 {{else}}
-  {{partial 'utils/loading-spinner'}}
+  {{partial 'utils/loadingSpinner'}}
 {{/unless}}

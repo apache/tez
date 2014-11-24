@@ -16,28 +16,34 @@
 * limitations under the License.
 }}
 
-{{partial "utils/pageHeader"}}
 {{#unless loading}}
-  <div class='type-table fill-full '>
-    <div class='align-left'>
-      <table class='detail-list'>
-        <tbody>
-          <tr>
-            <td>YARN RM Tracking URL</td>
-            <td><a href="{{unbound RMWebUrl}}/cluster/app/tez_{{unbound id}}">{{unbound id}}</a></td>
-          </tr>
-          <tr>
-            <td>Attempt Id</td>
-            <td>{{appDetail.attemptId}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class='pill-container align-right'>
-      {{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
-    </div>
+  <div class='margin-small'>
+    <span class="left-divider align-right">
+      <i {{bind-attr class=':fa-action :fa-cog'}} {{action 'selectColumns'}}></i>
+    </span>
+    <span class='align-right'>
+      {{page-nav-component
+        hasPrev=hasPrev
+        hasNext=hasNext
+        navNext='navigateNext'
+        navPrev='navigatePrev'
+        navFirst='navigateFirst'
+      }}
+    </span>
+    <div class='align-clear'> </div>
   </div>
-  {{outlet}}
+
+  <div class='table-container'>
+  {{extended-table-component 
+    hasFooter=false
+    enableContentSelection=true
+    columnsBinding="columns"
+    contentBinding="sortedContent"
+    forceFillColumns=true
+    hasFilter=true
+    onFilterUpdated='filterUpdated'
+  }}
+  </div>
 {{else}}
-    {{partial 'utils/loadingSpinner'}}
+  {{partial 'utils/loadingSpinner'}}
 {{/unless}}

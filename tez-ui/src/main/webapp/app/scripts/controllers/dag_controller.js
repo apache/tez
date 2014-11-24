@@ -27,6 +27,10 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     this.set('loading', false);
   }.observes('content'),
 
+	pageSubTitle: function() {
+		return this.get('name');
+	}.property('name'),
+
 	childDisplayViews: [
 		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
 		Ember.Object.create({title: 'Vertices', linkTo: 'dag.vertices'}),

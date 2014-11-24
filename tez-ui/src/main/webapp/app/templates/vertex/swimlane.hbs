@@ -16,28 +16,7 @@
 * limitations under the License.
 }}
 
-{{partial "utils/pageHeader"}}
-{{#unless loading}}
-  <div class='type-table fill-full '>
-    <div class='align-left'>
-      <table class='detail-list'>
-        <tbody>
-          <tr>
-            <td>YARN RM Tracking URL</td>
-            <td><a href="{{unbound RMWebUrl}}/cluster/app/tez_{{unbound id}}">{{unbound id}}</a></td>
-          </tr>
-          <tr>
-            <td>Attempt Id</td>
-            <td>{{appDetail.attemptId}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class='pill-container align-right'>
-      {{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
-    </div>
-  </div>
-  {{outlet}}
-{{else}}
-    {{partial 'utils/loadingSpinner'}}
-{{/unless}}
+<div id="swimlane">
+  {{#view App.SwimlanesView contentBinding="controller.model.content"}}
+  {{/view}}
+</div>

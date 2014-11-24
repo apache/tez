@@ -27,6 +27,10 @@ App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     this.set('loading', false);
   }.observes('content'),
 
+	pageSubTitle: function() {
+		return this.get('id');
+	}.property('id'),
+
 	childDisplayViews: [
 		Ember.Object.create({title: 'Details', linkTo: 'task.index'}),
 		Ember.Object.create({title: 'Task Attempts', linkTo: 'task.attempts'}),

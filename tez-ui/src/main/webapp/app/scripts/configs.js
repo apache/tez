@@ -20,11 +20,14 @@ App.Configs.setProperties({
 
   // Default environment configurations
   envDefaults: {
-    version: "0.0.1",
-
     // Host URLs: Change the following URLs for pointing tez-ui to the respective servers.
     timelineBaseUrl: 'http://localhost:8188', // ip:po at which time;line server is running
     RMWebUrl: 'http://localhost:8088', // Location of RM web url
+  },
+
+  restNamespace: {
+    timeline: 'ws/v1/timeline',
+    applicationHistory: 'ws/v1/applicationhistory'
   },
 
   table: {
