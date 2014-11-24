@@ -6,6 +6,8 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1773. Add attempt failure cause enum to the attempt failed/killed
+  history record
   TEZ-14. Support MR like speculation capabilities based on latency deviation
   from the mean
   TEZ-1733. TezMerger should sort FileChunks on size when merging

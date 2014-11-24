@@ -56,6 +56,9 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.Service.STATE;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -100,12 +103,15 @@ import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ClusterInfo;
+import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
@@ -114,6 +120,8 @@ import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
@@ -131,9 +139,12 @@ import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.VertexManagerWithException.VMExceptionLocation;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
+import org.apache.tez.dag.app.rm.container.AMContainerMap;
+import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -151,6 +162,7 @@ import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
+import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.EdgeManagerForTest;
 import org.apache.tez.test.VertexManagerPluginForTest;
@@ -2802,7 +2814,113 @@ public class TestVertexImpl {
     Assert.assertEquals(0, committer.commitCounter);
     Assert.assertEquals(1, committer.abortCounter);
   }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexTaskAttemptProcessorFailure() {
+    initAllVertices(VertexState.INITED);
 
+    VertexImpl v = vertices.get("vertex1");
+
+    startVertex(v);
+    TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
+    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        new ContainerContextMatcher(), appContext);
+    containers.addContainerIfNew(container);
+    doReturn(containers).when(appContext).getAllContainers();
+
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID(), contId, null));
+    Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventRouteEvent(v.getVertexId(), Collections.singletonList(new TezEvent(
+            new TaskAttemptFailedEvent("Failed"), new EventMetaData(
+                EventProducerConsumerType.PROCESSOR, v.getName(), null, ta.getID())))));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Assert.assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, ta.getTerminationCause());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexTaskAttemptInputFailure() {
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v = vertices.get("vertex1");
+
+    startVertex(v);
+    TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
+    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        new ContainerContextMatcher(), appContext);
+    containers.addContainerIfNew(container);
+    doReturn(containers).when(appContext).getAllContainers();
+
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID(), contId, null));
+    Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventRouteEvent(v.getVertexId(), Collections.singletonList(new TezEvent(
+            new TaskAttemptFailedEvent("Failed"), new EventMetaData(
+                EventProducerConsumerType.INPUT, v.getName(), null, ta.getID())))));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Assert.assertEquals(TaskAttemptTerminationCause.INPUT_READ_ERROR, ta.getTerminationCause());
+  }
+
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexTaskAttemptOutputFailure() {
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v = vertices.get("vertex1");
+
+    startVertex(v);
+    TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
+    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        new ContainerContextMatcher(), appContext);
+    containers.addContainerIfNew(container);
+    doReturn(containers).when(appContext).getAllContainers();
+
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID(), contId, null));
+    Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventRouteEvent(v.getVertexId(), Collections.singletonList(new TezEvent(
+            new TaskAttemptFailedEvent("Failed"), new EventMetaData(
+                EventProducerConsumerType.OUTPUT, v.getName(), null, ta.getID())))));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Assert.assertEquals(TaskAttemptTerminationCause.OUTPUT_WRITE_ERROR, ta.getTerminationCause());
+  }
+  
   @Test(timeout = 5000)
   public void testSourceVertexStartHandling() {
     LOG.info("Testing testSourceVertexStartHandling");
@@ -2816,21 +2934,6 @@ public class TestVertexImpl {
     LOG.info("Verifying v6 state " + v6.getState());
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
     Assert.assertEquals(3, v6.getDistanceFromRoot());
-  }
-
-  @Test(timeout = 5000)
-  public void testCounters() {
-    // FIXME need to test counters at vertex level
-  }
-
-  @Test(timeout = 5000)
-  public void testDiagnostics() {
-    // FIXME need to test diagnostics in various cases
-  }
-
-  @Test(timeout = 5000)
-  public void testTaskAttemptCompletionEvents() {
-    // FIXME need to test handling of task attempt events
   }
 
   @Test(timeout = 5000)

@@ -166,6 +166,7 @@ message TaskAttemptFinishedProto {
   optional int32 state = 3;
   optional string diagnostics = 4;
   optional TezCountersProto counters = 5;
+  optional string error_enum = 6;
 }
 
 message EventMetaDataProto {

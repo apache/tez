@@ -19,33 +19,8 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.runtime.api.impl.TezEvent;
 
-public class TaskAttemptEventOutputFailed extends TaskAttemptEvent 
-  implements TaskAttemptEventTerminationCauseEvent {
-  
-  private TezEvent inputFailedEvent;
-  private int consumerTaskNumber;
-  
-  public TaskAttemptEventOutputFailed(TezTaskAttemptID attemptId,
-      TezEvent tezEvent, int numConsumers) {
-    super(attemptId, TaskAttemptEventType.TA_OUTPUT_FAILED);
-    this.inputFailedEvent = tezEvent;
-    this.consumerTaskNumber = numConsumers;
-  }
-  
-  public TezEvent getInputFailedEvent() {
-    return inputFailedEvent;
-  }
-  
-  public int getConsumerTaskNumber() {
-    return consumerTaskNumber;
-  }
+public interface TaskAttemptEventTerminationCauseEvent {
 
-  @Override
-  public TaskAttemptTerminationCause getTerminationCause() {
-    return TaskAttemptTerminationCause.OUTPUT_LOST;
-  }
-  
+  public TaskAttemptTerminationCause getTerminationCause();
 }
