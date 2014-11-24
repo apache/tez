@@ -16,43 +16,23 @@
  * limitations under the License.
 }}
 
-{{partial 'utils/pageHeader'}}
+<ul class="breadcrumb">
+  <li class="active">All Dags</li>
+</ul>
 
 {{#unless loading}}
   <div class='margin-small'>
-    <span class='align-left'>
-      {{page-nav-component
-        hasPrev=hasPrev
-        hasNext=hasNext
-        navNext='navigateNext'
-        navPrev='navigatePrev'
-        navFirst='navigateFirst'
-      }}
-    </span>
-    <span class="left-divider align-left">
-      <i {{bind-attr class=':fa-action :fa-cog'}} {{action 'selectColumns'}}></i>
-    </span>
-    <span class='align-right'>
+    <div class="horizontal-half align-children-left">
       Number of Dags to Show
       {{view Ember.Select 
         content=countOptions 
         value=count
       }}
-    </span>
-    <div class='align-clear'> </div>
+    </div><div class="horizontal-half align-children-right">
+      {{partial 'partials/table-controls'}}
+    </div>
   </div>
-
-  <div class='table-container'>
-    {{extended-table-component
-      hasFooter=false
-      enableContentSelection=true
-      columnsBinding='columns'
-      contentBinding='sortedContent'
-      forceFillColumns=true
-      hasFilter=true
-      onFilterUpdated='filterUpdated'
-    }}
-  </div>
+  {{partial 'partials/table'}}
 {{else}}
-  {{partial 'utils/loadingSpinner'}}
+  {{partial 'partials/loading-spinner'}}
 {{/unless}}

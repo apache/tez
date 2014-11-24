@@ -16,16 +16,14 @@
 * limitations under the License.
 }}
 
-{{partial "utils/pageHeader"}}
-
-<div class='breadcrumb-container'>
-  {{#link-to 'dags'}}All Dags{{/link-to}}
-  <i></i>
-  {{#link-to 'dag.vertices' dagID}}Dag{{/link-to}}
-</div>
+<ul class="breadcrumb">
+  <li>{{#link-to 'dags'}}All Dags{{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'dag.vertices' dagID}}Vertices{{/link-to}} <span class="divider"></span></li>
+  <li class="active">Vertex - <span class='sub'>{{name}}</span></li>
+</ul>
 
 {{#unless loading}}
-  <div class='type-table fill-full '>
+  <div class='type-table margin-small-horizontal fill-full'>
     <div class='align-left'>
       <table class='detail-list'>
         <tbody>
@@ -44,7 +42,9 @@
       {{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
     </div>
   </div>
-  {{outlet}}
+  <div class='margin-small-vertical'>
+    {{outlet}}
+  </div>
 {{else}}
-    {{partial 'utils/loadingSpinner'}}
+  {{partial 'partials/loading-spinner'}}
 {{/unless}}

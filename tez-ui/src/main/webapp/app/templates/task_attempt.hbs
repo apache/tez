@@ -16,51 +16,45 @@
 * limitations under the License.
 }}
 
-{{partial "utils/pageHeader"}}
-
-<div class='breadcrumb-container'>
-  {{#link-to 'dags'}}All Dags{{/link-to}}
-  <i></i>
-  {{#link-to 'dag.vertices' dagID}}Dag{{/link-to}}
-  <i></i>
-  {{#link-to 'vertex.tasks' vertexID}}Vertex{{/link-to}}
-  <i></i>
-  {{#link-to 'task.attempts' taskID}}Task{{/link-to}}
-</div>
+<ul class="breadcrumb">
+  <li>{{#link-to 'dags'}}All Dags{{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'dag.vertices' dagID}}Vertices{{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'vertex.tasks' vertexID}}Tasks{{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'task.attempts' taskID}}Attempts{{/link-to}} <span class="divider"></span></li>
+  <li class="active">Task Attempt - <span class='sub'>{{id}}</span></li>
+</ul>
 
 {{#unless loading}}
-	<div class='type-table fill-full '>
-			<div class='align-left'>
-				<table class='detail-list'>
-					<tbody>
-            <tr>
-              <td>Task Attempt ID</td>
-              <td>{{id}}</td>
-            </tr>
-            <tr>
-              <td>Task ID</td>
-              <td>{{taskID}}</td>
-            </tr>
-						<tr>
-							<td>Vertex ID</td>
-							<td>{{vertexID}}</td>
-						</tr>
-						<tr>
-							<td>DAG ID</td>
-							<td>{{dagID}}</td>
-						</tr>
-					</tbody>
-				</table>
-
-			</div>
-
-			<div class='pill-container align-right'>
-				{{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
-			</div>
-
-		</div>
-
-		{{outlet}}
+  <div class='type-table fill-full margin-small-horizontal'>
+    <div class='align-left'>
+      <table class='detail-list'>
+        <tbody>
+          <tr>
+            <td>Task Attempt ID</td>
+            <td>{{id}}</td>
+          </tr>
+          <tr>
+            <td>Task ID</td>
+            <td>{{taskID}}</td>
+          </tr>
+          <tr>
+            <td>Vertex ID</td>
+            <td>{{vertexID}}</td>
+          </tr>
+          <tr>
+            <td>DAG ID</td>
+            <td>{{dagID}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class='pill-container align-right'>
+      {{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
+    </div>
+  </div>
+  <div class='margin-small-vertical'>
+    {{outlet}}
+  </div>
 {{else}}
-		{{partial 'utils/loadingSpinner'}}	
+  {{partial 'partials/loading-spinner'}}
 {{/unless}}

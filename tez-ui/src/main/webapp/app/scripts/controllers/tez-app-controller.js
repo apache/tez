@@ -29,10 +29,6 @@ App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     this.set('loading', false);
   }.observes('content'),
 
-  pageSubTitle: function() {
-    return this.get('id');
-  }.property('id'),
-
   childDisplayViews: [
     Ember.Object.create({title: 'Details', linkTo: 'tez-app.index'}),
     Ember.Object.create({title: 'Dags', linkTo: 'tez-app.dags'}),

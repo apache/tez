@@ -16,19 +16,144 @@
  * limitations under the License.
  */
 
+
+// Colors
+@logo-orange: #D27A22;
+@bg-lite: #f5f5f5;
+@border-lite: #e5e5e5;
+
+@white: #fff;
+
+@text-color: #666666;
+
+@top-nav-bg-color-from: #d5d5d5;
+@top-nav-bg-color-to: #f0f0f0;
+
+@success-color: limegreen;
+@error-color: crimson;
+@warning-color: orange;
+
+// Imports
 @import "../bower_components/font-awesome/less/font-awesome";
+@import "../bower_components/bootstrap/less/bootstrap"; //UI theme
+
+// Base style
+body, html, body > .ember-view {
+  height: 100%;
+  overflow: visible;
+}
+
+// TEZ UI in stand alone mode
+.standalone {
+  height: 100%;
+
+  a {
+    color: @logo-orange;
+  }
+
+  #top-nav {
+    a.logo {
+      img {
+        margin-top: 2px;
+      }
+      span {
+        vertical-align: bottom;
+        color: @logo-orange;
+      }
+      &:hover {
+        text-decoration: none;
+      }
+    }
+
+    .navbar-inner {
+      background-color: @bg-lite;
+
+      max-height: 40px;
+      border-bottom: 1px @border-lite solid;
+    }
+  }
+
+  .nav-pills > li.active > a,
+  .nav-pills > li.active > a:hover,
+  .nav-pills > li.active > a:focus {
+    background-color: @logo-orange;
+  }
+
+  .top-wrapper {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -40px; // Must be same as footer & footer-frame
+  }
+
+  .footer, .footer-frame {
+    height: 40px;
+  }
+
+  .footer {
+    background-color: @white;
+    color: @text-color;
+
+    padding: 10px 0px;
+    margin: 0px;
+
+    border-top: 1px @border-lite solid;
+  }
+}
+
+// TEZ UI wrapped in a host like Ambari
+.wrapped {
+  #top-nav, .footer, .push {
+    display: none;
+  }
+}
+
+// Styles used in both standalone and wrapped modes
+.standalone, .wrapped {
+
+  .main-container {
+    margin: 0px 30px;
+  }
+
+  .breadcrumb {
+    font-size: 16px;
+    .active .sub {
+      font-size: 12px;
+    }
+  }
+
+  .navbar {
+    margin-bottom: 0px;
+  }
+}
 
 .fa-icon(@name) {
     @content: "fa-var-@{name}";
     &:before {content: @@content}
 }
 
-/* colors */
-@success-color: limegreen;
-@error-color: crimson; 
-@warning-color: orange;
-
 /* misc helpers */
+.inline-block {
+  display: inline-block;
+}
+
+.horizontal-half {
+  .inline-block;
+  width: 50%;
+}
+
+.align-children-left {
+  text-align: left;
+}
+
+.align-children-right {
+  text-align: right;
+}
+
+.align-children-center {
+  text-align: center;
+}
+
 .align-right {
 	float: right;
 }
@@ -37,24 +162,16 @@
 	float: left;
 }
 
-.align-clear {
-	clear: both;
-}
-
 .margin-small {
 	margin: 15px;
 }
 
-.margin-small-horizontal {
+.margin-small-vertical {
 	margin: 15px 0px;
 }
 
-.margin-medium {
-	margin: 30px;
-}
-
-.margin-medium-horizontal {
-  margin: 30px 0px;
+.margin-small-horizontal {
+  margin: 0px 15px;
 }
 
 .type-table {
@@ -165,7 +282,6 @@ div.indent {
 
 .countertable {
   width: 100%;
-  .margin-medium;
 
   th, td {
     border: 1px solid #dcdcdc;
@@ -189,17 +305,6 @@ div.indent {
       font-style: italic;
       font-weight: bold;
     }
-  }
-}
-
-.breadcrumb-container {
-  .margin-small;
-
-  margin-left: 0px;
-
-  i {
-    .fa;
-    .fa-icon(angle-double-right);
   }
 }
 
@@ -227,23 +332,23 @@ div.indent {
 }
 
 .inline-display {
-	display: inline;
+  display: inline;
 }
 
 .disabled-icon {
-		pointer-events: none;
-		color:lightgray;
+    pointer-events: none;
+    color:lightgray;
 }
 
 .enabled-icon {
-	cursor: pointer;
-	color: black;
-}
-
-.input-dirty {
-	background-color: yellow;
+  cursor: pointer;
+  color: black;
 }
 
 .table-container {
-	height: 380px;
+  min-height: 380px;
+}
+
+.input-dirty {
+  background-color: yellow;
 }

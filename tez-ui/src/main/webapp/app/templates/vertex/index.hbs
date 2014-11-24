@@ -16,8 +16,9 @@
 * limitations under the License.
 }}
 
-<div class='type-table fill-full margin-small-horizontal'>
-  <div class='align-left'>
+<div class='type-table margin-small-horizontal fill-full'>
+
+  <div class="horizontal-half align-children-left">
     <table class='detail-list'>
       <tbody>
         <tr>
@@ -79,9 +80,8 @@
         {{/if}}
       </tbody>
     </table>
-  </div>
-  <div class='align-right'>
-    <table class='detail-list'>
+  </div><div class="horizontal-half align-children-left" style="vertical-align: top; padding-left: 50px;">
+    <table class='detail-list inline-block'>
       <tbody>
         <tr>
           <td>{{t common.time.start}}</td>
@@ -103,9 +103,8 @@
     </table>
   </div>
 
-  <div class='align-clear margin-medium'></div>
   {{#if hasStats}}
-    <div class='align-left'>
+    <div style="padding-top: 20px;">
       <table class='detail-list'>
         <thead>
           <tr>

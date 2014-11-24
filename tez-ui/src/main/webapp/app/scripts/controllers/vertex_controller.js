@@ -27,10 +27,6 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     this.set('loading', false);
   }.observes('content'),
 
-  pageSubTitle: function() {
-    return this.get('name');
-  }.property('name'),
-
   childDisplayViews: [
     Ember.Object.create({title: 'Details', linkTo: 'vertex.index'}),
     Ember.Object.create({title: 'Tasks', linkTo: 'vertex.tasks'}),

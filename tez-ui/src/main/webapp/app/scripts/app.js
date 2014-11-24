@@ -33,7 +33,12 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
 
 App.Helpers = Em.Namespace.create();
 App.Mappers = Em.Namespace.create();
-App.Configs = Em.Namespace.create();
+App.Configs = Em.Namespace.create({
+  restNamespace: {
+    timeline: 'ws/v1/timeline',
+    applicationHistory: 'ws/v1/applicationhistory'
+  }
+});
 
 require('scripts/configs');
 $.extend(App.env, App.Configs.envDefaults);
