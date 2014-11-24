@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. See accompanying LICENSE file.
+-->
+<rdf:RDF xml:lang="en"
+         xmlns="http://usefulinc.com/ns/doap#" 
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+         xmlns:asfext="http://projects.apache.org/ns/asfext#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/">
+  <asfext:PMC rdf:about="tez">
+    <asfext:name>Apache Tez</asfext:name>
+    <foaf:homepage rdf:resource="http://tez.apache.org/"/>
+    <asfext:chair>
+      <foaf:Person>
+        <foaf:name>Hitesh Shah</foaf:name>
+      </foaf:Person>
+    </asfext:chair>
+    <asfext:charter>Apache Tez is an effort to develop a generic application framework^M
+which can be used to process arbitrarily complex DAGs of^M
+data-processing tasks and also a re-usable set of data-processing^M
+primitives which can be used by other projects.</asfext:charter>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Alan Gates</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Arun C. Murthy</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Ashutosh Chauhan</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Bikas Saha</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Bill Graham</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Chris Douglas</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Chris Mattmann</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Daryn Sharp</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Devaraj Das</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Gopal Vijayaraghavan</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Gunther Hagleitner</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Hitesh Shah</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Jakob Homan</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Jason Lowe</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Jitendra Pandey</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Jonathan Eagles</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Julien Le Dem</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Kevin Wilfong</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Mike Liddell</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Mohammad Kamrul Islam</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Namit Jain</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Nathan Roberts</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Owen O’Malley</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Rajesh Balamohan</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Robert Evans</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Rohini Palaniswamy</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Siddharth Seth</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Tassapol Athiapinya</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Thomas Graves</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Tom White</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Vikram Dixit</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
+        <foaf:name>Vinod Kumar Vavilapalli</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+  </asfext:PMC>
+
+</rdf:RDF>

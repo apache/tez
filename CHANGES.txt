@@ -20,6 +20,7 @@ ALL CHANGES:
   TEZ-1772. Failing tests post TEZ-1737.
   TEZ-1785. Remove unused snappy-java dependency.
   TEZ-1685. Remove YARNMaster which is never used.
+  TEZ-1797. Create necessary content for Tez DOAP file.
 
 Release 0.5.3: Unreleased
 
