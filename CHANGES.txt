@@ -21,6 +21,7 @@ ALL CHANGES:
   TEZ-1785. Remove unused snappy-java dependency.
   TEZ-1685. Remove YARNMaster which is never used.
   TEZ-1797. Create necessary content for Tez DOAP file.
+  TEZ-1650. Please create a DOAP file for your TLP.
 
 Release 0.5.3: Unreleased
 
