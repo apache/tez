@@ -97,7 +97,7 @@ App.Helpers.misc = {
       if(columnConfig.getCellContentHelper) {
         columnConfig.getCellContent = App.Helpers.get(columnConfig.getCellContentHelper);
       }
-      columnConfig.minWidth = columnConfig.minWidth || 150;
+      columnConfig.minWidth = columnConfig.minWidth || 135;
 
       return columnConfig.filterID ?
           App.ExTable.ColumnDefinition.createWithMixins(App.ExTable.FilterColumnMixin, columnConfig) :

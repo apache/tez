@@ -16,36 +16,10 @@
  * limitations under the License.
 }}
 
-{{partial 'utils/pageHeader'}}
+<ul class="breadcrumb">
+  <li>{{#link-to 'dags'}}All Dags{{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'dag.vertices' dagID}}Vertices{{/link-to}} <span class="divider"></span></li>
+  <li class="active">Tasks</li>
+</ul>
 
-{{#unless loading}}
-  <div class='margin-small'>
-    <span class='align-left'>
-      {{page-nav-component
-        hasPrev=hasPrev
-        hasNext=hasNext
-        navNext='navigateNext'
-        navPrev='navigatePrev'
-        navFirst='navigateFirst'
-      }}
-    </span>
-    <span class="left-divider align-left">
-      <i {{bind-attr class=':fa-action :fa-cog'}} {{action 'selectColumns'}}></i>
-    </span>
-    <div class='align-clear'> </div>
-  </div>
-
-  <div class='table-container'>
-    {{extended-table-component
-      hasFooter=false
-      enableContentSelection=true
-      columnsBinding="columns"
-      contentBinding="sortedContent"
-      forceFillColumns=true
-      hasFilter=true
-      onFilterUpdated='filterUpdated'
-    }}
-  </div>
-{{else}}
-  {{partial 'utils/loadingSpinner'}}
-{{/unless}}
+{{partial "common/table-with-spinner"}}

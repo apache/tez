@@ -26,6 +26,7 @@ ALL CHANGES:
   TEZ-1721. Update INSTALL instructions for clarifying tez client jars
     compatibility with runtime tarball on HDFS.
   TEZ-1690. TestMultiMRInput tests fail because of user collisions.
+  TEZ-1783. Wrapper in standalone mode.
 
 Release 0.5.3: Unreleased
 

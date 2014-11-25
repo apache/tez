@@ -16,6 +16,30 @@
  * limitations under the License.
 }}
 
-<div style="width: 95%; margin: 0 auto;">
-  {{outlet}}
+<div {{bind-attr class="App.env.isStandalone:standalone:wrapped"}}>
+  <div class="top-wrapper">
+    <div id="top-nav">
+      <div class="navbar navbar-static-top">
+        <div class="navbar-inner">
+          <div class="main-container">
+            <a class="logo" href="/">
+              <img src="img/apache-tez-logo-transparent.png" width="70px"/>
+              <span>{{unbound App.env.version}}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      {{outlet}}
+    </div>
+    <div class="footer-frame"> </div>
+  </div>
+
+  <div class="footer">
+    <div class="main-container">
+      <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Licensed under the Apache License, Version 2.0</a>.
+    </div>
+  </div>
 </div>
