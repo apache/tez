@@ -1,6 +1,11 @@
 Apache Tez Change Log
 =====================
 
+Release 0.5.4: Unreleased
+
+ALL CHANGES:
+  TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
+
 Release 0.5.3: Unreleased
 
 ALL CHANGES:

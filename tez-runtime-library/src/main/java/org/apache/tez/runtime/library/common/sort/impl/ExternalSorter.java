@@ -287,7 +287,7 @@ public abstract class ExternalSorter {
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB_DEFAULT);
     Preconditions.checkArgument(initialMemRequestMb != 0, "io.sort.mb should be larger than 0");
-    long reqBytes = initialMemRequestMb << 20;
+    long reqBytes = ((long) initialMemRequestMb) << 20;
     LOG.info("Requested SortBufferSize (io.sort.mb): " + initialMemRequestMb);
     return reqBytes;
   }
