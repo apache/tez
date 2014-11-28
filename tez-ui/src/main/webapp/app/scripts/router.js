@@ -75,17 +75,23 @@ function renderConfigs() {
  * @return setupController function
  */
 function setupControllerFactory(format) {
-  var fmtArgs = Array.prototype.slice.call(arguments, 1),
-      formattedText;
+  var fmtArgs = Array.prototype.slice.call(arguments, 1);
 
   return function (controller, model) {
-    if(format) {
-      fmtArgs = fmtArgs.map(function (key) {
-        return model.get(key);
-      }),
-      formattedText = model ? format.fmt.apply(format, fmtArgs) : format;
+    var fmtValues, title;
 
-      $(document).attr('title', formattedText);
+    if(format) {
+      if(model && fmtArgs.length) {
+        fmtValues = fmtArgs.map(function (key) {
+          return model.get(key);
+        }),
+        title = format.fmt.apply(format, fmtValues);
+      }
+      else {
+        title = format;
+      }
+
+      $(document).attr('title', title);
     }
 
     this._super(controller, model);

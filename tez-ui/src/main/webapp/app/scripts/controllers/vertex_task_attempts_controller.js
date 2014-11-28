@@ -174,8 +174,12 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
-      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
-      App.get('Configs.table.entitieSpecificColumns.taskAttempt') || []
+      App.Helpers.misc.normalizeCounterConfigs(
+        App.get('Configs.defaultCounters').concat(
+          App.get('Configs.tables.entity.taskAttempt') || [],
+          App.get('Configs.tables.sharedColumns') || []
+        )
+      )
     );
   }.property(),
 

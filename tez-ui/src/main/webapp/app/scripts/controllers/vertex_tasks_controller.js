@@ -52,10 +52,10 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
       that.set('entities', entities);
       var pivotLoaders = [];
       entities.forEach(function (task) {
-        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts').lastObject;
-        if (!!taskAttemptId){
+        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
+        if (!!taskAttemptId) {
           // Pivot attempt selection logic
-          fetcher = store.find('taskAttempt',  taskAttemptId);
+          fetcher = store.find('taskAttempt', taskAttemptId);
           fetcher.then(function (attempt) {
             task.set('pivotAttempt', attempt);
           });
@@ -179,8 +179,12 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
-      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
-      App.get('Configs.table.entitieSpecificColumns.task') || []
+      App.Helpers.misc.normalizeCounterConfigs(
+        App.get('Configs.defaultCounters').concat(
+          App.get('Configs.tables.entity.task') || [],
+          App.get('Configs.tables.sharedColumns') || []
+        )
+      )
     );
   }.property(),
 

@@ -16,76 +16,52 @@
  * limitations under the License.
  */
 
-App.Configs.setProperties({
+$.extend(true, App.Configs, {
 
-  // Default environment configurations
+  /* Environment configurations */
   envDefaults: {
-    version: "0.0.1",
+    /*
+     * By default TEZ UI looks for timeline server at http://localhost:8188, uncomment and change
+     * the following value for pointing to a different domain.
+     */
+    // timelineBaseUrl: 'http://localhost:8188',
 
-    // Host URLs: Change the following URLs for pointing tez-ui to the respective servers.
-    timelineBaseUrl: 'http://localhost:8188', // ip:po at which time;line server is running
-    RMWebUrl: 'http://localhost:8088', // Location of RM web url
+    /*
+     * By default RM web interface is expected to be at http://localhost:8088, uncomment and change
+     * the following value to point to a different domain.
+     */
+    // RMWebUrl: 'http://localhost:8088',
   },
 
-  table: {
-    commonColumns: {
-      /*
-       * More counters can be added into the tables by adding an entry into the following array.
-       * Believe counterId and groupId are self descriptive, value in headerCellName would be
-       * displayed as the column header.
-       */
-      counters: [
-        {
-          counterId: 'FILE_BYTES_READ',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'File Bytes Read'
-        },
-        {
-          counterId: 'FILE_BYTES_WRITTEN',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'File Bytes Written'
-        },
-        {
-          counterId: 'FILE_READ_OPS',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'File Read Ops'
-        },
-        {
-          counterId: 'FILE_LARGE_READ_OPS',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'File Large Read Ops'
-        },
-        {
-          counterId: 'FILE_WRITE_OPS',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'File Write Ops'
-        },
-        {
-          counterId: 'HDFS_BYTES_READ',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'HDFS Bytes Read'
-        },
-        {
-          counterId: 'HDFS_BYTES_WRITTEN',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'HDFS Bytes Written'
-        },
-        {
-          counterId: 'HDFS_READ_OPS',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'HDFS Read Ops'
-        },
-        {
-          counterId: 'HDFS_LARGE_READ_OPS',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'HDFS Large Read Ops'
-        },
-        {
-          counterId: 'HDFS_WRITE_OPS',
-          groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-          headerCellName: 'HDFS Write Ops'
-        }
-      ]
-    }
+  /*
+   * By default TEZ UI displays 10 file system counters in all tables. 'tables' object
+   * gives you the option to configure more columns. Latest release(0.6.0) only supports addition
+   * of counter columns.
+   * Counters must be added as configuration objects into the respective array(sharedColumns, entity.dag,
+   * entity.vertex etc). Configuration object must be of the following format.
+   *     {
+   *       counterId: '<Counter ID>',
+   *       groupId: '<Group ID>',
+   *       headerText: '<Display text>'
+   *     },
+   */
+  tables: {
+    /*
+     * Entity specific columns must be added into the respective array.
+     */
+    entity: {
+      dag: [],
+      vertex: [],
+      task: [],
+      taskAttempt: [],
+      tezApp: [],
+    },
+    /*
+     * User sharedColumns to add counters that must be displayed in all tables.
+     */
+    sharedColumns:[]
   }
+
 });
+
+App.advanceReadiness();

@@ -164,7 +164,7 @@ module.exports = function (grunt) {
       dist: {
         files: {
           src: [
-            '<%= yeoman.dist %>/scripts/{,*/}*.js',
+            '<%= yeoman.dist %>/scripts/app.js',
             '<%= yeoman.dist %>/styles/{,*/}*.css',
             '<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp}',
             '<%= yeoman.dist %>/styles/fonts/*'
@@ -275,6 +275,10 @@ module.exports = function (grunt) {
             ]
           },
           {
+            src: '<%= yeoman.app %>/scripts/configs.js',
+            dest: '<%= yeoman.dist %>/scripts/configs.js'
+          },
+          {
             expand: true,
             flatten: true,
             src: '<%= yeoman.app %>/bower_components/jquery-ui/themes/base/images/*',
@@ -303,6 +307,10 @@ module.exports = function (grunt) {
               'styles/fonts/*',
               'scripts/assets/**/*'
             ]
+          },
+          {
+            src: '<%= yeoman.app %>/scripts/configs.js',
+            dest: '<%= yeoman.dist %>/scripts/configs.js'
           },
           {
             expand: true,
@@ -390,7 +398,7 @@ module.exports = function (grunt) {
             return yeomanConfig.app + '/' + filepath;
           }
         },
-        src: '<%= yeoman.app %>/scripts/**/*.js',
+        src: '<%= yeoman.app %>/scripts/app.js',
         dest: '.tmp/scripts/combined-scripts.js'
       }
     }

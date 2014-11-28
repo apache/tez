@@ -228,8 +228,12 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
-      App.Helpers.misc.normalizeCounterConfigs(App.get('Configs.table.commonColumns.counters')),
-      App.get('Configs.table.entitieSpecificColumns.dag') || []
+      App.Helpers.misc.normalizeCounterConfigs(
+        App.get('Configs.defaultCounters').concat(
+          App.get('Configs.tables.entity.dag') || [],
+          App.get('Configs.tables.sharedColumns') || []
+        )
+      )
     );
   }.property(),
 

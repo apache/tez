@@ -30,23 +30,18 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
     isStandalone: true // Can ne set false in the wrapper initializer
   }
 });
+App.deferReadiness();
 
-App.Helpers = Em.Namespace.create();
-App.Mappers = Em.Namespace.create();
-App.Configs = Em.Namespace.create({
-  restNamespace: {
-    timeline: 'ws/v1/timeline',
-    applicationHistory: 'ws/v1/applicationhistory'
-  }
-});
-
-require('scripts/configs');
-$.extend(App.env, App.Configs.envDefaults);
+App.Helpers = Em.Namespace.create(),
+App.Mappers = Em.Namespace.create(),
+App.Configs = Em.Namespace.create();
 
 Ember.Application.initializer({
   name: "initApp",
 
   initialize: function(container, application) {
+    $.extend(App.env, App.Configs.envDefaults);
+
     application.ApplicationAdapter = App.TimelineRESTAdapter.extend({
       host: App.env.timelineBaseUrl
     });
@@ -103,20 +98,16 @@ Ember.Application.initializer({
 });
 
 /* Order and include */
-/* TODO: cleanup */
+require('scripts/default-configs');
+
 require('scripts/translations');
 require('scripts/mixins/*');
 require('scripts/helpers/*');
 
 require('scripts/router');
-require('scripts/store');
 require('scripts/views/**/*');
 require('scripts/models/**/*');
 
-require('scripts/mappers/server_data_mapper.js');
-require('scripts/mappers/**/*');
-
-require('scripts/controllers/table-page-controller.js');
 require('scripts/controllers/**/*');
 
 require('scripts/components/*');
