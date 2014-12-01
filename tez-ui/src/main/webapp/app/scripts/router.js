@@ -17,13 +17,14 @@
  */
 
 App.Router.map(function() {
-	this.resource('dags', { path: '/' });
-	this.resource('dag', { path: '/dag/:dag_id'}, function() {
-		this.route('vertices');
-		this.route('tasks');
-		this.route('counters');
-		this.route('swimlane');
-	});
+  this.resource('dags', { path: '/' });
+  this.resource('dag', { path: '/dag/:dag_id'}, function() {
+    this.route('vertices');
+    this.route('tasks');
+    this.route('taskAttempts');
+    this.route('counters');
+    this.route('swimlane');
+  });
 
   this.resource('tez-app', {path: '/tez-app/:app_id'}, function(){
     this.route('dags');
@@ -41,16 +42,16 @@ App.Router.map(function() {
     this.route('details');
     this.route('swimlane');
   });
-	
-	this.resource('tasks', {path: '/tasks'});
-	this.resource('task', {path: '/task/:task_id'}, function(){
-		this.route('attempts');
-		this.route('counters');
-	});
-	this.resource('taskAttempt', {path: '/task_attempt/:task_attempt_id'}, function() {
-		this.route('counters');
-	});
-	//this.resource('error', {path:$ '/error'});
+
+  this.resource('tasks', {path: '/tasks'});
+  this.resource('task', {path: '/task/:task_id'}, function(){
+    this.route('attempts');
+    this.route('counters');
+  });
+  this.resource('taskAttempt', {path: '/task_attempt/:task_attempt_id'}, function() {
+    this.route('counters');
+  });
+  //this.resource('error', {path:$ '/error'});
 });
 
 /* --- Router helper functions --- */
@@ -124,13 +125,13 @@ App.DagRoute = Em.Route.extend({
 
 App.DagSwimlaneRoute = Em.Route.extend({
   renderTemplate: renderSwimlanes,
-	model: function(params) {
-		var model = this.modelFor('dag'),
-		    queryParams = {'primaryFilter': 'TEZ_DAG_ID:' + model.id};
-		this.store.unloadAll('task_attempt');
-		return this.store.findQuery('task_attempt', queryParams);
-	},
-	setupController: setupControllerFactory()
+  model: function(params) {
+    var model = this.modelFor('dag'),
+        queryParams = {'primaryFilter': 'TEZ_DAG_ID:' + model.id};
+    this.store.unloadAll('task_attempt');
+    return this.store.findQuery('task_attempt', queryParams);
+  },
+  setupController: setupControllerFactory()
 });
 
 /* --- Task related routes --- */
@@ -239,6 +240,7 @@ App.TezAppConfigsRoute = Em.Route.extend({
 
 App.DagTasksRoute =
     App.DagVerticesRoute =
+    App.DagTaskAttemptsRoute =
     App.VertexTasksRoute =
     App.VertexTaskAttemptsRoute =
     Em.Route.extend({
