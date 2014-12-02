@@ -21,10 +21,12 @@
 @logo-orange: #D27A22;
 @bg-lite: #f5f5f5;
 @border-lite: #e5e5e5;
+@bg-red-light: #FFE6E6;
 
 @white: #fff;
 
 @text-color: #666666;
+@text-red: red;
 
 @top-nav-bg-color-from: #d5d5d5;
 @top-nav-bg-color-to: #f0f0f0;
@@ -124,6 +126,80 @@ body, html, body > .ember-view {
 
   .navbar {
     margin-bottom: 0px;
+  }
+
+}
+
+.error-bar {
+  position: fixed;
+  bottom: -50px;
+  width: 100%;
+  z-index: 1000;
+
+  .main-container {
+    margin: 0px 30px;
+
+    .message-container, .close-container {
+      .inline-block;
+      vertical-align: top;
+    }
+
+    .message-container {
+      width:90%;
+
+      .align-children-left;
+
+      .error-icon {
+        .task-status;
+        .failed;
+        margin-top: 3px;
+      }
+    }
+
+    .close-container {
+      width:10%;
+
+      .align-children-right;
+    }
+  }
+
+  -webkit-transition: bottom .2s cubic-bezier(0.175, 0.885, 0.320, 1); /* older webkit */
+  -webkit-transition: bottom .2s cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  -moz-transition: bottom .2s cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  -o-transition: bottom .2s cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  transition: bottom .2s cubic-bezier(0.175, 0.885, 0.320, 1.275); /* easeOutBack */
+
+  background-color: #F5F5DC;
+  color: @text-red;
+
+  padding: 5px 0px 15px 0px;
+  margin: 0px;
+  min-height: 50px;
+
+  border-top: 1px @border-lite solid;
+
+  a {
+    color: @text-red !important;
+  }
+
+  .message {
+    display: none;
+  }
+
+  .details {
+    display: none;
+
+    &.visible {
+      display: inline;
+    }
+  }
+
+  &.visible {
+    bottom: -10px;
+
+    .message {
+      display: inline;
+    }
   }
 }
 
