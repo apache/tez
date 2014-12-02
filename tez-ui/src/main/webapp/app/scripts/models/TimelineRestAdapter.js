@@ -24,6 +24,12 @@ var typeToPathMap = {
 };
 
 App.TimelineRESTAdapter = DS.RESTAdapter.extend({
+  ajax: function(url, method, hash) {
+    hash = hash || {}; // hash may be undefined
+    hash.crossDomain = true;
+    hash.xhrFields = {withCredentials: true};
+    return this._super(url, method, hash);
+  },
 	namespace: App.Configs.restNamespace.timeline,
 	pathForType: function(type) {
 		return typeToPathMap[type];

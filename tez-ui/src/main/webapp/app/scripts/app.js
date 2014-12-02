@@ -48,6 +48,12 @@ Ember.Application.initializer({
     application.ApplicationSerializer = App.TimelineSerializer.extend();
 
     application.AppDetailAdapter = DS.RESTAdapter.extend({
+      ajax: function(url, method, hash) {
+        hash = hash || {}; // hash may be undefined
+        hash.crossDomain = true;
+        hash.xhrFields = {withCredentials: true};
+        return this._super(url, method, hash);
+      },
       namespace: App.Configs.restNamespace.applicationHistory,
       host: App.env.timelineBaseUrl,
       pathForType: function() {

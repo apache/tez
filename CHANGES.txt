@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1799. Enable Cross Origin Support in Tez UI
   TEZ-1634. Fix compressed IFile shuffle errors
   TEZ-1615. Skeleton framework for Tez UI
   TEZ-1604. Task View for Tez UI
