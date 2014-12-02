@@ -1005,10 +1005,10 @@ public class TaskAttemptImpl implements TaskAttempt,
         remoteTaskSpec = ta.createRemoteTaskSpec();
         LOG.info("remoteTaskSpec:" + remoteTaskSpec);
       } catch (AMUserCodeException e) {
-        String msg = "Exception in " + e.getSource() + ", taskAttempt=" + ta.getTaskID();
+        String msg = "Exception in " + e.getSource() + ", taskAttempt=" + ta;
         LOG.error(msg, e);
         String diag = msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause());
-        new TerminatedBeforeRunningTransition(FAILED_HELPER).transition(ta,
+        new TerminateTransition(FAILED_HELPER).transition(ta,
             new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED, diag,
                 TaskAttemptTerminationCause.APPLICATION_ERROR));
         return TaskAttemptStateInternal.FAILED;

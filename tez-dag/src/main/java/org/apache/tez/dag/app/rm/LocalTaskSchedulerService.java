@@ -25,12 +25,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 
 import com.google.common.primitives.Ints;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -38,8 +39,8 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 
@@ -156,12 +157,16 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
 
   @Override
   public void serviceInit(Configuration conf) {
-      taskRequestHandler = new AsyncDelegateRequestHandler(taskRequestQueue,
+    taskRequestHandler = createRequestHandler(conf);
+    asyncDelegateRequestThread = new Thread(taskRequestHandler);
+  }
+
+  protected AsyncDelegateRequestHandler createRequestHandler(Configuration conf) {
+    return new AsyncDelegateRequestHandler(taskRequestQueue,
         new LocalContainerFactory(appContext),
         taskAllocations,
         appClientDelegate,
         conf);
-    asyncDelegateRequestThread = new Thread(taskRequestHandler);
   }
 
   @Override
@@ -341,7 +346,20 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
         appClientDelegate.containerBeingReleased(container.getId());
       }
       else {
-        LOG.warn("Unable to find and remove task " + request.task + " from task allocations");
+        boolean deallocationBeforeAllocation = false;
+        Iterator<TaskRequest> iter = taskRequestQueue.iterator();
+        while (iter.hasNext()) {
+          TaskRequest taskRequest = iter.next();
+          if (taskRequest instanceof AllocateTaskRequest && taskRequest.task.equals(request.task)) {
+            iter.remove();
+            deallocationBeforeAllocation = true;
+            LOG.info("deallcation happen before allocation for task:" + request.task);
+            break;
+          }
+        }
+        if (!deallocationBeforeAllocation) {
+          throw new TezUncheckedException("Unable to find and remove task " + request.task + " from task allocations");
+        }
       }
     }
   }

@@ -26,6 +26,7 @@ ALL CHANGES:
   TEZ-1650. Please create a DOAP file for your TLP.
   TEZ-1697. DAG submission fails if a local resource added is already part of tez.lib.uris
   TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
+  TEZ-1790. DeallocationTaskRequest may been handled before corresponding AllocationTaskRequest in local mode
 
 Release 0.5.3: Unreleased
 
