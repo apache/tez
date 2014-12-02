@@ -43,6 +43,7 @@ ALL CHANGES:
   TEZ-1770. Handle ConnectExceptions correctly when establishing connections to an NM which may be down.
   TEZ-1774. AppLaunched event for Timeline does not have start time set.
   TEZ-1780. tez-api is missing jersey dependencies.
+  TEZ-1796. Use of DeprecationDelta broke build against 2.2 Hadoop.
 
 Release 0.5.2: 2014-11-07
 
