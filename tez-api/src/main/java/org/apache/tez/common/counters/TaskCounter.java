@@ -24,6 +24,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 @Private
 public enum TaskCounter {
   // TODO Eventually, rename counters to be non-MR specific and map them to MR equivalent.
+  
+  NUM_SPECULATIONS,
 
   /**
    * Number of Input Groups seen by ShuffledMergedInput.

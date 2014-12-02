@@ -46,6 +46,7 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -119,6 +120,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private final Lock readLock;
   private final Lock writeLock;
   private final List<String> diagnostics = new ArrayList<String>();
+  private TezCounters counters = new TezCounters();
   // TODO Metrics
   //private final MRAppMetrics metrics;
   protected final AppContext appContext;
@@ -417,15 +419,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public TezCounters getCounters() {
-    TezCounters counters = null;
+    TezCounters counters = new TezCounters();
+    counters.incrAllCounters(this.counters);
     readLock.lock();
     try {
       TaskAttempt bestAttempt = selectBestAttempt();
       if (bestAttempt != null) {
-        counters = bestAttempt.getCounters();
-      } else {
-        counters = TaskAttemptImpl.EMPTY_COUNTERS;
-//        counters.groups = new HashMap<CharSequence, CounterGroup>();
+        counters.incrAllCounters(bestAttempt.getCounters());
       }
       return counters;
     } finally {
@@ -890,7 +890,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     task.commitAttempt = null;
     task.successfulAttempt = null;
   }
-
+  
   /**
   * @return a String representation of the splits.
   *
@@ -989,6 +989,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
+      task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
       task.addAndScheduleAttempt();
     }
   }
