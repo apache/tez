@@ -51,7 +51,7 @@ App.Router.map(function() {
   this.resource('taskAttempt', {path: '/task_attempt/:task_attempt_id'}, function() {
     this.route('counters');
   });
-  //this.resource('error', {path:$ '/error'});
+  this.resource('error', {path: '/error'});
 });
 
 /* --- Router helper functions --- */
@@ -102,6 +102,20 @@ function setupControllerFactory(format) {
   };
 }
 
+App.ApplicationRoute = Em.Route.extend({
+  actions: {
+    willTransition: function(transition) {
+      App.Helpers.ErrorBar.getInstance().hide();
+    },
+    error: function(error, transition, originRoute) {
+      this.replaceWith('error');
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, error.details);
+    }
+  }
+});
 /* --- Dag related routes --- */
 
 App.DagsRoute = Em.Route.extend({

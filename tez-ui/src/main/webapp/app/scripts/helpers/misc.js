@@ -129,6 +129,22 @@ App.Helpers.misc = {
     return value;
   },
 
+  /* 
+   * returns a formatted message, the real cause is unknown and the error object details
+   * depends on the error cause. the function tries to handle ajax error or a native errors
+   */
+  formatError: function(error) {
+    var msg = error.statusText || error.message || '';
+    if (error.responseText) {
+      msg += error.responseText;
+    }
+    return {
+      errCode: error.status || 'Unknown', 
+      msg: msg,
+      details: error.stack
+    };
+  },
+
   dagStatusUIOptions: [
     { label: 'All', id: null },
     { label: 'Submitted', id: 'SUBMITTED' },

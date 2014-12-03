@@ -99,9 +99,11 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
       Em.RSVP.allSettled(loaders).then(function(){
         that.set('loading', false);
       });
-    }).catch(function(jqXHR){
-      if(console) console.log(jqXHR);
-      alert('failed');
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
     });
   },
 

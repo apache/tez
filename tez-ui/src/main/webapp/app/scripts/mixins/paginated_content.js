@@ -45,21 +45,23 @@ App.PaginatedContentMixin = Em.Mixin.create({
     return sorted.slice(0, this.count);
   }.property('entities', 'numEntities'),
 
-	loadEntities: function() {
-		var that = this;
-		var childEntityType = this.get('childEntityType');
+  loadEntities: function() {
+    var that = this;
+    var childEntityType = this.get('childEntityType');
 
     that.set('loading', true);
 
-		this.get('store').unloadAll(childEntityType);
-		this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-			that.set('entities', entities);
-			that.set('loading', false);
-		}).catch(function(jqXHR){
-			if(console) console.log(jqXHR);
-			alert('failed');
-		});
-	},
+    this.get('store').unloadAll(childEntityType);
+    this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+      that.set('entities', entities);
+      that.set('loading', false);
+    }).catch(function(jqXHR){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  },
 
 	setFiltersAndLoadEntities: function(filters) {
 		this._paginationFilters = filters;
