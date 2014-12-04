@@ -161,9 +161,8 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
             </span>')
         }),
         getCellContent: function(row) {
-          var attempt = row.get('pivotAttempt');
-          var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
-          if(logFile) logFile += "/syslog_" + attempt.get('id');
+          var logFile = row.get('inProgressLog') || row.get('completedLog');
+          if(logFile) logFile += "/syslog_" + row.get('id');
           return logFile;
         }
       }

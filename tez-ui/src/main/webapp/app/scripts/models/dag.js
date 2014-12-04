@@ -37,8 +37,8 @@ App.Dag = App.AbstractEntity.extend({
 	// application ID of this dag.
 	applicationId: DS.attr('string'),
 
-  tezApp: DS.belongsTo('tezApp', {async: true}),
-  appDetail: DS.belongsTo('appDetail', {async: true}),
+  tezApp: DS.belongsTo('tezApp'),
+  appDetail: DS.belongsTo('appDetail'),
 
 	// status
 	status: DS.attr('string'),

@@ -213,7 +213,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         }),
         getCellContent: function(row) {
           return  {
-            enableLink: row.get('tezApp'),
+            enableLink: row.get('tezApp') && row.get('appDetail'),
             appId: row.get('applicationId')
           }
         }

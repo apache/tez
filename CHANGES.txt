@@ -6,6 +6,15 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1733. TezMerger should sort FileChunks on size when merging
+  TEZ-1738. Tez tfile parser for log parsing
+  TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
+  TEZ-1736. Add support for Inputs/Outputs in runtime-library to generate history text data.
+  TEZ-1721. Update INSTALL instructions for clarifying tez client jars
+    compatibility with runtime tarball on HDFS.
+  TEZ-1690. TestMultiMRInput tests fail because of user collisions.
+
+TEZ-UI CHANGES (TEZ-8):
   TEZ-1799. Enable Cross Origin Support in Tez UI
   TEZ-1634. Fix compressed IFile shuffle errors
   TEZ-1615. Skeleton framework for Tez UI
@@ -20,14 +29,8 @@ ALL CHANGES:
   TEZ-1765. Allow dropdown lists in table filters.
   TEZ-1606. Counters View for DAG, Vertex, and Task.
   TEZ-1768. follow up jira to address minor issues in Tez-ui.
-  TEZ-1733. TezMerger should sort FileChunks on size when merging
-  TEZ-1738. Tez tfile parser for log parsing
-  TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
-  TEZ-1736. Add support for Inputs/Outputs in runtime-library to generate history text data.
-  TEZ-1721. Update INSTALL instructions for clarifying tez client jars
-    compatibility with runtime tarball on HDFS.
-  TEZ-1690. TestMultiMRInput tests fail because of user collisions.
   TEZ-1783. Wrapper in standalone mode.
+  TEZ-1820. Fix wrong links.
 
 Release 0.5.3: Unreleased
 
