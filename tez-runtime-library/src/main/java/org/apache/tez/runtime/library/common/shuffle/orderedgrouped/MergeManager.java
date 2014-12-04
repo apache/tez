@@ -26,6 +26,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -130,6 +132,7 @@ public class MergeManager {
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
 
+  private AtomicInteger mergeFileSequenceId = new AtomicInteger(0);
 
   /**
    * Construct the MergeManager. Must call start before it becomes usable.
@@ -696,10 +699,13 @@ public class MergeManager {
       } else {
         namePart = file0.getPath().getName().toString();
       }
-      Path outputPath = localDirAllocator.getLocalPathForWrite(namePart, approxOutputSize, conf);
-      outputPath = outputPath.suffix(Constants.MERGED_OUTPUT_PREFIX);
 
-      Writer writer = 
+      // namePart includes the suffix of the file. We need to remove it.
+      namePart = FilenameUtils.removeExtension(namePart);
+      Path outputPath = localDirAllocator.getLocalPathForWrite(namePart, approxOutputSize, conf);
+      outputPath = outputPath.suffix(Constants.MERGED_OUTPUT_PREFIX + mergeFileSequenceId.getAndIncrement());
+
+      Writer writer =
         new Writer(conf, rfs, outputPath, 
                         (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
                         (Class)ConfigUtils.getIntermediateInputValueClass(conf),
