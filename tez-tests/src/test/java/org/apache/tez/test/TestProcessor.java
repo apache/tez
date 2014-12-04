@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
@@ -51,6 +52,8 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
   Configuration conf;
   
   boolean doFail = false;
+  boolean doRandomFail = false;
+  float randomFailProbability = 0.0f;
   long sleepMs;
   Set<Integer> failingTaskIndices = Sets.newHashSet();
   int failingTaskAttemptUpto = 0;
@@ -64,6 +67,15 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
    */
   public static String TEZ_FAILING_PROCESSOR_DO_FAIL =
       "tez.failing-processor.do-fail";
+  /**
+   * Enable random failure for all processors.
+   */
+  public static String TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL = "tez.failing-processor.do-random-fail";
+  /**
+   * Probability to random fail a task attempt. Range is 0 to 1. The number is set per DAG.
+   */
+  public static String TEZ_FAILING_PROCESSOR_RANDOM_FAIL_PROBABILITY = "tez.failing-processor.random-fail-probability";
+  
   /**
    * Time to sleep in the processor in milliseconds.
    */
@@ -154,6 +166,12 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
         LOG.info("Adding failing attempt : " + failingTaskAttemptUpto + 
             " dag: " + getContext().getDAGName());
       }
+      
+      doRandomFail = conf
+          .getBoolean(TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL, false);
+      randomFailProbability = conf.getFloat(TEZ_FAILING_PROCESSOR_RANDOM_FAIL_PROBABILITY, 0.0f);
+      LOG.info("doRandomFail: " + doRandomFail);
+      LOG.info("randomFailProbability: " + randomFailProbability);
     }
   }
 
@@ -179,21 +197,48 @@ public class TestProcessor extends AbstractLogicalIOProcessor {
 
     Thread.sleep(sleepMs);
     
-    if (doFail) {
-      if (
-          (failingTaskIndices.contains(failAll) ||
-          failingTaskIndices.contains(getContext().getTaskIndex())) &&
-          (failingTaskAttemptUpto == failAll.intValue() || 
-           failingTaskAttemptUpto >= getContext().getTaskAttemptNumber())) {
-        String msg = "FailingProcessor: " + getContext().getUniqueIdentifier() + 
+    if (!doRandomFail) {
+      // not random fail
+      if (doFail) {
+        if (
+            (failingTaskIndices.contains(failAll) ||
+            failingTaskIndices.contains(getContext().getTaskIndex())) &&
+            (failingTaskAttemptUpto == failAll.intValue() || 
+             failingTaskAttemptUpto >= getContext().getTaskAttemptNumber())) {
+          String msg = "FailingProcessor: " + getContext().getUniqueIdentifier() + 
+              " dag: " + getContext().getDAGName() +
+              " taskIndex: " + getContext().getTaskIndex() +
+              " taskAttempt: " + getContext().getTaskAttemptNumber();
+          LOG.info(msg);
+          throwException(msg);
+        }
+      }
+    } else {
+      // random fail
+      // If task attempt number is below limit, try to randomly fail the attempt.
+      int taskAttemptNumber = getContext().getTaskAttemptNumber();
+      int maxFailedAttempt = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 
+                                     TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
+      if (taskAttemptNumber < maxFailedAttempt - 1) {
+        float rollNumber = (float) Math.random();
+        String msg = "FailingProcessor random fail turned on." + 
+            " Do a roll: " + getContext().getUniqueIdentifier() + 
             " dag: " + getContext().getDAGName() +
             " taskIndex: " + getContext().getTaskIndex() +
-            " taskAttempt: " + getContext().getTaskAttemptNumber();
+            " taskAttempt: " + taskAttemptNumber +
+            " maxFailedAttempt: " + maxFailedAttempt +
+            " rollNumber: " + rollNumber + 
+            " randomFailProbability " + randomFailProbability;
         LOG.info(msg);
-        throwException(msg);
+        if (rollNumber < randomFailProbability) {
+          // fail the attempt
+          msg = "FailingProcessor: rollNumber < randomFailProbability. Do fail.";
+          LOG.info(msg);
+          throwException(msg);
+        }
       }
     }
-    
+      
     if (inputs.entrySet().size() > 0) {
         String msg = "Reading input of current FailingProcessor: " + getContext().getUniqueIdentifier() + 
             " dag: " + getContext().getDAGName() +
