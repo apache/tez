@@ -1,7 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.5.3: 2014-12-05
+Release 0.5.3: 2014-12-10
 
 ALL CHANGES:
   TEZ-1758. TezClient should provide YARN diagnostics when the AM crashes
