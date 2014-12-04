@@ -316,6 +316,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // Ignore-able events
           .addTransition(DAGState.FAILED, DAGState.FAILED,
               EnumSet.of(DAGEventType.DAG_KILL,
+                  DAGEventType.DAG_START,
                   DAGEventType.DAG_VERTEX_RERUNNING,
                   DAGEventType.DAG_SCHEDULER_UPDATE,
                   DAGEventType.DAG_VERTEX_COMPLETED))

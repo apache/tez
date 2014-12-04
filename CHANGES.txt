@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1816. It is possible to receive START event when DAG is failed
   TEZ-1787. Counters for speculation
   TEZ-1773. Add attempt failure cause enum to the attempt failed/killed
   history record
