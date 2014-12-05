@@ -114,8 +114,7 @@
 
     <menu name="Releases">
       <item name="0.4.1-incubating" href="http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
-      <item name="0.5.0" href="./releases/apache-tez-0-5-0.html"/>
-      <item name="0.5.1" href="./releases/apache-tez-0-5-1.html"/>
+      <item name="0.5.3" href="./releases/apache-tez-0-5-3.html"/>
       <item name="All Releases" href="./releases/index.html"/>
     </menu>
 

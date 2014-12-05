@@ -15,12 +15,12 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez Releases</title></head>
+<head><title>Apache Tez 0.5.2</title></head>
 
-Releases
-------------
+Apache Tez 0.5.2
+----------------
 
--   [Apache Tez 0.5.3](./apache-tez-0-5-3.html) (Dec 10, 2014)
--   [Apache Tez 0.5.2](./apache-tez-0-5-2.html) (Nov 07, 2014)
--   [Apache Tez 0.5.1](./apache-tez-0-5-1.html) (Oct 08, 2014)
--   [Apache Tez 0.5.0](./apache-tez-0-5-0.html) (Sep 04, 2014)
+- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez/0.5.2/)
+- [Release Notes](0.5.2/release-notes.txt)
+- Documentation (See 0.5.3 documentation)
+
