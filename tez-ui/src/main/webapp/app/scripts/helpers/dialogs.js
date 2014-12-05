@@ -25,7 +25,7 @@ App.Dialogs = Em.Namespace.create({
    * @param keyHash Defines the key that helper must use to get value from item.
    * @return Returns a promoise that would be fulfilled when Ok is pressed
    */
-  displayMultiSelect: function (listItems, selectedItems, keyHash) {
+  displayMultiSelect: function (title, listItems, selectedItems, keyHash) {
     /*
      * Looks in an object for properties.
      */
@@ -54,10 +54,17 @@ App.Dialogs = Em.Namespace.create({
     return new Em.RSVP.Promise(function (resolve, reject) {
       container.dialog({
         modal: true,
-        title: "Select Items",
+        title: title,
         width: 350,
         height: 500,
         resizable: false,
+        open: function() {
+          $(this).closest(".ui-dialog")
+          .find(".ui-dialog-titlebar-close")
+          .append('<span\
+              class="ui-button-icon-primary ui-icon ui-icon-closethick align-close-button">\
+              </span>');
+        },
         buttons: {
           Ok: function() {
             var visibleColumnIds = {};

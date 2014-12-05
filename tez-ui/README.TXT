@@ -38,20 +38,33 @@ In yarn-site.xml
 In configs.js
   * Both timeline and RM base URLs can be customized in app/scripts/configs.js. By default their
     values are http://localhost:8188 and http://localhost:8088 respectively.
-  * More counter columns can be added to all tables through the file. More information regarding
-    the same can be found in configs.js.
+  * Visibility of table columns can be controlled using the column selector. Also an optional set
+    of file system counters can be made visible as columns for most of the tables. For adding more
+    counters refer configs.js.
 
 Building
 ---------
-  On building tez-ui two files will be created in the target directory, a tarball and a war file.
-Both packages the tez-ui distribution files, and can be found inside tez-ui-x.x.x-SNAPSHOT directory.
-To fire a test less build in the tez-ui run 'mvn clean package -DskipTests'. Tez ui build is part of
-tez build, and hence building tez would build tez-ui also. Refer BUILDING.txt in tez for more info.
+  * To build UI without running test cases, run 'mvn clean package -DskipTests' in tez-ui directory.
+  * The build will create two files inside tez-ui/target.
+    1. A tarball of the distribution files.
+    2. A war of the distribution files.
+  * UI build is part of tez build, refer BUILDING.txt in tez for more info.
+
+Using the war
+-------------
+Remotely:
+  Use webfront tomcat manager to upload & deploy your war remotely.
+Manually:
+  The war can be added to any tomcat instance.
+  1. Remove any old deployments in $TOMCAT_HOME/webapps
+  2. Copy the war to $TOMCAT_HOME/webapps
+  3. Restart tomcat and the war will get deployed. The content of the war would be available in
+     $TOMCAT_HOME/webapps/tez-ui-x.x.x-SNAPSHOT.
 
 Dev setup instructions
 ----------------------
-Install the development dependencies nodejs, npm, grunt and bower
-from webapp directory run the following commands
+Install the development dependencies nodejs, npm, grunt and bower.
+From src/main/webapp directory run the following commands.
   * npm install
   * bower install
 

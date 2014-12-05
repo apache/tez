@@ -16,6 +16,21 @@
  * limitations under the License.
  */
 
+function isObjectsDifferent(obj1, obj2) {
+  var property;
+  for(property in obj1) {
+    if(obj1[property] !== obj2[property]) {
+      return true;
+    }
+  }
+  for(property in obj2) {
+    if(obj1[property] !== obj2[property]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 App.ColumnSelectorMixin = Em.Mixin.create({
 
   name: 'PaginatedContentMixin',
@@ -55,13 +70,15 @@ App.ColumnSelectorMixin = Em.Mixin.create({
     selectColumns: function () {
       var that = this;
 
-      App.Dialogs.displayMultiSelect(this.get('columnConfigs'), this.visibleColumnIds, {
+      App.Dialogs.displayMultiSelect('Column Selector', this.get('columnConfigs'), this.visibleColumnIds, {
         displayText: 'headerCellName'
       }).then(function (data) {
-        try {
-          localStorage.setItem(that._storeKey , JSON.stringify(data));
-        }catch(e){}
-        that.set('visibleColumnIds', data);
+        if(isObjectsDifferent(data, that.visibleColumnIds)) {
+          try {
+            localStorage.setItem(that._storeKey , JSON.stringify(data));
+          }catch(e){}
+          that.set('visibleColumnIds', data);
+        }
       });
     }
   }

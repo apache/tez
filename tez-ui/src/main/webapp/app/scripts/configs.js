@@ -34,23 +34,28 @@ $.extend(true, App.Configs, {
   },
 
   /*
-   * By default TEZ UI displays 10 file system counters in all tables. 'tables' object
-   * gives you the option to configure more columns. Latest release(0.6.0) only supports addition
-   * of counter columns.
-   * Counters must be added as configuration objects into the respective array(sharedColumns, entity.dag,
-   * entity.vertex etc). Configuration object must be of the following format.
-   *     {
-   *       counterId: '<Counter ID>',
-   *       groupId: '<Group ID>',
-   *       headerText: '<Display text>'
-   *     },
+   * Visibility of table columns can be controlled using the column selector. Also an optional set of
+   * file system counters can be enabled as columns for most of the tables. For adding more counters
+   * as columns edit the following 'tables' object. Counters must be added as configuration objects
+   * of the following format.
+   *    {
+   *      counterId: '<Counter ID>',
+   *      groupId: '<Group ID>',
+   *      headerText: '<Display text>'
+   *    }
    */
   tables: {
     /*
      * Entity specific columns must be added into the respective array.
      */
     entity: {
-      dag: [],
+      dag: [
+        // { // Following is a sample configuration object.
+        //   counterId: 'FILE_BYTES_READ',
+        //   groupId: 'org.apache.tez.common.counters.FileSystemCounter',
+        //   headerText: 'File Bytes Read'
+        // }
+      ],
       vertex: [],
       task: [],
       taskAttempt: [],
