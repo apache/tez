@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1252. Change wording on http://tez.apache.org/team-list.html related to member confusion.
   TEZ-1805. Tez client DAG cycle detection should detect self loops
   TEZ-1816. It is possible to receive START event when DAG is failed
   TEZ-1787. Counters for speculation
