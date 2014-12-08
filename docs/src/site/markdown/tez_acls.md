@@ -33,7 +33,9 @@ Access control in Tez can be categorized as follows:
   - View permissions on a particular Tez DAG. Users with this permision can:
     - Monitor/View the progress/status of the DAG
 
-From above, you can see that All users/groups that have access to do operations on the AM also have access to similar operations on all DAGs within that AM/session. Also, by default, the owner of the Tez AM,  i.e. the user who started the Tez AM, is considered a super-user and has access to all operations on the AM as well as all DAGs within the AM/Session.
+From the above, you can see that All users/groups that have access to do operations on the AM also have access to similar operations on all DAGs within that AM/session. Also, by default, the owner of the Tez AM,  i.e. the user who started the Tez AM, is considered a super-user and has access to all operations on the AM as well as all DAGs within the AM/Session.
+
+Support for ACLs was introduced in Tez 0.5.0. Integration of these ACLs with YARN Timeline is only available from Tez 0.6.0 onwards.
 
 ## How to setup the ACLs
 
