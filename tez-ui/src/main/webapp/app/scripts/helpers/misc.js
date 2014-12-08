@@ -133,9 +133,17 @@ App.Helpers.misc = {
    * returns a formatted message, the real cause is unknown and the error object details
    * depends on the error cause. the function tries to handle ajax error or a native errors
    */
-  formatError: function(error) {
-    var msg = error.statusText || error.message || '';
-    if (error.responseText) {
+  formatError: function(error, defaultErrorMessage) {
+    var msg;
+    // for cross domain requests, the error is not set if no access control headers were found.
+    // this could be either because there was a n/w error or the cors headers being not set.
+    if (error.status === 0 && error.statusText === 'error') {
+      msg = defaultErrorMessage ;
+    } else {
+      msg = error.statusText || error.message;
+    }
+    msg = msg || 'Unknown error';
+    if (!!error.responseText) {
       msg += error.responseText;
     }
     return {

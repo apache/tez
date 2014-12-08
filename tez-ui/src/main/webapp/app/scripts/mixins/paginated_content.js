@@ -48,6 +48,9 @@ App.PaginatedContentMixin = Em.Mixin.create({
   loadEntities: function() {
     var that = this;
     var childEntityType = this.get('childEntityType');
+    var defaultErrMsg = 'Error while loading %@. could not connect to %@'
+      .fmt(childEntityType, App.env.timelineBaseUrl);
+
 
     that.set('loading', true);
 
@@ -57,7 +60,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
       that.set('loading', false);
     }).catch(function(jqXHR){
       Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
       var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
       App.Helpers.ErrorBar.getInstance().show(msg, err.details);
     });

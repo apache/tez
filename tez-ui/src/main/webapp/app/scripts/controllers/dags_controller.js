@@ -74,6 +74,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     store = this.get('store'),
     childEntityType = this.get('childEntityType'),
     fetcher;
+    var defaultErrMsg = 'Error while loading dag info. could not connect to %@'.fmt(App.env.timelineBaseUrl);
 
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
@@ -101,7 +102,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
       });
     }).catch(function(error){
       Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
       var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
       App.Helpers.ErrorBar.getInstance().show(msg, err.details);
     });

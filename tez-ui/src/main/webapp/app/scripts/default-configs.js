@@ -16,12 +16,26 @@
  * limitations under the License.
  */
 
+var getDefaultTimelineUrl = function() {
+  var location = window.location;
+  var protocol = App.env.isStandalone ? location.protocol : 'http';
+  var hostname = App.env.isStandalone ? location.hostname : 'localhost';
+  return '%@//%@:8188'.fmt(protocol, hostname);
+};
+
+var getDefaultRMWebUrl = function() {
+  var location = window.location;
+  var protocol = App.env.isStandalone ? location.protocol : 'http';
+  var hostname = App.env.isStandalone ? location.hostname : 'localhost';
+  return '%@//%@:8088'.fmt(protocol, hostname);
+};
+
 $.extend(true, App.Configs, {
   envDefaults: {
     version: "0.6.0",
 
-    timelineBaseUrl: 'http://localhost:8188',
-    RMWebUrl: 'http://localhost:8088',
+    timelineBaseUrl: getDefaultTimelineUrl(),
+    RMWebUrl: getDefaultRMWebUrl(),
   },
 
   restNamespace: {

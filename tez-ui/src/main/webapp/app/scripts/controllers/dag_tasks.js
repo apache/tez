@@ -49,6 +49,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
     store = this.get('store'),
     fetcher;
     childEntityType = this.get('childEntityType');
+    var defaultErrMsg = 'Error while loading tasks. could not connect to %@'.fmt(App.env.timelineBaseUrl);
 
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
@@ -70,7 +71,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
       });
     }).catch(function(error){
       Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
       var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
       App.Helpers.ErrorBar.getInstance().show(msg, error.details);
     });
