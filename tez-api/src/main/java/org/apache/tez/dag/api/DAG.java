@@ -591,6 +591,15 @@ public class DAG {
         }
         message.append(av.v.getName());
         throw new IllegalStateException("DAG contains a cycle: " + message);
+      } else {
+        // detect self-cycle
+        if (edgeMap.containsKey(pop.v)) {
+          for (Edge edge : edgeMap.get(pop.v)) {
+            if (edge.getOutputVertex().equals(pop.v)) {
+              throw new IllegalStateException("DAG contains a self-cycle on vertex:" + pop.v.getName());
+            }
+          }
+        }
       }
       topologicalVertexStack.push(av.v.getName());
     }

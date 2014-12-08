@@ -471,6 +471,32 @@ public class TestDAGVerify {
     Assert.assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
   }
 
+  // v1 -> v1
+  @Test(timeout = 5000)
+  public void testSelfCycle(){
+    IllegalStateException ex=null;
+    Vertex v1 = Vertex.create("v1",
+        ProcessorDescriptor.create("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = Edge.create(v1, v1,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create("dummy output class"),
+            InputDescriptor.create("dummy input class")));
+    DAG dag = DAG.create("testDag");
+    dag.addVertex(v1);
+    dag.addEdge(e1);
+    try{
+      dag.verify();
+    }
+    catch (IllegalStateException e){
+      ex = e;
+    }
+    Assert.assertNotNull(ex);
+    System.out.println(ex.getMessage());
+    Assert.assertTrue(ex.getMessage().startsWith("DAG contains a self-cycle"));
+  }
+
   @Test(timeout = 5000)
   public void repeatedVertexName() {
     IllegalStateException ex=null;
