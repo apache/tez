@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1672. Update jetty to use stable 7.x version - 7.6.16.v20140903.
   TEZ-1822. Docs for Timeline/ACLs/HistoryText.
   TEZ-1252. Change wording on http://tez.apache.org/team-list.html related to member confusion.
   TEZ-1805. Tez client DAG cycle detection should detect self loops
