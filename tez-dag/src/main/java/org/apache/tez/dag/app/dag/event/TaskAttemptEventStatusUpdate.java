@@ -18,12 +18,6 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.tez.common.counters.DAGCounter;
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 
@@ -39,52 +33,5 @@ public class TaskAttemptEventStatusUpdate extends TaskAttemptEvent {
   
   public TaskStatusUpdateEvent getStatusEvent() {
     return this.taskAttemptStatus;
-  }
-
-  private TaskAttemptStatusOld reportedTaskAttemptStatus;
-
-  public TaskAttemptEventStatusUpdate(TezTaskAttemptID id,
-      TaskAttemptStatusOld taskAttemptStatus) {
-    super(id, TaskAttemptEventType.TA_STATUS_UPDATE);
-    this.reportedTaskAttemptStatus = taskAttemptStatus;
-  }
-
-  public TaskAttemptStatusOld getReportedTaskAttemptStatus() {
-    return reportedTaskAttemptStatus;
-  }
-
-  /**
-   * The internal TaskAttemptStatus object corresponding to remote Task status.
-   * 
-   */
-  public static class TaskAttemptStatusOld {
-    
-    private AtomicBoolean localitySet = new AtomicBoolean(false);
-
-    public TezTaskAttemptID id;
-    public float progress;
-    public TezCounters counters;
-    public String stateString;
-    //public Phase phase;
-    public long outputSize;
-    public List<TezTaskAttemptID> fetchFailedMaps;
-    public long mapFinishTime;
-    public long shuffleFinishTime;
-    public long sortFinishTime;
-    public TaskAttemptState taskState;
-
-    public void setLocalityCounter(DAGCounter localityCounter) {
-      if (!localitySet.get()) {
-        localitySet.set(true);
-        if (counters == null) {
-          counters = new TezCounters();
-        }
-        if (localityCounter != null) {
-          counters.findCounter(localityCounter).increment(1);
-          // TODO Maybe validate that the correct value is being set.
-        }
-      }
-    }
-
   }
 }

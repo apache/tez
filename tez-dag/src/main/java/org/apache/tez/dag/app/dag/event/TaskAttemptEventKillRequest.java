@@ -17,19 +17,29 @@
 */
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TaskAttemptEventKillRequest extends TaskAttemptEvent {
+public class TaskAttemptEventKillRequest extends TaskAttemptEvent 
+  implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
 
   private final String message;
+  private final TaskAttemptTerminationCause errorCause;
 
-  public TaskAttemptEventKillRequest(TezTaskAttemptID id, String message) {
+  public TaskAttemptEventKillRequest(TezTaskAttemptID id, String message, TaskAttemptTerminationCause err) {
     super(id, TaskAttemptEventType.TA_KILL_REQUEST);
     this.message = message;
+    this.errorCause = err;
   }
 
-  public String getMessage() {
-    return this.message;
+  @Override
+  public String getDiagnosticInfo() {
+    return message;
+  }
+
+  @Override
+  public TaskAttemptTerminationCause getTerminationCause() {
+    return errorCause;
   }
 
 }

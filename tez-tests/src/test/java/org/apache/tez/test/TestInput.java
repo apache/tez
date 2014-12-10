@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
@@ -65,6 +66,8 @@ public class TestInput extends AbstractLogicalInput {
   int failingInputUpto = 0;
   
   boolean doFail = false;
+  boolean doRandomFail = false;
+  float randomFailProbability = 0.0f;
   boolean doFailAndExit = false;
   Set<Integer> failingTaskIndices = Sets.newHashSet();
   Set<Integer> failingTaskAttempts = Sets.newHashSet();
@@ -77,6 +80,16 @@ public class TestInput extends AbstractLogicalInput {
    */
   public static String TEZ_FAILING_INPUT_DO_FAIL =
       "tez.failing-input.do-fail";
+  /**
+   * Enable failure for this logical input. The config is set per DAG.
+   */
+  public static String TEZ_FAILING_INPUT_DO_RANDOM_FAIL =
+      "tez.failing-input.do-random-fail";
+  /**
+   * Probability to random fail an input. Range is 0 to 1. The number is set per DAG.
+   */
+  public static String TEZ_FAILING_INPUT_RANDOM_FAIL_PROBABILITY =
+      "tez.failing-input.random-fail-probability";
   /**
    * Logical input will exit (and cause task failure) after reporting failure to 
    * read.
@@ -146,66 +159,96 @@ public class TestInput extends AbstractLogicalInput {
         lastInputReadyValue = inputReady.get();
         LOG.info("Done for inputReady: " + lastInputReadyValue);
       }
-      if (doFail) {
-        if (
-            (failingTaskIndices.contains(failAll) ||
-            failingTaskIndices.contains(getContext().getTaskIndex())) &&
-            (failingTaskAttempts.contains(failAll) || 
-             failingTaskAttempts.contains(getContext().getTaskAttemptNumber())) &&
-             (lastInputReadyValue <= failingInputUpto)) {
-          List<Event> events = Lists.newLinkedList();
-          if (failingInputIndices.contains(failAll)) {
-            for (int i=0; i<getNumPhysicalInputs(); ++i) {
-              String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
-                  " index: " + i + " version: " + lastInputReadyValue);
-              events.add(InputReadErrorEvent.create(msg, i, lastInputReadyValue));
-              LOG.info("Failing input: " + msg);
+      if (!doRandomFail) {
+        // not random fail
+        if (doFail) {
+          if (
+              (failingTaskIndices.contains(failAll) ||
+              failingTaskIndices.contains(getContext().getTaskIndex())) &&
+              (failingTaskAttempts.contains(failAll) || 
+               failingTaskAttempts.contains(getContext().getTaskAttemptNumber())) &&
+               (lastInputReadyValue <= failingInputUpto)) {
+            List<Event> events = Lists.newLinkedList();
+            if (failingInputIndices.contains(failAll)) {
+              for (int i=0; i<getNumPhysicalInputs(); ++i) {
+                String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
+                    " index: " + i + " version: " + lastInputReadyValue);
+                events.add(InputReadErrorEvent.create(msg, i, lastInputReadyValue));
+                LOG.info("Failing input: " + msg);
+              }
+            } else {
+              for (Integer index : failingInputIndices) {
+                if (index.intValue() >= getNumPhysicalInputs()) {
+                  throwException("InputIndex: " + index.intValue() + 
+                      " should be less than numInputs: " + getNumPhysicalInputs());
+                }
+                if (completedInputVersion[index.intValue()] < lastInputReadyValue) {
+                  continue; // dont fail a previous version now.
+                }
+                String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
+                    " index: " + index.intValue() + " version: " + lastInputReadyValue);
+                events.add(InputReadErrorEvent.create(msg, index.intValue(), lastInputReadyValue));
+                LOG.info("Failing input: " + msg);
+              }
             }
-          } else {
-            for (Integer index : failingInputIndices) {
-              if (index.intValue() >= getNumPhysicalInputs()) {
-                throwException("InputIndex: " + index.intValue() + 
-                    " should be less than numInputs: " + getNumPhysicalInputs());
+            getContext().sendEvents(events);
+            if (doFailAndExit) {
+              String msg = "FailingInput exiting: " + getContext().getUniqueIdentifier();
+              LOG.info(msg);
+              throwException(msg);
+            } else {
+              done = false;
+            }
+          } else if ((failingTaskIndices.contains(failAll) ||
+              failingTaskIndices.contains(getContext().getTaskIndex()))){
+            boolean previousAttemptReadFailed = false;
+            if (failingTaskAttempts.contains(failAll)) {
+              previousAttemptReadFailed = true;
+            } else {
+              for (int i=0 ; i<getContext().getTaskAttemptNumber(); ++i) {
+                if (failingTaskAttempts.contains(new Integer(i))) {
+                  previousAttemptReadFailed = true;
+                  break;
+                }
               }
-              if (completedInputVersion[index.intValue()] < lastInputReadyValue) {
-                continue; // dont fail a previous version now.
-              }
-              String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
-                  " index: " + index.intValue() + " version: " + lastInputReadyValue);
-              events.add(InputReadErrorEvent.create(msg, index.intValue(), lastInputReadyValue));
-              LOG.info("Failing input: " + msg);
+            }
+            if (previousAttemptReadFailed && 
+                (lastInputReadyValue <= failingInputUpto)) {
+              // if any previous attempt has failed then dont be done when we see
+              // a previously failed input
+              LOG.info("Previous task attempt failed and input version less than failing upto version");
+              done = false;
             }
           }
-          getContext().sendEvents(events);
-          if (doFailAndExit) {
-            String msg = "FailingInput exiting: " + getContext().getUniqueIdentifier();
+          
+        }
+      } else {
+        // random fail
+        List<Event> events = Lists.newLinkedList();
+        for (int index=0; index<getNumPhysicalInputs(); ++index) {
+          // completedInputVersion[index] has DataMovementEvent.getVersion() value.
+          int sourceInputVersion = completedInputVersion[index];
+          int maxFailedAttempt = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 
+              TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
+          if (sourceInputVersion < maxFailedAttempt - 1) {
+            float rollNumber = (float) Math.random();
+            String msg = "FailingInput random fail turned on." +
+                "Do a roll:" + getContext().getUniqueIdentifier() + 
+                " index: " + index + " version: " + sourceInputVersion +
+                " rollNumber: " + rollNumber + 
+                " randomFailProbability " + randomFailProbability;
             LOG.info(msg);
-            throwException(msg);
-          } else {
-            done = false;
-          }
-        } else if ((failingTaskIndices.contains(failAll) ||
-            failingTaskIndices.contains(getContext().getTaskIndex()))){
-          boolean previousAttemptReadFailed = false;
-          if (failingTaskAttempts.contains(failAll)) {
-            previousAttemptReadFailed = true;
-          } else {
-            for (int i=0 ; i<getContext().getTaskAttemptNumber(); ++i) {
-              if (failingTaskAttempts.contains(new Integer(i))) {
-                previousAttemptReadFailed = true;
-                break;
-              }
+            if (rollNumber < randomFailProbability) {
+              // fail the source input
+              msg = "FailingInput: rollNumber < randomFailProbability. Do fail." + 
+                            getContext().getUniqueIdentifier() + 
+                            " index: " + index + " version: " + sourceInputVersion;
+              LOG.info(msg);
+              events.add(InputReadErrorEvent.create(msg, index, sourceInputVersion));
             }
-          }
-          if (previousAttemptReadFailed && 
-              (lastInputReadyValue <= failingInputUpto)) {
-            // if any previous attempt has failed then dont be done when we see
-            // a previously failed input
-            LOG.info("Previous task attempt failed and input version less than failing upto version");
-            done = false;
           }
         }
-        
+        getContext().sendEvents(events);
       }
     } while (!done);
     
@@ -265,6 +308,11 @@ public class TestInput extends AbstractLogicalInput {
           failingInputIndices.add(Integer.valueOf(failingIndex));
         }
       }
+      doRandomFail = conf
+          .getBoolean(TEZ_FAILING_INPUT_DO_RANDOM_FAIL, false);
+      randomFailProbability = conf.getFloat(TEZ_FAILING_INPUT_RANDOM_FAIL_PROBABILITY, 0.0f);
+      LOG.info("doRandomFail: " + doRandomFail);
+      LOG.info("randomFailProbability: " + randomFailProbability);
     }
     return Collections.emptyList();
   }

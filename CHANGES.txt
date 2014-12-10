@@ -6,6 +6,16 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1672. Update jetty to use stable 7.x version - 7.6.16.v20140903.
+  TEZ-1822. Docs for Timeline/ACLs/HistoryText.
+  TEZ-1252. Change wording on http://tez.apache.org/team-list.html related to member confusion.
+  TEZ-1805. Tez client DAG cycle detection should detect self loops
+  TEZ-1816. It is possible to receive START event when DAG is failed
+  TEZ-1787. Counters for speculation
+  TEZ-1773. Add attempt failure cause enum to the attempt failed/killed
+  history record
+  TEZ-14. Support MR like speculation capabilities based on latency deviation
+  from the mean
   TEZ-1733. TezMerger should sort FileChunks on size when merging
   TEZ-1738. Tez tfile parser for log parsing
   TEZ-1627. Remove OUTPUT_CONSUMABLE and related Event in TaskAttemptImpl
@@ -13,6 +23,17 @@ ALL CHANGES:
   TEZ-1721. Update INSTALL instructions for clarifying tez client jars
     compatibility with runtime tarball on HDFS.
   TEZ-1690. TestMultiMRInput tests fail because of user collisions.
+  TEZ-1687. Use logIdentifier of Vertex for logging.
+  TEZ-1737. Should add taskNum in VertexFinishedEvent.
+  TEZ-1772. Failing tests post TEZ-1737.
+  TEZ-1785. Remove unused snappy-java dependency.
+  TEZ-1685. Remove YARNMaster which is never used.
+  TEZ-1797. Create necessary content for Tez DOAP file.
+  TEZ-1650. Please create a DOAP file for your TLP.
+  TEZ-1697. DAG submission fails if a local resource added is already part of tez.lib.uris
+  TEZ-1060 Add randomness to fault tolerance tests
+  TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
+  TEZ-1790. DeallocationTaskRequest may been handled before corresponding AllocationTaskRequest in local mode
 
 TEZ-UI CHANGES (TEZ-8):
   TEZ-1799. Enable Cross Origin Support in Tez UI
@@ -43,11 +64,13 @@ ALL CHANGES:
   TEZ-1749. Increase test timeout for TestLocalMode.testMultipleClientsWithSession
   TEZ-1750. Add a DAGScheduler which schedules tasks only when sources have been scheduled.
   TEZ-1761. TestRecoveryParser::testGetLastInProgressDAG fails in similar manner to TEZ-1686.
-  TEZ-1687. Use logIdentifier of Vertex for logging.
-  TEZ-1737. Should add taskNum in VertexFinishedEvent.
   TEZ-1770. Handle ConnectExceptions correctly when establishing connections to an NM which may be down.
   TEZ-1774. AppLaunched event for Timeline does not have start time set.
-  TEZ-1772. Failing tests post TEZ-1737.
+  TEZ-1780. tez-api is missing jersey dependencies.
+  TEZ-1796. Use of DeprecationDelta broke build against 2.2 Hadoop.
+  TEZ-1818. Problem loading tez-api-version-info.properties in case current context classloader
+    in not pointing to Tez jars.
+  TEZ-1808. Job can fail since name of intermediate files can be too long in specific situation.
 
 Release 0.5.2: 2014-11-07
 

@@ -67,7 +67,7 @@ public class TestMockDAGAppMaster {
   public void testLocalResourceSetup() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     
-    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
     
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
@@ -119,7 +119,7 @@ public class TestMockDAGAppMaster {
 
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     
-    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
     DAGClient dagClient = tezClient.submitDAG(dag);
     dagClient.waitForCompletion();
@@ -127,7 +127,7 @@ public class TestMockDAGAppMaster {
     tezClient.stop();
     
     // submit the same DAG again to verify it can be done.
-    tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null);
+    tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
     dagClient = tezClient.submitDAG(dag);
     dagClient.waitForCompletion();
@@ -139,7 +139,7 @@ public class TestMockDAGAppMaster {
   public void testSchedulerErrorHandling() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
 
-    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
     tezClient.start();
 
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();

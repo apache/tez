@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,8 +46,8 @@ import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -85,6 +86,7 @@ import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -92,6 +94,7 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 
@@ -117,6 +120,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private final Lock readLock;
   private final Lock writeLock;
   private final List<String> diagnostics = new ArrayList<String>();
+  private TezCounters counters = new TezCounters();
   // TODO Metrics
   //private final MRAppMetrics metrics;
   protected final AppContext appContext;
@@ -415,15 +419,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public TezCounters getCounters() {
-    TezCounters counters = null;
+    TezCounters counters = new TezCounters();
+    counters.incrAllCounters(this.counters);
     readLock.lock();
     try {
       TaskAttempt bestAttempt = selectBestAttempt();
       if (bestAttempt != null) {
-        counters = bestAttempt.getCounters();
-      } else {
-        counters = TaskAttemptImpl.EMPTY_COUNTERS;
-//        counters.groups = new HashMap<CharSequence, CounterGroup>();
+        counters.incrAllCounters(bestAttempt.getCounters());
       }
       return counters;
     } finally {
@@ -699,7 +701,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (getState() != TaskState.RUNNING) {
         LOG.info("Task not running. Issuing kill to bad commit attempt " + taskAttemptID);
         eventHandler.handle(new TaskAttemptEventKillRequest(taskAttemptID
-            , "Task not running. Bad attempt."));
+            , "Task not running. Bad attempt.", TaskAttemptTerminationCause.TERMINATED_ORPHANED));
         return false;
       }
       if (commitAttempt == null) {
@@ -888,7 +890,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     task.commitAttempt = null;
     task.successfulAttempt = null;
   }
-
+  
   /**
   * @return a String representation of the splits.
   *
@@ -987,6 +989,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
+      task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
       task.addAndScheduleAttempt();
     }
   }
@@ -1016,6 +1019,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (task.historyTaskStartGenerated) {
         task.logJobHistoryTaskFinishedEvent();
       }
+      TaskAttempt successfulAttempt = task.attempts.get(successTaId);
 
       // issue kill to all other attempts
       for (TaskAttempt attempt : task.attempts.values()) {
@@ -1024,9 +1028,21 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             //  TA_KILL message to an attempt that doesn't need one for
             //  other reasons.
             !attempt.isFinished()) {
-          LOG.info("Issuing kill to other attempt " + attempt.getID());
+          LOG.info("Issuing kill to other attempt " + attempt.getID() + " as attempt: " +
+            task.successfulAttempt + " has succeeded");
+          String diagnostics = null;
+          TaskAttemptTerminationCause errCause = null;
+          if (attempt.getLaunchTime() < successfulAttempt.getLaunchTime()) {
+            diagnostics = "Killed this attempt as other speculative attempt : " + successTaId
+                + " succeeded";
+            errCause = TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION;
+          } else {
+            diagnostics = "Killed this speculative attempt as original attempt: " + successTaId
+                + " succeeded";
+            errCause = TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION;
+          }
           task.eventHandler.handle(new TaskAttemptEventKillRequest(attempt
-              .getID(), "Alternate attempt succeeded"));
+              .getID(), diagnostics, errCause));
         }
       }
       // send notification to DAG scheduler
@@ -1336,12 +1352,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
-      // verify that this occurs only for map task
-      // TODO: consider moving it to MapTaskImpl
-      if (task.leafVertex) {
-        LOG.error("Unexpected event for task of leaf vertex " + event.getType());
-        task.internalError(event.getType());
-      }
 
       TaskEventTAUpdate attemptEvent = (TaskEventTAUpdate) event;
       TezTaskAttemptID attemptId = attemptEvent.getTaskAttemptID();
@@ -1365,6 +1375,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         return TaskStateInternal.SCHEDULED;
       } else {
         // nothing to do
+        LOG.info("Ignoring kill of attempt: " + attemptId + " because attempt: " +
+                 task.successfulAttempt + " is already successful");
         return TaskStateInternal.SUCCEEDED;
       }
     }
@@ -1411,14 +1423,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg) {
+  private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg, TaskAttemptTerminationCause errorCause) {
     if (commitAttempt != null && commitAttempt.equals(attempt)) {
       LOG.info("Removing commit attempt: " + commitAttempt);
       commitAttempt = null;
     }
     if (attempt != null && !attempt.isFinished()) {
-      eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(),
-          logMsg));
+      eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(), logMsg, errorCause));
     }
   }
 
@@ -1440,8 +1451,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       // issue kill to all non finished attempts
       for (TaskAttempt attempt : task.attempts.values()) {
-        task.killUnfinishedAttempt
-            (attempt, "Task KILL is received. Killing attempt!");
+        task.killUnfinishedAttempt(attempt, "Task KILL is received. Killing attempt. Diagnostics: "
+            + terminateEvent.getDiagnosticInfo(), terminateEvent.getTerminationCause());
       }
     }
   }

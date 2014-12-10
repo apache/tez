@@ -18,10 +18,12 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
-public class TaskAttemptEventOutputFailed extends TaskAttemptEvent {
+public class TaskAttemptEventOutputFailed extends TaskAttemptEvent 
+  implements TaskAttemptEventTerminationCauseEvent {
   
   private TezEvent inputFailedEvent;
   private int consumerTaskNumber;
@@ -39,6 +41,11 @@ public class TaskAttemptEventOutputFailed extends TaskAttemptEvent {
   
   public int getConsumerTaskNumber() {
     return consumerTaskNumber;
+  }
+
+  @Override
+  public TaskAttemptTerminationCause getTerminationCause() {
+    return TaskAttemptTerminationCause.OUTPUT_LOST;
   }
   
 }

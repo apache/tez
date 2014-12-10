@@ -18,11 +18,9 @@
 
 package org.apache.tez.dag.history.logging.impl;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.tez.common.ATSConstants;
@@ -485,6 +483,9 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.FINISH_TIME, event.getFinishTime());
     otherInfo.put(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
     otherInfo.put(ATSConstants.STATUS, event.getState().name());
+    if (event.getTaskAttemptError() != null) {
+      otherInfo.put(ATSConstants.TASK_ATTEMPT_ERROR_ENUM, event.getTaskAttemptError().name());
+    }
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getCounters()));

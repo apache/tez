@@ -62,6 +62,7 @@ public class ATSConstants {
   public static final String FINISH_TIME = "endTime";
   public static final String TIME_TAKEN = "timeTaken";
   public static final String STATUS = "status";
+  public static final String TASK_ATTEMPT_ERROR_ENUM = "taskAttemptErrorEnum";
   public static final String DIAGNOSTICS = "diagnostics";
   public static final String SUCCESSFUL_ATTEMPT_ID = "successfulAttemptId";
   public static final String COUNTERS = "counters";

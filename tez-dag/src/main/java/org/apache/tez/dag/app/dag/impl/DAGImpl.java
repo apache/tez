@@ -111,6 +111,7 @@ import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.dag.utils.RelocalizationUtils;
@@ -315,6 +316,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // Ignore-able events
           .addTransition(DAGState.FAILED, DAGState.FAILED,
               EnumSet.of(DAGEventType.DAG_KILL,
+                  DAGEventType.DAG_START,
                   DAGEventType.DAG_VERTEX_RERUNNING,
                   DAGEventType.DAG_SCHEDULER_UPDATE,
                   DAGEventType.DAG_VERTEX_COMPLETED))
@@ -766,6 +768,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
     return (TaskAttemptImpl) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
+  }
+
+  public TaskImpl getTask(TezTaskID tId) {
+    return (TaskImpl) getVertex(tId.getVertexID()).getTask(tId);
   }
 
   protected void initializeVerticesAndStart() {

@@ -840,6 +840,10 @@ public class TestDAGImpl {
     dagWithCustomEdge.handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
     Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
+    // START event is followed after INIT event
+    dagWithCustomEdge.handle(new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_START));
+    dispatcher.await();
+    Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
   }
 
   @Test(timeout = 5000)

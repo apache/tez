@@ -50,6 +50,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
@@ -75,8 +76,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
     
     AtomicBoolean startScheduling = new AtomicBoolean(true);
     AtomicBoolean goFlag;
+    boolean updateProgress = true;
     
     Map<TezTaskID, Integer> preemptedTasks = Maps.newConcurrentMap();
+    
+    Map<TezTaskAttemptID, Integer> tasksWithStatusUpdates = Maps.newConcurrentMap();
     
     public MockContainerLauncher(AtomicBoolean goFlag) {
       super("MockContainerLauncher");
@@ -88,6 +92,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       TezTaskAttemptID taId;
       String vName;
       ContainerLaunchContext launchContext;
+      int numUpdates = 0;
       boolean completed;
       
       public ContainerData(ContainerId cId, ContainerLaunchContext context) {
@@ -149,6 +154,10 @@ public class MockDAGAppMaster extends DAGAppMaster {
     public void startScheduling(boolean value) {
       startScheduling.set(value);
     }
+    
+    public void updateProgress(boolean value) {
+      this.updateProgress = value;
+    }
 
     public Map<ContainerId, ContainerData> getContainers() {
       return containers;
@@ -162,6 +171,10 @@ public class MockDAGAppMaster extends DAGAppMaster {
       getTaskSchedulerEventHandler().containerCompleted(null, 
           ContainerStatus.newInstance(cData.cId, null, "Preempted", ContainerExitStatus.PREEMPTED));
       cData.clear();
+    }
+    
+    public void setStatusUpdatesForTask(TezTaskAttemptID tId, int numUpdates) {
+      tasksWithStatusUpdates.put(tId, numUpdates);
     }
     
     void stop(NMCommunicatorStopRequestEvent event) {
@@ -183,6 +196,13 @@ public class MockDAGAppMaster extends DAGAppMaster {
         Thread.sleep(50);
       }
     }
+    
+    void incrementTime(long inc) {
+      Clock clock = getContext().getClock();
+      if (clock instanceof MockClock) {
+        ((MockClock) clock).incrementTime(inc);
+      }
+    }
 
     @Override
     public void run() {
@@ -192,6 +212,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
         if (!startScheduling.get()) { // schedule when asked to do so by the test code
           continue;
         }
+        incrementTime(1000);
         for (Map.Entry<ContainerId, ContainerData> entry : containers.entrySet()) {
           ContainerData cData = entry.getValue();
           ContainerId cId = entry.getKey();
@@ -214,8 +235,19 @@ public class MockDAGAppMaster extends DAGAppMaster {
           } else if (!cData.completed) {
             // container is assigned a task and task is not completed
             // complete the task or preempt the task
-            Integer version = preemptedTasks.get(cData.taId.getTaskID()); 
-            if (version != null && cData.taId.getId() <= version.intValue()) {
+            Integer version = preemptedTasks.get(cData.taId.getTaskID());
+            Integer updatesToMake = tasksWithStatusUpdates.get(cData.taId);
+            if (cData.numUpdates == 0 || // do at least one update
+                updatesToMake != null && cData.numUpdates < updatesToMake) {
+              cData.numUpdates++;
+              float maxUpdates = (updatesToMake != null) ? updatesToMake.intValue() : 1;
+              float progress = updateProgress ? cData.numUpdates/maxUpdates : 0f;
+              TezVertexID vertexId = cData.taId.getTaskID().getVertexID();
+              getContext().getEventHandler().handle(
+                  new VertexEventRouteEvent(vertexId, Collections.singletonList(new TezEvent(
+                      new TaskStatusUpdateEvent(null, progress), new EventMetaData(
+                          EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)))));
+            } else if (version != null && cData.taId.getId() <= version.intValue()) {
               preemptContainer(cData);
             } else {
               // send a done notification

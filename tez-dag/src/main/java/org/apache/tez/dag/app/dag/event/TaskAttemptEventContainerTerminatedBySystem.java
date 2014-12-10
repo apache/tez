@@ -18,19 +18,28 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventContainerTerminatedBySystem extends TaskAttemptEvent 
-  implements DiagnosableEvent {
+  implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
 
   private final String diagnostics;
-  public TaskAttemptEventContainerTerminatedBySystem(TezTaskAttemptID id, String diagnostics) {
+  private final TaskAttemptTerminationCause errorCause;
+  public TaskAttemptEventContainerTerminatedBySystem(TezTaskAttemptID id, String diagnostics,
+      TaskAttemptTerminationCause errorCause) {
     super(id, TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM);
     this.diagnostics = diagnostics;
+    this.errorCause = errorCause;
   }
 
   @Override
   public String getDiagnosticInfo() {
     return diagnostics;
+  }
+
+  @Override
+  public TaskAttemptTerminationCause getTerminationCause() {
+    return errorCause;
   }
 }

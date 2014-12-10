@@ -713,5 +713,23 @@ public class TestFaultTolerance {
     DAG dag = SimpleTestDAG.createDAG("testTwoTasksHaveInputFailuresSuccess", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
-
+  
+  @Test (timeout=60000)
+  public void testRandomFailingTasks() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setBoolean(TestProcessor.TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL, true);
+    testConf.setFloat(TestProcessor.TEZ_FAILING_PROCESSOR_RANDOM_FAIL_PROBABILITY, 0.5f);
+    DAG dag = SixLevelsFailingDAG.createDAG("testRandomFailingTasks", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  @Test (timeout=60000)
+  public void testRandomFailingInputs() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setBoolean(TestInput.TEZ_FAILING_INPUT_DO_RANDOM_FAIL, true);
+    testConf.setFloat(TestInput.TEZ_FAILING_INPUT_RANDOM_FAIL_PROBABILITY, 0.5f);
+    DAG dag = SixLevelsFailingDAG.createDAG("testRandomFailingInputs", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
 }

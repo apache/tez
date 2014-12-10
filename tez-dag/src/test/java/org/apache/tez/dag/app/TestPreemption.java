@@ -41,6 +41,7 @@ import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -92,7 +93,7 @@ public class TestPreemption {
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
     MockTezClient tezClient = new MockTezClient("testPreemption", tezconf, false, null, null,
-        mockAppLauncherGoFlag);
+        null, mockAppLauncherGoFlag);
     tezClient.start();
     
     DAGClient dagClient = tezClient.submitDAG(createDAG(DataMovementType.SCATTER_GATHER));
@@ -148,7 +149,7 @@ public class TestPreemption {
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
     MockTezClient tezClient = new MockTezClient("testPreemption", tezconf, true, null, null,
-        mockAppLauncherGoFlag);
+        null, mockAppLauncherGoFlag);
     tezClient.start();
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
     return tezClient;
@@ -200,6 +201,7 @@ public class TestPreemption {
       TezTaskAttemptID testTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), i);      
       TaskAttemptImpl taImpl = dagImpl.getTaskAttempt(testTaId);
       Assert.assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
+      Assert.assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION, taImpl.getTerminationCause());
     }
     
     System.out.println("TestPreemption - Done running - " + info);

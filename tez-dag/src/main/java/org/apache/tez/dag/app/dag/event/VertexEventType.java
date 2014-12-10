@@ -40,6 +40,9 @@ public enum VertexEventType {
   V_TASK_RESCHEDULED,
   V_TASK_ATTEMPT_COMPLETED,
   
+  //Producer:TaskAttempt
+  V_TASK_ATTEMPT_STATUS_UPDATE,
+  
   //Producer:Any component
   V_INTERNAL_ERROR,
   V_MANAGER_USER_CODE_ERROR,

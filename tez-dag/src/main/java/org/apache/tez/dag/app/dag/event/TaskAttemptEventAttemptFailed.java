@@ -18,16 +18,19 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent 
-  implements DiagnosableEvent {
+  implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
 
   private final String diagnostics;
+  private final TaskAttemptTerminationCause errorCause;
   public TaskAttemptEventAttemptFailed(TezTaskAttemptID id,
-      TaskAttemptEventType type, String diagnostics) {
+      TaskAttemptEventType type, String diagnostics, TaskAttemptTerminationCause errorCause) {
     super(id, type);
     this.diagnostics = diagnostics;
+    this.errorCause = errorCause;
   }
 
   @Override
@@ -35,5 +38,9 @@ public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent
     return diagnostics;
   }
   
-  
+  @Override
+  public TaskAttemptTerminationCause getTerminationCause() {
+    return errorCause;
+  }
+
 }

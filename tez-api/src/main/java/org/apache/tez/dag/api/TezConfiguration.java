@@ -36,33 +36,30 @@ public class TezConfiguration extends Configuration {
   public final static String TEZ_SITE_XML = "tez-site.xml";
 
   static {
-    Configuration.addDeprecations(new DeprecationDelta[]
-        {
-            new DeprecationDelta("tez.am.counters.max.keys", TezConfiguration.TEZ_COUNTERS_MAX),
-            new DeprecationDelta("tez.am.counters.groups.max.keys",
-                TezConfiguration.TEZ_COUNTERS_MAX_GROUPS),
-            new DeprecationDelta("tez.am.counters.name.max.keys",
-                TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH),
-            new DeprecationDelta("tez.am.counters.group-name.max.keys",
-                TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH),
+    Configuration.addDeprecation("tez.am.counters.max.keys", TezConfiguration.TEZ_COUNTERS_MAX);
+    Configuration.addDeprecation("tez.am.counters.groups.max.keys",
+        TezConfiguration.TEZ_COUNTERS_MAX_GROUPS);
+    Configuration.addDeprecation("tez.am.counters.name.max.keys",
+        TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH);
+    Configuration.addDeprecation("tez.am.counters.group-name.max.keys",
+        TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH);
 
-            new DeprecationDelta("tez.task.scale.task.memory.enabled",
-                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED),
-            new DeprecationDelta("tez.task.scale.task.memory.allocator.class",
-                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS),
-            new DeprecationDelta("tez.task.scale.task.memory.reserve-fraction",
-                TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION),
-            new DeprecationDelta(
-                "tez.task.scale.task.memory.additional-reservation.fraction.per-io",
-                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO),
-            new DeprecationDelta("tez.task.scale.task.memory.additional-reservation.fraction.max",
-                TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX),
-            new DeprecationDelta("tez.task.scale.task.memory.ratios",
-                TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS),
+    Configuration.addDeprecation("tez.task.scale.task.memory.enabled",
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED);
+    Configuration.addDeprecation("tez.task.scale.task.memory.allocator.class",
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS);
+    Configuration.addDeprecation("tez.task.scale.task.memory.reserve-fraction",
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION);
+    Configuration
+        .addDeprecation("tez.task.scale.task.memory.additional-reservation.fraction.per-io",
+            TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO);
+    Configuration.addDeprecation("tez.task.scale.task.memory.additional-reservation.fraction.max",
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX);
+    Configuration.addDeprecation("tez.task.scale.task.memory.ratios",
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS);
 
-            new DeprecationDelta("tez.task.max-events-per-heartbeat.max",
-                TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT)
-        });
+    Configuration.addDeprecation("tez.task.max-events-per-heartbeat.max",
+        TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT);
   }
 
   public TezConfiguration() {
@@ -272,7 +269,21 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "counters.group-name.max-length";
   public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 128;
 
-
+  @Unstable
+  /**
+   * Boolean value. Enable speculative execution of slower tasks. This can help reduce job latency 
+   * when some tasks are running slower due bad/slow machines
+   */
+  public static final String TEZ_AM_SPECULATION_ENABLED = TEZ_AM_PREFIX + "speculation.enabled";
+  public static final boolean TEZ_AM_SPECULATION_ENABLED_DEFAULT = false;
+  
+  /**
+   * Float value. Specifies how many standard deviations away from the mean task execution time 
+   * should be considered as an outlier/slow task.
+   */
+  @Unstable
+  public static final String TEZ_AM_LEGACY_SPECULATIVE_SLOWTASK_THRESHOLD = 
+                                     TEZ_AM_PREFIX + "legacy.speculative.slowtask.threshold";
 
   /**
    * Int value. Upper limit on the number of threads user to launch containers in the app

@@ -113,7 +113,7 @@ public class DAG {
    */
   public synchronized DAG addTaskLocalFiles(Map<String, LocalResource> localFiles) {
     Preconditions.checkNotNull(localFiles);
-    TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles);
+    TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles, "DAG " + getName());
     return this;
   }
   
@@ -591,6 +591,15 @@ public class DAG {
         }
         message.append(av.v.getName());
         throw new IllegalStateException("DAG contains a cycle: " + message);
+      } else {
+        // detect self-cycle
+        if (edgeMap.containsKey(pop.v)) {
+          for (Edge edge : edgeMap.get(pop.v)) {
+            if (edge.getOutputVertex().equals(pop.v)) {
+              throw new IllegalStateException("DAG contains a self-cycle on vertex:" + pop.v.getName());
+            }
+          }
+        }
       }
       topologicalVertexStack.push(av.v.getName());
     }
@@ -661,11 +670,14 @@ public class DAG {
           dagCredentials.addAll(dataSource.getCredentials());
         }
         if (dataSource.getAdditionalLocalFiles() != null) {
-          TezCommonUtils.addAdditionalLocalResources(dataSource.getAdditionalLocalFiles(), vertexLRs);
+          TezCommonUtils
+              .addAdditionalLocalResources(dataSource.getAdditionalLocalFiles(), vertexLRs,
+                  "Vertex " + vertex.getName());
         }
       }
       if (tezJarResources != null) {
-        TezCommonUtils.addAdditionalLocalResources(tezJarResources, vertexLRs);
+        TezCommonUtils
+            .addAdditionalLocalResources(tezJarResources, vertexLRs, "Vertex " + vertex.getName());
       }
       if (binaryConfig != null) {
         vertexLRs.put(TezConstants.TEZ_PB_BINARY_CONF_NAME, binaryConfig);

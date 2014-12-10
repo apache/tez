@@ -47,18 +47,16 @@ public class VersionInfo {
   protected VersionInfo(String component) {
     this.component = component;
     info = new Properties();
-    String versionInfoFile = component + "-version-info.properties";
+    String versionInfoFile = "/" + component + "-version-info.properties";
     InputStream is = null;
     try {
-      is = Thread.currentThread().getContextClassLoader()
-          .getResourceAsStream(versionInfoFile);
+      is = this.getClass().getResourceAsStream(versionInfoFile);
       if (is == null) {
-        throw new IOException("Resource not found");
+        throw new IOException("Resource not found: " + versionInfoFile);
       }
       info.load(is);
     } catch (IOException ex) {
-      LogFactory.getLog(getClass()).warn("Could not read '" +
-          versionInfoFile + "', " + ex.toString(), ex);
+      LOG.warn("Could not read '" + versionInfoFile + "', " + ex.toString(), ex);
     } finally {
       IOUtils.closeStream(is);
     }
@@ -86,7 +84,7 @@ public class VersionInfo {
         + ", version=" + getVersion()
         + ", revision=" + getRevision()
         + ", SCM-URL=" + getSCMURL()
-        + ", buildTIme=" + getBuildTime()
+        + ", buildTime=" + getBuildTime()
         + " ]";
   }
 

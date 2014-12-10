@@ -18,27 +18,33 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.app.dag.TaskTerminationCause;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskID;
 
-public class TaskEventTermination extends TaskEvent implements DiagnosableEvent{
+public class TaskEventTermination extends TaskEvent implements DiagnosableEvent,
+    TaskAttemptEventTerminationCauseEvent {
 
-  private TaskTerminationCause terminationCause;
-  private String diagnostics;
+  private final String diagnostics;
+  private final TaskAttemptTerminationCause errorCause;
   
-  public TaskEventTermination(TezTaskID taskID, TaskTerminationCause terminationCause) {
+  public TaskEventTermination(TezTaskID taskID, TaskAttemptTerminationCause errorCause, String diagnostics) {
     super(taskID, TaskEventType.T_TERMINATE);
-    this.terminationCause = terminationCause;
-    this.diagnostics = "Task is terminated due to:" + terminationCause.name();
-  }
-
-  public TaskTerminationCause getTerminationCause() {
-    return terminationCause;
+    this.errorCause = errorCause;
+    if (diagnostics != null) {
+      this.diagnostics = diagnostics;
+    } else {
+      this.diagnostics = "Task is terminated due to: " + errorCause.name();
+    }
   }
 
   @Override
   public String getDiagnosticInfo() {
     return diagnostics;
+  }
+
+  @Override
+  public TaskAttemptTerminationCause getTerminationCause() {
+    return errorCause;
   }
 
 }

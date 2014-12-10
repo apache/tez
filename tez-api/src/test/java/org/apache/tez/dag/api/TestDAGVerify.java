@@ -471,6 +471,32 @@ public class TestDAGVerify {
     Assert.assertTrue(ex.getMessage().startsWith("DAG contains a cycle"));
   }
 
+  // v1 -> v1
+  @Test(timeout = 5000)
+  public void testSelfCycle(){
+    IllegalStateException ex=null;
+    Vertex v1 = Vertex.create("v1",
+        ProcessorDescriptor.create("MapProcessor"),
+        dummyTaskCount, dummyTaskResource);
+    Edge e1 = Edge.create(v1, v1,
+        EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+            DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            OutputDescriptor.create("dummy output class"),
+            InputDescriptor.create("dummy input class")));
+    DAG dag = DAG.create("testDag");
+    dag.addVertex(v1);
+    dag.addEdge(e1);
+    try{
+      dag.verify();
+    }
+    catch (IllegalStateException e){
+      ex = e;
+    }
+    Assert.assertNotNull(ex);
+    System.out.println(ex.getMessage());
+    Assert.assertTrue(ex.getMessage().startsWith("DAG contains a self-cycle"));
+  }
+
   @Test(timeout = 5000)
   public void repeatedVertexName() {
     IllegalStateException ex=null;
@@ -956,33 +982,40 @@ public class TestDAGVerify {
     String lrName1 = "LR1";
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+
+    // Same lr, different size
+    Map<String, LocalResource> lrs2 = Maps.newHashMap();
+    lrs2.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test2"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 100, 1));
+
     v1.addTaskLocalFiles(lrs);
+    // Allowed since the LR is the same.
     try {
-      v1.addTaskLocalFiles(lrs);
+      v1.addTaskLocalFiles(lrs2);
       Assert.fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
+      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
 
     DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"), 
-        null, -1, null, null, lrs);
+        null, -1, null, null, lrs2);
     v1.addDataSource("i1", ds);
     
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addTaskLocalFiles(lrs);
     try {
-      dag.addTaskLocalFiles(lrs);
+      dag.addTaskLocalFiles(lrs2);
       Assert.fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
+      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
     try {
       // data source will add duplicate common files to vertex
       dag.createDag(new TezConfiguration(), null, null, null, true);
       Assert.fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Attempting to add duplicate resource"));
+      Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
   }
   
