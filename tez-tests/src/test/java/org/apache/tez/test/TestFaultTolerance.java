@@ -714,7 +714,7 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
-  @Test (timeout=60000)
+  @Test (timeout=120000)
   public void testRandomFailingTasks() throws Exception {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL, true);

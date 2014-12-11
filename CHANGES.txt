@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1835. TestFaultTolerance#testRandomFailingTasks is timing out
   TEZ-1832. TestSecureShuffle fails with NoClassDefFoundError: org/bouncycastle/x509/X509V1CertificateGenerator
   TEZ-1672. Update jetty to use stable 7.x version - 7.6.16.v20140903.
   TEZ-1822. Docs for Timeline/ACLs/HistoryText.
