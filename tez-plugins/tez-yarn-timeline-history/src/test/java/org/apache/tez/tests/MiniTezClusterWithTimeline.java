@@ -59,27 +59,32 @@ import com.google.common.collect.Collections2;
  *
  * When using this mini cluster, the user is expected to
  */
-public class MiniTezCluster extends MiniYARNCluster {
+public class MiniTezClusterWithTimeline extends MiniYARNCluster {
 
   public static final String APPJAR = JarFinder.getJar(DAGAppMaster.class);
 
-  private static final Log LOG = LogFactory.getLog(MiniTezCluster.class);
+  private static final Log LOG = LogFactory.getLog(MiniTezClusterWithTimeline.class);
 
   private static final String YARN_CLUSTER_CONFIG = "yarn-site.xml";
 
   private Path confFilePath;
 
-  public MiniTezCluster(String testName) {
+  public MiniTezClusterWithTimeline(String testName) {
     this(testName, 1);
   }
 
-  public MiniTezCluster(String testName, int noOfNMs) {
+  public MiniTezClusterWithTimeline(String testName, int noOfNMs) {
     super(testName, noOfNMs, 4, 4);
   }
 
-  public MiniTezCluster(String testName, int noOfNMs,
+  public MiniTezClusterWithTimeline(String testName, int noOfNMs,
       int numLocalDirs, int numLogDirs)  {
     super(testName, noOfNMs, numLocalDirs, numLogDirs);
+  }
+
+  public MiniTezClusterWithTimeline(String testName, int noOfNMs,
+                        int numLocalDirs, int numLogDirs, boolean enableAHS)  {
+    super(testName, 1, noOfNMs, numLocalDirs, numLogDirs, enableAHS);
   }
 
   @Override
@@ -99,10 +104,10 @@ public class MiniTezCluster extends MiniYARNCluster {
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
     }
     
-    File appJarLocalFile = new File(MiniTezCluster.APPJAR);
+    File appJarLocalFile = new File(MiniTezClusterWithTimeline.APPJAR);
 
     if (!appJarLocalFile.exists()) {
-      String message = "TezAppJar " + MiniTezCluster.APPJAR
+      String message = "TezAppJar " + MiniTezClusterWithTimeline.APPJAR
           + " not found. Exiting.";
       LOG.info(message);
       throw new TezUncheckedException(message);
@@ -114,7 +119,7 @@ public class MiniTezCluster extends MiniYARNCluster {
     Path testRootDir = fs.makeQualified(new Path("target", getName() + "-tmpDir"));
     Path appRemoteJar = new Path(testRootDir, "TezAppJar.jar");
     // Copy AppJar and make it public.
-    Path appMasterJar = new Path(MiniTezCluster.APPJAR);
+    Path appMasterJar = new Path(MiniTezClusterWithTimeline.APPJAR);
     fs.copyFromLocalFile(appMasterJar, appRemoteJar);
     fs.setPermission(appRemoteJar, new FsPermission("777"));
 
@@ -184,7 +189,7 @@ public class MiniTezCluster extends MiniYARNCluster {
 
   @Override
   public void serviceStart() throws Exception {
-    LOG.info("Starting MiniTezCluster");
+    LOG.info("Starting MiniTezClusterWithTimeline");
     super.serviceStart();
     File workDir = super.getTestWorkDir();
     Configuration conf = super.getConfig();
@@ -231,7 +236,7 @@ public class MiniTezCluster extends MiniYARNCluster {
         if (unCompletedApps.size()==0){
           break;
         }
-        LOG.info("wait for applications to finish in MiniTezCluster");
+        LOG.info("wait for applications to finish in MiniTezClusterWithTimeline");
         Thread.sleep(1000);
       }
     } catch (Exception e) {

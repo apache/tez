@@ -61,12 +61,14 @@ public class TestATSHistoryLoggingService {
     conf.setLong(TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS,
         1000l);
     conf.setInt(TezConfiguration.YARN_ATS_MAX_EVENTS_PER_BATCH, 2);
+    conf.setBoolean(TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS, true);
     atsInvokeCounter = 0;
     atsEntitiesCounter = 0;
     atsHistoryLoggingService.init(conf);
     atsHistoryLoggingService.timelineClient = mock(TimelineClient.class);
     atsHistoryLoggingService.start();
     when(appContext.getClock()).thenReturn(clock);
+    when(appContext.getCurrentDAGID()).thenReturn(null);
     when(atsHistoryLoggingService.timelineClient.putEntities(
         Matchers.<TimelineEntity[]>anyVararg())).thenAnswer(
         new Answer<Object>() {

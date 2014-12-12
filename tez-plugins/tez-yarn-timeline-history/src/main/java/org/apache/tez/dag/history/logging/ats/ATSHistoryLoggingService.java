@@ -18,9 +18,11 @@
 
 package org.apache.tez.dag.history.logging.ats;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,8 +34,11 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse.TimelinePutError;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
+import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
@@ -59,11 +64,17 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
   TimelineClient timelineClient;
 
   private HashSet<TezDAGID> skippedDAGs = new HashSet<TezDAGID>();
+  private Map<TezDAGID, String> dagDomainIdMap = new HashMap<TezDAGID, String>();
   private long maxTimeToWaitOnShutdown;
   private boolean waitForeverOnShutdown = false;
 
   private int maxEventsPerBatch;
   private long maxPollingTimeMillis;
+
+  private String sessionDomainId;
+  private static final String atsHistoryACLManagerClassName =
+      "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
+  private HistoryACLPolicyManager historyACLPolicyManager;
 
   public ATSHistoryLoggingService() {
     super(ATSHistoryLoggingService.class.getName());
@@ -86,6 +97,23 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     if (maxTimeToWaitOnShutdown < 0) {
       waitForeverOnShutdown = true;
     }
+    sessionDomainId = conf.get(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID);
+
+    LOG.info("Using " + atsHistoryACLManagerClassName + " to manage Timeline ACLs");
+    try {
+      historyACLPolicyManager = ReflectionUtils.createClazzInstance(
+          atsHistoryACLManagerClassName);
+      historyACLPolicyManager.setConf(conf);
+    } catch (TezUncheckedException e) {
+      LOG.warn("Could not instantiate object for " + atsHistoryACLManagerClassName
+          + ". ACLs cannot be enforced correctly for history data in Timeline", e);
+      if (!conf.getBoolean(TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
+          TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
+        throw e;
+      }
+      historyACLPolicyManager = null;
+    }
+
   }
 
   @Override
@@ -223,6 +251,13 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
         skippedDAGs.add(dagId);
         return false;
       }
+      if (historyACLPolicyManager != null) {
+        String dagDomainId = dagSubmittedEvent.getConf().get(
+            TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID);
+        if (dagDomainId != null) {
+          dagDomainIdMap.put(dagId, dagDomainId);
+        }
+      }
     }
     if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
       // Remove from set to keep size small
@@ -240,13 +275,25 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     return true;
   }
 
-
-
   private void handleEvents(List<DAGHistoryEvent> events) {
     TimelineEntity[] entities = new TimelineEntity[events.size()];
     for (int i = 0; i < events.size(); ++i) {
-      entities[i] = HistoryEventTimelineConversion.convertToTimelineEntity(
-          events.get(i).getHistoryEvent());
+      DAGHistoryEvent event = events.get(i);
+      String domainId = sessionDomainId;
+      TezDAGID dagId = event.getDagID();
+
+      if (historyACLPolicyManager != null && dagId != null) {
+        if (dagDomainIdMap.containsKey(dagId)) {
+          domainId = dagDomainIdMap.get(dagId);
+        }
+      }
+
+      entities[i] = HistoryEventTimelineConversion.convertToTimelineEntity(event.getHistoryEvent());
+      if (historyACLPolicyManager != null) {
+        if (domainId != null && !domainId.isEmpty()) {
+          historyACLPolicyManager.updateTimelineEntityDomain(entities[i], domainId);
+        }
+      }
     }
 
     if (LOG.isDebugEnabled()) {

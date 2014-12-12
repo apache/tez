@@ -65,19 +65,25 @@ Building against a specific version of hadoop:
 
 Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.2.0 or higher.
 
-By default, it can be compiled against hadoop versions 2.4.0 and higher by just
+By default, it can be compiled against hadoop versions 2.6.0 and higher by just
 specifying the hadoop.version. For example, to build tez against hadoop 3.0.0-SNAPSHOT 
 
  $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT
  
-However, to compile against hadoop versions lower than 2.4.0, the hadoop24 profile needs
-to be disabled
-
- $ mvn package  -Dhadoop.version=2.2.0 -P\!hadoop24
-
 To skip Tests and java docs
 
  $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT -DskipTests -Dmaven.javadoc.skip=true
+
+However, to build against hadoop versions lower than 2.6.0, you will need to do the
+following:
+
+For Hadoop version X where 2.4.0 <= X < 2.6.0
+
+ $ mvn package  -Dhadoop.version=${X} -Phadoop24 -P\!hadoop26
+
+For Hadoop version X where X < 2.4.0
+
+ $ mvn package  -Dhadoop.version=${X} -P\!hadoop24 -P\!hadoop26
 
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:
@@ -93,7 +99,6 @@ protoc is looked up in the PATH.
 You can also specify the path to protoc while building using -Dprotoc.path
 
  $ mvn package -DskipTests -Dprotoc.path=/usr/local/bin/protoc
-
 
 ----------------------------------------------------------------------------------
 Building the docs:

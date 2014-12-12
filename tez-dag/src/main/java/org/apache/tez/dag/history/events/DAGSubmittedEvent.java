@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -55,13 +56,15 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   private String user;
   private Map<String, LocalResource> cumulativeAdditionalLocalResources;
 
+  private Configuration conf;
+
   public DAGSubmittedEvent() {
   }
 
   public DAGSubmittedEvent(TezDAGID dagID, long submitTime,
       DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
       Map<String, LocalResource> cumulativeAdditionalLocalResources,
-      String user) {
+      String user, Configuration conf) {
     this.dagID = dagID;
     this.dagName = dagPlan.getName();
     this.submitTime = submitTime;
@@ -69,6 +72,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     this.applicationAttemptId = applicationAttemptId;
     this.cumulativeAdditionalLocalResources = cumulativeAdditionalLocalResources;
     this.user = user;
+    this.conf = conf;
   }
 
   @Override
@@ -181,6 +185,10 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   public String getUser() {
     return user;
+  }
+
+  public Configuration getConf() {
+    return conf;
   }
 
 }

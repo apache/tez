@@ -54,12 +54,25 @@
     <profile>
       <id>hadoop24</id>
       <activation>
-         <activeByDefault>true</activeByDefault>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <dependencies>
         <dependency>
           <groupId>org.apache.tez</groupId>
           <artifactId>tez-yarn-timeline-history</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>hadoop26</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.tez</groupId>
+          <artifactId>tez-yarn-timeline-history-with-acls</artifactId>
           <version>${project.version}</version>
         </dependency>
       </dependencies>

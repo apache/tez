@@ -44,7 +44,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class ACLManager {
 
   private static final Log LOG = LogFactory.getLog(ACLManager.class);
-  static final String WILDCARD_ACL_VALUE = "*";
+  public static final String WILDCARD_ACL_VALUE = "*";
 
   private final String dagUser;
   private final String amUser;
@@ -218,7 +218,7 @@ public class ACLManager {
     return acls;
   }
 
-  static String toCommaSeparatedString(Collection<String> collection) {
+  public static String toCommaSeparatedString(Collection<String> collection) {
     StringBuilder sb = new StringBuilder();
     boolean first = true;
     for (String s : collection) {

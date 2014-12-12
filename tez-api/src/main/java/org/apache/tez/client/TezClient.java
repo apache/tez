@@ -39,6 +39,8 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
@@ -48,6 +50,7 @@ import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
@@ -107,9 +110,14 @@ public class TezClient {
       new JobTokenSecretManager();
   private Map<String, LocalResource> additionalLocalResources = Maps.newHashMap();
   private TezApiVersionInfo apiVersionInfo;
+  private HistoryACLPolicyManager historyACLPolicyManager;
 
   private int preWarmDAGCounter = 0;
 
+  private static final String atsHistoryLoggingServiceClassName =
+      "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
+  private static final String atsHistoryACLManagerClassName =
+      "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
 
   private TezClient(String name, TezConfiguration tezConf) {
     this(name, tezConf, tezConf.getBoolean(
@@ -139,6 +147,7 @@ public class TezClient {
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
     this.apiVersionInfo = new TezApiVersionInfo();
+
     LOG.info("Tez Client Version: " + apiVersionInfo.toString());
   }
 
@@ -288,7 +297,27 @@ public class TezClient {
 
     frameworkClient = createFrameworkClient();
     frameworkClient.init(amConfig.getTezConfiguration(), amConfig.getYarnConfiguration());
-    frameworkClient.start();    
+    frameworkClient.start();
+
+    if (this.amConfig.getTezConfiguration().get(
+        TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
+        .equals(atsHistoryLoggingServiceClassName)) {
+      LOG.info("Using " + atsHistoryACLManagerClassName + " to manage Timeline ACLs");
+      try {
+        historyACLPolicyManager = ReflectionUtils.createClazzInstance(
+            atsHistoryACLManagerClassName);
+        historyACLPolicyManager.setConf(this.amConfig.getYarnConfiguration());
+      } catch (TezUncheckedException e) {
+        LOG.warn("Could not instantiate object for " + atsHistoryACLManagerClassName
+            + ". ACLs cannot be enforced correctly for history data in Timeline", e);
+        if (!amConfig.getTezConfiguration().getBoolean(
+            TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
+            TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
+          throw e;
+        }
+        historyACLPolicyManager = null;
+      }
+    }
 
     if (isSession) {
       LOG.info("Session mode. Starting session.");
@@ -314,7 +343,8 @@ public class TezClient {
             TezClientUtils.createApplicationSubmissionContext(
                 sessionAppId,
                 null, clientName, amConfig,
-                tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo);
+                tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo,
+                historyACLPolicyManager);
   
         // Set Tez Sessions to not retry on AM crashes if recovery is disabled
         if (!amConfig.getTezConfiguration().getBoolean(
@@ -373,10 +403,16 @@ public class TezClient {
             + lr.getType() + " is not supported, only " + LocalResourceType.FILE + " is supported");
       }
     }
-    
+
+    Map<String, String> aclConfigs = null;
+    if (historyACLPolicyManager != null) {
+      aclConfigs = historyACLPolicyManager.setupSessionDAGACLs(
+          amConfig.getTezConfiguration(), sessionAppId, dag.getName(), dag.getDagAccessControls());
+    }
+
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
-        usingTezArchiveDeploy, sessionCredentials);
+        usingTezArchiveDeploy, sessionCredentials, aclConfigs);
 
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan).build();
@@ -690,7 +726,7 @@ public class TezClient {
       ApplicationSubmissionContext appContext = TezClientUtils
           .createApplicationSubmissionContext( 
               appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
-              usingTezArchiveDeploy, apiVersionInfo);
+              usingTezArchiveDeploy, apiVersionInfo, historyACLPolicyManager);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId
           + ", dagName=" + dag.getName());

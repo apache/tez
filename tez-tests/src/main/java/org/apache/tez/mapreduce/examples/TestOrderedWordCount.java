@@ -54,6 +54,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
@@ -94,6 +95,10 @@ import com.google.common.collect.Maps;
 public class TestOrderedWordCount extends Configured implements Tool {
 
   private static Log LOG = LogFactory.getLog(TestOrderedWordCount.class);
+
+  private static final String DAG_VIEW_ACLS = "tez.testorderedwordcount.view-acls";
+  private static final String DAG_MODIFY_ACLS = "tez.testorderedwordcount.modify-acls";
+
 
   public static class TokenizerMapper
        extends Mapper<Object, Text, Text, IntWritable>{
@@ -291,8 +296,31 @@ public class TestOrderedWordCount extends Configured implements Tool {
         Edge.create(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
             edgeConf2.createDefaultEdgeProperty()));
 
+    updateDAGACls(conf, dag, dagIndex);
+
     return dag;
   }
+
+  private void updateDAGACls(Configuration conf, DAG dag, int dagIndex) {
+    LOG.info("Checking DAG specific ACLS");
+    DAGAccessControls accessControls = null;
+    String suffix = "." + dagIndex;
+    if (conf.get(DAG_VIEW_ACLS + suffix) != null
+        || conf.get(DAG_MODIFY_ACLS + suffix) != null) {
+      accessControls = new DAGAccessControls(
+          conf.get(DAG_VIEW_ACLS + suffix), conf.get(DAG_MODIFY_ACLS + suffix));
+
+    } else if (conf.get(DAG_VIEW_ACLS) != null
+      || conf.get(DAG_MODIFY_ACLS) != null) {
+      accessControls = new DAGAccessControls(
+          conf.get(DAG_VIEW_ACLS), conf.get(DAG_MODIFY_ACLS));
+    }
+    if (accessControls != null) {
+      LOG.info("Setting DAG specific ACLS");
+      dag.setAccessControls(accessControls);
+    }
+  }
+
 
   private static void printUsage() {
     String options = " [-generateSplitsInClient true/<false>]";

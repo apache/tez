@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -126,6 +127,26 @@ public class ACLConfigurationParser {
 
   public Map<ACLType, Set<String>> getAllowedGroups() {
     return Collections.unmodifiableMap(allowedGroups);
+  }
+
+  public void addAllowedUsers(Map<ACLType, Set<String>> additionalAllowedUsers) {
+    for (Entry<ACLType, Set<String>> entry : additionalAllowedUsers.entrySet()) {
+      if (allowedUsers.containsKey(entry.getKey())) {
+        allowedUsers.get(entry.getKey()).addAll(entry.getValue());
+      } else {
+        allowedUsers.put(entry.getKey(), entry.getValue());
+      }
+    }
+  }
+
+  public void addAllowedGroups(Map<ACLType, Set<String>> additionalAllowedGroups) {
+    for (Entry<ACLType, Set<String>> entry : additionalAllowedGroups.entrySet()) {
+      if (allowedGroups.containsKey(entry.getKey())) {
+        allowedGroups.get(entry.getKey()).addAll(entry.getValue());
+      } else {
+        allowedGroups.put(entry.getKey(), entry.getValue());
+      }
+    }
   }
 
 }

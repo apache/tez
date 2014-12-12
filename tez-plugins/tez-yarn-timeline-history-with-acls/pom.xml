@@ -21,7 +21,7 @@
     <artifactId>tez-plugins</artifactId>
     <version>0.6.0-SNAPSHOT</version>
   </parent>
-  <artifactId>tez-yarn-timeline-history</artifactId>
+  <artifactId>tez-yarn-timeline-history-with-acls</artifactId>
 
   <dependencies>
     <dependency>
@@ -135,17 +135,5 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>hadoop26</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.tez</groupId>
-          <artifactId>tez-yarn-timeline-history</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
-
 </project>
+

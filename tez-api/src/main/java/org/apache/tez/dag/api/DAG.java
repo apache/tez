@@ -84,6 +84,7 @@ public class DAG {
   Credentials credentials = new Credentials();
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
+
   private DAGAccessControls dagAccessControls;
   Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
   String dagInfo;
@@ -196,6 +197,11 @@ public class DAG {
   public synchronized DAG setAccessControls(DAGAccessControls accessControls) {
     this.dagAccessControls = accessControls;
     return this;
+  }
+
+  @Private
+  public synchronized DAGAccessControls getDagAccessControls() {
+    return dagAccessControls;
   }
 
   /**
@@ -606,10 +612,18 @@ public class DAG {
   }
 
   // create protobuf message describing DAG
+  public DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
+                           Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
+                           boolean tezLrsAsArchive) {
+    return createDag(dagConf, extraCredentials, tezJarResources, binaryConfig, tezLrsAsArchive,
+        null);
+  }
+
+  // create protobuf message describing DAG
   @Private
   public DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
-      boolean tezLrsAsArchive) {
+      boolean tezLrsAsArchive, Map<String, String> additionalConfigs) {
     verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
@@ -823,6 +837,14 @@ public class DAG {
       Iterator<Entry<String, String>> aclConfIter = aclConf.iterator();
       while (aclConfIter.hasNext()) {
         Entry<String, String> entry = aclConfIter.next();
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(entry.getKey());
+        kvp.setValue(entry.getValue());
+        confProtoBuilder.addConfKeyValues(kvp);
+      }
+    }
+    if (additionalConfigs != null && !additionalConfigs.isEmpty()) {
+      for (Entry<String, String> entry : additionalConfigs.entrySet()) {
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
         kvp.setKey(entry.getKey());
         kvp.setValue(entry.getValue());

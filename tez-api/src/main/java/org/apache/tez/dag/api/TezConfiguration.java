@@ -791,6 +791,16 @@ public class TezConfiguration extends Configuration {
       + "yarn.ats.max.polling.time.per.event.millis";
   public static final int YARN_ATS_MAX_POLLING_TIME_PER_EVENT_DEFAULT = 10;
 
+
+  public static final String YARN_ATS_ACL_DOMAINS_AUTO_CREATE = TEZ_PREFIX
+      + "yarn.ats.acl.domains.auto-create";
+  public static final boolean YARN_ATS_ACL_DOMAINS_AUTO_CREATE_DEFAULT = true;
+
+  public static final String YARN_ATS_ACL_SESSION_DOMAIN_ID = TEZ_PREFIX
+      + "yarn.ats.acl.session.domain.id";
+  public static final String YARN_ATS_ACL_DAG_DOMAIN_ID = TEZ_PREFIX
+      + "yarn.ats.acl.dag.domain.id";
+
   /**
    * Boolean value. Enable recovery of DAGs. This allows a restarted app master to recover the 
    * incomplete DAGs from the previous instance of the app master.
@@ -900,6 +910,12 @@ public class TezConfiguration extends Configuration {
       + "disable.client-version-check";
   public static final boolean TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT = false;
 
-
+  /**
+   * Boolean value.
+   * Allow disabling of Timeline Domains even if Timeline is being used.
+   */
+  public static final String TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS = TEZ_PREFIX
+      + "allow.disabled.timeline-domains";
+  public static final boolean TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT = false;
 
 }

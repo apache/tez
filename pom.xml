@@ -37,7 +37,7 @@
   <properties>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <clover.license>${user.home}/clover.license</clover.license>
-    <hadoop.version>2.4.0</hadoop.version>
+    <hadoop.version>2.6.0</hadoop.version>
     <jetty.version>7.6.16.v20140903</jetty.version>
     <distMgmtSnapshotsId>apache.snapshots.https</distMgmtSnapshotsId>
     <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
@@ -134,6 +134,12 @@
         <groupId>org.apache.tez</groupId>
         <artifactId>tez-tests</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tez</groupId>
+        <artifactId>tez-tests</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
@@ -525,6 +531,11 @@
             <artifactId>jasper-runtime</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-json</artifactId>
+        <version>1.9</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
