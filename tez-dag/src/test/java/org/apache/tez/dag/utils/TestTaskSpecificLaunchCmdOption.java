@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.utils;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -40,7 +41,8 @@ public class TestTaskSpecificLaunchCmdOption {
     return new TaskSpecificLaunchCmdOption(conf);
   }
 
-  @Test
+
+  @Test(timeout = 5000)
   public void testTaskSpecificJavaOptions() {
     Random rnd = new Random();
     Configuration conf = new Configuration();
@@ -238,7 +240,7 @@ public class TestTaskSpecificLaunchCmdOption {
         rnd.nextInt(Integer.MAX_VALUE)));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConfigOptions() {
     Configuration conf = new Configuration();
     TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption = getOptions(conf, "", "");
@@ -262,5 +264,45 @@ public class TestTaskSpecificLaunchCmdOption {
 
     optionStr = taskSpecificLaunchCmdOption.getTaskSpecificOption("", "v", 4);
     assertTrue(optionStr.equals("dir=/tmp/v/4"));
+  }
+
+
+  @Test(timeout = 5000)
+  public void testTaskSpecificLogOptions() {
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, "v1[0,2,5]");
+    TaskSpecificLaunchCmdOption options;
+
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL, "DEBUG;org.apache.tez=INFO");
+    options = new TaskSpecificLaunchCmdOption(conf);
+    assertTrue(options.hasModifiedLogProperties());
+    assertFalse(options.hasModifiedTaskLaunchOpts());
+    assertEquals(2, options.getTaskSpecificLogParams().length);
+
+    conf.unset(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL);
+    options = new TaskSpecificLaunchCmdOption(conf);
+    assertFalse(options.hasModifiedLogProperties());
+    assertFalse(options.hasModifiedTaskLaunchOpts());
+
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL, "DEBUG");
+    options = new TaskSpecificLaunchCmdOption(conf);
+    assertTrue(options.hasModifiedLogProperties());
+    assertFalse(options.hasModifiedTaskLaunchOpts());
+    assertEquals(1, options.getTaskSpecificLogParams().length);
+  }
+
+  @Test (timeout=5000)
+  public void testTaskSpecificLogOptionsWithCommandOptions() {
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, "v1[0,2,5]");
+    TaskSpecificLaunchCmdOption options;
+
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL, "DEBUG;org.apache.tez=INFO");
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, "-Xmx128m");
+    options = new TaskSpecificLaunchCmdOption(conf);
+    assertTrue(options.hasModifiedLogProperties());
+    assertTrue(options.hasModifiedTaskLaunchOpts());
+    String optionStr = options.getTaskSpecificOption("", "v", 0);
+    assertTrue(optionStr.equals("-Xmx128m"));
   }
 }

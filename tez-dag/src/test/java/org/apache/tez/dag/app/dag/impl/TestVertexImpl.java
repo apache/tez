@@ -103,7 +103,6 @@ import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -111,7 +110,6 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
@@ -2283,7 +2281,7 @@ public class TestVertexImpl {
     VertexImpl v3 = vertices.get("vertex3");
 
     Assert.assertEquals("x3.y3", v3.getProcessorName());
-    Assert.assertEquals("foo", v3.getJavaOpts());
+    Assert.assertTrue(v3.getJavaOpts().contains("foo"));
 
     Assert.assertEquals(2, v3.getInputSpecList(0).size());
     Assert.assertEquals(2, v3.getInputVerticesCount());

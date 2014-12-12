@@ -117,11 +117,41 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_SESSION_MODE = TEZ_AM_PREFIX + "mode.session";
   public static boolean TEZ_AM_SESSION_MODE_DEFAULT = false;
 
-  /** Root Logging level passed to the Tez app master.*/
+  /**
+   * Root Logging level passed to the Tez app master.
+   *
+   * Simple configuration: Set the log level for all loggers.
+   *   e.g. INFO
+   *   This sets the log level to INFO for all loggers.
+   *
+   * Advanced configuration: Set the log level for all classes, along with a different level for some.
+   *   e.g. DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO
+   *   This sets the log level for all loggers to DEBUG, expect for the
+   *   org.apache.hadoop.ipc and org.apache.hadoop.security, which are set to INFO
+   *
+   * Note: The global log level must always be the first parameter.
+   *   DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO is valid
+   *   org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO is not valid
+   * */
   public static final String TEZ_AM_LOG_LEVEL = TEZ_AM_PREFIX + "log.level";
   public static final String TEZ_AM_LOG_LEVEL_DEFAULT = "INFO";
 
-  /** Root Logging level passed to the Tez tasks.*/
+  /**
+   * Root Logging level passed to the Tez tasks.
+   *
+   * Simple configuration: Set the log level for all loggers.
+   *   e.g. INFO
+   *   This sets the log level to INFO for all loggers.
+   *
+   * Advanced configuration: Set the log level for all classes, along with a different level for some.
+   *   e.g. DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO
+   *   This sets the log level for all loggers to DEBUG, expect for the
+   *   org.apache.hadoop.ipc and org.apache.hadoop.security, which are set to INFO
+   *
+   * Note: The global log level must always be the first parameter.
+   *   DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO is valid
+   *   org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO is not valid
+   * */
   public static final String TEZ_TASK_LOG_LEVEL = TEZ_TASK_PREFIX + "log.level";
   public static final String TEZ_TASK_LOG_LEVEL_DEFAULT = "INFO";
 
@@ -738,6 +768,25 @@ public class TezConfiguration extends Configuration {
   @Unstable
   public static final String TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS = TEZ_PREFIX + "task-specific" +
       ".launch.cmd-opts";
+
+  /**
+   * Task specific log level.
+   *
+   * Simple configuration: Set the log level for all loggers.
+   *   e.g. INFO
+   *   This sets the log level to INFO for all loggers.
+   *
+   * Advanced configuration: Set the log level for all classes, along with a different level for some.
+   *   e.g. DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO
+   *   This sets the log level for all loggers to DEBUG, expect for the
+   *   org.apache.hadoop.ipc and org.apache.hadoop.security, which are set to INFO
+   *
+   * Note: The global log level must always be the first parameter.
+   *   DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO is valid
+   *   org.apache.hadoop.ipc=INFO;org.apache.hadoop.security=INFO is not valid
+   * */
+  @Unstable
+  public static final String TEZ_TASK_SPECIFIC_LOG_LEVEL = TEZ_PREFIX + "task-specific" + ".log.level";
 
   /**
    * String value that is a class name.

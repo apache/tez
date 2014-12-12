@@ -62,6 +62,8 @@ public class TezConstants {
   public static final String TEZ_CONTAINER_LOG_FILE_NAME = "syslog";
   public static final String TEZ_CONTAINER_ERR_FILE_NAME = "stderr";
   public static final String TEZ_CONTAINER_OUT_FILE_NAME = "stdout";
+  public static final String TEZ_CONTAINER_LOG_PARAMS = "TEZ_CONTAINER_LOG_PARAMS";
+  public static final String TEZ_CONTAINER_LOG_PARAMS_SEPARATOR = ";";
 
   public static final String TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME =
     TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";

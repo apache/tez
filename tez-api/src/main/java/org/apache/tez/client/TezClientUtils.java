@@ -36,6 +36,7 @@ import java.util.TreeMap;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -404,7 +405,9 @@ public class TezClientUtils {
    * @throws IOException
    * @throws YarnException
    */
-  static ApplicationSubmissionContext createApplicationSubmissionContext(
+  @Private
+  @VisibleForTesting
+  public static ApplicationSubmissionContext createApplicationSubmissionContext(
       ApplicationId appId, DAG dag, String amName,
       AMConfiguration amConfig, Map<String, LocalResource> tezJarResources,
       Credentials sessionCreds, boolean tezLrsAsArchive,
@@ -443,7 +446,7 @@ public class TezClientUtils {
     }
 
     // Add Staging dir creds to the list of session credentials.
-    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[] {binaryConfPath}, conf);
+    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath}, conf);
 
     // Add session specific credentials to the AM credentials.
     amLaunchCredentials.mergeAll(sessionCreds);
@@ -459,10 +462,14 @@ public class TezClientUtils {
     String amOpts = constructAMLaunchOpts(amConfig.getTezConfiguration(), capability);
     vargs.add(amOpts);
 
-    String amLogLevel = amConfig.getTezConfiguration().get(
+    String amLogLevelString = amConfig.getTezConfiguration().get(
         TezConfiguration.TEZ_AM_LOG_LEVEL,
         TezConfiguration.TEZ_AM_LOG_LEVEL_DEFAULT);
+    String[] amLogParams = parseLogParams(amLogLevelString);
+
+    String amLogLevel = amLogParams[0];
     maybeAddDefaultLoggingJavaOpts(amLogLevel, vargs);
+
 
     // FIX sun bug mentioned in TEZ-327
     vargs.add("-Dsun.nio.ch.bugLevel=''");
@@ -505,7 +512,8 @@ public class TezClientUtils {
     }
 
     addVersionInfoToEnv(environment, apiVersionInfo);
-    
+    addLogParamsToEnv(environment, amLogParams);
+
     Map<String, LocalResource> amLocalResources =
         new TreeMap<String, LocalResource>();
 
@@ -677,8 +685,9 @@ public class TezClientUtils {
     }
     TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
   }
-  
-  static String maybeAddDefaultLoggingJavaOpts(String logLevel, String javaOpts) {
+
+  @Private
+  public static String maybeAddDefaultLoggingJavaOpts(String logLevel, String javaOpts) {
     List<String> vargs = new ArrayList<String>(5);
     if (javaOpts != null) {
       vargs.add(javaOpts);
@@ -706,10 +715,6 @@ public class TezClientUtils {
       // Add options specified in the DAG at the end.
       vOpts = vConfigOpts + " " + vOpts;
     }
-    
-    vOpts = maybeAddDefaultLoggingJavaOpts(conf.get(
-        TezConfiguration.TEZ_TASK_LOG_LEVEL,
-        TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT), vOpts);
     return vOpts;
   }
 
@@ -717,6 +722,7 @@ public class TezClientUtils {
   @VisibleForTesting
   public static void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
+    vargs.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
     vargs.add("-Dlog4j.configuration="
         + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
     vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
@@ -961,4 +967,25 @@ public class TezClientUtils {
     }
   }
 
+  @Private
+  public static void addLogParamsToEnv(Map<String, String> environment, String[] logParams) {
+    if (logParams.length == 2 && !Strings.isNullOrEmpty(logParams[1])) {
+      TezYARNUtils.replaceInEnv(environment, TezConstants.TEZ_CONTAINER_LOG_PARAMS, logParams[1]);
+    }
+  }
+
+  @Private
+  public static String[] parseLogParams(String logConfig) {
+    if (!Strings.isNullOrEmpty(logConfig)) {
+      int separatorIndex = logConfig.indexOf(TezConstants.TEZ_CONTAINER_LOG_PARAMS_SEPARATOR);
+      if (separatorIndex == -1) {
+        return new String[]{logConfig.trim()};
+      } else {
+        return new String[]{logConfig.substring(0, separatorIndex),
+            logConfig.substring(separatorIndex + 1, logConfig.length()).trim()};
+      }
+    } else {
+      return null;
+    }
+  }
 }
