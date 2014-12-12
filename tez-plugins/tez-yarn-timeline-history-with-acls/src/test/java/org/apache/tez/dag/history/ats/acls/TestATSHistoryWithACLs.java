@@ -54,7 +54,7 @@ import org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
-import org.apache.tez.test.MiniTezClusterWithTimeline;
+import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

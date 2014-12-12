@@ -16,7 +16,7 @@
 * limitations under the License.
 */
 
-package org.apache.tez.test;
+package org.apache.tez.tests;
 
 import java.io.File;
 import java.io.FileOutputStream;
