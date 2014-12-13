@@ -43,7 +43,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
-import org.apache.tez.test.MiniTezClusterWithTimeline;
+import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
