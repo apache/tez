@@ -69,7 +69,6 @@ import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher;
 import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection;
 import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -157,6 +156,10 @@ public class ShuffleManager implements FetcherCallback {
   private final Path[] localDisks;
   private final static String localhostName = NetUtils.getHostname();
 
+  private final TezCounter shufflePhaseTime;
+  private final TezCounter firstEventReceived;
+  private final TezCounter lastEventReceived;
+
   // TODO More counters - FetchErrors, speed?
   
   public ShuffleManager(InputContext inputContext, Configuration conf, int numInputs,
@@ -182,6 +185,10 @@ public class ShuffleManager implements FetcherCallback {
         TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
     this.sharedFetchEnabled = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH,
         TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH_DEFAULT);
+
+    this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
+    this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
+    this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
     
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
@@ -324,6 +331,7 @@ public class ShuffleManager implements FetcherCallback {
           }
         }
       }
+      shufflePhaseTime.setValue(System.currentTimeMillis() - startTime);
       LOG.info("Shutting down FetchScheduler, Was Interrupted: " + Thread.currentThread().isInterrupted());
       // TODO NEWTEZ Maybe clean up inputs.
       if (!fetcherExecutor.isShutdown()) {
@@ -431,6 +439,16 @@ public class ShuffleManager implements FetcherCallback {
     } finally {
       lock.unlock();
     }
+  }
+
+  protected synchronized  void updateEventReceivedTime() {
+    long relativeTime = System.currentTimeMillis() - startTime;
+    if (firstEventReceived.getValue() == 0) {
+      firstEventReceived.setValue(relativeTime);
+      lastEventReceived.setValue(relativeTime);
+      return;
+    }
+    lastEventReceived.setValue(relativeTime);
   }
 
   public void addCompletedInputWithData(

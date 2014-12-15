@@ -175,4 +175,34 @@ public enum TaskCounter {
    * Number of disk to disk merges performed during the sort-merge
    */
   NUM_DISK_TO_DISK_MERGES,
+
+  /**
+   * Time taken to shuffle data. This includes time taken to fetch the data
+   * & merging the data in parallel to fetching when needed.  This also includes any
+   * waiting time related to event delays from source.
+   *
+   * Represented in milliseconds.
+   */
+  SHUFFLE_PHASE_TIME,
+
+  /**
+   * Time taken to merge data retrieved during shuffle.
+   *
+   * Relative to task start time and expressed in milliseconds.
+   */
+  MERGE_PHASE_TIME,
+
+  /**
+   * First event received from source relative to task start time.
+   *
+   * Represented in milliseconds
+   */
+  FIRST_EVENT_RECEIVED,
+
+  /**
+   * Last event received from source relative to task start time.
+   *
+   * Represented in milliseconds
+   */
+  LAST_EVENT_RECEIVED
 }

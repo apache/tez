@@ -88,6 +88,8 @@ class ShuffleScheduler {
   private final TezCounter bytesShuffledToDisk;
   private final TezCounter bytesShuffledToDiskDirect;
   private final TezCounter bytesShuffledToMem;
+  private final TezCounter firstEventReceived;
+  private final TezCounter lastEventReceived;
 
   private final long startTime;
   private long lastProgressTime;
@@ -112,7 +114,7 @@ class ShuffleScheduler {
                           TezCounter failedShuffleCounter,
                           TezCounter bytesShuffledToDisk,
                           TezCounter bytesShuffledToDiskDirect,
-                          TezCounter bytesShuffledToMem) {
+                          TezCounter bytesShuffledToMem, long startTime) {
     this.inputContext = inputContext;
     this.numInputs = numberOfInputs;
     abortFailureLimit = Math.max(30, numberOfInputs / 10);
@@ -127,7 +129,7 @@ class ShuffleScheduler {
     this.bytesShuffledToDisk = bytesShuffledToDisk;
     this.bytesShuffledToDiskDirect = bytesShuffledToDiskDirect;
     this.bytesShuffledToMem = bytesShuffledToMem;
-    this.startTime = System.currentTimeMillis();
+    this.startTime = startTime;
     this.lastProgressTime = startTime;
 
     this.maxFailedUniqueFetches = Math.min(numberOfInputs,
@@ -146,6 +148,8 @@ class ShuffleScheduler {
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT));
     
     this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
+    this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
+    this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
 
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
@@ -154,6 +158,16 @@ class ShuffleScheduler {
         + ", maxFailedUniqueFetches=" + maxFailedUniqueFetches
         + ", abortFailureLimit=" + abortFailureLimit
         + ", maxMapRuntime=" + maxMapRuntime);
+  }
+
+  protected synchronized  void updateEventReceivedTime() {
+    long relativeTime = System.currentTimeMillis() - startTime;
+    if (firstEventReceived.getValue() == 0) {
+      firstEventReceived.setValue(relativeTime);
+      lastEventReceived.setValue(relativeTime);
+      return;
+    }
+    lastEventReceived.setValue(relativeTime);
   }
 
   public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier, 

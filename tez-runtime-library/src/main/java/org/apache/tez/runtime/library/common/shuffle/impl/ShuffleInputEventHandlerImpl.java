@@ -85,6 +85,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
       processDataMovementEvent((DataMovementEvent)event);
+      shuffleManager.updateEventReceivedTime();
     } else if (event instanceof InputFailedEvent) {
       processInputFailedEvent((InputFailedEvent)event);
     } else {

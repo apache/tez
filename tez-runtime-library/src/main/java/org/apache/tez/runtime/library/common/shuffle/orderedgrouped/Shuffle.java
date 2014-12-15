@@ -55,7 +55,6 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.exceptions.InputAlreadyClosedException;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection;
 import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
@@ -112,6 +111,10 @@ public class Shuffle implements ExceptionReporter {
   private AtomicBoolean fetchersClosed = new AtomicBoolean(false);
   private AtomicBoolean schedulerClosed = new AtomicBoolean(false);
   private AtomicBoolean mergerClosed = new AtomicBoolean(false);
+
+  private final long startTime;
+  private final TezCounter mergePhaseTime;
+  private final TezCounter shufflePhaseTime;
 
   public Shuffle(InputContext inputContext, Configuration conf, int numInputs,
       long initialMemoryAvailable) throws IOException {
@@ -182,6 +185,7 @@ public class Shuffle implements ExceptionReporter {
 
     boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
       TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
+    startTime = System.currentTimeMillis();
     scheduler = new ShuffleScheduler(
           this.inputContext,
           this.conf,
@@ -193,7 +197,10 @@ public class Shuffle implements ExceptionReporter {
           failedShuffleCounter,
           bytesShuffedToDisk,
           bytesShuffedToDiskDirect,
-          bytesShuffedToMem);
+          bytesShuffedToMem,
+          startTime);
+    this.mergePhaseTime = inputContext.getCounters().findCounter(TaskCounter.MERGE_PHASE_TIME);
+    this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
 
     merger = new MergeManager(
           this.conf,
@@ -220,12 +227,13 @@ public class Shuffle implements ExceptionReporter {
 
     int configuredNumFetchers = 
         conf.getInt(
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
     numFetchers = Math.min(configuredNumFetchers, numInputs);
     LOG.info("Num fetchers being started: " + numFetchers);
     fetchers = Lists.newArrayListWithCapacity(numFetchers);
-    localDiskFetchEnabled = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
+    localDiskFetchEnabled = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
         TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
 
     executor = MoreExecutors.listeningDecorator(rawExecutor);
@@ -340,7 +348,8 @@ public class Shuffle implements ExceptionReporter {
           }
         }
       }
-      
+      shufflePhaseTime.setValue(System.currentTimeMillis() - startTime);
+
       // Stop the map-output fetcher threads
       cleanupFetchers(false);
       
@@ -354,7 +363,8 @@ public class Shuffle implements ExceptionReporter {
       } catch (Throwable e) {
         throw new ShuffleError("Error while doing final merge " , e);
       }
-      
+      mergePhaseTime.setValue(System.currentTimeMillis() - startTime);
+
       // Sanity check
       synchronized (Shuffle.this) {
         if (throwable != null) {

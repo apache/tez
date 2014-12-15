@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1610. Add additional task counters for fetchers, merger.
   TEZ-1775. Allow setting log level per logger.
   TEZ-1847. Fix package name for MiniTezClusterWithTimeline.
   TEZ-1846. Build fails with package org.apache.tez.dag.history.logging.ats does not exist.

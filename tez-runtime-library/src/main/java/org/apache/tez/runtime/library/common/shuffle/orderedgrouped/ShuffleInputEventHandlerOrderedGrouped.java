@@ -66,7 +66,8 @@ public class ShuffleInputEventHandlerOrderedGrouped {
   
   private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
-      processDataMovementEvent((DataMovementEvent) event);      
+      processDataMovementEvent((DataMovementEvent) event);
+      scheduler.updateEventReceivedTime();
     } else if (event instanceof InputFailedEvent) {
       processTaskFailedEvent((InputFailedEvent) event);
     }
