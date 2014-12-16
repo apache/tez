@@ -43,7 +43,6 @@ ALL CHANGES:
   TEZ-1650. Please create a DOAP file for your TLP.
   TEZ-1697. DAG submission fails if a local resource added is already part of tez.lib.uris
   TEZ-1060 Add randomness to fault tolerance tests
-  TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
   TEZ-1790. DeallocationTaskRequest may been handled before corresponding AllocationTaskRequest in local mode
 
 TEZ-UI CHANGES (TEZ-8):
@@ -65,7 +64,10 @@ TEZ-UI CHANGES (TEZ-8):
   TEZ-1820. Fix wrong links.
 
 Release 0.5.4: Unreleased
+
+ALL CHANGES:
   TEZ-1836. Provide better error messages when tez.runtime.io.sort.mb, spill percentage is incorrectly configured.
+  TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
 
 Release 0.5.3: Unreleased
 
