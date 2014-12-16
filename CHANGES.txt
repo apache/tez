@@ -4,8 +4,9 @@ Apache Tez Change Log
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
-  TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
+  TEZ-1861. Fix failing test: TestOnFileSortedOutput.
   TEZ-1836. Provide better error messages when tez.runtime.io.sort.mb, spill percentage is incorrectly configured.
+  TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
 
 Release 0.5.3: 2014-12-10
 

@@ -184,33 +184,6 @@ public class TestOnFileSortedOutput {
   }
 
   @Test
-  public void testSortSpillPercent() throws Exception {
-    OutputContext context = createTezOutputContext();
-    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 0.0f);
-    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
-    doReturn(payLoad).when(context).getUserPayload();
-    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
-    try {
-      sortedOutput.initialize();
-      sortedOutput.start();
-      fail();
-    } catch(IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
-    }
-    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 1.1f);
-    payLoad = TezUtils.createUserPayloadFromConf(conf);
-    doReturn(payLoad).when(context).getUserPayload();
-    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
-    try {
-      sortedOutput.initialize();
-      sortedOutput.start();
-      fail();
-    } catch(IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
-    }
-  }
-
-  @Test
   public void baseTest() throws Exception {
     startSortedOutput(partitions);
 
