@@ -82,7 +82,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
-import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptStatusUpdate;
+import org.apache.tez.dag.app.dag.event.SpeculatorEventTaskAttemptStatusUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
@@ -612,7 +612,7 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsAtRunning)).handle(arg.capture());
     verifyEventType(
         arg.getAllValues().subList(0,
-            expectedEventsAtRunning), VertexEventTaskAttemptStatusUpdate.class, 1);
+            expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
     
     taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f)));
     
@@ -651,7 +651,7 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), VertexEventTaskAttemptStatusUpdate.class, 2);
+            expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
   
   @Test//(timeout = 5000)
@@ -712,7 +712,7 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsAtRunning)).handle(arg.capture());
     verifyEventType(
         arg.getAllValues().subList(0,
-            expectedEventsAtRunning), VertexEventTaskAttemptStatusUpdate.class, 1);
+            expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
     
     taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f)));
     
@@ -740,7 +740,7 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), VertexEventTaskAttemptStatusUpdate.class, 2);
+            expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
   
   @Test(timeout = 5000)

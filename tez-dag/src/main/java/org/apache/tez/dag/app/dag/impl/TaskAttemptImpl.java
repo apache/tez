@@ -85,7 +85,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
-import org.apache.tez.dag.app.dag.event.VertexEventTaskAttemptStatusUpdate;
+import org.apache.tez.dag.app.dag.event.SpeculatorEventTaskAttemptStatusUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -1169,7 +1169,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskEventType.T_ATTEMPT_LAUNCHED));
       
       if (ta.isSpeculationEnabled()) {
-        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.RUNNING,
+        ta.sendEvent(new SpeculatorEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.RUNNING,
             ta.launchTime, true));
       }
 
@@ -1262,7 +1262,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.updateProgressSplits();
 
       if (ta.isSpeculationEnabled()) {
-        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, ta.getState(),
+        ta.sendEvent(new SpeculatorEventTaskAttemptStatusUpdate(ta.attemptId, ta.getState(),
             ta.clock.getTime()));
       }
     }
@@ -1294,7 +1294,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.reportedStatus.progress = 1.0f;
       
       if (ta.isSpeculationEnabled()) {
-        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.SUCCEEDED,
+        ta.sendEvent(new SpeculatorEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.SUCCEEDED,
             ta.clock.getTime()));
       }
 
@@ -1318,7 +1318,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.taskHeartbeatHandler.unregister(ta.attemptId);
       ta.reportedStatus.state = helper.getTaskAttemptState(); // FAILED or KILLED
       if (ta.isSpeculationEnabled()) {
-        ta.sendEvent(new VertexEventTaskAttemptStatusUpdate(ta.attemptId, helper.getTaskAttemptState(),
+        ta.sendEvent(new SpeculatorEventTaskAttemptStatusUpdate(ta.attemptId, helper.getTaskAttemptState(),
             ta.clock.getTime()));
       }
     }

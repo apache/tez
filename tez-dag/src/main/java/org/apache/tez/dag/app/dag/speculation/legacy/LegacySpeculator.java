@@ -34,6 +34,8 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.SpeculatorEvent;
+import org.apache.tez.dag.app.dag.event.SpeculatorEventTaskAttemptStatusUpdate;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
@@ -180,6 +182,16 @@ public class LegacySpeculator {
       }
     }
   }
+  
+  public void handle(SpeculatorEvent event) {
+    SpeculatorEventTaskAttemptStatusUpdate updateEvent = ((SpeculatorEventTaskAttemptStatusUpdate) event);
+    if (updateEvent.hasJustStarted()) {
+      notifyAttemptStarted(updateEvent.getAttemptId(), updateEvent.getTimestamp());
+    } else {
+      notifyAttemptStatusUpdate(updateEvent.getAttemptId(), updateEvent.getTaskAttemptState(),
+          updateEvent.getTimestamp());
+    }
+  }
 
 /*   *************************************************************    */
 
@@ -296,8 +308,7 @@ public class LegacySpeculator {
 
   //Add attempt to a given Task.
   protected void addSpeculativeAttempt(TezTaskID taskID) {
-    LOG.info
-        ("DefaultSpeculator.addSpeculativeAttempt -- we are speculating " + taskID);
+    LOG.info("DefaultSpeculator.addSpeculativeAttempt -- we are speculating " + taskID);
     vertex.scheduleSpeculativeTask(taskID);
     mayHaveSpeculated.add(taskID);
   }

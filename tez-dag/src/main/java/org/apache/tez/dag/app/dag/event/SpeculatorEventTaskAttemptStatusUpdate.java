@@ -21,26 +21,26 @@ package org.apache.tez.dag.app.dag.event;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class VertexEventTaskAttemptStatusUpdate extends VertexEvent {
+public class SpeculatorEventTaskAttemptStatusUpdate extends SpeculatorEvent {
   final TezTaskAttemptID id;
   final TaskAttemptState state;
   final long timestamp;
   final boolean justStarted;
   
-  public VertexEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
+  public SpeculatorEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
       long timestamp) {
     this(taId, state, timestamp, false);
   }
   
-  public VertexEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
+  public SpeculatorEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
       long timestamp, boolean justStarted) {
-    super(taId.getTaskID().getVertexID(), VertexEventType.V_TASK_ATTEMPT_STATUS_UPDATE);
+    super(SpeculatorEventType.S_TASK_ATTEMPT_STATUS_UPDATE, taId.getTaskID().getVertexID());
     this.id = taId;
     this.state = state;
     this.timestamp = timestamp;
     this.justStarted = justStarted;
   }
-  
+
   public long getTimestamp() {
     return timestamp;
   }
