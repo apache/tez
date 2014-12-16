@@ -59,6 +59,7 @@ import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
@@ -155,6 +156,58 @@ public class TestOnFileSortedOutput {
     sortedOutput.initialize();
     sortedOutput.start();
     writer = sortedOutput.getWriter();
+  }
+
+  @Test
+  public void testSortBufferSize() throws Exception{
+    OutputContext context = createTezOutputContext();
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2048);
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+    try {
+      sortedOutput.initialize();
+      fail();
+    } catch(IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
+    }
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0);
+    payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+    try {
+      sortedOutput.initialize();
+      fail();
+    } catch(IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
+    }
+  }
+
+  @Test
+  public void testSortSpillPercent() throws Exception {
+    OutputContext context = createTezOutputContext();
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 0.0f);
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+    try {
+      sortedOutput.initialize();
+      sortedOutput.start();
+      fail();
+    } catch(IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
+    }
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 1.1f);
+    payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+    try {
+      sortedOutput.initialize();
+      sortedOutput.start();
+      fail();
+    } catch(IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
+    }
   }
 
   @Test

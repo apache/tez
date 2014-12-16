@@ -100,22 +100,10 @@ public class PipelinedSorter extends ExternalSorter {
     partitionBits = bitcount(partitions)+1;
    
     //sanity checks
-    final float spillper =
-      this.conf.getFloat(
-          TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 
-          TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT);
     final int sortmb = this.availableMemoryMb;
     indexCacheMemoryLimit = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT);
-    if (spillper > (float)1.0 || spillper <= (float)0.0) {
-      throw new IOException("Invalid \"" + TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT +
-          "\": " + spillper);
-    }
-    if ((sortmb & 0x7FF) != sortmb) {
-      throw new IOException(
-          "Invalid \"" + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + "\": " + sortmb);
-    }
-    
+
     // buffers and accounting
     int maxMemUsage = sortmb << 20;
     maxMemUsage -= maxMemUsage % METASIZE;

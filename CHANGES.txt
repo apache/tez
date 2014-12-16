@@ -64,6 +64,9 @@ TEZ-UI CHANGES (TEZ-8):
   TEZ-1783. Wrapper in standalone mode.
   TEZ-1820. Fix wrong links.
 
+Release 0.5.4: Unreleased
+  TEZ-1836. Provide better error messages when tez.runtime.io.sort.mb, spill percentage is incorrectly configured.
+
 Release 0.5.3: Unreleased
 
 ALL CHANGES:
