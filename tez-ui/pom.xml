@@ -91,7 +91,7 @@
               <arguments>
                 <argument>${nodeBinDir}/bower</argument>
                 <argument>install</argument>
-                <argument>--allow-root</argument>
+                <argument>--remove-unnecessary-resolutions=false</argument>
               </arguments>
             </configuration>
           </execution>
