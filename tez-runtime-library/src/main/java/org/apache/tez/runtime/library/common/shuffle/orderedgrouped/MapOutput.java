@@ -108,6 +108,8 @@ class MapOutput {
     FileSystem fs = FileSystem.getLocal(conf);
     Path outputpath = mapOutputFile.getInputFileForWrite(
         attemptIdentifier.getInputIdentifier().getInputIndex(), size);
+    // Files are not clobbered due to the id being appended to the outputPath in the tmpPath,
+    // otherwise fetches for the same task but from different attempts would clobber each other.
     Path tmpOuputPath = outputpath.suffix(String.valueOf(fetcher));
     long offset = 0;
 

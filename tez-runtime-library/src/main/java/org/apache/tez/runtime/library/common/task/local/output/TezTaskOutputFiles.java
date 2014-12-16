@@ -32,15 +32,11 @@ import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 /**
- * Manipulate the working area for the transient store for maps and reduces.
+ * Manipulate the working area for the transient store for components in tez-runtime-library
  *
- * This class is used by map and reduce tasks to identify the directories that
- * they need to write to/read from for intermediate files. The callers of
- * these methods are from child space and see mapreduce.cluster.local.dir as
- * taskTracker/jobCache/jobId/attemptId
- * This class should not be used from TaskTracker space.
+ * This class is used by Inputs and Outputs in tez-runtime-library to identify the directories
+ * that they need to write to / read from for intermediate files.
  */
-
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class TezTaskOutputFiles extends TezTaskOutput {
@@ -55,13 +51,17 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   private static final String SPILL_INDEX_FILE_PATTERN = SPILL_FILE_PATTERN
       + ".index";
 
-  
-
-  // assume configured to $localdir/usercache/$user/appcache/$appId
-  private LocalDirAllocator lDirAlloc =
+  /*
+  Under YARN, this defaults to one or more of the local directories, along with the appId in the path.
+  Note: The containerId is not part of this.
+  ${yarnLocalDir}/usercache/${user}/appcache/${applicationId}. (Referred to as ${appDir} later in the docs
+   */
+  private final LocalDirAllocator lDirAlloc =
     new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
-  
 
+  /*
+   * ${appDir}/output/${uniqueId}
+   */
   private Path getAttemptOutputDir() {
     if (LOG.isDebugEnabled()) {
       LOG.debug("getAttemptOutputDir: "
@@ -72,11 +72,17 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Return the path to local map output file created earlier
+   * Return the path to local output file created earlier.
    *
-   * @return path
+   * ${appDir}/output/${uniqueId}/file.out
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
+   *
+   * @return path the path of the local output file
    * @throws IOException
    */
+  @Override
   public Path getOutputFile() throws IOException {
     Path attemptOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
@@ -84,12 +90,18 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map output file name.
+   * Create a local output file name.
+   *
+   * ${appDir}/output/${uniqueId}/file.out
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
    *
    * @param size the size of the file
-   * @return path
+   * @return path the path to write to
    * @throws IOException
    */
+  @Override
   public Path getOutputFileForWrite(long size) throws IOException {
     Path attemptOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
@@ -97,13 +109,19 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map output file name. This should *only* be used if the size
+   * Create a local output file name. This should *only* be used if the size
    * of the file is not known. Otherwise use the equivalent which accepts a size
    * parameter.
-   * 
-   * @return path
+   *
+   * ${appDir}/output/${uniqueId}/file.out
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
+   *
+   * @return path the path to write to
    * @throws IOException
    */
+  @Override
   public Path getOutputFileForWrite() throws IOException {
     Path attemptOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
@@ -111,8 +129,18 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map output file name on the same volume.
+   * Create a local output file name on the same volume.
+   * This is only meant to be used to rename temporary files to their final destination within the
+   * same volume.
+   *
+   * ${appDir}/output/${uniqueId}/file.out
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
+   *
+   * @return path the path of the output file within the same volume
    */
+  @Override
   public Path getOutputFileForWriteInVolume(Path existing) {
     Path outputDir = new Path(existing.getParent(), Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
     Path attemptOutputDir = new Path(outputDir, uniqueId);
@@ -120,11 +148,17 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Return the path to a local map output index file created earlier
+   * Return the path to a local output index file created earlier
    *
-   * @return path
+   * ${appDir}/output/${uniqueId}/file.out.index
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out.index
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
+   *
+   * @return path the path of the index file
    * @throws IOException
    */
+  @Override
   public Path getOutputIndexFile() throws IOException {
     Path attemptIndexOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
@@ -133,12 +167,18 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map output index file name.
+   * Create a local output index file name.
+   *
+   * ${appDir}/output/${uniqueId}/file.out.index
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out.index
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
    *
    * @param size the size of the file
-   * @return path
+   * @return path the path to write the index file to
    * @throws IOException
    */
+  @Override
   public Path getOutputIndexFileForWrite(long size) throws IOException {
     Path attemptIndexOutput =
       new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
@@ -148,8 +188,16 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map output index file name on the same volume.
+   * Create a local output index file name on the same volume.
+   * The intended usage of this method is to write the index file on the same volume as the
+   * associated data file.
+   *
+   * ${appDir}/output/${uniqueId}/file.out.index
+   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out.index
+   *
+   * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
    */
+  @Override
   public Path getOutputIndexFileForWriteInVolume(Path existing) {
     Path outputDir = new Path(existing.getParent(), Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
     Path attemptOutputDir = new Path(outputDir, uniqueId);
@@ -158,12 +206,16 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Return a local map spill file created earlier.
+   * Return a local output spill file created earlier.
    *
-   * @param spillNumber the number
-   * @return path
+   * ${appDir}/${uniqueId}_spill_${spillNumber}.out
+   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10003_spill_0.out
+   *
+   * @param spillNumber the spill number
+   * @return path the path of the previously written spill file corresponding to the spillNumber
    * @throws IOException
    */
+  @Override
   public Path getSpillFile(int spillNumber) throws IOException {
     return lDirAlloc.getLocalPathToRead(
         String.format(SPILL_FILE_PATTERN,
@@ -171,13 +223,17 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map spill file name.
+   * Create a local spill file name.
    *
-   * @param spillNumber the number
-   * @param size the size of the file
-   * @return path
+   * ${appDir}/${uniqueId}_spill_${spillNumber}.out
+   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10003_spill_0.out
+   *
+   * @param spillNumber the spill number
+   * @param size the size of the spill file
+   * @return path the path to write the spill file for the specific spillNumber
    * @throws IOException
    */
+  @Override
   public Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(
@@ -189,9 +245,10 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    * Return a local map spill index file created earlier
    *
    * @param spillNumber the number
-   * @return path
+   * @return path the path of the previously written spill index file corresponding to the spillNumber
    * @throws IOException
    */
+  @Override
   public Path getSpillIndexFile(int spillNumber) throws IOException {
     return lDirAlloc.getLocalPathToRead(
         String.format(SPILL_INDEX_FILE_PATTERN,
@@ -199,13 +256,17 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Create a local map spill index file name.
+   * Create a local output spill index file name.
    *
-   * @param spillNumber the number
+   * ${appDir}/${uniqueId}_spill_${spillNumber}.out.index
+   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10003_spill_0.out.index
+   *
+   * @param spillNumber the spill number
    * @param size the size of the file
-   * @return path
+   * @return path the path to write the spill index file for the specific spillNumber
    * @throws IOException
    */
+  @Override
   public Path getSpillIndexFileForWrite(int spillNumber, long size)
       throws IOException {
     return lDirAlloc.getLocalPathForWrite(
@@ -214,36 +275,52 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   }
 
   /**
-   * Return a local reduce input file created earlier
+   * Return a local input file created earlier
+   *
+   * ${appDir}/${uniqueId}_spill_${spillNumber}.out
+   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10004_spill_0.out
    *
    * @param attemptIdentifier an identifier for a task. The attempt information is ignored.
-   * @return path
+   * @return path the path to the input file
    * @throws IOException
    */
+  @Override
   public Path getInputFile(InputAttemptIdentifier attemptIdentifier) throws IOException {
     throw new UnsupportedOperationException("Incompatible with LocalRunner");
   }
 
   /**
-   * Create a local reduce input file name.
+   * Create a local input file name.
    *
-   * @param srcTaskId an identifier for a task
+   * ${appDir}/${uniqueId}_spill_${spillNumber}.out
+   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10004_spill_0.out
+   *
+   * This is currently equivalent to getSpillFileForWrite. Files are not clobbered due to the uniqueId
+   * being different for Outputs / Inputs within the same task (and across tasks)
+   *
+   * @param srcIdentifier The identifier for the source
    * @param size the size of the file
-   * @return path
+   * @return path the path to the input file.
    * @throws IOException
    */
-  public Path getInputFileForWrite(int srcTaskId,
+  @Override
+  public Path getInputFileForWrite(int srcIdentifier,
       long size) throws IOException {
-    return lDirAlloc.getLocalPathForWrite(getSpillFileName(srcTaskId),
+    return lDirAlloc.getLocalPathForWrite(getSpillFileName(srcIdentifier),
         size, conf);
   }
 
+  /**
+   * Construct a spill file name, given a spill number
+   *
+   * ${uniqueId}_spill_${spillNumber}.out
+   * e.g. attempt_1418684642047_0006_1_00_000000_0_10004_spill_0.out
+   *
+   * @param spillNum
+   * @return a spill file name independent of the unique identifier and local directories
+   */
+  @Override
   public String getSpillFileName(int spillNum) {
     return String.format(SPILL_FILE_PATTERN, uniqueId, spillNum);
-  }
-
-  /** Removes all of the files related to a task. */
-  public void removeAll() throws IOException {
-    throw new UnsupportedOperationException("Incompatible with LocalRunner");
   }
 }
