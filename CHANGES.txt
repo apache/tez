@@ -6,6 +6,9 @@ Release 0.5.4: Unreleased
 ALL CHANGES:
   TEZ-1800. Integer overflow in ExternalSorter.getInitialMemoryRequirement()
 
+Release 0.5.4: Unreleased
+  TEZ-1836. Provide better error messages when tez.runtime.io.sort.mb, spill percentage is incorrectly configured.
+
 Release 0.5.3: Unreleased
 
 ALL CHANGES:

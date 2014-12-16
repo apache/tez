@@ -52,6 +52,8 @@ import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 
+import com.google.common.base.Preconditions;
+
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   
@@ -122,14 +124,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT,
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT);
     final int sortmb = this.availableMemoryMb;
-    if (spillper > (float) 1.0 || spillper <= (float) 0.0) {
-      throw new IOException("Invalid \""
-          + TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT + "\": " + spillper);
-    }
-    if ((sortmb & 0x7FF) != sortmb) {
-      throw new IOException("Invalid \"" + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB
-          + "\": " + sortmb);
-    }
+    Preconditions.checkArgument(spillper <= (float) 1.0 && spillper > (float) 0.0,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT
+            + " should be greater than 0 and less than or equal to 1");
 
     indexCacheMemoryLimit = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT);
