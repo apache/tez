@@ -183,10 +183,13 @@ public class JoinValidate extends Configured implements Tool {
 
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
-    // better mechanism to configure the IOs.
+    // better mechanism to configure the IOs. The setFromConfiguration call is optional and allows
+    // overriding the config options with command line parameters.
     OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-            HashPartitioner.class.getName()).build();
+            HashPartitioner.class.getName())
+        .setFromConfiguration(tezConf)
+        .build();
 
     Vertex lhsVertex = Vertex.create(LHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("lhs",

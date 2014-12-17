@@ -261,12 +261,15 @@ public class HashJoinExample extends Configured implements Tool {
      * going to the same fragments using hash partitioning. The data to be
      * joined is the key itself and so the value is null. The number of
      * fragments is initially inferred from the number of tasks running in the
-     * join vertex because each task will be handling one fragment.
+     * join vertex because each task will be handling one fragment. The
+     * setFromConfiguration call is optional and allows overriding the config
+     * options with command line parameters.
      */
     UnorderedPartitionedKVEdgeConfig streamConf =
         UnorderedPartitionedKVEdgeConfig
             .newBuilder(Text.class.getName(), NullWritable.class.getName(),
                 HashPartitioner.class.getName())
+            .setFromConfiguration(tezConf)
             .build();
 
     /**
@@ -288,11 +291,14 @@ public class HashJoinExample extends Configured implements Tool {
        * of its fragment of keys with all the keys of the hash side. Using an
        * unpartitioned edge to transfer the complete output of the hash side to
        * be broadcasted to all fragments of the streamed side. Again, since the
-       * data is the key, the value is null.
+       * data is the key, the value is null. The setFromConfiguration call is
+       * optional and allows overriding the config options with command line
+       * parameters.
        */
       UnorderedKVEdgeConfig broadcastConf =
           UnorderedKVEdgeConfig
               .newBuilder(Text.class.getName(), NullWritable.class.getName())
+              .setFromConfiguration(tezConf)
               .build();
       hashSideEdgeProperty = broadcastConf.createDefaultBroadcastEdgeProperty();
     } else {
