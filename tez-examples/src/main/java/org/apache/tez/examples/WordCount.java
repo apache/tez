@@ -170,10 +170,13 @@ public class WordCount extends Configured implements Tool {
     // We specify the key, value and partitioner type. Here the key type is Text (for word), the 
     // value type is IntWritable (for count) and we using a hash based partitioner. This is a helper
     // object. The edge can be configured by configuring the input, output etc individually without
-    // using this helper.
+    // using this helper. The setFromConfiguration call is optional and allows overriding the config
+    // options with command line parameters.
     OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName()).build();
+            HashPartitioner.class.getName())
+        .setFromConfiguration(tezConf)
+        .build();
 
     // Create a vertex that reads the tokenized data and calculates the sum using the SumProcessor.
     // The number of tasks that do the work of this vertex depends on the number of partitions used 
