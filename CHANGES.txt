@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1849. Fix tez-ui war file licensing.
   TEZ-1840. Document TezTaskOutput.
   TEZ-1576. Class level comment in {{MiniTezCluster}} ends abruptly.
   TEZ-1838. tez-ui/src/main/webapp/bower.json gets updated after compiling source code.
