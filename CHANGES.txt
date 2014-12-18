@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1591. Add multiDAG session test and move TestLocalMode to tez-tests
   TEZ-1769. ContainerCompletedWhileRunningTransition should inherit from TerminatedWhileRunningTransition
   TEZ-1849. Fix tez-ui war file licensing.
   TEZ-1840. Document TezTaskOutput.
