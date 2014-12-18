@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1872. docs/src/site/custom/project-info-report.properties needs license header.
   TEZ-1850. Enable deploy for tez-ui war.
   TEZ-1841. Remove range versions for dependencies in tez-ui.
   TEZ-1854. Failing tests due to host resolution timing out.
