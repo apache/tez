@@ -42,6 +42,18 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>src/main/webapp/node/**/*</exclude>
+            <exclude>src/main/webapp/node_modules/**/*</exclude>
+            <exclude>src/main/webapp/app/bower_components/**/*</exclude>
+            <exclude>src/main/webapp/dist/**/*</exclude>
+            <exclude>src/main/webapp/.bowerrc</exclude>
+            <exclude>src/main/webapp/.jshintrc</exclude>
+            <exclude>src/main/webapp/bower.json</exclude>
+            <exclude>src/main/webapp/package.json</exclude>
+          </excludes>
+        </configuration>
       </plugin>
 
       <!-- NPM Install -->
