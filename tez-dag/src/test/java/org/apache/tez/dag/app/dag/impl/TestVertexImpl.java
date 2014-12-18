@@ -64,6 +64,7 @@ import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -2203,6 +2204,7 @@ public class TestVertexImpl {
   
   @Before
   public void setup() throws AMUserCodeException {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
     useCustomInitializer = false;
     customInitializer = null;
     setupPreDagCreation();

@@ -42,6 +42,7 @@ import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
@@ -718,6 +719,7 @@ public class TestDAGImpl {
 
   @Before
   public void setup() {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
     conf = new Configuration();
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(

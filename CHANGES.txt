@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1854. Failing tests due to host resolution timing out.
   TEZ-1860. mvn apache-rat:check broken for tez-ui.
   TEZ-1866. remove the "original" directory under tez-ui
   TEZ-1591. Add multiDAG session test and move TestLocalMode to tez-tests

@@ -49,7 +49,9 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -220,6 +222,11 @@ public class TestGroupedSplits {
     }
     reader.close();
     return result;
+  }
+
+  @Before
+  public void setup() {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
   /**

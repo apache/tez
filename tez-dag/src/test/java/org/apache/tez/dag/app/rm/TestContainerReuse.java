@@ -53,6 +53,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.RackResolver;
+import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -89,6 +90,7 @@ import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -99,6 +101,11 @@ import com.google.common.collect.Sets;
 
 public class TestContainerReuse {
   private static final Log LOG = LogFactory.getLog(TestContainerReuse.class);
+
+  @Before
+  public void setup() {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
+  }
 
   @Test(timeout = 15000l)
   public void testDelayedReuseContainerBecomesAvailable()
@@ -113,7 +120,6 @@ public class TestContainerReuse {
     conf.setLong(
       TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 3000l);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
-    RackResolver.init(conf);
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
@@ -251,7 +257,6 @@ public class TestContainerReuse {
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED, false);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 1000l);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
-    RackResolver.init(conf);
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
@@ -358,7 +363,6 @@ public class TestContainerReuse {
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, true);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
-    RackResolver.init(tezConf);
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
@@ -498,7 +502,6 @@ public class TestContainerReuse {
     tezConf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, "dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__");
     TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption =  new TaskSpecificLaunchCmdOption(tezConf);
 
-    RackResolver.init(tezConf);
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
@@ -687,7 +690,7 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 100l);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 1000l);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 1000l);
-    RackResolver.init(tezConf);
+
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
@@ -815,7 +818,7 @@ public class TestContainerReuse {
       TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 2000l);
     tezConf.setInt(
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, 1);
-    RackResolver.init(tezConf);
+
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
@@ -937,7 +940,7 @@ public class TestContainerReuse {
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED, true);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, -1);
-    RackResolver.init(tezConf);
+
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();

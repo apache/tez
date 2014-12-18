@@ -35,6 +35,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>tez-common</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-runtime-library</artifactId>
     </dependency>
     <dependency>

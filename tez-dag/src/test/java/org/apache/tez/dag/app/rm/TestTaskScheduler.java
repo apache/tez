@@ -62,6 +62,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.RackResolver;
+import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMasterState;
@@ -74,6 +75,7 @@ import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrain
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.PreemptionMatcher;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -87,6 +89,11 @@ public class TestTaskScheduler {
 
   RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
+
+  @Before
+  public void setup() {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
+  }
 
   @SuppressWarnings({ "unchecked" })
   @Test(timeout=10000)

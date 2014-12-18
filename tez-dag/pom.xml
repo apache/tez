@@ -43,6 +43,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>tez-common</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-runtime-internals</artifactId>
     </dependency>
     <!-- Needed to for VertexManager and EdgeManager Plugins -->
