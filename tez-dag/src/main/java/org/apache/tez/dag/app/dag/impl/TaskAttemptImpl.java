@@ -1325,7 +1325,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   protected static class ContainerCompletedWhileRunningTransition extends
-      TerminatedBeforeRunningTransition {
+      TerminatedWhileRunningTransition {
     public ContainerCompletedWhileRunningTransition() {
       super(FAILED_HELPER);
     }
