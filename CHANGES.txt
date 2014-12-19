@@ -75,6 +75,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1851. FileSystem counters do not differentiate between different FileSystems.
   TEZ-1852. Get examples to work in LocalMode.
   TEZ-1861. Fix failing test: TestOnFileSortedOutput.
   TEZ-1836. Provide better error messages when tez.runtime.io.sort.mb, spill percentage is incorrectly configured.

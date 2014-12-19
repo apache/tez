@@ -76,7 +76,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
 
     @Override
     public String getDisplayName() {
-      return key.name();
+      return getName();
     }
 
     @Override
