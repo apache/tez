@@ -36,72 +36,67 @@ App.Helpers = Em.Namespace.create(),
 App.Mappers = Em.Namespace.create(),
 App.Configs = Em.Namespace.create();
 
-Ember.Application.initializer({
-  name: "initApp",
+App.ready = function () {
+  $.extend(App.env, App.Configs.envDefaults);
 
-  initialize: function(container, application) {
-    $.extend(App.env, App.Configs.envDefaults);
+  App.ApplicationAdapter = App.TimelineRESTAdapter.extend({
+    host: App.env.timelineBaseUrl
+  });
+  App.ApplicationSerializer = App.TimelineSerializer.extend();
 
-    application.ApplicationAdapter = App.TimelineRESTAdapter.extend({
-      host: App.env.timelineBaseUrl
-    });
-    application.ApplicationSerializer = App.TimelineSerializer.extend();
+  App.AppDetailAdapter = DS.RESTAdapter.extend({
+    ajax: function(url, method, hash) {
+      hash = hash || {}; // hash may be undefined
+      hash.crossDomain = true;
+      hash.xhrFields = {withCredentials: true};
+      return this._super(url, method, hash);
+    },
+    namespace: App.Configs.restNamespace.applicationHistory,
+    host: App.env.timelineBaseUrl,
+    pathForType: function() {
+      return "apps";
+    },
+  });
 
-    application.AppDetailAdapter = DS.RESTAdapter.extend({
-      ajax: function(url, method, hash) {
-        hash = hash || {}; // hash may be undefined
-        hash.crossDomain = true;
-        hash.xhrFields = {withCredentials: true};
-        return this._super(url, method, hash);
-      },
-      namespace: App.Configs.restNamespace.applicationHistory,
-      host: App.env.timelineBaseUrl,
-      pathForType: function() {
-        return "apps";
-      },
-    });
-
-    application.VertexAdapter = App.ApplicationAdapter.extend({
-      _setInputs: function (store, data) {
-        var dagId = Ember.get(data, 'primaryfilters.TEZ_DAG_ID.0'),
-            vertexName = Ember.get(data, 'otherinfo.vertexName');
-        if(dagId) {
-          return store.find('dag', dagId).then(function (dag) {
-            if(dag.get('vertices') instanceof Array) {
-              var vertexData = dag.get('vertices').findBy('vertexName', vertexName);
-              if(vertexData && vertexData.additionalInputs) {
-                data.inputs = vertexData.additionalInputs;
-              }
+  App.VertexAdapter = App.ApplicationAdapter.extend({
+    _setInputs: function (store, data) {
+      var dagId = Ember.get(data, 'primaryfilters.TEZ_DAG_ID.0'),
+          vertexName = Ember.get(data, 'otherinfo.vertexName');
+      if(dagId) {
+        return store.find('dag', dagId).then(function (dag) {
+          if(dag.get('vertices') instanceof Array) {
+            var vertexData = dag.get('vertices').findBy('vertexName', vertexName);
+            if(vertexData && vertexData.additionalInputs) {
+              data.inputs = vertexData.additionalInputs;
             }
-            return data;
-          });
-        }
-        else {
-          return Em.RSVP.Promise(data);
-        }
-      },
-      find: function(store, type, id) {
-        var that = this;
-        return this._super(store, type, id).then(function (data) {
-          return that._setInputs(store, data);
-        });
-      },
-      findQuery: function(store, type, queryObj, records) {
-        var that = this;
-        return that._super(store, type, queryObj, records ).then(function (data) {
-          var fetchers = [];
-          data.entities.forEach(function (datum) {
-            fetchers.push(that._setInputs(store, datum));
-          });
-          return Em.RSVP.allSettled(fetchers).then(function () {
-            return data;
-          });
+          }
+          return data;
         });
       }
-    });
-
-  }
-});
+      else {
+        return Em.RSVP.Promise(data);
+      }
+    },
+    find: function(store, type, id) {
+      var that = this;
+      return this._super(store, type, id).then(function (data) {
+        return that._setInputs(store, data);
+      });
+    },
+    findQuery: function(store, type, queryObj, records) {
+      var that = this;
+      return that._super(store, type, queryObj, records ).then(function (data) {
+        var fetchers = [];
+        data.entities.forEach(function (datum) {
+          fetchers.push(that._setInputs(store, datum));
+        });
+        return Em.RSVP.allSettled(fetchers).then(function () {
+          return data;
+        });
+      });
+    }
+  });
+};
 
 /* Order and include */
 require('scripts/default-configs');
