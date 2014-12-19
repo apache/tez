@@ -47,6 +47,7 @@
             <exclude>src/main/webapp/node/**/*</exclude>
             <exclude>src/main/webapp/node_modules/**/*</exclude>
             <exclude>src/main/webapp/app/bower_components/**/*</exclude>
+            <exclude>src/main/webapp/.tmp/</exclude>
             <exclude>src/main/webapp/dist/**/*</exclude>
             <exclude>src/main/webapp/.bowerrc</exclude>
             <exclude>src/main/webapp/.jshintrc</exclude>
