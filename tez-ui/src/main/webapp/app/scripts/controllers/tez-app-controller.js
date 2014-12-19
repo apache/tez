@@ -24,8 +24,8 @@ App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   loading: true,
 
   rmTrackingURL: function() {
-    return App.env.RMWebUrl + '/cluster/app/tez_' + this.get('id');
-  }.property('id'),
+    return App.env.RMWebUrl + '/cluster/app/' + this.get('appId');
+  }.property('appId'),
 
   updateLoading: function() {
     this.set('loading', false);

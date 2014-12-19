@@ -46,7 +46,7 @@ App.Helpers.date = {
    * Convert timestamp to date-string 'DAY_OF_THE_WEEK, MONTH DAY, YEAR HOURS:MINUTES'
    *
    * @param {number} timestamp
-   * @param {bool} showSeconds should seconds be added to result string
+   * @param {bool} showSeconds should seconds be added to result string. true by default.
    * @param {bool} showMilliseconds should miliseconds be added to result string (if <code>showSeconds</code> is false, milliseconds wouldn't be added)
    * @return {*} date
    * @method dateFormat
@@ -55,14 +55,15 @@ App.Helpers.date = {
     if (!App.Helpers.number.isValidInt(timestamp)) {
       return timestamp;
     }
-    var format = 'ddd, MMM DD, YYYY HH:mm';
+    if(showSeconds == undefined) showSeconds = true;
+    var format = 'DD MMM YYYY HH:mm';
     if (showSeconds) {
       format += ':ss';
       if (showMilliseconds) {
         format += ':SSS';
       }
     }
-    return moment((new Date(timestamp)).toISOString().replace('Z', '')).format(format);
+    return moment.utc(timestamp).local().format(format);
   },
 
   /**
