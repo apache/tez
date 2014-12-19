@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1858. Docs for deploying/using the Tez UI.
   TEZ-1642. TestAMRecovery sometimes fail.
   TEZ-1859. TestGroupedSplits has commented out test: testGzip.
   TEZ-1868. Document how to do Windows builds due to with ACL symlink build changes.

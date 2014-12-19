@@ -17,24 +17,20 @@
 
 <head><title>Tez UI</title></head>
 
-Tez UI Overview
----------------
+## Tez UI Overview
 
-The Tez UI relies on the _Application Timeline Server_ whose role is as a
-backing store for the application data generated during the lifetime of a
-YARN application.
+The Tez UI relies on the _Application Timeline Server_ whose role is as a backing store for the
+application data generated during the lifetime of a YARN application.
 
-Tez provides its own UI that interfaces with the _Application Timeline Server_
-and displays both a live and historical view of the Tez application inside
-a Tez UI web application.
+Tez provides its own UI that interfaces with the _Application Timeline Server_ and displays both a
+live and historical view of the Tez application inside a Tez UI web application.
 
-Application Timeline Server Setup
----------------------------------
+## Application Timeline Server Setup
 
-_Requires_: **Hadoop 2.6.0-SNAPSHOT**
+_Requires_: **Hadoop 2.6.0 or above**
 
-A minimal _yarn-site.xml_ configuration snippet is provided below. Replace
-localhost with the actual hostname if running in a distributed setup.
+A minimal _yarn-site.xml_ configuration snippet is provided below. Replace localhost with the actual
+hostname if running in a distributed setup.
 
 ```
 yarn-site.xml
@@ -69,12 +65,13 @@ yarn-site.xml
 ```
 # Starting the Application Timeline Server
 $ $HADOOP_PREFIX/sbin/yarn-daemon.sh start timelineserver
+
 ```
 
-Tez Setup
+## Tez Setup
 ---------
 
-_Requires_: **Tez 0.6.0-SNAPSHOT**
+_Requires_: **Tez 0.6.0 or above**
 
 A minimal _tez-site.xml_ configuration snippet is provided below
 
@@ -83,25 +80,52 @@ tez-site.xml
 -------------
 ...
 <property>
-  <description>Log history using the Application Timeline Server</description>
+  <description>Log history using the Timeline Server</description>
   <name>tez.history.logging.service.class</name>
   <value>org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService</value>
 </property>
+<property>
+  <description>Publish configuration information to Timeline server.</description>
+  <name>tez.runtime.convert.user-payload.to.history-text</name>
+  <value>true</value>
+</property>
 ...
-```
-
-Tez UI Install
---------------
-
-Tez UI is currently under development and is targeted for the 0.6.0 release. A
-proof-of-concept Tez UI is available in the Tez UI feature branch TEZ-8.
 
 ```
-$ git clone git://git.apache.org/tez.git
-$ cd tez
-$ git checkout TEZ-8
 
-# Navigate you web browser to file:///<tez git directory root>/tez-ui/original/login.html
-# Enter hostname to the Application Timeline Server hostname specified in yarn-site.xml
-# Enter port to the Application Timeline Server as 8188
+[Detailed Tez - Timeline Server Configuration](tez_yarn_timeline.html)
+
+[Embedding Application Specific Data into Tez UI](tez_ui_user_data.html)
+
+## Tez UI Install
+
+### Building Tez UI from sources
+For instructions on building Tez UI from sources or setting up a development environment see the
+README.txt in tez-ui subfolder. The build generates a tarball as well as a war file of the distribution
+in the tez-ui/target. currently the Tez-UI can be hosted using one of the following options.
+
+### hosting using the war file and tomcat.
+1. Remove any old deployments in $TOMCAT_HOME/webapps
+2. Copy the war to $TOMCAT_HOME/webapps
+3. Restart tomcat and the war will get deployed. The content of the war would be available in
+$TOMCAT_HOME/webapps/tez-ui-x.x.x.
+
+### hosting using tarball and a standalone webserver
+1. untar the tarball
+2. copy the resulting directory to the document root of the web server.
+3. reload/restart the webserver
+
+### configuring the Timeline Server URL and Resource manager web url.
+By default, the Tez UI attempts to connect to Timeline Server using the same host as the Tez UI.
+For example, if the UI is hosted on localhost, the Timeline Server URL is assumed to be
+http(s)://localhost:8188 and the Resource manager web url is assumed to be http(s)://localhost:8088.
+
+If the Timeline Server and/or Resource manager is hosted on a different host, the Tez UI needs
+corresponding changes to be configured in scripts/configs.js. Uncomment the following lines and
+set the hostname and port appropriately.
+
+```
+    // timelineBaseUrl: 'http://localhost:8188',
+    // RMWebUrl: 'http://localhost:8088',
+
 ```

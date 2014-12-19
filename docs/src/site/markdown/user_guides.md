@@ -22,4 +22,5 @@
    - [Using YARN Timeline with Tez for History](./tez_yarn_timeline.html)
    - [Access Control in Tez](./tez_acls.html)
    - [Embedding Application Specific Data into Tez UI](./tez_ui_user_data.html)
+   - [Tez UI - Overview and installation](./tez-ui.html)
 
