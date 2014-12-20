@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1881. Setup initial test-patch script for TEZ-1313.
   TEZ-1864. move initialization code dependent on config params to App.ready.
   TEZ-1870. Time displayed in the UI is in GMT.
   TEZ-1858. Docs for deploying/using the Tez UI.
