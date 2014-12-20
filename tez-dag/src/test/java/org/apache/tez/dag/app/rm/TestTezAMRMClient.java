@@ -25,9 +25,11 @@ import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.util.RackResolver;
+import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -38,6 +40,11 @@ import static org.mockito.Mockito.mock;
 public class TestTezAMRMClient {
 
   private TezAMRMClientAsync amrmClient;
+
+  @BeforeClass
+  public static void beforeClass() {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
+  }
 
   @Before
   public void setup() {

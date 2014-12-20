@@ -90,7 +90,7 @@ import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -102,8 +102,8 @@ import com.google.common.collect.Sets;
 public class TestContainerReuse {
   private static final Log LOG = LogFactory.getLog(TestContainerReuse.class);
 
-  @Before
-  public void setup() {
+  @BeforeClass
+  public static void setup() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 

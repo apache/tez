@@ -75,7 +75,7 @@ import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrain
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.PreemptionMatcher;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -90,8 +90,8 @@ public class TestTaskScheduler {
   RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
 
-  @Before
-  public void setup() {
+  @BeforeClass
+  public static void beforeClass() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 

@@ -173,6 +173,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
@@ -2201,10 +2202,14 @@ public class TestVertexImpl {
     dispatcher.init(conf);
     dispatcher.start();
   }
-  
+
+  @BeforeClass
+  public static void beforeClass() {
+    MockDNSToSwitchMapping.initializeMockRackResolver();
+  }
+
   @Before
   public void setup() throws AMUserCodeException {
-    MockDNSToSwitchMapping.initializeMockRackResolver();
     useCustomInitializer = false;
     customInitializer = null;
     setupPreDagCreation();
