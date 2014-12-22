@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+Ember.FEATURES.I18N_TRANSLATE_HELPER_SPAN = false;
+Ember.ENV.I18N_COMPILE_WITHOUT_HANDLEBARS = true;
+
 var App = window.App = Em.Application.createWithMixins(Bootstrap, {
   // Basic logging, e.g. "Transitioned into 'post'"
   LOG_TRANSITIONS: true,
