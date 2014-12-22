@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1878. Task-specific log level override not working in certain conditions.
   TEZ-1886. remove deprecation warnings for tez-ui on the console.
   TEZ-1875. dropdown filters do not work on vertices and task attempts page.
   TEZ-1873. TestTezAMRMClient fails due to host resolution timing out.

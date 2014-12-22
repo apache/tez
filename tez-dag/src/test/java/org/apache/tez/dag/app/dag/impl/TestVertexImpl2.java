@@ -183,6 +183,72 @@ public class TestVertexImpl2 {
     }
   }
 
+  @Test(timeout = 5000)
+  public void testTaskSpecificLoggingOpts2() {
+
+    String vertexName = "testvertex";
+    String customJavaOpts = "-Xmx128m";
+
+    Configuration conf = new TezConfiguration();
+    conf.set(TezConfiguration.TEZ_TASK_LOG_LEVEL, "WARN;org.apache.tez=INFO");
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, vertexName + "[0,1,2]");
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL, "DEBUG");
+    conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, customJavaOpts);
+
+    LogTestInfoHolder testInfo = new LogTestInfoHolder(conf);
+
+    // Expected command opts for regular tasks
+    List<String> expectedCommands = new LinkedList<String>();
+    expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
+    expectedCommands.add("-Dlog4j.configuration=" + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
+    expectedCommands.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "=" +
+        ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "WARN" + "," +
+        TezConstants.TEZ_CONTAINER_LOGGER_NAME);
+
+    for (int i = 3 ; i < testInfo.numTasks ; i++) {
+      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      String javaOpts = containerContext.getJavaOpts();
+
+      assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
+      for (String expectedCmd : expectedCommands) {
+        assertTrue(javaOpts.contains(expectedCmd));
+      }
+
+      Map<String, String> env = containerContext.getEnvironment();
+      String val = env.get(testInfo.envKey);
+      assertEquals(testInfo.envVal, val);
+      String logEnvVal = env.get(TezConstants.TEZ_CONTAINER_LOG_PARAMS);
+      assertEquals("org.apache.tez=INFO", logEnvVal);
+    }
+
+    // Expected command opts for instrumented tasks.
+    expectedCommands = new LinkedList<String>();
+    expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
+    expectedCommands.add("-Dlog4j.configuration=" + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
+    expectedCommands.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "=" +
+        ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "DEBUG" + "," +
+        TezConstants.TEZ_CONTAINER_LOGGER_NAME);
+
+    for (int i = 0 ; i < 3 ; i++) {
+      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      String javaOpts = containerContext.getJavaOpts();
+
+      assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
+      for (String expectedCmd : expectedCommands) {
+        assertTrue(javaOpts.contains(expectedCmd));
+      }
+
+      Map<String, String> env = containerContext.getEnvironment();
+      String val = env.get(testInfo.envKey);
+      assertEquals(testInfo.envVal, val);
+      String logEnvVal = env.get(TezConstants.TEZ_CONTAINER_LOG_PARAMS);
+      assertNull(logEnvVal);
+    }
+  }
+
+
   private static class LogTestInfoHolder {
 
     final AppContext mockAppContext;
