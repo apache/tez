@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.tez</groupId>
     <artifactId>tez-plugins</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
   </parent>
   <artifactId>tez-yarn-timeline-history</artifactId>
 
