@@ -250,8 +250,8 @@ prebuildWithoutPatch () {
   echo ""
   echo ""
   echo "Compiling $(pwd)"
-  echo "$MVN clean test -DskipTests -D${PROJECT_NAME}PatchProcess -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1"
-  $MVN clean test -DskipTests -D${PROJECT_NAME}PatchProcess -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1
+  echo "$MVN clean test -DskipTests -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1"
+  $MVN clean test -DskipTests -Ptest-patch > $PATCH_DIR/masterJavacWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     echo "master compilation is broken?"
     JIRA_COMMENT="$JIRA_COMMENT
@@ -260,8 +260,8 @@ prebuildWithoutPatch () {
     return 1
   fi
 
-  echo "$MVN clean test javadoc:javadoc -DskipTests -Pdocs -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/masterJavadocWarnings.txt 2>&1"
-  $MVN clean test javadoc:javadoc -DskipTests -Pdocs -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/masterJavadocWarnings.txt 2>&1
+  echo "$MVN clean test javadoc:javadoc -DskipTests > $PATCH_DIR/masterJavadocWarnings.txt 2>&1"
+  $MVN clean test javadoc:javadoc -DskipTests > $PATCH_DIR/masterJavadocWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     echo "master javadoc compilation is broken?"
     JIRA_COMMENT="$JIRA_COMMENT
@@ -387,8 +387,8 @@ checkJavadocWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$MVN clean test javadoc:javadoc -DskipTests -Pdocs -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchJavadocWarnings.txt 2>&1"
-  $MVN clean test javadoc:javadoc -DskipTests -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchJavadocWarnings.txt 2>&1
+  echo "$MVN clean test javadoc:javadoc -DskipTests > $PATCH_DIR/patchJavadocWarnings.txt 2>&1"
+  $MVN clean test javadoc:javadoc -DskipTests > $PATCH_DIR/patchJavadocWarnings.txt 2>&1
   calculateJavadocWarnings "$PATCH_DIR/masterJavadocWarnings.txt"
   nummasterJavadocWarnings=$RET
   calculateJavadocWarnings "$PATCH_DIR/patchJavadocWarnings.txt"
@@ -427,8 +427,8 @@ checkJavacWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$MVN clean test -DskipTests -D${PROJECT_NAME}PatchProcess -Ptest-patch > $PATCH_DIR/patchJavacWarnings.txt 2>&1"
-  $MVN clean test -DskipTests -D${PROJECT_NAME}PatchProcess -Ptest-patch > $PATCH_DIR/patchJavacWarnings.txt 2>&1
+  echo "$MVN clean test -DskipTests -Ptest-patch > $PATCH_DIR/patchJavacWarnings.txt 2>&1"
+  $MVN clean test -DskipTests -Ptest-patch > $PATCH_DIR/patchJavacWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     JIRA_COMMENT="$JIRA_COMMENT
 
@@ -474,8 +474,8 @@ checkReleaseAuditWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$MVN apache-rat:check -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchReleaseAuditOutput.txt 2>&1"
-  $MVN apache-rat:check -D${PROJECT_NAME}PatchProcess > $PATCH_DIR/patchReleaseAuditOutput.txt 2>&1
+  echo "$MVN apache-rat:check > $PATCH_DIR/patchReleaseAuditOutput.txt 2>&1"
+  $MVN apache-rat:check > $PATCH_DIR/patchReleaseAuditOutput.txt 2>&1
   find $BASEDIR -name rat.txt | xargs cat > $PATCH_DIR/patchReleaseAuditWarnings.txt
 
   ### Compare master and patch release audit warning numbers
@@ -538,9 +538,9 @@ checkFindbugsWarnings () {
 
   rc=0
   echo " Running findbugs "
-  echo "$MVN clean test findbugs:findbugs -DskipTests -D${PROJECT_NAME}PatchProcess < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1"
-  $MVN clean test findbugs:findbugs -DskipTests -D${PROJECT_NAME}PatchProcess < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1
-  rc = $?
+  echo "$MVN clean test findbugs:findbugs -DskipTests < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1"
+  $MVN clean test findbugs:findbugs -DskipTests < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1
+  rc=$?
 
   if [ $rc != 0 ] ; then
     JIRA_COMMENT="$JIRA_COMMENT
@@ -602,7 +602,7 @@ runTests () {
   test_logfile=$PATCH_DIR/testrun.txt
   echo "  Running tests "
   echo "  $MVN clean install -fn -D${PROJECT_NAME}PatchProcess"
-  $MVN clean install -fae -D${PROJECT_NAME}PatchProcess > $test_logfile 2>&1
+  $MVN clean install -fae > $test_logfile 2>&1
   test_build_result=$?
   cat $test_logfile
   module_test_timeouts=`$AWK '/^Running / { if (last) { print last } last=$2 } /^Tests run: / { last="" }' $test_logfile`
