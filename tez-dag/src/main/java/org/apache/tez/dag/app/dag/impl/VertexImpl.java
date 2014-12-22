@@ -771,12 +771,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       String [] taskLogParamsTaskSpecific = taskSpecificLaunchCmdOption.getTaskSpecificLogParams();
       this.javaOptsTaskSpecific = TezClientUtils
           .maybeAddDefaultLoggingJavaOpts(taskLogParamsTaskSpecific[0], javaOptsWithoutLoggerMods);
+
+      environmentTaskSpecific = new HashMap<String, String>(this.environment.size());
+      environmentTaskSpecific.putAll(environment);
       if (taskLogParamsTaskSpecific.length == 2 && !Strings.isNullOrEmpty(taskLogParamsTaskSpecific[1])) {
-        environmentTaskSpecific = new HashMap<String, String>(this.environment.size());
-        environmentTaskSpecific.putAll(environment);
         TezClientUtils.addLogParamsToEnv(environmentTaskSpecific, taskLogParamsTaskSpecific);
-      } else {
-        environmentTaskSpecific = null;
       }
     } else {
       this.javaOptsTaskSpecific = null;
