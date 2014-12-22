@@ -116,6 +116,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final LinkedHashMap<String, LogicalOutput> runOutputMap;
 
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
+  private final Map<String, String> serviceProviderEnvMap;
 
   private final ExecutorService initializerExecutor;
   private final CompletionService<Void> initializerCompletionService;
@@ -135,7 +136,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
-      Map<String, ByteBuffer> serviceConsumerMetadata,
+      Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> serviceProviderEnvMap,
       Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
     super(taskSpec, tezConf, tezUmbilical);
@@ -156,6 +157,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     this.processorDescriptor = taskSpec.getProcessorDescriptor();
     this.serviceConsumerMetadata = serviceConsumerMetadata;
+    this.serviceProviderEnvMap = serviceProviderEnvMap;
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state = State.NEW;
     this.appAttemptNumber = appAttemptNumber;
@@ -484,7 +486,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getTaskAttemptID(),
         tezCounters, inputIndex,
         inputSpec.getInputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
+        serviceConsumerMetadata, serviceProviderEnvMap, initialMemoryDistributor,
         inputSpec.getInputDescriptor(), inputMap, inputReadyTracker, objectRegistry);
     return inputContext;
   }
@@ -498,7 +500,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getTaskAttemptID(),
         tezCounters, outputIndex,
         outputSpec.getOutputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
+        serviceConsumerMetadata, serviceProviderEnvMap, initialMemoryDistributor,
         outputSpec.getOutputDescriptor(), objectRegistry);
     return outputContext;
   }
@@ -510,7 +512,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getVertexParallelism(),
         taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
-        serviceConsumerMetadata, System.getenv(), initialMemoryDistributor,
+        serviceConsumerMetadata, serviceProviderEnvMap, initialMemoryDistributor,
         processorDescriptor, inputReadyTracker, objectRegistry);
     return processorContext;
   }
@@ -720,6 +722,18 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   @VisibleForTesting
   public LogicalIOProcessor getProcessor() {
     return this.processor;
+  }
+
+  @Private
+  @VisibleForTesting
+  public Map<String, LogicalInput> getInputs() {
+    return this.inputsMap;
+  }
+
+  @Private
+  @VisibleForTesting
+  public Map<String, LogicalOutput> getOutputs() {
+    return this.outputsMap;
   }
 
 }

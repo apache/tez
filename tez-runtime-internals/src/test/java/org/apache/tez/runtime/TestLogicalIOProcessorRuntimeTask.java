@@ -76,7 +76,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     TaskSpec task2 = createTaskSpec(taId2, "dag2", "vertex1", 10);
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
-        umbilical, serviceConsumerMetadata, startedInputsMap, null);
+        umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null);
 
     lio1.initialize();
     lio1.run();
@@ -93,7 +93,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
 
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
-        umbilical, serviceConsumerMetadata, startedInputsMap, null);
+        umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null);
 
     lio2.initialize();
     lio2.run();

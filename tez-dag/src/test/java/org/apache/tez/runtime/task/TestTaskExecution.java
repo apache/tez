@@ -697,7 +697,7 @@ public class TestTaskExecution {
         new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
 
     TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, umbilical, 1,
-        new HashMap<String, ByteBuffer>(), HashMultimap.<String, String> create(), taskReporter,
+        new HashMap<String, ByteBuffer>(), new HashMap<String, String>(), HashMultimap.<String, String> create(), taskReporter,
         executor, null);
     return taskRunner;
   }

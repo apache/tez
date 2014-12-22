@@ -299,7 +299,7 @@ public class LocalContainerLauncher extends AbstractService implements
         // Pull in configuration specified for the session.
         TezChild tezChild =
             TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
-                attemptNumber, localDirs, workingDirectory);
+                attemptNumber, localDirs, workingDirectory, System.getenv());
         tezChild.setUmbilical(tezTaskUmbilicalProtocol);
         return tezChild.run();
       }

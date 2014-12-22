@@ -42,20 +42,19 @@ import org.apache.tez.mapreduce.hadoop.MRHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.hadoop.MultiStageMRConfigUtil;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
-import org.apache.tez.mapreduce.output.LocalOnFileSorterOutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.mapreduce.processor.MapUtils;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
-import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
-import org.apache.tez.runtime.library.common.task.local.output.TezLocalTaskOutputFiles;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
+import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
+import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,7 +90,7 @@ public class TestMapProcessor {
     job.set(MRConfig.LOCAL_DIR, workDir.toString());
     job.setClass(
         Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
-        TezLocalTaskOutputFiles.class, 
+        TezTaskOutputFiles.class,
         TezTaskOutput.class);
     job.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
     job.setNumReduceTasks(1);
@@ -131,7 +130,7 @@ public class TestMapProcessor {
                     .toByteArray()))),
         1);
     OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
-        OutputDescriptor.create(LocalOnFileSorterOutput.class.getName())
+        OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
     LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
@@ -143,8 +142,8 @@ public class TestMapProcessor {
     task.run();
     task.close();
     
-    InputContext inputContext = task.getInputContexts().iterator().next();
-    TezTaskOutput mapOutputs = new TezLocalTaskOutputFiles(jobConf, inputContext.getUniqueIdentifier());
+    OutputContext outputContext = task.getOutputContexts().iterator().next();
+    TezTaskOutput mapOutputs = new TezTaskOutputFiles(jobConf, outputContext.getUniqueIdentifier());
     
     
     // TODO NEWTEZ FIXME OutputCommitter verification
@@ -153,7 +152,7 @@ public class TestMapProcessor {
 //        .getCommitter().getClass().getName());
 //    t.close();
 
-    Path mapOutputFile = mapOutputs.getInputFile(new InputAttemptIdentifier(0, 0));
+    Path mapOutputFile = mapOutputs.getOutputFile();
     LOG.info("mapOutputFile = " + mapOutputFile);
     IFile.Reader reader =
         new IFile.Reader(localFs, mapOutputFile, null, null, null, false, 0, -1);

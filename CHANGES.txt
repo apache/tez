@@ -1,6 +1,14 @@
 Apache Tez Change Log
 =====================
 
+
+Release 0.7.0: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-1856. Remove LocalOnFileSortedOutput, LocalMergedInput, LocalTaskOutputFiles.
+
 Release 0.6.0: Unreleased
 
 INCOMPATIBLE CHANGES

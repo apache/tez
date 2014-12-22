@@ -20,7 +20,9 @@ package org.apache.tez.mapreduce;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -32,17 +34,24 @@ public class TestUmbilical implements TezUmbilical {
 
   private static final Log LOG = LogFactory.getLog(TestUmbilical.class);
 
+  private final List<TezEvent> events = Lists.newLinkedList();
+
   public TestUmbilical() {
   }
 
   @Override
   public void addEvents(Collection<TezEvent> events) {
     if (events != null && events.size() > 0) {
+      this.events.addAll(events);
       LOG.info("#Events Received: " + events.size());
       for (TezEvent event : events) {
         LOG.info("Event: " + event);
       }
     }
+  }
+
+  public List<TezEvent> getEvents() {
+    return this.events;
   }
 
   @Override

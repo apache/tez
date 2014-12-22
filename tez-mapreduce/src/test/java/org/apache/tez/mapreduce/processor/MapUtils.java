@@ -48,6 +48,9 @@ import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
+import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -215,6 +218,13 @@ public class MapUtils {
     Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(shuffleToken));
+    Map<String, String> serviceProviderEnvMap = new HashMap<String, String>();
+    ByteBuffer shufflePortBb = ByteBuffer.allocate(4).putInt(0, 8000);
+    AuxiliaryServiceHelper
+        .setServiceDataIntoEnv(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, shufflePortBb,
+            serviceProviderEnvMap);
+    EnvironmentUpdateUtils.put(ApplicationConstants.Environment.NM_HOST
+        .toString(), "localhost");
     
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
@@ -223,6 +233,7 @@ public class MapUtils {
         new String[] {workDir.toString()},
         umbilical,
         serviceConsumerMetadata,
+        serviceProviderEnvMap,
         HashMultimap.<String, String>create(), null);
     return task;
   }

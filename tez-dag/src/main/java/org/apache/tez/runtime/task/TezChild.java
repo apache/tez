@@ -95,6 +95,7 @@ public class TezChild {
   private final ListeningExecutorService executor;
   private final ObjectRegistryImpl objectRegistry;
   private final Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
+  private final Map<String, String> serviceProviderEnvMap;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
 
@@ -105,12 +106,14 @@ public class TezChild {
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String[] localDirs,
+      Map<String, String> serviceProviderEnvMap,
       ObjectRegistryImpl objectRegistry)
       throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
     this.localDirs = localDirs;
+    this.serviceProviderEnvMap = serviceProviderEnvMap;
 
     getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
@@ -212,7 +215,8 @@ public class TezChild {
         // Execute the Actual Task
         TezTaskRunner taskRunner = new TezTaskRunner(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
-            serviceConsumerMetadata, startedInputsMap, taskReporter, executor, objectRegistry);
+            serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
+            executor, objectRegistry);
         boolean shouldDie;
         try {
           shouldDie = !taskRunner.run();
@@ -384,7 +388,8 @@ public class TezChild {
   }
 
   public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
-      String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory)
+      String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
+      Map<String, String> serviceProviderEnvMap)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -410,7 +415,7 @@ public class TezChild {
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
 
     return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
-        attemptNumber, localDirs, objectRegistry);
+        attemptNumber, localDirs, serviceProviderEnvMap, objectRegistry);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
@@ -429,7 +434,8 @@ public class TezChild {
     final String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
         .name()));
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
-        tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()));
+        tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
+        System.getenv());
     tezChild.run();
   }
 
