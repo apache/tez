@@ -6,7 +6,6 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-1878. Task-specific log level override not working in certain conditions.
   TEZ-1886. remove deprecation warnings for tez-ui on the console.
   TEZ-1875. dropdown filters do not work on vertices and task attempts page.
   TEZ-1873. TestTezAMRMClient fails due to host resolution timing out.
@@ -31,7 +30,6 @@ ALL CHANGES:
   TEZ-1838. tez-ui/src/main/webapp/bower.json gets updated after compiling source code.
   TEZ-1789. Move speculator processing off the central dispatcher.
   TEZ-1610. Add additional task counters for fetchers, merger.
-  TEZ-1775. Allow setting log level per logger.
   TEZ-1847. Fix package name for MiniTezClusterWithTimeline.
   TEZ-1846. Build fails with package org.apache.tez.dag.history.logging.ats does not exist.
   TEZ-1696. Make Tez use the domain-based timeline ACLs.
@@ -86,6 +84,8 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1878. Task-specific log level override not working in certain conditions.
+  TEZ-1775. Allow setting log level per logger.
   TEZ-1851. FileSystem counters do not differentiate between different FileSystems.
   TEZ-1852. Get examples to work in LocalMode.
   TEZ-1861. Fix failing test: TestOnFileSortedOutput.
