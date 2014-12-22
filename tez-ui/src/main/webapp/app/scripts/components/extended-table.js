@@ -106,13 +106,14 @@ App.ExTable.FilterCell = Ember.View.extend(Ember.AddeparMixins.StyleBindingsMixi
             content: this.get('content.dropdownValues'),
             optionValuePath: 'content.id',
             optionLabelPath: 'content.label',
-            classNames: 'inline-display'
+            classNames: 'inline-display',
+            filterValueBinding: '_parentView.content.columnFilterValue'
           });
         break;
         case 'textbox':
           inputFieldView = App.ExTable.FilterTextField.create({
-            filterValueBinding: 'content.columnFilterValue',
-            classNames: 'inline-display'
+            classNames: 'inline-display',
+            filterValueBinding: '_parentView.content.columnFilterValue'
           });
         break;
         default:
