@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 
 import com.google.common.base.Splitter;
@@ -54,20 +55,22 @@ public class TaskSpecificLaunchCmdOption {
   //Range regex where ':' should always be prepended and appended with digit.
   final static Pattern RANGE_REGEX = Pattern.compile("(\\d+):(\\d+)");
 
-  private Map<String, BitSet> tasksMap;
+  private final Map<String, BitSet> tasksMap;
   //Task specific launch-cmd options
-  private String tsLaunchCmdOpts;
+  private final String tsLaunchCmdOpts;
+  //Task specific log options
+  private final String[] tsLogParams;
 
   public TaskSpecificLaunchCmdOption(Configuration conf) {
-    tsLaunchCmdOpts =
-        conf.getTrimmed(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, "");
+    this.tsLaunchCmdOpts =
+        conf.getTrimmed(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS);
+    this.tsLogParams = TezClientUtils
+        .parseLogParams(conf.getTrimmed(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL));
 
-    if (!Strings.isNullOrEmpty(tsLaunchCmdOpts)) {
+    if (shouldParseSpecificTaskList()) {
       this.tasksMap = getSpecificTasks(conf);
-      if (!tasksMap.isEmpty() && tsLaunchCmdOpts.isEmpty()) {
-        LOG.warn(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS
-            + " should be specified for adding task specific launch-cmd options");
-      }
+    } else {
+      this.tasksMap = null;
     }
   }
 
@@ -82,17 +85,40 @@ public class TaskSpecificLaunchCmdOption {
    */
   public String getTaskSpecificOption(String launchCmdOpts, String vertexName,
       int taskIdx) {
-    launchCmdOpts = (launchCmdOpts == null) ? "" : launchCmdOpts;
-    vertexName = vertexName.replaceAll(" ", "");
-    String result =
-        this.tsLaunchCmdOpts.replaceAll("__VERTEX_NAME__", vertexName)
-          .replaceAll("__TASK_INDEX__", Integer.toString(taskIdx));
-    result = (launchCmdOpts + " " + result);
+    if (this.tsLaunchCmdOpts != null) {
+      launchCmdOpts = (launchCmdOpts == null) ? "" : launchCmdOpts;
+      vertexName = vertexName.replaceAll(" ", "");
+      String result =
+          this.tsLaunchCmdOpts.replaceAll("__VERTEX_NAME__", vertexName)
+              .replaceAll("__TASK_INDEX__", Integer.toString(taskIdx));
+      result = (launchCmdOpts + " " + result);
 
-    LOG.info("Launch-cmd options added to vertexName=" + vertexName
-        + ", taskIdx=" + taskIdx + ", tsLaunchCmdOpts=" + result.trim());
+      LOG.info("Launch-cmd options added to vertexName=" + vertexName
+          + ", taskIdx=" + taskIdx + ", tsLaunchCmdOpts=" + result.trim());
 
-    return result.trim();
+      return result.trim();
+    }
+    return launchCmdOpts;
+  }
+
+  public boolean hasModifiedTaskLaunchOpts() {
+    return !Strings.isNullOrEmpty(tsLaunchCmdOpts);
+  }
+
+  /**
+   * Retrieve a parsed form of the log string specified for per-task usage. </p>
+   * The first element of the array is the general log level. </p>
+   * The second level, if it exists, is the additional per logger configuration.
+   *
+   *
+   * @return parsed form of the log string specified. null if none specified
+   */
+  public String[] getTaskSpecificLogParams() {
+    return this.tsLogParams;
+  }
+
+  public boolean hasModifiedLogProperties() {
+    return this.tsLogParams != null;
   }
 
   /**
@@ -111,6 +137,10 @@ public class TaskSpecificLaunchCmdOption {
     return (taskSet == null) ? false : ((taskSet.isEmpty()) ? true : taskSet.get(taskId));
   }
 
+  private boolean shouldParseSpecificTaskList() {
+    return !(Strings.isNullOrEmpty(tsLaunchCmdOpts) && tsLogParams == null);
+  }
+
   /**
    * <pre>
    * Get the set of tasks in the job, which needs task specific launch command arguments to be
@@ -123,23 +153,25 @@ public class TaskSpecificLaunchCmdOption {
    * </pre>
    *
    * @param conf
-   * @return Map<String, BitSet>
+   * @return a map from the vertex name to a BitSet representing tasks to be instruemented. null if
+   *         the provided configuration is empty or invalid
    */
   private Map<String, BitSet> getSpecificTasks(Configuration conf) {
     String specificTaskList =
-        conf.getTrimmed(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, "");
-    final Map<String, BitSet> resultSet = new HashMap<String, BitSet>();
-    if (specificTaskList.isEmpty() || !isValid(specificTaskList)) {
-      return resultSet; // empty set
+        conf.getTrimmed(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST);
+    if (!Strings.isNullOrEmpty(specificTaskList) && isValid(specificTaskList)) {
+      final Map<String, BitSet> resultSet = new HashMap<String, BitSet>();
+      Matcher matcher = TASKS_REGEX.matcher(specificTaskList);
+      while (matcher.find()) {
+        String vertexName = matcher.group(1).trim();
+        BitSet taskSet = parseTasks(matcher.group(2).trim());
+        resultSet.put(vertexName, taskSet);
+      }
+      LOG.info("Specific tasks with additional launch-cmd options=" + resultSet);
+      return resultSet;
+    } else {
+      return null;
     }
-    Matcher matcher = TASKS_REGEX.matcher(specificTaskList);
-    while (matcher.find()) {
-      String vertexName = matcher.group(1).trim();
-      BitSet taskSet = parseTasks(matcher.group(2).trim());
-      resultSet.put(vertexName, taskSet);
-    }
-    LOG.info("Specific tasks with additional launch-cmd options=" + resultSet);
-    return resultSet;
   }
 
   private boolean isValid(String specificTaskList) {

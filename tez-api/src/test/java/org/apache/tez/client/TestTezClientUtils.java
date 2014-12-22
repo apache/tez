@@ -20,6 +20,7 @@ package org.apache.tez.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -29,6 +30,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,12 +43,20 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.junit.Assert;
 import org.junit.Test;
@@ -183,6 +193,75 @@ public class TestTezClientUtils {
     assertFalse(localizedMap.isEmpty());
   }
 
+  @Test(timeout = 5000)
+  public void testAMLoggingOptsSimple() throws IOException, YarnException {
+
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "WARN");
+
+    ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    DAG dag = DAG.create("testdag");
+    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"))
+        .setTaskLaunchCmdOpts("initialLaunchOpts"));
+    AMConfiguration amConf =
+        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), new Credentials());
+    ApplicationSubmissionContext appSubmissionContext =
+        TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
+            new HashMap<String, LocalResource>(), new Credentials(), false, new TezApiVersionInfo());
+
+    List<String> expectedCommands = new LinkedList<String>();
+    expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
+    expectedCommands.add("-Dlog4j.configuration=" + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
+    expectedCommands.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "=" +
+        ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "WARN" + "," +
+        TezConstants.TEZ_CONTAINER_LOGGER_NAME);
+
+    List<String> commands = appSubmissionContext.getAMContainerSpec().getCommands();
+    assertEquals(1, commands.size());
+    for (String expectedCmd : expectedCommands) {
+      assertTrue(commands.get(0).contains(expectedCmd));
+    }
+
+    Map<String, String> environment = appSubmissionContext.getAMContainerSpec().getEnvironment();
+    String logEnv = environment.get(TezConstants.TEZ_CONTAINER_LOG_PARAMS);
+    assertNull(logEnv);
+  }
+
+  @Test(timeout = 5000)
+  public void testAMLoggingOptsPerLogger() throws IOException, YarnException {
+
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "WARN;org.apache.hadoop.ipc=DEBUG;org.apache.hadoop.security=DEBUG");
+
+    ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    DAG dag = DAG.create("testdag");
+    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"))
+        .setTaskLaunchCmdOpts("initialLaunchOpts"));
+    AMConfiguration amConf =
+        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), new Credentials());
+    ApplicationSubmissionContext appSubmissionContext =
+        TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
+            new HashMap<String, LocalResource>(), new Credentials(), false, new TezApiVersionInfo());
+
+    List<String> expectedCommands = new LinkedList<String>();
+    expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
+    expectedCommands.add("-Dlog4j.configuration=" + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
+    expectedCommands.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "=" +
+        ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "WARN" + "," +
+        TezConstants.TEZ_CONTAINER_LOGGER_NAME);
+
+    List<String> commands = appSubmissionContext.getAMContainerSpec().getCommands();
+    assertEquals(1, commands.size());
+    for (String expectedCmd : expectedCommands) {
+      assertTrue(commands.get(0).contains(expectedCmd));
+    }
+
+    Map<String, String> environment = appSubmissionContext.getAMContainerSpec().getEnvironment();
+    String logEnv = environment.get(TezConstants.TEZ_CONTAINER_LOG_PARAMS);
+    assertEquals("org.apache.hadoop.ipc=DEBUG;org.apache.hadoop.security=DEBUG", logEnv);
+  }
 
   @Test(timeout = 5000)
   public void testAMCommandOpts() {
@@ -327,7 +406,8 @@ public class TestTezClientUtils {
     String javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts("FOOBAR", origJavaOpts);
     Assert.assertNotNull(javaOpts);
     Assert.assertTrue(javaOpts.contains("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FOOBAR")
-        && javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE));
+        && javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE)
+        && javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
   }
 
   // To run this test case see TestTezCommonUtils::testLocalResourceVisibility

@@ -2271,7 +2271,7 @@ public class TestVertexImpl {
     VertexImpl v3 = vertices.get("vertex3");
 
     Assert.assertEquals("x3.y3", v3.getProcessorName());
-    Assert.assertEquals("foo", v3.getJavaOpts());
+    Assert.assertTrue(v3.getJavaOpts().contains("foo"));
 
     Assert.assertEquals(2, v3.getInputSpecList(0).size());
     Assert.assertEquals(2, v3.getInputVerticesCount());

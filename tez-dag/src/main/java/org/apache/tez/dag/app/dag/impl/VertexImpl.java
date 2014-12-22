@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
@@ -56,6 +57,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounters;
@@ -68,6 +70,7 @@ import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -691,7 +694,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private TaskLocationHint taskLocationHints[];
   private Map<String, LocalResource> localResources;
-  private Map<String, String> environment;
+  private final Map<String, String> environment;
+  private final Map<String, String> environmentTaskSpecific;
+  private final String javaOptsTaskSpecific;
   private final String javaOpts;
   private final ContainerContext containerContext;
   private VertexTerminationCause terminationCause;
@@ -753,9 +758,36 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.environment = DagTypeConverters
         .createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getEnvironmentSettingList());
-    this.javaOpts = vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan
-        .getTaskConfig().getJavaOpts() : null;
     this.taskSpecificLaunchCmdOpts = taskSpecificLaunchCmdOption;
+
+    // Set up log properties, including task specific log properties.
+    String javaOptsWithoutLoggerMods =
+        vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
+    String logString = conf.get(TezConfiguration.TEZ_TASK_LOG_LEVEL, TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT);
+    String [] taskLogParams = TezClientUtils.parseLogParams(logString);
+    this.javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts(taskLogParams[0], javaOptsWithoutLoggerMods);
+
+    if (taskSpecificLaunchCmdOpts.hasModifiedLogProperties()) {
+      String [] taskLogParamsTaskSpecific = taskSpecificLaunchCmdOption.getTaskSpecificLogParams();
+      this.javaOptsTaskSpecific = TezClientUtils
+          .maybeAddDefaultLoggingJavaOpts(taskLogParamsTaskSpecific[0], javaOptsWithoutLoggerMods);
+      if (taskLogParamsTaskSpecific.length == 2 && !Strings.isNullOrEmpty(taskLogParamsTaskSpecific[1])) {
+        environmentTaskSpecific = new HashMap<String, String>(this.environment.size());
+        environmentTaskSpecific.putAll(environment);
+        TezClientUtils.addLogParamsToEnv(environmentTaskSpecific, taskLogParamsTaskSpecific);
+      } else {
+        environmentTaskSpecific = null;
+      }
+    } else {
+      this.javaOptsTaskSpecific = null;
+      this.environmentTaskSpecific = null;
+    }
+
+    // env for tasks which don't have task-specific configuration. Has to be set up later to
+    // optionally allow copying this for specific tasks
+    TezClientUtils.addLogParamsToEnv(this.environment, taskLogParams);
+
+
     this.containerContext = new ContainerContext(this.localResources,
         appContext.getCurrentDAG().getCredentials(), this.environment, this.javaOpts, this);
 
@@ -1934,9 +1966,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   ContainerContext getContainerContext(int taskIdx) {
     if (taskSpecificLaunchCmdOpts.addTaskSpecificLaunchCmdOption(vertexName, taskIdx)) {
-      String jvmOpts = taskSpecificLaunchCmdOpts.getTaskSpecificOption(javaOpts, vertexName, taskIdx);
+
+      String jvmOpts = javaOptsTaskSpecific != null ? javaOptsTaskSpecific : javaOpts;
+
+      if (taskSpecificLaunchCmdOpts.hasModifiedTaskLaunchOpts()) {
+        jvmOpts = taskSpecificLaunchCmdOpts.getTaskSpecificOption(jvmOpts, vertexName, taskIdx);
+      }
+
       ContainerContext context = new ContainerContext(this.localResources,
-          appContext.getCurrentDAG().getCredentials(), this.environment, jvmOpts);
+          appContext.getCurrentDAG().getCredentials(),
+          this.environmentTaskSpecific != null ? this.environmentTaskSpecific : this.environment,
+          jvmOpts);
       return context;
     } else {
       return this.containerContext;
