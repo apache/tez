@@ -21,7 +21,7 @@
 		<table class='detail-list'>
 			<tbody>
 				<tr>
-					<td>{{t common.status}}</td>
+					<td>{{t 'common.status'}}</td>
 					<td>
 						{{status}}
 						<i {{bind-attr class=':task-status taskIconStatus'}}></i>
@@ -39,15 +39,15 @@
 		<table class='detail-list'>
 			<tbody>
 				<tr>
-					<td>{{t common.time.start}}</td>
+					<td>{{t 'common.time.start'}}</td>
 					<td>{{formatUnixTimestamp startTime}}</td>
 				</tr>
 				<tr>
-					<td>{{t common.time.end}}</td>
+					<td>{{t 'common.time.end'}}</td>
 					<td>{{formatUnixTimestamp endTime}}</td>
 				</tr>
 				<tr>
-					<td>{{t common.time.duration}}</td>
+					<td>{{t 'common.time.duration'}}</td>
 					<td>{{formatDuration startTime endTime}}</td>
 				</tr>
 			</tbody>
