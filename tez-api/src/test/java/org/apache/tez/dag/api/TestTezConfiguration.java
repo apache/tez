@@ -26,7 +26,7 @@ public class TestTezConfiguration {
 
   private static final String expectedValue = "tez.tar.gz";
 
-  @Test
+  @Test(timeout = 5000)
   public void testConstruction() {
     TezConfiguration tezConf1 = new TezConfiguration();
     Assert.assertEquals(expectedValue, tezConf1.get(TezConfiguration.TEZ_LIB_URIS));

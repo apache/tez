@@ -100,7 +100,7 @@ public class TestHistoryEventTimelineConversion {
     nodeId = NodeId.newInstance("node", 13435);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testHandlerExists() throws JSONException {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       HistoryEvent event = null;
@@ -192,7 +192,7 @@ public class TestHistoryEventTimelineConversion {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertAppLaunchedEvent() {
     long launchTime = random.nextLong();
     long submitTime = random.nextLong();
@@ -229,7 +229,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(conf.get("applicationId"), config.get("applicationId"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertContainerLaunchedEvent() {
     long launchTime = random.nextLong();
     ContainerLaunchedEvent event = new ContainerLaunchedEvent(containerId, launchTime,
@@ -259,7 +259,7 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getEvents().get(0).getTimestamp());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertDAGSubmittedEvent() {
     long submitTime = random.nextLong();
 
@@ -310,7 +310,7 @@ public class TestHistoryEventTimelineConversion {
 
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertDAGInitializedEvent() {
     long initTime = random.nextLong();
 
@@ -347,7 +347,7 @@ public class TestHistoryEventTimelineConversion {
 
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertDAGFinishedEvent() {
     long finishTime = random.nextLong();
     long startTime = random.nextLong();
@@ -396,7 +396,7 @@ public class TestHistoryEventTimelineConversion {
         ((Integer)timelineEntity.getOtherInfo().get("BAR")).intValue());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertVertexInitializedEvent() {
     long initRequestedTime = random.nextLong();
     long initedTime = random.nextLong();
@@ -441,7 +441,7 @@ public class TestHistoryEventTimelineConversion {
         ((Integer)timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS)).intValue());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertVertexFinishedEvent() {
     long initRequestedTime = random.nextLong();
     long initedTime = random.nextLong();
@@ -493,7 +493,7 @@ public class TestHistoryEventTimelineConversion {
         ((Integer)timelineEntity.getOtherInfo().get("BAR")).intValue());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertTaskStartedEvent() {
     long scheduleTime = random.nextLong();
     long startTime = random.nextLong();
@@ -535,7 +535,7 @@ public class TestHistoryEventTimelineConversion {
         ((Long)timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertTaskAttemptStartedEvent() {
     long startTime = random.nextLong();
     TaskAttemptStartedEvent event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1",
@@ -589,7 +589,7 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.NODE_HTTP_ADDRESS));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertVertexParallelismUpdatedEvent() {
     TezVertexID vId = tezVertexID;
     Map<String, EdgeManagerPluginDescriptor> edgeMgrs =

@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class TestInputIdentifiers {
   
-  @Test
+  @Test(timeout = 5000)
   public void testInputAttemptIdentifier() {
     Set<InputAttemptIdentifier> set = new HashSet<InputAttemptIdentifier>();
     InputAttemptIdentifier i1 = new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX);

@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class TestVertexStats {
 
-  @Test
+  @Test(timeout = 5000)
   public void testBasicStats() {
     VertexStats stats = new VertexStats();
     Assert.assertEquals(-1, stats.firstTaskStartTime);

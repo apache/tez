@@ -46,7 +46,7 @@ public class TestSortedGroupedMergedInput {
         mock(InputReadyTracker.class), null);
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testSimple() throws Exception {
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
         new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
@@ -84,7 +84,7 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSkippedKey() throws Exception {
 
 
@@ -128,7 +128,7 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testPartialValuesSkip() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
@@ -174,7 +174,7 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testOrdering() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 2, 4 },
@@ -225,7 +225,7 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSkippedKey2() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 2, 4 },
@@ -280,7 +280,7 @@ public class TestSortedGroupedMergedInput {
   }
   
   // Reads all values for a key, but doesn't trigger the last hasNext() call.
-  @Test
+  @Test(timeout = 5000)
   public void testSkippedKey3() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3, 4 },
@@ -326,7 +326,7 @@ public class TestSortedGroupedMergedInput {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testEmptySources() throws Exception {
 
     SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] {},

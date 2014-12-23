@@ -34,7 +34,7 @@ import org.junit.Test;
 
 public class TestUnorderedKVInputConfig {
 
-  @Test
+  @Test(timeout = 5000)
   public void testNullParams() {
     try {
       UnorderedKVInputConfig.newBuilder(null, "VALUE");
@@ -51,7 +51,7 @@ public class TestUnorderedKVInputConfig {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
@@ -106,7 +106,7 @@ public class TestUnorderedKVInputConfig {
     assertNull(conf.get("test.key.2"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDefaultConfigsUsed() {
     UnorderedKVInputConfig.Builder builder =
         UnorderedKVInputConfig.newBuilder("KEY", "VALUE");

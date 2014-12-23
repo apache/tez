@@ -58,7 +58,7 @@ import com.google.common.collect.Multimap;
 
 public class TestLogicalIOProcessorRuntimeTask {
 
-  @Test
+  @Test(timeout = 5000)
   public void testAutoStart() throws Exception {
     TezDAGID dagId = createTezDagId();
     TezVertexID vertexId = createTezVertexId(dagId);

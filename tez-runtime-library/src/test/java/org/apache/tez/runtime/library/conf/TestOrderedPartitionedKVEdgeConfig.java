@@ -40,7 +40,7 @@ import org.junit.Test;
 
 public class TestOrderedPartitionedKVEdgeConfig {
 
-  @Test
+  @Test(timeout = 5000)
   public void testNullParams() {
     try {
       OrderedPartitionedKVEdgeConfig.newBuilder(null, "VALUE", "PARTITIONER");

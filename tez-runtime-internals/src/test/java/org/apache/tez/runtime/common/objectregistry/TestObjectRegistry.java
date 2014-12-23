@@ -43,13 +43,13 @@ public class TestObjectRegistry {
 
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testBasicCRUD() {
     ObjectRegistry objectRegistry = new ObjectRegistryImpl();
     testCRUD(objectRegistry);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testClearCache() {
     ObjectRegistry objectRegistry = new ObjectRegistryImpl();
     testCRUD(objectRegistry);

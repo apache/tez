@@ -80,7 +80,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing base staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezBaseStagingPath() throws Exception {
     Configuration localConf = new Configuration();
     // Check if default works with localFS
@@ -96,7 +96,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing System staging dir if createed
-  @Test
+  @Test(timeout = 5000)
   public void testCreateTezSysStagingPath() throws Exception {
     String strAppId = "testAppId";
     String expectedStageDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
@@ -116,7 +116,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing System staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezSysStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -126,7 +126,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing conf staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezConfStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -138,7 +138,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing session jars staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezSessionJarStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -150,7 +150,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing bin plan staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezBinPlanStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -162,7 +162,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing text plan staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezTextPlanStagingPath() throws Exception {
     String strAppId = "testAppId";
     String dagPBName = "testDagPBName";
@@ -176,7 +176,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing recovery path staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -188,7 +188,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing app attempt specific recovery path staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezAttemptRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -202,7 +202,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing DAG specific recovery path staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezDAGRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -219,7 +219,7 @@ public class TestTezCommonUtils {
   }
 
   // Testing Summary recovery path staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezSummaryRecoveryStagingPath() throws Exception {
     String strAppId = "testAppId";
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
@@ -235,12 +235,12 @@ public class TestTezCommonUtils {
   }
 
   // This test is running here to leverage existing mini cluster
-  @Test
+  @Test(timeout = 5000)
   public void testLocalResourceVisibility() throws Exception {
     TestTezClientUtils.testLocalResourceVisibility(dfsCluster.getFileSystem(), conf);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testStringTokenize() {
     String s = "foo:bar:xyz::too";
     String[] expectedTokens = { "foo", "bar" , "xyz" , "too"};

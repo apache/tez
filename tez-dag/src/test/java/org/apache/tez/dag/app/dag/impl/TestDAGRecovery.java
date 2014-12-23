@@ -154,7 +154,7 @@ public class TestDAGRecovery {
   /**
    * New -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_FromNew() {
     assertNewState();
 
@@ -172,7 +172,7 @@ public class TestDAGRecovery {
   /**
    * restoreFromDAGInitializedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_FromInited() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -197,7 +197,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent ->
    * RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_FromStarted() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -223,7 +223,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent ->
    * restoreFromDAGFinishedEvent (SUCCEEDED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_Finished_SUCCEEDED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -256,7 +256,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent ->
    * restoreFromDAGFinishedEvent(FAILED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_Finished_FAILED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -289,7 +289,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent -> ->
    * restoreFromDAGFinishedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_Finished_KILLED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -322,7 +322,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent -> ->
    * restoreFromDAGFinishedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_Finished_ERROR() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -355,7 +355,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent ->
    * restoreFromDAG_COMMIT_STARTED -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_COMMIT_STARTED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -389,7 +389,7 @@ public class TestDAGRecovery {
    * restoreFromDAG_COMMIT_STARTED -> -> restoreFromDAGFinished (SUCCEEDED)->
    * RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_COMMIT_STARTED_Finished_SUCCEEDED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -425,7 +425,7 @@ public class TestDAGRecovery {
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent ->
    * restoreFromVERTEX_GROUP_COMMIT_STARTED -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_GROUP_COMMIT_STARTED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -459,7 +459,7 @@ public class TestDAGRecovery {
    * restoreFromVERTEX_GROUP_COMMIT_STARTED -> VERTEX_GROUP_COMMIT_FINISHED ->
    * RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_GROUP_COMMIT_STARTED_FINISHED() {
     assertNewState();
     restoreFromDAGInitializedEvent();
@@ -482,7 +482,7 @@ public class TestDAGRecovery {
    * restoreFromVERTEX_GROUP_COMMIT_STARTED -> VERTEX_GROUP_COMMIT_FINISHED ->
    * restoreFromDAG_Finished -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testDAGRecovery_GROUP_COMMIT_Finished() {
     assertNewState();
     restoreFromDAGInitializedEvent();

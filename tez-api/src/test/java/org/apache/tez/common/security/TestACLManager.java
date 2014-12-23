@@ -36,7 +36,7 @@ public class TestACLManager {
 
   private static final String[] noGroups = new String[0];
 
-  @Test
+  @Test(timeout = 5000)
   public void testCurrentUserACLChecks() {
     UserGroupInformation currentUser = UserGroupInformation.createUserForTesting("currentUser", noGroups);
     UserGroupInformation dagUser = UserGroupInformation.createUserForTesting("dagUser", noGroups);
@@ -74,7 +74,7 @@ public class TestACLManager {
     Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.DAG_MODIFY_ACL));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testOtherUserACLChecks() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -116,7 +116,7 @@ public class TestACLManager {
     Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_MODIFY_ACL));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testNoGroupsACLChecks() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -156,7 +156,7 @@ public class TestACLManager {
     Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_MODIFY_ACL));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void checkAMACLs() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -214,7 +214,7 @@ public class TestACLManager {
 
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void checkDAGACLs() throws IOException {
     String[] groups1 = new String[] {"grp1", "grp2"};
     String[] groups2 = new String[] {"grp3", "grp4"};
@@ -286,7 +286,7 @@ public class TestACLManager {
 
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testWildCardCheck() {
     Configuration conf = new Configuration(false);
     String viewACLs = "   *  ";
@@ -308,7 +308,7 @@ public class TestACLManager {
     Assert.assertTrue(aclManager.checkDAGModifyAccess(u1));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testACLsDisabled() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, false);
@@ -341,7 +341,7 @@ public class TestACLManager {
     Assert.assertTrue(dagAclManager.checkDAGModifyAccess(u1));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertToYARNACLs() {
     String currentUser = "c1";
     Configuration conf = new Configuration(false);

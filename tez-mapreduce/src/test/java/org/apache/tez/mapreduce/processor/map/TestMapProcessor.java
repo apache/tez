@@ -102,7 +102,7 @@ public class TestMapProcessor {
     localFs.delete(workDir, true);
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testMapProcessor() throws Exception {
     String dagName = "mrdag0";
     String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();

@@ -56,7 +56,7 @@ import com.google.protobuf.ByteString;
 
 public class TestMRInputSplitDistributor {
 
-  @Test
+  @Test(timeout = 5000)
   public void testSerializedPayload() throws IOException {
 
     Configuration conf = new Configuration(false);
@@ -105,7 +105,7 @@ public class TestMRInputSplitDistributor {
     assertEquals(2, ((InputSplitForTest) is2).identifier);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDeserializedPayload() throws IOException {
 
     Configuration conf = new Configuration(false);

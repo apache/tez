@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class TestTezYARNUtils {
 
-  @Test
+  @Test(timeout = 5000)
   public void testAuxClasspath() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX, "foobar");
@@ -41,7 +41,7 @@ public class TestTezYARNUtils {
         classpath.indexOf(Environment.PWD.$()));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testBasicArchiveClasspath() {
     Configuration conf = new Configuration(false);
     String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);

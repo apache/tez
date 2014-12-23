@@ -25,7 +25,7 @@ public class TestSimple2LevelVersionComparator {
 
   private final Simple2LevelVersionComparator comparator = new Simple2LevelVersionComparator();
 
-  @Test
+  @Test(timeout = 5000)
   public void testBasicEqualChecks() {
     Assert.assertEquals(0, comparator.compare("1-SNAPSHOT", "1-SNAPSHOT"));
     Assert.assertEquals(0, comparator.compare("1.1-SNAPSHOT", "1.1-SNAPSHOT"));
@@ -39,7 +39,7 @@ public class TestSimple2LevelVersionComparator {
     Assert.assertEquals(0, comparator.compare("1-SNAP.x", "1-SNAP.x"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testInvalidVersions() {
     Assert.assertEquals(-1, comparator.compare("x.1", "x.1"));
     Assert.assertEquals(-1, comparator.compare("x.1", "0.1"));
@@ -51,7 +51,7 @@ public class TestSimple2LevelVersionComparator {
     Assert.assertEquals(-1, comparator.compare("Unknown", "Unknown"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testInequalityChecks() {
     Assert.assertEquals(-1, comparator.compare("1.1", "2.1"));
     Assert.assertEquals(1, comparator.compare("1.1", "0.1"));

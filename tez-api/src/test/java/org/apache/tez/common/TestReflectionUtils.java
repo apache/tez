@@ -44,7 +44,7 @@ public class TestReflectionUtils {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConstructorWithParameters()
   {
     Class<?>[] parameterTypes = new Class[] { String.class, Integer.TYPE };
@@ -55,7 +55,7 @@ public class TestReflectionUtils {
     assertEquals("Class not constructed with second parameter correctly", instance.second, 1);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testAddResourceToClasspath() throws IOException, TezException {
 
     String rsrcName = "dummyfile.xml";

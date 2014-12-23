@@ -95,7 +95,7 @@ public class TestDAGUtils {
     return dag.createDag(conf, null, null, null, true);
   }
 
-  @Test
+  @Test(timeout = 5000)
   @SuppressWarnings("unchecked")
   public void testConvertDAGPlanToATSMap() throws IOException, JSONException {
     DAGPlan dagPlan = createDAG();

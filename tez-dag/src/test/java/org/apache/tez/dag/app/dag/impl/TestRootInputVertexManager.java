@@ -36,7 +36,7 @@ import org.junit.Test;
 
 public class TestRootInputVertexManager {
 
-  @Test
+  @Test(timeout = 5000)
   public void testEventsFromMultipleInputs() {
 
     VertexManagerPluginContext context = mock(VertexManagerPluginContext.class);
@@ -69,7 +69,7 @@ public class TestRootInputVertexManager {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConfigureFromMultipleInputs() {
 
     VertexManagerPluginContext context = mock(VertexManagerPluginContext.class);

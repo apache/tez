@@ -40,7 +40,7 @@ import org.junit.Test;
 
 public class TestATSHttpClient {
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetDagStatusThrowsExceptionOnEmptyJson() throws TezException {
     ApplicationId mockAppId = mock(ApplicationId.class);
     DAGClientTimelineImpl httpClient = new DAGClientTimelineImpl(mockAppId, "EXAMPLE_DAG_ID",
@@ -64,7 +64,7 @@ public class TestATSHttpClient {
     verify(spyClient).getJsonRootEntity(expectedDagUrl);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetDagStatusSimple() throws TezException, JSONException, IOException {
     DAGClientTimelineImpl
         httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class),"EXAMPLE_DAG_ID",
@@ -124,7 +124,7 @@ public class TestATSHttpClient {
     Assert.assertTrue("vertex name2", vertexProgress.containsKey("v2"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetVertexStatusSimple() throws JSONException, TezException, IOException {
     DAGClientTimelineImpl
         httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class), "EXAMPLE_DAG_ID",

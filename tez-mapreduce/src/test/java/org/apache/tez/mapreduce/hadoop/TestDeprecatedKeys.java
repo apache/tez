@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class TestDeprecatedKeys {
 
-  @Test
+  @Test(timeout = 5000)
   public void verifyReduceKeyTranslation() {
     JobConf jobConf = new JobConf();
 
@@ -64,7 +64,7 @@ public class TestDeprecatedKeys {
         0.01f);
   }
 
-  @Test
+  @Test(timeout = 5000)
   /**
    * Set of keys that can be overriden at tez runtime
    */

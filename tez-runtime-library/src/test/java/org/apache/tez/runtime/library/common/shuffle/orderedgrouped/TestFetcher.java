@@ -211,7 +211,7 @@ public class TestFetcher {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testWithRetry() throws Exception {
     Configuration conf = new TezConfiguration();
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3000);

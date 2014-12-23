@@ -56,7 +56,7 @@ public class TestRecoveryParser {
     return data;
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetLastCompletedDAG() {
     Map<TezDAGID, DAGSummaryData> summaryDataMap =
         new HashMap<TezDAGID, DAGSummaryData>();
@@ -72,7 +72,7 @@ public class TestRecoveryParser {
     assertEquals(lastCompletedDAGId, lastCompletedDAG.dagId.getId());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetLastInProgressDAG() {
     Map<TezDAGID, DAGSummaryData> summaryDataMap =
         new HashMap<TezDAGID, DAGSummaryData>();

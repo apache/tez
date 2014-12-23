@@ -271,7 +271,7 @@ public class TestMRRJobsDAGApi {
   }
   
   
-  @Test
+  @Test(timeout = 60000)
   public void testNonDefaultFSStagingDir() throws Exception {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 

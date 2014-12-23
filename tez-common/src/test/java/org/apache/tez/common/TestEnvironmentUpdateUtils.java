@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TestEnvironmentUpdateUtils {
 
-  @Test
+  @Test(timeout = 5000)
   public void testMultipleUpdateEnvironment() {
     EnvironmentUpdateUtils.put("test.environment1", "test.value1");
     EnvironmentUpdateUtils.put("test.environment2", "test.value2");
@@ -44,7 +44,7 @@ public class TestEnvironmentUpdateUtils {
     assertEquals("Environment was not set propertly", "test.value2", System.getenv("test.environment2"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConcurrentRequests() throws InterruptedException {
     int timeoutSecond = 5;
     int concurThread = 10;

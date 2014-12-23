@@ -223,7 +223,7 @@ public class TestTaskRecovery {
   /**
    * New -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_New() {
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
     assertEquals(TaskStateInternal.NEW, task.getInternalState());
@@ -232,7 +232,7 @@ public class TestTaskRecovery {
   /**
    * -> restoreFromTaskFinishEvent ( no TaskStartEvent )
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_NoStartEvent() {
     try {
       task.restoreFromEvent(new TaskFinishedEvent(task.getTaskId(), vertexName,
@@ -249,7 +249,7 @@ public class TestTaskRecovery {
   /**
    * restoreFromTaskStartedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Started() {
     restoreFromTaskStartEvent();
 
@@ -266,7 +266,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * RecoverTranstion
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -287,7 +287,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * restoreFromTaskAttemptFinishedEvent (SUCCEEDED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_SUCCEEDED() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -319,7 +319,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * restoreFromTaskAttemptFinishedEvent (FAILED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_FAILED() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -352,7 +352,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * restoreFromTaskAttemptFinishedEvent (KILLED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_KILLED() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -386,7 +386,7 @@ public class TestTaskRecovery {
    * restoreFromTaskAttemptFinishedEvent (SUCCEEDED) ->
    * restoreFromTaskFinishedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_SUCCEEDED_Finished() {
 
     restoreFromTaskStartEvent();
@@ -428,7 +428,7 @@ public class TestTaskRecovery {
    * restoreFromTaskAttemptFinishedEvent (Failed due to output_failure)
    * restoreFromTaskFinishedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_SUCCEEDED_FAILED() {
 
     restoreFromTaskStartEvent();
@@ -475,7 +475,7 @@ public class TestTaskRecovery {
    * restoreFromTaskAttemptFinishedEvent (KILLED due to node failed )
    * restoreFromTaskFinishedEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_SUCCEEDED_KILLED() {
 
     restoreFromTaskStartEvent();
@@ -520,7 +520,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * restoreFromTaskAttemptFinishedEvent (SUCCEEDED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Commit_Failed_Recovery_Not_Supported() {
     Map<String, OutputCommitter> committers =
         new HashMap<String, OutputCommitter>();
@@ -560,7 +560,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * restoreFromTaskAttemptFinishedEvent (SUCCEEDED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Commit_Failed_recover_fail() {
     Map<String, OutputCommitter> committers =
         new HashMap<String, OutputCommitter>();
@@ -596,7 +596,7 @@ public class TestTaskRecovery {
     assertEquals(null, task.successfulAttempt);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_WithDesired_SUCCEEDED() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -608,7 +608,7 @@ public class TestTaskRecovery {
     assertEquals(0, taEventHandler.getEvents().size());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_WithDesired_FAILED() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -620,7 +620,7 @@ public class TestTaskRecovery {
     assertEquals(0, taEventHandler.getEvents().size());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_WithDesired_KILLED() {
     restoreFromTaskStartEvent();
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
@@ -637,7 +637,7 @@ public class TestTaskRecovery {
    * restoreFromTaskStartedEvent -> restoreFromTaskAttemptStartedEvent ->
    * restoreFromTaskAttemptFinishedEvent (KILLED) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_OneTAStarted_Killed() {
     restoreFromTaskStartEvent();
 
@@ -688,7 +688,7 @@ public class TestTaskRecovery {
    * killed. When recovering, it should continue to be in running state and
    * schedule a new task attempt.
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTaskRecovery_MultipleAttempts1() {
     int maxFailedAttempts =
         conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
@@ -718,7 +718,7 @@ public class TestTaskRecovery {
    * failed. When recovering, it should transit to failed because # of
    * failed_attempt is exceeded.
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTaskRecovery_MultipleAttempts2() {
     int maxFailedAttempts =
         conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
@@ -748,7 +748,7 @@ public class TestTaskRecovery {
    * the last attempt should transit to killed and task is still in running
    * state and new task attempt is scheduled.
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTaskRecovery_MultipleAttempts3() throws InterruptedException {
     int maxFailedAttempts =
         conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,

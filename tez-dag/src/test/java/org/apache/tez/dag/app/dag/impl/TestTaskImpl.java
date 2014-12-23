@@ -249,14 +249,14 @@ public class TestTaskImpl {
     assertEquals(TaskState.SUCCEEDED, mockTask.getState());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testInit() {
     LOG.info("--- START: testInit ---");
     assertTaskNewState();
     assert (mockTask.getAttemptList().size() == 0);
   }
 
-  @Test
+  @Test(timeout = 5000)
   /**
    * {@link TaskState#NEW}->{@link TaskState#SCHEDULED}
    */
@@ -266,7 +266,7 @@ public class TestTaskImpl {
     scheduleTaskAttempt(taskId);
   }
 
-  @Test
+  @Test(timeout = 5000)
   /**
    * {@link TaskState#SCHEDULED}->{@link TaskState#KILL_WAIT}
    */
@@ -280,7 +280,7 @@ public class TestTaskImpl {
   /**
    * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
    */
-  @Test
+  @Test(timeout = 5000)
   public void testKillRunningTask() {
     LOG.info("--- START: testKillRunningTask ---");
     TezTaskID taskId = getNewTaskID();
@@ -313,7 +313,7 @@ public class TestTaskImpl {
   /**
    * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
    */
-  @Test
+  @Test(timeout = 5000)
   public void testKillRunningTaskButAttemptSucceeds() {
     LOG.info("--- START: testKillRunningTaskButAttemptSucceeds ---");
     TezTaskID taskId = getNewTaskID();
@@ -328,7 +328,7 @@ public class TestTaskImpl {
   /**
    * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
    */
-  @Test
+  @Test(timeout = 5000)
   public void testKillRunningTaskButAttemptFails() {
     LOG.info("--- START: testKillRunningTaskButAttemptFails ---");
     TezTaskID taskId = getNewTaskID();
@@ -340,7 +340,7 @@ public class TestTaskImpl {
     assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
   }
 
-  @Test
+  @Test(timeout = 5000)
   /**
    * Kill attempt
    * {@link TaskState#SCHEDULED}->{@link TaskState#SCHEDULED}
@@ -352,7 +352,7 @@ public class TestTaskImpl {
     killScheduledTaskAttempt(mockTask.getLastAttempt().getID());
   }
 
-  @Test
+  @Test(timeout = 5000)
   /**
    * Launch attempt
    * {@link TaskState#SCHEDULED}->{@link TaskState#RUNNING}
@@ -364,7 +364,7 @@ public class TestTaskImpl {
     launchTaskAttempt(mockTask.getLastAttempt().getID());
   }
 
-  @Test
+  @Test(timeout = 5000)
   /**
    * Kill running attempt
    * {@link TaskState#RUNNING}->{@link TaskState#RUNNING}
@@ -377,7 +377,7 @@ public class TestTaskImpl {
     killRunningTaskAttempt(mockTask.getLastAttempt().getID());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testFetchedEventsModifyUnderlyingList() {
     // Tests to ensure that adding an event to a task, does not affect the
     // result of past getTaskAttemptTezEvents calls.
@@ -399,7 +399,7 @@ public class TestTaskImpl {
     assertEquals(6, fetchedList.size());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testTaskProgress() {
     LOG.info("--- START: testTaskProgress ---");
 
@@ -438,7 +438,7 @@ public class TestTaskImpl {
     assert (mockTask.getProgress() == progress);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testFailureDuringTaskAttemptCommit() {
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
@@ -469,7 +469,7 @@ public class TestTaskImpl {
   }
 
 
-  @Test
+  @Test(timeout = 5000)
   public void testChangeCommitTaskAttempt() {
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
@@ -507,7 +507,7 @@ public class TestTaskImpl {
   }
   
   @SuppressWarnings("rawtypes")
-  @Test
+  @Test(timeout = 5000)
   public void testTaskSucceedAndRetroActiveFailure() {
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
@@ -535,7 +535,7 @@ public class TestTaskImpl {
     Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDiagnostics_TAUpdate(){
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
@@ -550,7 +550,7 @@ public class TestTaskImpl {
     assertEquals("TaskAttempt 1 failed, info=[diagnostics of test]", mockTask.getDiagnostics().get(1));
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testDiagnostics_KillNew(){
     TezTaskID taskId = getNewTaskID();
     mockTask.handle(new TaskEventTermination(taskId, TaskAttemptTerminationCause.TERMINATED_BY_CLIENT, null));
@@ -558,7 +558,7 @@ public class TestTaskImpl {
     assertTrue(mockTask.getDiagnostics().get(0).contains(TaskAttemptTerminationCause.TERMINATED_BY_CLIENT.name()));
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testDiagnostics_Kill(){
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);

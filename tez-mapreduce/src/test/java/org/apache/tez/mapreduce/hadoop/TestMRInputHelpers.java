@@ -99,7 +99,7 @@ public class TestMRInputHelpers {
   }
 
 
-  @Test
+  @Test(timeout = 5000)
   public void testNewSplitsGen() throws Exception {
 
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapReduce(newSplitsDir);
@@ -137,7 +137,7 @@ public class TestMRInputHelpers {
     verifyLocationHints(newSplitsDir, dataSource.getLocationHint().getTaskLocationHints());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testOldSplitsGen() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
     Assert.assertTrue(
@@ -173,7 +173,7 @@ public class TestMRInputHelpers {
     verifyLocationHints(oldSplitsDir, dataSource.getLocationHint().getTaskLocationHints());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testInputSplitLocalResourceCreation() throws Exception {
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(oldSplitsDir);
 

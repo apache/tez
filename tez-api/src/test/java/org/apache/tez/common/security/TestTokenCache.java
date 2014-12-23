@@ -51,7 +51,7 @@ public class TestTokenCache {
     renewer = Master.getMasterPrincipal(conf);
   }
 
-  @Test
+  @Test(timeout = 5000)
   @SuppressWarnings("deprecation")
   public void testBinaryCredentials() throws Exception {
     String binaryTokenFile = null;

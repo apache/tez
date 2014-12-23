@@ -36,7 +36,7 @@ import org.junit.Test;
 
 public class TestUnorderedPartitionedKVOutputConfig {
 
-  @Test
+  @Test(timeout = 5000)
   public void testNullParams() {
     try {
       UnorderedPartitionedKVOutputConfig.newBuilder(
@@ -63,7 +63,7 @@ public class TestUnorderedPartitionedKVOutputConfig {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
@@ -118,7 +118,7 @@ public class TestUnorderedPartitionedKVOutputConfig {
     assertNull(conf.get("test.key.2"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDefaultConfigsUsed() {
     UnorderedPartitionedKVOutputConfig.Builder builder =
         UnorderedPartitionedKVOutputConfig
@@ -150,7 +150,7 @@ public class TestUnorderedPartitionedKVOutputConfig {
     assertNull(conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testPartitionerConfigs() {
     Map<String, String> partitionerConf = Maps.newHashMap();
     partitionerConf.put("partitioner.test.key", "PARTITIONERKEY");

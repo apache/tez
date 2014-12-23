@@ -126,7 +126,7 @@ public class TestTaskAttemptRecovery {
   /**
    * No any event to restore -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTARecovery_NEW() {
     ta.handle(new TaskAttemptEvent(taId, TaskAttemptEventType.TA_RECOVER));
     assertEquals(TaskAttemptStateInternal.KILLED, ta.getInternalState());
@@ -143,7 +143,7 @@ public class TestTaskAttemptRecovery {
   /**
    * restoreFromTAStartEvent -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTARecovery_START() {
     restoreFromTAStartEvent();
 
@@ -163,7 +163,7 @@ public class TestTaskAttemptRecovery {
    * restoreFromTAStartEvent -> restoreFromTAFinished (SUCCEED)
    * -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTARecovery_SUCCEED() {
     restoreFromTAStartEvent();
     restoreFromTAFinishedEvent(TaskAttemptState.SUCCEEDED);
@@ -183,7 +183,7 @@ public class TestTaskAttemptRecovery {
    * restoreFromTAStartEvent -> restoreFromTAFinished (KILLED)
    * -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTARecovery_KIILED() {
     restoreFromTAStartEvent();
     restoreFromTAFinishedEvent(TaskAttemptState.KILLED);
@@ -203,7 +203,7 @@ public class TestTaskAttemptRecovery {
    * restoreFromTAStartEvent -> restoreFromTAFinished (FAILED)
    * -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testTARecovery_FAILED() {
     restoreFromTAStartEvent();
     restoreFromTAFinishedEvent(TaskAttemptState.FAILED);
@@ -222,7 +222,7 @@ public class TestTaskAttemptRecovery {
   /**
    * restoreFromTAFinishedEvent ( no TAStartEvent before TAFinishedEvent )
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecover_FINISH_BUT_NO_START() {
     try {
       restoreFromTAFinishedEvent(TaskAttemptState.SUCCEEDED);
