@@ -634,7 +634,7 @@ public class TestHistoryEventsProtoConversion {
   }
 
 
-  @Test
+  @Test(timeout = 5000)
   public void testDefaultProtoConversion() throws Exception {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       switch (eventType) {

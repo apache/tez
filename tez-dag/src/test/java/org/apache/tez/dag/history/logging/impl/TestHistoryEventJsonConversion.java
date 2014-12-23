@@ -98,7 +98,7 @@ public class TestHistoryEventJsonConversion {
     nodeId = NodeId.newInstance("node", 13435);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testHandlerExists() throws JSONException {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       HistoryEvent event = null;
@@ -190,7 +190,7 @@ public class TestHistoryEventJsonConversion {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testConvertVertexParallelismUpdatedEvent() throws JSONException {
     TezVertexID vId = TezVertexID.getInstance(
         TezDAGID.getInstance(

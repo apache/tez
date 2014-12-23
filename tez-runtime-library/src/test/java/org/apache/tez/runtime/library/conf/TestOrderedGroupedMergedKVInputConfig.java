@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class TestOrderedGroupedMergedKVInputConfig {
 
-  @Test
+  @Test(timeout = 5000)
   public void testNullParams() {
     try {
       OrderedGroupedKVInputConfig.newBuilder(null, "VALUE");
@@ -52,7 +52,7 @@ public class TestOrderedGroupedMergedKVInputConfig {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
@@ -111,7 +111,7 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertNull(conf.get("test.key.2"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDefaultConfigsUsed() {
     OrderedGroupedKVInputConfig.Builder builder =
         OrderedGroupedKVInputConfig.newBuilder("KEY", "VALUE");
@@ -134,7 +134,7 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testCombinerConfigs() {
     Map<String, String> combinerConf = Maps.newHashMap();
     combinerConf.put("combiner.test.key", "COMBINERKEY");

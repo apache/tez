@@ -25,7 +25,7 @@ public class TestDataStatistics {
 
   private static final double TOL = 0.001;
 
-  @Test
+  @Test(timeout = 5000)
   public void testEmptyDataStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics();
     Assert.assertEquals(0, statistics.count(), TOL);
@@ -35,7 +35,7 @@ public class TestDataStatistics {
     Assert.assertEquals(Long.MAX_VALUE, statistics.outlier(1.0f), TOL);
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testSingleEntryDataStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics(17.29);
     Assert.assertEquals(1, statistics.count(), TOL);
@@ -45,7 +45,7 @@ public class TestDataStatistics {
     Assert.assertEquals(17.29, statistics.outlier(1.0f), TOL);
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testMutiEntryDataStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics();
     statistics.add(17);
@@ -57,7 +57,7 @@ public class TestDataStatistics {
     Assert.assertEquals(29.0, statistics.outlier(1.0f), TOL);
  }
   
-  @Test
+  @Test(timeout = 5000)
   public void testUpdateStatistics() throws Exception {
     DataStatistics statistics = new DataStatistics(17);
     statistics.add(29);

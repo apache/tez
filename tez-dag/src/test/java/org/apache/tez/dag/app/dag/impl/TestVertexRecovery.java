@@ -337,7 +337,7 @@ public class TestVertexRecovery {
   /**
    * vertex1(New) -> StartRecoveryTransition(SUCCEEDED)
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Desired_SUCCEEDED() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     VertexState recoveredState = vertex1.restoreFromEvent(new VertexInitializedEvent(vertex1.getVertexId(),
@@ -366,7 +366,7 @@ public class TestVertexRecovery {
    * vertex1(New) -> StartRecoveryTransition(SUCCEEDED)
    * @throws IOException 
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Desired_SUCCEEDED_OnlySummaryLog() throws IOException {
     DAGPlan dagPlan = createDAGPlanSingleVertex();
     dag =
@@ -403,7 +403,7 @@ public class TestVertexRecovery {
   /**
    * vertex1(New) -> StartRecoveryTransition(FAILED)
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Desired_FAILED() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     VertexState recoveredState = vertex1.restoreFromEvent(new VertexInitializedEvent(vertex1.getVertexId(),
@@ -430,7 +430,7 @@ public class TestVertexRecovery {
   /**
    * vertex1(New) -> StartRecoveryTransition(KILLED)
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Desired_KILLED() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     VertexState recoveredState = vertex1.restoreFromEvent(new VertexInitializedEvent(vertex1.getVertexId(),
@@ -457,7 +457,7 @@ public class TestVertexRecovery {
   /**
    * vertex1(New) -> StartRecoveryTransition(ERROR)
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Desired_ERROR() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     VertexState recoveredState = vertex1.restoreFromEvent(new VertexInitializedEvent(vertex1.getVertexId(),
@@ -490,7 +490,7 @@ public class TestVertexRecovery {
   /**
    * vertex1(New) -> restoreFromDataMovementEvent -> StartRecoveryTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_New_Desired_RUNNING() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     VertexState recoveredState =
@@ -563,7 +563,7 @@ public class TestVertexRecovery {
   /**
    * restoreFromVertexInitializedEvent -> StartRecoveryTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Inited_Desired_RUNNING() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);
@@ -598,7 +598,7 @@ public class TestVertexRecovery {
    * restoreFromVertexInitializedEvent -> restoreFromVertexStartedEvent ->
    * StartRecoveryTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Started_Desired_RUNNING() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);
@@ -643,7 +643,7 @@ public class TestVertexRecovery {
    * restoreFromVertexInitializedEvent -> restoreFromVertexStartedEvent ->
    * restoreFromVertexFinishedEvent -> StartRecoveryTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_Finished_Desired_RUNNING() {
     // v1: initFromInitializedEvent
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
@@ -694,7 +694,7 @@ public class TestVertexRecovery {
    * vertex1 (New) -> StartRecoveryTransition <br>
    * vertex2 (New) -> StartRecoveryTransition vertex3 (New) -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_RecoveringFromNew() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
@@ -742,7 +742,7 @@ public class TestVertexRecovery {
   }
   
   
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_VertexManagerErrorOnRecovery() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);
@@ -788,7 +788,7 @@ public class TestVertexRecovery {
    * vertex2 (New) -> restoreFromInitialized -> StartRecoveryTransition<br>
    * vertex3 (New) -> restoreFromVertexInitedEvent -> RecoverTransition<br>
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_RecoveringFromInited() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);
@@ -849,7 +849,7 @@ public class TestVertexRecovery {
    * vertex2 (New) -> restoreFromInitialized -> restoreFromVertexStarted -> StartRecoveryTransition <br>
    * vertex3 (New) -> restoreFromInitialized -> restoreFromVertexStarted -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_RecoveringFromRunning() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);
@@ -923,7 +923,7 @@ public class TestVertexRecovery {
    * restoreFromVertexFinished -> StartRecoveryTransition<br>
    * vertex3 (New) -> restoreFromInitialized -> restoreFromVertexStarted -> RecoverTransition
    */
-  @Test
+  @Test(timeout = 5000)
   public void testRecovery_RecoveringFromSUCCEEDED() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);

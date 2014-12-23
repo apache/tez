@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class TestDagTypeConverters {
 
-  @Test
+  @Test(timeout = 5000)
   public void testTezEntityDescriptorSerialization() throws IOException {
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(new String("Foobar").getBytes()), 100);
     String historytext = "Bar123";

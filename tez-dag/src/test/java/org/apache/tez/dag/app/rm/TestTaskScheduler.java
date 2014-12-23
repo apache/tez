@@ -1496,7 +1496,7 @@ public class TestTaskScheduler {
   }
 
   @SuppressWarnings("unchecked")
-  @Test
+  @Test(timeout = 5000)
   public void testLocalityMatching() throws Exception {
 
     RackResolver.init(new Configuration());

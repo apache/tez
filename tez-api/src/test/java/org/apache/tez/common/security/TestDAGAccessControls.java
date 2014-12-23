@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class TestDAGAccessControls {
 
-  @Test
+  @Test(timeout = 5000)
   public void testBasicSerializeToConf()  {
     DAGAccessControls dagAccessControls = new DAGAccessControls();
     dagAccessControls.setUsersWithViewACLs(Arrays.asList("u1"))
@@ -44,7 +44,7 @@ public class TestDAGAccessControls {
     Assert.assertEquals("u2 g2", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testWildCardSerializeToConf()  {
     DAGAccessControls dagAccessControls = new DAGAccessControls();
     dagAccessControls.setUsersWithViewACLs(Arrays.asList("*"))
@@ -61,7 +61,7 @@ public class TestDAGAccessControls {
     Assert.assertEquals("*", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGroupsOnlySerializeToConf()  {
     DAGAccessControls dagAccessControls = new DAGAccessControls();
     dagAccessControls.setGroupsWithViewACLs(Arrays.asList("g1"))
@@ -76,7 +76,7 @@ public class TestDAGAccessControls {
     Assert.assertEquals(" g2", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testEmptySerializeToConf()  {
     DAGAccessControls dagAccessControls = new DAGAccessControls();
 
@@ -89,7 +89,7 @@ public class TestDAGAccessControls {
     Assert.assertEquals(" ", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testStringBasedConstructor() {
     DAGAccessControls dagAccessControls = new DAGAccessControls("u1 g1", "u2 g2");
 

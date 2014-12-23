@@ -91,7 +91,7 @@ public class TestOnFileUnorderedKVOutput {
     localFs.delete(workDir, true);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGeneratedDataMovementEvent() throws Exception {
     Configuration conf = new Configuration();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());

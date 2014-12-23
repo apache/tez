@@ -114,7 +114,7 @@ public class TestTaskExecution {
     taskExecutor.shutdownNow();
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSingleSuccessfulTask() throws IOException, InterruptedException, TezException,
       ExecutionException {
     ListeningExecutorService executor = null;
@@ -140,7 +140,7 @@ public class TestTaskExecution {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMultipleSuccessfulTasks() throws IOException, InterruptedException, TezException,
       ExecutionException {
 
@@ -180,7 +180,7 @@ public class TestTaskExecution {
   }
 
   // test tasked failed due to exception in Processor
-  @Test
+  @Test(timeout = 5000)
   public void testFailedTask() throws IOException, InterruptedException, TezException {
 
     ListeningExecutorService executor = null;
@@ -215,7 +215,7 @@ public class TestTaskExecution {
   }
 
   // Test task failed due to Processor class not found
-  @Test
+  @Test(timeout = 5000)
   public void testFailedTask2() throws IOException, InterruptedException, TezException {
 
     ListeningExecutorService executor = null;
@@ -245,7 +245,7 @@ public class TestTaskExecution {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testHeartbeatException() throws IOException, InterruptedException, TezException {
 
     ListeningExecutorService executor = null;
@@ -283,7 +283,7 @@ public class TestTaskExecution {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testHeartbeatShouldDie() throws IOException, InterruptedException, TezException,
       ExecutionException {
 
@@ -320,7 +320,7 @@ public class TestTaskExecution {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetTaskShouldDie() throws InterruptedException, ExecutionException {
     ListeningExecutorService executor = null;
     try {

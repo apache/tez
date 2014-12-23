@@ -50,7 +50,7 @@ import com.google.common.collect.Sets;
 
 public class TestVertexManager {
 
-  @Test
+  @Test(timeout = 5000)
   public void testOnRootVertexInitialized() throws Exception {
     Vertex mockVertex = mock(Vertex.class, RETURNS_DEEP_STUBS);
     AppContext mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
@@ -90,7 +90,7 @@ public class TestVertexManager {
    * custom vertex manager generates events only when both i1 and i2 are initialized.
    * @throws Exception
    */
-  @Test
+  @Test(timeout = 5000)
   public void testOnRootVertexInitialized2() throws Exception {
     Vertex mockVertex = mock(Vertex.class, RETURNS_DEEP_STUBS);
     AppContext mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);

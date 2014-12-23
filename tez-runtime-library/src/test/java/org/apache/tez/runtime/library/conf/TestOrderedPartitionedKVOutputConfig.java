@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class TestOrderedPartitionedKVOutputConfig {
 
-  @Test
+  @Test(timeout = 5000)
   public void testNullParams() {
     try {
       OrderedPartitionedKVOutputConfig.newBuilder(
@@ -62,7 +62,7 @@ public class TestOrderedPartitionedKVOutputConfig {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testSetters() {
     Configuration fromConf = new Configuration(false);
     fromConf.set("test.conf.key.1", "confkey1");
@@ -117,7 +117,7 @@ public class TestOrderedPartitionedKVOutputConfig {
     assertNull(conf.get("test.key.2"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDefaultConfigsUsed() {
     OrderedPartitionedKVOutputConfig.Builder builder =
         OrderedPartitionedKVOutputConfig.newBuilder("KEY", "VALUE", "PARTITIONER", null);
@@ -141,7 +141,7 @@ public class TestOrderedPartitionedKVOutputConfig {
     assertEquals("PARTITIONER", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, ""));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testPartitionerConfigs() {
     Map<String, String> partitionerConf = Maps.newHashMap();
     partitionerConf.put("partitioner.test.key", "PARTITIONERKEY");
@@ -165,7 +165,7 @@ public class TestOrderedPartitionedKVOutputConfig {
     assertEquals("PARTITIONERKEY", conf.get("partitioner.test.key"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testCombinerConfigs() {
     Map<String, String> combinerConf = Maps.newHashMap();
     combinerConf.put("combiner.test.key", "COMBINERKEY");

@@ -113,7 +113,7 @@ public class TestReduceProcessor {
     localFs.delete(workDir, true);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testReduceProcessor() throws Exception {
     final String dagName = "mrdag0";
     String mapVertexName = MultiStageMRConfigUtil.getInitialMapVertexName();

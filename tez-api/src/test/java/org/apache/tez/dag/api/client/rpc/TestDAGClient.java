@@ -196,14 +196,14 @@ public class TestDAGClient {
     realClient.proxy = mockProxy;
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testApp() throws IOException, TezException, ServiceException{
     assertTrue(dagClient.getExecutionContext().contains(mockAppId.toString()));
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     assertEquals(mockAppReport, realClient.getApplicationReportInternal());
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testDAGStatus() throws Exception{
     DAGStatus resultDagStatus = dagClient.getDAGStatus(null);
     verify(mockProxy, times(1)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
@@ -218,7 +218,7 @@ public class TestDAGClient {
     System.out.println("DAGStatusWithCounter:" + resultDagStatus);
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testVertexStatus() throws Exception{
     VertexStatus resultVertexStatus = dagClient.getVertexStatus("v1", null);
     verify(mockProxy).getVertexStatus(null, GetVertexStatusRequestProto.newBuilder()
@@ -234,14 +234,14 @@ public class TestDAGClient {
     System.out.println("VertexWithCounter:" + resultVertexStatus);
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testTryKillDAG() throws Exception{
     dagClient.tryKillDAG();
     verify(mockProxy, times(1)).tryKillDAG(null, TryKillDAGRequestProto.newBuilder()
         .setDagId(dagIdStr).build());
   }
   
-  @Test
+  @Test(timeout = 5000)
   public void testWaitForCompletion() throws Exception{
     // first time return DAG_RUNNING, second time return DAG_SUCCEEDED
     when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
@@ -255,7 +255,7 @@ public class TestDAGClient {
         .setDagId(dagIdStr).build());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testWaitForCompletionWithStatusUpdates() throws Exception{
 
     // first time and second time return DAG_RUNNING, third time return DAG_SUCCEEDED

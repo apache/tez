@@ -36,7 +36,7 @@ public class TestSimpleFetchedInputAllocator {
 
   private static final Log LOG = LogFactory.getLog(TestSimpleFetchedInputAllocator.class);
   
-  @Test
+  @Test(timeout = 5000)
   public void testInMemAllocation() throws IOException {
     String localDirs = "/tmp/" + this.getClass().getName();
     Configuration conf = new Configuration();

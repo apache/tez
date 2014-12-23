@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class TestACLConfigurationParser {
 
-  @Test
+  @Test(timeout = 5000)
   public void testACLConfigParser() {
 
     Configuration conf = new Configuration(false);
@@ -64,7 +64,7 @@ public class TestACLConfigurationParser {
 
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGroupsOnly() {
     Configuration conf = new Configuration(false);
     String viewACLs = "     grp3,grp4,grp5";
@@ -78,7 +78,7 @@ public class TestACLConfigurationParser {
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testDAGACLConfigParser() {
 
     Configuration conf = new Configuration(false);

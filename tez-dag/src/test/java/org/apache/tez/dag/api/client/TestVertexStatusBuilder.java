@@ -26,7 +26,7 @@ import org.junit.Test;
 
 public class TestVertexStatusBuilder {
 
-  @Test
+  @Test(timeout = 5000)
   public void testVertexStateConversion() {
     for (VertexState state : VertexState.values()) {
       DAGProtos.VertexStatusStateProto stateProto =

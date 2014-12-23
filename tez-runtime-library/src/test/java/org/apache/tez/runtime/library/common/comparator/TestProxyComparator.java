@@ -56,7 +56,7 @@ public class TestProxyComparator {
   public void cleanup() throws Exception {
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testProxyComparator() {
     final ProxyComparator<BytesWritable> comparator = new TezBytesComparator();
     BytesWritable lhs = new BytesWritable();

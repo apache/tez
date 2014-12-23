@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class TestConfigTranslationMRToTez {
 
-  @Test
+  @Test(timeout = 5000)
   // Tests derived keys - i.e. the actual key is not set, but the value is 
   // derived from a fallback key.
   public void testComplexKeys() {
@@ -49,7 +49,7 @@ public class TestConfigTranslationMRToTez {
         .getIntermediateInputKeyComparator(confVertex1).getClass().getName());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMRToTezKeyTranslation() {
     JobConf confVertex1 = new JobConf();
     confVertex1.set(MRJobConfig.MAP_OUTPUT_KEY_CLASS,

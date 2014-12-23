@@ -31,7 +31,7 @@ public class TestVersionInfo {
   final String buildTime = "20141024-1052";
   final String scmUrl = "scm:git:https://git-wip-us.apache.org/repos/asf/tez.git";
 
-  @Test
+  @Test(timeout = 5000)
   public void testTest1File() {
     VersionInfo versionInfo = new VersionInfo("test1");
     Assert.assertEquals(version, versionInfo.getVersion());
@@ -40,7 +40,7 @@ public class TestVersionInfo {
     Assert.assertEquals(scmUrl, versionInfo.getSCMURL());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testTest2File() {
     VersionInfo versionInfo = new VersionInfo("test2");
     Assert.assertEquals(version, versionInfo.getVersion());
@@ -49,7 +49,7 @@ public class TestVersionInfo {
     Assert.assertEquals(VersionInfo.UNKNOWN, versionInfo.getSCMURL());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testTest3File() {
     VersionInfo versionInfo = new VersionInfo("test3");
     Assert.assertEquals(version, versionInfo.getVersion());
@@ -58,7 +58,7 @@ public class TestVersionInfo {
     Assert.assertEquals(scmUrl, versionInfo.getSCMURL());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testNonExistentFile() {
     VersionInfo versionInfo = new VersionInfo("test4");
   }

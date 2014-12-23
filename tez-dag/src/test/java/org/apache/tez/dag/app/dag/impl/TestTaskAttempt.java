@@ -671,7 +671,7 @@ public class TestTaskAttempt {
             expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
   
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   public void testSuccess() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(

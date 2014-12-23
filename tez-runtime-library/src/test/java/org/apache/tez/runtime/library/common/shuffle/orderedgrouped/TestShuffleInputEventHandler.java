@@ -83,7 +83,7 @@ public class TestShuffleInputEventHandler {
     handler = new ShuffleInputEventHandlerOrderedGrouped(inputContext, scheduler, false);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void basicTest() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
@@ -100,7 +100,7 @@ public class TestShuffleInputEventHandler {
         eq(baseUri), eq(expectedIdentifier));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testFailedEvent() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int targetIdx = 1;
@@ -111,7 +111,7 @@ public class TestShuffleInputEventHandler {
     verify(scheduler).obsoleteInput(eq(expectedIdentifier));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testAllPartitionsEmpty() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
@@ -126,7 +126,7 @@ public class TestShuffleInputEventHandler {
         eq(0l), eq(0l), any(MapOutput.class));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testCurrentPartitionEmpty() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;
@@ -142,7 +142,7 @@ public class TestShuffleInputEventHandler {
         eq(0l), eq(0l), any(MapOutput.class));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testOtherPartitionEmpty() throws IOException {
     List<Event> events = new LinkedList<Event>();
     int srcIdx = 0;

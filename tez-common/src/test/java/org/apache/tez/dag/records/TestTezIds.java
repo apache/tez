@@ -79,7 +79,7 @@ public class TestTezIds {
     verifyAttemptInfo(splits, taId);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testIdStringify() {
     ApplicationId appId = ApplicationId.newInstance(9999, 72);
     TezDAGID dagId = TezDAGID.getInstance(appId, 1);

@@ -34,7 +34,7 @@ import static org.junit.Assert.*;
 public class TestDAGClientServer {
 
   // try 10 times to allocate random port, fail it if no one is succeed.
-  @Test
+  @Test(timeout = 5000)
   public void testPortRange() {
     boolean succeedToAllocate = false;
     Random rand = new Random();

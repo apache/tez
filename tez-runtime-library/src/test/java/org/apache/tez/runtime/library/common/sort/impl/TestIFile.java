@@ -96,14 +96,14 @@ public class TestIFile {
     localFs.delete(workDir, true);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //empty IFile
   public void testWithEmptyIFile() throws IOException {
     testWriterAndReader(new LinkedList<KVPair>());
     testWithDataBuffer(new LinkedList<KVPair>());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testCompressedFlag() throws IOException {
     byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F' , (byte) 1};
     ByteArrayInputStream bin = new ByteArrayInputStream(HEADER);
@@ -121,7 +121,7 @@ public class TestIFile {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   //Write empty key value pairs
   public void testWritingEmptyKeyValues() throws IOException {
     DataInputBuffer key = new DataInputBuffer();
@@ -148,7 +148,7 @@ public class TestIFile {
     reader.close();
   }
 
-  @Test
+  @Test(timeout = 5000)
   //test with unsorted data and repeat keys
   public void testWithUnsortedData() throws IOException {
     List<KVPair> unsortedData = KVDataGen.generateTestData(false, rnd.nextInt(100));
@@ -156,7 +156,7 @@ public class TestIFile {
     testWithDataBuffer(unsortedData);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //test with sorted data and repeat keys
   public void testWithSortedData() throws IOException {
     List<KVPair> sortedData = KVDataGen.generateTestData(true, rnd.nextInt(100));
@@ -165,7 +165,7 @@ public class TestIFile {
   }
 
 
-  @Test
+  @Test(timeout = 5000)
   //test with sorted data and repeat keys
   public void testWithRLEMarker() throws IOException {
     //Test with append(Object, Object)
@@ -231,7 +231,7 @@ public class TestIFile {
     out.close();
   }
 
-  @Test
+  @Test(timeout = 5000)
   //test with unique keys
   public void testWithUniqueKeys() throws IOException {
     //all keys are unique
@@ -240,7 +240,7 @@ public class TestIFile {
     testWithDataBuffer(sortedData);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //Test InMemoryWriter
   public void testInMemoryWriter() throws IOException {
     InMemoryWriter writer = null;
@@ -272,7 +272,7 @@ public class TestIFile {
     readUsingInMemoryReader(bout.getBuffer(), data);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //Test appendValue feature
   public void testAppendValue() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
@@ -294,7 +294,7 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //Test appendValues feature
   public void testAppendValues() throws IOException {
     List<KVPair> data = new ArrayList<KVPair>();
@@ -322,7 +322,7 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //Test appendKeyValues feature
   public void testAppendKeyValues() throws IOException {
     List<KVPair> data = new ArrayList<KVPair>();
@@ -349,7 +349,7 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
-  @Test
+  @Test(timeout = 5000)
   //Test appendValue with DataInputBuffer
   public void testAppendValueWithDataInputBuffer() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));

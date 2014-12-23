@@ -33,7 +33,7 @@ import org.junit.Test;
 public class TestTezRuntimeConfiguration {
 
 
-  @Test
+  @Test(timeout = 5000)
   public void testKeySet() throws IllegalAccessException {
     Class<?> c = TezRuntimeConfiguration.class;
     Set<String> expectedKeys = new HashSet<String>();

@@ -52,7 +52,7 @@ public class TestLocalTaskScheduler {
     return appContext;
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void maxTasksAllocationsCannotBeExceeded() {
 
     final int MAX_TASKS = 4;

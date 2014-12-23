@@ -158,7 +158,7 @@ public class TestOnFileSortedOutput {
     writer = sortedOutput.getWriter();
   }
 
-  @Test
+  @Test (timeout = 5000)
   public void testSortBufferSize() throws Exception{
     OutputContext context = createTezOutputContext();
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2048);
@@ -183,7 +183,7 @@ public class TestOnFileSortedOutput {
     }
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void baseTest() throws Exception {
     startSortedOutput(partitions);
 
@@ -210,7 +210,7 @@ public class TestOnFileSortedOutput {
     assertEquals(UniqueID, payload.getPathComponent());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testWithSomeEmptyPartition() throws Exception {
     //ensure atleast 2 partitions are available
     partitions = Math.max(2, partitions);
@@ -238,7 +238,7 @@ public class TestOnFileSortedOutput {
     assertEquals(UniqueID, payload.getPathComponent());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testAllEmptyPartition() throws Exception {
     startSortedOutput(partitions);
 

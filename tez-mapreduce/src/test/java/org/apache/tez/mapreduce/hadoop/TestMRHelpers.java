@@ -45,7 +45,7 @@ public class TestMRHelpers {
     return conf;
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMapJavaOptions() {
     Configuration conf = createConfForJavaOptsTest();
     String opts = MRHelpers.getJavaOptsForMRMapper(conf);
@@ -62,7 +62,7 @@ public class TestMRHelpers {
         + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testReduceJavaOptions() {
     Configuration conf = createConfForJavaOptsTest();
     String opts = MRHelpers.getJavaOptsForMRReducer(conf);
@@ -79,7 +79,7 @@ public class TestMRHelpers {
         + TezConstants.TEZ_ROOT_LOGGER_NAME + "=TRACE"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testContainerResourceConstruction() {
     JobConf conf = new JobConf(new Configuration());
     Resource mapResource = MRHelpers.getResourceForMRMapper(conf);
@@ -148,7 +148,7 @@ public class TestMRHelpers {
 //        env.get(Environment.CLASSPATH.name()).indexOf(Environment.PWD.$()));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMREnvSetupForMap() {
     Configuration conf = setupConfigForMREnvTest();
     Map<String, String> env = new HashMap<String, String>();
@@ -158,7 +158,7 @@ public class TestMRHelpers {
     Assert.assertEquals("map2", env.get("bar"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMREnvSetupForReduce() {
     Configuration conf = setupConfigForMREnvTest();
     Map<String, String> env = new HashMap<String, String>();
@@ -168,7 +168,7 @@ public class TestMRHelpers {
     Assert.assertEquals("red2", env.get("bar"));
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMRAMJavaOpts() {
     Configuration conf = new Configuration();
     conf.set(MRJobConfig.MR_AM_ADMIN_COMMAND_OPTS, " -Dadminfoobar   ");
@@ -177,7 +177,7 @@ public class TestMRHelpers {
     Assert.assertEquals("-Dadminfoobar -Duserfoo", opts);
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testMRAMEnvironmentSetup() {
     Configuration conf = new Configuration();
     conf.set(MRJobConfig.MR_AM_ADMIN_USER_ENV, "foo=bar,admin1=foo1");

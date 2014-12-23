@@ -27,7 +27,7 @@ import org.junit.Test;
 public class TestCompositeDataMovementEvent {
   ByteBuffer userPayload = ByteBuffer.wrap("Dummy userPayLoad".getBytes());
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetCount(){
     int numPartitions = 2;
     int startIndex = 2;
@@ -37,7 +37,7 @@ public class TestCompositeDataMovementEvent {
     Assert.assertEquals(startIndex, cdme1.getSourceIndexStart());
   }
 
-  @Test
+  @Test(timeout = 5000)
   public void testGetEvents(){
     int numOutputs = 0;
     int startIndex = 1;
