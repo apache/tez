@@ -553,20 +553,24 @@ checkFindbugsWarnings () {
   for file in $(find $BASEDIR -name findbugsXml.xml)
   do
     relative_file=${file#$BASEDIR/} # strip leading $BASEDIR prefix
+    if [ ! $relative_file == "target/findbugsXml.xml" ]; then
+      module_suffix=${relative_file%/target/findbugsXml.xml} # strip trailing path
+      module_suffix=`basename ${module_suffix}`
+    fi
 
-    cp $file $PATCH_DIR/patchFindbugsWarnings.xml
+    cp $file $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml
     $FINDBUGS_HOME/bin/setBugDatabaseInfo -timestamp "01/01/2000" \
-      $PATCH_DIR/patchFindbugsWarnings.xml \
-      $PATCH_DIR/patchFindbugsWarnings.xml
-    newFindbugsWarnings=`$FINDBUGS_HOME/bin/filterBugs -first "01/01/2000" $PATCH_DIR/patchFindbugsWarnings.xml \
-      $PATCH_DIR/newPatchFindbugsWarnings.xml | $AWK '{print $1}'`
+      $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml \
+      $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml
+    newFindbugsWarnings=`$FINDBUGS_HOME/bin/filterBugs -first "01/01/2000" $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml \
+      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.xml | $AWK '{print $1}'`
     echo "Found $newFindbugsWarnings Findbugs warnings ($file)"
     findbugsWarnings=$((findbugsWarnings+newFindbugsWarnings))
     $FINDBUGS_HOME/bin/convertXmlToText -html \
-      $PATCH_DIR/newPatchFindbugsWarnings.xml \
-      $PATCH_DIR/newPatchFindbugsWarnings.html
+      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.xml \
+      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.html
     if [[ $newFindbugsWarnings > 0 ]] ; then
-      JIRA_COMMENT_FOOTER="Findbugs warnings: $BUILD_URL/artifact/patchprocess/newPatchFindbugsWarnings.html
+      JIRA_COMMENT_FOOTER="Findbugs warnings: $BUILD_URL/artifact/patchprocess/newPatchFindbugsWarnings${module_suffix}.html
 $JIRA_COMMENT_FOOTER"
     fi
   done
