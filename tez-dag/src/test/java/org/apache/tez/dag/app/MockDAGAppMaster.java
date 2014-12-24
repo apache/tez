@@ -27,6 +27,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -37,7 +40,9 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.TezApiVersionInfo;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.app.RecoveryParser.RecoveredDAGData;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.launcher.ContainerLauncher;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
@@ -60,8 +65,11 @@ import com.google.common.collect.Maps;
 @SuppressWarnings("unchecked")
 public class MockDAGAppMaster extends DAGAppMaster {
   
+  private static final Log LOG = LogFactory.getLog(MockDAGAppMaster.class);
   MockContainerLauncher containerLauncher;
-  
+  boolean initFailFlag;
+  boolean startFailFlag;
+
   // mock container launcher does not launch real tasks.
   // Upon, launch of a container is simulates the container asking for tasks
   // Upon receiving a task it simulates completion of the tasks
@@ -295,11 +303,14 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
   public MockDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
       String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
-      boolean isSession, String workingDirectory, AtomicBoolean launcherGoFlag) {
+      boolean isSession, String workingDirectory, AtomicBoolean launcherGoFlag,
+      boolean initFailFlag, boolean startFailFlag) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
         isSession, workingDirectory, new TezApiVersionInfo().getVersion());
     containerLauncher = new MockContainerLauncher(launcherGoFlag);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
+    this.initFailFlag = initFailFlag;
+    this.startFailFlag = startFailFlag;
   }
   
   // use mock container launcher for tests
@@ -317,4 +328,19 @@ public class MockDAGAppMaster extends DAGAppMaster {
     return (MockDAGAppMasterShutdownHandler) this.shutdownHandler;
   }
 
+  @Override
+  public synchronized void serviceInit(Configuration conf) throws Exception {
+    super.serviceInit(conf);
+    if (initFailFlag) {
+      throw new Exception("FailInit");
+    }
+  }
+
+  @Override
+  public synchronized void serviceStart() throws Exception {
+    super.serviceStart();
+    if (startFailFlag) {
+      throw new Exception("FailStart");
+    }
+  }
 }

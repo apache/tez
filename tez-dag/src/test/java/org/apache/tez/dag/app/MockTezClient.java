@@ -38,6 +38,14 @@ public class MockTezClient extends TezClient {
     this.client = new MockLocalClient(mockAppLauncherGoFlag, clock);
   }
   
+  MockTezClient(String name, TezConfiguration tezConf, boolean isSession,
+      Map<String, LocalResource> localResources, Credentials credentials,
+      Clock clock, AtomicBoolean mockAppLauncherGoFlag,
+      boolean initFailFlag, boolean startFailFlag) {
+    super(name, tezConf, isSession, localResources, credentials);
+    this.client = new MockLocalClient(mockAppLauncherGoFlag, clock, initFailFlag, startFailFlag);
+  }
+
   protected FrameworkClient createFrameworkClient() {
     return client;
   }

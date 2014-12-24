@@ -20,10 +20,12 @@ package org.apache.tez.dag.app;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.service.Service.STATE;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -160,4 +162,35 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGState.RUNNING, mockApp.getContext().getCurrentDAG().getState());
   }
 
+  @Test (timeout = 10000)
+  public void testInitFailed() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true,
+      null, null, null, new AtomicBoolean(false), true, false);
+    try {
+      tezClient.start();
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assert.assertEquals("FailInit", e.getCause().getCause().getMessage());
+      MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+      // will timeout if DAGAppMasterShutdownHook is not invoked
+      mockApp.waitForServiceToStop(Integer.MAX_VALUE);
+    }
+  }
+
+  @Test (timeout = 10000)
+  public void testStartFailed() {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true,
+      null, null, null, new AtomicBoolean(false), false, true);
+    try {
+      tezClient.start();
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assert.assertEquals("FailStart", e.getCause().getCause().getMessage());
+      MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+      // will timeout if DAGAppMasterShutdownHook is not invoked
+      mockApp.waitForServiceToStop(Integer.MAX_VALUE);
+    }
+  }
 }

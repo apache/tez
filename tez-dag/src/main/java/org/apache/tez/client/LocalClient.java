@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.security.Credentials;
@@ -69,6 +70,7 @@ public class LocalClient extends FrameworkClient {
   private int appIdNumber = 1;
   private boolean isSession;
   private TezApiVersionInfo versionInfo = new TezApiVersionInfo();
+  private volatile Throwable amFailException = null;
 
   public LocalClient() {
   }
@@ -113,7 +115,7 @@ public class LocalClient extends FrameworkClient {
   }
 
   @Override
-  public ApplicationId submitApplication(ApplicationSubmissionContext appContext) {
+  public ApplicationId submitApplication(ApplicationSubmissionContext appContext) throws IOException, YarnException {
     ApplicationId appId = appContext.getApplicationId();
     startDAGAppMaster(appContext);
     return appId;
@@ -205,7 +207,7 @@ public class LocalClient extends FrameworkClient {
     }
   }
 
-  protected void startDAGAppMaster(final ApplicationSubmissionContext appContext) {
+  protected void startDAGAppMaster(final ApplicationSubmissionContext appContext) throws IOException {
     if (dagAmThread == null) {
       try {
         dagAmThread = createDAGAppMaster(appContext);
@@ -213,7 +215,7 @@ public class LocalClient extends FrameworkClient {
 
         // Wait until DAGAppMaster is started
         long waitingTime = 0;
-        while (true) {
+        while (amFailException == null) {
           if (dagAppMaster != null) {
             DAGAppMasterState dagAMState = dagAppMaster.getState();
             LOG.info("DAGAppMaster state: " + dagAMState);
@@ -240,8 +242,13 @@ public class LocalClient extends FrameworkClient {
         }
       } catch (Throwable t) {
         LOG.fatal("Error starting DAGAppMaster", t);
-        dagAmThread.interrupt();
-        System.exit(0);
+        if (dagAmThread != null) {
+          dagAmThread.interrupt();
+        }
+        throw new IOException(t);
+      }
+      if (amFailException != null) {
+        throw new IOException(amFailException);
       }
     }
   }
@@ -254,12 +261,13 @@ public class LocalClient extends FrameworkClient {
           ApplicationId appId = appContext.getApplicationId();
 
           // Set up working directory for DAGAppMaster
-          Path userDir = TezCommonUtils.getTezSystemStagingPath(conf, appId.toString());
-          LOG.info("Using staging directory: " + userDir.toUri().getPath());
+          Path staging = TezCommonUtils.getTezSystemStagingPath(conf, appId.toString());
+          Path userDir = TezCommonUtils.getTezSystemStagingPath(conf, appId.toString()+"_wd");
+          LOG.info("Using working directory: " + userDir.toUri().getPath());
 
           FileSystem fs = FileSystem.get(conf);
-          fs.mkdirs(userDir);
-
+          // copy data from staging directory to working directory to simulate the resource localizing
+          FileUtil.copy(fs, staging, fs, userDir, false, conf);
           // Prepare Environment
           Path logDir = new Path(userDir, "localmode-log-dir");
           Path localDir = new Path(userDir, "localmode-local-dir");
@@ -296,9 +304,12 @@ public class LocalClient extends FrameworkClient {
           clientHandler = new DAGClientHandler(dagAppMaster);
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, currentUser.getShortUserName());
 
-          } catch (Throwable t) {
+        } catch (Throwable t) {
           LOG.fatal("Error starting DAGAppMaster", t);
-          System.exit(1);
+          if (dagAppMaster != null) {
+            dagAppMaster.stop();
+          }
+          amFailException = t;
         }
       }
     });

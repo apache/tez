@@ -23,24 +23,36 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.LocalClient;
 
 public class MockLocalClient extends LocalClient {
   MockDAGAppMaster mockApp;
   AtomicBoolean mockAppLauncherGoFlag;
   Clock mockClock;
-  
+  final boolean initFailFlag;
+  final boolean startFailFlag;
+
   public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock) {
     this.mockAppLauncherGoFlag = mockAppLauncherGoFlag;
     this.mockClock = clock;
+    this.initFailFlag = false;
+    this.startFailFlag = false;
   }
   
+  public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock,
+      boolean initFailFlag, boolean startFailFlag) {
+    this.mockAppLauncherGoFlag = mockAppLauncherGoFlag;
+    this.mockClock = clock;
+    this.initFailFlag = initFailFlag;
+    this.startFailFlag = startFailFlag;
+  }
+
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String userDir) {
     mockApp = new MockDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
-        (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, mockAppLauncherGoFlag);
+        (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, mockAppLauncherGoFlag,
+        initFailFlag, startFailFlag);
     return mockApp;
   }
   
