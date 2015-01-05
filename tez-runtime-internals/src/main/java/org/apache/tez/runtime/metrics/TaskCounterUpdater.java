@@ -51,14 +51,16 @@ public class TaskCounterUpdater {
    */
   private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
      new HashMap<String, FileSystemStatisticUpdater>();
-  protected GcTimeUpdater gcUpdater;
+  protected final GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
+  private final String pid;
   
-  public TaskCounterUpdater(TezCounters counters, Configuration conf) {
+  public TaskCounterUpdater(TezCounters counters, Configuration conf, String pid) {
     this.tezCounters = counters;
     this.conf = conf;   
     this.gcUpdater = new GcTimeUpdater(tezCounters);
+    this.pid = pid;
     initResourceCalculatorPlugin();
     recordInitialCpuStats();
   }
@@ -142,8 +144,7 @@ public class TaskCounterUpdater {
         TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
         ResourceCalculatorProcessTree.class); 
 
-    pTree = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(
-        System.getenv().get("JVM_PID"), clazz, conf);
+    pTree = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, clazz, conf);
 
     LOG.info(" Using ResourceCalculatorProcessTree : " + pTree);
   }

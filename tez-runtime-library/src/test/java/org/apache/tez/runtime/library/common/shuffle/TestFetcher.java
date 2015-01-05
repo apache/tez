@@ -38,17 +38,10 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.shuffle.FetchResult;
-import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
-import org.apache.tez.runtime.library.common.shuffle.Fetcher;
-import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
-import org.apache.tez.runtime.library.common.shuffle.LocalDiskFetchedInput;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.junit.Assert;
 import org.junit.Test;
@@ -65,14 +58,13 @@ public class TestFetcher {
   public void testLocalFetchModeSetting() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
-    EnvironmentUpdateUtils.put(ApplicationConstants.Environment.NM_HOST.toString(), HOST);
     InputAttemptIdentifier[] srcAttempts = {
         new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1")
     };
     FetcherCallback fetcherCallback = mock(FetcherCallback.class);
 
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
-        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, true);
+        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, true, HOST);
     builder.assignWork(HOST, PORT, 0, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
 
@@ -90,7 +82,7 @@ public class TestFetcher {
     // When disabled use http fetch
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "false");
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
-        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, false);
+        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, false, HOST);
     builder.assignWork(HOST, PORT, 0, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
 
@@ -120,11 +112,10 @@ public class TestFetcher {
 
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
-    EnvironmentUpdateUtils.put(ApplicationConstants.Environment.NM_HOST.toString(), HOST);
     int partition = 42;
     FetcherCallback callback = mock(FetcherCallback.class);
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
-        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, true);
+        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, true, HOST);
     builder.assignWork(HOST, PORT, partition, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
 

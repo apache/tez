@@ -215,19 +215,6 @@ public class TezUtilsInternal {
     return bytes;
   }
 
-  public static String getContainerLogDir() {
-    String logDirsStr  = System.getenv(Environment.LOG_DIRS.name());
-    if (logDirsStr == null || logDirsStr.isEmpty()) {
-      return null;
-    }
-    String[] logDirs = StringUtils.split(logDirsStr, ',');
-    if (logDirs.length == 0) {
-      return null;
-    }
-    int logIndex = RANDOM.nextInt(logDirs.length);
-    return logDirs[logIndex];
-  }
-
   /**
    * Convert DAGPlan to text. Skip sensitive informations like credentials.
    *

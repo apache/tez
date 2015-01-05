@@ -93,4 +93,7 @@ public interface AppContext {
 
   ACLManager getAMACLManager();
 
+  String[] getLogDirs();
+
+  String[] getLocalDirs();
 }

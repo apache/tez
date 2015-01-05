@@ -32,12 +32,12 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.ExitUtil;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -71,14 +71,16 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
       TaskSpec taskSpec, TezTaskUmbilicalProtocol umbilical, int appAttemptNumber,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> serviceProviderEnvMap,
       Multimap<String, String> startedInputsMap, TaskReporter taskReporter,
-      ListeningExecutorService executor, ObjectRegistry objectRegistry)
+      ListeningExecutorService executor, ObjectRegistry objectRegistry, String pid,
+      ExecutionContext ExecutionContext)
           throws IOException {
     this.tezConf = tezConf;
     this.ugi = ugi;
     this.taskReporter = taskReporter;
     this.executor = executor;
     task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs, this,
-        serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, objectRegistry);
+        serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, objectRegistry, pid,
+        ExecutionContext);
     taskReporter.registerTask(task, this);
     taskRunning = new AtomicBoolean(true);
   }

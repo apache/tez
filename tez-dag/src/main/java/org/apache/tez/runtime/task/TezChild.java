@@ -61,6 +61,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
+import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -91,9 +93,12 @@ public class TezChild {
   private final long sendCounterInterval;
   private final int maxEventsToGet;
   private final boolean isLocal;
+  private final String workingDir;
 
   private final ListeningExecutorService executor;
   private final ObjectRegistryImpl objectRegistry;
+  private final String pid;
+  private final ExecutionContext ExecutionContext;
   private final Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
   private final Map<String, String> serviceProviderEnvMap;
 
@@ -105,15 +110,19 @@ public class TezChild {
   private TezVertexID lastVertexID;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
-      String tokenIdentifier, int appAttemptNumber, String[] localDirs,
+      String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
       Map<String, String> serviceProviderEnvMap,
-      ObjectRegistryImpl objectRegistry)
+      ObjectRegistryImpl objectRegistry, String pid,
+      ExecutionContext ExecutionContext)
       throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
     this.localDirs = localDirs;
     this.serviceProviderEnvMap = serviceProviderEnvMap;
+    this.workingDir = workingDir;
+    this.pid = pid;
+    this.ExecutionContext = ExecutionContext;
 
     getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
@@ -216,7 +225,7 @@ public class TezChild {
         TezTaskRunner taskRunner = new TezTaskRunner(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
-            executor, objectRegistry);
+            executor, objectRegistry, pid, this.ExecutionContext);
         boolean shouldDie;
         try {
           shouldDie = !taskRunner.run();
@@ -294,7 +303,7 @@ public class TezChild {
           public URI apply(TezLocalResource input) {
             return input.getUri();
           }
-        }), defaultConf);
+        }), defaultConf, workingDir);
     RelocalizationUtils.addUrlsToClassPath(downloadedUrls);
 
     LOG.info("Done localizing additional resources");
@@ -389,7 +398,8 @@ public class TezChild {
 
   public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
-      Map<String, String> serviceProviderEnvMap)
+      Map<String, String> serviceProviderEnvMap, @Nullable String pid,
+      ExecutionContext ExecutionContext)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -399,14 +409,6 @@ public class TezChild {
     UserGroupInformation.setConfiguration(conf);
     Limits.setConfiguration(conf);
 
-    final String pid = System.getenv().get("JVM_PID");
-    LOG.info("PID, containerIdentifier:  " + pid + ", " + containerIdentifier);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
-          + " containerIdentifier: " + containerIdentifier + " appAttemptNumber: " + attemptNumber
-          + " tokenIdentifier: " + tokenIdentifier);
-    }
-
     // Should this be part of main - Metrics and ObjectRegistry. TezTask setup should be independent
     // of this class. Leaving it here, till there's some entity representing a running JVM.
     DefaultMetricsSystem.initialize("TezTask");
@@ -415,7 +417,8 @@ public class TezChild {
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
 
     return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
-        attemptNumber, localDirs, serviceProviderEnvMap, objectRegistry);
+        attemptNumber, workingDirectory, localDirs, serviceProviderEnvMap, objectRegistry, pid,
+        ExecutionContext);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
@@ -433,9 +436,16 @@ public class TezChild {
     final int attemptNumber = Integer.parseInt(args[4]);
     final String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
         .name()));
+    final String pid = System.getenv().get("JVM_PID");
+    LOG.info("PID, containerIdentifier:  " + pid + ", " + containerIdentifier);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
+          + " containerIdentifier: " + containerIdentifier + " appAttemptNumber: " + attemptNumber
+          + " tokenIdentifier: " + tokenIdentifier);
+    }
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
-        System.getenv());
+        System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())));
     tezChild.run();
   }
 

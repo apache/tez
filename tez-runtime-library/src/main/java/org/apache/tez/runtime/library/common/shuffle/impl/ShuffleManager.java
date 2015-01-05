@@ -354,7 +354,8 @@ public class ShuffleManager implements FetcherCallback {
     FetcherBuilder fetcherBuilder = new FetcherBuilder(ShuffleManager.this,
       httpConnectionParams, inputManager, inputContext.getApplicationId(),
         jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
-        lockDisk, localDiskFetchEnabled, sharedFetchEnabled);
+        lockDisk, localDiskFetchEnabled, sharedFetchEnabled,
+        inputContext.getExecutionContext().getHostName());
 
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);

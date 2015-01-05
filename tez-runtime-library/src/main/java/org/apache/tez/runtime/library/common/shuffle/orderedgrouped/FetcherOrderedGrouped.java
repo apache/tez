@@ -36,7 +36,6 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezUtilsInternal;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -75,6 +74,7 @@ class FetcherOrderedGrouped extends Thread {
   private final Shuffle shuffle;
   private final int id;
   private final String logIdentifier;
+  private final String localHostname;
   private static int nextId = 0;
   private int currentPartition = -1;
 
@@ -105,7 +105,8 @@ class FetcherOrderedGrouped extends Thread {
                                boolean ifileReadAhead, int ifileReadAheadLength,
                                CompressionCodec codec,
                                InputContext inputContext, Configuration conf,
-                               boolean localDiskFetchEnabled) throws IOException {
+                               boolean localDiskFetchEnabled,
+                               String localHostname) throws IOException {
     setDaemon(true);
     this.scheduler = scheduler;
     this.merger = merger;
@@ -135,6 +136,7 @@ class FetcherOrderedGrouped extends Thread {
       this.codec = null;
     }
     this.conf = conf;
+    this.localHostname = localHostname;
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
 
@@ -159,8 +161,7 @@ class FetcherOrderedGrouped extends Thread {
 
           String hostPort = host.getHostIdentifier();
           String hostname = hostPort.substring(0, hostPort.indexOf(":"));
-          if (localDiskFetchEnabled &&
-              hostname.equals(System.getenv(ApplicationConstants.Environment.NM_HOST.toString()))) {
+          if (localDiskFetchEnabled && hostname.equals(localHostname)) {
             setupLocalDiskFetch(host);
           } else {
             // Shuffle

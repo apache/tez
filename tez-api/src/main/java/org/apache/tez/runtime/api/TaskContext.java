@@ -180,5 +180,11 @@ public interface TaskContext {
    * @return Parallelism of the current vertex.
    */
   public int getVertexParallelism();
+
+  /**
+   * Get the execution context for a running task
+   * @return the execution context
+   */
+  public ExecutionContext getExecutionContext();
     
 }

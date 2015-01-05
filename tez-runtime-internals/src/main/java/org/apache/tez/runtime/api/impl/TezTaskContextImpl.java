@@ -35,6 +35,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.TaskContext;
@@ -62,6 +63,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
   private final String dagName;
   private final ObjectRegistry objectRegistry;
   private final int vertexParallelism;
+  private final ExecutionContext ExecutionContext;
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
@@ -69,7 +71,8 @@ public abstract class TezTaskContextImpl implements TaskContext {
       TezTaskAttemptID taskAttemptID, TezCounters counters, RuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry) {
+      EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,
+      ExecutionContext ExecutionContext) {
     checkNotNull(conf, "conf is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(taskVertexName, "taskVertexName is null");
@@ -99,6 +102,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
     this.descriptor = descriptor;
     this.objectRegistry = objectRegistry;
     this.vertexParallelism = vertexParallelism;
+    this.ExecutionContext = ExecutionContext;
   }
 
   @Override
@@ -201,6 +205,11 @@ public abstract class TezTaskContextImpl implements TaskContext {
     runtimeTask.setFrameworkCounters();
     runtimeTask.setFatalError(t, message);
     tezUmbilical.signalFatalError(taskAttemptID, t, message, sourceInfo);
+  }
+
+  @Override
+  public ExecutionContext getExecutionContext() {
+    return this.ExecutionContext;
   }
 
   private int generateId() {

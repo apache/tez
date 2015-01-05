@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -41,16 +43,13 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.tez.common.EnvironmentUpdateUtils;
-import org.apache.tez.common.TezCommonUtils;
+import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -68,6 +67,9 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.task.TezChild;
 
 
@@ -84,6 +86,8 @@ public class LocalContainerLauncher extends AbstractService implements
   private final TaskAttemptListener taskAttemptListener;
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private final String workingDirectory;
+  private final Map<String, String> localEnv = new HashMap<String, String>();
+  private final ExecutionContext ExecutionContext;
 
   private final ConcurrentHashMap<ContainerId, ListenableFuture<TezChild.ContainerExecutionResult>>
       runningContainers =
@@ -103,19 +107,15 @@ public class LocalContainerLauncher extends AbstractService implements
 
   public LocalContainerLauncher(AppContext context,
                                 TaskAttemptListener taskAttemptListener,
-                                String workingDirectory) throws
-      UnknownHostException {
+                                String workingDirectory) throws UnknownHostException {
     super(LocalContainerLauncher.class.getName());
     this.context = context;
     this.taskAttemptListener = taskAttemptListener;
     this.workingDirectory = workingDirectory;
-    EnvironmentUpdateUtils.put("NM_AUX_SERVICE_mapreduce_shuffle",
-        Base64.encodeBase64String(ByteBuffer.allocate(4).putInt(0).array()));
-    EnvironmentUpdateUtils.put(Environment.NM_HOST.toString(),
-        InetAddress.getLocalHost().getHostName());
-    if (Shell.WINDOWS) {
-      EnvironmentUpdateUtils.put(Environment.USER.name(), System.getenv("USERNAME"));
-    }
+    AuxiliaryServiceHelper.setServiceDataIntoEnv(
+        ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, ByteBuffer.allocate(4).putInt(0), localEnv);
+    ExecutionContext = new ExecutionContextImpl(InetAddress.getLocalHost().getHostName());
+    // User cannot be set here since it isn't available till a DAG is running.
   }
 
   @Override
@@ -186,16 +186,12 @@ public class LocalContainerLauncher extends AbstractService implements
   private void launch(NMCommunicatorLaunchRequestEvent event) {
 
     String tokenIdentifier = context.getApplicationID().toString();
-
-    String[] localDirs =
-        TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name()));
-
     try {
       ListenableFuture<TezChild.ContainerExecutionResult> runningTaskFuture =
           taskExecutorService.submit(createSubTask(context.getAMConf(),
               event.getContainerId(), tokenIdentifier,
               context.getApplicationAttemptId().getAttemptId(),
-              localDirs, (TezTaskUmbilicalProtocol) taskAttemptListener));
+              context.getLocalDirs(), (TezTaskUmbilicalProtocol) taskAttemptListener));
       runningContainers.put(event.getContainerId(), runningTaskFuture);
       Futures
           .addCallback(runningTaskFuture, new RunningTaskCallback(context, event.getContainerId()),
@@ -294,12 +290,16 @@ public class LocalContainerLauncher extends AbstractService implements
         ContainerLaunchedEvent lEvt =
             new ContainerLaunchedEvent(containerId, context.getClock().getTime(),
                 context.getApplicationAttemptId());
+
         context.getHistoryHandler().handle(new DAGHistoryEvent(context.getCurrentDAGID(), lEvt));
 
+        Map<String, String> containerEnv = new HashMap<String, String>();
+        containerEnv.putAll(localEnv);
+        containerEnv.put(Environment.USER.name(), context.getUser());
         // Pull in configuration specified for the session.
         TezChild tezChild =
             TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
-                attemptNumber, localDirs, workingDirectory, System.getenv());
+                attemptNumber, localDirs, workingDirectory, containerEnv, "", ExecutionContext);
         tezChild.setUmbilical(tezTaskUmbilicalProtocol);
         return tezChild.run();
       }
@@ -314,4 +314,5 @@ public class LocalContainerLauncher extends AbstractService implements
       throw new TezUncheckedException(e);
     }
   }
+
 }

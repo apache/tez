@@ -51,6 +51,7 @@ import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
@@ -124,7 +125,8 @@ public class TestOnFileUnorderedKVOutput {
     OutputContext outputContext = new TezOutputContextImpl(conf, new String[] {workDir.toString()},
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         -1, taskAttemptID, counters, 0, userPayload, runtimeTask,
-        null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null);
+        null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null,
+        new ExecutionContextImpl("localhost"));
 
     UnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest(outputContext, 1);
 

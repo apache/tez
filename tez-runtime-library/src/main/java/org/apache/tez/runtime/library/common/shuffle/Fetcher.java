@@ -88,6 +88,8 @@ public class Fetcher implements Callable<FetchResult> {
   private final ApplicationId appId;
   
   private final String logIdentifier;
+
+  private final String localHostname;
   
   private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
@@ -128,7 +130,8 @@ public class Fetcher implements Callable<FetchResult> {
       LocalDirAllocator localDirAllocator,
       Path lockPath,
       boolean localDiskFetchEnabled,
-      boolean sharedFetchEnabled) {
+      boolean sharedFetchEnabled,
+      String localHostname) {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.jobTokenSecretMgr = jobTokenSecretManager;
@@ -146,6 +149,7 @@ public class Fetcher implements Callable<FetchResult> {
     this.localFs = localFs;
     this.localDirAllocator = localDirAllocator;
     this.lockPath = lockPath;
+    this.localHostname = localHostname;
 
     try {
       if (this.sharedFetchEnabled) {
@@ -180,8 +184,7 @@ public class Fetcher implements Callable<FetchResult> {
 
     HostFetchResult hostFetchResult;
 
-    if (localDiskFetchEnabled &&
-        host.equals(System.getenv(ApplicationConstants.Environment.NM_HOST.toString()))) {
+    if (localDiskFetchEnabled && host.equals(localHostname)) {
       hostFetchResult = setupLocalDiskFetch();
     } else if (multiplex) {
       hostFetchResult = doSharedFetch();
@@ -898,10 +901,10 @@ public class Fetcher implements Callable<FetchResult> {
     public FetcherBuilder(FetcherCallback fetcherCallback,
         HttpConnectionParams params, FetchedInputAllocator inputManager,
         ApplicationId appId, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
-        Configuration conf, boolean localDiskFetchEnabled) {
+        Configuration conf, boolean localDiskFetchEnabled, String localHostname) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
           jobTokenSecretMgr, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
-          false);
+          false, localHostname);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
@@ -909,10 +912,11 @@ public class Fetcher implements Callable<FetchResult> {
         ApplicationId appId, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
         Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
-        boolean localDiskFetchEnabled, boolean sharedFetchEnabled) {
+        boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
+        String localHostname) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
           jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
-          lockPath, localDiskFetchEnabled, sharedFetchEnabled);
+          lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname);
     }
 
     public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {

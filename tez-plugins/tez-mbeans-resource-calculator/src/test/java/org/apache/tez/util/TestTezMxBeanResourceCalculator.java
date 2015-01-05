@@ -40,7 +40,7 @@ public class TestTezMxBeanResourceCalculator {
         TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
         ResourceCalculatorProcessTree.class);
     resourceCalculator = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(
-        System.getenv().get("JVM_PID"), clazz, conf);
+        "", clazz, conf);
   }
 
   @After

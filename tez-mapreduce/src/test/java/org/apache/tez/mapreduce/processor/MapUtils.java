@@ -48,9 +48,7 @@ import org.apache.hadoop.mapreduce.split.JobSplit.SplitMetaInfo;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
-import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -60,6 +58,7 @@ import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -218,14 +217,12 @@ public class MapUtils {
     Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,
         ShuffleUtils.convertJobTokenToBytes(shuffleToken));
-    Map<String, String> serviceProviderEnvMap = new HashMap<String, String>();
+    Map<String, String> envMap = new HashMap<String, String>();
     ByteBuffer shufflePortBb = ByteBuffer.allocate(4).putInt(0, 8000);
     AuxiliaryServiceHelper
         .setServiceDataIntoEnv(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, shufflePortBb,
-            serviceProviderEnvMap);
-    EnvironmentUpdateUtils.put(ApplicationConstants.Environment.NM_HOST
-        .toString(), "localhost");
-    
+            envMap);
+
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
@@ -233,8 +230,8 @@ public class MapUtils {
         new String[] {workDir.toString()},
         umbilical,
         serviceConsumerMetadata,
-        serviceProviderEnvMap,
-        HashMultimap.<String, String>create(), null);
+        envMap,
+        HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"));
     return task;
   }
 }

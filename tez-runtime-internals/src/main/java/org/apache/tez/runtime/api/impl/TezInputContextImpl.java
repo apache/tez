@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.InputContext;
@@ -66,12 +67,13 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              Map<String, ByteBuffer> serviceConsumerMetadata,
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
                              InputDescriptor inputDescriptor, Map<String, LogicalInput> inputs,
-                             InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry) {
+                             InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
+                             ExecutionContext ExecutionContext) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
         vertexParallelism, taskAttemptID, wrapCounters(counters,
         taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
         serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
-        objectRegistry);
+        objectRegistry, ExecutionContext);
     checkNotNull(inputIndex, "inputIndex is null");
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(inputs, "input map is null");

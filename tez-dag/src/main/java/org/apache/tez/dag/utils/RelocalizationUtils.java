@@ -31,7 +31,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
 
@@ -40,7 +39,7 @@ import com.google.common.collect.Lists;
 public class RelocalizationUtils {
   
   public static List<URL> processAdditionalResources(Map<String, URI> additionalResources,
-      Configuration conf) throws IOException, TezException {
+      Configuration conf, String destDir) throws IOException, TezException {
     if (additionalResources == null || additionalResources.isEmpty()) {
       return Collections.emptyList();
     }
@@ -48,7 +47,7 @@ public class RelocalizationUtils {
     List<URL> urls = Lists.newArrayListWithCapacity(additionalResources.size());
 
     for (Entry<String, URI> lrEntry : additionalResources.entrySet()) {
-      Path dFile = downloadResource(lrEntry.getKey(), lrEntry.getValue(), conf);
+      Path dFile = downloadResource(lrEntry.getKey(), lrEntry.getValue(), conf, destDir);
       urls.add(dFile.toUri().toURL());
     }
     return urls;
@@ -58,10 +57,10 @@ public class RelocalizationUtils {
     ReflectionUtils.addResourcesToSystemClassLoader(urls);
   }
 
-  private static Path downloadResource(String destName, URI uri, Configuration conf)
+  private static Path downloadResource(String destName, URI uri, Configuration conf, String destDir)
       throws IOException {
     FileSystem fs = FileSystem.get(uri, conf);
-    Path cwd = new Path(System.getenv(Environment.PWD.name()));
+    Path cwd = new Path(destDir);
     Path dFile = new Path(cwd, destName);
     Path srcPath = new Path(uri);
     fs.copyToLocalFile(srcPath, dFile);

@@ -45,6 +45,7 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.Writer;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -76,7 +77,8 @@ public class TestLogicalIOProcessorRuntimeTask {
     TaskSpec task2 = createTaskSpec(taId2, "dag2", "vertex1", 10);
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
-        umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null);
+        umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
+        "", new ExecutionContextImpl("localhost"));
 
     lio1.initialize();
     lio1.run();
@@ -93,8 +95,8 @@ public class TestLogicalIOProcessorRuntimeTask {
     assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
 
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
-        umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null);
-
+        umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
+        "", new ExecutionContextImpl("localhost"));
     lio2.initialize();
     lio2.run();
     lio2.close();

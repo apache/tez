@@ -43,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -204,6 +205,8 @@ public class DAGAppMaster extends AbstractService {
   private final int nmPort;
   private final int nmHttpPort;
   private final String workingDirectory;
+  private final String[] localDirs;
+  private final String[] logDirs;
   private ContainerSignatureMatcher containerSignatureMatcher;
   private AMContainerMap containers;
   private AMNodeTracker nodes;
@@ -223,6 +226,7 @@ public class DAGAppMaster extends AbstractService {
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
+  private final int maxAppAttempts;
 
   private boolean isLocal = false; //Local mode flag
 
@@ -279,7 +283,7 @@ public class DAGAppMaster extends AbstractService {
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
-      String clientVersion) {
+      String [] localDirs, String[] logDirs, String clientVersion, int maxAppAttempts) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
     this.startTime = clock.getTime();
@@ -292,9 +296,12 @@ public class DAGAppMaster extends AbstractService {
     this.state = DAGAppMasterState.NEW;
     this.isSession = isSession;
     this.workingDirectory = workingDirectory;
+    this.localDirs = localDirs;
+    this.logDirs = logDirs;
     this.shutdownHandler = new DAGAppMasterShutdownHandler();
     this.dagVersionInfo = new TezDagVersionInfo();
     this.clientVersion = clientVersion;
+    this.maxAppAttempts = maxAppAttempts;
 
     // TODO Metrics
     //this.metrics = DAGAppMetrics.create();
@@ -313,12 +320,6 @@ public class DAGAppMaster extends AbstractService {
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK,
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT);
 
-    int maxAppAttempts = 1;
-    String maxAppAttemptsEnv = System.getenv(
-        ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
-    if (maxAppAttemptsEnv != null) {
-      maxAppAttempts = Integer.valueOf(maxAppAttemptsEnv);
-    }
     isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
 
     // Check client - AM version compatibility
@@ -767,7 +768,7 @@ public class DAGAppMaster extends AbstractService {
       LOG.warn("Failed to generate json for DAG", e);
     }
 
-    generateDAGVizFile(dagId, dagPB);
+    generateDAGVizFile(dagId, dagPB, logDirs);
     writePBTextFile(newDag);
     return newDag;
   } // end createDag()
@@ -786,7 +787,7 @@ public class DAGAppMaster extends AbstractService {
     return m.replaceAll("_");
   }
 
-  private void generateDAGVizFile(TezDAGID dagId, DAGPlan dagPB) {
+  private void generateDAGVizFile(TezDAGID dagId, DAGPlan dagPB, String[] logDirs) {
     Graph graph = new Graph(sanitizeLabelForViz(dagPB.getName()));
 
     for (VertexPlan v : dagPB.getVertexList()) {
@@ -826,15 +827,9 @@ public class DAGAppMaster extends AbstractService {
           + ", schedulingType=" + e.getSchedulingType().name().trim() + "]");
     }
 
-    String logDirs = System.getenv(Environment.LOG_DIRS.name());
     String outputFile = "";
-    if (logDirs != null && !logDirs.isEmpty()) {
-      int pos = logDirs.indexOf(",");
-      if (pos != -1) {
-        outputFile += logDirs.substring(0, pos);
-      } else {
-        outputFile += logDirs;
-      }
+    if (logDirs != null && logDirs.length != 0) {
+      outputFile += logDirs[0];
       outputFile += File.separator;
     }
     outputFile += dagId.toString() + ".dot";
@@ -854,8 +849,8 @@ public class DAGAppMaster extends AbstractService {
     if (dag.getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
         TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
 
-      String logFile = TezUtilsInternal.getContainerLogDir() + File.separatorChar + dag.getID().toString()
-          + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
+      String logFile = logDirs[new Random().nextInt(logDirs.length)] + File.separatorChar +
+          dag.getID().toString()  + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
 
       LOG.info("Writing DAG plan to: " + logFile);
       File outFile = new File(logFile);
@@ -1181,7 +1176,7 @@ public class DAGAppMaster extends AbstractService {
               public URI apply(LocalResource input) {
                 return getLocalResourceUri(input);
               }
-            }), getConfig());
+            }), getConfig(), workingDirectory);
       } catch (IOException e) {
         throw new TezException(e);
       }
@@ -1313,6 +1308,16 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public ACLManager getAMACLManager() {
       return aclManager;
+    }
+
+    @Override
+    public String[] getLogDirs() {
+      return logDirs;
+    }
+
+    @Override
+    public String[] getLocalDirs() {
+      return localDirs;
     }
 
     @Override
@@ -1805,6 +1810,14 @@ public class DAGAppMaster extends AbstractService {
         clientVersion = VersionInfo.UNKNOWN;
       }
 
+      // TODO Should this be defaulting to 1. Was there a version of YARN where this was not setup ?
+      int maxAppAttempts = 1;
+      String maxAppAttemptsEnv = System.getenv(
+          ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
+      if (maxAppAttemptsEnv != null) {
+        maxAppAttempts = Integer.valueOf(maxAppAttemptsEnv);
+      }
+
       validateInputParam(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV);
 
@@ -1829,7 +1842,10 @@ public class DAGAppMaster extends AbstractService {
               Integer.parseInt(nodePortString),
               Integer.parseInt(nodeHttpPortString), new SystemClock(), appSubmitTime,
               cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION),
-              System.getenv(Environment.PWD.name()), clientVersion);
+              System.getenv(Environment.PWD.name()),
+              TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name())),
+              TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOG_DIRS.name())),
+              clientVersion, maxAppAttempts);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 

@@ -45,7 +45,7 @@ public abstract class RuntimeTask {
   private final TaskCounterUpdater counterUpdater;
 
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
-      TezUmbilical tezUmbilical) {
+      TezUmbilical tezUmbilical, String pid) {
     this.taskSpec = taskSpec;
     this.tezConf = tezConf;
     this.tezUmbilical = tezUmbilical;
@@ -53,7 +53,7 @@ public abstract class RuntimeTask {
     this.eventCounter = new AtomicInteger(0);
     this.progress = 0.0f;
     this.taskDone = new AtomicBoolean(false);
-    this.counterUpdater = new TaskCounterUpdater(tezCounters, tezConf);
+    this.counterUpdater = new TaskCounterUpdater(tezCounters, tezConf, pid);
   }
 
   protected enum State {

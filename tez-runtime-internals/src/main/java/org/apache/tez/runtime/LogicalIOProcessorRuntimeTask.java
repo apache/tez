@@ -49,6 +49,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.InputFrameworkInterface;
@@ -116,7 +117,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final LinkedHashMap<String, LogicalOutput> runOutputMap;
 
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
-  private final Map<String, String> serviceProviderEnvMap;
+  private final Map<String, String> envMap;
 
   private final ExecutorService initializerExecutor;
   private final CompletionService<Void> initializerCompletionService;
@@ -131,15 +132,15 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final InputReadyTracker inputReadyTracker;
   
   private final ObjectRegistry objectRegistry;
-
-  // KKK Make sure LogicalInputFramework checks are in place
+  private final ExecutionContext ExecutionContext;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
-      Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> serviceProviderEnvMap,
-      Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry) throws IOException {
+      Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> envMap,
+      Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry,
+      String pid, ExecutionContext ExecutionContext) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
-    super(taskSpec, tezConf, tezUmbilical);
+    super(taskSpec, tezConf, tezUmbilical, pid);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
         + taskSpec);
     int numInputs = taskSpec.getInputs().size();
@@ -157,7 +158,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     this.processorDescriptor = taskSpec.getProcessorDescriptor();
     this.serviceConsumerMetadata = serviceConsumerMetadata;
-    this.serviceProviderEnvMap = serviceProviderEnvMap;
+    this.envMap = envMap;
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state = State.NEW;
     this.appAttemptNumber = appAttemptNumber;
@@ -174,6 +175,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.startedInputsMap = startedInputsMap;
     this.inputReadyTracker = new InputReadyTracker();
     this.objectRegistry = objectRegistry;
+    this.ExecutionContext = ExecutionContext;
   }
 
   /**
@@ -486,8 +488,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getTaskAttemptID(),
         tezCounters, inputIndex,
         inputSpec.getInputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata, serviceProviderEnvMap, initialMemoryDistributor,
-        inputSpec.getInputDescriptor(), inputMap, inputReadyTracker, objectRegistry);
+        serviceConsumerMetadata, envMap, initialMemoryDistributor,
+        inputSpec.getInputDescriptor(), inputMap, inputReadyTracker, objectRegistry,
+        ExecutionContext);
     return inputContext;
   }
 
@@ -500,8 +503,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getTaskAttemptID(),
         tezCounters, outputIndex,
         outputSpec.getOutputDescriptor().getUserPayload(), this,
-        serviceConsumerMetadata, serviceProviderEnvMap, initialMemoryDistributor,
-        outputSpec.getOutputDescriptor(), objectRegistry);
+        serviceConsumerMetadata, envMap, initialMemoryDistributor,
+        outputSpec.getOutputDescriptor(), objectRegistry, ExecutionContext);
     return outputContext;
   }
 
@@ -512,8 +515,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getVertexParallelism(),
         taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
-        serviceConsumerMetadata, serviceProviderEnvMap, initialMemoryDistributor,
-        processorDescriptor, inputReadyTracker, objectRegistry);
+        serviceConsumerMetadata, envMap, initialMemoryDistributor,
+        processorDescriptor, inputReadyTracker, objectRegistry, ExecutionContext);
     return processorContext;
   }
 

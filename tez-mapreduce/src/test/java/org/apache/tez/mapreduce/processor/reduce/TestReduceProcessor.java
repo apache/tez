@@ -38,9 +38,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
-import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -65,6 +63,7 @@ import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -215,8 +214,6 @@ public class TestReduceProcessor {
     AuxiliaryServiceHelper
         .setServiceDataIntoEnv(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, shufflePortBb,
             serviceProviderEnvMap);
-    EnvironmentUpdateUtils.put(ApplicationConstants.Environment.NM_HOST
-        .toString(), "localhost");
 
     LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
         taskSpec,
@@ -226,7 +223,7 @@ public class TestReduceProcessor {
         new TestUmbilical(),
         serviceConsumerMetadata,
         serviceProviderEnvMap,
-        HashMultimap.<String, String>create(), null);
+        HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"));
 
     List<Event> destEvents = new LinkedList<Event>();
     destEvents.add(dme);

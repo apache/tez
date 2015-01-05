@@ -333,7 +333,8 @@ public class Shuffle implements ExceptionReporter {
           FetcherOrderedGrouped
               fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
             metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
-            codec, inputContext, conf, localDiskFetchEnabled);
+            codec, inputContext, conf, localDiskFetchEnabled,
+              inputContext.getExecutionContext().getHostName());
           fetchers.add(fetcher);
           fetcher.start();
         }

@@ -32,7 +32,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
@@ -182,8 +181,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       }
     }
     if (!sendEmptyPartitionDetails || outputGenerated) {
-      String host = System.getenv(ApplicationConstants.Environment.NM_HOST
-          .toString());
+      String host = getContext().getExecutionContext().getHostName();
       ByteBuffer shuffleMetadata = getContext()
           .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
       int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);

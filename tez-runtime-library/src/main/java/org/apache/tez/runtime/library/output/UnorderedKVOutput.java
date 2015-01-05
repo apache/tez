@@ -31,7 +31,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -165,7 +164,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
   @VisibleForTesting
   @Private
   String getHost() {
-    return System.getenv(ApplicationConstants.Environment.NM_HOST.toString());
+    return getContext().getExecutionContext().getHostName();
   }
 
   private static final Set<String> confKeys = new HashSet<String>();

@@ -47,12 +47,14 @@ public class MockLocalClient extends LocalClient {
     this.startFailFlag = startFailFlag;
   }
 
+  @Override
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, boolean isSession, String userDir) {
+      Clock clock, long appSubmitTime, boolean isSession, String userDir,
+      String[] localDirs, String[] logDirs) {
     mockApp = new MockDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
-        (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, mockAppLauncherGoFlag,
-        initFailFlag, startFailFlag);
+        (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, localDirs, logDirs,
+        mockAppLauncherGoFlag, initFailFlag, startFailFlag);
     return mockApp;
   }
   

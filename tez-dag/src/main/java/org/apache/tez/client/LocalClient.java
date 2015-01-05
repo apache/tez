@@ -274,9 +274,6 @@ public class LocalClient extends FrameworkClient {
           fs.mkdirs(logDir);
           fs.mkdirs(localDir);
 
-          EnvironmentUpdateUtils.put(Environment.LOG_DIRS.name(), logDir.toUri().getPath());
-          EnvironmentUpdateUtils.put(Environment.LOCAL_DIRS.name(), localDir.toUri().getPath());
-
           // Add session specific credentials to the AM credentials.
           UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
           ByteBuffer tokens = appContext.getAMContainerSpec().getTokens();
@@ -298,9 +295,10 @@ public class LocalClient extends FrameworkClient {
           int nmHttpPort = YarnConfiguration.DEFAULT_NM_WEBAPP_PORT;
           long appSubmitTime = System.currentTimeMillis();
 
-          dagAppMaster = createDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
-                  new SystemClock(),
-                  appSubmitTime, isSession, userDir.toUri().getPath());
+          dagAppMaster =
+              createDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
+                  new SystemClock(), appSubmitTime, isSession, userDir.toUri().getPath(),
+                  new String[] {localDir.toUri().getPath()}, new String[] {logDir.toUri().getPath()});
           clientHandler = new DAGClientHandler(dagAppMaster);
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, currentUser.getShortUserName());
 
@@ -324,9 +322,11 @@ public class LocalClient extends FrameworkClient {
   @VisibleForTesting
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, boolean isSession, String userDir) {
+      Clock clock, long appSubmitTime, boolean isSession, String userDir,
+      String[] localDirs, String[] logDirs) {
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
-        new SystemClock(), appSubmitTime, isSession, userDir, versionInfo.getVersion());
+        new SystemClock(), appSubmitTime, isSession, userDir, localDirs, logDirs,
+        versionInfo.getVersion(), 1);
   }
 
 }

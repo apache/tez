@@ -47,7 +47,6 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -780,7 +779,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   @VisibleForTesting
   String getHost() {
-    return System.getenv(ApplicationConstants.Environment.NM_HOST.toString());
+    return outputContext.getExecutionContext().getHostName();
   }
 
   @VisibleForTesting

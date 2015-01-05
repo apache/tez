@@ -37,6 +37,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.OutputContext;
@@ -61,12 +62,13 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       @Nullable UserPayload userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry) {
+      OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry,
+      ExecutionContext ExecutionContext) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, 
         vertexParallelism, taskAttemptID,
         wrapCounters(counters, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv, memDist, outputDescriptor, objectRegistry);
+        auxServiceEnv, memDist, outputDescriptor, objectRegistry, ExecutionContext);
     checkNotNull(outputIndex, "outputIndex is null");
     checkNotNull(destinationVertexName, "destinationVertexName is null");
     this.userPayload = userPayload;

@@ -19,6 +19,7 @@
 package org.apache.tez.dag.history.logging.impl;
 
 import java.io.IOException;
+import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,7 +63,7 @@ public class SimpleHistoryLoggingService extends HistoryLoggingService {
     String logDirPath = conf.get(TezConfiguration.TEZ_SIMPLE_HISTORY_LOGGING_DIR);
     final String logFileName = LOG_FILE_NAME_PREFIX + "." + appContext.getApplicationAttemptId();
     if (logDirPath == null || logDirPath.isEmpty()) {
-      String logDir = TezUtilsInternal.getContainerLogDir();
+      String logDir = appContext.getLogDirs()[new Random().nextInt(appContext.getLogDirs().length)];
       LOG.info("Log file location for SimpleHistoryLoggingService not specified, defaulting to"
           + " containerLogDir=" + logDir);
       Path p;

@@ -63,6 +63,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -698,7 +699,7 @@ public class TestTaskExecution {
 
     TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, umbilical, 1,
         new HashMap<String, ByteBuffer>(), new HashMap<String, String>(), HashMultimap.<String, String> create(), taskReporter,
-        executor, null);
+        executor, null, "", new ExecutionContextImpl("localhost"));
     return taskRunner;
   }
 

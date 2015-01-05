@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.ObjectRegistry;
@@ -57,10 +58,11 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
       @Nullable UserPayload userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry) {
+      ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
+      ExecutionContext ExecutionContext) {
     super(conf, workDirs, appAttemptNumber, dagName, vertexName, vertexParallelism, taskAttemptID,
         counters, runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv, memDist, processorDescriptor, objectRegistry);
+        auxServiceEnv, memDist, processorDescriptor, objectRegistry, ExecutionContext);
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,

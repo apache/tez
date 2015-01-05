@@ -24,12 +24,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
@@ -122,7 +121,6 @@ public class TestOnFileSortedOutput {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
         sendEmptyPartitionViaEvent);
 
-    EnvironmentUpdateUtils.put(ApplicationConstants.Environment.NM_HOST.toString(), HOST);
     fs.mkdirs(workingDir);
     this.partitions = Math.max(1, rnd.nextInt(10));
   }
@@ -287,6 +285,9 @@ public class TestOnFileSortedOutput {
         return null;
       }
     }).when(context).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
+    ExecutionContext ExecutionContext = mock(ExecutionContext.class);
+    doReturn(HOST).when(ExecutionContext).getHostName();
+    doReturn(ExecutionContext).when(context).getExecutionContext();
     return context;
   }
 

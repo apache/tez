@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1837. Restrict usage of Environment variables to main methods.
   TEZ-1867. Create new central dispatcher for Tez AM
   TEZ-1844. Shouldn't invoke system.exit in local mode when AM is failed to start.
   TEZ-1889. Fix test-patch to provide correct findbugs report.

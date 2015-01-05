@@ -40,9 +40,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.TezApiVersionInfo;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.app.RecoveryParser.RecoveredDAGData;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.launcher.ContainerLauncher;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
@@ -303,10 +301,10 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
   public MockDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
       String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
-      boolean isSession, String workingDirectory, AtomicBoolean launcherGoFlag,
-      boolean initFailFlag, boolean startFailFlag) {
+      boolean isSession, String workingDirectory, String[] localDirs, String[] logDirs,
+      AtomicBoolean launcherGoFlag, boolean initFailFlag, boolean startFailFlag) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
-        isSession, workingDirectory, new TezApiVersionInfo().getVersion());
+        isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(), 1);
     containerLauncher = new MockContainerLauncher(launcherGoFlag);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
     this.initFailFlag = initFailFlag;

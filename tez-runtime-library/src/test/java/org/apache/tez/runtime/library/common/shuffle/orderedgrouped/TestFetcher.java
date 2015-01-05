@@ -63,7 +63,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import javax.crypto.SecretKey;
 
 public class TestFetcher {
 
@@ -86,7 +85,7 @@ public class TestFetcher {
 
     FetcherOrderedGrouped
         fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
-        false, 0, null, inputContext, conf, true);
+        false, 0, null, inputContext, conf, true, HOST);
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
     MapHost host = new MapHost(1, HOST + ":" + PORT,
@@ -229,7 +228,7 @@ public class TestFetcher {
         ShuffleUtils.constructHttpShuffleConnectionParams(conf);
     FetcherOrderedGrouped mockFetcher =
         new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger, metrics, shuffle, null,
-            false, 0, null, inputContext, conf, false);
+            false, 0, null, inputContext, conf, false, HOST);
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
     final MapHost host = new MapHost(1, HOST + ":" + PORT,
