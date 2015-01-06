@@ -67,4 +67,12 @@ public interface TezRawKeyValueIterator {
    * indicating the bytes processed by the iterator so far
    */
   Progress getProgress();
+
+  /**
+   * Whether the current key is same as the previous key
+   *
+   * @return
+   * @throws IOException
+   */
+  boolean isSameKey() throws IOException;
 }

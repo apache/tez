@@ -291,6 +291,12 @@ public class ReduceProcessor extends MRTask {
       public Progress getProgress() {
         return rawIter.getProgress();
       }
+
+      @Override
+      public boolean isSameKey() throws IOException {
+        return rawIter.isSameKey();
+      }
+
       public DataInputBuffer getValue() throws IOException {
         return rawIter.getValue();
       }

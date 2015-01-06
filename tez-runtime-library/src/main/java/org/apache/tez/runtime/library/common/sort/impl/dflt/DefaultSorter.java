@@ -984,6 +984,12 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     public Progress getProgress() {
       return null;
     }
+
+    @Override
+    public boolean isSameKey() throws IOException {
+      throw new UnsupportedOperationException("isSameKey is not supported");
+    }
+
     public void close() { }
   }
 

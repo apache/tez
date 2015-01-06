@@ -657,6 +657,11 @@ public class PipelinedSorter extends ExternalSorter {
       return progress;
     }
 
+    @Override
+    public boolean isSameKey() throws IOException {
+      throw new UnsupportedOperationException("Not yet supported");
+    }
+
     public int getPartition() {
       final int partition = kvmeta.get(span.offsetFor(kvindex) + PARTITION);
       return partition;
@@ -766,6 +771,12 @@ public class PipelinedSorter extends ExternalSorter {
     public Progress getProgress() {
       return new Progress();
     }
+
+    @Override
+    public boolean isSameKey() throws IOException {
+      return iter.isSameKey();
+    }
+
     public boolean next() throws IOException {
       if(dirty || iter.next()) { 
         int prefix = iter.getPartition();
@@ -914,6 +925,11 @@ public class PipelinedSorter extends ExternalSorter {
     public Progress getProgress() {
       // TODO
       return new Progress();
+    }
+
+    @Override
+    public boolean isSameKey() throws IOException {
+      throw new UnsupportedOperationException("isSameKey is not supported");
     }
 
     public TezRawKeyValueIterator filter(int partition) {

@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.PriorityQueue;
@@ -46,7 +47,7 @@ import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader.KeyState;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
-
+import org.apache.tez.runtime.library.utils.BufferUtils;
 
 /**
  * Merger is an utility class used by the Map and Reduce tasks for merging
@@ -55,7 +56,7 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class TezMerger {  
+public class TezMerger {
   private static final Log LOG = LogFactory.getLog(TezMerger.class);
 
   
@@ -166,10 +167,10 @@ public class TezMerger {
     return new MergeQueue(conf, fs, segments, comparator, reporter,
                            sortSegments, codec, considerFinalMergeForProgress).
                                          merge(keyClass, valueClass,
-                                               mergeFactor, tmpDir,
-                                               readsCounter, writesCounter,
-                                               bytesReadCounter,
-                                               mergePhase);
+                                             mergeFactor, tmpDir,
+                                             readsCounter, writesCounter,
+                                             bytesReadCounter,
+                                             mergePhase);
   }
 
   public static <K extends Object, V extends Object>
@@ -199,14 +200,23 @@ public class TezMerger {
                  Progressable progressable, long recordsBeforeProgress) 
   throws IOException {
     long recordCtr = 0;
+    long count = 0;
     while(records.next()) {
-      writer.append(records.getKey(), records.getValue());
+      if (records.isSameKey()) {
+        writer.append(IFile.REPEAT_KEY, records.getValue());
+        count++;
+      } else {
+        writer.append(records.getKey(), records.getValue());
+      }
       
       if (((recordCtr++) % recordsBeforeProgress) == 0) {
         progressable.progress();
       }
     }
-}
+    if ((count > 0) && LOG.isDebugEnabled()) {
+      LOG.debug("writeFile SAME_KEY count=" + count);
+    }
+  }
 
   @InterfaceAudience.Private
   @InterfaceStability.Unstable
@@ -407,6 +417,9 @@ public class TezMerger {
       }
     };
 
+    KeyState hasNext;
+    DataOutputBuffer prevKey = new DataOutputBuffer();
+
     public MergeQueue(Configuration conf, FileSystem fs, 
                       Path[] inputs, boolean deleteInputs,
                       CompressionCodec codec, boolean ifileReadAhead,
@@ -478,17 +491,46 @@ public class TezMerger {
 
     private void adjustPriorityQueue(Segment reader) throws IOException{
       long startPos = reader.getPosition();
-      KeyState hasNext = reader.readRawKey();
+      if (hasNext != null && hasNext != KeyState.SAME_KEY) {
+        key.reset();
+        // TODO: This copy can be an unwanted operation when all keys are unique. Revisit this
+        // when we have better stats.
+        BufferUtils.copy(key, prevKey);
+      }
+      hasNext = reader.readRawKey();
       long endPos = reader.getPosition();
       totalBytesProcessed += endPos - startPos;
       mergeProgress.set(totalBytesProcessed * progPerByte);
       if (hasNext == KeyState.NEW_KEY) {
         adjustTop();
+        compareKeyWithNextTopKey(reader);
       } else if(hasNext == KeyState.NO_KEY) {
         pop();
         reader.close();
+        compareKeyWithNextTopKey(null);
       } else if(hasNext == KeyState.SAME_KEY) {
         // do not rebalance the priority queue
+      }
+    }
+
+    /**
+     * Check if the previous key is same as the next top segment's key.
+     * This would be useful to compute whether same key is spread across multiple segments.
+     *
+     * @param current
+     * @throws IOException
+     */
+    void compareKeyWithNextTopKey(Segment current) throws IOException {
+      Segment nextTop = top();
+      if (nextTop != current) {
+        //we have a different file. Compare it with previous key
+        DataInputBuffer nextKey = nextTop.getKey();
+        int compare = compare(nextKey, prevKey);
+        if (compare == 0) {
+          //Same key is available in the next segment.
+          hasNext = KeyState.SAME_KEY;
+        }
+        nextKey.reset();
       }
     }
 
@@ -526,6 +568,16 @@ public class TezMerger {
       totalBytesProcessed += endPos - startPos;
       mergeProgress.set(totalBytesProcessed * progPerByte);
       return true;
+    }
+
+    int compare(DataInputBuffer buf1, DataOutputBuffer buf2) {
+      byte[] b1 = buf1.getData();
+      byte[] b2 = buf2.getData();
+      int s1 = buf1.getPosition();
+      int s2 = 0;
+      int l1 = buf1.getLength();
+      int l2 = buf2.getLength();
+      return comparator.compare(b1, s1, (l1 - s1), b2, s2, l2);
     }
 
     protected boolean lessThan(Object a, Object b) {
@@ -832,8 +884,13 @@ public class TezMerger {
       return mergeProgress;
     }
 
+    @Override
+    public boolean isSameKey() throws IOException {
+      return (hasNext != null) && (hasNext == KeyState.SAME_KEY);
+    }
+
   }
-  
+
   private static class EmptyIterator implements TezRawKeyValueIterator {
     final Progress progress;
 
@@ -864,6 +921,11 @@ public class TezMerger {
     @Override
     public Progress getProgress() {
       return progress;
+    }
+
+    @Override
+    public boolean isSameKey() throws IOException {
+      throw new UnsupportedOperationException("isSameKey is not supported");
     }
   }
 }
