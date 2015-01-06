@@ -93,7 +93,7 @@ public class TaskLocationHint {
    * and not in while creating the dag using the DAG API.
    * @param vertexName
    * @param taskIndex
-   * @return
+   * @return the task location hint for the vertex name and task index
    */
   public static TaskLocationHint createTaskLocationHint(String vertexName, int taskIndex) {
     return new TaskLocationHint(vertexName, taskIndex);

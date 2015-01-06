@@ -71,7 +71,7 @@ public interface TezRawKeyValueIterator {
   /**
    * Whether the current key is same as the previous key
    *
-   * @return
+   * @return true if key is the same as the previous key
    * @throws IOException
    */
   boolean isSameKey() throws IOException;
