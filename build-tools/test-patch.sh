@@ -373,7 +373,7 @@ applyPatch () {
 ###############################################################################
 calculateJavadocWarnings() {
     WARNING_FILE="$1"
-    RET=$(egrep "^[0-9]+ warnings$" "$WARNING_FILE" | awk '{sum+=$1} END {print sum}')
+    RET=$(egrep "^[0-9]+ warnings?$" "$WARNING_FILE" | awk '{sum+=$1} END {print sum}')
 }
 
 ### Check there are no javadoc warnings
