@@ -263,7 +263,7 @@ public class HistoryEventTimelineConversion {
     final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
     if (dagTaskStats != null) {
       for(Entry<String, Integer> entry : dagTaskStats.entrySet()) {
-        atsEntity.addOtherInfo(entry.getKey(), entry.getValue().intValue());
+        atsEntity.addOtherInfo(entry.getKey(), entry.getValue());
       }
     }
 
@@ -510,7 +510,7 @@ public class HistoryEventTimelineConversion {
     final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
     if (vertexTaskStats != null) {
       for(Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
-        atsEntity.addOtherInfo(entry.getKey(), entry.getValue().intValue());
+        atsEntity.addOtherInfo(entry.getKey(), entry.getValue());
       }
     }
 
