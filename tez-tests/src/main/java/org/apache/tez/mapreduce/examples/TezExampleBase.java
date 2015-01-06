@@ -57,7 +57,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * @param tezClient an existing running {@link org.apache.tez.client.TezClient} instance if one
    *                  exists. If no TezClient is specified (null), one will be created based on the
    *                  provided configuration
-   * @return
+   * @return Zero indicates success, non-zero indicates failure
    * @throws IOException
    * @throws TezException
    */
@@ -73,7 +73,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * @param dag           the dag to execute
    * @param printCounters whether to print counters or not
    * @param logger        the logger to use while printing diagnostics
-   * @return
+   * @return Zero indicates success, non-zero indicates failure
    * @throws TezException
    * @throws InterruptedException
    * @throws IOException
@@ -147,7 +147,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * Validate the arguments
    *
    * @param otherArgs arguments, if any
-   * @return
+   * @return Zero indicates success, non-zero indicates failure
    */
   protected abstract int validateArgs(String[] otherArgs);
 
@@ -159,7 +159,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * @param tezClient the tez client instance to use to run the DAG if any custom monitoring is
    *                  required. Otherwise the utility method {@link #runDag(org.apache.tez.dag.api.DAG,
    *                  boolean, org.apache.commons.logging.Log)} should be used
-   * @return
+   * @return Zero indicates success, non-zero indicates failure
    * @throws IOException
    * @throws TezException
    */

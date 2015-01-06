@@ -232,7 +232,7 @@ public class TezUtilsInternal {
    * Convert DAGPlan to text. Skip sensitive informations like credentials.
    *
    * @param dagPlan
-   * @return
+   * @return a string representation of the dag plan with sensitive information removed
    */
   public static String convertDagPlanToString(DAGProtos.DAGPlan dagPlan) throws IOException {
     StringBuilder sb = new StringBuilder();
