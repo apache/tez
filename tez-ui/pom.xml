@@ -28,7 +28,7 @@
 
   <properties>
     <webappDir>src/main/webapp</webappDir>
-    <nodeBinDir>node_modules/.bin</nodeBinDir>
+    <node.executable>${basedir}/src/main/webapp/node/node</node.executable>
     <fileName>${artifactId}-${parent.version}</fileName>
     <nodeVersion>v0.10.18</nodeVersion>
     <npmVersion>1.3.8</npmVersion>
@@ -99,9 +99,9 @@
             </goals>
             <configuration>
               <workingDirectory>${webappDir}</workingDirectory>
-              <executable>node/node</executable>
+              <executable>${node.executable}</executable>
               <arguments>
-                <argument>${nodeBinDir}/bower</argument>
+                <argument>node_modules/bower/bin/bower</argument>
                 <argument>install</argument>
                 <argument>--remove-unnecessary-resolutions=false</argument>
               </arguments>
@@ -115,9 +115,9 @@
             </goals>
             <configuration>
               <workingDirectory>${webappDir}</workingDirectory>
-              <executable>node/node</executable>
+              <executable>${node.executable}</executable>
               <arguments>
-                <argument>${nodeBinDir}/grunt</argument>
+                <argument>node_modules/grunt-cli/bin/grunt</argument>
                 <argument>build</argument>
               </arguments>
             </configuration>
