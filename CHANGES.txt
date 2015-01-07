@@ -23,6 +23,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1915. Add public key to KEYS
   TEZ-1907. Fix javadoc warnings in tez codebase
   TEZ-1891. Incorrect number of Javadoc warnings reported
   TEZ-1762. Lots of unit tests do not have timeout parameter set.
