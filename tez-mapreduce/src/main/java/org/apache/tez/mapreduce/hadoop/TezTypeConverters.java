@@ -23,7 +23,6 @@ import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptId;
-import org.apache.tez.common.TezTaskStatus.Phase;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -44,12 +43,6 @@ public class TezTypeConverters {
 
   }
   
-  public static org.apache.hadoop.mapreduce.v2.api.records.Phase toYarn(
-      Phase phase) {
-    return org.apache.hadoop.mapreduce.v2.api.records.Phase.valueOf(phase
-        .name());
-  }
-
   public static TaskAttemptId toYarn(TezTaskAttemptID taskAttemptId) {
     TaskAttemptID mrTaskAttemptId = IDConverter
         .toMRTaskAttemptId(taskAttemptId);

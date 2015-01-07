@@ -65,7 +65,6 @@ import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
-import org.apache.tez.common.TezTaskStatus.State;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
@@ -329,25 +328,11 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     this.taskAttemptContext =
         new TaskAttemptContextImpl(jobConf, taskAttemptId, mrReporter);
 
-    if (getState() == State.UNASSIGNED) {
-      setState(State.RUNNING);
-    }
-
     localizeConfiguration(jobConf);
   }
 
   public MRTaskReporter getMRReporter() {
     return mrReporter;
-  }
-
-  public void setState(State state) {
-    // TODO Auto-generated method stub
-
-  }
-
-  public State getState() {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   public TezCounters getCounters() { return counters; }
