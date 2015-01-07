@@ -84,7 +84,10 @@ public class DAGClientServer extends AbstractService {
       }
 
       server.start();
-      bindAddress = NetUtils.getConnectAddress(server);
+      InetSocketAddress serverBindAddress = NetUtils.getConnectAddress(server);
+      this.bindAddress = NetUtils.createSocketAddrForHost(
+          serverBindAddress.getAddress().getCanonicalHostName(),
+          serverBindAddress.getPort());
       LOG.info("Instantiated DAGClientRPCServer at " + bindAddress);
     } catch (Exception e) {
       LOG.error("Failed to start DAGClientServer: ", e);
