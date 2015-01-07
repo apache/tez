@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1898. Fix findbugs warnings in tez-api module.
   TEZ-1906. Fix findbugs warnings in tez-yarn-timeline-history-with-acls.
   TEZ-1767. Enable RLE in reducer side merge codepath.
   TEZ-1837. Restrict usage of Environment variables to main methods.

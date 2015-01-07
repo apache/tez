@@ -115,7 +115,7 @@ public class TezConfiguration extends Configuration {
    * mode is recommended. If session mode is enabled then container reuse is recommended.
    */
   public static final String TEZ_AM_SESSION_MODE = TEZ_AM_PREFIX + "mode.session";
-  public static boolean TEZ_AM_SESSION_MODE_DEFAULT = false;
+  public static final boolean TEZ_AM_SESSION_MODE_DEFAULT = false;
 
   /**
    * Root Logging level passed to the Tez app master.
@@ -341,7 +341,7 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TEZ_AM_MAX_APP_ATTEMPTS = TEZ_AM_PREFIX + 
       "max.app.attempts";
-  public static int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
+  public static final int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
   
   /**
    * Int value. The maximum number of attempts that can fail for a particular task before the task is failed. 

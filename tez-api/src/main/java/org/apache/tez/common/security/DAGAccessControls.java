@@ -131,27 +131,27 @@ public class DAGAccessControls {
   }
 
   @Private
-  public Set<String> getUsersWithViewACLs() {
+  public synchronized Set<String> getUsersWithViewACLs() {
     return Collections.unmodifiableSet(usersWithViewACLs);
   }
 
   @Private
-  public Set<String> getUsersWithModifyACLs() {
+  public synchronized Set<String> getUsersWithModifyACLs() {
     return Collections.unmodifiableSet(usersWithModifyACLs);
   }
 
   @Private
-  public Set<String> getGroupsWithViewACLs() {
+  public synchronized Set<String> getGroupsWithViewACLs() {
     return Collections.unmodifiableSet(groupsWithViewACLs);
   }
 
   @Private
-  public Set<String> getGroupsWithModifyACLs() {
+  public synchronized Set<String> getGroupsWithModifyACLs() {
     return Collections.unmodifiableSet(groupsWithModifyACLs);
   }
 
   @Private
-  public void serializeToConfiguration(Configuration conf) {
+  public synchronized void serializeToConfiguration(Configuration conf) {
     if (usersWithViewACLs.contains(ACLManager.WILDCARD_ACL_VALUE)) {
       conf.set(TezConstants.TEZ_DAG_VIEW_ACLS, ACLManager.WILDCARD_ACL_VALUE);
     } else {

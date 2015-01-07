@@ -13,4 +13,76 @@
 -->
 <FindBugsFilter>
 
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC\$.*Proto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos\$.*"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos\$.*Proto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC\$.*Proto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos\$.*"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos\$*.*Proto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.api\.client\.rpc\.DAGClientAMProtocolRPC\$.*Proto\$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.api\.records\.DAGProtos\$.*\$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.api\.events\.EventProtos\$*.*Proto\$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.common.VersionInfo"/>
+    <Method name="&lt;init&gt;" params="java.lang.String" returns="void"/>
+    <Bug pattern="UI_INHERITANCE_UNSAFE_GETRESOURCE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.common.ReflectionUtils"/>
+    <Method name="addResourcesToClasspath" params="java.util.List" returns="void"/>
+    <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.client.TezClient"/>
+    <Method name="waitTillReady"/>
+    <Bug pattern="SWL_SLEEP_WITH_LOCK_HELD"/>
+  </Match>
+
 </FindBugsFilter>

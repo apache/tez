@@ -40,7 +40,7 @@ public class TaskLocationHint {
   /**
    * Specifies location affinity to the given vertex and given task in that vertex
    */
-  public class TaskBasedLocationAffinity {
+  public static class TaskBasedLocationAffinity {
     private String vertexName;
     private int taskIndex;
     public TaskBasedLocationAffinity(String vertexName, int taskIndex) {

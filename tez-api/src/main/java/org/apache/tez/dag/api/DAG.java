@@ -621,7 +621,7 @@ public class DAG {
 
   // create protobuf message describing DAG
   @Private
-  public DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
+  public synchronized DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
       boolean tezLrsAsArchive, Map<String, String> additionalConfigs) {
     verify(true);

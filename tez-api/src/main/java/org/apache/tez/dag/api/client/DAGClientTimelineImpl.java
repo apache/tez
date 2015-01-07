@@ -426,8 +426,8 @@ public class DAGClientTimelineImpl extends DAGClient {
     }
   }
 
- @VisibleForTesting
-  protected class VertexTaskStats {
+  @VisibleForTesting
+  protected static class VertexTaskStats {
     final int numTaskCount;
     final int completedTaskCount;
     final int succeededTaskCount;
@@ -496,7 +496,7 @@ public class DAGClientTimelineImpl extends DAGClient {
       }});
 
 
-  class PseudoAuthenticatedURLConnectionFactory implements HttpURLConnectionFactory {
+  static class PseudoAuthenticatedURLConnectionFactory implements HttpURLConnectionFactory {
     @Override
     public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
       String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +

@@ -48,6 +48,10 @@ public class TestDagTypeConverters {
     InputDescriptor inputDescriptor =
         DagTypeConverters.convertInputDescriptorFromDAGPlan(proto);
     Assert.assertNull(inputDescriptor.getHistoryText());
+
+    // Check history text value
+    String actualHistoryText = DagTypeConverters.getHistoryTextFromProto(proto);
+    Assert.assertEquals(historytext, actualHistoryText);
   }
 
 }

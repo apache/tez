@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api.client;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -124,6 +125,27 @@ public class VertexStatus {
               || getVertexCounters().equals(other.getVertexCounters()));
     }
     return false;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 46021;
+    int result = 1;
+    result = prime +
+        getState().hashCode();
+
+    List<String> diagnostics = getDiagnostics();
+    Progress vProgress = getProgress();
+    TezCounters counters = getVertexCounters();
+
+    result = prime * result +
+        ((diagnostics == null)? 0 : diagnostics.hashCode());
+    result = prime * result +
+        ((vProgress == null)? 0 : vProgress.hashCode());
+    result = prime * result +
+        ((counters == null)? 0 : counters.hashCode());
+
+    return result;
   }
 
   @Override

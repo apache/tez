@@ -35,7 +35,6 @@ class AMConfiguration {
   private TezConfiguration tezConf;
   private Credentials credentials;
   private YarnConfiguration yarnConfig;
-  private Map<String, String> env;
   private LocalResource binaryConfLRsrc;
 
   AMConfiguration(TezConfiguration tezConf, Map<String, LocalResource> localResources,
@@ -88,10 +87,6 @@ class AMConfiguration {
   
   Credentials getCredentials() {
     return credentials;
-  }
-  
-  Map<String, String> getEnv() {
-    return env;
   }
   
   void setBinaryConfLR(LocalResource binaryConfLRsrc) {

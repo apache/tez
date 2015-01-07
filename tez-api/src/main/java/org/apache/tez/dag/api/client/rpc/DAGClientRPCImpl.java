@@ -75,7 +75,7 @@ public class DAGClientRPCImpl extends DAGClient {
 
   @Override
   public String getExecutionContext() {
-    return new String("Executing on YARN cluster with App id " + appId);
+    return "Executing on YARN cluster with App id " + appId;
   }
 
   @Override

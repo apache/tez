@@ -502,15 +502,6 @@ public class TezClientUtils {
     TezYARNUtils.setupDefaultEnv(environment, conf, TezConfiguration.TEZ_AM_LAUNCH_ENV,
         TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
     
-    // finally apply env set in the code. This could potentially be removed in
-    // TEZ-692
-    if (amConfig.getEnv() != null) {
-      for (Map.Entry<String, String> entry : amConfig.getEnv().entrySet()) {
-        TezYARNUtils.addToEnvironment(environment, entry.getKey(),
-            entry.getValue(), File.pathSeparator);
-      }
-    }
-
     addVersionInfoToEnv(environment, apiVersionInfo);
     addLogParamsToEnv(environment, amLogParams);
 
@@ -676,10 +667,11 @@ public class TezClientUtils {
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
-    if (vargs != null && !vargs.isEmpty()) {
+    Preconditions.checkNotNull(vargs);
+    if (!vargs.isEmpty()) {
       for (String arg : vargs) {
         if (arg.contains(TezConstants.TEZ_ROOT_LOGGER_NAME)) {
-          return ;
+          return;
         }
       }
     }

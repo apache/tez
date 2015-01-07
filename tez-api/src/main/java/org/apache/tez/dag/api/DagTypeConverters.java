@@ -20,6 +20,7 @@ package org.apache.tez.dag.api;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -317,7 +318,7 @@ public class DagTypeConverters {
     if (descriptor.getHistoryText() != null) {
       try {
         builder.setHistoryText(TezCommonUtils.compressByteArrayToByteString(
-            descriptor.getHistoryText().getBytes()));
+            descriptor.getHistoryText().getBytes("UTF-8")));
       } catch (IOException e) {
         throw new TezUncheckedException(e);
       }
@@ -330,7 +331,8 @@ public class DagTypeConverters {
       return null;
     }
     try {
-      return new String(TezCommonUtils.decompressByteStringToByteArray(proto.getHistoryText()));
+      return new String(TezCommonUtils.decompressByteStringToByteArray(proto.getHistoryText()),
+          "UTF-8");
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }

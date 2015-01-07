@@ -161,7 +161,31 @@ public class DAGStatus {
     }
     return false;
   }
-  
+
+  @Override
+  public int hashCode() {
+    final int prime = 44017;
+    int result = 1;
+    result = prime +
+        getState().hashCode();
+
+    List<String> diagnostics = getDiagnostics();
+    Progress dagProgress = getDAGProgress();
+    Map<String, Progress> vProgress = getVertexProgress();
+    TezCounters counters = getDAGCounters();
+
+    result = prime * result +
+        ((diagnostics == null)? 0 : diagnostics.hashCode());
+    result = prime * result +
+        ((dagProgress == null)? 0 : dagProgress.hashCode());
+    result = prime * result +
+        ((vProgress == null)? 0 : vProgress.hashCode());
+    result = prime * result +
+        ((counters == null)? 0 : counters.hashCode());
+
+    return result;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

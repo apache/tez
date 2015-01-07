@@ -344,12 +344,19 @@ public class TezCommonUtils {
   @Private
   public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
     ByteString.Output os = ByteString.newOutput();
-    DeflaterOutputStream compressOs = new DeflaterOutputStream(os, new Deflater(
-        Deflater.BEST_COMPRESSION));
-    compressOs.write(inBytes);
-    compressOs.finish();
-    ByteString byteString = os.toByteString();
-    return byteString;
+    DeflaterOutputStream compressOs = null;
+    try {
+      compressOs = new DeflaterOutputStream(os, new Deflater(
+          Deflater.BEST_COMPRESSION));
+      compressOs.write(inBytes);
+      compressOs.finish();
+      ByteString byteString = os.toByteString();
+      return byteString;
+    } finally {
+      if (compressOs != null) {
+        compressOs.close();
+      }
+    }
   }
 
   @Private

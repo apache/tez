@@ -77,7 +77,27 @@ public class Progress {
     }
     return false;
   }
-  
+
+  @Override
+  public int hashCode() {
+    final int prime = 45007;
+    int result = prime + getTotalTaskCount();
+    result = prime * result +
+        getSucceededTaskCount();
+    result = prime * result +
+        getRunningTaskCount();
+    result = prime * result +
+        getFailedTaskCount();
+    result = prime * result +
+        getKilledTaskCount();
+    result = prime * result +
+        getFailedTaskAttemptCount();
+    result = prime * result +
+        getKilledTaskAttemptCount();
+
+    return result;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
