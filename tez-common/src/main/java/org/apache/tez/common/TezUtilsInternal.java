@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -230,7 +231,8 @@ public class TezUtilsInternal {
         Credentials credentials =
             DagTypeConverters.convertByteStringToCredentials(dagPlan.getCredentialsBinary());
         TextFormat.printField(entry.getKey(),
-            ByteString.copyFrom(TezCommonUtils.getCredentialsInfo(credentials,"dag").getBytes()), sb);
+            ByteString.copyFrom(TezCommonUtils.getCredentialsInfo(credentials,"dag").getBytes(
+                Charset.forName("UTF-8"))), sb);
       }
     }
     return sb.toString();
