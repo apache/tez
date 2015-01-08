@@ -49,6 +49,10 @@ public class InMemoryWriter extends Writer {
   }
 
   public void close() throws IOException {
+
+    // write V_END_MARKER as needed
+    writeValueMarker(out);
+
     // Write EOF_MARKER for key/value length
     WritableUtils.writeVInt(out, IFile.EOF_MARKER);
     WritableUtils.writeVInt(out, IFile.EOF_MARKER);

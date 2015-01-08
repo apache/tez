@@ -43,11 +43,12 @@ public class KVDataGen {
   public static List<KVPair> generateTestData(boolean sorted, int repeatCount) {
     List<KVPair> data = new LinkedList<KVPair>();
     Random rnd = new Random();
+    KVPair kvp = null;
     for (int i = 0; i < 5; i++) {
       String keyStr = (sorted) ? ("key" + i) : (rnd.nextLong() + "key" + i);
       Text key = new Text(keyStr);
       IntWritable value = new IntWritable(i + repeatCount);
-      KVPair kvp = new KVPair(key, value);
+      kvp = new KVPair(key, value);
       data.add(kvp);
       if ((repeatCount > 0) && (i % 2 == 0)) { // Repeat this key for random number of times
         int count = rnd.nextInt(5);
@@ -58,6 +59,11 @@ public class KVDataGen {
           data.add(kvp);
         }
       }
+    }
+    //If we need to generated repeated keys, try to add some repeated keys to the end of file also.
+    if (repeatCount > 0 && kvp != null) {
+      data.add(kvp);
+      data.add(kvp);
     }
     return data;
   }

@@ -246,7 +246,7 @@ public class TestIFile {
     InMemoryWriter writer = null;
     BoundedByteArrayOutputStream bout = new BoundedByteArrayOutputStream(1024 * 1024);
 
-    List<KVPair> data = KVDataGen.generateTestData(true, 0);
+    List<KVPair> data = KVDataGen.generateTestData(true, 10);
 
     //No RLE, No RepeatKeys, no compression
     writer = new InMemoryWriter(bout);
@@ -601,7 +601,7 @@ public class TestIFile {
       } else {
         writer.append(key, value);
       }
-      previousKey.reset(k.getData(), 0, k.getLength());
+      previousKey.reset(key.getData(), 0, key.getLength());
     }
 
     writer.close();
