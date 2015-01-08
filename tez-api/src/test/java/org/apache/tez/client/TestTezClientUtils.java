@@ -501,8 +501,7 @@ public class TestTezClientUtils {
     Configuration srcConf = new Configuration(false);
 
     Map<String, String> confMap = new HashMap<String, String>();
-    confMap.put("ipc.timeout", "2000");
-    confMap.put("fs.defaultFS", "testfs:///");
+    confMap.put("foo.property", "2000");
     confMap.put("tez.property", "tezProperty");
     confMap.put("yarn.property", "yarnProperty");
 

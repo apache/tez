@@ -36,9 +36,21 @@ import org.apache.tez.dag.api.TezException;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestATSHttpClient {
+
+  @Before
+  public void setup() {
+    // Disable tests if hadoop version is less than 2.4.0
+    // as Timeline is not supported in 2.2.x or 2.3.x
+    // If enabled with the lower versions, tests fail due to incompatible use of an API
+    // YarnConfiguration::useHttps which only exists in versions 2.4 and higher
+    String hadoopVersion = System.getProperty("tez.hadoop.version");
+    Assume.assumeFalse(hadoopVersion.startsWith("2.2.") || hadoopVersion.startsWith("2.3."));
+  }
 
   @Test(timeout = 5000)
   public void testGetDagStatusThrowsExceptionOnEmptyJson() throws TezException {
