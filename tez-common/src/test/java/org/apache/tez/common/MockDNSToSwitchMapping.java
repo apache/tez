@@ -52,7 +52,6 @@ public class MockDNSToSwitchMapping extends CachedDNSToSwitchMapping implements 
   public void reloadCachedMappings() {
   }
 
-  @Override
   public void reloadCachedMappings(List<String> strings) {
   }
 
