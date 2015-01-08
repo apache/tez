@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1922. Fix comments: add UNSORTED_OUTPUT to TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS.
   TEZ-485. Get rid of TezTaskStatus.
   TEZ-1899. Fix findbugs warnings in tez-common module.
   TEZ-1898. Fix findbugs warnings in tez-api module.

@@ -532,7 +532,8 @@ public class TezConfiguration extends Configuration {
       TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.max";
   /*
    * Weighted ratios for individual component types in the RuntimeLibrary.
-   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,SORTED_OUTPUT:2,SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
+   * e.g. PARTITIONED_UNSORTED_OUTPUT:0,UNSORTED_INPUT:1,UNSORTED_OUTPUT:0,SORTED_OUTPUT:2,
+   * SORTED_MERGED_INPUT:3,PROCESSOR:1,OTHER:1
    */
   @Private
   @Unstable
