@@ -374,6 +374,18 @@
         </organization>
       </developer>
       <developer>
+        <id>prakash</id>
+        <name>Prakash Ramachandran</name>
+        <email>prakash@apache.org</email>
+        <timezone>+5.5</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+        <organization>
+          Hortonworks
+        </organization>
+      </developer>     
+      <developer>
         <id>rbalamohan</id>
         <name>Rajesh Balamohan</name>
         <email>rbalamohan@apache.org</email>
