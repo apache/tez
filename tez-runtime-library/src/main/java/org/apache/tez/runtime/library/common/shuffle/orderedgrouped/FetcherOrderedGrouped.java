@@ -155,6 +155,9 @@ class FetcherOrderedGrouped extends Thread {
           // If merge is on, block
           merger.waitForInMemoryMerge();
 
+          // In case usedMemory > memorylimit, wait until some memory is released
+          merger.waitForShuffleToMergeMemory();
+
           // Get a host to shuffle from
           host = scheduler.getHost();
           metrics.threadBusy();
@@ -456,7 +459,6 @@ class FetcherOrderedGrouped extends Thread {
       
       // Check if we can shuffle *now* ...
       if (mapOutput.getType() == Type.WAIT) {
-        // TODO Review: Does this cause a tight loop ?
         LOG.info("fetcher#" + id + " - MergerManager returned Status.WAIT ...");
         //Not an error but wait to process data.
         return EMPTY_ATTEMPT_ID_ARRAY;
