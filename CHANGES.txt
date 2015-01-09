@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1274. Remove Key/Value type checks in IFile.
   TEZ-1912. Merge exceptions are thrown when enabling tez.runtime.shuffle.memory-to-memory.enable && tez.runtime.shuffle.memory-to-memory.segments.
   TEZ-1922. Fix comments: add UNSORTED_OUTPUT to TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS.
   TEZ-485. Get rid of TezTaskStatus.

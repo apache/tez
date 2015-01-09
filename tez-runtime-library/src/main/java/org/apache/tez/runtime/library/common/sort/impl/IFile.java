@@ -67,10 +67,6 @@ public class IFile {
   public static final byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I',
     (byte) 'F' , (byte) 0};
 
-  private static final String WRONG_KEY_CLASS = "wrong key class: %s is not %s";
-  private static final String WRONG_VALUE_CLASS = "wrong value class: %s is not %s";
-  private static final String NEGATIVE_KEY_LEN = "Negative key-length not allowed: %d for %s";
-  private static final String NEGATIVE_VAL_LEN = "Negative value-length not allowed: %d for %s";
   private static final String INCOMPLETE_READ = "Requested to read %d got %d";
 
   /**
@@ -255,24 +251,20 @@ public class IFile {
     /**
      * Send key/value to be appended to IFile. To represent same key as previous
      * one, send IFile.REPEAT_KEY as key parameter.  Should not call this method with
-     * IFile.REPEAT_KEY as the first key.
+     * IFile.REPEAT_KEY as the first key. It is caller's responsibility to ensure that correct
+     * key/value type checks and key/value length (non-negative) checks are done properly.
      *
      * @param key
      * @param value
      * @throws IOException
      */
     public void append(Object key, Object value) throws IOException {
-      checkArgument((key == REPEAT_KEY || key.getClass() == keyClass), WRONG_KEY_CLASS,
-          key.getClass(), keyClass);
-      checkArgument((value.getClass() == valueClass), WRONG_VALUE_CLASS, value.getClass(),
-          valueClass);
-
       int keyLength = 0;
       sameKey = (key == REPEAT_KEY);
       if (!sameKey) {
         keySerializer.serialize(key);
         keyLength = buffer.getLength();
-        checkState(keyLength >= 0, NEGATIVE_KEY_LEN, keyLength, key);
+        assert(keyLength >= 0);
         if (rle && (keyLength == previous.getLength())) {
           sameKey = (BufferUtils.compare(previous, buffer) == 0);
         }
@@ -281,7 +273,7 @@ public class IFile {
       // Append the 'value'
       valueSerializer.serialize(value);
       int valueLength = buffer.getLength() - keyLength;
-      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
+      assert(valueLength >= 0);
       if (!sameKey) {
         //dump entire key value pair
         writeKVPair(buffer.getData(), 0, keyLength, buffer.getData(),
@@ -310,7 +302,6 @@ public class IFile {
     public void appendValue(Object value) throws IOException {
       valueSerializer.serialize(value);
       int valueLength = buffer.getLength();
-      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
       writeValue(buffer.getData(), 0, valueLength);
       buffer.reset();
       ++numRecordsWritten;
@@ -319,14 +310,16 @@ public class IFile {
 
     /**
      * Appends the value to previous key. Assumes that the caller has already done relevant checks
-     * for identical keys. Also, no validations are done in this method
+     * for identical keys. Also, no validations are done in this method. It is caller's responsibility
+     * to pass non-negative key/value lengths. Otherwise,IndexOutOfBoundsException could be
+     * thrown at runtime.
      *
      * @param value
      * @throws IOException
      */
     public void appendValue(DataInputBuffer value) throws IOException {
       int valueLength = value.getLength() - value.getPosition();
-      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
+      assert(valueLength >= 0);
       writeValue(value.getData(), value.getPosition(), valueLength);
       buffer.reset();
       ++numRecordsWritten;
@@ -368,7 +361,9 @@ public class IFile {
     /**
      * Send key/value to be appended to IFile. To represent same key as previous
      * one, send IFile.REPEAT_KEY as key parameter.  Should not call this method with
-     * IFile.REPEAT_KEY as the first key.
+     * IFile.REPEAT_KEY as the first key. It is caller's responsibility to pass non-negative
+     * key/value lengths. Otherwise,IndexOutOfBoundsException could be thrown at runtime.
+     *
      *
      * @param key
      * @param value
@@ -376,10 +371,10 @@ public class IFile {
      */
     public void append(DataInputBuffer key, DataInputBuffer value) throws IOException {
       int keyLength = key.getLength() - key.getPosition();
-      checkState((key == REPEAT_KEY || keyLength >= 0), NEGATIVE_KEY_LEN, keyLength, key);
+      assert(key == REPEAT_KEY || keyLength >=0);
 
       int valueLength = value.getLength() - value.getPosition();
-      checkState(valueLength >= 0, NEGATIVE_VAL_LEN, valueLength, value);
+      assert(valueLength >= 0);
 
       sameKey = (key == REPEAT_KEY);
       if (!sameKey && rle) {
@@ -818,10 +813,4 @@ public class IFile {
     }
   }
 
-  static void checkArgument(boolean expression, String format,
-      Object... args) throws IOException {
-    if (!expression) {
-      throw new IOException(String.format(format, args));
-    }
-  }
 }
