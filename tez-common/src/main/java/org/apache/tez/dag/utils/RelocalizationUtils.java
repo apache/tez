@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -36,6 +37,7 @@ import org.apache.tez.dag.api.TezException;
 
 import com.google.common.collect.Lists;
 
+@InterfaceAudience.Private
 public class RelocalizationUtils {
   
   public static List<URL> processAdditionalResources(Map<String, URI> additionalResources,

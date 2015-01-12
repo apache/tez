@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -60,6 +61,10 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
@@ -70,7 +75,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
-import org.apache.tez.runtime.library.processor.SimpleProcessor;
+import org.apache.tez.runtime.common.resources.ScalingAllocator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,6 +100,8 @@ public class TestTaskExecution {
 
   static {
     defaultConf.set("fs.defaultFS", "file:///");
+    defaultConf.set(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
+        ScalingAllocator.class.getName());
     try {
       localFs = FileSystem.getLocal(defaultConf);
       Path wd = new Path(System.getProperty("test.build.data", "/tmp"),
@@ -363,7 +370,7 @@ public class TestTaskExecution {
   }
 
   // Uses static fields for signaling. Ensure only used by one test at a time.
-  public static class TestProcessor extends SimpleProcessor {
+  public static class TestProcessor extends AbstractLogicalIOProcessor {
 
     public static final byte[] CONF_EMPTY = new byte[] { 0 };
     public static final byte[] CONF_THROW_IO_EXCEPTION = new byte[] { 1 };
@@ -397,6 +404,16 @@ public class TestTaskExecution {
     @Override
     public void initialize() throws Exception {
       parseConf(getContext().getUserPayload().deepCopyAsArray());
+    }
+
+    @Override
+    public void handleEvents(List<Event> processorEvents) {
+
+    }
+
+    @Override
+    public void close() throws Exception {
+
     }
 
     private void parseConf(byte[] bytes) {
@@ -463,7 +480,8 @@ public class TestTaskExecution {
     }
 
     @Override
-    public void run() throws Exception {
+    public void run(Map<String, LogicalInput> inputs, Map<String, LogicalOutput> outputs) throws
+        Exception {
       processorLock.lock();
       running = true;
       runningCondition.signal();
