@@ -160,7 +160,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.serviceConsumerMetadata = serviceConsumerMetadata;
     this.envMap = envMap;
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
-    this.state = State.NEW;
+    this.state.set(State.NEW);
     this.appAttemptNumber = appAttemptNumber;
     int numInitializers = numInputs + numOutputs; // Processor is initialized in the main thread.
     numInitializers = (numInitializers == 0 ? 1 : numInitializers);
@@ -183,8 +183,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
    */
   public void initialize() throws Exception {
     LOG.info("Initializing LogicalProcessorIORuntimeTask");
-    Preconditions.checkState(this.state == State.NEW, "Already initialized");
-    this.state = State.INITED;
+    Preconditions.checkState(this.state.get() == State.NEW, "Already initialized");
+    this.state.set(State.INITED);
 
     LOG.info("Creating processor" + ", processorClassName=" + processorDescriptor.getClassName());
     this.processorContext = createProcessorContext();
@@ -320,19 +320,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   public void run() throws Exception {
-    synchronized (this.state) {
-      Preconditions.checkState(this.state == State.INITED,
-          "Can only run while in INITED state. Current: " + this.state);
-      this.state = State.RUNNING;
-    }
+    Preconditions.checkState(this.state.get() == State.INITED,
+        "Can only run while in INITED state. Current: " + this.state);
+    this.state.set(State.RUNNING);
     processor.run(runInputMap, runOutputMap);
   }
 
   public void close() throws Exception {
     try {
-      Preconditions.checkState(this.state == State.RUNNING,
+      Preconditions.checkState(this.state.get() == State.RUNNING,
           "Can only run while in RUNNING state. Current: " + this.state);
-      this.state = State.CLOSED;
+      this.state.set(State.CLOSED);
 
       // Close the Processor.
       processor.close();
@@ -392,7 +390,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
-  private class StartInputCallable implements Callable<Void> {
+  private static class StartInputCallable implements Callable<Void> {
     private final LogicalInput input;
     private final String srcVertexName;
 
@@ -540,11 +538,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     LogicalInput input = ReflectionUtils.createClazzInstance(inputDesc.getClassName(),
         new Class[]{MergedInputContext.class, List.class},
         new Object[]{mergedInputContext, constituentInputs});
-    if (!(input instanceof LogicalInput)) {
-      throw new TezUncheckedException(inputDesc.getClass().getName()
-          + " is not a sub-type of LogicalInput."
-          + " Only LogicalInput sub-types supported by LogicalIOProcessor.");
-    }
     return input;
   }
 

@@ -21,6 +21,7 @@ package org.apache.tez.runtime;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
@@ -33,7 +34,7 @@ import org.apache.tez.runtime.metrics.TaskCounterUpdater;
 public abstract class RuntimeTask {
 
   protected AtomicBoolean hasFatalError = new AtomicBoolean(false);
-  protected Throwable fatalError = null;
+  protected AtomicReference<Throwable> fatalError = new AtomicReference<Throwable>();
   protected String fatalErrorMessage = null;
   protected float progress;
   protected final TezCounters tezCounters;
@@ -60,7 +61,7 @@ public abstract class RuntimeTask {
     NEW, INITED, RUNNING, CLOSED;
   }
 
-  protected State state;
+  protected final AtomicReference<State> state = new AtomicReference<State>();
 
   public String getVertexName() {
     return taskSpec.getVertexName();
@@ -68,12 +69,12 @@ public abstract class RuntimeTask {
 
   public void setFatalError(Throwable t, String message) {
     hasFatalError.set(true);
-    this.fatalError = t;
+    this.fatalError.set(t);
     this.fatalErrorMessage = message;
   }
   
-  public synchronized Throwable getFatalError() {
-    return fatalError;
+  public Throwable getFatalError() {
+    return this.fatalError.get();
   }
 
   public boolean hadFatalError() {

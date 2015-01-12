@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.tez.dag.api.UserPayload;
@@ -63,7 +64,7 @@ public class TezMergedInputContextImpl implements MergedInputContext {
 
   @Override
   public String[] getWorkDirs() {
-    return workDirs;
+    return Arrays.copyOf(workDirs, workDirs.length);
   }
 
 }

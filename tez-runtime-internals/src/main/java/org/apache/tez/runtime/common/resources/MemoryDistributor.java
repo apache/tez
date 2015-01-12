@@ -177,6 +177,7 @@ public class MemoryDistributor {
       Preconditions.checkState(numOutputsSeen.get() <= numTotalOutputs,
           "Num Requesting Inputs higher than total # of outputs: " + numOutputsSeen + ", "
               + numTotalOutputs);
+      break;
     case PROCESSOR:
       break;
     default:

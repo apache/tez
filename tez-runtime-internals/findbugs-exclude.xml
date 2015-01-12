@@ -13,4 +13,47 @@
 -->
 <FindBugsFilter>
 
+
+  <Match>
+    <Class name="org.apache.tez.runtime.api.impl.TezMergedInputContextImpl"/>
+    <Method name="&lt;init&gt;"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.api.impl.TezTaskContextImpl"/>
+    <Method name="&lt;init&gt;"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.LogicalIOProcessorRuntimeTask"/>
+    <Method name="&lt;init&gt;"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.internals\.api\.events\.SystemEventProtos\$.*Proto" />
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.internals\.api\.events\.SystemEventProtos\$.*Proto" />
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.internals\.api\.events\.SystemEventProtos\$.*Proto\$Builder" />
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.RuntimeTask"/>
+    <Field name="fatalErrorMessage"/>
+    <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+
 </FindBugsFilter>
