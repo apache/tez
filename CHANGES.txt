@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1896. Move the default heartbeat timeout and checkinterval to TezConfiguration.
   TEZ-1923. FetcherOrderedGrouped gets into infinite loop due to memory pressure.
   TEZ-1274. Remove Key/Value type checks in IFile.
   TEZ-1912. Merge exceptions are thrown when enabling tez.runtime.shuffle.memory-to-memory.enable && tez.runtime.shuffle.memory-to-memory.segments.

@@ -42,12 +42,12 @@ public class TaskHeartbeatHandler extends HeartbeatHandlerBase<TezTaskAttemptID>
 
   @Override
   protected int getConfiguredTimeout(Configuration conf) {
-    return conf.getInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS, 5 * 60 * 1000);
+    return conf.getInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS, TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS_DEFAULT);
   }
 
   @Override
   protected int getConfiguredTimeoutCheckInterval(Configuration conf) {
-    return conf.getInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_CHECK_MS, 30 * 1000);
+    return conf.getInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_CHECK_MS, TezConfiguration.TASK_HEARTBEAT_TIMEOUT_CHECK_MS_DEFAULT);
   }
 
   @Override

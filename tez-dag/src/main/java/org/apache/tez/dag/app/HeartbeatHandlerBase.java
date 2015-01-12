@@ -31,8 +31,8 @@ import org.apache.hadoop.yarn.util.Clock;
 public abstract class HeartbeatHandlerBase<T> extends AbstractService {
 
 
-  protected int timeOut = 5 * 60 * 1000;// 5 mins
-  protected int timeOutCheckInterval = 30 * 1000; // 30 seconds.
+  protected int timeOut;
+  protected int timeOutCheckInterval;
   protected Thread timeOutCheckerThread;
   private final String name;
   

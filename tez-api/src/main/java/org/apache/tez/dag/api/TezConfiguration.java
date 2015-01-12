@@ -475,12 +475,16 @@ public class TezConfiguration extends Configuration {
    */
   public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "timeout-ms";
 
+  public static final int TASK_HEARTBEAT_TIMEOUT_MS_DEFAULT = 5 * 60 * 1000;
+
   /**
    * Int value. Time interval, in milliseconds, between checks for lost tasks.
    * Expert level setting.
    */
   public static final String TASK_HEARTBEAT_TIMEOUT_CHECK_MS = TEZ_TASK_PREFIX + "heartbeat.timeout.check-ms";
-    
+
+  public static final int TASK_HEARTBEAT_TIMEOUT_CHECK_MS_DEFAULT = 30 * 1000;
+
   /**
    * Whether to scale down memory requested by each component if the total
    * exceeds the available JVM memory
