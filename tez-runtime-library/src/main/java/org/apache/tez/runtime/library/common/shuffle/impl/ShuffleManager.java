@@ -688,7 +688,7 @@ public class ShuffleManager implements FetcherCallback {
    * Fake input that is added to the completed input list in case an input does not have any data.
    *
    */
-  private class NullFetchedInput extends FetchedInput {
+  private static class NullFetchedInput extends FetchedInput {
 
     public NullFetchedInput(InputAttemptIdentifier inputAttemptIdentifier) {
       super(Type.MEMORY, -1, -1, inputAttemptIdentifier, null);

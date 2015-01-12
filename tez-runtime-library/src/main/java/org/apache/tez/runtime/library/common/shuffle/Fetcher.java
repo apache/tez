@@ -271,10 +271,8 @@ public class Fetcher implements Callable<FetchResult> {
             .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
         if (!renamed) {
           localFs.delete(tmpIndex, false);
-          if (outputPath != null) {
-            // invariant: outputPath was renamed from tmpPath
-            localFs.delete(outputPath, false);
-          }
+          // invariant: outputPath was renamed from tmpPath
+          localFs.delete(outputPath, false);
           LOG.warn("Could not rename the index file to "
               + outputPath
                   .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
@@ -505,7 +503,7 @@ public class Fetcher implements Callable<FetchResult> {
 
     if (isShutDown.get() && failedInputs != null && failedInputs.length > 0) {
       LOG.info("Fetcher already shutdown. Not reporting fetch failures for: " +
-          (failedInputs == null ? 0 : failedInputs.length) + " failed inputs");
+          failedInputs.length + " failed inputs");
       failedInputs = null;
     }
     return new HostFetchResult(new FetchResult(host, port, partition, remaining), failedInputs,

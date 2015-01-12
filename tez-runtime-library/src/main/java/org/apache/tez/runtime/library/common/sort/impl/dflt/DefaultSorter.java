@@ -648,8 +648,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     @Override
     public void run() {
       spillLock.lock();
-      spillThreadRunning = true;
       try {
+        spillThreadRunning = true;
         while (true) {
           spillDone.signal();
           while (!spillInProgress) {
@@ -720,7 +720,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         : kvmeta.capacity() + kvstart) / NMETA;
   }
 
-  private boolean isRLENeeded() {
+  private synchronized boolean isRLENeeded() {
     return (sameKey > (0.1 * totalKeys)) || (sameKey < 0);
   }
 
@@ -1009,10 +1009,10 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           mapOutputFile.getOutputFileForWriteInVolume(filename[0]));
       if (indexCacheList.size() == 0) {
         sameVolRename(mapOutputFile.getSpillIndexFile(0),
-          mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]));
+            mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]));
       } else {
         indexCacheList.get(0).writeToFile(
-          mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]), conf);
+            mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]), conf);
       }
       return;
     }
@@ -1072,7 +1072,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
           Segment s =
-            new Segment(conf, rfs, filename[i], indexRecord.getStartOffset(),
+            new Segment(rfs, filename[i], indexRecord.getStartOffset(),
                              indexRecord.getPartLength(), codec, ifileReadAhead,
                              ifileReadAheadLength, ifileBufferSize, true);
           segmentList.add(i, s);

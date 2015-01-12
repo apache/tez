@@ -696,7 +696,7 @@ public class MergeManager {
         final boolean preserve = fileChunk.isLocalFile();
         final Path file = fileChunk.getPath();
         approxOutputSize += size;
-        Segment segment = new Segment(conf, rfs, file, offset, size, codec, ifileReadAhead,
+        Segment segment = new Segment(rfs, file, offset, size, codec, ifileReadAhead,
             ifileReadAheadLength, ifileBufferSize, preserve);
         inputSegments.add(segment);
       }
@@ -924,7 +924,7 @@ public class MergeManager {
 
       final long fileOffset = fileChunk.getOffset();
       final boolean preserve = fileChunk.isLocalFile();
-      diskSegments.add(new Segment(job, fs, file, fileOffset, fileLength, codec, ifileReadAhead,
+      diskSegments.add(new Segment(fs, file, fileOffset, fileLength, codec, ifileReadAhead,
                                    ifileReadAheadLength, ifileBufferSize, preserve, counter));
     }
     LOG.info("Merging " + onDisk.length + " files, " +

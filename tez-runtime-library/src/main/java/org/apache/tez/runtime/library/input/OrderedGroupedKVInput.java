@@ -243,6 +243,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
   @Override
   public void handleEvents(List<Event> inputEvents) throws IOException {
+    Shuffle shuffleLocalRef;
     synchronized (this) {
       if (getNumPhysicalInputs() == 0) {
         throw new RuntimeException("No input events expected as numInputs is 0");
@@ -254,8 +255,9 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
         pendingEvents.addAll(inputEvents);
         return;
       }
+      shuffleLocalRef = shuffle;
     }
-    shuffle.handleEvents(inputEvents);
+    shuffleLocalRef.handleEvents(inputEvents);
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })

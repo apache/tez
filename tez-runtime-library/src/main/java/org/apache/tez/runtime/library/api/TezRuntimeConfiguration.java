@@ -94,7 +94,7 @@ public class TezRuntimeConfiguration {
 
   public static final String TEZ_RUNTIME_SORT_SPILL_PERCENT = TEZ_RUNTIME_PREFIX +
       "sort.spill.percent";
-  public static float TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT = 0.8f;
+  public static final float TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT = 0.8f;
 
 
   public static final String TEZ_RUNTIME_IO_SORT_MB = TEZ_RUNTIME_PREFIX + "io.sort.mb";

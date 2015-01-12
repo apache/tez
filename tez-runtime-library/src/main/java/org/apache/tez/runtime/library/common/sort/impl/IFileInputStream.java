@@ -23,6 +23,7 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -275,7 +276,7 @@ public class IFileInputStream extends InputStream {
             ", len=" + len +
             ", length=" + length +
             ", checksumSize=" + checksumSize+
-            ", csum=" + csum +
+            ", csum=" + Arrays.toString(csum) +
             ", sum=" + sum; 
         LOG.info(mesg);
 
@@ -296,10 +297,6 @@ public class IFileInputStream extends InputStream {
     // first bit of the byte as a sign bit
     int result = 0xFF & b[0];
     return result;
-  }
-
-  public byte[] getChecksum() {
-    return csum;
   }
 
   void disableChecksumValidation() {

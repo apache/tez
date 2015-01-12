@@ -24,6 +24,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Charsets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -101,7 +102,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
    */
   public static class SleepProcessorConfig {
     private int timeToSleepMS;
-    private final Charset charSet = Charset.forName("UTF-8");
+    private final Charset charSet = Charsets.UTF_8;
 
     public SleepProcessorConfig() {
     }
@@ -114,7 +115,8 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
     }
 
     public UserPayload toUserPayload() {
-      return UserPayload.create(ByteBuffer.wrap(Integer.toString(timeToSleepMS).getBytes()));
+      return UserPayload.create(ByteBuffer.wrap(Integer.toString(timeToSleepMS).getBytes(
+          charSet)));
     }
 
     public void fromUserPayload(UserPayload userPayload) throws CharacterCodingException {

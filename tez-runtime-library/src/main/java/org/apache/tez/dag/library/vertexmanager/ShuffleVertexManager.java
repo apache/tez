@@ -142,7 +142,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   int bipartiteSources = 0;
   long completedSourceTasksOutputSize = 0;
 
-  class SourceVertexInfo {
+  static class SourceVertexInfo {
     EdgeProperty edgeProperty;
     boolean vertexIsConfigured;
     BitSet finishedTaskSet;
@@ -227,9 +227,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       int targetIndex = 
           sourceTaskIndex * partitionRange 
           + sourceIndex % partitionRange;
-      
-      destinationTaskAndInputIndices.put(new Integer(destinationTaskIndex),
-          Collections.singletonList(new Integer(targetIndex)));
+
+      destinationTaskAndInputIndices.put(destinationTaskIndex, Collections.singletonList(targetIndex));
     }
     
     @Override
@@ -394,7 +393,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   void updatePendingTasks() {
     pendingTasks.clear();
     for (int i=0; i<getContext().getVertexNumTasks(getContext().getVertexName()); ++i) {
-      pendingTasks.add(new Integer(i));
+      pendingTasks.add(i);
     }
     totalTasksToSchedule = pendingTasks.size();
   }

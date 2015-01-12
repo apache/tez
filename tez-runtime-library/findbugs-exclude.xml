@@ -13,4 +13,90 @@
 -->
 <FindBugsFilter>
 
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleScheduler$Penalty"/>
+    <Method name="compareTo" params="java.lang.Object" returns="int"/>
+    <Bug pattern="EQ_COMPARETO_USE_OBJECT_EQUALS"/>
+  </Match>
+
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter$SpanIterator"/>
+    <Method name="compareTo" params="org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter$SpanIterator" returns="int"/>
+    <Bug pattern="EQ_COMPARETO_USE_OBJECT_EQUALS"/>
+  </Match>
+
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.comparator.TezBytesComparator"/>
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+  </Match>
+
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput$MapOutputComparator"/>
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+  </Match>
+
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader"/>
+    <Method name="&lt;init&gt;"/>
+    <Field name="buffer"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.Fetcher"/>
+    <Method name="shutdownInternal" params="boolean" returns="void"/><Field name="isShutDown"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.comparator.TezBytesComparator"/>
+    <Method name="getProxy" params="org.apache.hadoop.io.BytesWritable" returns="int"/>
+    <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter"/>
+    <Method name="&lt;init&gt;"/>
+    <Bug pattern="SC_START_IN_CTOR"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.Constants"/>
+    <Field name="MERGED_OUTPUT_PREFIX"/>
+    <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+
+  <!-- TODO This needs more looking into -->
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter"/>
+    <Field name="kvindex"/>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto\$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+
 </FindBugsFilter>

@@ -413,8 +413,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   public List<Event> close() throws IOException, InterruptedException {
     isShutdown.set(true);
     spillLock.lock();
-    LOG.info("Waiting for all spills to complete : Pending : " + pendingSpillCount.get());
     try {
+      LOG.info("Waiting for all spills to complete : Pending : " + pendingSpillCount.get());
       while (pendingSpillCount.get() != 0 && spillException == null) {
         spillInProgress.await();
       }

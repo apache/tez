@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.crypto.SecretKey;
 
@@ -95,7 +96,7 @@ public class Shuffle implements ExceptionReporter {
   private final int numFetchers;
   private final boolean localDiskFetchEnabled;
   
-  private Throwable throwable = null;
+  private AtomicReference<Throwable> throwable = new AtomicReference<Throwable>();
   private String throwingThreadName = null;
 
   private final RunShuffleCallable runShuffleCallable;
@@ -260,8 +261,8 @@ public class Shuffle implements ExceptionReporter {
     if (isShutDown.get()) {
       throw new InputAlreadyClosedException();
     }
-    if (throwable != null) {
-      handleThrowable(throwable);
+    if (throwable.get() != null) {
+      handleThrowable(throwable.get());
     }
     if (runShuffleFuture == null) {
       return false;
@@ -301,8 +302,8 @@ public class Shuffle implements ExceptionReporter {
     if (isShutDown.get()) {
       throw new InputAlreadyClosedException();
     }
-    if (throwable != null) {
-      handleThrowable(throwable);
+    if (throwable.get() != null) {
+      handleThrowable(throwable.get());
     }
     return kvIter;
   }
@@ -342,10 +343,10 @@ public class Shuffle implements ExceptionReporter {
 
       
       while (!scheduler.waitUntilDone(PROGRESS_FREQUENCY)) {
-        synchronized (this) {
-          if (throwable != null) {
+        synchronized (Shuffle.this) {
+          if (throwable.get() != null) {
             throw new ShuffleError("error in shuffle in " + throwingThreadName,
-                                   throwable);
+                                   throwable.get());
           }
         }
       }
@@ -368,9 +369,9 @@ public class Shuffle implements ExceptionReporter {
 
       // Sanity check
       synchronized (Shuffle.this) {
-        if (throwable != null) {
+        if (throwable.get() != null) {
           throw new ShuffleError("error in shuffle in " + throwingThreadName,
-                                 throwable);
+                                 throwable.get());
         }
       }
 
@@ -450,8 +451,8 @@ public class Shuffle implements ExceptionReporter {
   @Private
   public synchronized void reportException(Throwable t) {
     // RunShuffleCallable onFailure deals with ignoring errors on shutdown.
-    if (throwable == null) {
-      throwable = t;
+    if (throwable.get() == null) {
+      throwable.set(t);
       throwingThreadName = Thread.currentThread().getName();
       // Notify the scheduler so that the reporting thread finds the 
       // exception immediately.

@@ -111,7 +111,7 @@ public class PipelinedSorter extends ExternalSorter {
     LOG.info(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + " = " + sortmb);
     // TODO: configurable setting?
     span = new SortSpan(largeBuffer, 1024*1024, 16);
-    merger = new SpanMerger(comparator);
+    merger = new SpanMerger();
     final int sortThreads = 
             this.conf.getInt(
                 TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 
@@ -345,7 +345,7 @@ public class PipelinedSorter extends ExternalSorter {
         TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
         Segment s =
-            new Segment(conf, rfs, spillFilename, indexRecord.getStartOffset(),
+            new Segment(rfs, spillFilename, indexRecord.getStartOffset(),
                              indexRecord.getPartLength(), codec, ifileReadAhead,
                              ifileReadAheadLength, ifileBufferSize, true);
         segmentList.add(i, s);
@@ -405,7 +405,7 @@ public class PipelinedSorter extends ExternalSorter {
     int getPartition();
   }
 
-  private class BufferStreamWrapper extends OutputStream 
+  private static class BufferStreamWrapper extends OutputStream
   {
     private final ByteBuffer out;
     public BufferStreamWrapper(ByteBuffer out) {
@@ -420,7 +420,7 @@ public class PipelinedSorter extends ExternalSorter {
     public void write(byte[] b, int off, int len) throws IOException { out.put(b, off, len); }
   }
 
-  protected class InputByteBuffer extends DataInputBuffer {
+  protected static class InputByteBuffer extends DataInputBuffer {
     private byte[] buffer = new byte[256]; 
     private ByteBuffer wrapped = ByteBuffer.wrap(buffer);
     private void resize(int length) {
@@ -607,7 +607,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-  private class SpanIterator implements PartitionedRawKeyValueIterator, Comparable<SpanIterator> {
+  private static class SpanIterator implements PartitionedRawKeyValueIterator, Comparable<SpanIterator> {
     private int kvindex = -1;
     private int maxindex;
     private IntBuffer kvmeta;
@@ -617,7 +617,7 @@ public class PipelinedSorter extends ExternalSorter {
     private InputByteBuffer value = new InputByteBuffer();
     private Progress progress = new Progress();
 
-    private final int minrun = (1 << 4);
+    private static final int minrun = (1 << 4);
 
     public SpanIterator(SortSpan span) {
       this.kvmeta = span.kvmeta;
@@ -644,7 +644,7 @@ public class PipelinedSorter extends ExternalSorter {
       // caveat: since we use this as a comparable in the merger 
       if(kvindex == maxindex) return false;
       if(kvindex % 100 == 0) {
-          progress.set((kvindex-maxindex) / maxindex);
+          progress.set((kvindex-maxindex) / (float)maxindex);
       }
       kvindex += 1;
       return true;
@@ -741,7 +741,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-  private class SortTask implements Callable<SpanIterator> {
+  private static class SortTask implements Callable<SpanIterator> {
     private final SortSpan sortable;
     private final IndexedSorter sorter;
     private final RawComparator comparator;
@@ -800,7 +800,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-  private class SpanHeap extends java.util.PriorityQueue<SpanIterator> {
+  private static class SpanHeap extends java.util.PriorityQueue<SpanIterator> {
     public SpanHeap() {
       super(256);
     }
@@ -814,7 +814,6 @@ public class PipelinedSorter extends ExternalSorter {
   }
 
   private class SpanMerger implements PartitionedRawKeyValueIterator {
-    private final RawComparator comparator;
     InputByteBuffer key = new InputByteBuffer();
     InputByteBuffer value = new InputByteBuffer();
     int partition;
@@ -827,11 +826,9 @@ public class PipelinedSorter extends ExternalSorter {
     private int gallop = 0;
     private SpanIterator horse;
     private long total = 0;
-    private long count = 0;
     private long eq = 0;
     
-    public SpanMerger(RawComparator comparator) {
-      this.comparator = comparator;
+    public SpanMerger() {
       partIter = new PartitionFilter(this);
     }
 

@@ -48,7 +48,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovem
 public class ShuffleUtils {
 
   private static final Log LOG = LogFactory.getLog(ShuffleUtils.class);
-  public static String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+  public static final String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
 
   public static SecretKey getJobTokenSecretFromTokenBytes(ByteBuffer meta)
       throws IOException {

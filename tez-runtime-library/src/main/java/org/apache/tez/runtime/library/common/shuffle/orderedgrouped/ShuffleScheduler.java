@@ -472,7 +472,7 @@ class ShuffleScheduler {
       // This may be removed after TEZ-914
       InputAttemptIdentifier id = listItr.next();
       if (inputShouldBeConsumed(id)) {
-        Integer inputNumber = new Integer(id.getInputIdentifier().getInputIndex());
+        Integer inputNumber = Integer.valueOf(id.getInputIdentifier().getInputIndex());
         InputAttemptIdentifier oldId = dedupedList.get(inputNumber);
         if (oldId == null || oldId.getAttemptNumber() < id.getAttemptNumber()) {
           dedupedList.put(inputNumber, id);

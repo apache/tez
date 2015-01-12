@@ -224,7 +224,6 @@ public class TezMerger {
     Reader reader = null;
     final DataInputBuffer key = new DataInputBuffer();
     
-    Configuration conf = null;
     FileSystem fs = null;
     Path file = null;
     boolean preserve = false; // Signifies whether the segment should be kept after a merge is complete. Checked in the close method.
@@ -237,38 +236,37 @@ public class TezMerger {
     
     TezCounter mapOutputsCounter = null;
 
-    public Segment(Configuration conf, FileSystem fs, Path file,
+    public Segment(FileSystem fs, Path file,
         CompressionCodec codec, boolean ifileReadAhead,
         int ifileReadAheadLength, int bufferSize, boolean preserve)
     throws IOException {
-      this(conf, fs, file, codec, ifileReadAhead, ifileReadAheadLength,
+      this(fs, file, codec, ifileReadAhead, ifileReadAheadLength,
           bufferSize, preserve, null);
     }
 
-    public Segment(Configuration conf, FileSystem fs, Path file,
+    public Segment(FileSystem fs, Path file,
                    CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLenth,
                    int bufferSize, boolean preserve, TezCounter mergedMapOutputsCounter)
   throws IOException {
-      this(conf, fs, file, 0, fs.getFileStatus(file).getLen(), codec,
+      this(fs, file, 0, fs.getFileStatus(file).getLen(), codec,
           ifileReadAhead, ifileReadAheadLenth, bufferSize, preserve,
           mergedMapOutputsCounter);
     }
 
-    public Segment(Configuration conf, FileSystem fs, Path file,
+    public Segment(FileSystem fs, Path file,
                    long segmentOffset, long segmentLength,
                    CompressionCodec codec, boolean ifileReadAhead,
                    int ifileReadAheadLength,  int bufferSize, 
                    boolean preserve) throws IOException {
-      this(conf, fs, file, segmentOffset, segmentLength, codec, ifileReadAhead,
+      this(fs, file, segmentOffset, segmentLength, codec, ifileReadAhead,
           ifileReadAheadLength, bufferSize, preserve, null);
     }
 
-    public Segment(Configuration conf, FileSystem fs, Path file,
+    public Segment(FileSystem fs, Path file,
         long segmentOffset, long segmentLength, CompressionCodec codec,
         boolean ifileReadAhead, int ifileReadAheadLength, int bufferSize,
         boolean preserve, TezCounter mergedMapOutputsCounter)
     throws IOException {
-      this.conf = conf;
       this.fs = fs;
       this.file = file;
       this.codec = codec;
@@ -440,7 +438,7 @@ public class TezMerger {
       
       for (Path file : inputs) {
         LOG.debug("MergeQ: adding: " + file);
-        segments.add(new Segment(conf, fs, file, codec, ifileReadAhead,
+        segments.add(new Segment(fs, file, codec, ifileReadAhead,
                                       ifileReadAheadLength, ifileBufferSize,
                                       !deleteInputs, 
                                        (file.toString().endsWith(
@@ -760,7 +758,7 @@ public class TezMerger {
 
           // Add the newly create segment to the list of segments to be merged
           Segment tempSegment = 
-            new Segment(conf, fs, outputFile, codec, ifileReadAhead,
+            new Segment(fs, outputFile, codec, ifileReadAhead,
                 ifileReadAheadLength, ifileBufferSize, false);
 
           // Insert new merged segment into the sorted list

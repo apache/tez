@@ -64,7 +64,7 @@ public class IFile {
   public static final int RLE_MARKER = -2; // Repeat same key marker
   public static final int V_END_MARKER = -3; // End of values marker
   public static final DataInputBuffer REPEAT_KEY = new DataInputBuffer();
-  public static final byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I',
+  static final byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I',
     (byte) 'F' , (byte) 0};
 
   private static final String INCOMPLETE_READ = "Requested to read %d got %d";
@@ -98,10 +98,9 @@ public class IFile {
 
     IFileOutputStream checksumOut;
 
-    Class keyClass;
-    Class valueClass;
-    Serializer keySerializer;
-    Serializer valueSerializer;
+    boolean closeSerializers = false;
+    Serializer keySerializer = null;
+    Serializer valueSerializer = null;
 
     final DataOutputBuffer buffer = new DataOutputBuffer();
     final DataOutputBuffer previous = new DataOutputBuffer();
@@ -165,16 +164,17 @@ public class IFile {
         this.out = new FSDataOutputStream(checksumOut,null);
       }
       writeHeader(outputStream);
-      this.keyClass = keyClass;
-      this.valueClass = valueClass;
 
       if (keyClass != null) {
+        this.closeSerializers = true;
         SerializationFactory serializationFactory =
           new SerializationFactory(conf);
         this.keySerializer = serializationFactory.getSerializer(keyClass);
         this.keySerializer.open(buffer);
         this.valueSerializer = serializationFactory.getSerializer(valueClass);
         this.valueSerializer.open(buffer);
+      } else {
+        this.closeSerializers = false;
       }
     }
 
@@ -197,7 +197,7 @@ public class IFile {
       // When IFile writer is created by BackupStore, we do not have
       // Key and Value classes set. So, check before closing the
       // serializers
-      if (keyClass != null) {
+      if (closeSerializers) {
         keySerializer.close();
         valueSerializer.close();
       }
@@ -506,7 +506,6 @@ public class IFile {
     byte keyBytes[] = new byte[0];
 
     long startPos;
-    protected boolean isCompressed = false;
 
     /**
      * Construct an IFile Reader.
@@ -565,7 +564,6 @@ public class IFile {
                   TezCounter readsCounter, TezCounter bytesReadCounter,
                   boolean readAhead, int readAheadLength,
                   int bufferSize, boolean isCompressed) throws IOException {
-      this.isCompressed = isCompressed;
       checksumIn = new IFileInputStream(in, length, readAhead, readAheadLength/*, isCompressed*/);
       if (isCompressed && codec != null) {
         decompressor = CodecPool.getDecompressor(codec);

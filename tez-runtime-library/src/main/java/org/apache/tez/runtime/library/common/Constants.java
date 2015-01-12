@@ -31,7 +31,7 @@ public class Constants {
   public static final String REDUCE_INPUT_FILE_FORMAT_STRING = "%s/map_%d.out";
 
   public static final int MAP_OUTPUT_INDEX_RECORD_LENGTH = 24;
-  public static String MERGED_OUTPUT_PREFIX = ".merged";
+  public static final String MERGED_OUTPUT_PREFIX = ".merged";
 
   public static final long DEFAULT_COMBINE_RECORDS_BEFORE_PROGRESS = 10000;
 

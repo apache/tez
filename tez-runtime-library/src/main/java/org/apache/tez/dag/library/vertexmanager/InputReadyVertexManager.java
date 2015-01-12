@@ -53,7 +53,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     super(context);
   }
 
-  class SourceVertexInfo {
+  static class SourceVertexInfo {
     EdgeProperty edgeProperty;
     int numTasks;
     int numFinishedTasks;
@@ -142,7 +142,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     SourceVertexInfo srcInfo = srcVertexInfo.get(vertex);
     if (srcInfo.taskIsFinished[taskId.intValue()] == null) {
       // not a duplicate completion
-      srcInfo.taskIsFinished[taskId.intValue()] = new Boolean(true);
+      srcInfo.taskIsFinished[taskId.intValue()] = Boolean.valueOf(true);
       srcInfo.numFinishedTasks++;
       if (srcInfo.edgeProperty.getDataMovementType() == DataMovementType.ONE_TO_ONE) {
         oneToOneSrcTasksDoneCount[taskId.intValue()]++;
@@ -181,7 +181,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       tasksToStart = Lists.newArrayListWithCapacity(numTasks);
       for (int i=0; i<numTasks; ++i) {
         taskIsStarted[i] = true;
-        tasksToStart.add(new TaskWithLocationHint(new Integer(i), null));
+        tasksToStart.add(new TaskWithLocationHint(Integer.valueOf(i), null));
       }
     } else {
       // start only the ready 1-1 tasks
@@ -196,7 +196,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
           LOG.info("Starting task " + i + " for vertex: "
               + getContext().getVertexName() + " with location: "
               + ((locationHint != null) ? locationHint.getAffinitizedTask() : "null"));
-          tasksToStart.add(new TaskWithLocationHint(new Integer(i), locationHint));
+          tasksToStart.add(new TaskWithLocationHint(Integer.valueOf(i), locationHint));
         }
       }
     }
