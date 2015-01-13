@@ -32,6 +32,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1938. Build warning duplicate jersey-json definitions
   TEZ-1910. Build fails against hadoop-2.2.0.
   TEZ-1882. Tez UI build does not work on Windows
   TEZ-1915. Add public key to KEYS
