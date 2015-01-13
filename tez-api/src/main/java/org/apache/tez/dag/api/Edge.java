@@ -96,5 +96,37 @@ public class Edge {
   public String toString() {
     return inputVertex + " -> " + outputVertex + " (" + edgeProperty + ")";
   }
-  
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + ((inputVertex == null) ? 0 : inputVertex.hashCode());
+    result = prime * result
+        + ((outputVertex == null) ? 0 : outputVertex.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Edge other = (Edge) obj;
+    if (inputVertex == null) {
+      if (other.inputVertex != null)
+        return false;
+    } else if (!inputVertex.equals(other.inputVertex))
+      return false;
+    if (outputVertex == null) {
+      if (other.outputVertex != null)
+        return false;
+    } else if (!outputVertex.equals(other.outputVertex))
+      return false;
+    return true;
+  }
 }

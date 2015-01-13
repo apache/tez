@@ -466,4 +466,30 @@ public class Vertex {
   List<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> getOutputs() {
     return additionalOutputs;
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + ((vertexName == null) ? 0 : vertexName.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Vertex other = (Vertex) obj;
+    if (vertexName == null) {
+      if (other.vertexName != null)
+        return false;
+    } else if (!vertexName.equals(other.vertexName))
+      return false;
+    return true;
+  }
 }

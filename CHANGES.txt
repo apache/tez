@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1892. Add hashCode and equals for Vertex/VertexGroup/Edge/GroupInputEdge.
   TEZ-1904. Fix findbugs warnings in tez-runtime-library module.
   TEZ-1903. Fix findbugs warnings in tez-runtime-internal module.
   TEZ-1896. Move the default heartbeat timeout and checkinterval to TezConfiguration.

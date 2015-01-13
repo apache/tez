@@ -105,5 +105,37 @@ public class GroupInputEdge {
   public String toString() {
     return inputVertexGroup + " -> " + outputVertex + " (" + edgeProperty + ")";
   }
-  
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + ((inputVertexGroup == null) ? 0 : inputVertexGroup.hashCode());
+    result = prime * result
+        + ((outputVertex == null) ? 0 : outputVertex.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    GroupInputEdge other = (GroupInputEdge) obj;
+    if (inputVertexGroup == null) {
+      if (other.inputVertexGroup != null)
+        return false;
+    } else if (!inputVertexGroup.equals(other.inputVertexGroup))
+      return false;
+    if (outputVertex == null) {
+      if (other.outputVertex != null)
+        return false;
+    } else if (!outputVertex.equals(other.outputVertex))
+      return false;
+    return true;
+  }
 }

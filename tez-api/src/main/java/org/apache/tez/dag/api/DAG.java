@@ -176,7 +176,10 @@ public class DAG {
    */
   public synchronized VertexGroup createVertexGroup(String name, Vertex... members) {
     VertexGroup uv = new VertexGroup(name, members);
-    vertexGroups.add(uv);
+    if (!vertexGroups.add(uv)){
+      throw new IllegalStateException(
+          "VertexGroup " + name + " already defined!");
+    }
     return uv;
   }
 
@@ -289,7 +292,7 @@ public class DAG {
     }
     if (groupInputEdges.contains(edge)) {
       throw new IllegalArgumentException(
-        "Edge " + edge + " already defined!");
+        "GroupInputEdge " + edge + " already defined!");
     }
 
     VertexGroup av = edge.getInputVertexGroup();
