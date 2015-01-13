@@ -845,7 +845,7 @@ public class TestDAGVerify {
               DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
               OutputDescriptor.create("dummy output class"),
               InputDescriptor.create("dummy input class")));
-      Edge e2 = Edge.create(v1, v2,
+      Edge e2 = Edge.create(v1, v3,
           EdgeProperty.create(DataMovementType.SCATTER_GATHER,
               DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
               OutputDescriptor.create("dummy output class"),
