@@ -29,25 +29,18 @@ import java.util.Random;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.ProcessorContext;
@@ -55,7 +48,7 @@ import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 import com.google.common.base.Preconditions;
 
-public class JoinDataGen extends Configured implements Tool {
+public class JoinDataGen extends TezExampleBase {
 
   private static final Log LOG = LogFactory.getLog(JoinDataGen.class);
 
@@ -69,7 +62,8 @@ public class JoinDataGen extends Configured implements Tool {
     System.exit(status);
   }
 
-  private static void printUsage() {
+  @Override
+  protected void printUsage() {
     System.err
         .println("Usage: "
             + "joindatagen <outPath1> <path1Size> <outPath2> <path2Size> <expectedResultPath> <numTasks>");
@@ -77,64 +71,9 @@ public class JoinDataGen extends Configured implements Tool {
   }
 
   @Override
-  public int run(String[] args) throws Exception {
-    Configuration conf = getConf();
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    int result = validateArgs(otherArgs);
-    if (result != 0) {
-      return result;
-    }
-    return execute(otherArgs);
-  }
-  
-  public int run(Configuration conf, String[] args, TezClient tezClient) throws Exception {
-    setConf(conf);
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    int result = validateArgs(otherArgs);
-    if (result != 0) {
-      return result;
-    }
-    return execute(otherArgs, tezClient);
-  }
-  
-  private int validateArgs(String[] otherArgs) {
-    if (otherArgs.length != 6) {
-      printUsage();
-      return 2;
-    }
-    return 0;
-  }
-
-  private int execute(String [] args) throws TezException, IOException, InterruptedException {
-    TezConfiguration tezConf = new TezConfiguration(getConf());
-    TezClient tezClient = null;
-    try {
-      tezClient = createTezClient(tezConf);
-      return execute(args, tezConf, tezClient);
-    } finally {
-      if (tezClient != null) {
-        tezClient.stop();
-      }
-    }
-  }
-  
-  private int execute(String[] args, TezClient tezClient) throws IOException, TezException,
-      InterruptedException {
-    TezConfiguration tezConf = new TezConfiguration(getConf());
-    return execute(args, tezConf, tezClient);
-  }
-  
-  private TezClient createTezClient(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezClient = TezClient.create("JoinDataGen", tezConf);
-    tezClient.start();
-    return tezClient;
-  }
-  
-  private int execute(String[] args, TezConfiguration tezConf, TezClient tezClient)
-      throws IOException, TezException, InterruptedException {
+  protected int runJob(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws Exception {
     LOG.info("Running JoinDataGen");
-
-    UserGroupInformation.setConfiguration(tezConf);
 
     String outDir1 = args[0];
     long outDir1Size = Long.parseLong(args[1]);
@@ -179,15 +118,15 @@ public class JoinDataGen extends Configured implements Tool {
     DAG dag = createDag(tezConf, largeOutPath, smallOutPath, expectedOutputPath, numTasks,
         largeOutSize, smallOutSize);
 
-    tezClient.waitTillReady();
-    DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
-    if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-      LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
-      return -1;
+    return runDag(dag, false, LOG);
+  }
+
+  @Override
+  protected int validateArgs(String[] otherArgs) {
+    if (otherArgs.length != 6) {
+      return 2;
     }
     return 0;
-
   }
 
   private DAG createDag(TezConfiguration tezConf, Path largeOutPath, Path smallOutPath,

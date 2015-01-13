@@ -20,15 +20,13 @@ package org.apache.tez.examples;
 import java.io.IOException;
 import java.util.StringTokenizer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
@@ -38,8 +36,6 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
@@ -48,24 +44,24 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
-
-import com.google.common.base.Preconditions;
-
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Simple example to perform WordCount using Tez API's. WordCount is the 
  * HelloWorld program of distributed data processing and counts the number
  * of occurrences of a word in a distributed text data set.
  */
-public class WordCount extends Configured implements Tool {
+public class WordCount extends TezExampleBase {
 
   static String INPUT = "Input";
   static String OUTPUT = "Output";
   static String TOKENIZER = "Tokenizer";
   static String SUMMATION = "Summation";
-  
+  private static final Log LOG = LogFactory.getLog(WordCount.class);
+
   /*
    * Example code to write a processor in Tez.
    * Processors typically apply the main application logic to the data.
@@ -198,65 +194,27 @@ public class WordCount extends Configured implements Tool {
     return dag;  
   }
 
-  private static void printUsage() {
+  @Override
+  protected void printUsage() {
     System.err.println("Usage: " + " wordcount in out [numPartitions]");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
-  public boolean run(String inputPath, String outputPath, Configuration conf,
-      int numPartitions) throws Exception {
-    System.out.println("Running WordCount");
-    TezConfiguration tezConf;
-    if (conf != null) {
-      tezConf = new TezConfiguration(conf);
-    } else {
-      tezConf = new TezConfiguration();
+  @Override
+  protected int validateArgs(String[] otherArgs) {
+    if (otherArgs.length < 2 || otherArgs.length > 3) {
+      return 2;
     }
-    
-    UserGroupInformation.setConfiguration(tezConf);
-
-    // Create the TezClient to submit the DAG. Pass the tezConf that has all necessary global and 
-    // dag specific configurations
-    TezClient tezClient = TezClient.create("WordCount", tezConf);
-    // TezClient must be started before it can be used
-    tezClient.start();
-
-    try {
-        DAG dag = createDAG(tezConf, inputPath, outputPath, numPartitions);
-
-        // check that the execution environment is ready
-        tezClient.waitTillReady();
-        // submit the dag and receive a dag client to monitor the progress
-        DAGClient dagClient = tezClient.submitDAG(dag);
-
-        // monitor the progress and wait for completion. This method blocks until the dag is done.
-        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
-        // check success or failure and print diagnostics
-        if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-          System.out.println("WordCount failed with diagnostics: " + dagStatus.getDiagnostics());
-          return false;
-        }
-        return true;
-    } finally {
-      // stop the client to perform cleanup
-      tezClient.stop();
-    }
+    return 0;
   }
 
   @Override
-  public int run(String[] args) throws Exception {
-    Configuration conf = getConf();
-    String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    if (otherArgs.length < 2 || otherArgs.length > 3) {
-      printUsage();
-      return 2;
-    }
-    WordCount job = new WordCount();
-    if (job.run(otherArgs[0], otherArgs[1], conf,
-        (otherArgs.length == 3 ? Integer.parseInt(otherArgs[2]) : 1))) {
-      return 0;
-    }
-    return 1;
+  protected int runJob(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws Exception {
+    DAG dag = createDAG(tezConf, args[0], args[1],
+        args.length == 3 ? Integer.parseInt(args[2]) : 1);
+    LOG.info("Running WordCount");
+    return runDag(dag, false, LOG);
   }
 
   public static void main(String[] args) throws Exception {

@@ -45,7 +45,6 @@
     <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-examples</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>

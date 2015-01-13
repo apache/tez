@@ -23,14 +23,10 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.counters.TezCounter;
@@ -38,7 +34,6 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -46,8 +41,8 @@ import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.examples.HashJoinExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -56,7 +51,7 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-public class JoinValidate extends Configured implements Tool {
+public class JoinValidate extends TezExampleBase {
   private static final Log LOG = LogFactory.getLog(JoinValidate.class);
 
   private static final String LHS_INPUT_NAME = "lhsfile";
@@ -71,69 +66,17 @@ public class JoinValidate extends Configured implements Tool {
     System.exit(status);
   }
 
-  private static void printUsage() {
+  @Override
+  protected void printUsage() {
     System.err.println("Usage: " + "joinvalidate <path1> <path2>");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
   @Override
-  public int run(String[] args) throws Exception {
-    Configuration conf = getConf();
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    int result = validateArgs(otherArgs);
-    if (result != 0) {
-      return result;
-    }
-    return execute(otherArgs);
-  }
-  
-  public int run(Configuration conf, String[] args, TezClient tezClient) throws Exception {
-    setConf(conf);
-    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-    int result = validateArgs(otherArgs);
-    if (result != 0) {
-      return result;
-    }
-    return execute(otherArgs, tezClient);
-  } 
+  protected int runJob(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws Exception {
 
-  private int validateArgs(String[] otherArgs) {
-    if (otherArgs.length != 3 && otherArgs.length != 2) {
-      printUsage();
-      return 2;
-    }
-    return 0;
-  }
-
-  private int execute(String[] args) throws TezException, IOException, InterruptedException {
-    TezConfiguration tezConf = new TezConfiguration(getConf());
-    TezClient tezClient = null;
-    try {
-      tezClient = createTezClient(tezConf);
-      return execute(args, tezConf, tezClient);
-    } finally {
-      if (tezClient != null) {
-        tezClient.stop();
-      }
-    }
-  }
-  
-  private int execute(String[] args, TezClient tezClient) throws IOException, TezException,
-      InterruptedException {
-    TezConfiguration tezConf = new TezConfiguration(getConf());
-    return execute(args, tezConf, tezClient);
-  }
-  
-  private TezClient createTezClient(TezConfiguration tezConf) throws TezException, IOException {
-    TezClient tezClient = TezClient.create("JoinValidate", tezConf);
-    tezClient.start();
-    return tezClient;
-  }
-
-  private int execute(String[] args, TezConfiguration tezConf, TezClient tezClient)
-      throws IOException, TezException, InterruptedException {
     LOG.info("Running JoinValidate");
-    UserGroupInformation.setConfiguration(tezConf);
 
     String lhsDir = args[0];
     String rhsDir = args[1];
@@ -175,6 +118,15 @@ public class JoinValidate extends Configured implements Tool {
         }
       }
     }
+  
+  }
+
+  @Override
+  protected int validateArgs(String[] otherArgs) {
+    if (otherArgs.length != 3 && otherArgs.length != 2) {
+      return 2;
+    }
+    return 0;
   }
 
   private DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
@@ -256,5 +208,4 @@ public class JoinValidate extends Configured implements Tool {
       }
     }
   }
-
 }
