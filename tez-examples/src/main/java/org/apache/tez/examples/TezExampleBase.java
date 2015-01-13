@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.mapreduce.examples;
+package org.apache.tez.examples;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -24,6 +24,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.logging.Log;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -37,6 +38,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 
+@InterfaceAudience.Private
 public abstract class TezExampleBase extends Configured implements Tool {
 
   private TezClient tezClientInternal;
@@ -58,12 +60,10 @@ public abstract class TezExampleBase extends Configured implements Tool {
    *                  exists. If no TezClient is specified (null), one will be created based on the
    *                  provided configuration
    * @return Zero indicates success, non-zero indicates failure
-   * @throws IOException
-   * @throws TezException
+   * @throws Exception 
    */
   public int run(TezConfiguration conf, String[] args, @Nullable TezClient tezClient) throws
-      IOException,
-      TezException, InterruptedException {
+      Exception {
     setConf(conf);
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     return _execute(otherArgs, conf, tezClient);
@@ -107,7 +107,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
   }
 
   private int _execute(String[] otherArgs, TezConfiguration tezConf, TezClient tezClient) throws
-      IOException, TezException, InterruptedException {
+      Exception {
 
     int result = _validateArgs(otherArgs);
     if (result != 0) {
@@ -122,6 +122,8 @@ public abstract class TezExampleBase extends Configured implements Tool {
     if (tezClient == null) {
       ownTezClient = true;
       tezClientInternal = createTezClient(tezConf);
+    } else {
+      tezClientInternal = tezClient;
     }
     try {
       return runJob(otherArgs, tezConf, tezClientInternal);
@@ -164,6 +166,5 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * @throws TezException
    */
   protected abstract int runJob(String[] args, TezConfiguration tezConf,
-                                TezClient tezClient) throws IOException, TezException,
-      InterruptedException;
+                                TezClient tezClient) throws Exception;
 }

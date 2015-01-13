@@ -49,6 +49,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.TezClient;
@@ -449,7 +450,7 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(inputDirStr, outputDirStr, tezConf, 2));
+      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{inputDirStr, outputDirStr, "2"}, null)==0);
       verifyOutput(outputDir);
 
     } finally {
@@ -496,7 +497,11 @@ public class TestTezJobs {
       int appsBeforeCount = apps != null ? apps.size() : 0;
 
       SimpleSessionExample job = new SimpleSessionExample();
-      Assert.assertTrue("SimpleSessionExample failed", job.run(inputPaths, outputPaths, tezConf, 2));
+      tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+      Assert.assertTrue(
+          "SimpleSessionExample failed",
+          job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
+              StringUtils.join(",", outputPaths), "2" }, null) == 0);
 
       for (int i=0; i<numIterations; ++i) {
         verifyOutput(outputDirs[i]);

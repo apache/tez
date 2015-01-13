@@ -20,15 +20,13 @@ package org.apache.tez.examples;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
@@ -38,8 +36,6 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.examples.WordCount.TokenProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -57,14 +53,15 @@ import com.google.common.base.Preconditions;
  * Simple example that extends the WordCount example to show a chain of processing.
  * The example extends WordCount by sorting the words by their count.
  */
-public class OrderedWordCount extends Configured implements Tool  {
+public class OrderedWordCount extends TezExampleBase {
   
   private static String INPUT = WordCount.INPUT;
   private static String OUTPUT = WordCount.OUTPUT;
   private static String TOKENIZER = WordCount.TOKENIZER;
   private static String SUMMATION = WordCount.SUMMATION;
   private static String SORTER = "Sorter";
-  
+  private static final Log LOG = LogFactory.getLog(OrderedWordCount.class);
+
   /*
    * SumProcessor similar to WordCount except that it writes the count as key and the 
    * word as value. This is because we can and ordered partitioned key value edge to group the 
@@ -180,60 +177,30 @@ public class OrderedWordCount extends Configured implements Tool  {
             Edge.create(summationVertex, sorterVertex, sorterEdgeConf.createDefaultEdgeProperty()));
     return dag;  
   }
-  
-  private static void printUsage() {
+
+  @Override
+  protected void printUsage() {
     System.err.println("Usage: " + " orderedwordcount in out [numPartitions]");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
-  public boolean run(String inputPath, String outputPath, Configuration conf,
-      int numPartitions) throws Exception {
-    System.out.println("Running OrderedWordCount");
-    TezConfiguration tezConf;
-    if (conf != null) {
-      tezConf = new TezConfiguration(conf);
-    } else {
-      tezConf = new TezConfiguration();
+
+  @Override
+  protected int validateArgs(String[] otherArgs) {
+    if (otherArgs.length < 2 || otherArgs.length > 3) {
+      return 2;
     }
-    
-    UserGroupInformation.setConfiguration(tezConf);
-    
-    TezClient tezClient = TezClient.create("OrderedWordCount", tezConf);
-    tezClient.start();
-
-    try {
-        DAG dag = createDAG(tezConf, inputPath, outputPath, numPartitions, "OrderedWordCount");
-
-        tezClient.waitTillReady();
-        DAGClient dagClient = tezClient.submitDAG(dag);
-
-        // monitoring
-        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
-        if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-          System.out.println("OrderedWordCount failed with diagnostics: " + dagStatus.getDiagnostics());
-          return false;
-        }
-        return true;
-    } finally {
-      tezClient.stop();
-    }
+    return 0;
   }
 
   @Override
-  public int run(String[] args) throws Exception {
-    Configuration conf = getConf();
-    String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-
-    if (otherArgs.length < 2 || otherArgs.length > 3) {
-      printUsage();
-      return 2;
-    }
-    OrderedWordCount job = new OrderedWordCount();
-    if (job.run(otherArgs[0], otherArgs[1], conf,
-        (otherArgs.length == 3 ? Integer.parseInt(otherArgs[2]) : 1))) {
-      return 0;
-    }
-    return 1;
+  protected int runJob(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws Exception {
+    DAG dag = createDAG(tezConf, args[0], args[1],
+        args.length == 3 ? Integer.parseInt(args[2]) : 1,
+        "OrderedWordCount");
+    LOG.info("Running OrderedWordCount");
+    return runDag(dag, false, LOG);
   }
 
   public static void main(String[] args) throws Exception {

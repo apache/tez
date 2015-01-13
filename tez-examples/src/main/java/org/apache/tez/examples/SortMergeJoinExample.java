@@ -23,26 +23,19 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.examples.HashJoinExample.ForwardingProcessor;
 import org.apache.tez.mapreduce.input.MRInput;
@@ -76,7 +69,7 @@ import com.google.common.base.Preconditions;
  * in the hashFile are unique. while for {@link SortMergeJoinExample} it is
  * required that keys in the both 2 datasets are unique.
  */
-public class SortMergeJoinExample extends Configured implements Tool {
+public class SortMergeJoinExample extends TezExampleBase {
 
   private static final Log LOG = LogFactory.getLog(SortMergeJoinExample.class);
 
@@ -92,77 +85,16 @@ public class SortMergeJoinExample extends Configured implements Tool {
     System.exit(status);
   }
 
-  private static void printUsage() {
+  @Override
+  protected void printUsage() {
     System.err.println("Usage: "
         + "sortmergejoin <file1> <file2> <numPartitions> <outPath>");
     ToolRunner.printGenericCommandUsage(System.err);
   }
 
   @Override
-  public int run(String[] args) throws Exception {
-    Configuration conf = getConf();
-    String[] otherArgs =
-        new GenericOptionsParser(conf, args).getRemainingArgs();
-    int result = validateArgs(otherArgs);
-    if (result != 0) {
-      return result;
-    }
-    return execute(otherArgs);
-  }
-
-  public int run(Configuration conf, String[] args, TezClient tezClient)
-      throws Exception {
-    setConf(conf);
-    String[] otherArgs =
-        new GenericOptionsParser(conf, args).getRemainingArgs();
-    int result = validateArgs(otherArgs);
-    if (result != 0) {
-      return result;
-    }
-    return execute(otherArgs, tezClient);
-  }
-
-  private int validateArgs(String[] otherArgs) {
-    if (otherArgs.length != 4) {
-      printUsage();
-      return 2;
-    }
-    return 0;
-  }
-
-  private int execute(String[] args) throws TezException, IOException,
-      InterruptedException {
-    TezConfiguration tezConf = new TezConfiguration(getConf());
-    TezClient tezClient = null;
-    try {
-      tezClient = createTezClient(tezConf);
-      return execute(args, tezConf, tezClient);
-    } finally {
-      if (tezClient != null) {
-        tezClient.stop();
-      }
-    }
-  }
-
-  private int execute(String[] args, TezClient tezClient) throws IOException,
-      TezException, InterruptedException {
-    TezConfiguration tezConf = new TezConfiguration(getConf());
-    return execute(args, tezConf, tezClient);
-  }
-
-  private TezClient createTezClient(TezConfiguration tezConf)
-      throws TezException, IOException {
-    TezClient tezClient = TezClient.create("SortMergeJoinExample", tezConf);
-    tezClient.start();
-    return tezClient;
-  }
-
-  private int execute(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws IOException, TezException,
-      InterruptedException {
-    LOG.info("Running SortMergeJoinExample");
-
-    UserGroupInformation.setConfiguration(tezConf);
+  protected int runJob(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws Exception {
 
     String inputDir1 = args[0];
     String inputDir2 = args[1];
@@ -183,19 +115,18 @@ public class SortMergeJoinExample extends Configured implements Tool {
       System.err.println("NumPartitions must be > 0");
       return 4;
     }
-
     DAG dag =
         createDag(tezConf, inputPath1, inputPath2, outputPath, numPartitions);
+    LOG.info("Running SortMergeJoinExample");
+    return runDag(dag, false, LOG);
+  }
 
-    tezClient.waitTillReady();
-    DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
-    if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-      LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
-      return -1;
+  @Override
+  protected int validateArgs(String[] otherArgs) {
+    if (otherArgs.length != 4) {
+      return 2;
     }
     return 0;
-
   }
 
   /**

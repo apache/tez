@@ -18,17 +18,13 @@
 
 package org.apache.tez.examples;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.Tool;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
 
 /**
  * Simple example that shows how Tez session mode can be used to run multiple DAGs in the same 
@@ -39,27 +35,37 @@ import org.apache.tez.dag.api.client.DAGStatus;
  * In this example we will be submitting multiple OrderedWordCount DAGs on different inputs to the 
  * same session.
  */
-public class SimpleSessionExample extends Configured implements Tool {
-  
+public class SimpleSessionExample extends TezExampleBase {
+
+  private static final Log LOG = LogFactory.getLog(SimpleSessionExample.class);
   private static final String enablePrewarmConfig = "simplesessionexample.prewarm";
 
-  public boolean run(String[] inputPaths, String[] outputPaths, Configuration conf,
-      int numPartitions) throws Exception {
-    TezConfiguration tezConf;
-    if (conf != null) {
-      tezConf = new TezConfiguration(conf);
-    } else {
-      tezConf = new TezConfiguration();
+  @Override
+  protected void printUsage() {
+    System.err.println("Usage: " + " simplesessionexample <in1,in2> <out1, out2> [numPartitions]");
+    ToolRunner.printGenericCommandUsage(System.err);
+  }
+
+  @Override
+  protected int validateArgs(String[] otherArgs) {
+    if (otherArgs.length < 2 || otherArgs.length > 3) {
+      return 2;
     }
-    
-    // start TezClient in session mode. The same code run in session mode or non-session mode. The 
-    // mode can be changed via configuration. However if the application wants to run exclusively in 
-    // session mode then it can do so in code directly using the appropriate constructor
-    
-    // tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true); // via config OR via code
-    TezClient tezClient = TezClient.create("SimpleSessionExample", tezConf, true);
-    tezClient.start();
-    
+    return 0;
+  }
+
+  @Override
+  protected int runJob(String[] args, TezConfiguration tezConf,
+      TezClient tezClient) throws Exception {
+    System.out.println("Running SimpleSessionExample");
+    String[] inputPaths = args[0].split(",");
+    String[] outputPaths = args[1].split(",");
+    if (inputPaths.length != outputPaths.length) {
+      System.err.println("Inputs and outputs must be equal in number");
+      return 3;
+    }
+    int numPartitions = args.length == 3 ? Integer.parseInt(args[2]) : 1;
+
     // Session pre-warming allows the user to hide initial startup, resource acquisition latency etc.
     // by pre-allocating execution resources in the Tez session. They can run initialization logic 
     // in these pre-allocated resources (containers) to pre-warm the containers.
@@ -79,64 +85,22 @@ public class SimpleSessionExample extends Configured implements Tool {
       tezClient.preWarm(PreWarmVertex.createConfigBuilder(tezConf).build());
     }
 
-    // the remaining code is the same as submitting any DAG.
-    try {
-      for (int i=0; i<inputPaths.length; ++i) {
-        DAG dag = OrderedWordCount.createDAG(tezConf, inputPaths[i], outputPaths[i], numPartitions,
-            ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
+    for (int i = 0; i < inputPaths.length; ++i) {
+      DAG dag = OrderedWordCount.createDAG(tezConf, inputPaths[i], outputPaths[i], numPartitions,
+          ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
 
-        tezClient.waitTillReady();
-        System.out.println("Running dag number " + i);
-        DAGClient dagClient = tezClient.submitDAG(dag);
-
-        // wait to finish
-        DAGStatus dagStatus = dagClient.waitForCompletion();
-        if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-          System.out.println("Iteration " + i + " failed with diagnostics: "
-              + dagStatus.getDiagnostics());
-          return false;
-        }
+      LOG.info("Running dag number " + i);
+      if(runDag(dag, false, LOG) != 0) {
+        return -1;
       }
-      return true;
-    } finally {
-      tezClient.stop();
     }
-  }
-
-  private static void printUsage() {
-    System.err.println("Usage: " + " simplesessionexample <in1,in2> <out1, out2> [numPartitions]");
-    ToolRunner.printGenericCommandUsage(System.err);
-  }
-  
-  @Override
-  public int run(String[] args) throws Exception {
-    System.out.println("Running SimpleSessionExample");
-    Configuration conf = getConf();
-    String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
-
-    if (otherArgs.length < 2 || otherArgs.length > 3) {
-      printUsage();
-      return 2;
-    }
-    
-    String[] inputPaths = otherArgs[0].split(",");
-    String[] outputPaths = otherArgs[1].split(",");
-    if (inputPaths.length != outputPaths.length) {
-      System.err.println("Inputs and outputs must be equal in number");
-      return 3;
-    }
-    
-    SimpleSessionExample job = new SimpleSessionExample();
-    if (job.run(inputPaths, outputPaths, conf,
-        (otherArgs.length == 3 ? Integer.parseInt(otherArgs[2]) : 1))) {
-      return 0;
-    }
-    return 1;
+    return 0;
   }
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new SimpleSessionExample(), args);
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+    int res = ToolRunner.run(tezConf, new SimpleSessionExample(), args);
     System.exit(res);
   }
-
 }
