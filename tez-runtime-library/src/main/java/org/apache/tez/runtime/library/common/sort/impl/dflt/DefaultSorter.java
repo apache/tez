@@ -987,7 +987,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
     @Override
     public boolean isSameKey() throws IOException {
-      throw new UnsupportedOperationException("isSameKey is not supported");
+      return false;
     }
 
     public void close() { }

@@ -659,7 +659,7 @@ public class PipelinedSorter extends ExternalSorter {
 
     @Override
     public boolean isSameKey() throws IOException {
-      throw new UnsupportedOperationException("Not yet supported");
+      return false;
     }
 
     public int getPartition() {
@@ -926,7 +926,7 @@ public class PipelinedSorter extends ExternalSorter {
 
     @Override
     public boolean isSameKey() throws IOException {
-      throw new UnsupportedOperationException("isSameKey is not supported");
+      return false;
     }
 
     public TezRawKeyValueIterator filter(int partition) {

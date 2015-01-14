@@ -181,11 +181,15 @@ public class ValuesIterator<KEY,VALUE> {
     more = in.next();
     if (more) {      
       DataInputBuffer nextKeyBytes = in.getKey();
-     keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(),
-         nextKeyBytes.getLength() - nextKeyBytes.getPosition());
-      nextKey = keyDeserializer.deserialize(nextKey);
-      // TODO Is a counter increment required here ?
-      hasMoreValues = key != null && (comparator.compare(key, nextKey) == 0);
+      if (!in.isSameKey()) {
+        keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(),
+            nextKeyBytes.getLength() - nextKeyBytes.getPosition());
+        nextKey = keyDeserializer.deserialize(nextKey);
+        // TODO Is a counter increment required here ?
+        hasMoreValues = key != null && (comparator.compare(key, nextKey) == 0);
+      } else {
+        hasMoreValues = in.isSameKey();
+      }
     } else {
       hasMoreValues = false;
     }
