@@ -30,6 +30,7 @@ import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -370,5 +371,14 @@ public class DAGUtils {
     }
     return atsConf;
   }
+
+  public static Map<String, Object> convertTezVersionToATSMap(VersionInfo versionInfo) {
+    Map<String, Object> atsInfo = new TreeMap<String, Object>();
+    atsInfo.put(ATSConstants.VERSION, versionInfo.getVersion());
+    atsInfo.put(ATSConstants.BUILD_TIME, versionInfo.getBuildTime());
+    atsInfo.put(ATSConstants.REVISION, versionInfo.getRevision());
+    return atsInfo;
+  }
+
 
 }

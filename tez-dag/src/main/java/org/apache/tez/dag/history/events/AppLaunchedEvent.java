@@ -23,8 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.VersionInfo;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 
@@ -35,18 +35,20 @@ public class AppLaunchedEvent implements HistoryEvent {
   private long appSubmitTime;
   private String user;
   private Configuration conf;
+  private VersionInfo version;
 
   public AppLaunchedEvent() {
   }
 
   public AppLaunchedEvent(ApplicationId appId,
       long launchTime, long appSubmitTime, String user,
-      Configuration conf) {
+      Configuration conf, VersionInfo version) {
     this.applicationId = appId;
     this.launchTime = launchTime;
     this.appSubmitTime = appSubmitTime;
     this.user = user;
     this.conf = conf;
+    this.version = version;
   }
 
   @Override
@@ -99,6 +101,10 @@ public class AppLaunchedEvent implements HistoryEvent {
 
   public Configuration getConf() {
     return conf;
+  }
+
+  public VersionInfo getVersion() {
+    return version;
   }
 
 }

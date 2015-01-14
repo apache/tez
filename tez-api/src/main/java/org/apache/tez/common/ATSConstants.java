@@ -104,4 +104,9 @@ public class ATSConstants {
   public static final String DESCRIPTION = "desc";
   public static final String CONFIG = "config";
 
+  public static final String TEZ_VERSION = "tezVersion";
+  public static final String VERSION = "version";
+  public static final String REVISION = "revision";
+  public static final String BUILD_TIME = "buildTime";
+
 }

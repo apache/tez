@@ -59,7 +59,7 @@ public class HistoryEventTimelineConversion {
       throw new UnsupportedOperationException("Invalid Event, does not support history"
           + ", eventType=" + historyEvent.getEventType());
     }
-    TimelineEntity timelineEntity = null;
+    TimelineEntity timelineEntity;
     switch (historyEvent.getEventType()) {
       case APP_LAUNCHED:
         timelineEntity = convertAppLaunchedEvent((AppLaunchedEvent) historyEvent);
@@ -143,6 +143,11 @@ public class HistoryEventTimelineConversion {
         DAGUtils.convertConfigurationToATSMap(event.getConf()));
 
     atsEntity.setStartTime(event.getLaunchTime());
+
+    if (event.getVersion() != null) {
+      atsEntity.addOtherInfo(ATSConstants.TEZ_VERSION,
+          DAGUtils.convertTezVersionToATSMap(event.getVersion()));
+    }
 
     return atsEntity;
   }

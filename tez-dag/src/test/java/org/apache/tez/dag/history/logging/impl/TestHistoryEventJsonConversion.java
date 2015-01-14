@@ -105,7 +105,7 @@ public class TestHistoryEventJsonConversion {
       switch (eventType) {
         case APP_LAUNCHED:
           event = new AppLaunchedEvent(applicationId, random.nextInt(), random.nextInt(),
-              user, new Configuration(false));
+              user, new Configuration(false), null);
           break;
         case AM_LAUNCHED:
           event = new AMLaunchedEvent(applicationAttemptId, random.nextInt(), random.nextInt(),
