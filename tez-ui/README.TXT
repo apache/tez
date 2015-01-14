@@ -45,9 +45,7 @@ In configs.js
 Building
 ---------
   * To build UI without running test cases, run 'mvn clean package -DskipTests' in tez-ui directory.
-  * The build will create two files inside tez-ui/target.
-    1. A tarball of the distribution files.
-    2. A war of the distribution files.
+  * The build will create a war file inside tez-ui/target.
   * UI build is part of tez build, refer BUILDING.txt in tez for more info.
 
 Using the war
