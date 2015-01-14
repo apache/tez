@@ -29,6 +29,8 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.ClassUtil;
 
+import com.google.common.annotations.VisibleForTesting;
+
 @Private
 @Unstable
 public class VersionInfo {
@@ -60,6 +62,18 @@ public class VersionInfo {
     } finally {
       IOUtils.closeStream(is);
     }
+  }
+
+  @VisibleForTesting
+  @Private
+  protected VersionInfo(String component, String version, String revision,
+      String buildTime, String scmUrl) {
+    this.info = new Properties();
+    this.component = component;
+    info.setProperty(VERSION, version);
+    info.setProperty(REVISION, revision);
+    info.setProperty(BUILD_TIME, buildTime);
+    info.setProperty(SCM_URL, scmUrl);
   }
 
   public String getVersion() {

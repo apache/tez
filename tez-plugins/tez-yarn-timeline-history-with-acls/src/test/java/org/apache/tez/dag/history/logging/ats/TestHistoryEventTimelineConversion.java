@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.common.VersionInfo;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -107,7 +108,7 @@ public class TestHistoryEventTimelineConversion {
       switch (eventType) {
         case APP_LAUNCHED:
           event = new AppLaunchedEvent(applicationId, random.nextInt(), random.nextInt(),
-              user, new Configuration(false));
+              user, new Configuration(false), null);
           break;
         case AM_LAUNCHED:
           event = new AMLaunchedEvent(applicationAttemptId, random.nextInt(), random.nextInt(),
@@ -192,6 +193,14 @@ public class TestHistoryEventTimelineConversion {
     }
   }
 
+  static class MockVersionInfo extends VersionInfo {
+
+    MockVersionInfo() {
+      super("component", "1.1.0", "rev1", "20120101", "git.apache.org");
+    }
+
+  }
+
   @Test(timeout = 5000)
   public void testConvertAppLaunchedEvent() {
     long launchTime = random.nextLong();
@@ -200,9 +209,9 @@ public class TestHistoryEventTimelineConversion {
     conf.set("foo", "bar");
     conf.set("applicationId", "1234");
 
-
+    MockVersionInfo mockVersionInfo = new MockVersionInfo();
     AppLaunchedEvent event = new AppLaunchedEvent(applicationId, launchTime,
-        submitTime, user, conf);
+        submitTime, user, conf, mockVersionInfo);
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
 
@@ -220,13 +229,24 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(1, timelineEntity.getPrimaryFilters().size());
     Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
 
-    Assert.assertEquals(1, timelineEntity.getOtherInfo().size());
+    Assert.assertEquals(2, timelineEntity.getOtherInfo().size());
     Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.CONFIG));
+    Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.TEZ_VERSION));
 
     Map<String, String> config =
         (Map<String, String>)timelineEntity.getOtherInfo().get(ATSConstants.CONFIG);
     Assert.assertEquals(conf.get("foo"), config.get("foo"));
     Assert.assertEquals(conf.get("applicationId"), config.get("applicationId"));
+
+    Map<String, String> versionInfo =
+        (Map<String, String>)timelineEntity.getOtherInfo().get(ATSConstants.TEZ_VERSION);
+    Assert.assertEquals(mockVersionInfo.getVersion(),
+        versionInfo.get(ATSConstants.VERSION));
+    Assert.assertEquals(mockVersionInfo.getRevision(),
+        versionInfo.get(ATSConstants.REVISION));
+    Assert.assertEquals(mockVersionInfo.getBuildTime(),
+        versionInfo.get(ATSConstants.BUILD_TIME));
+
   }
 
   @Test(timeout = 5000)
