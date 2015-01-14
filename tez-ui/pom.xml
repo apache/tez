@@ -29,13 +29,11 @@
   <properties>
     <webappDir>src/main/webapp</webappDir>
     <node.executable>${basedir}/src/main/webapp/node/node</node.executable>
-    <fileName>${artifactId}-${parent.version}</fileName>
     <nodeVersion>v0.10.18</nodeVersion>
     <npmVersion>1.3.8</npmVersion>
   </properties>
 
   <build>
-    <finalName>${fileName}</finalName>
     <plugins>
 
       <!-- Apache RAT -->
@@ -121,24 +119,6 @@
                 <argument>build</argument>
               </arguments>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- Maven assembly plugin for creating the web tar ball-->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <configuration>
-          <finalName>${fileName}</finalName>
-          <descriptor>${basedir}/src/assembly/bin.xml</descriptor>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>

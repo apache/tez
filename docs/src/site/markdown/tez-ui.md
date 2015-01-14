@@ -101,8 +101,8 @@ tez-site.xml
 
 ### Building Tez UI from sources
 For instructions on building Tez UI from sources or setting up a development environment see the
-README.txt in tez-ui subfolder. The build generates a tarball as well as a war file of the distribution
-in the tez-ui/target. currently the Tez-UI can be hosted using one of the following options.
+README.txt in tez-ui subfolder. The build generates a war file of the distribution
+in the tez-ui/target. Currently the Tez-UI can be hosted using one of the following options.
 
 ### hosting using the war file and tomcat.
 1. Remove any old deployments in $TOMCAT_HOME/webapps
@@ -110,8 +110,8 @@ in the tez-ui/target. currently the Tez-UI can be hosted using one of the follow
 3. Restart tomcat and the war will get deployed. The content of the war would be available in
 $TOMCAT_HOME/webapps/tez-ui-x.x.x.
 
-### hosting using tarball and a standalone webserver
-1. untar the tarball
+### hosting using extracted war file and a standalone webserver
+1. untar the war file
 2. copy the resulting directory to the document root of the web server.
 3. reload/restart the webserver
 
