@@ -453,12 +453,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     List<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
     readLock.lock();
 
-    if (!attempts.containsKey(attemptID)) {
-      throw new TezUncheckedException("Unknown TA: " + attemptID
-          + " asking for events from task:" + getTaskId());
-    }
-
     try {
+      if (!attempts.containsKey(attemptID)) {
+        throw new TezUncheckedException("Unknown TA: " + attemptID
+            + " asking for events from task:" + getTaskId());
+      }
+
       if (tezEventsForTaskAttempts.size() > fromEventId) {
         int actualMax = Math.min(maxEvents,
             (tezEventsForTaskAttempts.size() - fromEventId));
@@ -1424,7 +1424,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg, TaskAttemptTerminationCause errorCause) {
-    if (commitAttempt != null && commitAttempt.equals(attempt)) {
+    if (commitAttempt != null && commitAttempt.equals(attempt.getID())) {
       LOG.info("Removing commit attempt: " + commitAttempt);
       commitAttempt = null;
     }

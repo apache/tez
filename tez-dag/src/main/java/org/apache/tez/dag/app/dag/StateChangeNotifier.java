@@ -63,8 +63,8 @@ public class StateChangeNotifier {
     TezVertexID vertexId = validateAndGetVertexId(vertexName);
     writeLock.lock();
     // Read within the lock, to ensure a consistent view is seen.
-    List<VertexStateUpdate> previousUpdates = lastKnowStatesMap.get(vertexId);
     try {
+      List<VertexStateUpdate> previousUpdates = lastKnowStatesMap.get(vertexId);
       ListenerContainer listenerContainer = new ListenerContainer(listener, stateSet);
       Set<ListenerContainer> listenerContainers = vertexListeners.get(vertexId);
       if (listenerContainers == null || !listenerContainers.contains(listenerContainer)) {

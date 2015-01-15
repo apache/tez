@@ -856,7 +856,7 @@ public class DAGAppMaster extends AbstractService {
       LOG.info("Writing DAG plan to: " + logFile);
       File outFile = new File(logFile);
       try {
-        PrintWriter printWriter = new PrintWriter(outFile);
+        PrintWriter printWriter = new PrintWriter(outFile, "UTF-8");
         printWriter.println(TezUtilsInternal.convertDagPlanToString(dag.getJobPlan()));
         printWriter.close();
       } catch (IOException e) {
@@ -1355,7 +1355,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private class ServiceWithDependency implements ServiceStateChangeListener {
+  private static class ServiceWithDependency implements ServiceStateChangeListener {
     ServiceWithDependency(Service service) {
       this.service = service;
     }
@@ -1423,7 +1423,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private class ServiceThread extends Thread {
+  private static class ServiceThread extends Thread {
     final ServiceWithDependency serviceWithDependency;
     Throwable error = null;
     public ServiceThread(ServiceWithDependency serviceWithDependency) {

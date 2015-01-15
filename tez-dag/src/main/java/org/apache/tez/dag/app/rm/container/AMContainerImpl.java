@@ -471,10 +471,10 @@ public class AMContainerImpl implements AMContainer {
             this.credentialsChanged ? this.credentials : null, this.credentialsChanged);
         this.additionalLocalResources = null;
         this.credentialsChanged = false;
+        this.pullAttempt = null;
         return amContainerTask;
       }
     } finally {
-      this.pullAttempt = null;
       this.writeLock.unlock();
     }
   }

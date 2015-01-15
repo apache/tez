@@ -153,7 +153,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   @VisibleForTesting
   protected AtomicBoolean shouldUnregister = new AtomicBoolean(false);
 
-  class CRCookie {
+  static class CRCookie {
     // Do not use these variables directly. Can caused mocked unit tests to fail.
     private Object task;
     private Object appCookie;
@@ -1213,13 +1213,13 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         if (preemptedTaskPriority == null ||
             !isHigherPriority(taskPriority, preemptedTaskPriority)) {
           // keep the lower priority
-          preemptedTaskPriority = taskPriority;
           if (taskPriority.equals(preemptedTaskPriority)) {
             numEntriesAtPreemptedPriority++;
           } else {
             // this is at a lower priority than existing
             numEntriesAtPreemptedPriority = 1;
           }
+          preemptedTaskPriority = taskPriority;
         }
       }
       if(preemptedTaskPriority != null) {
@@ -1935,8 +1935,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
      * Intended to be used in cases where new Container requests come in 
      */
     public void triggerScheduling(boolean scheduleAll) {
-      this.tryAssigningAll = scheduleAll;
       synchronized(this) {
+        this.tryAssigningAll = scheduleAll;
         this.notify();
       }
     }
@@ -2058,7 +2058,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     LOG.info("Holding on to " + sessionMinHeldContainers.size() + " containers");
   }
 
-  private class ContainerIterable implements Iterable<Container> {
+  private static class ContainerIterable implements Iterable<Container> {
 
     private final Iterable<HeldContainer> delayedContainers;
 

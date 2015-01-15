@@ -545,7 +545,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       case DAG_FINISHED:
         recoveryCommitInProgress = false;
         DAGFinishedEvent finishedEvent = (DAGFinishedEvent) historyEvent;
-        this.finishTime = finishedEvent.getFinishTime();
+        setFinishTime(finishedEvent.getFinishTime());
         recoveredState = finishedEvent.getState();
         this.fullCounters = finishedEvent.getTezCounters();
         return recoveredState;
@@ -981,6 +981,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   void setFinishTime() {
     finishTime = clock.getTime();
+  }
+
+  synchronized void setFinishTime(long finishTime) {
+    this.finishTime = finishTime;
   }
 
   private Map<String, Integer> constructTaskStats(ProgressBuilder progressBuilder) {

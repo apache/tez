@@ -1093,11 +1093,12 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.addDiagnosticInfo(((DiagnosableEvent) event).getDiagnosticInfo());
       }
       
-      // this should catch at test time if any new events are missing the error cause
-      assert event instanceof TaskAttemptEventTerminationCauseEvent;
-      
       if (event instanceof TaskAttemptEventTerminationCauseEvent) {
         ta.trySetTerminationCause(((TaskAttemptEventTerminationCauseEvent) event).getTerminationCause());
+      } else {
+        throw new TezUncheckedException("Invalid event received in TerminateTransition"
+            + ", requiredClass=TaskAttemptEventTerminationCauseEvent"
+            + ", eventClass=" + event.getClass().getName());
       }
 
       ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,

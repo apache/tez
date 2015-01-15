@@ -110,7 +110,6 @@ public class TaskSpecificLaunchCmdOption {
    * The first element of the array is the general log level. </p>
    * The second level, if it exists, is the additional per logger configuration.
    *
-   *
    * @return parsed form of the log string specified. null if none specified
    */
   public String[] getTaskSpecificLogParams() {

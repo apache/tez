@@ -83,14 +83,12 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   private InetSocketAddress address;
   private Server server;
 
-  class ContainerInfo {
-    ContainerInfo(ContainerId containerId) {
-      this.containerId = containerId;
+  static class ContainerInfo {
+    ContainerInfo() {
       this.lastReponse = null;
       this.lastRequestId = 0;
       this.currentAttemptId = null;
     }
-    ContainerId containerId;
     long lastRequestId;
     TezHeartbeatResponse lastReponse;
     TezTaskAttemptID currentAttemptId;
@@ -303,8 +301,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       LOG.debug("ContainerId: " + containerId
           + " registered with TaskAttemptListener");
     }
-    ContainerInfo oldInfo = registeredContainers.put(containerId,
-        new ContainerInfo(containerId));
+    ContainerInfo oldInfo = registeredContainers.put(containerId, new ContainerInfo());
     if(oldInfo != null) {
       throw new TezUncheckedException(
           "Multiple registrations for containerId: " + containerId);

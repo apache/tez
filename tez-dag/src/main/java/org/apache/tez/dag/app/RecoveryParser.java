@@ -471,6 +471,10 @@ public class RecoveryParser {
           vertexGroupCommitStatus.put(
               vertexGroupCommitFinishedEvent.getVertexGroupName(), true);
           break;
+        default:
+          String message = "Found invalid summary event that was not handled"
+              + ", eventType=" + eventType.name();
+          throw new IOException(message);
       }
     }
 
@@ -667,8 +671,8 @@ public class RecoveryParser {
         LOG.warn("Corrupt data found when trying to read next event", ioe);
         break;
       }
-      if (event == null || skipAllOtherEvents) {
-        // reached end of data
+      if (skipAllOtherEvents) {
+        // hit an error - skip reading other events
         break;
       }
       HistoryEventType eventType = event.getEventType();
@@ -747,6 +751,7 @@ public class RecoveryParser {
           recoveredDAGData.dagState =
               ((DAGFinishedEvent) event).getState();
           skipAllOtherEvents = true;
+          break;
         }
         case CONTAINER_LAUNCHED:
         {

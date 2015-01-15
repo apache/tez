@@ -405,7 +405,7 @@ public class RootInputInitializerManager {
             "AttemptId is -1. This is likely caused by TEZ-1577; recovery not supported when InputInitializerEvents are used");
       }
       Map<Integer, Integer> vertexSuccessfulAttemptMap = firstSuccessfulAttemptMap.get(vertexName);
-      Integer successfulAttempt = vertexSuccessfulAttemptMap.get(taskId);
+      Integer successfulAttempt = vertexSuccessfulAttemptMap.get(taskId.getId());
       if (successfulAttempt == null) {
         successfulAttempt = attemptId;
         vertexSuccessfulAttemptMap.put(taskId.getId(), successfulAttempt);

@@ -94,15 +94,12 @@ public class AMNodeTracker extends AbstractService implements
 
   private void addToBlackList(NodeId nodeId) {
     String host = nodeId.getHost();
-    Set<NodeId> nodes;
-    
+
     if (!blacklistMap.containsKey(host)) {
-      nodes = new HashSet<NodeId>();
-      blacklistMap.put(host, nodes);
-    } else {
-      nodes = blacklistMap.get(host);
+      blacklistMap.putIfAbsent(host, new HashSet<NodeId>());
     }
-    
+    Set<NodeId> nodes = blacklistMap.get(host);
+
     if (!nodes.contains(nodeId)) {
       nodes.add(nodeId);
     }

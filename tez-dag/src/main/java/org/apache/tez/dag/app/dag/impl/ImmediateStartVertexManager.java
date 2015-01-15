@@ -92,7 +92,7 @@ public class ImmediateStartVertexManager extends VertexManagerPlugin {
     tasksScheduled = true;
     List<TaskWithLocationHint> tasksToStart = Lists.newArrayListWithCapacity(managedTasks);
     for (int i = 0; i < managedTasks; ++i) {
-      tasksToStart.add(new TaskWithLocationHint(new Integer(i), null));
+      tasksToStart.add(new TaskWithLocationHint(i, null));
     }
 
     if (!tasksToStart.isEmpty()) {

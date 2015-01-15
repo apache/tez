@@ -22,4 +22,97 @@
     <Bug pattern="IS2_INCONSISTENT_SYNC" />
   </Match>
 
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos\$.*Proto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos\$.*Proto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.recovery\.records\.RecoveryProtos\$.*Proto\$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.dag\.impl\.DAGImpl\$.*"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.dag\.impl\.TaskImpl\$.*"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.dag\.impl\.TaskAttemptImpl\$.*"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.dag\.impl\.VertexImpl\$.*"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.rm\.container\.AMContainerImpl\$.*"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.rm\.node\.AMNodeImpl\$.*"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.dag\.speculation\.legacy\.LegacySpeculator"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.rm\.node\.AMNodeTracker"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.dag\.app\.rm\.TaskSchedulerEventHandler"/>
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.TaskSchedulerAppCallbackWrapper"/>
+    <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster$DAGAppMasterShutdownHook"/>
+    <Method name="run"/>
+    <Bug pattern="WA_NOT_IN_LOOP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster"/>
+    <Method name="handle" params="org.apache.tez.dag.app.dag.event.DAGAppMasterEvent" returns="void"/>
+    <Bug pattern="SF_SWITCH_NO_DEFAULT"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster"/>
+    <Method name="&lt;init&gt;"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption"/>
+    <Method name="getTaskSpecificLogParams"/>
+    <Field name="tsLogParams"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
 </FindBugsFilter>

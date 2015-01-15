@@ -46,6 +46,7 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -377,9 +378,10 @@ public class Edge {
         handleCompositeDataMovementEvent(tezEvent);
         break;
       case INPUT_FAILED_EVENT:
-        isDataMovementEvent = false;
-        // fall through
       case DATA_MOVEMENT_EVENT:
+        if (tezEvent.getEventType().equals(EventType.INPUT_FAILED_EVENT)) {
+          isDataMovementEvent = false;
+        }
         Map<Integer, List<Integer>> destTaskAndInputIndices = Maps
         .newHashMap();
         TezTaskAttemptID srcAttemptId = tezEvent.getSourceInfo()

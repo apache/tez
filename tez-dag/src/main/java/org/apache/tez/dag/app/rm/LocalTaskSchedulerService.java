@@ -234,6 +234,36 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
     public int compareTo(TaskRequest request) {
       return request.priority.compareTo(this.priority);
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      TaskRequest that = (TaskRequest) o;
+
+      if (priority != null ? !priority.equals(that.priority) : that.priority != null) {
+        return false;
+      }
+      if (task != null ? !task.equals(that.task) : that.task != null) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = 1;
+      result = 7841 * result + (task != null ? task.hashCode() : 0);
+      result = 7841 * result + (priority != null ? priority.hashCode() : 0);
+      return result;
+    }
+
   }
 
   static class AllocateTaskRequest extends TaskRequest {
@@ -245,6 +275,39 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
       super(task, priority);
       this.capability = capability;
       this.clientCookie = clientCookie;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      if (!super.equals(o)) {
+        return false;
+      }
+
+      AllocateTaskRequest that = (AllocateTaskRequest) o;
+
+      if (capability != null ? !capability.equals(that.capability) : that.capability != null) {
+        return false;
+      }
+      if (clientCookie != null ? !clientCookie.equals(that.clientCookie) :
+          that.clientCookie != null) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = super.hashCode();
+      result = 12329 * result + (capability != null ? capability.hashCode() : 0);
+      result = 12329 * result + (clientCookie != null ? clientCookie.hashCode() : 0);
+      return result;
     }
   }
 

@@ -348,7 +348,7 @@ public class VertexManager {
     Map<String, List<Integer>> pluginCompletionsMap = Maps.newHashMap();
     if (completions != null && !completions.isEmpty()) {
       for (TezTaskAttemptID tezTaskAttemptID : completions) {
-        Integer taskId = new Integer(tezTaskAttemptID.getTaskID().getId());
+        Integer taskId = Integer.valueOf(tezTaskAttemptID.getTaskID().getId());
         String vertexName =
             appContext.getCurrentDAG().getVertex(
                 tezTaskAttemptID.getTaskID().getVertexID()).getName();
@@ -370,7 +370,7 @@ public class VertexManager {
   }
 
   public void onSourceTaskCompleted(TezTaskID tezTaskId) throws AMUserCodeException {
-    Integer taskId = new Integer(tezTaskId.getId());
+    Integer taskId = Integer.valueOf(tezTaskId.getId());
     String vertexName =
         appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();
     try {

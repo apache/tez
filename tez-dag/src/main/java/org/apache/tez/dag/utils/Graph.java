@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.utils;
 
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -230,8 +230,8 @@ public class Graph {
   }
 
   public void save(String filePath) throws IOException {
-    FileWriter fout = new FileWriter(filePath);
-    fout.write(generateGraphViz());
+    FileOutputStream fout = new FileOutputStream(filePath);
+    fout.write(generateGraphViz().getBytes("UTF-8"));
     fout.close();
   }
 

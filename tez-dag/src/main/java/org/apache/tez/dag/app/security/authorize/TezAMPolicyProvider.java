@@ -44,7 +44,7 @@ public class TezAMPolicyProvider extends PolicyProvider {
 
   @Override
   public Service[] getServices() {
-    return tezApplicationMasterServices;
+    return tezApplicationMasterServices.clone();
   }
 
 }

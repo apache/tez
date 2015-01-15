@@ -21,6 +21,7 @@ package org.apache.tez.dag.history.events;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -36,6 +37,7 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
 
   private TezVertexID vertexID;
   private long commitStartTime;
+  private final Charset charSet = Charset.forName("UTF-8");
 
   public VertexCommitStartedEvent() {
   }
@@ -100,14 +102,14 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
         .setTimestamp(commitStartTime)
         .setEventType(getEventType().ordinal())
         .setEventPayload(
-            ByteString.copyFrom(vertexID.toString().getBytes()));
+            ByteString.copyFrom(vertexID.toString().getBytes(charSet)));
     builder.build().writeDelimitedTo(outputStream);
   }
 
   @Override
   public void fromSummaryProtoStream(SummaryEventProto proto) throws IOException {
     this.vertexID = TezVertexID.fromString(
-        new String(proto.getEventPayload().toByteArray()));
+        new String(proto.getEventPayload().toByteArray(), charSet));
     this.commitStartTime = proto.getTimestamp();
   }
 

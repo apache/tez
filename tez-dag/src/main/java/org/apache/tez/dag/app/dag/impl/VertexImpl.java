@@ -2245,32 +2245,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         case KILLED:
         case FAILED:
         case ERROR:
-          switch (desiredState) {
-            case SUCCEEDED:
-              vertex.succeededTaskCount = vertex.numTasks;
-              vertex.completedTaskCount = vertex.numTasks;
-              break;
-            case KILLED:
-              vertex.killedTaskCount = vertex.numTasks;
-              break;
-            case FAILED:
-            case ERROR:
-              vertex.failedTaskCount = vertex.numTasks;
-              break;
+          if (desiredState == VertexState.SUCCEEDED) {
+            vertex.succeededTaskCount = vertex.numTasks;
+            vertex.completedTaskCount = vertex.numTasks;
+          } else if (desiredState == VertexState.KILLED) {
+            vertex.killedTaskCount = vertex.numTasks;
+          } else if (desiredState == VertexState.FAILED || desiredState == VertexState.ERROR) {
+            vertex.failedTaskCount = vertex.numTasks;
           }
           if (vertex.tasks != null) {
             TaskState taskState = TaskState.KILLED;
-            switch (desiredState) {
-              case SUCCEEDED:
-                taskState = TaskState.SUCCEEDED;
-                break;
-              case KILLED:
-                taskState = TaskState.KILLED;
-                break;
-              case FAILED:
-              case ERROR:
-                taskState = TaskState.FAILED;
-                break;
+            if (desiredState == VertexState.SUCCEEDED) {
+              taskState = TaskState.SUCCEEDED;
+            } else if (desiredState == VertexState.KILLED) {
+              taskState = TaskState.KILLED;
+            } else if (desiredState == VertexState.FAILED || desiredState == VertexState.ERROR) {
+              taskState = TaskState.FAILED;
             }
             for (Task task : vertex.tasks.values()) {
               vertex.eventHandler.handle(
@@ -2408,16 +2398,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             // recover tasks
             if (vertex.tasks != null && vertex.numTasks != 0) {
               TaskState taskState = TaskState.KILLED;
-              switch (vertex.recoveredState) {
-                case SUCCEEDED:
-                  taskState = TaskState.SUCCEEDED;
-                  break;
-                case KILLED:
-                  taskState = TaskState.KILLED;
-                  break;
-                case FAILED:
-                  taskState = TaskState.FAILED;
-                  break;
+              if (vertex.recoveredState == VertexState.SUCCEEDED) {
+                taskState = TaskState.SUCCEEDED;
+              } else if (vertex.recoveredState == VertexState.KILLED) {
+                taskState = TaskState.KILLED;
+              } else if (vertex.recoveredState == VertexState.FAILED) {
+                taskState = TaskState.FAILED;
               }
               for (Task task : vertex.tasks.values()) {
                 vertex.eventHandler.handle(
@@ -2814,16 +2800,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           assert vertex.tasks.size() == vertex.numTasks;
           if (vertex.tasks != null  && vertex.numTasks != 0) {
             TaskState taskState = TaskState.KILLED;
-            switch (vertex.recoveredState) {
-              case SUCCEEDED:
-                taskState = TaskState.SUCCEEDED;
-                break;
-              case KILLED:
-                taskState = TaskState.KILLED;
-                break;
-              case FAILED:
-                taskState = TaskState.FAILED;
-                break;
+            if (vertex.recoveredState == VertexState.SUCCEEDED) {
+              taskState = TaskState.SUCCEEDED;
+            } else if (vertex.recoveredState == VertexState.KILLED) {
+              taskState = TaskState.KILLED;
+            } else if (vertex.recoveredState == VertexState.FAILED) {
+              taskState = TaskState.FAILED;
             }
             for (Task task : vertex.tasks.values()) {
               vertex.eventHandler.handle(
@@ -2835,7 +2817,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               vertex.recoveryCodeSimulatingStart();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
-              String msg = "Exception in " + e.getSource() +", vertex:" + vertex.getLogIdentifier();
+              String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
               LOG.error(msg, e);
               vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
                   msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
