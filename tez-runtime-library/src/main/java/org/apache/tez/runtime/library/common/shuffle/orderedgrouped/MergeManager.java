@@ -193,8 +193,8 @@ public class MergeManager {
     }
 
     // Allow unit tests to fix Runtime memory
-    long memLimit = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
-        Math.min(inputContext.getTotalMemoryAvailableToTask(), Integer.MAX_VALUE)) * maxInMemCopyUse);
+    long memLimit = conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY, (long)(inputContext
+        .getTotalMemoryAvailableToTask() * maxInMemCopyUse));
 
     float maxRedPer = conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT,
         TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_BUFFER_PERCENT_DEFAULT);
@@ -238,8 +238,9 @@ public class MergeManager {
           + singleShuffleMemoryLimitPercent);
     }
 
+    //TODO: Cap it to MAX_VALUE until MapOutput starts supporting > 2 GB
     this.maxSingleShuffleLimit = 
-      (long)(memoryLimit * singleShuffleMemoryLimitPercent);
+        (long) Math.min((memoryLimit * singleShuffleMemoryLimitPercent), Integer.MAX_VALUE);
     this.memToMemMergeOutputsThreshold = 
             conf.getInt(
                 TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 
@@ -304,8 +305,8 @@ public class MergeManager {
       }
 
       // Allow unit tests to fix Runtime memory
-      long memLimit = (long) (conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
-          Math.min(maxAvailableTaskMemory, Integer.MAX_VALUE)) * maxInMemCopyUse);
+      long memLimit = conf.getLong(Constants.TEZ_RUNTIME_TASK_MEMORY,
+          (long)(maxAvailableTaskMemory * maxInMemCopyUse));
       
       LOG.info("Initial Shuffle Memory Required: " + memLimit + ", based on INPUT_BUFFER_factor: " + maxInMemCopyUse);
 
@@ -332,8 +333,13 @@ public class MergeManager {
   }
 
   public synchronized void waitForShuffleToMergeMemory() throws InterruptedException {
+    long startTime = System.currentTimeMillis();
     while(usedMemory > memoryLimit) {
       wait();
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Waited for " + (System.currentTimeMillis() - startTime) + " for memory to become"
+          + " available");
     }
   }
 

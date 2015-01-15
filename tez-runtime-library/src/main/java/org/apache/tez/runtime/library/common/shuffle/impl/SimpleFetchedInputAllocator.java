@@ -104,7 +104,9 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
           + singleShuffleMemoryLimitPercent);
     }
 
-    this.maxSingleShuffleLimit = (long) (memoryLimit * singleShuffleMemoryLimitPercent);
+    //TODO: cap it to MAX_VALUE until MemoryFetchedInput can handle > 2 GB
+    this.maxSingleShuffleLimit = (long) Math.min((memoryLimit * singleShuffleMemoryLimitPercent),
+        Integer.MAX_VALUE);
     
     LOG.info("SimpleInputManager -> " + "MemoryLimit: " + 
         this.memoryLimit + ", maxSingleMemLimit: " + this.maxSingleShuffleLimit);
