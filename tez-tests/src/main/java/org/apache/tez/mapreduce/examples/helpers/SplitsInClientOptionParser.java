@@ -42,7 +42,7 @@ public class SplitsInClientOptionParser {
   public String[] getRemainingArgs() {
     Preconditions.checkState(parsed,
         "Cannot get remaining args without parsing");
-    return otherArgs;
+    return otherArgs.clone();
   }
 
   @SuppressWarnings("static-access")

@@ -217,7 +217,7 @@ public class SecondarySort extends Configured implements Tool {
     if (otherArgs.length != 2) {
       System.err.println("Usage: secondarysort <in> <out>");
       ToolRunner.printGenericCommandUsage(System.out);
-      System.exit(2);
+      return 2;
     }
     Job job = new Job(conf, "secondary sort");
     job.setJarByClass(SecondarySort.class);

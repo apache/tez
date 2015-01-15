@@ -13,4 +13,14 @@
 -->
 <FindBugsFilter>
 
+  <Match>
+    <Class name="org.apache.tez.mapreduce.examples.SecondarySort$FirstGroupingComparator" />
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.examples.SecondarySort$IntPair$Comparator" />
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE" />
+  </Match>
+
 </FindBugsFilter>

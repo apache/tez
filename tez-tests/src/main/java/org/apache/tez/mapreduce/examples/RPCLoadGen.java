@@ -60,6 +60,7 @@ public class RPCLoadGen extends TezExampleBase {
   private static final byte VIA_HDFS_DIST_CACHE_BYTE = (byte) 0x01;
   private static final String VIA_HDFS_DIRECT_READ = "viaHdfsDirectRead";
   private static final byte VIA_HDFS_DIRECT_READ_BYTE = (byte) 0x02;
+  private static final Random random = new Random();
 
   private static final String DISK_PAYLOAD_NAME = RPCLoadGen.class.getSimpleName() + "_payload";
 
@@ -137,7 +138,7 @@ public class RPCLoadGen extends TezExampleBase {
         payloadSize = 5; // To Configure the processor
       }
       byte[] payloadBytes = new byte[payloadSize];
-      new Random().nextBytes(payloadBytes);
+      random.nextBytes(payloadBytes);
       payload = ByteBuffer.wrap(payloadBytes);
       payload.put(4, VIA_RPC_BYTE); // ViaRPC
     } else {
@@ -147,7 +148,7 @@ public class RPCLoadGen extends TezExampleBase {
 
       // Disk payload
       byte[] diskPayload = new byte[payloadSize];
-      new Random().nextBytes(diskPayload);
+      random.nextBytes(diskPayload);
       fs = FileSystem.get(conf);
       resourcePath = new Path(Path.SEPARATOR + "tmp", DISK_PAYLOAD_NAME);
       System.err.println("ZZZ: HDFSPath: " + resourcePath);
@@ -188,7 +189,7 @@ public class RPCLoadGen extends TezExampleBase {
     @Override
     public void run() throws Exception {
       Stopwatch sw = new Stopwatch().start();
-      long sleepTime = new Random().nextInt(sleepTimeMax);
+      long sleepTime = random.nextInt(sleepTimeMax);
       if (modeByte == VIA_RPC_BYTE) {
         LOG.info("Received via RPC.");
       } else if (modeByte == VIA_HDFS_DIST_CACHE_BYTE) {

@@ -186,7 +186,6 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     }
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
     UserGroupInformation.setConfiguration(tezConf);
-    String user = UserGroupInformation.getCurrentUser().getShortUserName();
 
     // staging dir
     FileSystem fs = FileSystem.get(tezConf);

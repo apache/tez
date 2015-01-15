@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1905. Fix findbugs warnings in tez-tests.
   TEZ-1945. Remove 2 GB memlimit restriction in MergeManager.
   TEZ-1913. Reduce deserialize cost in ValuesIterator.
   TEZ-1917. Examples should extend TezExampleBase.
