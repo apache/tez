@@ -491,6 +491,7 @@ public class TestAMRecovery {
       InputReadyVertexManager {
 
     private Configuration conf;
+    private int completedTaskNum = 0;
 
     public ControlledInputReadyVertexManager(VertexManagerPluginContext context) {
       super(context);
@@ -510,13 +511,14 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
       super.onSourceTaskCompleted(srcVertexName, taskId);
+      completedTaskNum ++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          if (taskId.intValue() == 0) {
+          if (completedTaskNum == 1) {
             System.exit(-1);
           }
         } else {
-          if (taskId.intValue() == 1) {
+          if (completedTaskNum == getContext().getVertexNumTasks(srcVertexName)) {
             System.exit(-1);
           }
         }
@@ -528,6 +530,7 @@ public class TestAMRecovery {
       ShuffleVertexManager {
 
     private Configuration conf;
+    private int completedTaskNum = 0;
 
     public ControlledShuffleVertexManager(VertexManagerPluginContext context) {
       super(context);
@@ -547,13 +550,14 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
       super.onSourceTaskCompleted(srcVertexName, taskId);
+      completedTaskNum ++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          if (taskId.intValue() == 0) {
+          if (completedTaskNum == 1) {
             System.exit(-1);
           }
         } else {
-          if (taskId.intValue() == 1) {
+          if (completedTaskNum == getContext().getVertexNumTasks(srcVertexName)) {
             System.exit(-1);
           }
         }
@@ -565,6 +569,7 @@ public class TestAMRecovery {
       ImmediateStartVertexManager {
 
     private Configuration conf;
+    private int completedTaskNum = 0;
 
     public ControlledImmediateStartVertexManager(
         VertexManagerPluginContext context) {
@@ -585,13 +590,14 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
       super.onSourceTaskCompleted(srcVertexName, taskId);
+      completedTaskNum ++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          if (taskId.intValue() == 0) {
+          if (completedTaskNum == 1) {
             System.exit(-1);
           }
         } else {
-          if (taskId.intValue() == 1) {
+          if (completedTaskNum == getContext().getVertexNumTasks(srcVertexName)) {
             System.exit(-1);
           }
         }
