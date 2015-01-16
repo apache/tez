@@ -165,6 +165,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.addRelatedEntity(ATSConstants.USER, event.getUser());
 
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getApplicationAttemptId().getApplicationId().toString());
 
     atsEntity.setStartTime(event.getLaunchTime());
 
@@ -235,6 +237,8 @@ public class HistoryEventTimelineConversion {
     stoppedEvt.setTimestamp(event.getStoppedTime());
     atsEntity.addEvent(stoppedEvt);
 
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getApplicationAttemptId().getApplicationId().toString());
     atsEntity.addPrimaryFilter(ATSConstants.EXIT_STATUS, event.getExitStatus());
 
     atsEntity.addOtherInfo(ATSConstants.EXIT_STATUS, event.getExitStatus());
@@ -254,6 +258,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.addEvent(finishEvt);
 
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getDagID().getApplicationId().toString());
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
     atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
@@ -286,6 +292,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.addEvent(initEvt);
 
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getDagID().getApplicationId().toString());
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
 
     atsEntity.addOtherInfo(ATSConstants.INIT_TIME, event.getInitTime());
@@ -312,6 +320,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.addEvent(startEvt);
 
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getDagID().getApplicationId().toString());
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
@@ -364,6 +374,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.setEntityId(event.getTaskAttemptID().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_TASK_ATTEMPT_ID.name());
 
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getTaskAttemptID().getTaskID().getVertexID().getDAGId().getApplicationId().toString());
     atsEntity.addPrimaryFilter(EntityTypes.TEZ_DAG_ID.name(),
         event.getTaskAttemptID().getTaskID().getVertexID().getDAGId().toString());
     atsEntity.addPrimaryFilter(EntityTypes.TEZ_VERTEX_ID.name(),
@@ -432,6 +444,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.setEntityId(event.getTaskID().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_TASK_ID.name());
 
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getTaskID().getVertexID().getDAGId().getApplicationId().toString());
     atsEntity.addPrimaryFilter(EntityTypes.TEZ_DAG_ID.name(),
         event.getTaskID().getVertexID().getDAGId().toString());
     atsEntity.addPrimaryFilter(EntityTypes.TEZ_VERTEX_ID.name(),
@@ -492,6 +506,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.setEntityId(event.getVertexID().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_VERTEX_ID.name());
 
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getVertexID().getDAGId().getApplicationId().toString());
     atsEntity.addPrimaryFilter(EntityTypes.TEZ_DAG_ID.name(),
         event.getVertexID().getDAGId().toString());
 
@@ -578,6 +594,11 @@ public class HistoryEventTimelineConversion {
     TimelineEntity atsEntity = new TimelineEntity();
     atsEntity.setEntityId(event.getVertexID().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_VERTEX_ID.name());
+
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getVertexID().getDAGId().getApplicationId().toString());
+    atsEntity.addPrimaryFilter(EntityTypes.TEZ_DAG_ID.name(),
+        event.getVertexID().getDAGId().toString());
 
     TimelineEvent updateEvt = new TimelineEvent();
     updateEvt.setEventType(HistoryEventType.VERTEX_PARALLELISM_UPDATED.name());
