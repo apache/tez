@@ -46,10 +46,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -203,7 +205,8 @@ public class LocalContainerLauncher extends AbstractService implements
         tezChild =
             createTezChild(context.getAMConf(), event.getContainerId(), tokenIdentifier,
                 context.getApplicationAttemptId().getAttemptId(), context.getLocalDirs(),
-                (TezTaskUmbilicalProtocol) taskAttemptListener);
+                (TezTaskUmbilicalProtocol) taskAttemptListener,
+                TezCommonUtils.parseCredentialsBytes(event.getContainerLaunchContext().getTokens().array()));
       } catch (InterruptedException e) {
         handleLaunchFailed(e, event.getContainerId());
         return;
@@ -318,7 +321,8 @@ public class LocalContainerLauncher extends AbstractService implements
 
   private TezChild createTezChild(Configuration defaultConf, ContainerId containerId,
                                   String tokenIdentifier, int attemptNumber, String[] localDirs,
-                                  TezTaskUmbilicalProtocol tezTaskUmbilicalProtocol) throws
+                                  TezTaskUmbilicalProtocol tezTaskUmbilicalProtocol,
+                                  Credentials credentials) throws
       InterruptedException, TezException, IOException {
     Map<String, String> containerEnv = new HashMap<String, String>();
     containerEnv.putAll(localEnv);
@@ -326,7 +330,7 @@ public class LocalContainerLauncher extends AbstractService implements
 
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
-            attemptNumber, localDirs, workingDirectory, containerEnv, "", ExecutionContext);
+            attemptNumber, localDirs, workingDirectory, containerEnv, "", ExecutionContext, credentials);
     tezChild.setUmbilical(tezTaskUmbilicalProtocol);
     return tezChild;
   }

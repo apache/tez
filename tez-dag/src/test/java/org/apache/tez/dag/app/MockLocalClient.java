@@ -20,6 +20,7 @@ package org.apache.tez.dag.app;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.Clock;
@@ -51,10 +52,10 @@ public class MockLocalClient extends LocalClient {
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String userDir,
-      String[] localDirs, String[] logDirs) {
+      String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName) {
     mockApp = new MockDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, localDirs, logDirs,
-        mockAppLauncherGoFlag, initFailFlag, startFailFlag);
+        mockAppLauncherGoFlag, initFailFlag, startFailFlag, credentials, jobUserName);
     return mockApp;
   }
   

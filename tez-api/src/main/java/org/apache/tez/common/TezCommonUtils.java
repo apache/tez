@@ -40,6 +40,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
@@ -394,6 +395,19 @@ public class TezCommonUtils {
     jobToken.write(dob);
     ByteBuffer bb = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
     return bb;
+  }
+
+  public static Credentials parseCredentialsBytes(byte[] credentialsBytes) throws IOException {
+    Credentials credentials = new Credentials();
+    DataInputBuffer dib = new DataInputBuffer();
+    try {
+      byte[] tokenBytes = credentialsBytes;
+      dib.reset(tokenBytes, tokenBytes.length);
+      credentials.readTokenStorageStream(dib);
+      return credentials;
+    } finally {
+      dib.close();
+    }
   }
 
   public static void logCredentials(Log log, Credentials credentials, String identifier) {

@@ -23,7 +23,6 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -36,7 +35,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -46,7 +44,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.Logger;
-import org.apache.tez.common.EnvironmentUpdateUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -274,17 +271,15 @@ public class LocalClient extends FrameworkClient {
           fs.mkdirs(logDir);
           fs.mkdirs(localDir);
 
+          UserGroupInformation.setConfiguration(conf);
           // Add session specific credentials to the AM credentials.
-          UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
           ByteBuffer tokens = appContext.getAMContainerSpec().getTokens();
 
+          Credentials amCredentials;
           if (tokens != null) {
-            Credentials amCredentials = new Credentials();
-            DataInputByteBuffer dibb = new DataInputByteBuffer();
-            dibb.reset(tokens);
-            amCredentials.readTokenStorageStream(dibb);
-            tokens.rewind();
-            currentUser.addCredentials(amCredentials);
+            amCredentials = TezCommonUtils.parseCredentialsBytes(tokens.array());
+          } else {
+            amCredentials = new Credentials();
           }
 
           // Construct, initialize, and start the DAGAppMaster
@@ -298,9 +293,10 @@ public class LocalClient extends FrameworkClient {
           dagAppMaster =
               createDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
                   new SystemClock(), appSubmitTime, isSession, userDir.toUri().getPath(),
-                  new String[] {localDir.toUri().getPath()}, new String[] {logDir.toUri().getPath()});
+                  new String[] {localDir.toUri().getPath()}, new String[] {logDir.toUri().getPath()},
+                  amCredentials, UserGroupInformation.getCurrentUser().getShortUserName());
           clientHandler = new DAGClientHandler(dagAppMaster);
-          DAGAppMaster.initAndStartAppMaster(dagAppMaster, currentUser.getShortUserName());
+          DAGAppMaster.initAndStartAppMaster(dagAppMaster, conf);
 
         } catch (Throwable t) {
           LOG.fatal("Error starting DAGAppMaster", t);
@@ -323,10 +319,10 @@ public class LocalClient extends FrameworkClient {
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String userDir,
-      String[] localDirs, String[] logDirs) {
+      String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName) {
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         new SystemClock(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-        versionInfo.getVersion(), 1);
+        versionInfo.getVersion(), 1, credentials, jobUserName);
   }
 
 }

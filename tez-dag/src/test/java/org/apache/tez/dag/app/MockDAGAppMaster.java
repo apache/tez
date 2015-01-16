@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -302,9 +304,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
   public MockDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
       String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
       boolean isSession, String workingDirectory, String[] localDirs, String[] logDirs,
-      AtomicBoolean launcherGoFlag, boolean initFailFlag, boolean startFailFlag) {
+      AtomicBoolean launcherGoFlag, boolean initFailFlag, boolean startFailFlag,
+      Credentials credentials, String jobUserName) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
-        isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(), 1);
+        isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(), 1,
+        credentials, jobUserName);
     containerLauncher = new MockContainerLauncher(launcherGoFlag);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
     this.initFailFlag = initFailFlag;

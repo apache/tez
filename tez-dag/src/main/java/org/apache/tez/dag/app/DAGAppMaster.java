@@ -240,8 +240,8 @@ public class DAGAppMaster extends AbstractService {
   private DAGClientHandler clientHandler;
 
   private DAG currentDAG;
-  private Credentials amTokens = new Credentials(); // Filled during init
-  private UserGroupInformation appMasterUgi;
+  private final Credentials amCredentials;
+  private final UserGroupInformation appMasterUgi;
 
   private AtomicBoolean sessionStopped = new AtomicBoolean(false);
   private long sessionTimeoutInterval;
@@ -283,7 +283,8 @@ public class DAGAppMaster extends AbstractService {
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
-      String [] localDirs, String[] logDirs, String clientVersion, int maxAppAttempts) {
+      String [] localDirs, String[] logDirs, String clientVersion, int maxAppAttempts,
+      Credentials credentials, String jobUserName) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
     this.startTime = clock.getTime();
@@ -302,6 +303,11 @@ public class DAGAppMaster extends AbstractService {
     this.dagVersionInfo = new TezDagVersionInfo();
     this.clientVersion = clientVersion;
     this.maxAppAttempts = maxAppAttempts;
+    this.amCredentials = credentials;
+    this.appMasterUgi = UserGroupInformation
+        .createRemoteUser(jobUserName);
+    this.appMasterUgi.addCredentials(amCredentials);
+
 
     // TODO Metrics
     //this.metrics = DAGAppMetrics.create();
@@ -341,8 +347,6 @@ public class DAGAppMaster extends AbstractService {
     }
 
     if (isLocal) {
-       UserGroupInformation.setConfiguration(conf);
-       appMasterUgi = UserGroupInformation.getCurrentUser();
        conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
        conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
            TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT);
@@ -369,7 +373,7 @@ public class DAGAppMaster extends AbstractService {
     addIfService(containerHeartbeatHandler, true);
 
     sessionToken =
-        TokenCache.getSessionToken(amTokens);
+        TokenCache.getSessionToken(amCredentials);
     if (sessionToken == null) {
       throw new RuntimeException("Could not find session token in AM Credentials");
     }
@@ -1838,6 +1842,12 @@ public class DAGAppMaster extends AbstractService {
 
       CommandLine cliParser = new GnuParser().parse(opts, args);
 
+      // TODO Does this really need to be a YarnConfiguration ?
+      Configuration conf = new Configuration(new YarnConfiguration());
+      TezUtilsInternal.addUserSpecifiedTezConfiguration(System.getenv(Environment.PWD.name()), conf);
+      UserGroupInformation.setConfiguration(conf);
+      Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+
       DAGAppMaster appMaster =
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
@@ -1846,11 +1856,11 @@ public class DAGAppMaster extends AbstractService {
               System.getenv(Environment.PWD.name()),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name())),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOG_DIRS.name())),
-              clientVersion, maxAppAttempts);
+              clientVersion, maxAppAttempts, credentials, jobUserName);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
-      initAndStartAppMaster(appMaster, jobUserName);
+      initAndStartAppMaster(appMaster, conf);
 
     } catch (Throwable t) {
       LOG.fatal("Error starting DAGAppMaster", t);
@@ -2004,13 +2014,9 @@ public class DAGAppMaster extends AbstractService {
     sendEvent(startDagEvent);
   }
 
-  // TODO XXX Does this really need to be a YarnConfiguration ?
   public static void initAndStartAppMaster(final DAGAppMaster appMaster,
-      String jobUserName) throws IOException,
+      final Configuration conf) throws IOException,
       InterruptedException {
-
-    final Configuration conf = new Configuration(new YarnConfiguration());
-    TezUtilsInternal.addUserSpecifiedTezConfiguration(appMaster.workingDirectory, conf);
 
     // Do not automatically close FileSystem objects so that in case of
     // SIGTERM I have a chance to write out the job history. I'll be closing
@@ -2018,23 +2024,14 @@ public class DAGAppMaster extends AbstractService {
     conf.setBoolean("fs.automatic.close", false);
     Limits.setConfiguration(conf);
 
-    UserGroupInformation.setConfiguration(conf);
-    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
-    
-    appMaster.appMasterUgi = UserGroupInformation
-        .createRemoteUser(jobUserName);
-    appMaster.appMasterUgi.addCredentials(credentials);
-
     // Now remove the AM->RM token so tasks don't have it
-    Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
+    Iterator<Token<?>> iter = appMaster.amCredentials.getAllTokens().iterator();
     while (iter.hasNext()) {
       Token<?> token = iter.next();
       if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
         iter.remove();
       }
     }
-
-    appMaster.amTokens = credentials;
 
     appMaster.appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
