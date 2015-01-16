@@ -78,7 +78,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
-        "", new ExecutionContextImpl("localhost"));
+        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
 
     lio1.initialize();
     lio1.run();
@@ -96,7 +96,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
-        "", new ExecutionContextImpl("localhost"));
+        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
     lio2.initialize();
     lio2.run();
     lio2.close();

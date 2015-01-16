@@ -223,7 +223,8 @@ public class TestReduceProcessor {
         new TestUmbilical(),
         serviceConsumerMetadata,
         serviceProviderEnvMap,
-        HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"));
+        HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
+        Runtime.getRuntime().maxMemory());
 
     List<Event> destEvents = new LinkedList<Event>();
     destEvents.add(dme);

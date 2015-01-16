@@ -182,7 +182,7 @@ public interface TaskContext {
   public int getVertexParallelism();
 
   /**
-   * Get the execution context for a running task
+   * Get the context for the executor. This may be shared across multiple tasks
    * @return the execution context
    */
   public ExecutionContext getExecutionContext();

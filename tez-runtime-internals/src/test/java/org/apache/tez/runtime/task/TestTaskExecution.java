@@ -717,7 +717,7 @@ public class TestTaskExecution {
 
     TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, umbilical, 1,
         new HashMap<String, ByteBuffer>(), new HashMap<String, String>(), HashMultimap.<String, String> create(), taskReporter,
-        executor, null, "", new ExecutionContextImpl("localhost"));
+        executor, null, "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
     return taskRunner;
   }
 

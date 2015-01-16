@@ -133,12 +133,13 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   
   private final ObjectRegistry objectRegistry;
   private final ExecutionContext ExecutionContext;
+  private final long memAvailable;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> envMap,
       Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry,
-      String pid, ExecutionContext ExecutionContext) throws IOException {
+      String pid, ExecutionContext ExecutionContext, long memAvailable) throws IOException {
     // TODO Remove jobToken from here post TEZ-421
     super(taskSpec, tezConf, tezUmbilical, pid);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
@@ -176,6 +177,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.inputReadyTracker = new InputReadyTracker();
     this.objectRegistry = objectRegistry;
     this.ExecutionContext = ExecutionContext;
+    this.memAvailable = memAvailable;
   }
 
   /**
@@ -488,7 +490,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         inputSpec.getInputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
         inputSpec.getInputDescriptor(), inputMap, inputReadyTracker, objectRegistry,
-        ExecutionContext);
+        ExecutionContext, memAvailable);
     return inputContext;
   }
 
@@ -502,7 +504,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         tezCounters, outputIndex,
         outputSpec.getOutputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
-        outputSpec.getOutputDescriptor(), objectRegistry, ExecutionContext);
+        outputSpec.getOutputDescriptor(), objectRegistry, ExecutionContext,
+        memAvailable);
     return outputContext;
   }
 
@@ -514,7 +517,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getTaskAttemptID(),
         tezCounters, processorDescriptor.getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
-        processorDescriptor, inputReadyTracker, objectRegistry, ExecutionContext);
+        processorDescriptor, inputReadyTracker, objectRegistry, ExecutionContext, memAvailable);
     return processorContext;
   }
 

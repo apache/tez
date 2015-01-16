@@ -99,10 +99,11 @@ public class TezChild {
   private final ListeningExecutorService executor;
   private final ObjectRegistryImpl objectRegistry;
   private final String pid;
-  private final ExecutionContext ExecutionContext;
+  private final ExecutionContext executionContext;
   private final Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
   private final Map<String, String> serviceProviderEnvMap;
   private final Credentials credentials;
+  private final long memAvailable;
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
@@ -116,8 +117,8 @@ public class TezChild {
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
       Map<String, String> serviceProviderEnvMap,
       ObjectRegistryImpl objectRegistry, String pid,
-      ExecutionContext ExecutionContext,
-      Credentials credentials)
+      ExecutionContext executionContext,
+      Credentials credentials, long memAvailable)
       throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
@@ -126,8 +127,9 @@ public class TezChild {
     this.serviceProviderEnvMap = serviceProviderEnvMap;
     this.workingDir = workingDir;
     this.pid = pid;
-    this.ExecutionContext = ExecutionContext;
+    this.executionContext = executionContext;
     this.credentials = credentials;
+    this.memAvailable = memAvailable;
 
     getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
@@ -233,7 +235,7 @@ public class TezChild {
         TezTaskRunner taskRunner = new TezTaskRunner(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
-            executor, objectRegistry, pid, this.ExecutionContext);
+            executor, objectRegistry, pid, executionContext, memAvailable);
         boolean shouldDie;
         try {
           shouldDie = !taskRunner.run();
@@ -409,7 +411,7 @@ public class TezChild {
   public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
       Map<String, String> serviceProviderEnvMap, @Nullable String pid,
-      ExecutionContext ExecutionContext, Credentials credentials)
+      ExecutionContext executionContext, Credentials credentials, long memAvailable)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -426,7 +428,7 @@ public class TezChild {
 
     return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
         attemptNumber, workingDirectory, localDirs, serviceProviderEnvMap, objectRegistry, pid,
-        ExecutionContext, credentials);
+        executionContext, credentials, memAvailable);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
@@ -459,7 +461,7 @@ public class TezChild {
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
-        credentials);
+        credentials, Runtime.getRuntime().maxMemory());
     tezChild.run();
   }
 

@@ -33,6 +33,13 @@
   </Match>
 
   <Match>
+    <Class name="org.apache.tez.runtime.task.TezChild"/>
+    <Method name="&lt;init&gt;"/>
+    <Field name="localDirs"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
     <Class name="~org\.apache\.tez\.runtime\.internals\.api\.events\.SystemEventProtos\$.*Proto" />
     <Field name="PARSER"/>
     <Bug pattern="MS_SHOULD_BE_FINAL"/>

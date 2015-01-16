@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -142,7 +143,7 @@ public class TaskReporter {
      * Keeps track of regular timed heartbeats. Is primarily used as a timing mechanism to send /
      * log counters.
      */
-    private int nonOobHeartbeatCounter = 0;
+    private AtomicInteger nonOobHeartbeatCounter = new AtomicInteger(0);
     private int nextHeartbeatNumToLog = 0;
     /*
      * Tracks the last non-OOB heartbeat number at which counters were sent to the AM. 
@@ -186,7 +187,7 @@ public class TaskReporter {
             try {
               boolean interrupted = condition.await(pollInterval, TimeUnit.MILLISECONDS);
               if (!interrupted) {
-                nonOobHeartbeatCounter++;
+                nonOobHeartbeatCounter.incrementAndGet();
               }
             } finally {
               lock.unlock();
@@ -228,9 +229,9 @@ public class TaskReporter {
          * real time decisions are made based on these counters, it can be sent once per second.
          */
         // Not completely accurate, since OOB heartbeats could go out.
-        if ((nonOobHeartbeatCounter - prevCounterSendHeartbeatNum) * pollInterval >= sendCounterInterval) {
+        if ((nonOobHeartbeatCounter.get() - prevCounterSendHeartbeatNum) * pollInterval >= sendCounterInterval) {
           counters = task.getCounters();
-          prevCounterSendHeartbeatNum = nonOobHeartbeatCounter;
+          prevCounterSendHeartbeatNum = nonOobHeartbeatCounter.get();
         }
         updateEvent = new TezEvent(new TaskStatusUpdateEvent(counters, task.getProgress()),
             updateEventMetadata);
@@ -294,7 +295,7 @@ public class TaskReporter {
 
     private void maybeLogCounters() {
       if (LOG.isDebugEnabled()) {
-        if (nonOobHeartbeatCounter == nextHeartbeatNumToLog) {
+        if (nonOobHeartbeatCounter.get() == nextHeartbeatNumToLog) {
           LOG.debug("Counters: " + task.getCounters().toShortString());
           nextHeartbeatNumToLog = (int) (nextHeartbeatNumToLog * (LOG_COUNTER_BACKOFF));
         }

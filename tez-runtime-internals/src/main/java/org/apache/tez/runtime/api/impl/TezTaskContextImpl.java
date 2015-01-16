@@ -64,6 +64,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
   private final ObjectRegistry objectRegistry;
   private final int vertexParallelism;
   private final ExecutionContext ExecutionContext;
+  private final long memAvailable;
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
@@ -72,7 +73,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,
-      ExecutionContext ExecutionContext) {
+      ExecutionContext ExecutionContext, long memAvailable) {
     checkNotNull(conf, "conf is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(taskVertexName, "taskVertexName is null");
@@ -103,6 +104,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
     this.objectRegistry = objectRegistry;
     this.vertexParallelism = vertexParallelism;
     this.ExecutionContext = ExecutionContext;
+    this.memAvailable = memAvailable;
   }
 
   @Override
@@ -198,7 +200,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
 
   @Override
   public long getTotalMemoryAvailableToTask() {
-    return Runtime.getRuntime().maxMemory();
+    return memAvailable;
   }
   
   protected void signalFatalError(Throwable t, String message, EventMetaData sourceInfo) {

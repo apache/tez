@@ -68,12 +68,12 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
                              InputDescriptor inputDescriptor, Map<String, LogicalInput> inputs,
                              InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
-                             ExecutionContext ExecutionContext) {
+                             ExecutionContext ExecutionContext, long memAvailable) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
         vertexParallelism, taskAttemptID, wrapCounters(counters,
         taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
         serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
-        objectRegistry, ExecutionContext);
+        objectRegistry, ExecutionContext, memAvailable);
     checkNotNull(inputIndex, "inputIndex is null");
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(inputs, "input map is null");

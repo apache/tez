@@ -72,7 +72,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> serviceProviderEnvMap,
       Multimap<String, String> startedInputsMap, TaskReporter taskReporter,
       ListeningExecutorService executor, ObjectRegistry objectRegistry, String pid,
-      ExecutionContext ExecutionContext)
+      ExecutionContext executionContext, long memAvailable)
           throws IOException {
     this.tezConf = tezConf;
     this.ugi = ugi;
@@ -80,7 +80,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
     this.executor = executor;
     task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs, this,
         serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, objectRegistry, pid,
-        ExecutionContext);
+        executionContext, memAvailable);
     taskReporter.registerTask(task, this);
     taskRunning = new AtomicBoolean(true);
   }

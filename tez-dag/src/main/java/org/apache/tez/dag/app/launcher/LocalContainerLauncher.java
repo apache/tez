@@ -89,7 +89,7 @@ public class LocalContainerLauncher extends AbstractService implements
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private final String workingDirectory;
   private final Map<String, String> localEnv = new HashMap<String, String>();
-  private final ExecutionContext ExecutionContext;
+  private final ExecutionContext executionContext;
 
   private final ConcurrentHashMap<ContainerId, ListenableFuture<TezChild.ContainerExecutionResult>>
       runningContainers =
@@ -116,7 +116,7 @@ public class LocalContainerLauncher extends AbstractService implements
     this.workingDirectory = workingDirectory;
     AuxiliaryServiceHelper.setServiceDataIntoEnv(
         ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, ByteBuffer.allocate(4).putInt(0), localEnv);
-    ExecutionContext = new ExecutionContextImpl(InetAddress.getLocalHost().getHostName());
+    executionContext = new ExecutionContextImpl(InetAddress.getLocalHost().getHostName());
     // User cannot be set here since it isn't available till a DAG is running.
   }
 
@@ -328,9 +328,11 @@ public class LocalContainerLauncher extends AbstractService implements
     containerEnv.putAll(localEnv);
     containerEnv.put(Environment.USER.name(), context.getUser());
 
+    // TODO TEZ-1482. Control the memory available based on number of executors
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
-            attemptNumber, localDirs, workingDirectory, containerEnv, "", ExecutionContext, credentials);
+            attemptNumber, localDirs, workingDirectory, containerEnv, "", executionContext, credentials,
+            Runtime.getRuntime().maxMemory());
     tezChild.setUmbilical(tezTaskUmbilicalProtocol);
     return tezChild;
   }

@@ -126,7 +126,7 @@ public class TestOnFileUnorderedKVOutput {
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         -1, taskAttemptID, counters, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null,
-        new ExecutionContextImpl("localhost"));
+        new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
 
     UnorderedKVOutput kvOutput = new OnFileUnorderedKVOutputForTest(outputContext, 1);
 

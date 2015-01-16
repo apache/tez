@@ -63,12 +63,12 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry,
-      ExecutionContext ExecutionContext) {
+      ExecutionContext ExecutionContext, long memAvailable) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, 
         vertexParallelism, taskAttemptID,
         wrapCounters(counters, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv, memDist, outputDescriptor, objectRegistry, ExecutionContext);
+        auxServiceEnv, memDist, outputDescriptor, objectRegistry, ExecutionContext, memAvailable);
     checkNotNull(outputIndex, "outputIndex is null");
     checkNotNull(destinationVertexName, "destinationVertexName is null");
     this.userPayload = userPayload;
