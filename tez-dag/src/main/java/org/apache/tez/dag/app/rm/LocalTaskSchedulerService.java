@@ -159,6 +159,7 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
   public void serviceInit(Configuration conf) {
     taskRequestHandler = createRequestHandler(conf);
     asyncDelegateRequestThread = new Thread(taskRequestHandler);
+    asyncDelegateRequestThread.setDaemon(true);
   }
 
   protected AsyncDelegateRequestHandler createRequestHandler(Configuration conf) {
@@ -366,7 +367,7 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
 
     @Override
     public void run() {
-      while(true) {
+      while(!Thread.currentThread().isInterrupted()) {
         synchronized(taskRequestQueue) {
           try {
             if (shouldWait()) {
