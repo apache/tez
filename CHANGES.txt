@@ -35,6 +35,7 @@ ALL CHANGES:
   TEZ-1889. Fix test-patch to provide correct findbugs report.
   TEZ-1313. Setup pre-commit build to test submitted patches.
   TEZ-1856. Remove LocalOnFileSortedOutput, LocalMergedInput, LocalTaskOutputFiles.
+  TEZ-1949. Whitelist TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH for broadcast edges.
 
 Release 0.6.0: Unreleased
 
