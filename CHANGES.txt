@@ -93,6 +93,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1962. Fix a thread leak in LocalMode.
   TEZ-1924. Tez AM does not register with AM with full FQDN causing jobs
   to fail in some environments.
   TEZ-1878. Task-specific log level override not working in certain conditions.
