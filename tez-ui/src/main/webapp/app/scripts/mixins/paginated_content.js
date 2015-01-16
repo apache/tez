@@ -36,10 +36,10 @@ App.PaginatedContentMixin = Em.Mixin.create({
 	loading: true,
 
   sortedContent: function() {
+    // convert to a ArrayController. we do not sort at this point as the data is
+    // not globally sorted, and the total number of elements in array is unknown
     var sorted = Em.ArrayController.create({
-      model: this.get('entities'),
-      sortProperties: ['startTime'],
-      sortAscending: false
+      model: this.get('entities')
     });
     this.updatePagination(sorted.toArray());
     return sorted.slice(0, this.count);

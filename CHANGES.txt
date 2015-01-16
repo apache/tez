@@ -6,6 +6,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1968. Tez UI - All vertices of DAG are not listed in vertices page
   TEZ-1890. tez-ui web.tar.gz also being uploaded to maven repository
   TEZ-1931. Publish tez version info to Timeline.
   TEZ-1938. Build warning duplicate jersey-json definitions
