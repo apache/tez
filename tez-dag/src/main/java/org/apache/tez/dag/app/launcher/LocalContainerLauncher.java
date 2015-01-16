@@ -182,24 +182,45 @@ public class LocalContainerLauncher extends AbstractService implements
     context.getEventHandler().handle(new AMContainerEventLaunchFailed(containerId, message));
   }
 
+  private void handleLaunchFailed(Throwable t, ContainerId containerId) {
+    String message;
+    if (t instanceof RejectedExecutionException) {
+      message = "Failed to queue container launch for container Id: " + containerId;
+    } else {
+      message = "Failed to launch container for container Id: " + containerId;
+    }
+    LOG.error(message, t);
+    sendContainerLaunchFailedMsg(containerId, message);
+  }
+
   //launch tasks
   private void launch(NMCommunicatorLaunchRequestEvent event) {
 
     String tokenIdentifier = context.getApplicationID().toString();
     try {
+      TezChild tezChild;
+      try {
+        tezChild =
+            createTezChild(context.getAMConf(), event.getContainerId(), tokenIdentifier,
+                context.getApplicationAttemptId().getAttemptId(), context.getLocalDirs(),
+                (TezTaskUmbilicalProtocol) taskAttemptListener);
+      } catch (InterruptedException e) {
+        handleLaunchFailed(e, event.getContainerId());
+        return;
+      } catch (TezException e) {
+        handleLaunchFailed(e, event.getContainerId());
+        return;
+      } catch (IOException e) {
+        handleLaunchFailed(e, event.getContainerId());
+        return;
+      }
       ListenableFuture<TezChild.ContainerExecutionResult> runningTaskFuture =
-          taskExecutorService.submit(createSubTask(context.getAMConf(),
-              event.getContainerId(), tokenIdentifier,
-              context.getApplicationAttemptId().getAttemptId(),
-              context.getLocalDirs(), (TezTaskUmbilicalProtocol) taskAttemptListener));
+          taskExecutorService.submit(createSubTask(tezChild, event.getContainerId()));
       runningContainers.put(event.getContainerId(), runningTaskFuture);
-      Futures
-          .addCallback(runningTaskFuture, new RunningTaskCallback(context, event.getContainerId()),
-              callbackExecutor);
+      Futures.addCallback(runningTaskFuture,
+          new RunningTaskCallback(context, event.getContainerId(), tezChild), callbackExecutor);
     } catch (RejectedExecutionException e) {
-      String message = "Failed to queue container launch for container Id: " + event.getContainerId();
-      LOG.error(message, e);
-      sendContainerLaunchFailedMsg(event.getContainerId(), message);
+      handleLaunchFailed(e, event.getContainerId());
     }
   }
 
@@ -224,10 +245,12 @@ public class LocalContainerLauncher extends AbstractService implements
 
     private final AppContext appContext;
     private final ContainerId containerId;
+    private final TezChild tezChild;
 
-    RunningTaskCallback(AppContext appContext, ContainerId containerId) {
+    RunningTaskCallback(AppContext appContext, ContainerId containerId, TezChild tezChild) {
       this.appContext = appContext;
       this.containerId = containerId;
+      this.tezChild = tezChild;
     }
 
     @Override
@@ -253,6 +276,7 @@ public class LocalContainerLauncher extends AbstractService implements
     @Override
     public void onFailure(Throwable t) {
       runningContainers.remove(containerId);
+      tezChild.shutdown();
       // Ignore CancellationException since that is triggered by the LocalContainerLauncher itself
       if (!(t instanceof CancellationException)) {
         LOG.info("Container: " + containerId + ": Execution Failed: ", t);
@@ -274,12 +298,7 @@ public class LocalContainerLauncher extends AbstractService implements
 
   //create a SubTask
   private synchronized Callable<TezChild.ContainerExecutionResult> createSubTask(
-      final Configuration defaultConf,
-      final ContainerId containerId,
-      final String tokenIdentifier,
-      final int attemptNumber,
-      final String[] localDirs,
-      final TezTaskUmbilicalProtocol tezTaskUmbilicalProtocol) {
+      final TezChild tezChild, final ContainerId containerId) {
 
     return new Callable<TezChild.ContainerExecutionResult>() {
       @Override
@@ -292,19 +311,27 @@ public class LocalContainerLauncher extends AbstractService implements
                 context.getApplicationAttemptId());
 
         context.getHistoryHandler().handle(new DAGHistoryEvent(context.getCurrentDAGID(), lEvt));
-
-        Map<String, String> containerEnv = new HashMap<String, String>();
-        containerEnv.putAll(localEnv);
-        containerEnv.put(Environment.USER.name(), context.getUser());
-        // Pull in configuration specified for the session.
-        TezChild tezChild =
-            TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
-                attemptNumber, localDirs, workingDirectory, containerEnv, "", ExecutionContext);
-        tezChild.setUmbilical(tezTaskUmbilicalProtocol);
         return tezChild.run();
       }
     };
   }
+
+  private TezChild createTezChild(Configuration defaultConf, ContainerId containerId,
+                                  String tokenIdentifier, int attemptNumber, String[] localDirs,
+                                  TezTaskUmbilicalProtocol tezTaskUmbilicalProtocol) throws
+      InterruptedException, TezException, IOException {
+    Map<String, String> containerEnv = new HashMap<String, String>();
+    containerEnv.putAll(localEnv);
+    containerEnv.put(Environment.USER.name(), context.getUser());
+
+    TezChild tezChild =
+        TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
+            attemptNumber, localDirs, workingDirectory, containerEnv, "", ExecutionContext);
+    tezChild.setUmbilical(tezTaskUmbilicalProtocol);
+    return tezChild;
+  }
+
+
 
   @Override
   public void handle(NMCommunicatorEvent event) {

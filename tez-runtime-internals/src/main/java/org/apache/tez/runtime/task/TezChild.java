@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.conf.Configuration;
@@ -101,6 +102,7 @@ public class TezChild {
   private final ExecutionContext ExecutionContext;
   private final Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
   private final Map<String, String> serviceProviderEnvMap;
+  private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
 
@@ -191,20 +193,24 @@ public class TezChild {
         TezUtilsInternal.updateLoggers("");
       }
       ListenableFuture<ContainerTask> getTaskFuture = executor.submit(containerReporter);
+      boolean error = false;
       ContainerTask containerTask = null;
       try {
         containerTask = getTaskFuture.get();
       } catch (ExecutionException e) {
+        error = true;
         Throwable cause = e.getCause();
-        handleError(cause);
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
             cause, "Execution Exception while fetching new work: " + e.getMessage());
       } catch (InterruptedException e) {
-        LOG.info("Interrupted while waiting for new work:"
-            + containerTask.getTaskSpec().getTaskAttemptID());
-        handleError(e);
+        error = true;
+        LOG.info("Interrupted while waiting for new work");
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.INTERRUPTED, e,
             "Interrupted while waiting for new work");
+      } finally {
+        if (error) {
+          shutdown();
+        }
       }
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true, Exiting");
@@ -336,15 +342,17 @@ public class TezChild {
     lastVertexID = newVertexID;
   }
 
-  private void shutdown() {
-    executor.shutdownNow();
-    if (taskReporter != null) {
-      taskReporter.shutdown();
-    }
-    RPC.stopProxy(umbilical);
-    DefaultMetricsSystem.shutdown();
-    if (!isLocal) {
-      LogManager.shutdown();
+  public void shutdown() {
+    if (!isShutdown.getAndSet(true)) {
+      executor.shutdownNow();
+      if (taskReporter != null) {
+        taskReporter.shutdown();
+      }
+      DefaultMetricsSystem.shutdown();
+      if (!isLocal) {
+        RPC.stopProxy(umbilical);
+        LogManager.shutdown();
+      }
     }
   }
 
