@@ -72,6 +72,7 @@ ALL CHANGES:
   TEZ-1697. DAG submission fails if a local resource added is already part of tez.lib.uris
   TEZ-1060 Add randomness to fault tolerance tests
   TEZ-1790. DeallocationTaskRequest may been handled before corresponding AllocationTaskRequest in local mode
+  TEZ-1949. Whitelist TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH for broadcast edges.
 
 TEZ-UI CHANGES (TEZ-8):
   TEZ-1799. Enable Cross Origin Support in Tez UI

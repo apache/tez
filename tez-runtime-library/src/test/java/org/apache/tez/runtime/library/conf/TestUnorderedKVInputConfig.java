@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
 
@@ -127,5 +128,58 @@ public class TestUnorderedKVInputConfig {
     // Verify whatever was configured
     assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));
+  }
+
+  private final void verifySharedFetchConfigs(UserPayload payload) {
+    UnorderedKVInputConfig rebuilt = new UnorderedKVInputConfig();
+    rebuilt.fromUserPayload(payload);
+
+    Configuration conf = rebuilt.conf;
+
+    assertEquals(
+        !TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT,
+        conf.getBoolean(
+            TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
+            TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT));
+
+    assertEquals(
+        !TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH_DEFAULT,
+        conf.getBoolean(
+            TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH,
+            TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH_DEFAULT));
+  }
+
+  @Test
+  public void testSharedFetchConfigs() {
+    UnorderedKVInputConfig.Builder builder = UnorderedKVInputConfig.newBuilder(
+        "KEY", "VALUE");
+
+    UnorderedKVInputConfig configuration = builder
+        .setAdditionalConfiguration(
+            TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
+            String
+                .valueOf(!TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT))
+        .setAdditionalConfiguration(
+            TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH,
+            String
+                .valueOf(!TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH_DEFAULT))
+        .build();
+
+    verifySharedFetchConfigs(configuration.toUserPayload());
+    /* test from configuration */
+
+    Configuration conf = new Configuration();
+    conf.set(
+        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
+        String
+            .valueOf(!TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT));
+    conf.set(
+        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH,
+        String
+            .valueOf(!TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH_DEFAULT));
+    configuration = UnorderedKVInputConfig.newBuilder("KEY", "VALUE")
+        .setFromConfiguration(conf).build();
+
+    verifySharedFetchConfigs(configuration.toUserPayload());
   }
 }
