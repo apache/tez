@@ -36,6 +36,7 @@ ALL CHANGES:
   TEZ-1313. Setup pre-commit build to test submitted patches.
   TEZ-1856. Remove LocalOnFileSortedOutput, LocalMergedInput, LocalTaskOutputFiles.
   TEZ-1949. Whitelist TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH for broadcast edges.
+  TEZ-1593. Refactor PipelinedSorter to remove all MMAP based ByteBuffer references.
 
 Release 0.6.0: Unreleased
 
