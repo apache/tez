@@ -99,4 +99,10 @@ public class ATSConstants {
       "yarn.timeline-service.webapp.address";
   public static final String TIMELINE_SERVICE_WEBAPP_HTTPS_ADDRESS_CONF_NAME =
       "yarn.timeline-service.webapp.https.address";
+
+  public static final String TEZ_VERSION = "tezVersion";
+  public static final String VERSION = "version";
+  public static final String REVISION = "revision";
+  public static final String BUILD_TIME = "buildTime";
+
 }

@@ -119,7 +119,7 @@ public class TestHistoryEventsProtoConversion {
 
   private void testAppLaunchedEvent() throws Exception {
     AppLaunchedEvent event = new AppLaunchedEvent(ApplicationId.newInstance(0, 1),
-        100, 100, null, new Configuration(false));
+        100, 100, null, new Configuration(false), null);
     try {
       testProtoConversion(event);
       fail("Expected to fail on conversion");

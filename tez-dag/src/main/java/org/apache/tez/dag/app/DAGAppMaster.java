@@ -462,7 +462,8 @@ public class DAGAppMaster extends AbstractService {
     if (!versionMismatch) {
       if (this.appAttemptID.getAttemptId() == 1) {
         AppLaunchedEvent appLaunchedEvent = new AppLaunchedEvent(appAttemptID.getApplicationId(),
-            startTime, appSubmitTime, appMasterUgi.getShortUserName(), this.amConf);
+            startTime, appSubmitTime, appMasterUgi.getShortUserName(), this.amConf,
+            dagVersionInfo);
         historyEventHandler.handle(
             new DAGHistoryEvent(appLaunchedEvent));
       }
