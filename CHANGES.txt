@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1901. Fix findbugs warnings in tez-examples.
   TEZ-1941. Memory provided by *Context.getAvailableMemory needs to be setup explicitly.
   TEZ-1879. Create local UGI instances for each task and the AM, when running in LocalMode.
   TEZ-1661. LocalTaskScheduler hangs when shutdown.

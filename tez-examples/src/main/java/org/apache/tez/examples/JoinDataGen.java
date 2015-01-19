@@ -257,7 +257,7 @@ public class JoinDataGen extends TezExampleBase {
       StringBuilder sb = new StringBuilder();
       Random random = new Random();
       for (int i = 0; i < size; i++) {
-        int r = Math.abs(random.nextInt()) % 26;
+        int r = random.nextInt(Integer.MAX_VALUE) % 26;
         // Random a-z followed by the count
         sb.append((char) (97 + r));
       }
@@ -269,7 +269,7 @@ public class JoinDataGen extends TezExampleBase {
       StringBuilder sb = new StringBuilder();
       Random random = new Random();
       for (int i = 0; i < size; i++) {
-        int r = Math.abs(random.nextInt()) % 26;
+        int r = random.nextInt(Integer.MAX_VALUE) % 26;
         // Random A-Z followed by the count
         sb.append((char) (65 + r));
       }
