@@ -45,7 +45,6 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
   TEZ-1968. Tez UI - All vertices of DAG are not listed in vertices page
   TEZ-1890. tez-ui web.tar.gz also being uploaded to maven repository
-  TEZ-1931. Publish tez version info to Timeline.
   TEZ-1938. Build warning duplicate jersey-json definitions
   TEZ-1910. Build fails against hadoop-2.2.0.
   TEZ-1882. Tez UI build does not work on Windows
@@ -131,6 +130,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1931. Publish tez version info to Timeline.
   TEZ-1942. Number of tasks show in Tez UI with auto-reduce parallelism is misleading.
   TEZ-1962. Fix a thread leak in LocalMode.
   TEZ-1924. Tez AM does not register with AM with full FQDN causing jobs
