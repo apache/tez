@@ -98,7 +98,8 @@ public class MergeManager {
   final OnDiskMerger onDiskMerger;
   
   private final long memoryLimit;
-  private final int postMergeMemLimit;
+  @VisibleForTesting
+  final long postMergeMemLimit;
   private long usedMemory;
   private long commitMemory;
   private final int ioSortFactor;
@@ -201,9 +202,8 @@ public class MergeManager {
     if (maxRedPer > 1.0 || maxRedPer < 0.0) {
       throw new TezUncheckedException(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT + maxRedPer);
     }
-    // TODO maxRedBuffer should be a long.
-    int maxRedBuffer = (int) Math.min(inputContext.getTotalMemoryAvailableToTask() * maxRedPer,
-        Integer.MAX_VALUE);
+
+    long maxRedBuffer = (long) (inputContext.getTotalMemoryAvailableToTask() * maxRedPer);
     // Figure out initial memory req end
     
     if (this.initialMemoryAvailable < memLimit) {
@@ -213,7 +213,7 @@ public class MergeManager {
     }
     
     if (this.initialMemoryAvailable < maxRedBuffer) {
-      this.postMergeMemLimit = (int) this.initialMemoryAvailable;
+      this.postMergeMemLimit = this.initialMemoryAvailable;
     } else {
       this.postMergeMemLimit = maxRedBuffer;
     }
@@ -315,9 +315,8 @@ public class MergeManager {
       if (maxRedPer > 1.0 || maxRedPer < 0.0) {
         throw new TezUncheckedException(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT + maxRedPer);
       }
-      // TODO maxRedBuffer should be a long.
-      int maxRedBuffer = (int) Math.min(maxAvailableTaskMemory * maxRedPer,
-          Integer.MAX_VALUE);
+      long maxRedBuffer = (long) (maxAvailableTaskMemory * maxRedPer);
+
       LOG.info("Initial Memory required for final merged output: " + maxRedBuffer + ", using factor: " + maxRedPer);
 
       long reqMem = Math.max(maxRedBuffer, memLimit);

@@ -42,6 +42,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
@@ -78,6 +79,91 @@ public class TestMergeManager {
   @After
   public void cleanup() throws IOException {
     localFs.delete(workDir, true);
+  }
+
+  @Test(timeout = 10000)
+  public void testConfigs() throws IOException {
+    long maxTaskMem = 8192 * 1024 * 1024l;
+
+    //Test Shuffle fetch buffer and post merge buffer percentage
+    Configuration conf = new TezConfiguration(defaultConf);
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.8f);
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.5f);
+    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) == 6871947776l);
+
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.5f);
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.5f);
+    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) > Integer.MAX_VALUE);
+
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.4f);
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.9f);
+    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) > Integer.MAX_VALUE);
+
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.1f);
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.1f);
+    Assert.assertTrue(MergeManager.getInitialMemoryRequirement(conf, maxTaskMem) < Integer.MAX_VALUE);
+
+    try {
+      conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 2.4f);
+      MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
+      Assert.fail("Should have thrown wrong buffer percent configuration exception");
+    } catch(IllegalArgumentException ie) {
+    }
+
+    try {
+      conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, -2.4f);
+      MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
+      Assert.fail("Should have thrown wrong buffer percent configuration exception");
+    } catch(IllegalArgumentException ie) {
+    }
+
+    try {
+      conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 1.4f);
+      MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
+      Assert.fail("Should have thrown wrong post merge buffer percent configuration exception");
+    } catch(IllegalArgumentException ie) {
+    }
+
+    try {
+      conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, -1.4f);
+      MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
+      Assert.fail("Should have thrown wrong post merge buffer percent configuration exception");
+    } catch(IllegalArgumentException ie) {
+    }
+
+    try {
+      conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 1.4f);
+      MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
+      Assert.fail("Should have thrown wrong shuffle fetch buffer percent configuration exception");
+    } catch(IllegalArgumentException ie) {
+    }
+
+    try {
+      conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, -1.4f);
+      MergeManager.getInitialMemoryRequirement(conf, maxTaskMem);
+      Assert.fail("Should have thrown wrong shuffle fetch buffer percent configuration exception");
+    } catch(IllegalArgumentException ie) {
+    }
+
+    //test post merge mem limit
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.4f);
+    conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.8f);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    LocalDirAllocator localDirAllocator =
+        new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    InputContext t0inputContext = createMockInputContext(UUID.randomUUID().toString(), maxTaskMem);
+    ExceptionReporter t0exceptionReporter = mock(ExceptionReporter.class);
+    long initialMemoryAvailable = (long) (maxTaskMem * 0.8);
+    MergeManager mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
+            t0exceptionReporter, initialMemoryAvailable, null, false, -1);
+    Assert.assertTrue(mergeManager.postMergeMemLimit > Integer.MAX_VALUE);
+
+    initialMemoryAvailable = 200 * 1024 * 1024l; //initial mem < memlimit
+    mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
+            t0exceptionReporter, initialMemoryAvailable, null, false, -1);
+    Assert.assertTrue(mergeManager.postMergeMemLimit == initialMemoryAvailable);
   }
 
   @Test(timeout = 10000)
@@ -190,9 +276,13 @@ public class TestMergeManager {
   }
 
   private InputContext createMockInputContext(String uniqueId) {
+    return createMockInputContext(uniqueId, 200 * 1024 * 1024l);
+  }
+
+  private InputContext createMockInputContext(String uniqueId, long mem) {
     InputContext inputContext = mock(InputContext.class);
     doReturn(new TezCounters()).when(inputContext).getCounters();
-    doReturn(200 * 1024 * 1024l).when(inputContext).getTotalMemoryAvailableToTask();
+    doReturn(mem).when(inputContext).getTotalMemoryAvailableToTask();
     doReturn("srcVertexName").when(inputContext).getSourceVertexName();
     doReturn(uniqueId).when(inputContext).getUniqueIdentifier();
     return inputContext;
