@@ -124,10 +124,10 @@ public class MRInputLegacy extends MRInput {
   @Override
   void checkAndAwaitRecordReaderInitialization() throws IOException {
     eventLock.lock();
-    if (inited) {
-      return;
-    }
     try {
+      if (inited) {
+        return;
+      }
       if (splitInfoViaEvents && !inited) {
         if (initEvent == null) {
           LOG.info("Awaiting init event before initializing record reader");
@@ -137,8 +137,12 @@ public class MRInputLegacy extends MRInput {
             throw new IOException("Interrupted while awaiting init event", e);
           }
         }
-        initFromEvent(initEvent);
-        inited = true;
+        if (initEvent != null) {
+          initFromEvent(initEvent);
+          inited = true;
+        } else {
+          throw new IOException("Received a signal for init but init event is null");
+        }
       } else {
         // Already inited
         return;

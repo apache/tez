@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1902. Fix findbugs warnings in tez-mapreduce.
   TEZ-1963. Fix post memory merge to be > 2 GB.
   TEZ-1901. Fix findbugs warnings in tez-examples.
   TEZ-1941. Memory provided by *Context.getAvailableMemory needs to be setup explicitly.

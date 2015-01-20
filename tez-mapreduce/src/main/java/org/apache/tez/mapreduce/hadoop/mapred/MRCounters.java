@@ -184,6 +184,34 @@ public class MRCounters extends org.apache.hadoop.mapred.Counters {
       // FIXME?
       return group.iterator();
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      if (!super.equals(o)) {
+        return false;
+      }
+
+      MRCounterGroup counters = (MRCounterGroup) o;
+
+      if (group != null ? !group.equals(counters.group) : counters.group != null) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = super.hashCode();
+      result = 3491 * result + (group != null ? group.hashCode() : 0);
+      return result;
+    }
   }
   
   public static class MRCounter extends Counter {

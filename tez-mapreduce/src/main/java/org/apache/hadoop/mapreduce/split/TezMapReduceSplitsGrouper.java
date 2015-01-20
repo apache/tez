@@ -76,19 +76,19 @@ public class TezMapReduceSplitsGrouper {
    * shorter.
    */
   public static final String TEZ_GROUPING_SPLIT_WAVES = "tez.grouping.split-waves";
-  public static float TEZ_GROUPING_SPLIT_WAVES_DEFAULT = 1.7f;
+  public static final float TEZ_GROUPING_SPLIT_WAVES_DEFAULT = 1.7f;
 
   /**
    * Upper bound on the size (in bytes) of a grouped split, to avoid generating excessively large splits.
    */
   public static final String TEZ_GROUPING_SPLIT_MAX_SIZE = "tez.grouping.max-size";
-  public static long TEZ_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 1024*1024*1024L;
+  public static final long TEZ_GROUPING_SPLIT_MAX_SIZE_DEFAULT = 1024*1024*1024L;
 
   /**
    * Lower bound on the size (in bytes) of a grouped split, to avoid generating too many small splits.
    */
   public static final String TEZ_GROUPING_SPLIT_MIN_SIZE = "tez.grouping.min-size";
-  public static long TEZ_GROUPING_SPLIT_MIN_SIZE_DEFAULT = 50*1024*1024L;
+  public static final long TEZ_GROUPING_SPLIT_MIN_SIZE_DEFAULT = 50*1024*1024L;
 
   /**
    * This factor is used to decrease the per group desired (length and count) limits for groups
@@ -108,7 +108,7 @@ public class TezMapReduceSplitsGrouper {
   public static final String TEZ_GROUPING_REPEATABLE = "tez.grouping.repeatable";
   public static final boolean TEZ_GROUPING_REPEATABLE_DEFAULT = true;
 
-  class SplitHolder {
+  static class SplitHolder {
     InputSplit split;
     boolean isProcessed = false;
     SplitHolder(InputSplit split) {
@@ -116,7 +116,7 @@ public class TezMapReduceSplitsGrouper {
     }
   }
   
-  class LocationHolder {
+  static class LocationHolder {
     List<SplitHolder> splits;
     int headIndex = 0;
     LocationHolder(int capacity) {

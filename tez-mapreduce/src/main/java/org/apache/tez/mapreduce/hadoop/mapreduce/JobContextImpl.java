@@ -58,10 +58,6 @@ public class JobContextImpl implements JobContext {
 
   protected final org.apache.hadoop.mapred.JobConf conf;
   private TezDAGID dagId;
-  /**
-   * The UserGroupInformation object that has a reference to the current user
-   */
-  protected UserGroupInformation ugi;
   protected final Credentials credentials;
   private Progressable progress;
 
@@ -77,11 +73,6 @@ public class JobContextImpl implements JobContext {
     }
     this.dagId = dagId;
     this.credentials = this.conf.getCredentials();
-    try {
-      this.ugi = UserGroupInformation.getCurrentUser();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
     this.progress = progress;
   }
 

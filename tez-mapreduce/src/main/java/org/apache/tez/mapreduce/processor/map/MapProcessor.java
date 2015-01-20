@@ -350,7 +350,7 @@ public class MapProcessor extends MRTask{
     }
   }
 
-  private class NewOutputCollector
+  private static class NewOutputCollector
     extends org.apache.hadoop.mapreduce.RecordWriter {
     private final KeyValueWriter out;
 

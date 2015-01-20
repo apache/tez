@@ -49,7 +49,7 @@ import com.google.common.base.Preconditions;
 public class TezMapredSplitsGrouper {
   private static final Log LOG = LogFactory.getLog(TezMapredSplitsGrouper.class);
 
-  class SplitHolder {
+  static class SplitHolder {
     InputSplit split;
     boolean isProcessed = false;
     SplitHolder(InputSplit split) {
@@ -57,7 +57,7 @@ public class TezMapredSplitsGrouper {
     }
   }
   
-  class LocationHolder {
+  static class LocationHolder {
     List<SplitHolder> splits;
     int headIndex = 0;
     LocationHolder(int capacity) {

@@ -13,4 +13,148 @@
 -->
 <FindBugsFilter>
 
+  <Match>
+    <Class name="~org\.apache\.tez\.mapreduce\.protos\.MRRuntimeProtos\$.*Proto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.mapreduce\.protos\.MRRuntimeProtos\$.*Proto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.protos.MRRuntimeProtos$MRSplitProto$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.mapred.JobContextImpl"/>
+    <Bug pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl"/>
+    <Bug pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl"/>
+    <Bug pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.MRInputHelpers$InputSplitComparator"/>
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.MRInputHelpers$OldInputSplitComparator"/>
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.hadoop.mapred.split.TezGroupedSplit"/>
+    <Method name="getLocations"/><Field name="locations"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.hadoop.mapreduce.split.TezGroupedSplit"/>
+    <Method name="getLocations"/>
+    <Field name="locations"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.InputSplitInfoMem"/>
+    <Method name="getNewFormatSplits"/>
+    <Field name="newFormatSplits"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.InputSplitInfoMem"/>
+    <Method name="getOldFormatSplits"/>
+    <Field name="oldFormatSplits"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.hadoop.mapred.split.TezGroupedSplit"/>
+    <Method name="&lt;init&gt;"/>
+    <Field name="locations"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.hadoop.mapreduce.split.TezGroupedSplit"/>
+    <Method name="&lt;init&gt;"/>
+    <Field name="locations"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.InputSplitInfoMem"/>
+    <Method name="&lt;init&gt;"/>
+    <Field name="oldFormatSplits"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.InputSplitInfoMem"/>
+    <Method name="&lt;init&gt;"/>
+    <Field name="newFormatSplits"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.hadoop.mapred.split.TezMapredSplitsGrouper"/>
+    <Method name="getGroupedSplits"/>
+    <Bug pattern="WMI_WRONG_MAP_ITERATOR"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper"/>
+    <Method name="getGroupedSplits"/>
+    <Bug pattern="WMI_WRONG_MAP_ITERATOR"/>
+  </Match>
+
+  <Match>
+    <Class name="~org\.apache\.tez\.mapreduce\.hadoop\.MRInputHelpers\$.*"/>
+    <Method name="apply"/>
+    <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE"/>
+  </Match>
+
+  <!-- TEZ-1974 -->
+  <Match>
+    <Class name="org.apache.tez.mapreduce.hadoop.mapred.MRCounters$MRCounter"/>
+    <Method name="equals" params="java.lang.Object" returns="boolean"/>
+    <Bug pattern="EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS"/>
+  </Match>
+
+  <!-- TEZ-1975 -->
+  <Match>
+    <Class name="org.apache.tez.mapreduce.input.MRInput"/>
+    <Method name="checkAndAwaitRecordReaderInitialization"/>
+    <Bug pattern="WA_AWAIT_NOT_IN_LOOP"/>
+  </Match>
+
+  <!-- TEZ-1975 -->
+  <Match>
+    <Class name="org.apache.tez.mapreduce.input.MRInputLegacy"/>
+    <Method name="checkAndAwaitRecordReaderInitialization"/>
+    <Bug pattern="WA_AWAIT_NOT_IN_LOOP"/>
+  </Match>
+
+  <!-- TEZ-1976 -->
+  <Match>
+    <Class name="org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat$SplitHolder"/>
+    <Field name="split"/>
+    <Bug pattern="URF_UNREAD_FIELD"/>
+  </Match>
+
 </FindBugsFilter>
