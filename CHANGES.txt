@@ -45,6 +45,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1743. Add versions-maven-plugins artifacts to gitignore
   TEZ-1968. Tez UI - All vertices of DAG are not listed in vertices page
   TEZ-1890. tez-ui web.tar.gz also being uploaded to maven repository
   TEZ-1938. Build warning duplicate jersey-json definitions
@@ -112,6 +113,20 @@ ALL CHANGES:
   TEZ-1790. DeallocationTaskRequest may been handled before corresponding AllocationTaskRequest in local mode
 
 TEZ-UI CHANGES (TEZ-8):
+  TEZ-1823. TEZ-8 default ATS url should be the same host as ui
+  TEZ-1817. TEZ-8 Add configuration and build details to README
+  TEZ-1813. TEZ-8 display loading and other error messages in tez-ui
+  TEZ-1809. TEZ-8 Provide a error bar to report errors to users in Tez-UI
+  TEZ-1810. TEZ-8 Do not deploy tez-ui war to maven repo
+  TEZ-1709. TEZ-8 Bunch of files in tez-ui missing Apache license header
+  TEZ-1784. TEZ-8 Attempt details in tasks table.
+  TEZ-1801. TEZ-8 Update build instructions for tez-ui
+  TEZ-1757. TEZ-8 Column selector for tables.
+  TEZ-1794. TEZ-8 Vertex view needs a task attempt rollup
+  TEZ-1791. TEZ-8 breadcrumbs for moving between pages.
+  TEZ-1781. TEZ-8 Configurations view ~ New design
+  TEZ-1605. TEZ-8 Landing page for Tez UI
+  TEZ-1600. TEZ-8 Swimlanes View for Tez UI 
   TEZ-1799. Enable Cross Origin Support in Tez UI
   TEZ-1634. Fix compressed IFile shuffle errors
   TEZ-1615. Skeleton framework for Tez UI
