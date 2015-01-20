@@ -45,6 +45,7 @@ Release 0.6.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1977. Fixup CHANGES.txt with Tez UI jiras
   TEZ-1743. Add versions-maven-plugins artifacts to gitignore
   TEZ-1968. Tez UI - All vertices of DAG are not listed in vertices page
   TEZ-1890. tez-ui web.tar.gz also being uploaded to maven repository
