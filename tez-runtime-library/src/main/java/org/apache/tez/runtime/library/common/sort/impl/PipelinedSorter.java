@@ -246,7 +246,8 @@ public class PipelinedSorter extends ExternalSorter {
         + (partitions * APPROX_HEADER_LENGTH);
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
     final Path filename =
-      mapOutputFile.getSpillFileForWrite(numSpills, size);    
+      mapOutputFile.getSpillFileForWrite(numSpills, size);
+    spillFilePaths.put(numSpills, filename);
     FSDataOutputStream out = rfs.create(filename, true, 4096);
 
     try {
@@ -281,6 +282,7 @@ public class PipelinedSorter extends ExternalSorter {
       Path indexFilename =
         mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
             * MAP_OUTPUT_INDEX_RECORD_LENGTH);
+      spillFileIndexPaths.put(numSpills, indexFilename);
       // TODO: cache
       spillRec.writeToFile(indexFilename, conf);
       ++numSpills;
@@ -294,9 +296,9 @@ public class PipelinedSorter extends ExternalSorter {
   @Override
   public void flush() throws IOException {
     final String uniqueIdentifier = outputContext.getUniqueIdentifier();
-    Path finalOutputFile =
+    finalOutputFile =
         mapOutputFile.getOutputFileForWrite(0); //TODO
-    Path finalIndexFile =
+    finalIndexFile =
         mapOutputFile.getOutputIndexFileForWrite(0); //TODO
 
     LOG.info("Starting flush of map output");
@@ -312,12 +314,13 @@ public class PipelinedSorter extends ExternalSorter {
     if(numSpills == 1) {
       // someday be able to pass this directly to shuffle
       // without writing to disk
-      final Path filename =
-          mapOutputFile.getSpillFile(0);
-      Path indexFilename =
-              mapOutputFile.getSpillIndexFile(0);
-      sameVolRename(filename, mapOutputFile.getOutputFileForWriteInVolume(filename));
-      sameVolRename(indexFilename, mapOutputFile.getOutputIndexFileForWriteInVolume(indexFilename));
+      final Path filename = spillFilePaths.get(0);
+      final Path indexFilename = spillFileIndexPaths.get(0);
+      finalOutputFile = mapOutputFile.getOutputFileForWriteInVolume(filename);
+      finalIndexFile = mapOutputFile.getOutputIndexFileForWriteInVolume(indexFilename);
+
+      sameVolRename(filename, finalOutputFile);
+      sameVolRename(indexFilename, finalIndexFile);
       return;
     }
     
@@ -325,11 +328,10 @@ public class PipelinedSorter extends ExternalSorter {
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
 
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
-    final ArrayList<TezSpillRecord> indexCacheList = new ArrayList<TezSpillRecord>();
 
     for(int i = 0; i < numSpills; i++) {
       // TODO: build this cache before
-      Path indexFilename = mapOutputFile.getSpillIndexFile(i);
+      Path indexFilename = spillFileIndexPaths.get(i);
       TezSpillRecord spillIndex = new TezSpillRecord(indexFilename, conf);
       indexCacheList.add(spillIndex);
     }
@@ -339,7 +341,7 @@ public class PipelinedSorter extends ExternalSorter {
       List<Segment> segmentList =
           new ArrayList<Segment>(numSpills);
       for(int i = 0; i < numSpills; i++) {
-        Path spillFilename = mapOutputFile.getSpillFile(i);
+        Path spillFilename = spillFilePaths.get(i);
         TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
         Segment s =
@@ -390,14 +392,16 @@ public class PipelinedSorter extends ExternalSorter {
     spillRec.writeToFile(finalIndexFile, conf);
     finalOut.close();
     for(int i = 0; i < numSpills; i++) {
-      Path indexFilename = mapOutputFile.getSpillIndexFile(i);
-      Path spillFilename = mapOutputFile.getSpillFile(i);
+      Path indexFilename = spillFileIndexPaths.get(i);
+      Path spillFilename = spillFilePaths.get(i);
       rfs.delete(indexFilename,true);
       rfs.delete(spillFilename,true);
     }
+
+    spillFileIndexPaths.clear();
+    spillFilePaths.clear();
   }
 
-  public void close() { }
 
   private interface PartitionedRawKeyValueIterator extends TezRawKeyValueIterator {
     int getPartition();

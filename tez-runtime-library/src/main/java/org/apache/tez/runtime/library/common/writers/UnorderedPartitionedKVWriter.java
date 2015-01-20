@@ -126,6 +126,11 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   final AtomicInteger numSpills = new AtomicInteger(0);
   private final AtomicInteger pendingSpillCount = new AtomicInteger(0);
 
+  @VisibleForTesting
+  Path finalIndexPath;
+  @VisibleForTesting
+  Path finalOutPath;
+
   private final ReentrantLock spillLock = new ReentrantLock();
   private final Condition spillInProgress = spillLock.newCondition();
 
@@ -334,6 +339,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       Path outPath = null;
       if (isFinalSpill) {
         outPath = outputFileHandler.getOutputFileForWrite(spillSize);
+        finalOutPath = outPath;
       } else {
         outPath = outputFileHandler.getSpillFileForWrite(spillNumber, spillSize);
       }
@@ -370,8 +376,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       }
       if (isFinalSpill) {
         long indexFileSizeEstimate = numPartitions * Constants.MAP_OUTPUT_INDEX_RECORD_LENGTH;
-        Path finalSpillFile = outputFileHandler.getOutputIndexFileForWrite(indexFileSizeEstimate);
-        spillRecord.writeToFile(finalSpillFile, conf);
+        finalIndexPath = outputFileHandler.getOutputIndexFileForWrite(indexFileSizeEstimate);
+        spillRecord.writeToFile(finalIndexPath, conf);
         fileOutputBytesCounter.increment(indexFileSizeEstimate);
         LOG.info("Finished final and only spill");
       } else {
@@ -516,8 +522,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
 
     long indexFileSizeEstimate = numPartitions * Constants.MAP_OUTPUT_INDEX_RECORD_LENGTH;
-    Path finalOutPath = outputFileHandler.getOutputFileForWrite(expectedSize);
-    Path finalIndexPath = outputFileHandler.getOutputIndexFileForWrite(indexFileSizeEstimate);
+    finalOutPath = outputFileHandler.getOutputFileForWrite(expectedSize);
+    finalIndexPath = outputFileHandler.getOutputIndexFileForWrite(indexFileSizeEstimate);
 
     TezSpillRecord finalSpillRecord = new TezSpillRecord(numPartitions);
 

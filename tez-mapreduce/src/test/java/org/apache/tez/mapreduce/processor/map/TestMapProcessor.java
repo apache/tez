@@ -24,7 +24,9 @@ import java.util.Collections;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.LongWritable;
@@ -96,6 +98,15 @@ public class TestMapProcessor {
     job.setNumReduceTasks(1);
   }
 
+  private Path getMapOutputFile(Configuration jobConf, OutputContext outputContext)
+      throws IOException {
+    LocalDirAllocator lDirAlloc = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    Path attemptOutput = new Path(new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR, outputContext.getUniqueIdentifier()),
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
+    Path mapOutputFile = lDirAlloc.getLocalPathToRead(attemptOutput.toString(), jobConf);
+    return  mapOutputFile;
+  }
+
   @Before
   @After
   public void cleanup() throws Exception {
@@ -152,7 +163,7 @@ public class TestMapProcessor {
 //        .getCommitter().getClass().getName());
 //    t.close();
 
-    Path mapOutputFile = mapOutputs.getOutputFile();
+    Path mapOutputFile = getMapOutputFile(jobConf, outputContext);
     LOG.info("mapOutputFile = " + mapOutputFile);
     IFile.Reader reader =
         new IFile.Reader(localFs, mapOutputFile, null, null, null, false, 0, -1);

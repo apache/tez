@@ -22,7 +22,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -63,7 +65,10 @@ public abstract class ExternalSorter {
 
   private static final Log LOG = LogFactory.getLog(ExternalSorter.class);
 
-  public abstract void close() throws IOException;
+  public void close() throws IOException {
+    spillFileIndexPaths.clear();
+    spillFilePaths.clear();
+  }
 
   public abstract void flush() throws IOException;
 
@@ -102,6 +107,12 @@ public abstract class ExternalSorter {
 
   // Compression for map-outputs
   protected final CompressionCodec codec;
+
+  protected final Map<Integer, Path> spillFilePaths = Maps.newHashMap();
+  protected final Map<Integer, Path> spillFileIndexPaths = Maps.newHashMap();
+
+  protected Path finalOutputFile;
+  protected Path finalIndexFile;
 
   // Counters
   // MR compatilbity layer needs to rename counters back to what MR requries.
@@ -241,6 +252,11 @@ public abstract class ExternalSorter {
   @Private
   public TezTaskOutput getMapOutput() {
     return mapOutputFile;
+  }
+
+  @Private
+  public Path getFinalIndexFile() {
+    return finalIndexFile;
   }
 
   protected void runCombineProcessor(TezRawKeyValueIterator kvIter,

@@ -636,7 +636,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     //FIXME
     //kvbuffer = null;
     mergeParts();
-    Path outputPath = mapOutputFile.getOutputFile();
+    Path outputPath = finalOutputFile;
     fileOutputByteCounter.increment(rfs.getFileStatus(outputPath).getLen());
   }
 
@@ -747,6 +747,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
       final Path filename =
           mapOutputFile.getSpillFileForWrite(numSpills, size);
+      spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename);
 
       int spindex = mstart;
@@ -820,6 +821,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         Path indexFilename =
             mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
                 * MAP_OUTPUT_INDEX_RECORD_LENGTH);
+        spillFileIndexPaths.put(numSpills, indexFilename);
         spillRec.writeToFile(indexFilename, conf);
       } else {
         indexCacheList.add(spillRec);
@@ -847,6 +849,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
       final Path filename =
           mapOutputFile.getSpillFileForWrite(numSpills, size);
+      spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename);
 
       // we don't run the combiner for a single record
@@ -895,7 +898,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         Path indexFilename =
             mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
                 * MAP_OUTPUT_INDEX_RECORD_LENGTH);
-        spillRec.writeToFile(indexFilename, conf);
+        spillFileIndexPaths.put(numSpills, indexFilename);
+         spillRec.writeToFile(indexFilename, conf);
       } else {
         indexCacheList.add(spillRec);
         totalIndexCacheMemory +=
@@ -1001,25 +1005,25 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     final String taskIdentifier = outputContext.getUniqueIdentifier();
 
     for(int i = 0; i < numSpills; i++) {
-      filename[i] = mapOutputFile.getSpillFile(i);
+      filename[i] = spillFilePaths.get(i);
       finalOutFileSize += rfs.getFileStatus(filename[i]).getLen();
     }
     if (numSpills == 1) { //the spill is the final output
-      sameVolRename(filename[0],
-          mapOutputFile.getOutputFileForWriteInVolume(filename[0]));
+      finalOutputFile = mapOutputFile.getOutputFileForWriteInVolume(filename[0]);
+      finalIndexFile = mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]);
+
+      sameVolRename(filename[0], finalOutputFile);
       if (indexCacheList.size() == 0) {
-        sameVolRename(mapOutputFile.getSpillIndexFile(0),
-            mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]));
+        sameVolRename(spillFileIndexPaths.get(0), finalIndexFile);
       } else {
-        indexCacheList.get(0).writeToFile(
-            mapOutputFile.getOutputIndexFileForWriteInVolume(filename[0]), conf);
+        indexCacheList.get(0).writeToFile(finalIndexFile, conf);
       }
       return;
     }
 
     // read in paged indices
     for (int i = indexCacheList.size(); i < numSpills; ++i) {
-      Path indexFileName = mapOutputFile.getSpillIndexFile(i);
+      Path indexFileName = spillFileIndexPaths.get(i);
       indexCacheList.add(new TezSpillRecord(indexFileName, conf));
     }
 
@@ -1027,9 +1031,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     //lengths for each partition
     finalOutFileSize += partitions * APPROX_HEADER_LENGTH;
     finalIndexFileSize = partitions * MAP_OUTPUT_INDEX_RECORD_LENGTH;
-    Path finalOutputFile =
+    finalOutputFile =
         mapOutputFile.getOutputFileForWrite(finalOutFileSize);
-    Path finalIndexFile =
+    finalIndexFile =
         mapOutputFile.getOutputIndexFileForWrite(finalIndexFileSize);
 
     //The output stream for the final single output file

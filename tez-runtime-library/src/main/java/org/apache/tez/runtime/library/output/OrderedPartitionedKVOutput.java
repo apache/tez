@@ -158,7 +158,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
     boolean outputGenerated = true;
     if (sendEmptyPartitionDetails) {
-      Path indexFile = sorter.getMapOutput().getOutputIndexFile();
+      Path indexFile = sorter.getFinalIndexFile();
       TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
       BitSet emptyPartitionDetails = new BitSet();
       int emptyPartitions = 0;

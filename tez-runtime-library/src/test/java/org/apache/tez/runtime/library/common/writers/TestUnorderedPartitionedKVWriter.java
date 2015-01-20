@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -56,7 +55,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -335,27 +333,13 @@ public class TestUnorderedPartitionedKVWriter {
     // Verify the data
     // Verify the actual data
     TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
-    Path outputFilePath = null;
-    Path spillFilePath = null;
-    try {
-      outputFilePath = taskOutput.getOutputFile();
-    } catch (DiskErrorException e) {
-      if (numRecordsWritten > 0) {
-        fail();
-      } else {
-        // Record checking not required.
-        return;
-      }
-    }
-    try {
-      spillFilePath = taskOutput.getOutputIndexFile();
-    } catch (DiskErrorException e) {
-      if (numRecordsWritten > 0) {
-        fail();
-      } else {
-        // Record checking not required.
-        return;
-      }
+    Path outputFilePath = kvWriter.finalOutPath;
+    Path spillFilePath = kvWriter.finalIndexPath;
+    if (numRecordsWritten > 0) {
+      assertTrue(localFs.exists(outputFilePath));
+      assertTrue(localFs.exists(spillFilePath));
+    } else {
+      return;
     }
 
     // Special case for 0 records.
@@ -533,27 +517,14 @@ public class TestUnorderedPartitionedKVWriter {
 
     // Verify the actual data
     TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
-    Path outputFilePath = null;
-    Path spillFilePath = null;
-    try {
-      outputFilePath = taskOutput.getOutputFile();
-    } catch (DiskErrorException e) {
-      if (numRecordsWritten > 0) {
-        fail();
-      } else {
-        // Record checking not required.
-        return;
-      }
-    }
-    try {
-      spillFilePath = taskOutput.getOutputIndexFile();
-    } catch (DiskErrorException e) {
-      if (numRecordsWritten > 0) {
-        fail();
-      } else {
-        // Record checking not required.
-        return;
-      }
+    Path outputFilePath = kvWriter.finalOutPath;
+    Path spillFilePath = kvWriter.finalIndexPath;
+
+    if (numRecordsWritten > 0) {
+      assertTrue(localFs.exists(outputFilePath));
+      assertTrue(localFs.exists(spillFilePath));
+    } else {
+      return;
     }
 
     // Special case for 0 records.

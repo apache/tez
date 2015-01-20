@@ -24,7 +24,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 /**
  * Manipulate the working area for the transient store for components in tez-runtime-library
@@ -51,16 +50,6 @@ public abstract class TezTaskOutput {
     this.conf = conf;
     this.uniqueId = uniqueId;
   }
-
-  /**
-   * Return the path to local output file created earlier.
-   *
-   * TODO TEZ-1855: Remove this. Leads to an extra localdir scan just to update counters.
-   *
-   * @return path the path of the local output file
-   * @throws IOException
-   */
-  public abstract Path getOutputFile() throws IOException;
 
   /**
    * Create a local output file name.
@@ -90,16 +79,6 @@ public abstract class TezTaskOutput {
   public abstract Path getOutputFileForWriteInVolume(Path existing);
 
   /**
-   * Return the path to a local output index file created earlier
-   *
-   * TODO TEZ-1855: Remove this. Leads to an additional scan to find empty partitions.
-   *
-   * @return path the path of the index file
-   * @throws IOException
-   */
-  public abstract Path getOutputIndexFile() throws IOException;
-
-  /**
    * Create a local output index file name.
    *
    * @param size the size of the file
@@ -117,16 +96,6 @@ public abstract class TezTaskOutput {
   public abstract Path getOutputIndexFileForWriteInVolume(Path existing);
 
   /**
-   * Return a local output spill file created earlier.
-   *
-   * @param spillNumber the spill number
-   * @return path the path of the previously written spill file corresponding to the spillNumber
-   * @throws IOException
-   * // KKK Try removing this. Unnecessary file scans - can be stored in memory instead.
-   */
-  public abstract Path getSpillFile(int spillNumber) throws IOException;
-
-  /**
    * Create a local output spill file name.
    *
    * @param spillNumber the spill number
@@ -137,16 +106,6 @@ public abstract class TezTaskOutput {
   public abstract Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException;
 
-  /**
-   * Return a local output spill index file created earlier
-   *
-   * TODO TEZ-1855: Remove this. Should be possible to cache this instead of requiring a directory scan.
-   *
-   * @param spillNumber the spill number
-   * @return path the path of the previously written spill index file corresponding to the spillNumber
-   * @throws IOException
-   */
-  public abstract Path getSpillIndexFile(int spillNumber) throws IOException;
 
   /**
    * Create a local output spill index file name.
@@ -158,17 +117,6 @@ public abstract class TezTaskOutput {
    */
   public abstract Path getSpillIndexFileForWrite(int spillNumber, long size)
       throws IOException;
-
-  /**
-   * Return a local input file created earlier
-   *
-   * TODO: TEZ-1855. Remove this.
-   *
-   * @param attemptIdentifier The identifier for the source
-   * @return path the path to the input file
-   * @throws IOException
-   */
-  public abstract Path getInputFile(InputAttemptIdentifier attemptIdentifier) throws IOException;
 
   /**
    * Create a local input file name.
