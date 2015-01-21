@@ -332,7 +332,7 @@ public class LocalContainerLauncher extends AbstractService implements
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
             attemptNumber, localDirs, workingDirectory, containerEnv, "", executionContext, credentials,
-            Runtime.getRuntime().maxMemory());
+            Runtime.getRuntime().maxMemory(), context.getUser());
     tezChild.setUmbilical(tezTaskUmbilicalProtocol);
     return tezChild;
   }

@@ -105,6 +105,7 @@ public class TezChild {
   private final Credentials credentials;
   private final long memAvailable;
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
+  private final String user;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
 
@@ -118,7 +119,7 @@ public class TezChild {
       Map<String, String> serviceProviderEnvMap,
       ObjectRegistryImpl objectRegistry, String pid,
       ExecutionContext executionContext,
-      Credentials credentials, long memAvailable)
+      Credentials credentials, long memAvailable, String user)
       throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
@@ -130,6 +131,7 @@ public class TezChild {
     this.executionContext = executionContext;
     this.credentials = credentials;
     this.memAvailable = memAvailable;
+    this.user = user;
 
     getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
@@ -282,8 +284,7 @@ public class TezChild {
       if (taskCreds != null) {
         LOG.info("Credentials : #Tokens=" + taskCreds.numberOfTokens() + ", #SecretKeys="
             + taskCreds.numberOfSecretKeys());
-        childUGI = UserGroupInformation.createRemoteUser(System
-            .getenv(ApplicationConstants.Environment.USER.toString()));
+        childUGI = UserGroupInformation.createRemoteUser(user);
         childUGI.addCredentials(containerTask.getCredentials());
       } else {
         LOG.info("Not loading any credentials, since no credentials provided");
@@ -411,7 +412,7 @@ public class TezChild {
   public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
       Map<String, String> serviceProviderEnvMap, @Nullable String pid,
-      ExecutionContext executionContext, Credentials credentials, long memAvailable)
+      ExecutionContext executionContext, Credentials credentials, long memAvailable, String user)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -428,7 +429,7 @@ public class TezChild {
 
     return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
         attemptNumber, workingDirectory, localDirs, serviceProviderEnvMap, objectRegistry, pid,
-        executionContext, credentials, memAvailable);
+        executionContext, credentials, memAvailable, user);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
@@ -461,7 +462,8 @@ public class TezChild {
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
-        credentials, Runtime.getRuntime().maxMemory());
+        credentials, Runtime.getRuntime().maxMemory(), System
+            .getenv(ApplicationConstants.Environment.USER.toString()));
     tezChild.run();
   }
 
