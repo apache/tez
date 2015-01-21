@@ -43,6 +43,12 @@ ALL CHANGES:
   TEZ-1949. Whitelist TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH for broadcast edges.
   TEZ-1593. Refactor PipelinedSorter to remove all MMAP based ByteBuffer references.
 
+Release 0.6.1: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
 Release 0.6.0: Unreleased
 
 INCOMPATIBLE CHANGES
