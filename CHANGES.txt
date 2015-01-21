@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1980. Suppress tez-dag findbugs warnings until addressed.
   TEZ-1855. Avoid scanning for previously written files within Inputs / Outputs.
   TEZ-1902. Fix findbugs warnings in tez-mapreduce.
   TEZ-1963. Fix post memory merge to be > 2 GB.

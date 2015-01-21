@@ -115,4 +115,108 @@
     <Bug pattern="EI_EXPOSE_REP"/>
   </Match>
 
+  <!-- TEZ-1952 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.dag.impl.Edge"/>
+    <Field name="edgeProperty"/>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <!-- TEZ-1953 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.dag.impl.VertexImpl"/>
+    <Field name="groupInputSpecList"/>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <!-- TEZ-1954 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster"/>
+    <Or>
+      <Field name="context"/>
+      <Field name="currentDAG"/>
+      <Field name="state"/>
+      <Field name="taskSchedulerEventHandler"/>
+      <Field name="versionMismatch"/>
+      <Field name="versionMismatchDiagnostics"/>
+    </Or>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <!-- TEZ-1955 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.TaskSchedulerEventHandler"/>
+    <Field name="taskScheduler"/>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <!-- TEZ-1956 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.YarnTaskSchedulerService"/>
+    <Or>
+      <Field name="delayedContainerManager"/>
+      <Field name="heartbeatAtLastPreemption"/>
+      <Field name="localitySchedulingDelay"/>
+      <Field name="preemptionPercentage"/>
+      <Field name="shouldReuseContainers"/>
+    </Or>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <!-- TEZ-1957 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster$DAGAppMasterShutdownHandler"/>
+    <Method name="shutdown" params="boolean" returns="void"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+  <!-- TEZ-1957 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster$DAGAppMasterShutdownHandler$AMShutdownRunnable"/>
+    <Method name="run"/><Field name="shutdownHandlerRunning"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+  <!-- TEZ-1957 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.DAGAppMaster$DAGAppMasterShutdownHook"/>
+    <Method name="run"/><Field name="shutdownHandlerRunning"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+  <!-- TEZ-1958 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.LocalTaskSchedulerService$AsyncDelegateRequestHandler"/>
+    <Method name="addDeallocateTaskRequest" params="java.lang.Object" returns="boolean"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+  <!-- TEZ-1958 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.LocalTaskSchedulerService$AsyncDelegateRequestHandler"/>
+    <Method name="run"/><Field name="taskRequestQueue"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+  <!-- TEZ-1959 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.YarnTaskSchedulerService$DelayedContainerManager"/>
+    <Method name="run"/><Field name="drainedDelayedContainersForTest"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
+  <!-- TEZ-1981 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.dag.TaskAttempt$TaskAttemptStatus"/>
+    <Field name="id"/>
+    <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+
+  <!-- TEZ-1981 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.dag.TaskAttempt$TaskAttemptStatus"/>
+    <Field name="state"/>
+    <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+
 </FindBugsFilter>
