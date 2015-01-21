@@ -32,4 +32,10 @@ App.DagSwimlaneController = Em.ArrayController.extend({
 
     return filterParams;
   },
+
+  actions: {
+    taskAttemptClicked: function (id) {
+      this.transitionToRoute('taskAttempt', id);
+    },
+  },
 });

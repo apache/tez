@@ -6,6 +6,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1983. Tez UI swimlane task attempt link is broken
 
 Release 0.6.0: Unreleased
 

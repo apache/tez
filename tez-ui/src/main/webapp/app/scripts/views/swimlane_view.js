@@ -20,6 +20,7 @@ App.SwimlanesView = Ember.View.extend({
 
   didInsertElement: function() {
     var task_attempts = this.get("content");
+    var controller = this.get("controller");
     var timeBegin = d3.min(task_attempts, function (d) { return d.get('startTime') });
     var timeEnd = d3.max(task_attempts, function (d) { return d.get('endTime') });
     var containers = d3.set(task_attempts.map(function (d) {return d.get('containerId')})).values().sort();
@@ -112,14 +113,12 @@ App.SwimlanesView = Ember.View.extend({
       .duration(200)
       .style("opacity", .9);
       div .html(
-        // TODO: Replace with correct route to task attempt
-        '<a href= "/task_attempt/' + d.get('id') + '">' +
         d.get('id') +
-          "</a>" +
-          "<br/>Start: " + moment(d.get('startTime')).format() +
-          "<br/>End: " + moment(d.get('endTime')).format())
+        "<br/>Start: " + moment(d.get('startTime')).format() +
+        "<br/>End: " + moment(d.get('endTime')).format())
         .style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY - 28) + "px");
+        .style("top", (d3.event.pageY - 28) + "px")
+        .on("click", function () {controller.send('taskAttemptClicked', d.get('id'))});
     });
 
     /*
