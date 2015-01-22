@@ -69,7 +69,6 @@ public class JoinValidate extends TezExampleBase {
   @Override
   protected void printUsage() {
     System.err.println("Usage: " + "joinvalidate <path1> <path2>");
-    ToolRunner.printGenericCommandUsage(System.err);
   }
 
   @Override
@@ -147,13 +146,13 @@ public class JoinValidate extends TezExampleBase {
         ForwardingProcessor.class.getName())).addDataSource("lhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
-                lhs.toUri().toString()).groupSplits(false).build());
+                lhs.toUri().toString()).groupSplits(!isDisableSplitGrouping()).build());
 
     Vertex rhsVertex = Vertex.create(RHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
-                rhs.toUri().toString()).groupSplits(false).build());
+                rhs.toUri().toString()).groupSplits(!isDisableSplitGrouping()).build());
 
     Vertex joinValidateVertex = Vertex.create("joinvalidate", ProcessorDescriptor.create(
         JoinValidateProcessor.class.getName()), numPartitions);

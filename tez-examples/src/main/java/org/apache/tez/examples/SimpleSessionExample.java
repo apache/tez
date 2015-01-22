@@ -42,8 +42,8 @@ public class SimpleSessionExample extends TezExampleBase {
 
   @Override
   protected void printUsage() {
-    System.err.println("Usage: " + " simplesessionexample <in1,in2> <out1, out2> [numPartitions]");
-    ToolRunner.printGenericCommandUsage(System.err);
+    System.err.println("Usage: " + " simplesessionexample"
+        + " <in1,in2> <out1, out2> [numPartitions]");
   }
 
   @Override
@@ -87,7 +87,7 @@ public class SimpleSessionExample extends TezExampleBase {
 
     for (int i = 0; i < inputPaths.length; ++i) {
       DAG dag = OrderedWordCount.createDAG(tezConf, inputPaths[i], outputPaths[i], numPartitions,
-          ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
+          isDisableSplitGrouping(), ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
 
       LOG.info("Running dag number " + i);
       if(runDag(dag, false, LOG) != 0) {

@@ -98,12 +98,14 @@ public class TestTezJobs {
 
   private static Configuration conf = new Configuration();
   private static FileSystem remoteFs;
+  private static FileSystem localFs;
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestTezJobs.class.getName()
       + "-tmpDir";
 
   @BeforeClass
   public static void setup() throws IOException {
+    localFs = FileSystem.getLocal(conf);
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).format(true).racks(null)
@@ -139,7 +141,7 @@ public class TestTezJobs {
   @Test(timeout = 60000)
   public void testHashJoinExample() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
-    hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
+    hashJoinExample.setConf(mrrTezCluster.getConfig());
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
     Path inPath1 = new Path("/tmp/hashJoin/inPath1");
     Path inPath2 = new Path("/tmp/hashJoin/inPath2");
@@ -182,6 +184,64 @@ public class TestTezJobs {
     });
     assertEquals(1, statuses.length);
     FSDataInputStream inStream = remoteFs.open(statuses[0].getPath());
+    BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
+    String line;
+    while ((line = reader.readLine()) != null) {
+      assertTrue(expectedResult.remove(line));
+    }
+    reader.close();
+    inStream.close();
+    assertEquals(0, expectedResult.size());
+  }
+
+  @Test(timeout = 60000)
+  public void testHashJoinExampleDisableSplitGrouping() throws Exception {
+    HashJoinExample hashJoinExample = new HashJoinExample();
+    hashJoinExample.setConf(conf);
+    Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
+    Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/inPath1");
+    Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/inPath2");
+    Path outPath = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/outPath");
+    localFs.delete(outPath, true);
+    localFs.mkdirs(inPath1);
+    localFs.mkdirs(inPath2);
+    localFs.mkdirs(stagingDirPath);
+
+    Set<String> expectedResult = new HashSet<String>();
+
+    FSDataOutputStream out1 = localFs.create(new Path(inPath1, "file"));
+    FSDataOutputStream out2 = localFs.create(new Path(inPath2, "file"));
+    BufferedWriter writer1 = new BufferedWriter(new OutputStreamWriter(out1));
+    BufferedWriter writer2 = new BufferedWriter(new OutputStreamWriter(out2));
+    for (int i = 0; i < 20; i++) {
+      String term = "term" + i;
+      writer1.write(term);
+      writer1.newLine();
+      if (i % 2 == 0) {
+        writer2.write(term);
+        writer2.newLine();
+        expectedResult.add(term);
+      }
+    }
+    writer1.close();
+    writer2.close();
+    out1.close();
+    out2.close();
+
+    String[] args = new String[] {
+        "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
+        "-local", "-disableSplitGrouping",
+        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+    assertEquals(0, hashJoinExample.run(args));
+
+    FileStatus[] statuses = localFs.listStatus(outPath, new PathFilter() {
+      public boolean accept(Path p) {
+        String name = p.getName();
+        return !name.startsWith("_") && !name.startsWith(".");
+      }
+    });
+    assertEquals(1, statuses.length);
+    FSDataInputStream inStream = localFs.open(statuses[0].getPath());
     BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
     String line;
     while ((line = reader.readLine()) != null) {
@@ -238,6 +298,64 @@ public class TestTezJobs {
     });
     assertEquals(1, statuses.length);
     FSDataInputStream inStream = remoteFs.open(statuses[0].getPath());
+    BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
+    String line;
+    while ((line = reader.readLine()) != null) {
+      assertTrue(expectedResult.remove(line));
+    }
+    reader.close();
+    inStream.close();
+    assertEquals(0, expectedResult.size());
+  }
+
+  @Test(timeout = 60000)
+  public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
+    SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
+    sortMergeJoinExample.setConf(conf);
+    Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
+    Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath1");
+    Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath2");
+    Path outPath = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/outPath");
+    localFs.delete(outPath, true);
+    localFs.mkdirs(inPath1);
+    localFs.mkdirs(inPath2);
+    localFs.mkdirs(stagingDirPath);
+
+    Set<String> expectedResult = new HashSet<String>();
+
+    FSDataOutputStream out1 = localFs.create(new Path(inPath1, "file"));
+    FSDataOutputStream out2 = localFs.create(new Path(inPath2, "file"));
+    BufferedWriter writer1 = new BufferedWriter(new OutputStreamWriter(out1));
+    BufferedWriter writer2 = new BufferedWriter(new OutputStreamWriter(out2));
+    for (int i = 0; i < 20; i++) {
+      String term = "term" + i;
+      writer1.write(term);
+      writer1.newLine();
+      if (i % 2 == 0) {
+        writer2.write(term);
+        writer2.newLine();
+        expectedResult.add(term);
+      }
+    }
+    writer1.close();
+    writer2.close();
+    out1.close();
+    out2.close();
+
+    String[] args = new String[] {
+        "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
+        "-local","-disableSplitGrouping",
+        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+    assertEquals(0, sortMergeJoinExample.run(args));
+
+    FileStatus[] statuses = localFs.listStatus(outPath, new PathFilter() {
+      public boolean accept(Path p) {
+        String name = p.getName();
+        return !name.startsWith("_") && !name.startsWith(".");
+      }
+    });
+    assertEquals(1, statuses.length);
+    FSDataInputStream inStream = localFs.open(statuses[0].getPath());
     BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
     String line;
     while ((line = reader.readLine()) != null) {
@@ -344,15 +462,15 @@ public class TestTezJobs {
     }
   }
 
-  private void generateOrderedWordCountInput(Path inputDir) throws IOException {
+  private void generateOrderedWordCountInput(Path inputDir, FileSystem fs) throws IOException {
     Path dataPath1 = new Path(inputDir, "inPath1");
     Path dataPath2 = new Path(inputDir, "inPath2");
 
     FSDataOutputStream f1 = null;
     FSDataOutputStream f2 = null;
     try {
-      f1 = remoteFs.create(dataPath1);
-      f2 = remoteFs.create(dataPath2);
+      f1 = fs.create(dataPath1);
+      f2 = fs.create(dataPath2);
 
       final String prefix = "a";
       for (int i = 1; i <= 10; ++i) {
@@ -377,8 +495,8 @@ public class TestTezJobs {
     }
   }
 
-  private void verifyOrderedWordCountOutput(Path resultFile) throws IOException {
-    FSDataInputStream inputStream = remoteFs.open(resultFile);
+  private void verifyOrderedWordCountOutput(Path resultFile, FileSystem fs) throws IOException {
+    FSDataInputStream inputStream = fs.open(resultFile);
     final String prefix = "a";
     int currentCounter = 10;
 
@@ -402,8 +520,8 @@ public class TestTezJobs {
     Assert.assertEquals(0, currentCounter);
   }
   
-  private void verifyOutput(Path outputDir) throws IOException {
-    FileStatus[] fileStatuses = remoteFs.listStatus(outputDir);
+  private void verifyOutput(Path outputDir, FileSystem fs) throws IOException {
+    FileStatus[] fileStatuses = fs.listStatus(outputDir);
     Path resultFile = null;
     boolean foundResult = false;
     boolean foundSuccessFile = false;
@@ -428,7 +546,7 @@ public class TestTezJobs {
     assertTrue(foundResult);
     assertTrue(resultFile != null);
     assertTrue(foundSuccessFile);
-    verifyOrderedWordCountOutput(resultFile);
+    verifyOrderedWordCountOutput(resultFile, fs);
   }
   
   @Test(timeout = 60000)
@@ -438,7 +556,7 @@ public class TestTezJobs {
     Path stagingDirPath = new Path("/tmp/owc-staging-dir");
     remoteFs.mkdirs(inputDir);
     remoteFs.mkdirs(stagingDirPath);
-    generateOrderedWordCountInput(inputDir);
+    generateOrderedWordCountInput(inputDir, remoteFs);
 
     String outputDirStr = "/tmp/owc-output/";
     Path outputDir = new Path(outputDirStr);
@@ -451,7 +569,7 @@ public class TestTezJobs {
 
       OrderedWordCount job = new OrderedWordCount();
       Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{inputDirStr, outputDirStr, "2"}, null)==0);
-      verifyOutput(outputDir);
+      verifyOutput(outputDir, remoteFs);
 
     } finally {
       remoteFs.delete(stagingDirPath, true);
@@ -462,6 +580,39 @@ public class TestTezJobs {
 
   }
   
+  @Test(timeout = 60000)
+  public void testOrderedWordCountDisableSplitGrouping() throws Exception {
+    String inputDirStr = TEST_ROOT_DIR + "/tmp/owc-input/";
+    Path inputDir = new Path(inputDirStr);
+    Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/owc-staging-dir");
+    localFs.mkdirs(inputDir);
+    localFs.mkdirs(stagingDirPath);
+    generateOrderedWordCountInput(inputDir, localFs);
+
+    String outputDirStr = TEST_ROOT_DIR + "/tmp/owc-output/";
+    localFs.delete(new Path(outputDirStr), true);
+    Path outputDir = new Path(outputDirStr);
+
+    TezConfiguration tezConf = new TezConfiguration(conf);
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    TezClient tezSession = null;
+
+    try {
+
+      OrderedWordCount job = new OrderedWordCount();
+      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-local", "-disableSplitGrouping",
+          inputDirStr, outputDirStr, "2"}, null)==0);
+      verifyOutput(outputDir, localFs);
+
+    } finally {
+      localFs.delete(stagingDirPath, true);
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+
+  }
+
   @Test(timeout = 60000)
   public void testSimpleSessionExample() throws Exception {
     Path stagingDirPath = new Path("/tmp/owc-staging-dir");
@@ -476,7 +627,7 @@ public class TestTezJobs {
       inputPaths[i] = inputDirStr;
       Path inputDir = new Path(inputDirStr);
       remoteFs.mkdirs(inputDir);
-      generateOrderedWordCountInput(inputDir);
+      generateOrderedWordCountInput(inputDir, remoteFs);
       String outputDirStr = "/tmp/owc-output-" + i + "/"; 
       outputPaths[i] = outputDirStr;
       Path outputDir = new Path(outputDirStr);
@@ -504,7 +655,7 @@ public class TestTezJobs {
               StringUtils.join(",", outputPaths), "2" }, null) == 0);
 
       for (int i=0; i<numIterations; ++i) {
-        verifyOutput(outputDirs[i]);
+        verifyOutput(outputDirs[i], remoteFs);
       }
       
       apps = yarnClient.getApplications();

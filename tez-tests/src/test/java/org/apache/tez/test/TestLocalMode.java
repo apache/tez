@@ -230,7 +230,7 @@ public class TestLocalMode {
     try {
       for (int i=0; i<inputPaths.length; ++i) {
         DAG dag = OrderedWordCount.createDAG(tezConf, inputPaths[i], outputPaths[i], 1,
-            ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
+            false, ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
 
         tezClient.waitTillReady();
         System.out.println("Running dag number " + i);

@@ -89,7 +89,6 @@ public class SortMergeJoinExample extends TezExampleBase {
   protected void printUsage() {
     System.err.println("Usage: "
         + "sortmergejoin <file1> <file2> <numPartitions> <outPath>");
-    ToolRunner.printGenericCommandUsage(System.err);
   }
 
   @Override
@@ -159,7 +158,7 @@ public class SortMergeJoinExample extends TezExampleBase {
                 MRInput
                     .createConfigBuilder(new Configuration(tezConf),
                         TextInputFormat.class, inputPath1.toUri().toString())
-                    .groupSplits(false).build());
+                    .groupSplits(!isDisableSplitGrouping()).build());
 
     /**
      * The other vertex represents the other side of the join. It reads text
@@ -174,7 +173,7 @@ public class SortMergeJoinExample extends TezExampleBase {
                 MRInput
                     .createConfigBuilder(new Configuration(tezConf),
                         TextInputFormat.class, inputPath2.toUri().toString())
-                    .groupSplits(false).build());
+                    .groupSplits(!isDisableSplitGrouping()).build());
 
     /**
      * This vertex represents the join operation. It writes the join output as

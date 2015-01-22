@@ -122,10 +122,10 @@ public class OrderedWordCount extends TezExampleBase {
   }
   
   public static DAG createDAG(TezConfiguration tezConf, String inputPath, String outputPath,
-      int numPartitions, String dagName) throws IOException {
+      int numPartitions, boolean disableSplitGrouping, String dagName) throws IOException {
 
     DataSourceDescriptor dataSource = MRInput.createConfigBuilder(new Configuration(tezConf),
-        TextInputFormat.class, inputPath).build();
+        TextInputFormat.class, inputPath).groupSplits(!disableSplitGrouping).build();
 
     DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(tezConf),
         TextOutputFormat.class, outputPath).build();
@@ -181,7 +181,6 @@ public class OrderedWordCount extends TezExampleBase {
   @Override
   protected void printUsage() {
     System.err.println("Usage: " + " orderedwordcount in out [numPartitions]");
-    ToolRunner.printGenericCommandUsage(System.err);
   }
 
 
@@ -197,7 +196,7 @@ public class OrderedWordCount extends TezExampleBase {
   protected int runJob(String[] args, TezConfiguration tezConf,
       TezClient tezClient) throws Exception {
     DAG dag = createDAG(tezConf, args[0], args[1],
-        args.length == 3 ? Integer.parseInt(args[2]) : 1,
+        args.length == 3 ? Integer.parseInt(args[2]) : 1, isDisableSplitGrouping(),
         "OrderedWordCount");
     LOG.info("Running OrderedWordCount");
     return runDag(dag, false, LOG);
