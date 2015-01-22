@@ -123,7 +123,13 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     final float spillper = this.conf.getFloat(
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT,
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT);
-    final int sortmb = this.availableMemoryMb;
+    final int sortmb = (int) availableMemoryMb;
+    if (sortmb <= 0) {
+      throw new RuntimeException("InitialMemoryAssigned is <= 0: " + initialMemoryAvailable);
+    }
+    Preconditions.checkArgument(sortmb > 0 && sortmb <= 2047,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB
+            + " for DefaultSorter should be larger than 0 and less than or equal to 2047");
     Preconditions.checkArgument(spillper <= (float) 1.0 && spillper > (float) 0.0,
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT
             + " should be greater than 0 and less than or equal to 1");

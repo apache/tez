@@ -75,7 +75,7 @@ public class TestDefaultSorter {
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 0.0f);
     try {
-      new DefaultSorter(context, conf, 10, 2048);
+      new DefaultSorter(context, conf, 10, (10 * 1024 * 1024l));
       fail();
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
@@ -83,7 +83,7 @@ public class TestDefaultSorter {
 
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT, 1.1f);
     try {
-      new DefaultSorter(context, conf, 10, 2048);
+      new DefaultSorter(context, conf, 10, (10 * 1024 * 1024l));
       fail();
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));

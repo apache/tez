@@ -36,6 +36,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
+import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
@@ -164,7 +165,9 @@ public class TestOnFileSortedOutput {
     doReturn(payLoad).when(context).getUserPayload();
     sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
     try {
+      //Memory limit checks are done in sorter impls. For e.g, defaultsorter does not support > 2GB
       sortedOutput.initialize();
+      DefaultSorter sorter = new DefaultSorter(context, conf, 100, 3500*1024*1024l);
       fail();
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));

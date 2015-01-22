@@ -25,14 +25,19 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -82,7 +87,17 @@ public class PipelinedSorter extends ExternalSorter {
   private final ProxyComparator hasher;
   // SortSpans  
   private SortSpan span;
-  private ByteBuffer largeBuffer;
+  //Maintain a bunch of ByteBuffers (each of them can hold approximately 2 GB data)
+  @VisibleForTesting
+  protected final LinkedList<ByteBuffer> bufferList = new LinkedList<ByteBuffer>();
+  private ListIterator<ByteBuffer> listIterator;
+
+  //total memory capacity allocated to sorter
+  private long capacity;
+
+  private static final int BLOCK_SIZE = 1536 << 20;
+
+
   // Merger
   private final SpanMerger merger; 
   private final ExecutorService sortmaster;
@@ -96,23 +111,42 @@ public class PipelinedSorter extends ExternalSorter {
 
   public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
+    this(outputContext,conf,numOutputs, initialMemoryAvailable, BLOCK_SIZE);
+  }
+
+  public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
+      long initialMemoryAvailable, int blockSize) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
     
     partitionBits = bitcount(partitions)+1;
    
     //sanity checks
-    final int sortmb = this.availableMemoryMb;
+    final long sortmb = this.availableMemoryMb;
     indexCacheMemoryLimit = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
                                        TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT);
 
     // buffers and accounting
-    int maxMemUsage = sortmb << 20;
-    maxMemUsage -= maxMemUsage % METASIZE;
-    largeBuffer = ByteBuffer.allocate(maxMemUsage);
-    Preconditions.checkArgument(largeBuffer.hasArray(), "Expected array backed byte buffer");
+    long maxMemUsage = sortmb << 20;
+    Preconditions.checkArgument(blockSize > 0 && blockSize < Integer.MAX_VALUE,"Block size should be" + " within 1 - Integer.MAX_VALUE" + blockSize);
+    long usage = sortmb << 20;
+    //Divide total memory into different blocks.
+    int numberOfBlocks = Math.max(1, (int) Math.ceil(1.0 * usage / blockSize));
+    LOG.info("Number of Blocks : " + numberOfBlocks
+        + ", maxMemUsage=" + maxMemUsage + ", BLOCK_SIZE=" + blockSize);
+    for (int i = 0; i < numberOfBlocks; i++) {
+      Preconditions.checkArgument(usage > 0, "usage can't be less than zero " + usage);
+      long size = Math.min(usage, blockSize);
+      int sizeWithoutMeta = (int) ((size) - (size % METASIZE));
+      bufferList.add(ByteBuffer.allocate(sizeWithoutMeta));
+      capacity += sizeWithoutMeta;
+      usage -= size;
+    }
+    listIterator = bufferList.listIterator();
+
+
     LOG.info(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + " = " + sortmb);
-    // TODO: configurable setting?
-    span = new SortSpan(largeBuffer, 1024*1024, 16, comparator);
+    Preconditions.checkArgument(listIterator.hasNext(), "Buffer list seems to be empty " + bufferList.size());
+    span = new SortSpan(listIterator.next(), 1024*1024, 16, this.comparator);
     merger = new SpanMerger(); // SpanIterators are comparable
     final int sortThreads = 
             this.conf.getInt(
@@ -149,21 +183,28 @@ public class PipelinedSorter extends ExternalSorter {
     SortSpan newSpan = span.next();
 
     if(newSpan == null) {
+      Stopwatch stopWatch = new Stopwatch();
+      stopWatch.start();
       // sort in the same thread, do not wait for the thread pool
       merger.add(span.sort(sorter));
       spill();
+      stopWatch.stop();
+      LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
+      //safe to reset the iterator
+      listIterator = bufferList.listIterator();
       int items = 1024*1024;
       int perItem = 16;
       if(span.length() != 0) {
         items = span.length();
         perItem = span.kvbuffer.limit()/items;
-        items = (largeBuffer.capacity())/(METASIZE+perItem);
+        items = (int) ((span.capacity)/(METASIZE+perItem));
         if(items > 1024*1024) {
             // our goal is to have 1M splits and sort early
             items = 1024*1024;
         }
       }
-      span = new SortSpan(largeBuffer, items, perItem, this.comparator);
+      Preconditions.checkArgument(listIterator.hasNext(), "block iterator should not be empty");
+      span = new SortSpan((ByteBuffer)listIterator.next().clear(), (1024*1024), perItem, this.comparator);
     } else {
       // queue up the sort
       SortTask task = new SortTask(span, sorter);
@@ -176,7 +217,7 @@ public class PipelinedSorter extends ExternalSorter {
   }
 
   @Override
-  public void write(Object key, Object value) 
+  public void write(Object key, Object value)
       throws IOException {
     collect(
         key, value, partitioner.getPartition(key, value, partitions));
@@ -242,7 +283,7 @@ public class PipelinedSorter extends ExternalSorter {
 
   public void spill() throws IOException { 
     // create spill file
-    final long size = largeBuffer.capacity()
+    final long size = capacity +
         + (partitions * APPROX_HEADER_LENGTH);
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
     final Path filename =
@@ -307,7 +348,8 @@ public class PipelinedSorter extends ExternalSorter {
     spill();
     sortmaster.shutdown();
 
-    largeBuffer = null;
+    //safe to clean up
+    bufferList.clear();
 
     numAdditionalSpills.increment(numSpills - 1);
 
@@ -464,9 +506,12 @@ public class PipelinedSorter extends ExternalSorter {
 
     private int index = 0;
     private long eq = 0;
+    private boolean reinit = false;
+    private int capacity;
+
 
     public SortSpan(ByteBuffer source, int maxItems, int perItem, RawComparator comparator) {
-      int capacity = source.remaining(); 
+      capacity = source.remaining();
       int metasize = METASIZE*maxItems;
       int dataSize = maxItems * perItem;
       if(capacity < (metasize+dataSize)) {
@@ -552,10 +597,18 @@ public class PipelinedSorter extends ExternalSorter {
     public SortSpan next() {
       ByteBuffer remaining = end();
       if(remaining != null) {
+        SortSpan newSpan = null;
         int items = length();
         int perItem = kvbuffer.position()/items;
-        SortSpan newSpan = new SortSpan(remaining, items, perItem, this.comparator);
+        if (reinit) { //next mem block
+          //quite possible that the previous span had a length of 1. It is better to reinit here for new span.
+          items = 1024*1024;
+          perItem = 16;
+        }
+        newSpan = new SortSpan(remaining, items, perItem, this.comparator);
         newSpan.index = index+1;
+        LOG.info(String.format("New Span%d.length = %d, perItem = %d", newSpan.index, newSpan
+            .length(), perItem) + ", counter:" + mapOutputRecordCounter.getValue());
         return newSpan;
       }
       return null;
@@ -578,6 +631,13 @@ public class PipelinedSorter extends ExternalSorter {
       int perItem = kvbuffer.position()/items;
       LOG.info(String.format("Span%d.length = %d, perItem = %d", index, length(), perItem));
       if(remaining.remaining() < METASIZE+perItem) {
+        //Check if we can get the next Buffer from the main buffer list
+        if (listIterator.hasNext()) {
+          LOG.info("Getting memory from next block in the list, recordsWritten=" +
+              mapOutputRecordCounter.getValue());
+          reinit = true;
+          return listIterator.next();
+        }
         return null;
       }
       return remaining;

@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1803. Support > 2gb sort buffer in pipelinedsorter.
   TEZ-1826. Add option to disable split grouping and local mode option for tez-examples.
   TEZ-1982. TezChild setupUgi should not be using environment.
   TEZ-1980. Suppress tez-dag findbugs warnings until addressed.

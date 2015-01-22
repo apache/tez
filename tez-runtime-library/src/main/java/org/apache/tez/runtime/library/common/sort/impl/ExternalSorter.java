@@ -101,7 +101,7 @@ public abstract class ExternalSorter {
   protected final int ifileReadAheadLength;
   protected final int ifileBufferSize;
 
-  protected final int availableMemoryMb;
+  protected final long availableMemoryMb;
 
   protected final IndexedSorter sorter;
 
@@ -149,18 +149,10 @@ public abstract class ExternalSorter {
 
     rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
+    LOG.info("Initial Mem : " + initialMemoryAvailable + ", assignedMb=" + ((initialMemoryAvailable >> 20)));
     int assignedMb = (int) (initialMemoryAvailable >> 20);
-    if (assignedMb <= 0) {
-      if (initialMemoryAvailable > 0) { // Rounded down to 0MB - may be > 0 && < 1MB
-        this.availableMemoryMb = 1;
-        LOG.warn("initialAvailableMemory: " + initialMemoryAvailable
-            + " is too low. Rounding to 1 MB");
-      } else {
-        throw new RuntimeException("InitialMemoryAssigned is <= 0: " + initialMemoryAvailable);
-      }
-    } else {
-      this.availableMemoryMb = assignedMb;
-    }
+    //Let the overflow checks happen in appropriate sorter impls
+    this.availableMemoryMb = assignedMb;
 
     // sorter
     sorter = ReflectionUtils.newInstance(this.conf.getClass(
@@ -302,9 +294,9 @@ public abstract class ExternalSorter {
         conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB_DEFAULT);
-    Preconditions.checkArgument(initialMemRequestMb > 0 && initialMemRequestMb <= 2047,
-        TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB
-            + " should be larger than 0 and less than or equal to 2047");
+    //Higher bound checks are done in individual sorter implementations
+    Preconditions.checkArgument(initialMemRequestMb > 0,
+        TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + " should be larger than 0");
     long reqBytes = ((long) initialMemRequestMb) << 20;
     LOG.info("Requested SortBufferSize ("
         + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + "): "
