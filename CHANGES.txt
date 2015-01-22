@@ -16,7 +16,6 @@ ALL CHANGES:
   TEZ-1941. Memory provided by *Context.getAvailableMemory needs to be setup explicitly.
   TEZ-1879. Create local UGI instances for each task and the AM, when running in LocalMode.
   TEZ-1661. LocalTaskScheduler hangs when shutdown.
-  TEZ-1934. TestAMRecovery may fail due to the execution order is not determined.
   TEZ-1951. Fix general findbugs warnings in tez-dag.
   TEZ-1905. Fix findbugs warnings in tez-tests.
   TEZ-1945. Remove 2 GB memlimit restriction in MergeManager.
@@ -74,7 +73,6 @@ ALL CHANGES:
   TEZ-1864. move initialization code dependent on config params to App.ready.
   TEZ-1870. Time displayed in the UI is in GMT.
   TEZ-1858. Docs for deploying/using the Tez UI.
-  TEZ-1642. TestAMRecovery sometimes fail.
   TEZ-1859. TestGroupedSplits has commented out test: testGzip.
   TEZ-1868. Document how to do Windows builds due to with ACL symlink build changes.
   TEZ-1872. docs/src/site/custom/project-info-report.properties needs license header.
@@ -159,6 +157,8 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1934. TestAMRecovery may fail due to the execution order is not determined.
+  TEZ-1642. TestAMRecovery sometimes fail.
   TEZ-1931. Publish tez version info to Timeline.
   TEZ-1942. Number of tasks show in Tez UI with auto-reduce parallelism is misleading.
   TEZ-1962. Fix a thread leak in LocalMode.
