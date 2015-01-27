@@ -151,6 +151,9 @@ public class TestOnFileSortedOutput {
 
   private void startSortedOutput(int partitions) throws Exception {
     OutputContext context = createTezOutputContext();
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
     sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
     sortedOutput.initialize();
     sortedOutput.start();

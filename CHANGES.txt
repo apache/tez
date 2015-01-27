@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1997. Remove synchronization DefaultSorter::isRLENeeded() (Causes sorter to hang indefinitely in large jobs).
   TEZ-1996. Update Website after 0.6.0
   TEZ-1803. Support > 2gb sort buffer in pipelinedsorter.
   TEZ-1826. Add option to disable split grouping and local mode option for tez-examples.

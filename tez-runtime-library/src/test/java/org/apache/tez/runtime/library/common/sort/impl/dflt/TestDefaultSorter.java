@@ -29,7 +29,9 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -42,7 +44,9 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -51,22 +55,34 @@ import org.mockito.stubbing.Answer;
 public class TestDefaultSorter {
 
   private Configuration conf;
-  private Path workingDir;
   private static final int PORT = 80;
   private static final String UniqueID = "UUID";
+
+  private static FileSystem localFs = null;
+  private static Path workingDir = null;
 
   @Before
   public void setup() throws IOException {
     conf = new Configuration();
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 1); // DefaultSorter
+    conf.set("fs.defaultFS", "file:///");
+    localFs = FileSystem.getLocal(conf);
 
-    workingDir = new Path(".", this.getClass().getName());
+    workingDir = new Path(
+        new Path(System.getProperty("test.build.data", "/tmp")),
+        TestDefaultSorter.class.getName())
+        .makeQualified(localFs.getUri(), localFs.getWorkingDirectory());
     String localDirs = workingDir.toString();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
         HashPartitioner.class.getName());
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
+  }
+
+  @After
+  public void cleanup() throws IOException {
+    localFs.delete(workingDir, true);
   }
 
   @Test(timeout = 5000)
@@ -88,6 +104,48 @@ public class TestDefaultSorter {
     } catch(IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
     }
+  }
+
+  @Test(timeout = 30000)
+  //Test TEZ-1977
+  public void basicTest() throws IOException {
+    OutputContext context = createTezOutputContext();
+
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    try {
+      //Setting IO_SORT_MB to greater than available mem limit (should throw exception)
+      conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 300);
+      context.requestInitialMemory(
+          ExternalSorter.getInitialMemoryRequirement(conf,
+              context.getTotalMemoryAvailableToTask()), new MemoryUpdateCallbackHandler());
+      fail();
+    } catch(IllegalArgumentException e) {
+      assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
+    }
+
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1);
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+            context.getTotalMemoryAvailableToTask()), handler);
+    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+
+    //Write 1000 keys each of size 1000, (> 1 spill should happen)
+    try {
+      writeData(sorter, 1000, 1000);
+      assertTrue(sorter.numSpills > 2);
+    } catch(IOException ioe) {
+      fail(ioe.getMessage());
+    }
+  }
+
+  private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
+    RandomDataGenerator generator = new RandomDataGenerator();
+    for (int i = 0; i < numKeys; i++) {
+      Text key = new Text(generator.nextHexString(keyLen));
+      Text value = new Text(generator.nextHexString(keyLen));
+      sorter.write(key, value);
+    }
+    sorter.flush();
+    sorter.close();
   }
 
   private OutputContext createTezOutputContext() throws IOException {

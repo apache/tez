@@ -726,7 +726,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         : kvmeta.capacity() + kvstart) / NMETA;
   }
 
-  private synchronized boolean isRLENeeded() {
+  private boolean isRLENeeded() {
     return (sameKey > (0.1 * totalKeys)) || (sameKey < 0);
   }
 

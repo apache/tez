@@ -81,6 +81,12 @@
   </Match>
 
   <Match>
+    <Class name="org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter"/>
+    <Field name="totalKeys"/>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
+  <Match>
     <Class name="~org\.apache\.tez\.runtime\.library\.shuffle\.impl\.ShuffleUserPayloads\$.*Proto"/>
     <Field name="PARSER"/>
     <Bug pattern="MS_SHOULD_BE_FINAL"/>

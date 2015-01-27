@@ -101,6 +101,7 @@ public class TestPipelinedSorter {
     //TODO: need to support multiple partition testing later
 
     //# partition, # of keys, size per key, InitialMem, blockSize
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
     basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
   }
 
@@ -127,7 +128,7 @@ public class TestPipelinedSorter {
   public void memTest() throws IOException {
     //Verify if > 2 GB can be set via config
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3076);
-    long size = ExternalSorter.getInitialMemoryRequirement(conf, 3076);
+    long size = ExternalSorter.getInitialMemoryRequirement(conf, 4096 * 1024 * 1024l);
     Assert.assertTrue(size == (3076l << 20));
 
     //Verify BLOCK_SIZEs
