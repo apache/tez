@@ -88,6 +88,20 @@ App.Helpers.number = {
   },
 
   /**
+   * Format value with US style thousands separator
+   * @param {string/number} value to be formatted
+   * @returns {string} Formatted string
+   */
+  formatNumThousands: function (value) {
+    if(/^[\d\.]+$/.test(value)) {
+      var parts = value.toString().split(".");
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return parts.join(".");
+    }
+    return value;
+  },
+
+  /**
    * Checks if the value is an integer or can be converted to an integer.
    * a value of NaN returns false.
    * @method: isValidInt

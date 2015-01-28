@@ -34,7 +34,7 @@
         {{#each counter in counterGroup.counters}}
           <tr>
             <td>{{unbound counter.displayName}}</td>
-            <td>{{unbound counter.value}}</td>
+            <td>{{unbound formatNumThousands counter.value}}</td>
           </tr>
         {{/each}}
       {{/each}}

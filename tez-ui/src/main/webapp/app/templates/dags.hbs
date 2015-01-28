@@ -21,16 +21,7 @@
 </ul>
 
 {{#unless loading}}
-  <div class='margin-small'>
-    <div class="horizontal-half align-children-left">
-      Number of Dags to Show
-      {{view Ember.Select 
-        content=countOptions 
-        value=count
-      }}
-    </div><div class="horizontal-half align-children-right">
-      {{partial 'partials/table-controls'}}
-    </div>
+  {{partial 'partials/table-controls'}}
   </div>
   {{partial 'partials/table'}}
 {{else}}

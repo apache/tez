@@ -160,6 +160,7 @@ App.TaskRoute = Em.Route.extend({
 
 App.TasksRoute = Em.Route.extend({
   queryParams: {
+    count: App.Helpers.misc.defaultQueryParamsConfig,
     status: App.Helpers.misc.defaultQueryParamsConfig,
     parentType: App.Helpers.misc.defaultQueryParamsConfig,
     parentID: App.Helpers.misc.defaultQueryParamsConfig
@@ -215,6 +216,7 @@ App.VertexSwimlaneRoute = Em.Route.extend({
 App.TaskAttemptsRoute = Em.Route.extend({
   renderTemplate: renderTableWithSpinner,
   queryParams: {
+    count: App.Helpers.misc.defaultQueryParamsConfig,
     status: App.Helpers.misc.defaultQueryParamsConfig 
   },
   setupController: setupControllerFactory('Task Attempt: %@', 'id')
@@ -261,6 +263,7 @@ App.DagTasksRoute =
     Em.Route.extend({
       renderTemplate: renderTableWithSpinner,
       queryParams: {
+        count: App.Helpers.misc.defaultQueryParamsConfig,
         status: App.Helpers.misc.defaultQueryParamsConfig
       },
       setupController: setupControllerFactory()

@@ -31,7 +31,7 @@
       {{#each kv in filteredKVs}}
         <tr>
           <td>{{unbound kv.key}}</td>
-          <td>{{unbound kv.value}}</td>
+          <td>{{unbound formatNumThousands kv.value}}</td>
         </tr>
       {{/each}}
     </tbody>

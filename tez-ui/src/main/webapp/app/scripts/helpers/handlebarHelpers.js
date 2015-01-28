@@ -31,6 +31,15 @@ Em.Handlebars.helper('formatUnixTimestamp', function(timestamp) {
 	return '';
 });
 
+/**
+ * Format value with US style thousands separator
+ * @param {string/number} value to be formatted
+ * @returns {string} Formatted string
+ */
+Em.Handlebars.helper('formatNumThousands', function (value) {
+  return App.Helpers.number.formatNumThousands(value);
+});
+
 /*
  * formats the duration.
  *
