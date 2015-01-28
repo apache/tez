@@ -7,7 +7,6 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-1987. Tez UI non-standalone mode uses invalid protocol.
   TEZ-1995. Build failure against hadoop 2.2.
   TEZ-1997. Remove synchronization DefaultSorter::isRLENeeded() (Causes sorter to hang indefinitely in large jobs).
   TEZ-1996. Update Website after 0.6.0
@@ -54,6 +53,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1987. Tez UI non-standalone mode uses invalid protocol.
   TEZ-1983. Tez UI swimlane task attempt link is broken
 
 Release 0.6.0: Unreleased
