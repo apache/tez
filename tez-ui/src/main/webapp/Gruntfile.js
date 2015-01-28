@@ -49,7 +49,7 @@ module.exports = function (grunt) {
         tasks: ['emberTemplates']
       },
       neuter: {
-        files: ['<%= yeoman.app %>/scripts/{,*/}*.js'],
+        files: ['<%= yeoman.app %>/scripts/{,*/,*/*/}*.js'],
         tasks: ['neuter']
       },
       less: {
@@ -203,7 +203,6 @@ module.exports = function (grunt) {
           '<%= yeoman.dist %>/styles/main.css': [
             '.tmp/styles/{,*/}*.css',
             '<%= yeoman.app %>/styles/{,*/}*.css',
-            '<%= yeoman.app %>/bower_components/bootstrap/dist/css/bootstrap.css',
             '<%= yeoman.app %>/bower_components/ember-table/dist/ember-table.css',
             '<%= yeoman.app %>/bower_components/font-awesome/css/font-awesome.css',
             '<%= yeoman.app %>/bower_components/jquery-ui/themes/smoothness/jquery-ui.css'

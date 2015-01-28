@@ -17,11 +17,16 @@
  */
 
 App.PaginatedContentMixin = Em.Mixin.create({
-	count: 10,
-	
-	fromID: null,
+  // paging related values. These are bound automatically to the values in url. via the queryParams
+  // defined in the route.
+  count: 10,
 
-	/* There is currently no efficient way in ATS to get pagination data, so we fake one.
+  fromID: null,
+
+  // The dropdown contents for number of items to show.
+  countOptions: [5, 10, 25, 50],
+
+  /* There is currently no efficient way in ATS to get pagination data, so we fake one.
    * store the first dag id on a page so that we can navigate back and store the last one 
    * (not shown on page to get the id where next page starts)
    */
@@ -31,9 +36,17 @@ App.PaginatedContentMixin = Em.Mixin.create({
     nextID: undefined
   },
 
+  queryParams: {
+    count: true,
+  },
+
   entities: [],
   _paginationFilters: {},
-	loading: true,
+  loading: true,
+
+  countUpdated: function() {
+    this.loadData();
+  }.observes('count'),
 
   sortedContent: function() {
     // convert to a ArrayController. we do not sort at this point as the data is
@@ -66,20 +79,20 @@ App.PaginatedContentMixin = Em.Mixin.create({
     });
   },
 
-	setFiltersAndLoadEntities: function(filters) {
-		this._paginationFilters = filters;
-		this.resetNavigation();
-		this.loadEntities();
-	},
+  setFiltersAndLoadEntities: function(filters) {
+    this._paginationFilters = filters;
+    this.resetNavigation();
+    this.loadEntities();
+  },
 
-	resetNavigation: function() {
-		this.set('navIDs.prevIDs', []);
-		this.set('navIDs.currentID', '');
-		this.set('navIDs.nextID', '');
-		this.set('fromID', null);
-	},
+  resetNavigation: function() {
+    this.set('navIDs.prevIDs', []);
+    this.set('navIDs.currentID', '');
+    this.set('navIDs.nextID', '');
+    this.set('fromID', null);
+  },
 
-	updatePagination: function(dataArray) {
+  updatePagination: function(dataArray) {
     if (!!dataArray && dataArray.get('length') > 0) {
       this.set('navIDs.currentID', dataArray.objectAt(0).get('id'));
       var nextID = undefined;
@@ -127,40 +140,40 @@ App.PaginatedContentMixin = Em.Mixin.create({
   },
 
   _concatFilters: function(obj) {
-  	var p = [];
-		for(var k in obj) {
-			if (!Em.empty(obj[k])) {
-				p.push(k + ':' + obj[k]);
-			}
-		}
-		return p.join(',');
+    var p = [];
+    for(var k in obj) {
+      if (!Em.empty(obj[k])) {
+        p.push(k + ':' + obj[k]);
+      }
+    }
+    return p.join(',');
   },
 
-	getFilterProperties: function() {
-		var params = {
-			limit: this.count + 1
-		};
+  getFilterProperties: function() {
+    var params = {
+      limit: this.count + 1
+    };
 
-		var f = this._paginationFilters;
-		var primary = f.primary;
-		var secondary = f.secondary || {};
+    var f = this._paginationFilters;
+    var primary = f.primary;
+    var secondary = f.secondary || {};
 
-		primary = this._concatFilters(primary);
+    primary = this._concatFilters(primary);
 
-		secondary = this._concatFilters(secondary);
+    secondary = this._concatFilters(secondary);
 
-		if (!Em.empty(primary)) {
-			params['primaryFilter'] = primary;
-		}
+    if (!Em.empty(primary)) {
+      params['primaryFilter'] = primary;
+    }
 
-		if (!Em.empty(secondary)) {
-			params['secondaryFilter'] = secondary;
-		}
+    if (!Em.empty(secondary)) {
+      params['secondaryFilter'] = secondary;
+    }
 
-		if (!Em.empty(this.fromID)) {
-			params['fromId'] = this.fromID;
-		}
+    if (!Em.empty(this.fromID)) {
+      params['fromId'] = this.fromID;
+    }
 
-		return params;
-	},
+    return params;
+  },
 });

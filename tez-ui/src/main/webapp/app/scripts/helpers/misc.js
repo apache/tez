@@ -81,7 +81,7 @@ App.Helpers.misc = {
    */
   normalizeCounterConfigs: function (counterConfigs) {
     return counterConfigs.map(function (configuration) {
-      configuration.headerCellName = configuration.headerCellName || configuration.headerText;
+      configuration.headerCellName = configuration.headerCellName || configuration.counterId;
       configuration.id = '%@/%@'.fmt(configuration.groupId, configuration.counterId),
       configuration.getCellContent = App.Helpers.misc.getCounterCellContent;
       return configuration;
@@ -126,7 +126,7 @@ App.Helpers.misc = {
           get('value');
     }catch(e){}
 
-    return value;
+    return App.Helpers.number.formatNumThousands(value);
   },
 
   /* 

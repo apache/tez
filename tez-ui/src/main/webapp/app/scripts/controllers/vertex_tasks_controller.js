@@ -113,7 +113,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
       },
       {
         id: 'duration',
-        headerCellName: 'duration',
+        headerCellName: 'Duration',
         getCellContent: function(row) {
           var st = row.get('startTime');
           var et = row.get('endTime');
