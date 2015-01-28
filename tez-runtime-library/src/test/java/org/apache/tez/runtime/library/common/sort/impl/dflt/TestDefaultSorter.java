@@ -29,7 +29,7 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.commons.math3.random.RandomDataGenerator;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -138,10 +138,9 @@ public class TestDefaultSorter {
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
-    RandomDataGenerator generator = new RandomDataGenerator();
     for (int i = 0; i < numKeys; i++) {
-      Text key = new Text(generator.nextHexString(keyLen));
-      Text value = new Text(generator.nextHexString(keyLen));
+      Text key = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
+      Text value = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
       sorter.write(key, value);
     }
     sorter.flush();

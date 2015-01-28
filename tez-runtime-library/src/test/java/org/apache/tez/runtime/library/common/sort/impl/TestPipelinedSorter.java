@@ -1,7 +1,7 @@
 package org.apache.tez.runtime.library.common.sort.impl;
 
 import com.google.common.collect.Maps;
-import org.apache.commons.math3.random.RandomDataGenerator;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,7 +21,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -148,10 +147,9 @@ public class TestPipelinedSorter {
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
     sortedDataMap.clear();
-    RandomDataGenerator generator = new RandomDataGenerator();
     for (int i = 0; i < numKeys; i++) {
-      Text key = new Text(generator.nextHexString(keyLen));
-      Text value = new Text(generator.nextHexString(keyLen));
+      Text key = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
+      Text value = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
       sorter.write(key, value);
       sortedDataMap.put(key.toString(), value.toString()); //for verifying data later
     }
