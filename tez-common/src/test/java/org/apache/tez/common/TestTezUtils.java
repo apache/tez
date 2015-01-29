@@ -150,6 +150,16 @@ public class TestTezUtils {
 
   }
 
+  private void checkJSONConfigObj(JSONObject confObject) throws JSONException {
+    Assert.assertNotNull(confObject);
+    Assert.assertEquals("value1", confObject.getString("test1"));
+    Assert.assertEquals("true", confObject.getString("test2"));
+    Assert.assertEquals("1.2345", confObject.getString("test3"));
+    Assert.assertEquals("34567", confObject.getString("test4"));
+    Assert.assertEquals("1234567890", confObject.getString("test5"));
+    Assert.assertEquals("S1,S2,S3", confObject.getString("test6"));
+  }
+
   @Test (timeout=2000)
   public void testConvertToHistoryText() throws JSONException {
     Configuration conf = getConf();
@@ -162,13 +172,7 @@ public class TestTezUtils {
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
 
     JSONObject confObject = jsonObject.getJSONObject(ATSConstants.CONFIG);
-    Assert.assertNotNull(confObject);
-    Assert.assertEquals("value1", confObject.getString("test1"));
-    Assert.assertEquals("true", confObject.getString("test2"));
-    Assert.assertEquals("1.2345", confObject.getString("test3"));
-    Assert.assertEquals("34567", confObject.getString("test4"));
-    Assert.assertEquals("1234567890", confObject.getString("test5"));
-    Assert.assertEquals("S1,S2,S3", confObject.getString("test6"));
+    checkJSONConfigObj(confObject);
 
     String desc = "desc123";
     confToJson = TezUtils.convertToHistoryText(desc, conf);
@@ -180,13 +184,46 @@ public class TestTezUtils {
 
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
     confObject = jsonObject.getJSONObject("config");
-    Assert.assertNotNull(confObject);
-    Assert.assertEquals("value1", confObject.getString("test1"));
-    Assert.assertEquals("true", confObject.getString("test2"));
-    Assert.assertEquals("1.2345", confObject.getString("test3"));
-    Assert.assertEquals("34567", confObject.getString("test4"));
-    Assert.assertEquals("1234567890", confObject.getString("test5"));
-    Assert.assertEquals("S1,S2,S3", confObject.getString("test6"));
+    checkJSONConfigObj(confObject);
 
   }
+
+  @Test (timeout=2000)
+  public void testConvertToHistoryTextWithReplaceVars() throws JSONException {
+    Configuration conf = getConf();
+    conf.set("user", "user1");
+    conf.set("location", "/tmp/${user}/");
+
+    String location = "/tmp/user1/";
+    Assert.assertEquals(location, conf.get("location"));
+
+    String confToJson = TezUtils.convertToHistoryText(conf);
+
+    JSONObject jsonObject = new JSONObject(confToJson);
+
+    Assert.assertFalse(jsonObject.has(ATSConstants.DESCRIPTION));
+    Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
+
+    JSONObject confObject = jsonObject.getJSONObject(ATSConstants.CONFIG);
+    checkJSONConfigObj(confObject);
+    Assert.assertEquals("user1", confObject.getString("user"));
+    Assert.assertEquals(location, confObject.getString("location"));
+
+    String desc = "desc123";
+    confToJson = TezUtils.convertToHistoryText(desc, conf);
+    jsonObject = new JSONObject(confToJson);
+
+    Assert.assertTrue(jsonObject.has(ATSConstants.DESCRIPTION));
+    String descFromJson = jsonObject.getString(ATSConstants.DESCRIPTION);
+    Assert.assertEquals(desc, descFromJson);
+
+    Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
+    confObject = jsonObject.getJSONObject("config");
+    checkJSONConfigObj(confObject);
+    Assert.assertEquals("user1", confObject.getString("user"));
+    Assert.assertEquals(location, confObject.getString("location"));
+
+  }
+
+
 }

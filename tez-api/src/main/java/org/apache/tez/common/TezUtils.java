@@ -169,7 +169,7 @@ public class TezUtils {
         Iterator<Entry<String, String>> iter = conf.iterator();
         while (iter.hasNext()) {
           Entry<String, String> entry = iter.next();
-          confJson.put(entry.getKey(), entry.getValue());
+          confJson.put(entry.getKey(), conf.get(entry.getKey()));
         }
         jsonObject.put(ATSConstants.CONFIG, confJson);
       }
