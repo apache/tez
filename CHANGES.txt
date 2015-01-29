@@ -54,6 +54,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2010. History payload generated from conf has ${var} placeholders.
   TEZ-1946. Tez UI: add source & sink views, add counters to vertices/all task views.
   TEZ-1987. Tez UI non-standalone mode uses invalid protocol.
   TEZ-1983. Tez UI swimlane task attempt link is broken
@@ -165,7 +166,6 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
-  TEZ-2010. History payload generated from conf has ${var} placeholders.
   TEZ-1934. TestAMRecovery may fail due to the execution order is not determined.
   TEZ-1642. TestAMRecovery sometimes fail.
   TEZ-1931. Publish tez version info to Timeline.
