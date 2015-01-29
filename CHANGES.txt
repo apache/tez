@@ -165,6 +165,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2010. History payload generated from conf has ${var} placeholders.
   TEZ-1934. TestAMRecovery may fail due to the execution order is not determined.
   TEZ-1642. TestAMRecovery sometimes fail.
   TEZ-1931. Publish tez version info to Timeline.
