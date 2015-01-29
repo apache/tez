@@ -33,8 +33,11 @@ App.Router.map(function() {
 
   this.resource('vertex', {path: '/vertex/:vertex_id'}, function(){
     this.route('tasks');
-    this.route('inputs');
-    this.resource('vertexInput', {path: '/input/:input_id'}, function(){
+    this.route('additionals');
+    this.resource('input', {path: '/input/:input_id'}, function(){
+      this.route('configs');
+    });
+    this.resource('output', {path: '/output/:input_id'}, function(){
       this.route('configs');
     });
     this.route('taskAttempts');
@@ -48,9 +51,11 @@ App.Router.map(function() {
     this.route('attempts');
     this.route('counters');
   });
+
   this.resource('taskAttempt', {path: '/task_attempt/:task_attempt_id'}, function() {
     this.route('counters');
   });
+
   this.resource('error', {path: '/error'});
 });
 
@@ -138,6 +143,10 @@ App.DagRoute = Em.Route.extend({
   setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id')
 });
 
+App.DagViewRoute = Em.Route.extend({
+  setupController: setupControllerFactory()
+});
+
 App.DagSwimlaneRoute = Em.Route.extend({
   renderTemplate: renderSwimlanes,
   model: function(params) {
@@ -177,25 +186,25 @@ App.VertexRoute = Em.Route.extend({
   setupController: setupControllerFactory('Vertex: %@ (%@)', 'name', 'id')
 });
 
-App.VertexInputsRoute = Em.Route.extend({
+App.VertexAdditionalsRoute = Em.Route.extend({
   setupController: function(controller, model) {
     this._super(controller, model);
     controller.loadEntities();
   }
 });
 
-App.VertexInputConfigsRoute = Em.Route.extend({
-  renderTemplate: renderConfigs,
-  setupController: function(controller, model) {
-    this._super(controller, model)
-    controller.set('needToShowInputDetails', true);
-  }
-});
-
-App.VertexInputRoute = Em.Route.extend({
+App.InputRoute = Em.Route.extend({
   model: function (params) {
     var model = this.modelFor('vertex');
     return model.get('inputs').findBy('id', params.input_id);
+  },
+  setupController: setupControllerFactory()
+});
+
+App.OutputRoute = Em.Route.extend({
+  model: function (params) {
+    var model = this.modelFor('vertex');
+    return model.get('outputs').findBy('id', params.input_id);
   },
   setupController: setupControllerFactory()
 });

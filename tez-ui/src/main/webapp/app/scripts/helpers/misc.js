@@ -81,8 +81,9 @@ App.Helpers.misc = {
    */
   normalizeCounterConfigs: function (counterConfigs) {
     return counterConfigs.map(function (configuration) {
-      configuration.headerCellName = configuration.headerCellName || configuration.counterId;
-      configuration.id = '%@/%@'.fmt(configuration.groupId, configuration.counterId),
+      configuration.headerCellName = configuration.counterName || configuration.counterId;
+      configuration.id = '%@/%@'.fmt(configuration.counterGroupName || configuration.groupId,
+          configuration.counterName || configuration.counterId),
       configuration.getCellContent = App.Helpers.misc.getCounterCellContent;
       return configuration;
     });
@@ -151,6 +152,20 @@ App.Helpers.misc = {
       msg: msg,
       details: error.stack
     };
+  },
+
+  merge: function objectMerge(obj1, obj2) {
+    $.each(obj2, function (key, val) {
+      if(Array.isArray(obj1[key]) && Array.isArray(val)) {
+        $.merge(obj1[key], val);
+      }
+      else if($.isPlainObject(obj1[key]) && $.isPlainObject(val)) {
+        objectMerge(obj1[key], val);
+      }
+      else {
+        obj1[key] = val;
+      }
+    });
   },
 
   dagStatusUIOptions: [

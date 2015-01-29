@@ -54,6 +54,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1946. Tez UI: add source & sink views, add counters to vertices/all task views.
   TEZ-1987. Tez UI non-standalone mode uses invalid protocol.
   TEZ-1983. Tez UI swimlane task attempt link is broken
 

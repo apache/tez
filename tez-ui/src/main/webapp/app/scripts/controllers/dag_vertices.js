@@ -127,23 +127,28 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
       },
       {
         id: 'configurations',
-        headerCellName: 'Input Configurations',
+        headerCellName: 'Source/Sink Configs',
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
-            " {{#if view.cellContent.inputId}}\
-                {{#if view.cellContent.showConfigs}}\
-                 {{#link-to 'vertexInput.configs' view.cellContent.vertexId view.cellContent.inputId class='ember-table-content'}}View configurations{{/link-to}}\
-                {{else}}\
-                 {{#link-to 'vertex.inputs' view.cellContent.vertexId class='ember-table-content'}}View Inputs{{/link-to}}\
-                {{/if}}\
+            " {{#if view.cellContent.linkToAdditionals}}\
+                {{#link-to 'vertex.additionals' view.cellContent.vertexId class='ember-table-content'}}View sources & sinks{{/link-to}}\
+              {{else}}{{#if view.cellContent.inputId}}\
+                {{#link-to 'input.configs' view.cellContent.vertexId view.cellContent.inputId class='ember-table-content'}}View source configs{{/link-to}}\
+              {{else}}{{#if view.cellContent.outputId}}\
+                {{#link-to 'output.configs' view.cellContent.vertexId view.cellContent.outputId class='ember-table-content'}}View sink configs{{/link-to}}\
               {{else}}\
-                <span class='ember-table-content'>No Inputs</span>\
-              {{/if}}")
+                <span class='ember-table-content'>No source or sink</span>\
+              {{/if}}{{/if}}{{/if}}")
         }),
         getCellContent: function(row) {
+          var firstInputId = row.get('inputs.content.0.id'),
+              firstOutputId = row.get('outputs.content.0.id');
           return {
-            showConfigs: row.get('inputs.content.length') == 1 && row.get('inputs.content.0.configs.length') > 0,
-            inputId: row.get('inputs.content.0.id'),
+            linkToAdditionals: row.get('inputs.content.length') > 1 ||
+                row.get('outputs.content.length') > 1 ||
+                (firstInputId != undefined && firstOutputId != undefined),
+            inputId: firstInputId,
+            outputId: firstOutputId,
             vertexId: row.get('id')
           };
         }

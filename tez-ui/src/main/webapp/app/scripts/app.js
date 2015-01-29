@@ -31,6 +31,11 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
 
   env: {
     isStandalone: true // Can ne set false in the wrapper initializer
+  },
+
+  setConfigs: function (configs) {
+    App.Helpers.misc.merge(App.Configs, configs);
+    App.advanceReadiness();
   }
 });
 App.deferReadiness();
@@ -71,6 +76,9 @@ App.ready = function () {
             var vertexData = dag.get('vertices').findBy('vertexName', vertexName);
             if(vertexData && vertexData.additionalInputs) {
               data.inputs = vertexData.additionalInputs;
+            }
+            if(vertexData && vertexData.additionalOutputs) {
+              data.outputs = vertexData.additionalOutputs;
             }
           }
           return data;
@@ -115,4 +123,5 @@ require('scripts/models/**/*');
 require('scripts/controllers/**/*');
 
 require('scripts/components/*');
+require('scripts/components/dag-view/*');
 require('scripts/adapters/*');

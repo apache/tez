@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-$.extend(true, App.Configs, {
+App.setConfigs({
 
   /* Environment configurations */
   envDefaults: {
@@ -39,10 +39,11 @@ $.extend(true, App.Configs, {
    * as columns edit the following 'tables' object. Counters must be added as configuration objects
    * of the following format.
    *    {
-   *      counterId: '<Counter ID>',
-   *      groupId: '<Group ID>',
-   *      headerText: '<Display text>'
+   *      counterName: '<Counter ID>',
+   *      counterGroupName: '<Group ID>',
    *    }
+   *
+   * Note: Till 0.6.0 the properties were counterId and groupId, their use is deprecated now.
    */
   tables: {
     /*
@@ -51,9 +52,8 @@ $.extend(true, App.Configs, {
     entity: {
       dag: [
         // { // Following is a sample configuration object.
-        //   counterId: 'FILE_BYTES_READ',
-        //   groupId: 'org.apache.tez.common.counters.FileSystemCounter',
-        //   headerText: 'File Bytes Read'
+        //   counterName: 'FILE_BYTES_READ',
+        //   counterGroupName: 'org.apache.tez.common.counters.FileSystemCounter',
         // }
       ],
       vertex: [],
@@ -69,4 +69,3 @@ $.extend(true, App.Configs, {
 
 });
 
-App.advanceReadiness();

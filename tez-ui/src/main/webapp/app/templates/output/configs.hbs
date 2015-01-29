@@ -16,21 +16,24 @@
 * limitations under the License.
 }}
 
-{{#unless loading}}
-  {{#if inputsAvailable}}
-    <div class='margin-small align-children-right'>
-      {{page-nav-component
-        hasPrev=hasPrev
-        hasNext=hasNext
-        navNext='navigateNext'
-        navPrev='navigatePrev'
-        navFirst='navigateFirst'
-      }}
-    </div>
-    {{partial 'partials/table'}}
-  {{else}}
-    <h1>Inputs are not available!</h1>
-  {{/if}}
-{{else}}
-  {{partial 'utils/loading-spinner'}}
-{{/unless}}
+<div class='margin-small-horizontal' style="margin-bottom:10px;">
+  <table class='detail-list'>
+    <thead>
+      <tr>
+        <th>Sink Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Name</td>
+        <td>{{outputName}}</td>
+      </tr>
+      <tr>
+        <td>Class</td>
+        <td>{{outputClass}}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{{partial 'partials/configs'}}
+

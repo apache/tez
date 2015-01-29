@@ -221,7 +221,8 @@ App.Vertex = DS.Model.extend({
 
   recordWriteCount: DS.attr('number'),
 
-  inputs: DS.hasMany('vertexInput'),
+  inputs: DS.hasMany('input'),
+  outputs: DS.hasMany('output'),
 
   totalReadBytes: function () {
     return this.get('fileReadBytes') + this.get('hdfsReadBytes');
@@ -244,12 +245,21 @@ App.Vertex = DS.Model.extend({
   }.property('duration')
 });
 
-App.VertexInput = DS.Model.extend({
+App.Input = DS.Model.extend({
   entity: DS.attr('string'),
 
   inputName: DS.attr('string'),
   inputClass: DS.attr('string'),
   inputInitializer: DS.attr('string'),
+
+  configs: DS.hasMany('kVData', { async: false })
+});
+
+App.Output = DS.Model.extend({
+  entity: DS.attr('string'),
+
+  outputName: DS.attr('string'),
+  outputClass: DS.attr('string'),
 
   configs: DS.hasMany('kVData', { async: false })
 });

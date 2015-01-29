@@ -16,4 +16,30 @@
 * limitations under the License.
 }}
 
-{{partial 'partials/configs'}}
+{{#unless loading}}
+  <h3>Sources</h3>
+  {{#if inputsAvailable}}
+    {{extended-table-component
+      hasFooter=false
+      columnsBinding="inputColumns"
+      contentBinding="inputContent"
+      forceFillColumns=true
+    }}
+  {{else}}
+    <h4>Not available!</h4>
+  {{/if}}
+
+  <h3>Sinks</h3>
+  {{#if outputsAvailable}}
+    {{extended-table-component
+      hasFooter=false
+      columnsBinding="outputColumns"
+      contentBinding="outputContent"
+      forceFillColumns=true
+    }}
+  {{else}}
+    <h4>Not available!</h4>
+  {{/if}}
+{{else}}
+  {{partial 'partials/loading-spinner'}}
+{{/unless}}
