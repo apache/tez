@@ -16,23 +16,21 @@
  * limitations under the License.
  */
 
-App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
-  controllerName: 'VertexController',
+// Colors
+@logo-orange: #D27A22;
+@bg-lite: #f5f5f5;
+@bg-liter: #f5f5f5;
+@border-lite: #e5e5e5;
+@bg-red-light: #FFE6E6;
 
-  pageTitle: 'Vertex',
+@white: #fff;
 
-  loading: true,
+@text-color: #666666;
+@text-red: red;
 
-  updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
+@top-nav-bg-color-from: #d5d5d5;
+@top-nav-bg-color-to: #f0f0f0;
 
-  childDisplayViews: [
-    Ember.Object.create({title: 'Details', linkTo: 'vertex.index'}),
-    Ember.Object.create({title: 'Tasks', linkTo: 'vertex.tasks'}),
-    Ember.Object.create({title: 'Task Attempts', linkTo: 'vertex.taskAttempts'}),
-    Ember.Object.create({title: 'Counters', linkTo: 'vertex.counters'}),
-    Ember.Object.create({title: 'Swimlane', linkTo: 'vertex.swimlane'}),
-    Ember.Object.create({title: 'Sources & Sinks', linkTo: 'vertex.additionals'}),
-  ],
-});
+@success-color: limegreen;
+@error-color: crimson;
+@warning-color: orange;

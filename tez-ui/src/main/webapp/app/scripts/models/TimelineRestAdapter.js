@@ -75,7 +75,7 @@ App.TimelineSerializer = DS.RESTSerializer.extend({
         var c = {
           id: cg.id + '/' + counter.counterName,
           name: counter.counterName,
-          displayName: counter.counterDisplayName,
+          displayName: counter.counterName,
           value: counter.counterValue,
           parentID: cg.id
         };
@@ -281,6 +281,7 @@ var timelineJsonToVertexMap = {
   processorClassName: 'processorClassName',
   counterGroups: 'counterGroups',
   inputs: 'inputs',
+  outputs: 'outputs',
 
   startTime: 'otherinfo.startTime',
   endTime: 'otherinfo.endTime',
@@ -312,8 +313,10 @@ App.VertexSerializer = App.TimelineSerializer.extend({
     var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('vertex', vertex.entity,
         vertex),
     processorClassName = Ember.get(vertex, 'otherinfo.processorClassName'),
-    vertexInputs = [],
-    inputIds = [];
+    inputs = [],
+    inputIds = [],
+    outputs = [],
+    outputIds = [];
 
     vertex.processorClassName = processorClassName.substr(processorClassName.lastIndexOf('.') + 1),
     vertex.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
@@ -324,15 +327,25 @@ App.VertexSerializer = App.TimelineSerializer.extend({
       vertex.inputs.forEach(function (input, index) {
         input.entity = vertex.entity + '-input' + index;
         inputIds.push(input.entity);
-        vertexInputs.push(input);
+        inputs.push(input);
       });
       vertex.inputs = inputIds;
+    }
+
+    if(vertex.outputs) {
+      vertex.outputs.forEach(function (output, index) {
+        output.entity = vertex.entity + '-output' + index;
+        outputIds.push(output.entity);
+        outputs.push(output);
+      });
+      vertex.outputs = outputIds;
     }
 
     return {
       vertex: vertex,
       counterGroups: normalizedCounterGroupData.counterGroups,
-      vertexInputs: vertexInputs,
+      inputs: inputs,
+      outputs: outputs,
       counters: normalizedCounterGroupData.counters
     };
   },
@@ -342,7 +355,8 @@ App.VertexSerializer = App.TimelineSerializer.extend({
       var normalizedPayload = {
         vertices: [],
         counterGroups: [],
-        vertexInputs: [],
+        inputs: [],
+        outputs: [],
         counters: []
       };
       rawPayload.vertices.forEach(function(vertex){
@@ -350,7 +364,8 @@ App.VertexSerializer = App.TimelineSerializer.extend({
         normalizedPayload.vertices.push(n.vertex);
         [].push.apply(normalizedPayload.counterGroups, n.counterGroups);
         [].push.apply(normalizedPayload.counters, n.counters);
-        [].push.apply(normalizedPayload.vertexInputs, n.vertexInputs);
+        [].push.apply(normalizedPayload.inputs, n.inputs);
+        [].push.apply(normalizedPayload.outputs, n.outputs);
       }, this);
       
       // delete so that we dont hang on to the json data.
@@ -367,12 +382,49 @@ App.VertexSerializer = App.TimelineSerializer.extend({
   },
 });
 
-App.VertexInputSerializer = App.TimelineSerializer.extend({
+App.InputSerializer = App.TimelineSerializer.extend({
   _map: {
     id: 'entity',
     inputName: 'name',
     inputClass: 'class',
     inputInitializer: 'initializer',
+    configs: 'configs'
+  },
+  _normalizeData: function(data) {
+    var userPayload = JSON.parse(data.userPayloadAsText || null),
+        store = this.get('store'),
+        configs,
+        configKey,
+        configIndex = 0,
+        id;
+
+    data.configs = [];
+
+    if(userPayload) {
+      configs = userPayload.config || userPayload.dist;
+      for(configKey in configs) {
+        id = data.entity + configIndex++;
+        data.configs.push(id);
+        store.push('KVDatum', {
+          id: id,
+          key: configKey,
+          value: configs[configKey]
+        });
+      }
+    }
+
+    return data;
+  },
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(this._normalizeData(hash), this._map);
+  }
+});
+
+App.OutputSerializer = App.TimelineSerializer.extend({
+  _map: {
+    id: 'entity',
+    outputName: 'name',
+    outputClass: 'class',
     configs: 'configs'
   },
   _normalizeData: function(data) {

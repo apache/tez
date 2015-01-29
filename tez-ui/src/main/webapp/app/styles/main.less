@@ -16,28 +16,13 @@
  * limitations under the License.
  */
 
-
-// Colors
-@logo-orange: #D27A22;
-@bg-lite: #f5f5f5;
-@border-lite: #e5e5e5;
-@bg-red-light: #FFE6E6;
-
-@white: #fff;
-
-@text-color: #666666;
-@text-red: red;
-
-@top-nav-bg-color-from: #d5d5d5;
-@top-nav-bg-color-to: #f0f0f0;
-
-@success-color: limegreen;
-@error-color: crimson;
-@warning-color: orange;
-
 // Imports
 @import "../bower_components/font-awesome/less/font-awesome";
 @import "../bower_components/bootstrap/less/bootstrap"; //UI theme
+
+// Colors
+@import "app/styles/colors";
+@import "app/styles/shared";
 
 // Base style
 body, html, body > .ember-view {
@@ -203,11 +188,6 @@ body, html, body > .ember-view {
       display: inline;
     }
   }
-}
-
-.fa-icon(@name) {
-    @content: "fa-var-@{name}";
-    &:before {content: @@content}
 }
 
 /* misc helpers */

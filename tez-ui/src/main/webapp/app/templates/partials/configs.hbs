@@ -16,4 +16,12 @@
 * limitations under the License.
 }}
 
-{{partial 'partials/configs'}}
+{{#if configs}}
+  <div class='table-container'>
+    {{kv-table-component data=configs}}
+  </div>
+{{else}}
+  <div class='margin-small-horizontal'>
+    <h4>No configurations available!</h4>
+  </div>
+{{/if}}

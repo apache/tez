@@ -41,7 +41,7 @@ App.Dialogs = Em.Namespace.create({
       var id = getProperty(item, 'id'),
           displayText = getProperty(item, 'displayText');
 
-      listHTML += '<li><input id=%@ type="checkbox" %@ /> %@</li>'.fmt(
+      listHTML += '<li class="no-wrap"><input id=%@ type="checkbox" %@ /> %@</li>'.fmt(
         id,
         selectedItems[id] ? 'checked' : '',
         displayText
