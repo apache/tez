@@ -251,7 +251,8 @@ App.TezAppRoute = Em.Route.extend({
 App.TezAppDagsRoute = Em.Route.extend({
   renderTemplate: renderTableWithSpinner,
   queryParams:  {
-    count: App.Helpers.misc.defaultQueryParamsConfig,    
+    dagName: App.Helpers.misc.defaultQueryParamsConfig,
+    count: App.Helpers.misc.defaultQueryParamsConfig,
     fromID: App.Helpers.misc.defaultQueryParamsConfig,
     user: App.Helpers.misc.defaultQueryParamsConfig,
     status: App.Helpers.misc.defaultQueryParamsConfig
