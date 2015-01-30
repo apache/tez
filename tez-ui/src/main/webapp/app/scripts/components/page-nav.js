@@ -19,7 +19,7 @@
 App.PageNavComponent = Em.Component.extend({
 	layoutName: 'components/page-nav',
 	
-	classNames: ['inline-block'],
+	classNames: ['inline-block', 'page-nav-link'],
 
 	actions: {
 		gotoNext: function() {

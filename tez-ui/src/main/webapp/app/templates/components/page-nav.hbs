@@ -16,6 +16,9 @@
 * limitations under the License.
 }}
 
-<i {{bind-attr class=':page-nav-link :nav-first hasPrev:enabled:disabled'}} {{action 'gotoFirst'}}></i>
-<i {{bind-attr class=':page-nav-link :nav-prev hasPrev:enabled:disabled'}} {{action 'gotoPrev'}}></i>
-<i {{bind-attr class=':page-nav-link :nav-next hasNext:enabled:disabled'}} {{action 'gotoNext'}}></i>
+<div class="page-count">
+  <div class="text">Page</div><span class="counter">{{page}}</span>
+</div>
+<i {{bind-attr class=':nav-first hasPrev:enabled:disabled'}} {{action 'gotoFirst'}}></i>
+<i {{bind-attr class=':nav-prev hasPrev:enabled:disabled'}} {{action 'gotoPrev'}}></i>
+<i {{bind-attr class=':nav-next hasNext:enabled:disabled'}} {{action 'gotoNext'}}></i>

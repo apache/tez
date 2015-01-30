@@ -56,13 +56,36 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
   defaultColumnConfigs: function() {
     return [
       {
-        id: 'taskId',
-        headerCellName: 'Task ID',
+        id: 'id',
+        headerCellName: 'Attempt Index',
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
-            "{{#link-to 'taskAttempt' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+            "{{#link-to 'taskAttempt' view.cellContent.id class='ember-table-content'}}{{view.cellContent.displayId}}{{/link-to}}")
         }),
-        contentPath: 'id',
+        getCellContent: function (row) {
+          var id = row.get('id'),
+              idPrefix = 'attempt_%@_'.fmt(row.get('dagID').substr(4));
+          return {
+            id: id,
+            displayId: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
+          };
+        }
+      },
+      {
+        id: 'attemptNo',
+        headerCellName: 'Attempt No',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            "{{#link-to 'taskAttempt' view.cellContent.attemptID class='ember-table-content'}}{{view.cellContent.attemptNo}}{{/link-to}}")
+        }),
+        getCellContent: function(row) {
+          var attemptID = row.get('id') || '',
+              attemptNo = attemptID.split(/[_]+/).pop();
+          return {
+            attemptNo: attemptNo,
+            attemptID: attemptID
+          };
+        }
       },
       {
         id: 'startTime',
@@ -109,14 +132,26 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         }
       },
       {
+        id: 'containerId',
+        headerCellName: 'Container',
+        contentPath: 'containerId'
+      },
+      {
         id: 'nodeId',
-        headerCellName: 'Node ID',
+        headerCellName: 'Node',
         contentPath: 'nodeId'
       },
       {
-        id: 'containerId',
-        headerCellName: 'Container ID',
-        contentPath: 'containerId'
+        id: 'actions',
+        headerCellName: 'Actions',
+        tableCellViewClass: Em.Table.TableCell.extend({
+          template: Em.Handlebars.compile(
+            '<span class="ember-table-content">\
+            {{#link-to "taskAttempt.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
+            </span>'
+            )
+        }),
+        contentPath: 'id'
       },
       {
         id: 'logs',
@@ -140,7 +175,6 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         }
       }
     ];
-
   }.property(),
 
   columnConfigs: function() {

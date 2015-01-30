@@ -93,12 +93,19 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
     return [
       {
         id: 'id',
-        headerCellName: 'Task ID',
+        headerCellName: 'Task Index',
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
-            "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+            "{{#link-to 'task' view.cellContent.id class='ember-table-content'}}{{view.cellContent.displayId}}{{/link-to}}")
         }),
-        contentPath: 'id',
+        getCellContent: function (row) {
+          var id = row.get('id'),
+              idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
+          return {
+            id: id,
+            displayId: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
+          };
+        }
       },
       {
         id: 'vertexID',
