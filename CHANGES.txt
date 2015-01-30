@@ -55,6 +55,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2017. TEZ UI - Dag view throwing error whild re-displaying additionals in some dags.
   TEZ-2013. TEZ UI - App Details Page UI Nits
   TEZ-2014. Tez UI: Nits : All tables, Vertices Page UI.
   TEZ-2012. TEZ UI: Show page number in all tables, and display more readable task/attempt ids.

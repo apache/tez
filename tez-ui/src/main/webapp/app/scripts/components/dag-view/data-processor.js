@@ -201,9 +201,12 @@ App.DagViewComponent.dataProcessor = (function (){
          * @param children {Array} Array of DataNodes to be set
          */
         setChildren: function (children) {
-          this._setChildren(this.get('allChildren').filter(function (child) {
-            return children.indexOf(child) != -1; // true if child is in children
-          }));
+          var allChildren = this.get('allChildren');
+          if(allChildren) {
+            this._setChildren(allChildren.filter(function (child) {
+              return children.indexOf(child) != -1; // true if child is in children
+            }));
+          }
         },
         /**
          * Filter out the given children from the children array.
@@ -423,6 +426,7 @@ App.DagViewComponent.dataProcessor = (function (){
    */
   function _treefyData(vertex, depth) {
     var children = [],
+        parentChildren,
         inputDepth;
 
     depth++;
@@ -432,7 +436,10 @@ App.DagViewComponent.dataProcessor = (function (){
       if(!child.isSelfOrAncestor(vertex)) {
         if(child.depth) {
           if(child.depth < depth) {
-            child.get('treeParent.children').removeObject(child);
+            parentChildren = child.get('treeParent.children');
+            if(parentChildren) {
+              parentChildren.removeObject(child);
+            }
           }
           else {
             return;
@@ -524,9 +531,10 @@ App.DagViewComponent.dataProcessor = (function (){
    * @param node {DataNode}
    */
   function _cacheChildren(node) {
-    if(node.get('children')) {
-      node.set('allChildren', node.get('children') || []);
-      node.get('children').forEach(_cacheChildren);
+    var children = node.get('children');
+    if(children) {
+      node.set('allChildren', children);
+      children.forEach(_cacheChildren);
     }
   }
 
