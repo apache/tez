@@ -24,6 +24,8 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
   // required by the PaginatedContentMixin
   childEntityType: 'vertex',
 
+  count: 50,
+
   queryParams: {
     status_filter: 'status'
   },
@@ -87,6 +89,17 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
         headerCellName: 'End Time',
         getCellContent: function(row) {
           return App.Helpers.date.dateFormat(row.get('endTime'));
+        }
+      },
+      {
+        id: 'duration',
+        headerCellName: 'Duration',
+        getCellContent: function(row) {
+          var st = row.get('startTime');
+          var et = row.get('endTime');
+          if (st && et) {
+            return App.Helpers.date.durationSummary(st, et);
+          }
         }
       },
       {

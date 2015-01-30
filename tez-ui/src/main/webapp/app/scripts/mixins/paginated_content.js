@@ -25,7 +25,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
   fromID: null,
 
   // The dropdown contents for number of items to show.
-  countOptions: [5, 10, 25, 50],
+  countOptions: [5, 10, 25, 50, 100],
 
   /* There is currently no efficient way in ATS to get pagination data, so we fake one.
    * store the first dag id on a page so that we can navigate back and store the last one 
