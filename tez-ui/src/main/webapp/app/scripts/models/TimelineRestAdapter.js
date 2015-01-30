@@ -313,7 +313,7 @@ App.VertexSerializer = App.TimelineSerializer.extend({
   _normalizeSingleVertexPayload: function(vertex) {
     var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('vertex', vertex.entity,
         vertex),
-    processorClassName = Ember.get(vertex, 'otherinfo.processorClassName'),
+    processorClassName = Ember.get(vertex, 'otherinfo.processorClassName') || "",
     inputs = [],
     inputIds = [],
     outputs = [],
