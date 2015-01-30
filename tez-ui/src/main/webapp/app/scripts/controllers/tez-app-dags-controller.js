@@ -25,9 +25,11 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
   childEntityType: 'dag',
 
   queryParams: {
+    dagName_filter: 'dagName',
     status_filter: 'status',
     user_filter: 'user'
   },
+  dagName_filter: null,
   status_filter: null,
   user_filter: null,
 
@@ -35,10 +37,11 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
     var filters = {
       primary: {
         applicationId: this.get('appId'),
-        user: this.user_filter
       },
       secondary: {
-        status: this.status_filter
+        user: this.user_filter,
+        status: this.status_filter,
+        dagName: this.dagName_filter
       }
     };
     this.setFiltersAndLoadEntities(filters);
@@ -61,6 +64,7 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
       {
         id: 'dagName',
         headerCellName: 'Dag Name',
+        filterID: 'dagName_filter',
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             "{{#link-to 'dag' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
@@ -73,18 +77,12 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
         }
       },
       {
-        id: 'dagId',
-        headerCellName: 'Dag ID',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'dag' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
-        }),
-        getCellContent: function(row) {
-          return row.get('id')
-        }
+        id: 'id',
+        headerCellName: 'Id',
+        contentPath: 'id'
       },
       {
-        id: 'submitter',
+        id: 'user',
         headerCellName: 'Submitter',
         filterID: 'user_filter',
         contentPath: 'user'
@@ -93,6 +91,8 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
         id: 'status',
         headerCellName: 'Status',
         filterID: 'status_filter',
+        filterType: 'dropdown',
+        dropdownValues: App.Helpers.misc.dagStatusUIOptions,
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
@@ -107,10 +107,17 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
         }
       },
       {
-        id: 'submittedTime',
-        headerCellName: 'Submitted Time',
+        id: 'startTime',
+        headerCellName: 'Start Time',
         getCellContent: function(row) {
-          return App.Helpers.date.dateFormat(row.get('submittedTime'));
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
+      },
+      {
+        id: 'endTime',
+        headerCellName: 'End Time',
+        getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
         }
       },
       {
