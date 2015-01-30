@@ -89,7 +89,8 @@ public class Edge {
    */
   @Private
   public String getId() {
-    return String.valueOf(this.hashCode());
+    // ensure it is unique.
+    return String.valueOf(System.identityHashCode(this));
   }
  
   @Override
