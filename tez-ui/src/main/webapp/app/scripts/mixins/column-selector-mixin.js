@@ -38,6 +38,8 @@ App.ColumnSelectorMixin = Em.Mixin.create({
   _storeKey: '',
   visibleColumnIds: {},
 
+  columnSelectorTitle: 'Column Selector',
+
   init: function(){
     var visibleColumnIds;
 
@@ -70,7 +72,7 @@ App.ColumnSelectorMixin = Em.Mixin.create({
     selectColumns: function () {
       var that = this;
 
-      App.Dialogs.displayMultiSelect('Column Selector', this.get('columnConfigs'), this.visibleColumnIds, {
+      App.Dialogs.displayMultiSelect(this.get('columnSelectorTitle'), this.get('columnConfigs'), this.visibleColumnIds, {
         displayText: 'headerCellName'
       }).then(function (data) {
         if(isObjectsDifferent(data, that.visibleColumnIds)) {

@@ -20,6 +20,7 @@ App.Router.map(function() {
   this.resource('dags', { path: '/' });
   this.resource('dag', { path: '/dag/:dag_id'}, function() {
     this.route('vertices');
+    this.route('view');
     this.route('tasks');
     this.route('taskAttempts');
     this.route('counters');

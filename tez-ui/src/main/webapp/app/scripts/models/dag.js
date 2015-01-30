@@ -51,6 +51,7 @@ App.Dag = App.AbstractEntity.extend({
   planVersion: DS.attr('number'),
   vertices: DS.attr('array'), // Serialize when required
   edges: DS.attr('array'), // Serialize when required
+  vertexGroups: DS.attr('array'),
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });
