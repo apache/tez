@@ -21,6 +21,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
   // defined in the route.
   count: 10,
 
+  page: 1,
   fromID: null,
 
   // The dropdown contents for number of items to show.
@@ -90,6 +91,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
     this.set('navIDs.currentID', '');
     this.set('navIDs.nextID', '');
     this.set('fromID', null);
+    this.set('page', 1);
   },
 
   updatePagination: function(dataArray) {
@@ -106,7 +108,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
   hasPrev: function() {
     return this.navIDs.prevIDs.length > 0;
-  }.property('navIDs.prevIDs.[]', 'navIDs.prevIDs.length', 'fromID'),
+  }.property('navIDs.prevIDs.[]', 'navIDs.prevIDs.length', 'fromID', 'page'),
 
   hasNext: function() {
     return !!this.navIDs.nextID;
@@ -118,6 +120,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
       var prevPageId = this.navIDs.prevIDs.popObject();
       this.set('fromID', prevPageId);
       this.set('loading', true);
+      this.set('page', this.get('page') - 1);
       this.loadEntities();
     },
 
@@ -127,6 +130,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
       this.set('navIDs.prevIDs', []);
       this.set('fromID', firstPageId);
       this.set('loading', true);
+      this.set('page', 1);
       this.loadEntities();
     },
 
@@ -135,6 +139,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
       this.navIDs.prevIDs.pushObject(this.navIDs.currentID);
       this.set('fromID', this.get('navIDs.nextID'));
       this.set('loading', true);
+      this.set('page', this.get('page') + 1);
       this.loadEntities();
     },
   },

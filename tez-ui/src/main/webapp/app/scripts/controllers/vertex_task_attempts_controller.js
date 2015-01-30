@@ -57,12 +57,19 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
     return [
       {
         id: 'taskId',
-        headerCellName: 'Task ID',
+        headerCellName: 'Task Index',
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
-            "{{#link-to 'task' view.cellContent class='ember-table-content'}}{{view.cellContent}}{{/link-to}}")
+            "{{#link-to 'task' view.cellContent.taskId class='ember-table-content'}}{{view.cellContent.displayId}}{{/link-to}}")
         }),
-        contentPath: 'taskID',
+        getCellContent: function (row) {
+          var taskId = row.get('taskID'),
+              idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
+          return {
+            taskId: taskId,
+            displayId: taskId.indexOf(idPrefix) == 0 ? taskId.substr(idPrefix.length) : taskId
+          };
+        }
       },
       {
         id: 'attemptNo',
@@ -168,7 +175,6 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
         }
       }
     ];
-
   }.property(),
 
   columnConfigs: function() {

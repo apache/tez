@@ -244,25 +244,44 @@ body, html, body > .ember-view {
 
 /* Navigation */
 .page-nav-link {
-  .fa;
-  .fa-2x;
-  cursor: pointer;
-  color: black;
+  padding-top: 2px;
 
-  &.disabled {
+  .page-count {
+    display: inline-block;
+    text-align: right;
+    width: 100px;
+    .text {
+      display: inline-block;
+      width: 30px;
+      margin-right: 3px;
+      font-size: .8em;
+    }
+    .counter {
+      font-size: 2em;
+    }
+  }
+
+  .nav-first, .nav-prev, .nav-next {
+    .fa;
+    .fa-2x;
+    cursor: pointer;
+    color: black;
+  }
+
+  .disabled {
     pointer-events: none;
     color:lightgray;
   }
 
-  &.nav-first {
+  .nav-first {
     .fa-icon(arrow-circle-o-left);
   }
 
-  &.nav-prev {
+  .nav-prev {
     .fa-icon(arrow-circle-left)
   }
 
-  &.nav-next {
+  .nav-next {
     .fa-icon(arrow-circle-right);
   }
 }
