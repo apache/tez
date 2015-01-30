@@ -1,0 +1,108 @@
+{{!
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+}}
+
+{{#if errMessage}}
+  <div class="text-align-center">
+    <h1>Rendering failed! </h1><h5>{{errMessage}}</h5>
+  </div>
+{{else}}
+  <div class="svg-container">
+    <svg>
+      <defs>
+        <rect id="vertex-bg"
+            class="vertex-node-bg"
+            style="fill: url(#vertex-grad); filter: url(#grey-glow)"
+            rx="5" ry="5" width="80" height="30" x="-40" y="-15"/>
+        <circle id="input-bg" class="input-node-bg"
+            style="fill: url(#input-grad); filter: url(#grey-glow)"
+            cx="0" cy="0" r="15"/>
+        <circle id="output-bg" class="output-node-bg"
+            style="fill: url(#output-grad); filter: url(#grey-glow)"
+            cx="0" cy="0" r="15"/>
+        <circle id="task-bubble" class="task-bubble-bg"
+            style="fill: url(#task-grad); filter: url(#grey-glow)"
+            r="10"/>
+        <circle id="io-bubble" class="input-node-bg"
+            style="fill: url(#input-grad); filter: url(#grey-glow)"
+            r="10"/>
+        <circle id="group-bubble" class="group-bubble-bg"
+            style="fill: url(#group-grad); filter: url(#grey-glow)"
+            r="8"/>
+
+        <marker id="arrow-marker" viewBox="0 -5 10 10" markerWidth="2" markerHeight="2" orient="auto">
+          <path style="fill: #AAA;" d="M0,-5L10,0L0,5"/>
+        </marker>
+
+        <radialGradient id="vertex-grad" cx="50%" cy="50%" r="100%" fx="50%" fy="50%">
+          <stop offset="0%" style="stop-color:#b0c4de;" />
+          <stop offset="100%" style="stop-color:#769ccd;" />
+        </radialGradient result="gradient">
+
+        <radialGradient id="input-grad" cx="50%" cy="50%" r="100%" fx="50%" fy="50%">
+          <stop offset="0%" style="stop-color:#adff2e;" />
+          <stop offset="100%" style="stop-color:#91d723;" />
+        </radialGradient result="gradient">
+
+        <radialGradient id="output-grad" cx="50%" cy="50%" r="100%" fx="50%" fy="50%">
+          <stop offset="0%" style="stop-color:#fa8072;" />
+          <stop offset="100%" style="stop-color:#d26457;" />
+        </radialGradient result="gradient">
+
+        <radialGradient id="task-grad" cx="50%" cy="50%" r="100%" fx="50%" fy="50%">
+          <stop offset="0%" style="stop-color:#D0BFD1;" />
+          <stop offset="100%" style="stop-color:#af8fb1;" />
+        </radialGradient result="gradient">
+
+        <radialGradient id="group-grad" cx="50%" cy="50%" r="100%" fx="50%" fy="50%">
+          <stop offset="0%" style="stop-color:#BBBBBB;" />
+          <stop offset="100%" style="stop-color:#999999;" />
+        </radialGradient result="gradient">
+
+        <filter id="grey-glow">
+          <feColorMatrix type="matrix" values=
+              "0 0 0 0   0
+               0 0 0 0   0
+               0 0 0 0   0
+               0 0 0 0.3 0"/>
+          <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+    </svg>
+  </div>
+  <div class="button-panel">
+    <i {{bind-attr class=':tgl-additionals hideAdditionals'}} {{action 'tglAdditionals'}} title="Toggle source/sink visibility"></i>
+    <i {{bind-attr class=':config :jq-tooltip'}} {{action 'configure'}} title="Customize vertex tooltip"></i>
+    <i {{bind-attr class=':timeline :no-display'}} {{action 'configure'}} title="Toggle Timeline"></i>
+    <i class="seperator"></i>
+    <i {{bind-attr class=':tgl-orientation isHorizontal:fa-rotate-270:fa-rotate-180'}} {{action 'tglOrientation'}} title="Toggle orientation"></i>
+    <i {{bind-attr class=':fit-graph'}} {{action 'fitGraph'}} title="Fit DAG to viewport"></i>
+    <i {{bind-attr class=':tgl-fullscreen'}} {{action 'fullscreen'}} title="Toggle fullscreen"></i>
+  </div>
+  <div class="tool-tip">
+    <div class="bubble">
+      <div class="tip-title">Title</div>
+      <div class="tip-text"></div>
+      <div class="tip-list"></div>
+    </div>
+  </div>
+  <div id="dialog-container"></div>
+{{/if}}

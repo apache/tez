@@ -74,6 +74,13 @@ App.Helpers.misc = {
     return $.inArray(status, ['RUNNING', 'SUCCEEDED', 'FAILED', 'KILLED']) != -1;
   },
 
+  /**
+   * To trim a complete class path with namespace to the class name.
+   */
+  getClassName: function (classPath) {
+    return classPath.substr(classPath.lastIndexOf('.') + 1);
+  },
+
   /*
    * Normalizes counter style configurations
    * @param counterConfigs Array

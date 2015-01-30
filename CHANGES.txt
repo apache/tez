@@ -55,6 +55,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1973. Dag View
   TEZ-2010. History payload generated from conf has ${var} placeholders.
   TEZ-1946. Tez UI: add source & sink views, add counters to vertices/all task views.
   TEZ-1987. Tez UI non-standalone mode uses invalid protocol.

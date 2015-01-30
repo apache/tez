@@ -110,6 +110,7 @@ var timelineJsonToDagMap = {
   planVersion: 'otherinfo.dagPlan.version',
   vertices: 'otherinfo.dagPlan.vertices',
   edges: 'otherinfo.dagPlan.edges',
+  vertexGroups: 'otherinfo.dagPlan.vertexGroups',
 
   counterGroups: 'counterGroups'
 };

@@ -29,6 +29,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
 	childDisplayViews: [
 		Ember.Object.create({title: 'Details', linkTo: 'dag.index'}),
+		Ember.Object.create({title: 'View', linkTo: 'dag.view'}),
 		Ember.Object.create({title: 'Vertices', linkTo: 'dag.vertices'}),
 		Ember.Object.create({title: 'Tasks', linkTo: 'dag.tasks'}),
 		Ember.Object.create({title: 'Task Attempts', linkTo: 'dag.taskAttempts'}),
