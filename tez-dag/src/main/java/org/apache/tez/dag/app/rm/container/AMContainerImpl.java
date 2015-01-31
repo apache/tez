@@ -662,7 +662,7 @@ public class AMContainerImpl implements AMContainer {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
       if (container.pendingAttempt != null) {
         String errorMessage = getMessage(container, event);
-        if (event.isClusterAction()) {
+        if (event.isSystemAction()) {
           container.sendContainerTerminatedBySystemToTaskAttempt(container.pendingAttempt,
               errorMessage, event.getTerminationCause());
         } else {
@@ -921,7 +921,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
-      if (event.isClusterAction()) {
+      if (event.isSystemAction()) {
         container.sendContainerTerminatedBySystemToTaskAttempt(container.runningAttempt,
             getMessage(container, event), event.getTerminationCause());
       } else {
