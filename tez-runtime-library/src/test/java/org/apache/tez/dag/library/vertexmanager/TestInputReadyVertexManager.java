@@ -34,6 +34,8 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +57,7 @@ public class TestInputReadyVertexManager {
   }
 
   @Test (timeout=5000)
-  public void testBasicScatterGather() {
+  public void testBasicScatterGather() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices = 
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
@@ -80,6 +82,9 @@ public class TestInputReadyVertexManager {
     
     InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
+    // first source vertex configured
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    // then own vertex started
     manager.onVertexStarted(initialCompletions);
     manager.onSourceTaskCompleted(mockSrcVertexId1, 1);
     verify(mockContext, times(0)).scheduleVertexTasks(anyList());
@@ -89,7 +94,7 @@ public class TestInputReadyVertexManager {
   }
   
   @Test (timeout=5000)
-  public void testBasicOneToOne() {
+  public void testBasicOneToOne() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices = 
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
@@ -114,7 +119,10 @@ public class TestInputReadyVertexManager {
     
     InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
+    // first own vertex started
     manager.onVertexStarted(initialCompletions);
+    // then source vertex configured
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     verify(mockContext, times(1)).scheduleVertexTasks(requestCaptor.capture());
     Assert.assertEquals(1, requestCaptor.getValue().size());
     Assert.assertEquals(0, requestCaptor.getValue().get(0).getTaskIndex().intValue());
@@ -139,9 +147,56 @@ public class TestInputReadyVertexManager {
     Assert.assertEquals(2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
   }
+  
+  @Test (timeout=5000)
+  public void testDelayedConfigureOneToOne() throws Exception {
+    HashMap<String, EdgeProperty> mockInputVertices = 
+        new HashMap<String, EdgeProperty>();
+    String mockSrcVertexId1 = "Vertex1";
+    EdgeProperty eProp1 = EdgeProperty.create(
+        EdgeProperty.DataMovementType.ONE_TO_ONE,
+        EdgeProperty.DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
+    
+    String mockManagedVertexId = "Vertex";
+    
+    VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
+    when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
+    when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
+    mockInputVertices.put(mockSrcVertexId1, eProp1);
+    
+    Map<String, List<Integer>> initialCompletions = Maps.newHashMap();
+    initialCompletions.put(mockSrcVertexId1, Collections.singletonList(0));
+    
+    InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
+    // first own vertex started
+    manager.onVertexStarted(initialCompletions);
+    verify(mockContext, times(0)).scheduleVertexTasks(requestCaptor.capture());
+    manager.onSourceTaskCompleted(mockSrcVertexId1, 1);
+    verify(mockContext, times(0)).scheduleVertexTasks(requestCaptor.capture());
+    // then source vertex configured. now we start
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    verify(mockContext, times(2)).scheduleVertexTasks(requestCaptor.capture());
+    Assert.assertEquals(2, requestCaptor.getAllValues().size());
+    Assert.assertEquals(1, requestCaptor.getValue().size());
+    Assert.assertEquals(1, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    manager.onSourceTaskCompleted(mockSrcVertexId1, 2);
+    verify(mockContext, times(3)).scheduleVertexTasks(requestCaptor.capture());
+    Assert.assertEquals(1, requestCaptor.getValue().size());
+    Assert.assertEquals(2, requestCaptor.getValue().get(0).getTaskIndex().intValue());
+    Assert.assertEquals(mockSrcVertexId1, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedTask().getVertexName());
+    Assert.assertEquals(2, requestCaptor.getValue().get(0)
+        .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
+  }
 
   @Test (timeout=5000)
-  public void testComplex() {
+  public void testComplex() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices = 
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
@@ -192,12 +247,30 @@ public class TestInputReadyVertexManager {
     
     Map<String, List<Integer>> initialCompletions = Maps.newHashMap();
     
-    // 1-1 sources do not match managed tasks
+    // 1-1 sources do not match managed tasks before vertex started
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
     InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
     try {
       manager.onVertexStarted(initialCompletions);
+      Assert.assertTrue("Should have exception", false);
+    } catch (TezUncheckedException e) {
+      e.getMessage().contains("Managed task number must equal 1-1 source");
+    }
+
+    // 1-1 sources do not match managed tasks after vertex started
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
+    manager = new InputReadyVertexManager(mockContext);
+    manager.initialize();
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
+    manager.onVertexStarted(initialCompletions);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
+    try {
+      manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
       Assert.assertTrue("Should have exception", false);
     } catch (TezUncheckedException e) {
       e.getMessage().contains("Managed task number must equal 1-1 source");
@@ -208,6 +281,9 @@ public class TestInputReadyVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(4);
     manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
     try {
       manager.onVertexStarted(initialCompletions);
       Assert.assertTrue("Should have exception", false);
@@ -220,6 +296,9 @@ public class TestInputReadyVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(3);
     manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
     manager.onVertexStarted(initialCompletions);
     // all 1-1 0's done but not scheduled because v1 is not done
     manager.onSourceTaskCompleted(mockSrcVertexId3, 0);
