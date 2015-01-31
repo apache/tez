@@ -204,7 +204,7 @@ public class TestTaskSchedulerEventHandler {
     AMContainerEventCompleted completedEvent = (AMContainerEventCompleted) event;
     Assert.assertEquals(mockCId, completedEvent.getContainerId());
     Assert.assertEquals("Container preempted internally", completedEvent.getDiagnostics());
-    Assert.assertFalse(completedEvent.isPreempted());
+    Assert.assertTrue(completedEvent.isPreempted());
     Assert.assertFalse(completedEvent.isDiskFailed());
     Assert.assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
         completedEvent.getTerminationCause());

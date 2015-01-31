@@ -37,14 +37,15 @@ public class AMContainerEventCompleted extends AMContainerEvent {
   }
 
   public boolean isPreempted() {
-    return (exitStatus == ContainerExitStatus.PREEMPTED);
+    return (exitStatus == ContainerExitStatus.PREEMPTED || 
+        errCause == TaskAttemptTerminationCause.INTERNAL_PREEMPTION);
   }
   
   public boolean isDiskFailed() {
     return (exitStatus == ContainerExitStatus.DISKS_FAILED);
   }
   
-  public boolean isClusterAction() {
+  public boolean isSystemAction() {
     return isPreempted() || isDiskFailed();
   }
   

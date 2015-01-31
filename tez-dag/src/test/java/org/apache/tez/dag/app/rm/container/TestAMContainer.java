@@ -704,10 +704,10 @@ public class TestAMContainer {
     verify(wc.chh).unregister(wc.containerID);
 
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
-    Assert.assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
-        ((TaskAttemptEventContainerTerminated)outgoingEvents.get(0)).getTerminationCause());
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
-        TaskAttemptEventType.TA_CONTAINER_TERMINATED);
+        TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM);
+    Assert.assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
+        ((TaskAttemptEventContainerTerminatedBySystem)outgoingEvents.get(0)).getTerminationCause());
 
     assertFalse(wc.amContainer.isInErrorState());
 
