@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -42,6 +44,7 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -329,12 +332,39 @@ public class TaskSchedulerEventHandler extends AbstractService
     boolean isLocal = getConfig().getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     if (isLocal) {
+      LOG.info("Using TaskScheduler: LocalTaskSchedulerService");
       return new LocalTaskSchedulerService(this, this.containerSignatureMatcher,
           host, port, trackingUrl, appContext);
     }
     else {
-      return new YarnTaskSchedulerService(this, this.containerSignatureMatcher,
-          host, port, trackingUrl, appContext);
+      String schedulerClassName = getConfig().get(TezConfiguration.TEZ_AM_TASK_SCHEDULER_CLASS);
+      if (schedulerClassName == null) {
+        LOG.info("Using TaskScheduler: YarnTaskSchedulerService");
+        return new YarnTaskSchedulerService(this, this.containerSignatureMatcher,
+            host, port, trackingUrl, appContext);
+      } else {
+        LOG.info("Using custom TaskScheduler: " + schedulerClassName);
+        // TODO Temporary reflection with specific parameters. Remove once there is a clean interface.
+        Class<? extends TaskSchedulerService> taskSchedulerClazz =
+            (Class<? extends TaskSchedulerService>) ReflectionUtils.getClazz(schedulerClassName);
+        try {
+          Constructor<? extends TaskSchedulerService> ctor = taskSchedulerClazz
+              .getConstructor(TaskSchedulerAppCallback.class, AppContext.class, String.class,
+                  Integer.class, String.class, Configuration.class);
+          ctor.setAccessible(true);
+          TaskSchedulerService taskSchedulerService =
+              ctor.newInstance(this, appContext, host, port, trackingUrl, getConfig());
+          return taskSchedulerService;
+        } catch (NoSuchMethodException e) {
+          throw new TezUncheckedException(e);
+        } catch (InvocationTargetException e) {
+          throw new TezUncheckedException(e);
+        } catch (InstantiationException e) {
+          throw new TezUncheckedException(e);
+        } catch (IllegalAccessException e) {
+          throw new TezUncheckedException(e);
+        }
+      }
     }
   }
   

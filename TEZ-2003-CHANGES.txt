@@ -1,0 +1,4 @@
+ALL CHANGES:
+  TEZ-2019. Temporarily allow the scheduler and launcher to be specified via configuration.
+
+INCOMPATIBLE CHANGES:
