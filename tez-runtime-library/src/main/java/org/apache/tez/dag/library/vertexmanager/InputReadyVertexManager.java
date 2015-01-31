@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -32,11 +34,16 @@ import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 
 @Private
 public class InputReadyVertexManager extends VertexManagerPlugin {
@@ -48,6 +55,8 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   int oneToOneSrcTasksDoneCount[];
   TaskLocationHint oneToOneLocationHints[];
   int numOneToOneEdges;
+  int numSignalsToWaitFor;
+  Multimap<String, Integer> pendingCompletions = LinkedListMultimap.create();
 
   public InputReadyVertexManager(VertexManagerPluginContext context) {
     super(context);
@@ -67,12 +76,10 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     }
   }
   
-  @Override
-  public void initialize() {
-  }
-
-  @Override
-  public void onVertexStarted(Map<String, List<Integer>> completions) {
+  void start() {
+    if (!ready()) {
+      return;
+    }
     int numManagedTasks = getContext().getVertexNumTasks(getContext().getVertexName());
     LOG.info("Managing " + numManagedTasks + " tasks for vertex: " + getContext().getVertexName());
     taskIsStarted = new boolean[numManagedTasks];
@@ -117,24 +124,61 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       oneToOneLocationHints = new TaskLocationHint[oneToOneSrcTaskCount];
     }
 
-    for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
+    for (Map.Entry<String, Collection<Integer>> entry :  pendingCompletions.asMap().entrySet()) {
       for (Integer task : entry.getValue()) {
         handleSourceTaskFinished(entry.getKey(), task);
       }
     }
   }
-
+  
+  boolean ready() {
+    int target = getContext().getInputVertexEdgeProperties().size() + 1;
+    Preconditions.checkState(numSignalsToWaitFor <= target);
+    return (numSignalsToWaitFor == target);
+  }
+  
   @Override
-  public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-    handleSourceTaskFinished(srcVertexName, taskId);
+  public void initialize() {
+    Map<String, EdgeProperty> edges = getContext().getInputVertexEdgeProperties();
+    // wait for sources and self to start
+    numSignalsToWaitFor = 0;
+    for (String entry : edges.keySet()) {
+      getContext().registerForVertexStateUpdates(entry, EnumSet.of(VertexState.CONFIGURED));
+    }
+  }
+  
+  @Override
+  public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
+    numSignalsToWaitFor++;
+    LOG.info("Received configured signal from: " + stateUpdate.getVertexName() + 
+        " numConfiguredSources: " + numSignalsToWaitFor);
+    start();
   }
 
   @Override
-  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+  public synchronized void onVertexStarted(Map<String, List<Integer>> completions) {
+    for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
+      pendingCompletions.putAll(entry.getKey(), entry.getValue());
+    }
+    numSignalsToWaitFor++;
+    start();
   }
 
   @Override
-  public void onRootVertexInitialized(String inputName,
+  public synchronized void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+    if (ready()) {
+      handleSourceTaskFinished(srcVertexName, taskId);
+    } else {
+      pendingCompletions.put(srcVertexName, taskId);
+    }
+  }
+
+  @Override
+  public synchronized void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+  }
+
+  @Override
+  public synchronized void onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) {
   }
   
