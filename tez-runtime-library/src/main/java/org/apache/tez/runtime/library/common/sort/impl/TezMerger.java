@@ -487,13 +487,32 @@ public class TezMerger {
       return value;
     }
 
+    private void populatePreviousKey() throws IOException {
+      key.reset();
+      BufferUtils.copy(key, prevKey);
+    }
+
     private void adjustPriorityQueue(Segment reader) throws IOException{
       long startPos = reader.getPosition();
-      if (hasNext != null && hasNext != KeyState.SAME_KEY) {
-        key.reset();
-        // TODO: This copy can be an unwanted operation when all keys are unique. Revisit this
-        // when we have better stats.
-        BufferUtils.copy(key, prevKey);
+      if (hasNext == null) {
+        /**
+         * hasNext can be null during first iteration & prevKey is initialized here.
+         * In cases of NO_KEY/NEW_KEY, we readjust the queue later. If new segment/file is found
+         * during this process, we need to compare keys for RLE across segment boundaries.
+         * prevKey can't be empty at that time (e.g custom comparators)
+         */
+        populatePreviousKey();
+      } else {
+        //indicates a key has been read already
+        if (hasNext != KeyState.SAME_KEY) {
+          /**
+           * Store previous key before reading next for later key comparisons.
+           * If all keys in a segment are unique, it would always hit this code path and key copies
+           * are wasteful in such condition, as these comparisons are mainly done for RLE.
+           * TODO: When better stats are available, this condition can be avoided.
+           */
+          populatePreviousKey();
+        }
       }
       hasNext = reader.readRawKey();
       long endPos = reader.getPosition();

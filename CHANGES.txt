@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1999. IndexOutOfBoundsException during merge.
   TEZ-2000. Source vertex exists error during DAG submission.
   TEZ-2008. Add methods to SecureShuffleUtils to verify a reply based on a provided Key.
   TEZ-1995. Build failure against hadoop 2.2.
