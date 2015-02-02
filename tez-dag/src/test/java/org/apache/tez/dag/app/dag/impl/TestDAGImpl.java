@@ -91,6 +91,7 @@ import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
+import org.apache.tez.dag.app.dag.event.DAGEventVertexReRunning;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -774,6 +775,9 @@ public class TestDAGImpl {
     doReturn(appAttemptId.getApplicationId())
         .when(groupAppContext).getApplicationID();
     doReturn(historyEventHandler).when(groupAppContext).getHistoryHandler();
+
+    // reset totalCommitCounter to 0
+    TotalCountingOutputCommitter.totalCommitCounter = 0;
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
     taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
@@ -1080,7 +1084,54 @@ public class TestDAGImpl {
     Assert.assertEquals(DAGState.SUCCEEDED, groupDag.getState());
     Assert.assertEquals(2, TotalCountingOutputCommitter.totalCommitCounter);
   }  
-  
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGroupDAGWithVertexReRunning() {
+    conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
+    initDAG(groupDag);
+    startDAG(groupDag);
+    dispatcher.await();
+
+    Vertex v1 = groupDag.getVertex("vertex1");
+    Vertex v2 = groupDag.getVertex("vertex2");
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(v1.getVertexId(), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexReRunning(v1.getVertexId()));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(v2.getVertexId(), VertexState.SUCCEEDED));
+    dispatcher.await();
+    // commit should not happen due to vertex-rerunning
+    Assert.assertEquals(0, TotalCountingOutputCommitter.totalCommitCounter);
+
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(v1.getVertexId(), VertexState.SUCCEEDED));
+    dispatcher.await();
+    // commit happen
+    Assert.assertEquals(1, TotalCountingOutputCommitter.totalCommitCounter);
+    Assert.assertEquals(2, groupDag.getSuccessfulVertices());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGroupDAGWithVertexReRunningAfterCommit() {
+    conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
+    initDAG(groupDag);
+    startDAG(groupDag);
+    dispatcher.await();
+
+    Vertex v1 = groupDag.getVertex("vertex1");
+    Vertex v2 = groupDag.getVertex("vertex2");
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(v1.getVertexId(), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(v2.getVertexId(), VertexState.SUCCEEDED));
+    dispatcher.await();
+    // vertex group commit happens
+    Assert.assertEquals(1, TotalCountingOutputCommitter.totalCommitCounter);
+
+    // dag failed when vertex re-run happens after vertex group commit is done.
+    dispatcher.getEventHandler().handle(new DAGEventVertexReRunning(v1.getVertexId()));
+    dispatcher.await();
+    Assert.assertEquals(DAGState.FAILED, groupDag.getState());
+    Assert.assertEquals(DAGTerminationCause.VERTEX_RERUN_AFTER_COMMIT, groupDag.getTerminationCause());
+  }
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testDAGCompletionWithCommitSuccess() {
