@@ -1826,6 +1826,28 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.abortVertex(State.FAILED);
         return vertex.finished(VertexState.FAILED);
       }
+      else if (vertex.terminationCause == VertexTerminationCause.COMMIT_FAILURE) {
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex failed/killed due to COMMIT_FAILURE failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount
+            + " killedTasks:"
+            + vertex.killedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.abortVertex(State.FAILED);
+        return vertex.finished(VertexState.FAILED);
+      }
+      else if (vertex.terminationCause == VertexTerminationCause.VERTEX_RERUN_AFTER_COMMIT) {
+        vertex.setFinishTime();
+        String diagnosticMsg = "Vertex failed/killed due to invalid rerun failed. "
+            + "failedTasks:"
+            + vertex.failedTaskCount
+            + " killedTasks:"
+            + vertex.killedTaskCount;
+        LOG.info(diagnosticMsg);
+        vertex.abortVertex(State.FAILED);
+        return vertex.finished(VertexState.FAILED);
+      }
       else {
         //should never occur
         throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex:" + vertex.logIdentifier
@@ -3472,6 +3494,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         case INIT_FAILURE:
         case INTERNAL_ERROR:
         case AM_USERCODE_FAILURE:
+        case VERTEX_RERUN_AFTER_COMMIT:
         case OTHER_VERTEX_FAILURE: vertex.tryEnactKill(trigger, TaskTerminationCause.OTHER_VERTEX_FAILURE); break;
         default://should not occur
           throw new TezUncheckedException("VertexKilledTransition: event.terminationCause is unexpected: " + trigger);

@@ -43,6 +43,9 @@ public enum VertexTerminationCause {
   /** This vertex failed during commit. */
   COMMIT_FAILURE,
 
+  /** In some cases, vertex could not rerun, e.g. its output been committed as a shared output of vertex group */
+  VERTEX_RERUN_AFTER_COMMIT,
+
   /** This vertex failed as it had invalid number tasks. */
   INVALID_NUM_OF_TASKS, 
 

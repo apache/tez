@@ -1083,6 +1083,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         dag.addDiagnostic(diagnosticMsg);
         return dag.finished(DAGState.FAILED);
       }
+      if(dag.terminationCause == DAGTerminationCause.VERTEX_RERUN_AFTER_COMMIT ){
+        String diagnosticMsg = "DAG failed due to vertex rerun after commit." +
+            " failedVertices:" + dag.numFailedVertices +
+            " killedVertices:" + dag.numKilledVertices;
+        LOG.info(diagnosticMsg);
+        dag.addDiagnostic(diagnosticMsg);
+        return dag.finished(DAGState.FAILED);
+      }
       if(dag.terminationCause == DAGTerminationCause.RECOVERY_FAILURE ){
         String diagnosticMsg = "DAG failed due to failure in recovery handling." +
             " failedVertices:" + dag.numFailedVertices +
@@ -1738,9 +1746,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     public DAGState transition(DAGImpl job, DAGEvent event) {
       DAGEventVertexReRunning vertexEvent = (DAGEventVertexReRunning) event;
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
-      job.numCompletedVertices--;
       boolean failed = job.vertexReRunning(vertex);
-
+      if (!failed) {
+        job.numCompletedVertices--;
+      }
 
       LOG.info("Vertex " + vertex.getLogIdentifier() + " re-running."
           + ", numCompletedVertices=" + job.numCompletedVertices
@@ -1848,11 +1857,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       if (groupList != null) {
         for (VertexGroupInfo groupInfo : groupList) {
           if (groupInfo.committed) {
-            LOG.info("Aborting job as committed vertex: "
-                + vertex.getLogIdentifier() + " is re-running");
-            enactKill(DAGTerminationCause.COMMIT_FAILURE,
-                VertexTerminationCause.COMMIT_FAILURE);
+            String msg = "Aborting job as committed vertex: "
+                + vertex.getLogIdentifier() + " is re-running";
+            LOG.info(msg);
+            addDiagnostic(msg);
+            enactKill(DAGTerminationCause.VERTEX_RERUN_AFTER_COMMIT,
+                VertexTerminationCause.VERTEX_RERUN_AFTER_COMMIT);
             return true;
+          } else {
+            groupInfo.successfulMembers--;
           }
         }
       }
