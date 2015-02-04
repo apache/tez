@@ -1560,11 +1560,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       Preconditions.checkState(vertexToBeReconfiguredByManager, "doneReconfiguringVertex() can be "
           + "invoked only after vertexReconfigurationPlanned() is invoked");
       this.vertexToBeReconfiguredByManager = false;
-      // TEZ-2015 VM may not have configured everything eg. input edge. maybeSendConfiguredEvent()
-      if (completelyConfiguredSent.compareAndSet(false, true)) {
-        // vertex already started and at that time this event was not sent. Send now.
-        stateChangeNotifier.stateChanged(vertexId, new VertexStateUpdate(vertexName,
-            org.apache.tez.dag.api.event.VertexState.CONFIGURED));
+      if (canInitVertex()) {
+        maybeSendConfiguredEvent();
+      } else {
+        Preconditions.checkState(getInternalState() == VertexState.INITIALIZING, "Vertex: "
+            + getLogIdentifier());
       }
     } finally {
       writeLock.unlock();
@@ -3302,7 +3302,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private void maybeSendConfiguredEvent() {
     // the vertex is fully configured by the time it starts. Always notify completely configured
     // unless the vertex manager has told us that it is going to reconfigure it further
-    Preconditions.checkState(canInitVertex());
+    Preconditions.checkState(canInitVertex(), "Vertex: " + getLogIdentifier());
     if (!this.vertexToBeReconfiguredByManager) {
       // this vertex will not be reconfigured by its manager
       if (completelyConfiguredSent.compareAndSet(false, true)) {

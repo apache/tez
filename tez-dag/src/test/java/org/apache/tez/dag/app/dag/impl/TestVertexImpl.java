@@ -4949,6 +4949,78 @@ public class TestVertexImpl {
     Assert.assertNotNull(vB.getTask(0));
     Assert.assertNotNull(vC.getTask(0));
   }
+  
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexConfiguredDoneByVMBeforeEdgeDefined() throws Exception {
+    // Race when a source vertex manages to start before the target vertex has
+    // been initialized
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan(true);
+    setupPostDagCreation();
+    
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    TestUpdateListener listener = new TestUpdateListener();
+    updateTracker
+        .registerForVertexUpdates(vB.getName(),
+            EnumSet.of(org.apache.tez.dag.api.event.VertexState.CONFIGURED),
+            listener);
+
+    // fudge the vm so we can do custom stuff
+    vB.vertexManager = new VertexManager(
+        VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
+        vB, appContext, mock(StateChangeNotifier.class));
+    
+    vB.vertexReconfigurationPlanned();
+    
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_START));
+
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITIALIZING, vA.getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vB.getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
+    
+    // setting the edge manager should vA to start
+    EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
+        EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
+    Edge e = vC.sourceVertices.get(vA);
+    Assert.assertNull(e.getEdgeManager());
+    e.setCustomEdgeManager(mockEdgeManagerDescriptor);
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vA.getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vB.getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
+    
+    // vB is not configured yet. Edge to C is not configured. So it should not send configured event
+    // even thought VM says its doneConfiguring vertex
+    vB.doneReconfiguringVertex();
+    Assert.assertEquals(0, listener.events.size());
+    
+    // complete configuration and verify getting configured signal from vB
+    Map<String, EdgeManagerPluginDescriptor> edges = Maps.newHashMap();
+    edges.put("B", mockEdgeManagerDescriptor);
+    vC.setParallelism(2, vertexLocationHint, edges, null, true);
+
+    dispatcher.await();
+    Assert.assertEquals(1, listener.events.size());
+    Assert.assertEquals(vB.getName(), listener.events.get(0).getVertexName());
+    Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
+        listener.events.get(0).getVertexState());
+    updateTracker.unregisterForVertexUpdates(vB.getName(), listener);
+    
+    Assert.assertEquals(VertexState.RUNNING, vA.getState());
+    Assert.assertEquals(VertexState.RUNNING, vB.getState());
+    Assert.assertEquals(VertexState.RUNNING, vC.getState());
+    Assert.assertNotNull(vA.getTask(0));
+    Assert.assertNotNull(vB.getTask(0));
+    Assert.assertNotNull(vC.getTask(0));
+  }
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)

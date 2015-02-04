@@ -175,6 +175,8 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2015. VertexImpl.doneReconfiguringVertex() should check other criteria
+  before sending notification
   TEZ-2011. InputReadyVertexManager not resilient to updates in parallelism 
   TEZ-1934. TestAMRecovery may fail due to the execution order is not determined.
   TEZ-1642. TestAMRecovery sometimes fail.
