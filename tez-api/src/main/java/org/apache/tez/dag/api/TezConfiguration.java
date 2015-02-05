@@ -972,4 +972,41 @@ public class TezConfiguration extends Configuration {
       + "allow.disabled.timeline-domains";
   public static final boolean TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT = false;
 
+  /**
+   * String value
+   * Tez UI URL template for the application.
+   * Expert level setting.
+   *
+   * The AM will redirect the user to the Tez UI via this url. Template supports the following
+   * parameters to be replaced with the actual runtime information:
+   *
+   *   __APPLICATION_ID__ : Replaces this with application ID
+   *   __HISTORY_URL_BASE__: replaces this with TEZ_HISTORY_URL_BASE
+   *
+   *   For example, "http://uihost:9001/#/tez-app/__APPLICATION_ID__/ will be replaced to
+   *   http://uihost:9001/#/tez-app/application_1421880306565_0001/
+   */
+  public static final String TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE = TEZ_AM_PREFIX
+      + "tez-ui.history-url.template";
+  public static final String TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE_DEFAULT =
+      "__HISTORY_URL_BASE__/#/tez-app/__APPLICATION_ID__";
+
+  /**
+   * String value
+   * Tez-UI Url base. This gets replaced in the TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE
+   * ex http://ui-host:9001 or if its hosted with a prefix http://ui-host:9001/~user
+   * if the ui is hosted on the default port (80 for http and 443 for https), the port should not
+   * be specified.
+   */
+  public static final String TEZ_HISTORY_URL_BASE = TEZ_PREFIX
+      + "tez-ui.history-url.base";
+
+  /**
+   * String value
+   * Allow disabling of the Tez AM webservice. If set to false the Tez-UI wont show progress
+   * updates for running application.
+   */
+  public static final String TEZ_AM_WEBSERVICE_ENABLE = TEZ_AM_PREFIX
+      + "tez-ui.webservice.enable";
+  public static final boolean TEZ_AM_WEBSERVICE_ENABLE_DEFAULT = true;
 }

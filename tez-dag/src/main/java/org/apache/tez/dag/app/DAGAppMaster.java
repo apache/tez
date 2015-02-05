@@ -143,6 +143,7 @@ import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeTracker;
+import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
@@ -223,6 +224,7 @@ public class DAGAppMaster extends AbstractService {
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private TaskSchedulerEventHandler taskSchedulerEventHandler;
+  private WebUIService webUIService;
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
@@ -412,9 +414,24 @@ public class DAGAppMaster extends AbstractService {
     // register other delegating dispatchers
     dispatcher.registerAndCreateDispatcher(SpeculatorEventType.class, new SpeculatorEventHandler(), "Speculator");
 
+
+    if (enableWebUIService()) {
+      this.webUIService = new WebUIService(context);
+      addIfService(webUIService, false);
+    } else {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Web UI Service is not enabled.");
+      }
+    }
+
     this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
-        clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher);
+        clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService);
     addIfService(taskSchedulerEventHandler, true);
+
+    if (enableWebUIService()) {
+      addIfServiceDependency(taskSchedulerEventHandler, webUIService);
+    }
+
     if (isLastAMRetry) {
       LOG.info("AM will unregister as this is the last attempt"
           + ", currentAttempt=" + appAttemptID.getAttemptId()
@@ -1326,6 +1343,11 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public String getAMUser() {
+      return appMasterUgi.getShortUserName();
+    }
+
+    @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
       if (getServiceState() != STATE.STARTED) {
         throw new TezUncheckedException(
@@ -2050,5 +2072,10 @@ public class DAGAppMaster extends AbstractService {
 
   synchronized void setDAGCounter(int dagCounter) {
     this.dagCounter.set(dagCounter);
+  }
+
+  private boolean enableWebUIService() {
+    return amConf.getBoolean(TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE,
+        TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE_DEFAULT);
   }
 }

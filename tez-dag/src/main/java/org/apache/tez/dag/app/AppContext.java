@@ -96,4 +96,6 @@ public interface AppContext {
   String[] getLogDirs();
 
   String[] getLocalDirs();
+
+  String getAMUser();
 }
