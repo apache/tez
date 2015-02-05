@@ -26,8 +26,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -69,6 +71,7 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventNodeCountUpdated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
+import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 import com.google.common.base.Preconditions;
@@ -79,9 +82,13 @@ public class TaskSchedulerEventHandler extends AbstractService
                                                EventHandler<AMSchedulerEvent> {
   static final Log LOG = LogFactory.getLog(TaskSchedulerEventHandler.class);
 
+  static final String APPLICATION_ID_PLACEHOLDER = "__APPLICATION_ID__";
+  static final String HISTORY_URL_BASE = "__HISTORY_URL_BASE__";
+
   protected final AppContext appContext;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
+  private final String historyUrl;
   protected TaskSchedulerService taskScheduler;
   private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
@@ -94,18 +101,25 @@ public class TaskSchedulerEventHandler extends AbstractService
   private int cachedNodeCount = -1;
   private AtomicBoolean shouldUnregisterFlag =
       new AtomicBoolean(false);
+  private final WebUIService webUI;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
   @SuppressWarnings("rawtypes")
   public TaskSchedulerEventHandler(AppContext appContext,
-      DAGClientServer clientService, EventHandler eventHandler, ContainerSignatureMatcher containerSignatureMatcher) {
+      DAGClientServer clientService, EventHandler eventHandler, 
+      ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
     this.eventHandler = eventHandler;
     this.clientService = clientService;
     this.containerSignatureMatcher = containerSignatureMatcher;
+    this.webUI = webUI;
+    this.historyUrl = getHistoryUrl();
+    if (this.webUI != null) {
+      this.webUI.setHistoryUrl(this.historyUrl);
+    }
   }
 
   public Map<ApplicationAccessType, String> getApplicationAcls() {
@@ -328,8 +342,13 @@ public class TaskSchedulerEventHandler extends AbstractService
   public synchronized void serviceStart() {
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     dagAppMaster = appContext.getAppMaster();
+    // if web service is enabled then set tracking url. else disable it (value = "").
+    // the actual url set on the rm web ui will be the proxy url set by WebAppProxyServlet, which
+    // always try to connect to AM and proxy the response. hence it wont work if the webUIService
+    // is not enabled.
+    String trackingUrl = (webUI != null) ? webUI.getURL() : "";
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
-        serviceAddr.getPort(), "", appContext);
+        serviceAddr.getPort(), trackingUrl, appContext);
     taskScheduler.init(getConfig());
     taskScheduler.start();
     if (shouldUnregisterFlag.get()) {
@@ -514,11 +533,8 @@ public class TaskSchedulerEventHandler extends AbstractService
       LOG.debug("Setting job diagnostics to " + sb.toString());
     }
 
-    String historyUrl = "";
-    /*String historyUrl = JobHistoryUtils.getHistoryUrl(getConfig(),
-        appContext.getApplicationID());
-    LOG.info("History url is " + historyUrl);*/
-
+    // if history url is set use the same, if historyUrl is set to "" then rm ui disables the
+    // history url
     return new AppFinalStatus(finishState, sb.toString(), historyUrl);
   }
 
@@ -568,5 +584,27 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   public boolean hasUnregistered() {
     return this.taskScheduler.hasUnregistered();
+  }
+
+  @VisibleForTesting
+  public String getHistoryUrl() {
+    Configuration config = this.appContext.getAMConf();
+    String historyUrl = "";
+
+    String loggingClass =  config.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "");
+    String historyUrlTemplate = config.get(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
+            TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE_DEFAULT);
+    String historyUrlBase = config.get(TezConfiguration.TEZ_HISTORY_URL_BASE, "");
+
+
+    if (loggingClass.equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService") &&
+        !historyUrlTemplate.isEmpty() &&
+        !historyUrlBase.isEmpty()) {
+      historyUrl = historyUrlTemplate
+          .replaceAll(APPLICATION_ID_PLACEHOLDER, appContext.getApplicationID().toString())
+          .replaceAll(HISTORY_URL_BASE, historyUrlBase);
+    }
+
+    return historyUrl;
   }
 }

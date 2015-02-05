@@ -93,4 +93,5 @@ public interface AppContext {
 
   ACLManager getAMACLManager();
 
+  String getAMUser();
 }

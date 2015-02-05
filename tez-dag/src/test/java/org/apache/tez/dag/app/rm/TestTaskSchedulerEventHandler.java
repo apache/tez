@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.rm;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
@@ -39,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TaskLocationHint;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
@@ -49,6 +52,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
+import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.junit.Assert;
@@ -74,8 +78,8 @@ public class TestTaskSchedulerEventHandler {
     
     public MockTaskSchedulerEventHandler(AppContext appContext,
         DAGClientServer clientService, EventHandler eventHandler,
-        ContainerSignatureMatcher containerSignatureMatcher) {
-      super(appContext, clientService, eventHandler, containerSignatureMatcher);
+        ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI) {
+      super(appContext, clientService, eventHandler, containerSignatureMatcher, webUI);
     }
     
     @Override
@@ -101,19 +105,22 @@ public class TestTaskSchedulerEventHandler {
   MockTaskSchedulerEventHandler schedulerHandler;
   TaskSchedulerService mockTaskScheduler;
   AMContainerMap mockAMContainerMap;
+  WebUIService mockWebUIService;
 
   @Before
   public void setup() {
     mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    doReturn(new Configuration(false)).when(mockAppContext).getAMConf();
     mockClientService = mock(DAGClientServer.class);
     mockEventHandler = new TestEventHandler();
     mockSigMatcher = mock(ContainerSignatureMatcher.class);
     mockTaskScheduler = mock(TaskSchedulerService.class);
     mockAMContainerMap = mock(AMContainerMap.class);
+    mockWebUIService = mock(WebUIService.class);
     when(mockAppContext.getAllContainers()).thenReturn(mockAMContainerMap);
     when(mockClientService.getBindAddress()).thenReturn(new InetSocketAddress(10000));
     schedulerHandler = new MockTaskSchedulerEventHandler(
-        mockAppContext, mockClientService, mockEventHandler, mockSigMatcher);
+        mockAppContext, mockClientService, mockEventHandler, mockSigMatcher, mockWebUIService);
   }
   
   @Test (timeout = 5000)
@@ -244,6 +251,24 @@ public class TestTaskSchedulerEventHandler {
 
     schedulerHandler.stop();
     schedulerHandler.close();
+  }
+
+  @Test (timeout = 5000)
+  public void testHistoryUrlConf() throws Exception {
+    Configuration conf = schedulerHandler.appContext.getAMConf();
+
+    // ensure history url is empty when timeline server is not the logging class
+    conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://ui-host:9999");
+    Assert.assertTrue("".equals(schedulerHandler.getHistoryUrl()));
+
+    // ensure expansion of url happens
+    conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
+        "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService");
+    final ApplicationId mockApplicationId = mock(ApplicationId.class);
+    doReturn("TEST_APP_ID").when(mockApplicationId).toString();
+    doReturn(mockApplicationId).when(mockAppContext).getApplicationID();
+    Assert.assertTrue("http://ui-host:9999/#/tez-app/TEST_APP_ID"
+        .equals(schedulerHandler.getHistoryUrl()));
   }
 
 }
