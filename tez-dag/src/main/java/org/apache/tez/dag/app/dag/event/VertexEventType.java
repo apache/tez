@@ -45,7 +45,6 @@ public enum VertexEventType {
   V_MANAGER_USER_CODE_ERROR,
   
   V_ROUTE_EVENT,
-  V_ONE_TO_ONE_SOURCE_SPLIT,
   
   //Producer: VertexInputInitializer
   V_ROOT_INPUT_INITIALIZED,
