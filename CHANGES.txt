@@ -58,6 +58,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2035. Make timeline server putDomain exceptions non-fatal - work-around
   TEZ-1929. pre-empted tasks should be marked as killed instead of failed
   TEZ-2017. TEZ UI - Dag view throwing error whild re-displaying additionals in some dags.
   TEZ-2013. TEZ UI - App Details Page UI Nits

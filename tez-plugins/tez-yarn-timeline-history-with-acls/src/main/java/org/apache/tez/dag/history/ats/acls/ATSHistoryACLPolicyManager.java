@@ -111,8 +111,8 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
 
     try {
       timelineClient.putDomain(timelineDomain);
-    } catch (YarnException e) {
-      throw new IOException(e);
+    } catch (Exception e) {
+      LOG.warn("Could not post timeline domain", e);
     }
   }
 
