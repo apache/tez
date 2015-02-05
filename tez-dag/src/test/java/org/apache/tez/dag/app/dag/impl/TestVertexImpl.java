@@ -2447,14 +2447,14 @@ public class TestVertexImpl {
   
   @Test(timeout = 5000)
   public void testVertexSetParallelism() throws Exception {
-    initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
     Assert.assertEquals(2, v3.getTotalTasks());
     Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
     TezTaskID firstTask = tasks.keySet().iterator().next();
 
-    v3.vertexReconfigurationPlanned(true);
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
@@ -2477,13 +2477,13 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testVertexSetParallelismIncreaseException() throws Exception {
-    initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
     Assert.assertEquals(2, v3.getTotalTasks());
     Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
 
-    v3.vertexReconfigurationPlanned(true);
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
@@ -2500,13 +2500,13 @@ public class TestVertexImpl {
   
   @Test(timeout = 5000)
   public void testVertexSetParallelismMultipleException() throws Exception {
-    initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
     Assert.assertEquals(2, v3.getTotalTasks());
     Map<TezTaskID, Task> tasks = v3.getTasks();
     Assert.assertEquals(2, tasks.size());
 
-    v3.vertexReconfigurationPlanned(true);
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
@@ -2561,6 +2561,8 @@ public class TestVertexImpl {
 
   @Test(timeout = 5000)
   public void testSetCustomEdgeManager() throws Exception {
+    VertexImpl v5 = vertices.get("vertex5"); // Vertex5 linked to v3 (v3 src, v5 dest)
+    v5.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
     Edge edge = edges.get("e4");
     EdgeManagerPlugin em = edge.getEdgeManager();
@@ -2574,10 +2576,7 @@ public class TestVertexImpl {
     edgeManagerDescriptor.setUserPayload(userPayload);
 
     Vertex v3 = vertices.get("vertex3");
-    VertexImpl v5 = vertices.get("vertex5"); // Vertex5 linked to v3 (v3 src, v5
-                                         // dest)
 
-    v5.vertexReconfigurationPlanned(true);
     Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
         Collections.singletonMap(v3.getName(), edgeManagerDescriptor);
     v5.setParallelism(v5.getTotalTasks() - 1, null, edgeManagerDescriptors, null, true); // Must decrease.
@@ -3396,25 +3395,23 @@ public class TestVertexImpl {
       Assert.assertEquals(v1Hints.get(i), v1.getTaskLocationHints()[i]);
     }
     Assert.assertEquals(true, initializerManager1.hasShutDown);
-    
-    Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
-    Assert.assertEquals(VertexState.INITED, vertices.get("vertex2").getState());
-    Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
-    Assert.assertEquals(VertexState.INITED, vertices.get("vertex3").getState());
-    Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
-    Assert.assertEquals(VertexState.INITED, vertices.get("vertex5").getState());
-    // v5, v6 still initializing since edge is null
-    Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex4").getState());
-    Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex4").getState());
-    
+
     startVertex(v1);
+
+    Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
+    Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
+    Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
+    // v4, v6 still initializing since edge is null
+    Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex4").getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex6").getState());
+    
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex1").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex2").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex3").getState());
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex5").getState());
-    // v5, v6 still initializing since edge is null
+    // v4, v6 still initializing since edge is null
     Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex4").getState());
-    Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex4").getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vertices.get("vertex6").getState());
     
     mockEdgeManagerDescriptor =
         EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
@@ -3423,7 +3420,7 @@ public class TestVertexImpl {
     e.setCustomEdgeManager(mockEdgeManagerDescriptor);
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
-    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
+    Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex6").getState());
   }
   
   @Test(timeout = 5000)
@@ -3434,6 +3431,7 @@ public class TestVertexImpl {
     dagPlan = createDAGPlanForOneToOneSplit(null, numTasks, false);
     setupPostDagCreation();
     VertexImpl v1 = vertices.get("vertex1");
+    v1.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
     
     // fudge vertex manager so that tasks dont start running
@@ -3441,7 +3439,6 @@ public class TestVertexImpl {
         VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
         v1, appContext, mock(StateChangeNotifier.class));
     v1.vertexManager.initialize();
-    v1.vertexReconfigurationPlanned(true);
     startVertex(v1);
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
@@ -3473,6 +3470,7 @@ public class TestVertexImpl {
     dagPlan = createDAGPlanForOneToOneSplit(null, numTasks, false);
     setupPostDagCreation();
     VertexImpl v1 = vertices.get("vertex1");
+    v1.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
     
     // fudge vertex manager so that tasks dont start running
@@ -3486,7 +3484,6 @@ public class TestVertexImpl {
     Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
     // change parallelism
     int newNumTasks = 3;
-    v1.vertexReconfigurationPlanned(true);
     v1.setParallelism(newNumTasks, null, null, null, true);
     v1.doneReconfiguringVertex();
     dispatcher.await();

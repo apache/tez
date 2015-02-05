@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,8 +56,10 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   int oneToOneSrcTasksDoneCount[];
   TaskLocationHint oneToOneLocationHints[];
   int numOneToOneEdges;
-  int numSignalsToWaitFor;
+  int numConfiguredSources;
   Multimap<String, Integer> pendingCompletions = LinkedListMultimap.create();
+  AtomicBoolean configured;
+  AtomicBoolean started;
 
   public InputReadyVertexManager(VertexManagerPluginContext context) {
     super(context);
@@ -76,13 +79,10 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     }
   }
   
-  void start() {
-    if (!ready()) {
-      return;
-    }
+  private void configure() {
+    Preconditions.checkState(!configured.get(), "Vertex: " + getContext().getVertexName());
     int numManagedTasks = getContext().getVertexNumTasks(getContext().getVertexName());
     LOG.info("Managing " + numManagedTasks + " tasks for vertex: " + getContext().getVertexName());
-    taskIsStarted = new boolean[numManagedTasks];
 
     // find out about all input edge types. If there is a custom edge then 
     // TODO Until TEZ-1013 we cannot handle custom input formats
@@ -116,32 +116,51 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     }
     
     if (numOneToOneEdges > 0) {
+      Preconditions
+          .checkState(oneToOneSrcTaskCount >= 0, "Vertex: " + getContext().getVertexName());
       if (oneToOneSrcTaskCount != numManagedTasks) {
-        throw new TezUncheckedException(
-            "Managed task number must equal 1-1 source task number");
+        numManagedTasks = oneToOneSrcTaskCount;
+        // must change parallelism to make them the same
+        LOG.info("Update parallelism of vertex: " + getContext().getVertexName() + 
+            " to " + oneToOneSrcTaskCount + " to match source 1-1 vertices.");
+        getContext().setVertexParallelism(oneToOneSrcTaskCount, null, null, null);
       }
       oneToOneSrcTasksDoneCount = new int[oneToOneSrcTaskCount];
       oneToOneLocationHints = new TaskLocationHint[oneToOneSrcTaskCount];
     }
+    
+    Preconditions.checkState(numManagedTasks >=0, "Vertex: " + getContext().getVertexName());
+    taskIsStarted = new boolean[numManagedTasks];
 
-    for (Map.Entry<String, Collection<Integer>> entry :  pendingCompletions.asMap().entrySet()) {
-      for (Integer task : entry.getValue()) {
-        handleSourceTaskFinished(entry.getKey(), task);
+    // allow scheduling
+    configured.set(true);
+    getContext().doneReconfiguringVertex();
+    trySchedulingPendingCompletions();
+  }
+  
+  private boolean readyToSchedule() {
+    return (configured.get() && started.get());
+  }
+  
+  private void trySchedulingPendingCompletions() {
+    if (readyToSchedule() && !pendingCompletions.isEmpty()) {
+      for (Map.Entry<String, Collection<Integer>> entry : pendingCompletions.asMap().entrySet()) {
+        for (Integer i : entry.getValue()) {
+          onSourceTaskCompleted(entry.getKey(), i);
+        }
       }
     }
   }
   
-  boolean ready() {
-    int target = getContext().getInputVertexEdgeProperties().size() + 1;
-    Preconditions.checkState(numSignalsToWaitFor <= target);
-    return (numSignalsToWaitFor == target);
-  }
-  
   @Override
   public void initialize() {
+    // this will prevent vertex from starting until we notify we are done
+    getContext().vertexReconfigurationPlanned();
     Map<String, EdgeProperty> edges = getContext().getInputVertexEdgeProperties();
     // wait for sources and self to start
-    numSignalsToWaitFor = 0;
+    numConfiguredSources = 0;
+    configured = new AtomicBoolean(false);
+    started = new AtomicBoolean(false);
     for (String entry : edges.keySet()) {
       getContext().registerForVertexStateUpdates(entry, EnumSet.of(VertexState.CONFIGURED));
     }
@@ -149,24 +168,33 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   
   @Override
   public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
-    numSignalsToWaitFor++;
-    LOG.info("Received configured signal from: " + stateUpdate.getVertexName() + 
-        " numConfiguredSources: " + numSignalsToWaitFor);
-    start();
+    numConfiguredSources++;
+    int target = getContext().getInputVertexEdgeProperties().size();
+    LOG.info("For vertex: " + getContext().getVertexName() + "Received configured signal from: "
+        + stateUpdate.getVertexName() + " numConfiguredSources: " + numConfiguredSources
+        + " needed: " + target);
+    Preconditions.checkState(numConfiguredSources <= target, "Vertex: " + getContext().getVertexName());
+    if (numConfiguredSources == target) {
+      configure();
+    }
   }
 
   @Override
   public synchronized void onVertexStarted(Map<String, List<Integer>> completions) {
     for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
       pendingCompletions.putAll(entry.getKey(), entry.getValue());
-    }
-    numSignalsToWaitFor++;
-    start();
+    }    
+
+    // allow scheduling
+    started.set(true);
+    
+    trySchedulingPendingCompletions();
   }
 
   @Override
   public synchronized void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-    if (ready()) {
+    if (readyToSchedule()) {
+      // configured and started. try to schedule
       handleSourceTaskFinished(srcVertexName, taskId);
     } else {
       pendingCompletions.put(srcVertexName, taskId);
