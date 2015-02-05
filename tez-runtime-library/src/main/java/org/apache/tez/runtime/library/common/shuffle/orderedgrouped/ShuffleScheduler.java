@@ -47,6 +47,7 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
 
 import com.google.common.collect.Lists;
@@ -103,7 +104,7 @@ class ShuffleScheduler {
 
   private long totalBytesShuffledTillNow = 0;
   private DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
-  
+
   public ShuffleScheduler(InputContext inputContext,
                           Configuration conf,
                           int numberOfInputs,
@@ -187,8 +188,8 @@ class ShuffleScheduler {
         }
 
         output.commit();
-        logIndividualFetchComplete(millis, bytesCompressed, bytesDecompressed, output,
-            srcAttemptIdentifier);
+        ShuffleUtils.logIndividualFetchComplete(LOG, millis, bytesCompressed,
+            bytesDecompressed, output.getType().toString(), srcAttemptIdentifier);
         if (output.getType() == Type.DISK) {
           bytesShuffledToDisk.increment(bytesCompressed);
         } else if (output.getType() == Type.DISK_DIRECT) {
@@ -234,20 +235,6 @@ class ShuffleScheduler {
     // TODO NEWTEZ Should this be releasing the output, if not committed ? Possible memory leak in case of speculation.
   }
 
-  private void logIndividualFetchComplete(long millis, long bytesCompressed, long bytesDecompressed,
-                                          MapOutput output,
-                                          InputAttemptIdentifier srcAttemptIdentifier) {
-    double rate = 0;
-    if (millis != 0) {
-      rate = bytesCompressed / ((double) millis / 1000);
-      rate = rate / (1024 * 1024);
-    }
-    LOG.info(
-        "Completed fetch for attempt: " + srcAttemptIdentifier + " to " + output.getType() +
-            ", CompressedSize=" + bytesCompressed + ", DecompressedSize=" + bytesDecompressed +
-            ",EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
-            mbpsFormat.format(rate) + " MB/s");
-  }
 
   private void logProgress() {
     double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);

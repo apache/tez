@@ -237,6 +237,7 @@ public class HttpConnection {
     }
     // verify that replyHash is HMac of encHash
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecretMgr);
+    //Following log statement will be used by tez-tool perf-analyzer for mapping attempt to NM host
     LOG.info("for url=" + url +
       " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
   }

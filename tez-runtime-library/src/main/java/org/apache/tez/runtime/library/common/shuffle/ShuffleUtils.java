@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.text.DecimalFormat;
 import java.util.List;
 
 import javax.crypto.SecretKey;
@@ -49,6 +50,14 @@ public class ShuffleUtils {
 
   private static final Log LOG = LogFactory.getLog(ShuffleUtils.class);
   public static final String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+
+  static final ThreadLocal<DecimalFormat> MBPS_FORMAT =
+      new ThreadLocal<DecimalFormat>() {
+        @Override
+        protected DecimalFormat initialValue() {
+          return new DecimalFormat("0.00");
+        }
+      };
 
   public static SecretKey getJobTokenSecretFromTokenBytes(ByteBuffer meta)
       throws IOException {
@@ -232,6 +241,36 @@ public class ShuffleUtils {
     }
     sb.append("]");
     return sb.toString();
+  }
+
+  /**
+   * Log individual fetch complete event.
+   * This log information would be used by tez-tool/perf-analzyer/shuffle tools for mining
+   * - amount of data transferred between source to destination machine
+   * - time taken to transfer data between source to destination machine
+   * - details on DISK/DISK_DIRECT/MEMORY based shuffles
+   *
+   * @param log
+   * @param millis
+   * @param bytesCompressed
+   * @param bytesDecompressed
+   * @param outputType
+   * @param srcAttemptIdentifier
+   */
+  public static void logIndividualFetchComplete(Log log, long millis, long
+      bytesCompressed,
+      long bytesDecompressed, String outputType, InputAttemptIdentifier srcAttemptIdentifier) {
+    double rate = 0;
+    if (millis != 0) {
+      rate = bytesCompressed / ((double) millis / 1000);
+      rate = rate / (1024 * 1024);
+    }
+    log.info(
+        "Completed fetch for attempt: "
+            + srcAttemptIdentifier + " to " + outputType +
+            ", CompressedSize=" + bytesCompressed + ", DecompressedSize=" + bytesDecompressed +
+            ", EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
+            MBPS_FORMAT.get().format(rate) + " MB/s");
   }
 }
 

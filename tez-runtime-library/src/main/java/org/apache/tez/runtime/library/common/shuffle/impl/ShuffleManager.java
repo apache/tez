@@ -519,8 +519,8 @@ public class ShuffleManager implements FetcherCallback {
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
-          logIndividualFetchComplete(copyDuration, fetchedBytes, decompressedLength, fetchedInput,
-              srcAttemptIdentifier);
+          ShuffleUtils.logIndividualFetchComplete(LOG, copyDuration,
+              fetchedBytes, decompressedLength, fetchedInput.getType().toString(), srcAttemptIdentifier);
 
           // Processing counters for completed and commit fetches only. Need
           // additional counters for excessive fetches - which primarily comes
@@ -731,22 +731,7 @@ public class ShuffleManager implements FetcherCallback {
         + mbpsFormat.format(transferRate) + " MB/s)");
   }
 
-  private void logIndividualFetchComplete(long millis, long fetchedBytes, long decompressedLength,
-                                          FetchedInput fetchedInput,
-                                          InputAttemptIdentifier srcAttemptIdentifier) {
-    double rate = 0;
-    if (millis != 0) {
-      rate = fetchedBytes / ((double) millis / 1000);
-      rate = rate / (1024 * 1024);
-    }
 
-    LOG.info(
-        "Completed fetch for attempt: " + srcAttemptIdentifier + " to " + fetchedInput.getType() +
-            ", CompressedSize=" + fetchedBytes + ", DecompressedSize=" + decompressedLength +
-            ",EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
-            mbpsFormat.format(rate) + " MB/s");
-  }
-  
   private class SchedulerFutureCallback implements FutureCallback<Void> {
 
     @Override
