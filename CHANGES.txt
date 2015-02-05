@@ -58,6 +58,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2032. Update CHANGES.txt to show 0.6.0 is released
   TEZ-2018. App Tracking and History URL should point to the Tez UI.
   TEZ-2035. Make timeline server putDomain exceptions non-fatal - work-around
   TEZ-1929. pre-empted tasks should be marked as killed instead of failed
@@ -71,7 +72,7 @@ ALL CHANGES:
   TEZ-1987. Tez UI non-standalone mode uses invalid protocol.
   TEZ-1983. Tez UI swimlane task attempt link is broken
 
-Release 0.6.0: Unreleased
+Release 0.6.0: 2015-01-23
 
 INCOMPATIBLE CHANGES
 
