@@ -116,7 +116,6 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
-import org.apache.tez.dag.app.dag.event.VertexEventOneToOneSourceSplit;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
@@ -343,10 +342,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexEventType.V_ROOT_INPUT_INITIALIZED,
               new RootInputInitializedTransition())
           .addTransition(VertexState.INITIALIZING,
-              EnumSet.of(VertexState.INITIALIZING),
-              VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
-              new OneToOneSourceSplitTransition())
-          .addTransition(VertexState.INITIALIZING,
               EnumSet.of(VertexState.INITED, VertexState.FAILED),
               VertexEventType.V_READY_TO_INIT,
               new VertexInitializedTransition())
@@ -400,10 +395,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               new SourceVertexStartedTransition())
           .addTransition(VertexState.INITED,
               EnumSet.of(VertexState.INITED),
-              VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
-              new OneToOneSourceSplitTransition())
-          .addTransition(VertexState.INITED,
-              EnumSet.of(VertexState.INITED),
               VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
               SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION)
           .addTransition(VertexState.INITED,
@@ -443,10 +434,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexState.ERROR),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
-          .addTransition(VertexState.RUNNING,
-              EnumSet.of(VertexState.RUNNING),
-              VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
-              new OneToOneSourceSplitTransition())
           .addTransition(VertexState.RUNNING, VertexState.TERMINATING,
               VertexEventType.V_TERMINATE,
               new VertexKilledTransition())
@@ -546,7 +533,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
-                  VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
@@ -569,7 +555,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
-                  VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
@@ -590,7 +575,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexEventType.V_MANAGER_USER_CODE_ERROR,
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
-                  VertexEventType.V_ONE_TO_ONE_SOURCE_SPLIT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_RESCHEDULED,
                   VertexEventType.V_INTERNAL_ERROR,
@@ -692,7 +676,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final UserGroupInformation dagUgi;
 
   private boolean parallelismSet = false;
-  private TezVertexID originalOneToOneSplitSource = null;
 
   private AtomicBoolean committed = new AtomicBoolean(false);
   private AtomicBoolean aborted = new AtomicBoolean(false);
@@ -1497,21 +1480,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
       }
 
-      for (Map.Entry<Vertex, Edge> entry : targetVertices.entrySet()) {
-        Edge edge = entry.getValue();
-        if (edge.getEdgeProperty().getDataMovementType()
-            == DataMovementType.ONE_TO_ONE) {
-          // inform these target vertices that we have changed parallelism
-          VertexEventOneToOneSourceSplit event =
-              new VertexEventOneToOneSourceSplit(entry.getKey().getVertexId(),
-                  getVertexId(),
-                  ((originalOneToOneSplitSource!=null) ?
-                      originalOneToOneSplitSource : getVertexId()),
-                  numTasks);
-          getEventHandler().handle(event);
-        }
-      }
-
     } finally {
       writeLock.unlock();
     }
@@ -1532,21 +1500,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   
   @Override
   public void vertexReconfigurationPlanned() {
-    vertexReconfigurationPlanned(false);
-  }
-  
-  public void vertexReconfigurationPlanned(boolean testOverride) {
     writeLock.lock();
     try {
-      if (testOverride) {
-        Preconditions.checkState(vmIsInitialized.get() && completelyConfiguredSent.get(),
-            "test should override only failed cases");
-      } else {
-        Preconditions.checkState(!vmIsInitialized.get(),
-            "context.vertexReconfigurationPlanned() cannot be called after initialize()");
-        Preconditions.checkState(!completelyConfiguredSent.get(), "vertexReconfigurationPlanned() "
-            + " cannot be invoked after the vertex has been configured.");
-      }
+      Preconditions.checkState(!vmIsInitialized.get(),
+          "context.vertexReconfigurationPlanned() cannot be called after initialize()");
+      Preconditions.checkState(!completelyConfiguredSent.get(), "vertexReconfigurationPlanned() "
+          + " cannot be invoked after the vertex has been configured.");
       this.vertexToBeReconfiguredByManager = true;
     } finally {
       writeLock.unlock();
@@ -3144,68 +3103,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
       }
       return vertex.getState();
-    }
-  }
-
-  public static class OneToOneSourceSplitTransition implements
-    MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
-
-    @Override
-    public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      VertexEventOneToOneSourceSplit splitEvent =
-          (VertexEventOneToOneSourceSplit)event;
-      TezVertexID originalSplitSource = splitEvent.getOriginalSplitSource();
-
-      if (vertex.originalOneToOneSplitSource != null) {
-        VertexState state = vertex.getState();
-        Preconditions
-            .checkState(
-                (state == VertexState.INITIALIZING
-                    || state == VertexState.INITED || state == VertexState.RUNNING),
-                " Unexpected 1-1 split for vertex " + vertex.getLogIdentifier()
-                    + " in state " + vertex.getState() + " . Split in vertex "
-                    + originalSplitSource + " sent by vertex "
-                    + splitEvent.getSenderVertex() + " numTasks "
-                    + splitEvent.getNumTasks());
-        if (vertex.originalOneToOneSplitSource.equals(originalSplitSource)) {
-          // ignore another split event that may have come from a different
-          // path in the DAG. We have already split because of that source
-          LOG.info("Ignoring split of vertex " + vertex.getLogIdentifier() +
-              " because of split in vertex " + originalSplitSource +
-              " sent by vertex " + splitEvent.getSenderVertex() +
-              " numTasks " + splitEvent.getNumTasks());
-          return state;
-        }
-        // cannot split from multiple sources
-        throw new TezUncheckedException("Vertex: " + vertex.getLogIdentifier() +
-            " asked to split by: " + originalSplitSource +
-            " but was already split by:" + vertex.originalOneToOneSplitSource);
-      }
-
-      LOG.info("Splitting vertex " + vertex.getLogIdentifier() +
-          " because of split in vertex " + originalSplitSource +
-          " sent by vertex " + splitEvent.getSenderVertex() +
-          " numTasks " + splitEvent.getNumTasks());
-      vertex.originalOneToOneSplitSource = originalSplitSource;
-      try {
-        vertex.setParallelism(splitEvent.getNumTasks(), null, null, null, false);
-      } catch (Exception e) {
-        // ingore this exception, should not happen
-        LOG.error("Unexpected exception, Just set Parallelims to a specified value, not involve EdgeManager,"
-            + "exception should not happen here", e);
-      }
-      if (vertex.getState() == VertexState.RUNNING ||
-          vertex.getState() == VertexState.INITED) {
-        return vertex.getState();
-      } else {
-        Preconditions.checkState(vertex.getState() == VertexState.INITIALIZING,
-            " Unexpected 1-1 split for vertex " + vertex.getLogIdentifier() +
-                " in state " + vertex.getState() +
-                " . Split in vertex " + originalSplitSource +
-                " sent by vertex " + splitEvent.getSenderVertex() +
-                " numTasks " + splitEvent.getNumTasks());
-        return vertex.getState();
-      }
     }
   }
 
