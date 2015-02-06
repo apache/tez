@@ -47,6 +47,44 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
     this.setFiltersAndLoadEntities(filters);
   },
 
+  loadEntities: function() {
+    var that = this;
+    var childEntityType = this.get('childEntityType');
+    var defaultErrMsg = 'Error while loading %@. could not connect to %@'
+      .fmt(childEntityType, App.env.timelineBaseUrl);
+
+
+    that.set('loading', true);
+
+    this.get('store').unloadAll(childEntityType);
+    this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+      that.set('entities', entities);
+
+      var loaders = [];
+      entities.forEach(function (dag) {
+        if (dag.get('status') === 'RUNNING') {
+          amInfoFetcher = that.store.find('dagProgress', dag.get('id'), {
+            appId: dag.get('applicationId'),
+            dagIdx: dag.get('idx')
+          }).then(function(dagProgressInfo) {
+              dag.set('progress', dagProgressInfo.get('progress'));
+          }).catch(function(error) {
+            Em.Logger.error('Failed to fetch dagProgress' + error);
+          });
+          loaders.push(amInfoFetcher);
+        }
+      });
+      Em.RSVP.allSettled(loaders).then(function(){
+        that.set('loading', false);
+      });
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  },
+
   actions : {
     filterUpdated: function(filterID, value) {
       // any validations required goes here.
@@ -97,12 +135,18 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
             <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+            &nbsp;&nbsp;{{view.cellContent.status}}\
+            {{#if view.cellContent.progress}} {{bs-badge content=view.cellContent.progress}}{{/if}}</span>')
         }),
         getCellContent: function(row) {
+          var pct;
+          if (Ember.typeOf(row.get('progress')) === 'number') {
+            pct = App.Helpers.number.fractionToPercentage(row.get('progress'));
+          }
           return {
             status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row),
+            progress: pct
           };
         }
       },

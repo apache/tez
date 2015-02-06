@@ -279,6 +279,7 @@ var timelineJsonToVertexMap = {
   id: 'entity',
   name: 'otherinfo.vertexName',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
+  applicationId: 'primaryfilters.applicationId.0',
   processorClassName: 'processorClassName',
   counterGroups: 'counterGroups',
   inputs: 'inputs',
@@ -545,3 +546,6 @@ App.TezAppSerializer = App.TimelineSerializer.extend({
     return Em.JsonMapper.map(hash, timelineJsonToTezAppMap);
   },
 });
+
+App.VertexProgressSerializer = App.DagProgressSerializer = DS.RESTSerializer.extend({});
+

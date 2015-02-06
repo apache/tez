@@ -35,12 +35,13 @@ $.extend(true, App.Configs, {
     version: "0.7.0",
 
     timelineBaseUrl: getDefaultTimelineUrl(),
-    RMWebUrl: getDefaultRMWebUrl(),
+    RMWebUrl: getDefaultRMWebUrl()
   },
 
   restNamespace: {
     timeline: 'ws/v1/timeline',
-    applicationHistory: 'ws/v1/applicationhistory'
+    applicationHistory: 'ws/v1/applicationhistory',
+    aminfo: 'proxy/__app_id__/ws/v1/tez'
   },
 
   tables: {

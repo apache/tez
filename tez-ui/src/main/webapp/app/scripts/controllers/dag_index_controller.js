@@ -24,6 +24,14 @@ App.DagIndexController = Em.ObjectController.extend({
 		return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
 	}.property('id', 'status', 'counterGroups'),
 
+  progressStr: function() {
+    var pct;
+    if (Ember.typeOf(this.get('progress')) === 'number') {
+      pct = App.Helpers.number.fractionToPercentage(this.get('progress'));
+    }
+    return pct;
+  }.property('id', 'status', 'progress'),
+
 	totalTasks: function() {
 		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), 
 			this.get('id'), 'org.apache.tez.common.counters.DAGCounter', 'TOTAL_LAUNCHED_TASKS')

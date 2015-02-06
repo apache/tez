@@ -71,8 +71,19 @@ App.PaginatedContentMixin = Em.Mixin.create({
     this.get('store').unloadAll(childEntityType);
     this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
       that.set('entities', entities);
-      that.set('loading', false);
-    }).catch(function(jqXHR){
+      var loaders = [];
+      try {
+        var loader = Em.tryInvoke(that, 'loadAdditional');
+        if (!!loader) {
+          loaders.push(loader);
+        }
+      } catch(error) {
+        Em.Logger.error("Exception invoking additional load", error);
+      }
+      Em.RSVP.allSettled(loaders).then(function(){
+          that.set('loading', false);
+      });
+    }).catch(function(error){
       Em.Logger.error(error);
       var err = App.Helpers.misc.formatError(error, defaultErrMsg);
       var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);

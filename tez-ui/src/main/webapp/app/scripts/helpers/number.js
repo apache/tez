@@ -110,6 +110,16 @@ App.Helpers.number = {
    */
   isValidInt: function(value) {
     return value % 1 == 0;
+  },
+
+  /**
+   * converts fraction to percentage.
+   * @param {number} fraction assumes < 1
+   * @return {float} fixed decimal point formatted percentage
+   */
+  fractionToPercentage: function(number, decimal) {
+    decimal = decimal || 2;
+    return parseFloat((number * 100).toFixed(decimal)) + ' %';
   }
 
 };
