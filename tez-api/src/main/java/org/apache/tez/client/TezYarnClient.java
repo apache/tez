@@ -24,6 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -66,7 +67,12 @@ public class TezYarnClient extends FrameworkClient {
 
   @Override
   public ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext) throws YarnException, IOException {
-    return yarnClient.submitApplication(appSubmissionContext);
+	ApplicationId appId= yarnClient.submitApplication(appSubmissionContext);
+    ApplicationReport appReport = getApplicationReport(appId);
+    if (appReport.getYarnApplicationState() == YarnApplicationState.FAILED){
+      throw new IOException("Failed to submit application to YARN: " + appReport.getDiagnostics());
+    }
+    return appId;
   }
 
   @Override
