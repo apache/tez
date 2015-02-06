@@ -141,6 +141,8 @@ public class TestTezClient {
     TezClientForTest client = configure(lrs, isSession);
     
     ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+    .thenReturn(YarnApplicationState.RUNNING);
     client.start();
     verify(client.mockYarnClient, times(1)).init((Configuration)any());
     verify(client.mockYarnClient, times(1)).start();
@@ -197,6 +199,8 @@ public class TestTezClient {
     when(client.mockYarnClient.createApplication().getNewApplicationResponse().getApplicationId())
         .thenReturn(appId2);
     
+    when(client.mockYarnClient.getApplicationReport(appId2).getYarnApplicationState())
+    .thenReturn(YarnApplicationState.RUNNING);
     dag = DAG.create("DAG").addVertex(
         Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1, Resource.newInstance(1, 1)));
     dagClient = client.submitDAG(dag);
@@ -269,6 +273,8 @@ public class TestTezClient {
   
   public void testMultipleSubmissionsJob(boolean isSession) throws Exception {
     TezClientForTest client1 = configure(new HashMap<String, LocalResource>(), isSession);
+    when(client1.mockYarnClient.getApplicationReport(client1.mockAppId).getYarnApplicationState())
+    .thenReturn(YarnApplicationState.RUNNING);
     client1.start();
     
     String mockLR1Name = "LR1";
@@ -287,6 +293,8 @@ public class TestTezClient {
     client1.submitDAG(dag);
     
     TezClientForTest client2 = configure();
+    when(client2.mockYarnClient.getApplicationReport(client2.mockAppId).getYarnApplicationState())
+    .thenReturn(YarnApplicationState.RUNNING);
     client2.start();
     
     // verify resubmission of same dag to new client (simulates submission error resulting in the
