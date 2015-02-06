@@ -24,7 +24,23 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 	loading: true,
 
 	updateLoading: function() {
-    this.set('loading', false);
+    var that = this;
+    var loaders = [];
+    if (this.get('status') === 'RUNNING') {
+      // update the progress info if available. this need not block the UI
+      var aminfoLoader = that.store.find('dagProgress', that.get('id'), {
+        appId: that.get('applicationId'),
+        dagIdx: that.get('idx')
+      }).then(function(dagProgressInfo) {
+        that.set('progress', dagProgressInfo.get('progress'));
+      }).catch(function (error) {
+        Em.Logger.error("Failed to fetch dagProgress")
+      });
+      loaders.push(aminfoLoader);
+    }
+    Em.RSVP.allSettled(loaders).then(function(){
+      that.set('loading', false);
+    });
   }.observes('content'),
 
 	childDisplayViews: [

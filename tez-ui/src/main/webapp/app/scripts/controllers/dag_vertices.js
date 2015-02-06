@@ -44,6 +44,40 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
     this.setFiltersAndLoadEntities(filters);
   },
 
+  loadAdditional: function() {
+    var defer = Em.RSVP.defer();
+
+    var that = this;
+        vertices = this.get('entities');
+    var runningVerticesIdx = vertices
+      .filterBy('status', 'RUNNING')
+      .map(function(item) {
+        return item.get('id').split('_').splice(-1).pop();
+      });
+    if (runningVerticesIdx.length > 0) {
+      this.store.findQuery('vertexProgress', {
+        metadata: {
+          appId: that.get('applicationId'),
+          dagIdx: that.get('idx'),
+          vertexIds: runningVerticesIdx.join(',')
+        }
+      }).then(function(vertexProgressInfo) {
+        vertexProgressInfo.forEach(function(item) {
+          var model = vertices.findBy('id', item.get('id')) || Em.Object.create();
+          model.set('progress', item.get('progress'));
+        });
+      }).catch(function(error) {
+        Em.Logger.debug("failed to fetch vertex progress")
+      }).finally(function(){
+        defer.resolve();
+      })
+    } else {
+      defer.resolve();
+    }
+
+    return defer.promise;
+  },
+
   actions : {
     filterUpdated: function(filterID, value) {
       // any validations required goes here.
@@ -129,12 +163,18 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
             <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+            &nbsp;&nbsp;{{view.cellContent.status}}\
+            {{#if view.cellContent.progress}} {{bs-badge content=view.cellContent.progress}}{{/if}}</span>')
         }),
         getCellContent: function(row) {
+          var pct;
+          if (Ember.typeOf(row.get('progress')) === 'number') {
+            pct = App.Helpers.number.fractionToPercentage(row.get('progress'));
+          }
           return {
             status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row),
+            progress: pct
           };
         }
       },

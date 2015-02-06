@@ -87,6 +87,19 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
             dag.set('tezApp', app);
           });
           loaders.push(fetcher);
+          if (dag.get('status') === 'RUNNING') {
+            amInfoFetcher = store.find('dagProgress', dag.get('id'), {
+              appId: dag.get('applicationId'),
+              dagIdx: dag.get('idx')
+            })
+            .then(function(dagProgressInfo) {
+              dag.set('progress', dagProgressInfo.get('progress'));
+            })
+            .catch(function(error) {
+              Em.Logger.error('Failed to fetch dagProgress' + error);
+            });
+            loaders.push(amInfoFetcher);
+          }
         }
       });
       Em.RSVP.allSettled(loaders).then(function(){
@@ -154,12 +167,18 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
             <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
+            &nbsp;&nbsp;{{view.cellContent.status}}\
+            {{#if view.cellContent.progress}} {{bs-badge content=view.cellContent.progress}}{{/if}}</span>')
         }),
         getCellContent: function(row) {
+          var pct;
+          if (Ember.typeOf(row.get('progress')) === 'number') {
+            pct = App.Helpers.number.fractionToPercentage(row.get('progress'));
+          }
           return {
             status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(row),
+            progress: pct
           };
         }
       },

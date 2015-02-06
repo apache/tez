@@ -24,7 +24,26 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   loading: true,
 
   updateLoading: function() {
-    this.set('loading', false);
+    var loaders = [],
+      that = this;
+
+    if (this.get('status') == 'RUNNING') {
+      var vertexIdx = that.get('id').split('_').splice(-1).pop();
+      var progressLoader = this.store.find('vertexProgress', vertexIdx, {
+        appId: that.get('applicationId'),
+        dagIdx: that.get('dagIdx')
+      }).then(function(vertexProgressInfo) {
+        if (vertexProgressInfo) {
+          that.set('progress', vertexProgressInfo.get('progress'));
+        }
+      }).catch(function(error) {
+        Em.Logger.error("Failed to fetch vertexProgress" + error)
+      });
+      loaders.push(progressLoader);
+    }
+    Em.RSVP.allSettled(loaders).then(function(){
+      that.set('loading', false);
+    });
   }.observes('content'),
 
   childDisplayViews: [

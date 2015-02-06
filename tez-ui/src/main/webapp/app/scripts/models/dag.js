@@ -17,6 +17,10 @@
 
 App.Dag = App.AbstractEntity.extend({
 
+  idx: function() {
+    return this.get('id').split('_').splice(-1).pop();
+  }.property('id'),
+
   submittedTime: DS.attr('number'),
   
   // start time of the entity
@@ -93,9 +97,16 @@ App.Edge = DS.Model.extend({
 
 App.Vertex = DS.Model.extend({
   name: DS.attr('string'),
+  vertexIdx: function() {
+    return this.get('id').split('_').splice(-1).pop();
+  }.property('id'),
 
   dag: DS.belongsTo('dag'),
   dagID: DS.attr('string'),
+  applicationId: DS.attr('string'),
+  dagIdx: function() {
+    return this.get('dagID').split('_').splice(-1).pop();
+  }.property('dagID'),
 
   /**
    * State of this vertex. Should be one of constants defined in
@@ -321,6 +332,18 @@ App.Task = App.AbstractEntity.extend({
   pivotAttempt: DS.belongsTo('taskAttempt'),
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
+});
+
+App.DagProgress = DS.Model.extend({
+  progress: DS.attr('number'),
+  appId: DS.attr('string'),
+  dagIdx: DS.attr('number')
+});
+
+App.VertexProgress = DS.Model.extend({
+  progress: DS.attr('number'),
+  appId: DS.attr('string'),
+  dagIdx: DS.attr('string')
 });
 
 App.KVDatum = DS.Model.extend({

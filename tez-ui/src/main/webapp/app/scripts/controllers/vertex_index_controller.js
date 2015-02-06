@@ -24,6 +24,14 @@ App.VertexIndexController = Em.ObjectController.extend({
     return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
   }.property('id', 'status', 'counterGroups'),
 
+  progressStr: function() {
+    var pct;
+    if (Ember.typeOf(this.get('progress')) === 'number') {
+      pct = App.Helpers.number.fractionToPercentage(this.get('progress'));
+    }
+    return pct;
+  }.property('id', 'status', 'progress'),
+
   hasFailedTasks: function() {
     return this.get('failedTasks') > 0;
   }.property('id', 'counterGroups'),

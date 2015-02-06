@@ -17,42 +17,43 @@
 }}
 
 <div class='type-table fill-full margin-small-horizontal'>
-	<div class='align-left'>
-		<table class='detail-list'>
-			<tbody>
-				<tr>
-					<td>{{t 'common.status'}}</td>
-					<td>
-						{{status}}
-						<i {{bind-attr class=':task-status taskIconStatus'}}></i>
-					</td>
+  <div class='align-left'>
+    <table class='detail-list'>
+      <tbody>
+        <tr>
+          <td>{{t 'common.status'}}</td>
+          <td>
+            {{status}}
+            <i {{bind-attr class=':task-status taskIconStatus'}}></i>
+            {{#if progressStr}} {{bs-badge content=progressStr}}{{/if}}
+          </td>
           <td>
             {{#if hasFailedTasks}}
               <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
             {{/if}}
           </td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
-	<div class='align-right'>
-		<table class='detail-list'>
-			<tbody>
-				<tr>
-					<td>{{t 'common.time.start'}}</td>
-					<td>{{formatUnixTimestamp startTime}}</td>
-				</tr>
-				<tr>
-					<td>{{t 'common.time.end'}}</td>
-					<td>{{formatUnixTimestamp endTime}}</td>
-				</tr>
-				<tr>
-					<td>{{t 'common.time.duration'}}</td>
-					<td>{{formatDuration startTime endTime}}</td>
-				</tr>
-			</tbody>
-		</table>
-	</div>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class='align-right'>
+    <table class='detail-list'>
+      <tbody>
+        <tr>
+          <td>{{t 'common.time.start'}}</td>
+          <td>{{formatUnixTimestamp startTime}}</td>
+        </tr>
+        <tr>
+          <td>{{t 'common.time.end'}}</td>
+          <td>{{formatUnixTimestamp endTime}}</td>
+        </tr>
+        <tr>
+          <td>{{t 'common.time.duration'}}</td>
+          <td>{{formatDuration startTime endTime}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {{#if diagnostics}}
