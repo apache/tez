@@ -162,9 +162,9 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
               {{#unless view.cellContent}}\
                 Not Available\
               {{else}}\
-                <a href="//{{unbound view.cellContent}}">View</a>\
+                <a target="_blank" href="//{{unbound view.cellContent}}">View</a>\
                 &nbsp;\
-                <a href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+                <a target="_blank" href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
               {{/unless}}\
             </span>')
         }),

@@ -22,10 +22,10 @@
       <div class="navbar navbar-static-top">
         <div class="navbar-inner">
           <div class="main-container">
-            <a class="logo" href="/">
+            {{#link-to 'application' class="logo"}}
               <img src="img/apache-tez-logo-transparent.png" width="70px"/>
               <span>{{unbound App.env.version}}</span>
-            </a>
+            {{/link-to}}
           </div>
         </div>
       </div>

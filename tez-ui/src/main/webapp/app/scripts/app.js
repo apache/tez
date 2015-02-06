@@ -34,7 +34,14 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
   },
 
   setConfigs: function (configs) {
+    if(configs.envDefaults.version == "${version}") {
+      delete configs.envDefaults.version;
+    }
     App.Helpers.misc.merge(App.Configs, configs);
+    $.extend(App.env, {
+      timelineBaseUrl: App.Helpers.misc.normalizePath(App.env.timelineBaseUrl),
+      RMWebUrl: App.Helpers.misc.normalizePath(App.env.RMWebUrl)
+    });
     App.advanceReadiness();
   }
 });
