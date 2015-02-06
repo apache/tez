@@ -20,6 +20,7 @@ App.setConfigs({
 
   /* Environment configurations */
   envDefaults: {
+    version: "${version}",
     /*
      * By default TEZ UI looks for timeline server at http://localhost:8188, uncomment and change
      * the following value for pointing to a different domain.

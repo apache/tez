@@ -130,9 +130,21 @@
         <configuration>
           <webXml>${basedir}/src/main/webapp/WEB-INF/web.xml</webXml>
           <warSourceDirectory>${webappDir}/dist</warSourceDirectory>
+          <warSourceExcludes>**/configs.js</warSourceExcludes>
           <webResources>
             <resource>
+              <filtering>false</filtering>
               <directory>${basedir}/src/main/resources/</directory>
+            </resource>
+            <resource>
+              <filtering>false</filtering>
+              <directory>${webappDir}/dist</directory>
+              <exclude>**/configs.js</exclude>
+            </resource>
+            <resource>
+              <filtering>true</filtering>
+              <directory>${webappDir}/dist</directory>
+              <include>**/configs.js</include>
             </resource>
           </webResources>
         </configuration>

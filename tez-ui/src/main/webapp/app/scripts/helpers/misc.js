@@ -161,6 +161,23 @@ App.Helpers.misc = {
     };
   },
 
+  /**
+   * Normalize path
+   * @param path {String}
+   * @return normalized path {String}
+   */
+  normalizePath: function (path) {
+    if(path && path.charAt(path.length - 1) == '/') {
+      path = path.slice(0, -1);
+    }
+    return path;
+  },
+
+  /**
+   * Merge content of obj2 into obj2, array elements will be concated.
+   * @param obj1 {Object}
+   * @param obj2 {Object}
+   */
   merge: function objectMerge(obj1, obj2) {
     $.each(obj2, function (key, val) {
       if(Array.isArray(obj1[key]) && Array.isArray(val)) {
