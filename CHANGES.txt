@@ -8,7 +8,6 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-2023. Refactor logIndividualFetchComplete() to be common for both shuffle-schedulers.
-  TEZ-1895. Vertex reRunning should decrease successfulMembers of VertexGroupInfo.
   TEZ-1999. IndexOutOfBoundsException during merge.
   TEZ-2000. Source vertex exists error during DAG submission.
   TEZ-2008. Add methods to SecureShuffleUtils to verify a reply based on a provided Key.
@@ -179,6 +178,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1895. Vertex reRunning should decrease successfulMembers of VertexGroupInfo.
   TEZ-2020. For 1-1 edge vertex configured event may be sent incorrectly
   TEZ-2015. VertexImpl.doneReconfiguringVertex() should check other criteria
   before sending notification
