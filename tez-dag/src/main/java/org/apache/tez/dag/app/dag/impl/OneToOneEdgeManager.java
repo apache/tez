@@ -27,6 +27,8 @@ import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
+import com.google.common.base.Preconditions;
+
 public class OneToOneEdgeManager extends EdgeManagerPlugin {
 
   List<Integer> destinationInputIndices = 
@@ -55,6 +57,12 @@ public class OneToOneEdgeManager extends EdgeManagerPlugin {
   public void routeDataMovementEventToDestination(DataMovementEvent event,
       int sourceTaskIndex, int sourceOutputIndex, 
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    // by the time routing is initiated all task counts must be determined and stable
+    Preconditions.checkState(getContext().getSourceVertexNumTasks() == getContext()
+        .getDestinationVertexNumTasks(), "1-1 source and destination task counts must match."
+        + " Destination: " + getContext().getDestinationVertexName() + " tasks: "
+        + getContext().getDestinationVertexNumTasks() + " Source: "
+        + getContext().getSourceVertexName() + " tasks: " + getContext().getSourceVertexNumTasks());
     destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
   }
   
