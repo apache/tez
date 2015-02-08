@@ -19,13 +19,41 @@
 App.KvTableComponent = Em.Component.extend({
   layoutName: 'components/kv-table',
   filterExp: null,
+  showAllButtonClass: '',
+  errorMsgClass: '',
+
+  actions: {
+    showAllButtonClicked: function() {
+      this.set('filterExp', null);
+    }
+  },
+
+  showError: function(show) {
+    this.set('errorMsgClass', show ? '' : 'no-display');
+  },
 
   filteredKVs: function() {
+    var filterExp = this.get('filterExp');
     var kvList = this.get('data') || [],
         filteredKvs = [],
-        filterStringRegex = new RegExp(this.filterExp, 'i');
+        filterStringRegex;
 
-    if (Em.isEmpty(this.filterExp)) {
+    if (filterExp) {
+      this.set('showAllButtonClass', '');
+    } else {
+      this.set('showAllButtonClass', 'hidden');
+    }
+
+    try {
+      filterStringRegex = new RegExp(filterExp, 'i');
+    } catch(e) {
+      this.showError(true);
+      Em.Logger.debug("Invalid regex " + e);
+      return;
+    }
+
+    this.showError(false);
+    if (Em.isEmpty(filterExp)) {
       return kvList;
     }
 

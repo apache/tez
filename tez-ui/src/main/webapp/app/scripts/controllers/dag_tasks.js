@@ -32,11 +32,15 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
   vertex_id_filter: null,
 
   loadData: function() {
+    var primaryFilter;
+    if (!!this.vertex_id_filter) {
+      primaryFilter = { TEZ_VERTEX_ID : this.vertex_id_filter };
+    } else {
+      primaryFilter = { TEZ_DAG_ID : this.get('controllers.dag.id') };
+    }
+
     var filters = {
-      primary: {
-        TEZ_DAG_ID: this.get('controllers.dag.id'),
-        TEZ_VERTEX_ID: this.vertex_id_filter,
-      },
+      primary: primaryFilter,
       secondary: {
         status: this.status_filter
       }
@@ -49,14 +53,16 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
     store = this.get('store'),
     fetcher;
     childEntityType = this.get('childEntityType');
-    var defaultErrMsg = 'Error while loading tasks. could not connect to %@'.fmt(App.env.timelineBaseUrl);
+    var defaultErrMsg = 'Error while loading tasks. could not connect to %@'
+      .fmt(App.env.timelineBaseUrl);
 
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
       that.set('entities', entities);
       var pivotLoaders = [];
       entities.forEach(function (task) {
-        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
+        var taskAttemptId = task.get('successfulAttemptId') ||
+            task.get('attempts.lastObject');
         if (!!taskAttemptId) {
           // Pivot attempt selection logic
           fetcher = store.find('taskAttempt', taskAttemptId);

@@ -24,7 +24,15 @@
     </tr>
     <tr>
       <td class='filter' colspan='2'>
-        {{input size='60' type='search' results='1' placeholder='Search...' valueBinding='filterExp'}}
+        <div>
+          {{bs-button title="showAll" size="small" class="align-right" clicked="showAllButtonClicked" classBinding="showAllButtonClass"}}
+          <span class="input-wrapper">
+            {{input size='60' type='search' results='1' placeholder='Search...' valueBinding='filterExp'}}
+          </span>
+        </div>
+        <div>
+          {{bs-label content="Invalid regex" type="warning" classBinding="errorMsgClass"}}
+        </div>
       </td>
     </tr>
     <tbody>

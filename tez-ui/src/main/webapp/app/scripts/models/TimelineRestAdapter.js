@@ -461,7 +461,12 @@ App.OutputSerializer = App.TimelineSerializer.extend({
 
 var timelineJsonToAppDetailMap = {
   id: 'appId',
-  attemptId: 'currentAppAttemptId',
+  attemptId: {
+    custom: function(source) {
+      // while an attempt is in progress the attempt id contains a '-'
+      return (Em.get(source, 'currentAppAttemptId') || '').replace('-','');
+    }
+  },
 
   name: 'name',
   queue: 'queue',
