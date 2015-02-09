@@ -50,7 +50,9 @@ public class TestDAGVerify {
 
   private final String dummyProcessorClassName = TestDAGVerify.class.getName();
   private final String dummyInputClassName = TestDAGVerify.class.getName();
+  private final String dummyInputInitClassName = TestDAGVerify.class.getName();
   private final String dummyOutputClassName = TestDAGVerify.class.getName();
+  private final String dummyVMPluginClassName = TestDAGVerify.class.getName();
   private final int dummyTaskCount = 2;
   private final Resource dummyTaskResource = Resource.newInstance(1, 1);
 
@@ -190,6 +192,9 @@ public class TestDAGVerify {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
         -1, dummyTaskResource);
+    DataSourceDescriptor dsDesc = DataSourceDescriptor.create(InputDescriptor.create(dummyInputClassName),
+        InputInitializerDescriptor.create(dummyInputInitClassName), null);
+    v1.addDataSource("input_1", dsDesc);
     Vertex v2 = Vertex.create("v2",
         ProcessorDescriptor.create("MapProcessor"),
         -1, dummyTaskResource);
@@ -957,7 +962,7 @@ public class TestDAGVerify {
     taskLocationHints.add(TaskLocationHint.createTaskLocationHint(hosts, null));
     VertexLocationHint vLoc = VertexLocationHint.create(taskLocationHints);
     DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"), 
-        null, dummyTaskCount, null, vLoc, lrs2);
+        InputInitializerDescriptor.create(dummyInputInitClassName), dummyTaskCount, null, vLoc, lrs2);
     v1.addDataSource("i1", ds);
         
     DAG dag = DAG.create("testDag");
@@ -1056,4 +1061,95 @@ public class TestDAGVerify {
     Assert.assertTrue(foundModifyAcls);
   }
 
+  // v1 has input initializer
+  @Test(timeout = 5000)
+  public void testDAGInvalidParallelism1() {
+    DAG dag = DAG.create("testDAG");
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
+    dag.addVertex(v1);
+    try {
+      dag.verify();
+      Assert.fail();
+    } catch (Exception e) {
+      Assert.assertEquals(
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
+          e.getMessage());
+    }
+
+    DataSourceDescriptor dsDesc = DataSourceDescriptor.create(InputDescriptor.create(dummyInputClassName),
+        InputInitializerDescriptor.create(dummyInputInitClassName), null);
+    v1.addDataSource("input_1", dsDesc);
+    dag.verify();
+  }
+
+  // v1 has custom vertex manager
+  @Test(timeout = 5000)
+  public void testDAGInvalidParallelism2() {
+    DAG dag = DAG.create("testDAG");
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
+    dag.addVertex(v1);
+    try {
+      dag.verify();
+      Assert.fail();
+    } catch (Exception e) {
+      Assert.assertEquals(
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
+          e.getMessage());
+    }
+
+    v1.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(dummyVMPluginClassName));
+    dag.verify();
+  }
+
+  // v1 has 1-1 united source vertex v0 which has input initializer
+  @Test(timeout = 5000)
+  public void testDAGInvalidParallelism3() {
+    DAG dag = DAG.create("testDAG");
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
+    dag.addVertex(v1);
+    try {
+      dag.verify();
+      Assert.fail();
+    } catch (Exception e) {
+      Assert.assertEquals(
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
+          e.getMessage());
+    }
+
+    Vertex v0 = Vertex.create("v0", ProcessorDescriptor.create(dummyProcessorClassName));
+    DataSourceDescriptor dsDesc = DataSourceDescriptor.create(InputDescriptor.create(dummyInputClassName),
+        InputInitializerDescriptor.create(dummyInputInitClassName), null);
+    v0.addDataSource("input", dsDesc);
+    dag.addVertex(v0);
+    dag.addEdge(Edge.create(v0, v1, EdgeProperty.create(DataMovementType.ONE_TO_ONE,
+        DataSourceType.PERSISTED,SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(dummyOutputClassName),
+        InputDescriptor.create(dummyInputClassName))));
+    dag.verify();
+  }
+
+  // v1 has an 1-1 united parent v0 which has custom vertex manager
+  @Test//(timeout = 5000)
+  public void testDAGInvalidParallelism4() {
+    DAG dag = DAG.create("testDAG");
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
+    dag.addVertex(v1);
+    try {
+      dag.verify();
+      Assert.fail();
+    } catch (Exception e) {
+      Assert.assertEquals(
+          "v1 has -1 tasks but does not have input initializers, 1-1 uninited sources or custom vertex manager to set it at runtime",
+          e.getMessage());
+    }
+
+    Vertex v0 = Vertex.create("v2", ProcessorDescriptor.create(dummyProcessorClassName));
+    v0.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(dummyVMPluginClassName));
+    dag.addVertex(v0);
+    dag.addEdge(Edge.create(v0, v1, EdgeProperty.create(DataMovementType.ONE_TO_ONE,
+        DataSourceType.PERSISTED,SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(dummyOutputClassName),
+        InputDescriptor.create(dummyInputClassName))));
+    dag.verify();
+  }
 }
