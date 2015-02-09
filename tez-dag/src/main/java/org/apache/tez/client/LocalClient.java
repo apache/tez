@@ -68,6 +68,8 @@ public class LocalClient extends FrameworkClient {
   private boolean isSession;
   private TezApiVersionInfo versionInfo = new TezApiVersionInfo();
   private volatile Throwable amFailException = null;
+  private static final String localModeDAGSchedulerClassName =
+      "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrderControlled";
 
   public LocalClient() {
   }
@@ -78,6 +80,7 @@ public class LocalClient extends FrameworkClient {
     tezConf.set("fs.defaultFS", "file:///");
     // Tez libs already in the client's classpath
     tezConf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    tezConf.set(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, localModeDAGSchedulerClassName);
     isSession = tezConf.getBoolean(TezConfiguration.TEZ_AM_SESSION_MODE,
         TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT);
   }
