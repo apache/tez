@@ -181,6 +181,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1893. Verify invalid -1 parallelism in DAG.verify().
   TEZ-900. Confusing message for incorrect queue for some tez examples.
   TEZ-2036. OneToOneEdgeManager should enforce that source and destination
   tasks have same number

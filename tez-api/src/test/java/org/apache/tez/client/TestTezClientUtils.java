@@ -203,7 +203,7 @@ public class TestTezClientUtils {
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     DAG dag = DAG.create("testdag");
-    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"))
+    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
         new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), new Credentials());
@@ -239,7 +239,7 @@ public class TestTezClientUtils {
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     DAG dag = DAG.create("testdag");
-    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"))
+    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
         new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), new Credentials());

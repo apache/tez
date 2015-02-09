@@ -378,6 +378,48 @@ public class DAG {
         }
       }
     }
+
+    // check the vertices with -1 parallelism, currently only 3 cases are allowed to has -1 parallelism.
+    // It is OK not using topological order to check vertices here.
+    // 1. has input initializers
+    // 2. 1-1 uninited sources
+    // 3. has custom vertex manager
+    for (Vertex vertex : vertices.values()) {
+      if (vertex.getParallelism() == -1) {
+        boolean hasInputInititlaizer = false;
+        if (vertex.getDataSources()!= null && !vertex.getDataSources().isEmpty()) {
+          for (DataSourceDescriptor ds : vertex.getDataSources()) {
+            if (ds.getInputInitializerDescriptor() != null) {
+              hasInputInititlaizer = true;
+              break;
+            }
+          }
+        }
+        if (hasInputInititlaizer) {
+          continue;
+        }
+
+        boolean has1to1UninitedSources = false;
+        if (vertex.getInputVertices()!= null && !vertex.getInputVertices().isEmpty()) {
+          for (Vertex srcVertex : vertex.getInputVertices()) {
+            if (srcVertex.getParallelism() == -1) {
+              has1to1UninitedSources = true;
+              break;
+            }
+          }
+        }
+        if (has1to1UninitedSources) {
+          continue;
+        }
+
+        if (vertex.getVertexManagerPlugin() != null) {
+          continue;
+        }
+        throw new IllegalStateException(vertex.getName() +
+            " has -1 tasks but does not have input initializers, " +
+            "1-1 uninited sources or custom vertex manager to set it at runtime");
+      }
+    }
   }
   
   // AnnotatedVertex is used by verify()
