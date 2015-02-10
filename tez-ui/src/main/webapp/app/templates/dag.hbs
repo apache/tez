@@ -33,7 +33,13 @@
           </tr>
           <tr>
             <td>{{t 'common.applicationId'}}</td>
-            <td>{{applicationId}}</td>
+            <td>
+              {{#if enableAppIdLink}}
+                {{#link-to 'tez-app' applicationId class='ember-table-content'}}{{applicationId}}{{/link-to}}
+              {{else}}
+                <span class='ember-table-content'>{{applicationId}}</span>
+              {{/if}}
+            </td>
           </tr>
           <tr>
             <td>{{t 'common.user'}}</td>
