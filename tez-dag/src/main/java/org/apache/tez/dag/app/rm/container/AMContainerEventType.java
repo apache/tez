@@ -28,9 +28,6 @@ public enum AMContainerEventType {
   C_LAUNCHED,
   C_LAUNCH_FAILED,
 
-  //Producer: TAL: PULL_TA is a sync call.
-  C_PULL_TA,
-
   //Producer: Scheduler via TA
   C_TA_SUCCEEDED, // maybe change this to C_TA_FINISHED with a status.
 

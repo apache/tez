@@ -20,28 +20,24 @@ package org.apache.tez.dag.app.rm.container;
 
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
 public class AMContainerTask {
-  private final boolean shouldDie;
   private final Map<String, LocalResource> additionalResources;
   private final TaskSpec tezTask;
   private final Credentials credentials;
   private final boolean credentialsChanged;
 
-  public AMContainerTask(boolean shouldDie, TaskSpec tezTask,
+  public AMContainerTask(TaskSpec tezTask,
       Map<String, LocalResource> additionalResources, Credentials credentials, boolean credentialsChanged) {
-    this.shouldDie = shouldDie;
+    Preconditions.checkNotNull(tezTask, "TaskSpec cannot be null");
     this.tezTask = tezTask;
     this.additionalResources = additionalResources;
     this.credentials = credentials;
     this.credentialsChanged = credentialsChanged;
-  }
-
-  public boolean shouldDie() {
-    return this.shouldDie;
   }
 
   public TaskSpec getTask() {

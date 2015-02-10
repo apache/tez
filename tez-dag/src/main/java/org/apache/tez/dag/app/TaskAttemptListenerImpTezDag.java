@@ -53,7 +53,6 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerImpl;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -87,11 +86,13 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     ContainerInfo() {
       this.lastReponse = null;
       this.lastRequestId = 0;
-      this.currentAttemptId = null;
+      this.amContainerTask = null;
+      this.taskPulled = false;
     }
     long lastRequestId;
     TezHeartbeatResponse lastReponse;
-    TezTaskAttemptID currentAttemptId;
+    AMContainerTask amContainerTask;
+    boolean taskPulled;
   }
 
   private ConcurrentMap<TezTaskAttemptID, ContainerId> attemptToInfoMap =
@@ -212,30 +213,18 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         task = TASK_FOR_INVALID_JVM;
       } else {
         pingContainerHeartbeatHandler(containerId);
-        AMContainerTask taskContext = pullTaskAttemptContext(containerId);
-        if (taskContext.shouldDie()) {
-          LOG.info("No more tasks for container with id : " + containerId
-              + ". Asking it to die");
-          task = TASK_FOR_INVALID_JVM; // i.e. ask the child to die.
+        task = getContainerTask(containerId);
+        if (task == null) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("No task current assigned to Container with id: " + containerId);
+          }
         } else {
-          if (taskContext.getTask() == null) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("No task currently assigned to Container with id: "
-                  + containerId);
-            }
-          } else {
-            registerTaskAttempt(taskContext.getTask().getTaskAttemptID(),
-                containerId);
-            task = new ContainerTask(taskContext.getTask(), false,
-                convertLocalResourceMap(taskContext.getAdditionalResources()),
-                taskContext.getCredentials(), taskContext.haveCredentialsChanged());
             context.getEventHandler().handle(
-                new TaskAttemptEventStartedRemotely(taskContext.getTask()
+                new TaskAttemptEventStartedRemotely(task.getTaskSpec()
                     .getTaskAttemptID(), containerId, context
                     .getApplicationACLs()));
             LOG.info("Container with id: " + containerId + " given task: "
-                + taskContext.getTask().getTaskAttemptID());
-          }
+                + task.getTaskSpec().getTaskAttemptID());
         }
       }
     }
@@ -283,16 +272,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       return;
     }
     synchronized (containerInfo) {
-      containerInfo.currentAttemptId = null;
+      containerInfo.amContainerTask = null;
       attemptToInfoMap.remove(attemptId);
     }
 
-  }
-
-  public AMContainerTask pullTaskAttemptContext(ContainerId containerId) {
-    AMContainerImpl container = (AMContainerImpl) context.getAllContainers()
-        .get(containerId);
-    return container.pullTaskContext();
   }
 
   @Override
@@ -309,24 +292,27 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
-  public void registerTaskAttempt(TezTaskAttemptID attemptId,
+  public void registerTaskAttempt(AMContainerTask amContainerTask,
       ContainerId containerId) {
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     if(containerInfo == null) {
       throw new TezUncheckedException("Registering task attempt: "
-          + attemptId + " to unknown container: " + containerId);
+          + amContainerTask.getTask().getTaskAttemptID() + " to unknown container: " + containerId);
     }
     synchronized (containerInfo) {
-      if(containerInfo.currentAttemptId != null) {
+      if(containerInfo.amContainerTask != null) {
         throw new TezUncheckedException("Registering task attempt: "
-            + attemptId + " to container: " + containerId
-            + " with existing assignment to: " + containerInfo.currentAttemptId);
+            + amContainerTask.getTask().getTaskAttemptID() + " to container: " + containerId
+            + " with existing assignment to: " + containerInfo.amContainerTask.getTask().getTaskAttemptID());
       }
-      containerInfo.currentAttemptId = attemptId;
-      ContainerId containerIdFromMap = attemptToInfoMap.put(attemptId, containerId);
+      containerInfo.amContainerTask = amContainerTask;
+      containerInfo.taskPulled = false;
+
+      ContainerId containerIdFromMap =
+          attemptToInfoMap.put(amContainerTask.getTask().getTaskAttemptID(), containerId);
       if(containerIdFromMap != null) {
         throw new TezUncheckedException("Registering task attempt: "
-            + attemptId + " to container: " + containerId
+            + amContainerTask.getTask().getTaskAttemptID() + " to container: " + containerId
             + " when already assigned to: " + containerIdFromMap);
       }
     }
@@ -368,6 +354,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     if(containerInfo == null) {
+      LOG.warn("Received task heartbeat from unknown container with id: " + containerId +
+          ", asking it to die");
       TezHeartbeatResponse response = new TezHeartbeatResponse();
       response.setLastRequestId(requestId);
       response.setShouldDie();
@@ -441,5 +429,36 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       }
     }
     return tlrs;
+  }
+
+  private ContainerTask getContainerTask(ContainerId containerId) throws IOException {
+    ContainerTask containerTask = null;
+    ContainerInfo containerInfo = registeredContainers.get(containerId);
+    if (containerInfo == null) {
+      // This can happen if an unregisterTask comes in after we've done the initial checks for
+      // registered containers. (Race between getTask from the container, and a potential STOP_CONTAINER
+      // from somewhere within the AM)
+      // Implies that an un-registration has taken place and the container needs to be asked to die.
+      LOG.info("Container with id: " + containerId
+          + " is valid, but no longer registered, and will be killed");
+      containerTask = TASK_FOR_INVALID_JVM;
+    } else {
+      synchronized (containerInfo) {
+        if (containerInfo.amContainerTask != null) {
+          if (!containerInfo.taskPulled) {
+            containerInfo.taskPulled = true;
+            AMContainerTask amContainerTask = containerInfo.amContainerTask;
+            containerTask = new ContainerTask(amContainerTask.getTask(), false,
+                convertLocalResourceMap(amContainerTask.getAdditionalResources()),
+                amContainerTask.getCredentials(), amContainerTask.haveCredentialsChanged());
+          } else {
+            containerTask = null;
+          }
+        } else {
+          containerTask = null;
+        }
+      }
+    }
+    return containerTask;
   }
 }

@@ -21,6 +21,7 @@ package org.apache.tez.dag.app;
 import java.net.InetSocketAddress;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 /**
  * This class listens for changes to the state of a Task.
@@ -30,41 +31,11 @@ public interface TaskAttemptListener {
   InetSocketAddress getAddress();
 
   void registerRunningContainer(ContainerId containerId);
-//  void registerRunningJvm(WrappedJvmID jvmID, ContainerId containerId);
-  
-  void registerTaskAttempt(TezTaskAttemptID attemptId, ContainerId containerId);
-  
-//  void registerTaskAttempt(TezTaskAttemptID attemptId, WrappedJvmID jvmId);
+
+  void registerTaskAttempt(AMContainerTask amContainerTask, ContainerId containerId);
   
   void unregisterRunningContainer(ContainerId containerId);
   
-//  void unregisterRunningJvm(WrappedJvmID jvmID);
-  
   void unregisterTaskAttempt(TezTaskAttemptID attemptID);
-  /**
-   * Register a JVM with the listener.  This should be called as soon as a 
-   * JVM ID is assigned to a task attempt, before it has been launched.
-   * @param task the task itself for this JVM.
-   * @param jvmID The ID of the JVM .
-   */
-//  void registerPendingTask(Task task, WrappedJvmID jvmID);
-  
-  /**
-   * Register task attempt. This should be called when the JVM has been
-   * launched.
-   * 
-   * @param attemptID
-   *          the id of the attempt for this JVM.
-   * @param jvmID the ID of the JVM.
-   */
-//  void registerLaunchedTask(TezTaskAttemptID attemptID, WrappedJvmID jvmID);
-
-  /**
-   * Unregister the JVM and the attempt associated with it.  This should be 
-   * called when the attempt/JVM has finished executing and is being cleaned up.
-   * @param attemptID the ID of the attempt.
-   * @param jvmID the ID of the JVM for that attempt.
-   */
-//  void unregister(TezTaskAttemptID attemptID, WrappedJvmID jvmID);
 
 }
