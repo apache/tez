@@ -57,6 +57,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2069. Tez UI: appId should link to application in dag details view.
   TEZ-2063. Tez UI: Flaky log url in tasks table.
   TEZ-2062. Tez UI: Showing 50 elements not working properly.
   TEZ-2056. Tez UI: fix VertexID filter,show only tez configs by default,fix appattemptid.
