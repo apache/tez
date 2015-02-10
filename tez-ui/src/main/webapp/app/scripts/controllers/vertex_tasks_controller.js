@@ -50,7 +50,6 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
 
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      that.set('entities', entities);
       var pivotLoaders = [];
       entities.forEach(function (task) {
         var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
@@ -64,6 +63,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
         }
       });
       Em.RSVP.allSettled(pivotLoaders).then(function(){
+        that.set('entities', entities);
         that.set('loading', false);
       });
     }).catch(function(jqXHR){

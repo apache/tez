@@ -58,7 +58,6 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
 
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      that.set('entities', entities);
       var pivotLoaders = [];
       entities.forEach(function (task) {
         var taskAttemptId = task.get('successfulAttemptId') ||
@@ -73,6 +72,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
         }
       });
       Em.RSVP.allSettled(pivotLoaders).then(function(){
+        that.set('entities', entities);
         that.set('loading', false);
       });
     }).catch(function(error){
