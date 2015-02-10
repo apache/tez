@@ -170,7 +170,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
     numConfiguredSources++;
     int target = getContext().getInputVertexEdgeProperties().size();
-    LOG.info("For vertex: " + getContext().getVertexName() + "Received configured signal from: "
+    LOG.info("For vertex: " + getContext().getVertexName() + " Received configured signal from: "
         + stateUpdate.getVertexName() + " numConfiguredSources: " + numConfiguredSources
         + " needed: " + target);
     Preconditions.checkState(numConfiguredSources <= target, "Vertex: " + getContext().getVertexName());

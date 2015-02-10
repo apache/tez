@@ -47,6 +47,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -163,6 +165,9 @@ import org.codehaus.jettison.json.JSONException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * The Tez DAG Application Master.
@@ -254,6 +259,10 @@ public class DAGAppMaster extends AbstractService {
   private Path currentRecoveryDataDir;
   private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
+  
+  private ExecutorService rawExecutor;
+  private ListeningExecutorService execService;
+  
   /**
    * set of already executed dag names.
    */
@@ -482,6 +491,10 @@ public class DAGAppMaster extends AbstractService {
         }
       }
     }
+
+    rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setDaemon(true)
+        .setNameFormat("App Shared Pool - " + "#%d").build());
+    execService = MoreExecutors.listeningDecorator(rawExecutor);
 
     initServices(conf);
     super.serviceInit(conf);
@@ -1261,6 +1274,11 @@ public class DAGAppMaster extends AbstractService {
         rLock.unlock();
       }
     }
+    
+    @Override
+    public ListeningExecutorService getExecService() {
+      return execService;
+    }
 
     @Override
     public Set<String> getAllDAGIDs() {
@@ -1677,6 +1695,7 @@ public class DAGAppMaster extends AbstractService {
     if (this.dagSubmissionTimer != null) {
       this.dagSubmissionTimer.cancel();
     }
+        
     stopServices();
 
     // Given pre-emption, we should delete tez scratch dir only if unregister is
@@ -1707,6 +1726,8 @@ public class DAGAppMaster extends AbstractService {
         }
       }
     }
+
+    execService.shutdownNow();
 
     super.serviceStop();
   }

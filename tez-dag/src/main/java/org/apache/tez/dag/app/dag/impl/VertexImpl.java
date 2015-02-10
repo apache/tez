@@ -40,6 +40,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Strings;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
@@ -114,6 +115,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventInputDataInformation;
 import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
@@ -341,6 +343,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   VertexState.FAILED),
               VertexEventType.V_ROOT_INPUT_INITIALIZED,
               new RootInputInitializedTransition())
+          .addTransition(VertexState.INITIALIZING,
+              EnumSet.of(VertexState.INITIALIZING, VertexState.INITED,
+                  VertexState.FAILED),
+              VertexEventType.V_INPUT_DATA_INFORMATION,
+              new InputDataInformationTransition())
           .addTransition(VertexState.INITIALIZING,
               EnumSet.of(VertexState.INITED, VertexState.FAILED),
               VertexEventType.V_READY_TO_INIT,
@@ -861,7 +868,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public int getTotalTasks() {
-    return numTasks;
+    readLock.lock();
+    try {
+      return numTasks;
+    } finally {
+      readLock.unlock();
+    }
   }
 
   @Override
@@ -2175,7 +2187,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               .getVertexManagerPlugin());
       LOG.info("Setting user vertex manager plugin: "
           + pluginDesc.getClassName() + " on vertex: " + getLogIdentifier());
-      vertexManager = new VertexManager(pluginDesc, this, appContext, stateChangeNotifier);
+      vertexManager = new VertexManager(pluginDesc, dagUgi, this, appContext, stateChangeNotifier);
     } else {
       // Intended order of picking a vertex manager
       // If there is an InputInitializer then we use the RootInputVertexManager. May be fixed by TEZ-703
@@ -2188,26 +2200,26 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             + logIdentifier);
         vertexManager = new VertexManager(
             VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName()),
-            this, appContext, stateChangeNotifier);
+            dagUgi, this, appContext, stateChangeNotifier);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
             VertexManagerPluginDescriptor.create(InputReadyVertexManager.class.getName()),
-            this, appContext, stateChangeNotifier);
+            dagUgi, this, appContext, stateChangeNotifier);
       } else if (hasBipartite && !hasCustom) {
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
         // shuffle vertex manager needs a conf payload
         vertexManager = new VertexManager(ShuffleVertexManager.createConfigBuilder(conf).build(),
-            this, appContext, stateChangeNotifier);
+            dagUgi, this, appContext, stateChangeNotifier);
       } else {
         // schedule all tasks upon vertex start. Default behavior.
         LOG.info("Setting vertexManager to ImmediateStartVertexManager for "
             + logIdentifier);
         vertexManager = new VertexManager(
             VertexManagerPluginDescriptor.create(ImmediateStartVertexManager.class.getName()),
-            this, appContext, stateChangeNotifier);
+            dagUgi, this, appContext, stateChangeNotifier);
       }
     }
   }
@@ -3063,14 +3075,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       VertexState state = vertex.getState();
       if (state == VertexState.INITIALIZING) {
         try {
-          List<TezEvent> inputInfoEvents =
-              vertex.vertexManager.onRootVertexInitialized(
-              liInitEvent.getInputName(),
-              vertex.getAdditionalInputs().get(liInitEvent.getInputName())
-                  .getIODescriptor(), liInitEvent.getEvents());
-          if (inputInfoEvents != null && !inputInfoEvents.isEmpty()) {
-            VertexImpl.handleRoutedTezEvents(vertex, inputInfoEvents, false);
-          }
+          vertex.vertexManager.onRootVertexInitialized(liInitEvent.getInputName(), vertex
+              .getAdditionalInputs().get(liInitEvent.getInputName()).getIODescriptor(),
+              liInitEvent.getEvents());
         } catch (AMUserCodeException e) {
             String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
             LOG.error(msg, e);
@@ -3087,10 +3094,35 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.rootInputInitializerManager.shutdown();
         vertex.rootInputInitializerManager = null;
       }
+      
+      // the return of these events from the VM will complete initialization and move into 
+      // INITED state if possible via InputDataInformationTransition
+
+      return vertex.getState();
+    }
+  }
+
+  public static class InputDataInformationTransition implements
+      MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
+
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      VertexEventInputDataInformation iEvent = (VertexEventInputDataInformation) event;
+      List<TezEvent> inputInfoEvents = iEvent.getEvents();
+      try {
+        if (inputInfoEvents != null && !inputInfoEvents.isEmpty()) {
+          VertexImpl.handleRoutedTezEvents(vertex, inputInfoEvents, false);
+        }
+      } catch (AMUserCodeException e) {
+        String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
+        LOG.error(msg, e);
+        vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE, msg + ","
+            + ExceptionUtils.getStackTrace(e.getCause()));
+        return VertexState.FAILED;
+      }
 
       // done. check if we need to do the initialization
-      if (vertex.getState() == VertexState.INITIALIZING &&
-          vertex.initWaitsForRootInitializers) {
+      if (vertex.getState() == VertexState.INITIALIZING && vertex.initWaitsForRootInitializers) {
         if (vertex.numInitializedInputs == vertex.inputsWithInitializers.size()) {
           // set the wait flag to false if all initializers are done
           vertex.initWaitsForRootInitializers = false;
@@ -4021,7 +4053,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
     getAdditionalInputs() {
-    return this.rootInputDescriptors;
+    readLock.lock();
+    try {
+      return this.rootInputDescriptors;
+    } finally {
+      readLock.unlock();
+    }
   }
 
   @Nullable
@@ -4059,7 +4096,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public Map<Vertex, Edge> getInputVertices() {
-    return Collections.unmodifiableMap(this.sourceVertices);
+    readLock.lock();
+    try {
+      return Collections.unmodifiableMap(this.sourceVertices);
+    } finally {
+      readLock.unlock();
+    }
   }
 
   @Override
@@ -4092,7 +4134,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   public Resource getTaskResource() {
-    return taskResource;
+    readLock.lock();
+    try {
+      return taskResource;
+    } finally {
+      readLock.unlock();
+    }
   }
 
   @VisibleForTesting

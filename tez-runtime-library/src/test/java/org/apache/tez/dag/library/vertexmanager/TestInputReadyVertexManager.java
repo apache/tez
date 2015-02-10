@@ -243,12 +243,6 @@ public class TestInputReadyVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(3);
-    when(mockContext.getTaskContainer(mockSrcVertexId2, 0)).thenReturn(mockContainer2);
-    when(mockContext.getTaskContainer(mockSrcVertexId2, 1)).thenReturn(mockContainer2);
-    when(mockContext.getTaskContainer(mockSrcVertexId2, 2)).thenReturn(mockContainer2);
-    when(mockContext.getTaskContainer(mockSrcVertexId3, 0)).thenReturn(mockContainer3);
-    when(mockContext.getTaskContainer(mockSrcVertexId3, 1)).thenReturn(mockContainer3);
-    when(mockContext.getTaskContainer(mockSrcVertexId3, 2)).thenReturn(mockContainer3);
     mockInputVertices.put(mockSrcVertexId1, eProp1);
     mockInputVertices.put(mockSrcVertexId2, eProp2);
     mockInputVertices.put(mockSrcVertexId3, eProp3);

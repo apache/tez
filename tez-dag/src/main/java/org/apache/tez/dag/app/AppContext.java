@@ -37,6 +37,8 @@ import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+
 
 /**
  * Context interface for sharing information across components in Tez DAG
@@ -63,6 +65,8 @@ public interface AppContext {
   String getUser();
 
   DAG getCurrentDAG();
+  
+  ListeningExecutorService getExecService();
 
   void setDAG(DAG dag);
 

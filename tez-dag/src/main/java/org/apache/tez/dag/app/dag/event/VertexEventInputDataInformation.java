@@ -16,52 +16,25 @@
 * limitations under the License.
 */
 
+
 package org.apache.tez.dag.app.dag.event;
 
-/**
- * Event types handled by Vertex.
- */
-public enum VertexEventType {
+import java.util.List;
 
-  //Producer:Client, Job
-  V_TERMINATE,
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
-  //Producer:Job
-  V_INIT,
-  
-  //Producer:Vertex
-  V_COMPLETED,
-  V_START,
-  V_SOURCE_TASK_ATTEMPT_COMPLETED,
-  V_SOURCE_VERTEX_STARTED,
-  
-  //Producer:Task
-  V_TASK_COMPLETED,
-  V_TASK_RESCHEDULED,
-  V_TASK_ATTEMPT_COMPLETED,
-  
-  //Producer:Any component
-  V_INTERNAL_ERROR,
-  V_MANAGER_USER_CODE_ERROR,
-  
-  V_ROUTE_EVENT,
-  
-  //Producer: VertexInputInitializer
-  V_ROOT_INPUT_INITIALIZED,
-  V_ROOT_INPUT_FAILED,
-  
-  V_INPUT_DATA_INFORMATION,
+public class VertexEventInputDataInformation extends VertexEvent {
 
-  // Recover Event, Producer:DAG
-  V_RECOVER,
+  private final List<TezEvent> events;
   
-  // Producer: Vertex
-  V_READY_TO_INIT,
-
-  // Recover Event, Producer:Vertex
-  V_SOURCE_VERTEX_RECOVERED,
+  public VertexEventInputDataInformation(TezVertexID vertexId, List<TezEvent> events) {
+    super(vertexId, VertexEventType.V_INPUT_DATA_INFORMATION);
+    this.events = events;
+  }
   
-  // Producer: Edge
-  V_NULL_EDGE_INITIALIZED
+  public List<TezEvent> getEvents() {
+    return events;
+  }
 
 }

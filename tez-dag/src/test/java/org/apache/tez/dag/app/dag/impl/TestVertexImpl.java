@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -116,6 +117,8 @@ import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
+import org.apache.tez.dag.app.dag.event.CallableEvent;
+import org.apache.tez.dag.app.dag.event.CallableEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
@@ -176,10 +179,13 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.internal.util.collections.Sets;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -187,6 +193,7 @@ import org.mockito.stubbing.Answer;
 public class TestVertexImpl {
 
   private static final Log LOG = LogFactory.getLog(TestVertexImpl.class);
+  private ListeningExecutorService execService;
 
   private boolean useCustomInitializer = false;
   private InputInitializer customInitializer = null;
@@ -2119,6 +2126,7 @@ public class TestVertexImpl {
         anyInt());
   }
 
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   public void setupPostDagCreation() throws AMUserCodeException {
     String dagName = "dag0";
     dispatcher = new DrainDispatcher();
@@ -2138,6 +2146,19 @@ public class TestVertexImpl {
     doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     doReturn(appAttemptId.getApplicationId()).when(appContext).getApplicationID();
     doReturn(dag).when(appContext).getCurrentDAG();
+    execService = mock(ListeningExecutorService.class);
+    final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
+    
+    Mockito.doAnswer(new Answer() {
+      public ListenableFuture<Void> answer(InvocationOnMock invocation) {
+          Object[] args = invocation.getArguments();
+          CallableEvent e = (CallableEvent) args[0];
+          dispatcher.getEventHandler().handle(e);
+          return mockFuture;
+      }})
+    .when(execService).submit((Callable<Void>) any());
+    
+    doReturn(execService).when(appContext).getExecService();
     doReturn(conf).when(appContext).getAMConf();
     doReturn(new Credentials()).when(dag).getCredentials();
     doReturn(DAGPlan.getDefaultInstance()).when(dag).getJobPlan();
@@ -2191,6 +2212,7 @@ public class TestVertexImpl {
       edge.initialize();
     }
 
+    dispatcher.register(CallableEventType.class, new CallableEventDispatcher());
     taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
     dispatcher.register(TaskAttemptEventType.class, taskAttemptEventDispatcher);
     taskEventDispatcher = new TaskEventDispatcher();
@@ -2224,6 +2246,7 @@ public class TestVertexImpl {
       dispatcher.await();
       dispatcher.stop();
     }
+    execService.shutdownNow();
     dispatcher = null;
     vertexEventDispatcher = null;
     dagEventDispatcher = null;
@@ -2246,7 +2269,6 @@ public class TestVertexImpl {
       Assert.assertEquals(expectedState, v.getState());
     }
   }
-
 
   @SuppressWarnings("unchecked")
   private void initVertex(VertexImpl v) {
@@ -2382,6 +2404,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v2.getState());
     Assert.assertEquals(0, listener.events.size()); // configured event not sent
     startVertex(v1, true);
+    dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v2.getState());
     Assert.assertEquals(1, listener.events.size()); // configured event sent after VM
     Assert.assertEquals("vertex2", listener.events.get(0).getVertexName());
@@ -2821,12 +2844,13 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexTaskAttemptProcessorFailure() {
+  public void testVertexTaskAttemptProcessorFailure() throws Exception {
     initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex1");
 
     startVertex(v);
+    dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
     ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
     
@@ -2856,12 +2880,13 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexTaskAttemptInputFailure() {
+  public void testVertexTaskAttemptInputFailure() throws Exception {
     initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex1");
 
     startVertex(v);
+    dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
     ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
     
@@ -2892,12 +2917,13 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexTaskAttemptOutputFailure() {
+  public void testVertexTaskAttemptOutputFailure() throws Exception {
     initAllVertices(VertexState.INITED);
 
     VertexImpl v = vertices.get("vertex1");
 
     startVertex(v);
+    dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
     ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
     
@@ -3355,7 +3381,7 @@ public class TestVertexImpl {
 
 
   @Test(timeout = 5000)
-  public void testVertexWithOneToOneSplit() throws AMUserCodeException {
+  public void testVertexWithOneToOneSplit() throws Exception {
     // create a diamond shaped dag with 1-1 edges. 
     // split the source and remaining vertices should split equally
     // vertex with 2 incoming splits from the same source should split once
@@ -3386,7 +3412,7 @@ public class TestVertexImpl {
     RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
     List<TaskLocationHint> v1Hints = createTaskLocationHints(numTasks);
     initializerManager1.completeInputInitialization(0, numTasks, v1Hints);
-
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(numTasks, v1.getTotalTasks());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v1
@@ -3437,10 +3463,10 @@ public class TestVertexImpl {
     // fudge vertex manager so that tasks dont start running
     v1.vertexManager = new VertexManager(
         VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
-        v1, appContext, mock(StateChangeNotifier.class));
+        UserGroupInformation.getCurrentUser(), v1, appContext, mock(StateChangeNotifier.class));
     v1.vertexManager.initialize();
     startVertex(v1);
-    
+    dispatcher.await();
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
     Assert.assertEquals(numTasks, vertices.get("vertex3").getTotalTasks());
     Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
@@ -3476,7 +3502,7 @@ public class TestVertexImpl {
     // fudge vertex manager so that tasks dont start running
     v1.vertexManager = new VertexManager(
         VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
-        v1, appContext, mock(StateChangeNotifier.class));
+        UserGroupInformation.getCurrentUser(), v1, appContext, mock(StateChangeNotifier.class));
     v1.vertexManager.initialize();
     
     Assert.assertEquals(numTasks, vertices.get("vertex2").getTotalTasks());
@@ -3519,7 +3545,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexWithInitializerFailure() throws AMUserCodeException {
+  public void testVertexWithInitializerFailure() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -3548,7 +3574,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
     RootInputInitializerManagerControlled initializerManager2 = v2.getRootInputInitializerManager();
     initializerManager2.failInputInitialization();
-    
+    dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     Assert.assertEquals(RootInputVertexManager.class.getName(), v2
         .getVertexManager().getPlugin().getClass().getName());
@@ -4400,7 +4426,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexWithMultipleInitializers1() throws AMUserCodeException {
+  public void testVertexWithMultipleInitializers1() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
@@ -4419,15 +4445,17 @@ public class TestVertexImpl {
 
     // Complete initializer which sets parallelism first
     initializerManager1.completeInputInitialization(0, 5, v1Hints);
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
 
     // Complete second initializer
     initializerManager1.completeInputInitialization(1);
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
   }
 
   @Test(timeout = 5000)
-  public void testVertexWithMultipleInitializers2() throws AMUserCodeException {
+  public void testVertexWithMultipleInitializers2() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
@@ -4446,16 +4474,18 @@ public class TestVertexImpl {
 
     // Complete initializer which does not set parallelism
     initializerManager1.completeInputInitialization(1);
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
 
     // Complete second initializer which sets parallelism
     initializerManager1.completeInputInitialization(0, 5, v1Hints);
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
   }
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 500000)
-  public void testVertexWithInitializerSuccess() throws AMUserCodeException {
+  public void testVertexWithInitializerSuccess() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -4470,7 +4500,7 @@ public class TestVertexImpl {
     RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
     List<TaskLocationHint> v1Hints = createTaskLocationHints(5);
     initializerManager1.completeInputInitialization(0, 5, v1Hints);
-
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
     Assert.assertEquals(5, v1.getTotalTasks());
     // task events get buffered
@@ -4510,7 +4540,7 @@ public class TestVertexImpl {
     RootInputInitializerManagerControlled initializerManager2 = v2.getRootInputInitializerManager();
     List<TaskLocationHint> v2Hints = createTaskLocationHints(10);
     initializerManager2.completeInputInitialization(0, 10, v2Hints);
-    
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v2.getState());
     Assert.assertEquals(10, v2.getTotalTasks());
     // task events get buffered
@@ -4530,7 +4560,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexWithInputDistributor() throws AMUserCodeException {
+  public void testVertexWithInputDistributor() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputDistributor("TestInputInitializer");
@@ -4547,6 +4577,7 @@ public class TestVertexImpl {
     RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
     byte[] payload = new byte[0];
     initializerManager1.completeInputDistribution(payload);
+    dispatcher.await();
     // edge is still null so its initializing
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     Assert.assertEquals(true, initializerManager1.hasShutDown);
@@ -4565,7 +4596,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexRootInputSpecUpdateAll() throws AMUserCodeException {
+  public void testVertexRootInputSpecUpdateAll() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -4580,7 +4611,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
     RootInputInitializerManagerControlled initializerManager1 = v3.getRootInputInitializerManager();
     initializerManager1.completeInputInitialization();
-
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v3.getState());
     Assert.assertEquals(expectedNumTasks, v3.getTotalTasks());
     Assert.assertEquals(RootInputSpecUpdaterVertexManager.class.getName(), v3.getVertexManager()
@@ -4596,7 +4627,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testVertexRootInputSpecUpdatePerTask() throws AMUserCodeException {
+  public void testVertexRootInputSpecUpdatePerTask() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
@@ -4611,7 +4642,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, v4.getState());
     RootInputInitializerManagerControlled initializerManager1 = v4.getRootInputInitializerManager();
     initializerManager1.completeInputInitialization();
-
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v4.getState());
     Assert.assertEquals(expectedNumTasks, v4.getTotalTasks());
     Assert.assertEquals(RootInputSpecUpdaterVertexManager.class.getName(), v4.getVertexManager()
@@ -4969,7 +5000,7 @@ public class TestVertexImpl {
     // fudge the vm so we can do custom stuff
     vB.vertexManager = new VertexManager(
         VertexManagerPluginDescriptor.create(VertexManagerPluginForTest.class.getName()),
-        vB, appContext, mock(StateChangeNotifier.class));
+        UserGroupInformation.getCurrentUser(), vB, appContext, mock(StateChangeNotifier.class));
     
     vB.vertexReconfigurationPlanned();
     
@@ -5093,7 +5124,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnRootVertexInitialized() throws AMUserCodeException {
+  public void testExceptionFromVM_OnRootVertexInitialized() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnRootVertexInitialized);
@@ -5118,7 +5149,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnVertexStarted() throws AMUserCodeException {
+  public void testExceptionFromVM_OnVertexStarted() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnVertexStarted);
@@ -5136,7 +5167,7 @@ public class TestVertexImpl {
     dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(),
         VertexEventType.V_START));
     dispatcher.await();
-
+    
     Assert.assertEquals(VertexManagerWithException.class, v1.vertexManager.getPlugin().getClass());
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     String diagnostics = StringUtils.join(v1.getDiagnostics(), ",");
@@ -5146,7 +5177,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnSourceTaskCompleted() throws AMUserCodeException {
+  public void testExceptionFromVM_OnSourceTaskCompleted() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnSourceTaskCompleted);
@@ -5183,7 +5214,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnVertexManagerEventReceived() throws AMUserCodeException {
+  public void testExceptionFromVM_OnVertexManagerEventReceived() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnVertexManagerEventReceived);
@@ -5210,7 +5241,7 @@ public class TestVertexImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromVM_OnVertexManagerVertexStateUpdated() throws AMUserCodeException {
+  public void testExceptionFromVM_OnVertexManagerVertexStateUpdated() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestVMStateUpdate", VMExceptionLocation.OnVertexManagerVertexStateUpdated);
@@ -5228,7 +5259,7 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v2.getState());
     startVertex(v1, false);
-
+    dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
     assertTrue(diagnostics.contains(VMExceptionLocation.OnVertexManagerVertexStateUpdated.name()));
@@ -5261,7 +5292,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromII_InitFailedAfterInitialized() throws AMUserCodeException {
+  public void testExceptionFromII_InitFailedAfterInitialized() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
@@ -5272,6 +5303,7 @@ public class TestVertexImpl {
     initVertex(v1);
     RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
     initializerManager1.completeInputInitialization(0);
+    dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
     String errorMsg = "ErrorWhenInitFailureAtInited";
     dispatcher.getEventHandler().handle(new VertexEventRootInputFailed(v1.getVertexId(), "input1",
@@ -5285,7 +5317,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromII_InitFailedAfterRunning() throws AMUserCodeException {
+  public void testExceptionFromII_InitFailedAfterRunning() throws Exception {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
@@ -5296,6 +5328,7 @@ public class TestVertexImpl {
     initVertex(v1);
     RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
     initializerManager1.completeInputInitialization(0);
+    dispatcher.await();
     startVertex(v1);
     Assert.assertEquals(VertexState.RUNNING, v1.getState());
     String errorMsg = "ErrorWhenInitFailureAtRunning";
@@ -5310,7 +5343,7 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testExceptionFromII_HandleInputInitializerEvent() throws AMUserCodeException, InterruptedException {
+  public void testExceptionFromII_HandleInputInitializerEvent() throws Exception {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.HandleInputInitializerEvent);
     EventHandlingRootInputInitializer initializer =
@@ -5351,7 +5384,7 @@ public class TestVertexImpl {
     dispatcher.getEventHandler()
         .handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezEvent)));
     dispatcher.await();
-
+    
     // it would cause v2 fail as its II throw exception in handleInputInitializerEvent
     String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
     assertTrue(diagnostics.contains(IIExceptionLocation.HandleInputInitializerEvent.name()));

@@ -252,15 +252,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
         EnumSet.of(
             TaskEventType.T_TERMINATE,
+            TaskEventType.T_SCHEDULE,
             TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // Transitions from KILLED state
     .addTransition(TaskStateInternal.KILLED, TaskStateInternal.KILLED,
         EnumSet.of(
             TaskEventType.T_TERMINATE,
+            TaskEventType.T_SCHEDULE,
             TaskEventType.T_ADD_SPEC_ATTEMPT))
-    .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
-        TaskEventType.T_SCHEDULE)
 
     // create the topology tables
     .installTopology();

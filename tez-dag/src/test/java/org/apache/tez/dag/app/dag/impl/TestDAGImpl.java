@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -26,9 +27,10 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -37,6 +39,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -58,7 +61,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -85,6 +87,8 @@ import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
+import org.apache.tez.dag.app.dag.event.CallableEvent;
+import org.apache.tez.dag.app.dag.event.CallableEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -125,8 +129,13 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.protobuf.ByteString;
 
 public class TestDAGImpl {
@@ -136,6 +145,7 @@ public class TestDAGImpl {
   private TezDAGID dagId;
   private static Configuration conf;
   private DrainDispatcher dispatcher;
+  private ListeningExecutorService execService;
   private Credentials fsTokens;
   private AppContext appContext;
   private ACLManager aclManager;
@@ -724,6 +734,7 @@ public class TestDAGImpl {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Before
   public void setup() {
     conf = new Configuration();
@@ -736,6 +747,19 @@ public class TestDAGImpl {
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
+    execService = mock(ListeningExecutorService.class);
+    final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
+    
+    Mockito.doAnswer(new Answer() {
+      public ListenableFuture<Void> answer(InvocationOnMock invocation) {
+          Object[] args = invocation.getArguments();
+          CallableEvent e = (CallableEvent) args[0];
+          dispatcher.getEventHandler().handle(e);
+          return mockFuture;
+      }})
+    .when(execService).submit((Callable<Void>) any());
+    
+    doReturn(execService).when(appContext).getExecService();
     historyEventHandler = mock(HistoryEventHandler.class);
     aclManager = new ACLManager("amUser");
     doReturn(conf).when(appContext).getAMConf();
@@ -750,6 +774,7 @@ public class TestDAGImpl {
     doReturn(dag).when(appContext).getCurrentDAG();
     mrrAppContext = mock(AppContext.class);
     doReturn(aclManager).when(mrrAppContext).getAMACLManager();
+    doReturn(execService).when(mrrAppContext).getExecService();
     mrrDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 2);
     mrrDagPlan = createTestMRRDAGPlan();
     mrrDag = new DAGImpl(mrrDagId, conf, mrrDagPlan,
@@ -763,6 +788,7 @@ public class TestDAGImpl {
     doReturn(historyEventHandler).when(mrrAppContext).getHistoryHandler();
     groupAppContext = mock(AppContext.class);
     doReturn(aclManager).when(groupAppContext).getAMACLManager();
+    doReturn(execService).when(groupAppContext).getExecService();
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
     groupDagPlan = createGroupDAGPlan();
     groupDag = new DAGImpl(groupDagId, conf, groupDagPlan,
@@ -778,6 +804,7 @@ public class TestDAGImpl {
 
     // reset totalCommitCounter to 0
     TotalCountingOutputCommitter.totalCommitCounter = 0;
+    dispatcher.register(CallableEventType.class, new CallableEventDispatcher());
     taskEventDispatcher = new TaskEventDispatcher();
     dispatcher.register(TaskEventType.class, taskEventDispatcher);
     taskAttemptEventDispatcher = new TaskAttemptEventDispatcher();
@@ -797,6 +824,7 @@ public class TestDAGImpl {
   public void teardown() {
     dispatcher.await();
     dispatcher.stop();
+    execService.shutdownNow();
     dagPlan = null;
     dag = null;
   }
@@ -817,6 +845,7 @@ public class TestDAGImpl {
         dispatcher.getEventHandler(),  taskAttemptListener,
         fsTokens, clock, "user", thh, dagWithCustomEdgeAppContext);
     doReturn(conf).when(dagWithCustomEdgeAppContext).getAMConf();
+    doReturn(execService).when(dagWithCustomEdgeAppContext).getExecService();
     doReturn(dagWithCustomEdge).when(dagWithCustomEdgeAppContext).getCurrentDAG();
     doReturn(appAttemptId).when(dagWithCustomEdgeAppContext).getApplicationAttemptId();
     doReturn(appAttemptId.getApplicationId()).when(dagWithCustomEdgeAppContext).getApplicationID();
@@ -838,7 +867,7 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, impl.getState());
   }
-
+  
   @Test(timeout = 5000)
   public void testDAGInit() {
     initDAG(dag);

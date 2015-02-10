@@ -23,6 +23,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
@@ -31,7 +33,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -39,38 +44,73 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.CallableEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventInputDataInformation;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class TestVertexManager {
-
-  @Test(timeout = 5000)
-  public void testOnRootVertexInitialized() throws Exception {
-    Vertex mockVertex = mock(Vertex.class, RETURNS_DEEP_STUBS);
-    AppContext mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+  AppContext mockAppContext;
+  ListeningExecutorService execService;
+  Vertex mockVertex;
+  EventHandler mockHandler;
+  ArgumentCaptor<VertexEventInputDataInformation> requestCaptor;
+  
+  @Before
+  public void setup() {
+    mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    execService = mock(ListeningExecutorService.class);
+    final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
+    Mockito.doAnswer(new Answer() {
+      public ListenableFuture<Void> answer(InvocationOnMock invocation) {
+          Object[] args = invocation.getArguments();
+          CallableEvent e = (CallableEvent) args[0];
+          new CallableEventDispatcher().handle(e);
+          return mockFuture;
+      }})
+    .when(execService).submit((Callable<Void>) any());
+    doReturn(execService).when(mockAppContext).getExecService();
+    mockVertex = mock(Vertex.class, RETURNS_DEEP_STUBS);
     doReturn("vertex1").when(mockVertex).getName();
+    mockHandler = mock(EventHandler.class);
+    when(mockAppContext.getEventHandler()).thenReturn(mockHandler);
     when(
         mockAppContext.getCurrentDAG().getVertex(any(String.class))
             .getTotalTasks()).thenReturn(1);
+    requestCaptor = ArgumentCaptor.forClass(VertexEventInputDataInformation.class);
 
+  }
+  
+  @Test(timeout = 5000)
+  public void testOnRootVertexInitialized() throws Exception {
     VertexManager vm =
         new VertexManager(
             VertexManagerPluginDescriptor.create(RootInputVertexManager.class
-                .getName()), mockVertex, mockAppContext, mock(StateChangeNotifier.class));
+                .getName()), UserGroupInformation.getCurrentUser(), 
+                mockVertex, mockAppContext, mock(StateChangeNotifier.class));
     vm.initialize();
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
     InputDataInformationEvent diEvent1 =
         InputDataInformationEvent.createWithSerializedPayload(0, null);
     events1.add(diEvent1);
-    List<TezEvent> tezEvents1 =
-        vm.onRootVertexInitialized("input1", id1, events1);
+    vm.onRootVertexInitialized("input1", id1, events1);
+    verify(mockHandler, times(1)).handle(requestCaptor.capture());
+    List<TezEvent> tezEvents1 = requestCaptor.getValue().getEvents();
     assertEquals(1, tezEvents1.size());
     assertEquals(diEvent1, tezEvents1.get(0).getEvent());
 
@@ -79,8 +119,9 @@ public class TestVertexManager {
     InputDataInformationEvent diEvent2 =
         InputDataInformationEvent.createWithSerializedPayload(0, null);
     events2.add(diEvent2);
-    List<TezEvent> tezEvents2 =
-        vm.onRootVertexInitialized("input1", id2, events2);
+    vm.onRootVertexInitialized("input1", id2, events2);
+    verify(mockHandler, times(2)).handle(requestCaptor.capture());
+    List<TezEvent> tezEvents2 = requestCaptor.getValue().getEvents();
     assertEquals(tezEvents2.size(), 1);
     assertEquals(diEvent2, tezEvents2.get(0).getEvent());
   }
@@ -92,17 +133,11 @@ public class TestVertexManager {
    */
   @Test(timeout = 5000)
   public void testOnRootVertexInitialized2() throws Exception {
-    Vertex mockVertex = mock(Vertex.class, RETURNS_DEEP_STUBS);
-    AppContext mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
-    doReturn("vertex1").when(mockVertex).getName();
-    when(
-        mockAppContext.getCurrentDAG().getVertex(any(String.class))
-            .getTotalTasks()).thenReturn(1);
-
     VertexManager vm =
         new VertexManager(
             VertexManagerPluginDescriptor.create(CustomVertexManager.class
-                .getName()), mockVertex, mockAppContext, mock(StateChangeNotifier.class));
+                .getName()), UserGroupInformation.getCurrentUser(),
+                mockVertex, mockAppContext, mock(StateChangeNotifier.class));
     vm.initialize();
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
@@ -111,17 +146,20 @@ public class TestVertexManager {
     events1.add(diEvent1);
 
     // do not call context.addRootInputEvents, just cache the TezEvent
-    List<TezEvent> tezEventsAfterInput1 = vm.onRootVertexInitialized("input1", id1, events1);
+    vm.onRootVertexInitialized("input1", id1, events1);
+    verify(mockHandler, times(1)).handle(requestCaptor.capture());
+    List<TezEvent> tezEventsAfterInput1 = requestCaptor.getValue().getEvents();
     assertEquals(0, tezEventsAfterInput1.size());
-
+    
     InputDescriptor id2 = mock(InputDescriptor.class);
     List<Event> events2 = new LinkedList<Event>();
     InputDataInformationEvent diEvent2 =
         InputDataInformationEvent.createWithSerializedPayload(0, null);
     events2.add(diEvent2);
     // call context.addRootInputEvents(input1), context.addRootInputEvents(input2)
-    List<TezEvent> tezEventsAfterInput2 =
-        vm.onRootVertexInitialized("input2", id2, events2);
+    vm.onRootVertexInitialized("input2", id2, events2);
+    verify(mockHandler, times(2)).handle(requestCaptor.capture());
+    List<TezEvent> tezEventsAfterInput2 = requestCaptor.getValue().getEvents();
     assertEquals(2, tezEventsAfterInput2.size());
 
     // also verify the EventMetaData

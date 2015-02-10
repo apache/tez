@@ -29,7 +29,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.hadoop.yarn.event.Dispatcher;
@@ -87,7 +86,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     this.eventDispatchers = Maps.newHashMap();
   }
 
-  Runnable createThread() {
+  public Runnable createThread() {
     return new Runnable() {
       @Override
       public void run() {
@@ -122,6 +121,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // TODO TEZ-2049 remove YARN reference
     this.exitOnDispatchException =
         conf.getBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY,
           Dispatcher.DEFAULT_DISPATCHER_EXIT_ON_ERROR);
