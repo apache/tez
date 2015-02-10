@@ -57,6 +57,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2062. Tez UI: Showing 50 elements not working properly.
   TEZ-2056. Tez UI: fix VertexID filter,show only tez configs by default,fix appattemptid.
   TEZ-2052. Tez UI: log view fixes, show version from build, better handling of ats url config.
   TEZ-2043. Tez UI: add progress info from am webservice to dag and vertex views.

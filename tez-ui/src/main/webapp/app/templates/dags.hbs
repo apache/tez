@@ -20,10 +20,6 @@
   <li class="active">All Dags</li>
 </ul>
 
-{{#unless loading}}
-  {{partial 'partials/table-controls'}}
-  </div>
-  {{partial 'partials/table'}}
-{{else}}
-  {{partial 'partials/loading-spinner'}}
-{{/unless}}
+<div class='margin-small-vertical'>
+  {{partial 'common/table-with-spinner'}}
+</div>

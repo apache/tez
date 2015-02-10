@@ -207,7 +207,7 @@ App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
     return Ember.run.next(this, function() {
       return Ember.run.once(this, this.updateLayout);
     });
-  }, 'columns.length'),
+  }, 'columns.length', '_tableContentHeight'),
 
   _filterHeight: function() {
     var minHeight = this.get('minFilterHeight');
@@ -226,11 +226,7 @@ App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
     height = this.get('_height');
     contentHeight = this.get('_tableContentHeight') + this.get('_headerHeight') + this.get('_footerHeight') 
     	+ this.get('_filterHeight');
-    if (contentHeight < height) {
-      return contentHeight;
-    } else {
-      return height;
-    }
+    return height && contentHeight;
   }.property('_height', '_tableContentHeight', '_headerHeight', '_footerHeight', '_filterHeight'),
 
   _bodyHeight: function() {
