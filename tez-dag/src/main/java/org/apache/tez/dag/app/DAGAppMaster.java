@@ -766,15 +766,6 @@ public class DAGAppMaster extends AbstractService {
           dagCounter.incrementAndGet());
     }
 
-    Iterator<PlanKeyValuePair> iter =
-        dagPB.getDagKeyValues().getConfKeyValuesList().iterator();
-    Configuration dagConf = new Configuration(amConf);
-
-    while (iter.hasNext()) {
-      PlanKeyValuePair keyValPair = iter.next();
-      dagConf.set(keyValPair.getKey(), keyValPair.getValue());
-    }
-
     Credentials dagCredentials = null;
     if (dagPB.hasCredentialsBinary()) {
       dagCredentials = DagTypeConverters.convertByteStringToCredentials(dagPB
@@ -788,7 +779,7 @@ public class DAGAppMaster extends AbstractService {
 
     // create single dag
     DAGImpl newDag =
-        new DAGImpl(dagId, dagConf, dagPB, dispatcher.getEventHandler(),
+        new DAGImpl(dagId, amConf, dagPB, dispatcher.getEventHandler(),
             taskAttemptListener, dagCredentials, clock,
             appMasterUgi.getShortUserName(),
             taskHeartbeatHandler, context);

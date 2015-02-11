@@ -88,6 +88,7 @@ public class DAG {
   private DAGAccessControls dagAccessControls;
   Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
   String dagInfo;
+  private Map<String,String> dagConf = new HashMap<String, String>();
 
   private Stack<String> topologicalVertexStack = new Stack<String>();
 
@@ -322,7 +323,13 @@ public class DAG {
   public String getName() {
     return this.name;
   }
-  
+
+  public DAG setConf(String property, String value) {
+    TezConfiguration.validateProperty(property, Scope.DAG);
+    dagConf.put(property, value);
+    return this;
+  }
+
   @Private
   public Map<String, LocalResource> getTaskLocalFiles() {
     return commonTaskLocalFiles;
@@ -657,22 +664,21 @@ public class DAG {
   }
 
   // create protobuf message describing DAG
-  public DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
+  public DAGPlan createDag(Configuration tezConf, Credentials extraCredentials,
                            Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
                            boolean tezLrsAsArchive) {
-    return createDag(dagConf, extraCredentials, tezJarResources, binaryConfig, tezLrsAsArchive,
+    return createDag(tezConf, extraCredentials, tezJarResources, binaryConfig, tezLrsAsArchive,
         null);
   }
 
   // create protobuf message describing DAG
   @Private
-  public synchronized DAGPlan createDag(Configuration dagConf, Credentials extraCredentials,
+  public synchronized DAGPlan createDag(Configuration tezConf, Credentials extraCredentials,
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
       boolean tezLrsAsArchive, Map<String, String> additionalConfigs) {
     verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
-
     dagBuilder.setName(this.name);
     if (this.dagInfo != null && !this.dagInfo.isEmpty()) {
       dagBuilder.setDagInfo(this.dagInfo);
@@ -715,9 +721,9 @@ public class DAG {
       // infer credentials, resources and parallelism from data source
       Resource vertexTaskResource = vertex.getTaskResource();
       if (vertexTaskResource == null) {
-        vertexTaskResource = Resource.newInstance(dagConf.getInt(
+        vertexTaskResource = Resource.newInstance(tezConf.getInt(
             TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB,
-            TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT), dagConf.getInt(
+            TezConfiguration.TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT), tezConf.getInt(
             TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
             TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT));
       }
@@ -782,13 +788,24 @@ public class DAG {
         }
       }
 
+      if (vertex.getConf()!= null && vertex.getConf().size() > 0) {
+        ConfigurationProto.Builder confBuilder = ConfigurationProto.newBuilder();
+        for (Map.Entry<String, String> entry : vertex.getConf().entrySet()) {
+          PlanKeyValuePair.Builder keyValueBuilder = PlanKeyValuePair.newBuilder();
+          keyValueBuilder.setKey(entry.getKey());
+          keyValueBuilder.setValue(entry.getValue());
+          confBuilder.addConfKeyValues(keyValueBuilder);
+        }
+        vertexBuilder.setVertexConf(confBuilder);
+      }
+
       //task config
       PlanTaskConfiguration.Builder taskConfigBuilder = PlanTaskConfiguration.newBuilder();
       taskConfigBuilder.setNumTasks(vertexParallelism);
       taskConfigBuilder.setMemoryMb(vertexTaskResource.getMemory());
       taskConfigBuilder.setVirtualCores(vertexTaskResource.getVirtualCores());
       taskConfigBuilder.setJavaOpts(
-          TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), dagConf));
+          TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), tezConf));
 
       taskConfigBuilder.setTaskModule(vertex.getName());
       if (!vertexLRs.isEmpty()) {
@@ -796,7 +813,7 @@ public class DAG {
       }
 
       Map<String, String> taskEnv = Maps.newHashMap(vertex.getTaskEnvironment());
-      TezYARNUtils.setupDefaultEnv(taskEnv, dagConf,
+      TezYARNUtils.setupDefaultEnv(taskEnv, tezConf,
           TezConfiguration.TEZ_TASK_LAUNCH_ENV,
           TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
       for (Map.Entry<String, String> entry : taskEnv.entrySet()) {
@@ -866,16 +883,6 @@ public class DAG {
 
     ConfigurationProto.Builder confProtoBuilder =
         ConfigurationProto.newBuilder();
-    if (dagConf != null) {
-      Iterator<Entry<String, String>> iter = dagConf.iterator();
-      while (iter.hasNext()) {
-        Entry<String, String> entry = iter.next();
-        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-        kvp.setKey(entry.getKey());
-        kvp.setValue(entry.getValue());
-        confProtoBuilder.addConfKeyValues(kvp);
-      }
-    }
     if (dagAccessControls != null) {
       Configuration aclConf = new Configuration(false);
       dagAccessControls.serializeToConfiguration(aclConf);
@@ -885,6 +892,7 @@ public class DAG {
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
         kvp.setKey(entry.getKey());
         kvp.setValue(entry.getValue());
+        TezConfiguration.validateProperty(entry.getKey(), Scope.DAG);
         confProtoBuilder.addConfKeyValues(kvp);
       }
     }
@@ -893,11 +901,19 @@ public class DAG {
         PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
         kvp.setKey(entry.getKey());
         kvp.setValue(entry.getValue());
+        TezConfiguration.validateProperty(entry.getKey(), Scope.DAG);
         confProtoBuilder.addConfKeyValues(kvp);
       }
     }
-    dagBuilder.setDagKeyValues(confProtoBuilder); // This does not seem to be used anywhere
-    // should this replace BINARY_PB_CONF???
+    if (this.dagConf != null && !this.dagConf.isEmpty()) {
+      for (Entry<String, String> entry : this.dagConf.entrySet()) {
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(entry.getKey());
+        kvp.setValue(entry.getValue());
+        confProtoBuilder.addConfKeyValues(kvp);
+      }
+    }
+    dagBuilder.setDagConf(confProtoBuilder);
 
     if (dagCredentials != null) {
       dagBuilder.setCredentialsBinary(DagTypeConverters.convertCredentialsToProto(dagCredentials));

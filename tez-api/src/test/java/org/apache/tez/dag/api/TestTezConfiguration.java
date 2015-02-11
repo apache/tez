@@ -18,6 +18,14 @@
 
 package org.apache.tez.dag.api;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
@@ -44,4 +52,28 @@ public class TestTezConfiguration {
     Assert.assertNull(tezConf5.get(TezConfiguration.TEZ_LIB_URIS));
   }
 
+  @Test(timeout = 5000)
+  public void testKeySet() throws IllegalAccessException {
+    Class<?> c = TezConfiguration.class;
+    Set<String> expectedKeys = new HashSet<String>();
+    for (Field f : c.getFields()) {
+      if (!f.getName().endsWith("DEFAULT") && f.getType() == String.class) {
+        String value = (String)f.get(null);
+        // not prefix
+        if (!value.endsWith(".")) {
+          expectedKeys.add((String) f.get(null));
+          Assert.assertNotNull("field " + f.getName() + " do not have annotation of ConfigurationScope.",
+              f.getAnnotation(ConfigurationScope.class));
+        }
+      }
+    }
+
+    Set<String> actualKeySet = TezConfiguration.getPropertySet();
+    for (String key : actualKeySet) {
+      if (!expectedKeys.remove(key)) {
+        fail("Found unexpected key: " + key + " in key set");
+      }
+    }
+    assertTrue("Missing keys in key set: " + expectedKeys, expectedKeys.size() == 0);
+  }
 }

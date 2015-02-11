@@ -136,4 +136,54 @@ public class TestDAG {
       Assert.assertTrue(e.getMessage().contains("already defined"));
     }
   }
+
+  @Test(timeout = 5000)
+  public void testDAGConf() {
+    DAG dag = DAG.create("dag1");
+    // it's OK to set custom configuration
+    dag.setConf("unknown_conf", "value");
+
+    // set invalid AM level configuration
+    try {
+      dag.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true+"");
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertEquals("tez.am.mode.session is set at the scope of DAG,"
+          + " but it is only valid in the scope of AM",
+          e.getMessage());
+    }
+    // set valid DAG level configuration
+    dag.setConf(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false + "");
+    // set valid Vertex level configuration
+    dag.setConf(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 3 + "");
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexConf() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
+    // it's OK to set custom property
+    v1.setConf("unknown_conf", "value");
+
+    // set invalid AM level configuration
+    try {
+      v1.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true+"");
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertEquals("tez.am.mode.session is set at the scope of VERTEX,"
+          + " but it is only valid in the scope of AM",
+          e.getMessage());
+    }
+
+    // set invalid DAG level configuration
+    try {
+      v1.setConf(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false + "");
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertEquals("tez.am.commit-all-outputs-on-dag-success is set at the scope of VERTEX,"
+          + " but it is only valid in the scope of DAG",
+          e.getMessage());
+    }
+    // set valid Vertex level configuration
+    v1.setConf(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 3 + "");
+  }
 }

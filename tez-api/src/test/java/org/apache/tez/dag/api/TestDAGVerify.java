@@ -1044,7 +1044,7 @@ public class TestDAGVerify {
     Assert.assertNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
     Assert.assertNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
-    ConfigurationProto confProto = dagPlan.getDagKeyValues();
+    ConfigurationProto confProto = dagPlan.getDagConf();
     boolean foundViewAcls = false;
     boolean foundModifyAcls = false;
 

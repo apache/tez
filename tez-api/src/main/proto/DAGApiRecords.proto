@@ -138,6 +138,7 @@ message VertexPlan {
   repeated RootInputLeafOutputProto inputs = 8;
   repeated RootInputLeafOutputProto outputs = 9;
   optional TezEntityDescriptorProto vertex_manager_plugin = 10;
+  optional ConfigurationProto vertexConf = 11;
 }
 
 message EdgePlan {
@@ -160,7 +161,7 @@ message DAGPlan {
   required string name = 1;
   repeated VertexPlan vertex = 2;
   repeated EdgePlan edge = 3;
-  optional ConfigurationProto dagKeyValues = 4;
+  optional ConfigurationProto dagConf = 4;
   optional bytes credentials_binary = 5;
   repeated PlanVertexGroupInfo vertex_groups = 6;
   repeated PlanLocalResource local_resource = 7;

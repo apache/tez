@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -151,4 +152,5 @@ public interface Vertex extends Comparable<Vertex> {
 
   public int getKilledTaskAttemptCount();
 
+  public Configuration getConf();
 }

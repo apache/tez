@@ -59,6 +59,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.Scope;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -71,6 +72,7 @@ import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -172,7 +174,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   TezCounters fullCounters = null;
   private Set<TezVertexID> reRunningVertices = new HashSet<TezVertexID>();
 
-  public final Configuration conf;
+  public final Configuration dagConf;
   private final DAGPlan jobPlan;
   
   Map<String, LocalResource> localResources;
@@ -407,7 +409,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   public DAGImpl(TezDAGID dagId,
-      Configuration conf,
+      Configuration amConf,
       DAGPlan jobPlan,
       EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener,
@@ -418,9 +420,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       AppContext appContext) {
     this.dagId = dagId;
     this.jobPlan = jobPlan;
-    this.conf = conf;
+    this.dagConf = new Configuration(amConf);
+    Iterator<PlanKeyValuePair> iter =
+        jobPlan.getDagConf().getConfKeyValuesList().iterator();
+    // override the amConf by using DAG level configuration
+    while (iter.hasNext()) {
+      PlanKeyValuePair keyValPair = iter.next();
+      TezConfiguration.validateProperty(keyValPair.getKey(), Scope.DAG);
+      this.dagConf.set(keyValPair.getKey(), keyValPair.getValue());
+    }
     this.dagName = (jobPlan.getName() != null) ? jobPlan.getName() : "<missing app name>";
-
     this.userName = appUserName;
     this.clock = clock;
     this.appContext = appContext;
@@ -448,9 +457,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     this.aclManager = new ACLManager(appContext.getAMACLManager(), dagUGI.getShortUserName(),
-        this.conf);
+        this.dagConf);
 
-    this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(conf);
+    this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(dagConf);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
@@ -474,7 +483,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   // TODO maybe removed after TEZ-74
   @Override
   public Configuration getConf() {
-    return conf;
+    return dagConf;
   }
 
   @Override
@@ -1261,7 +1270,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       initTime = clock.getTime();
     }
 
-    commitAllOutputsOnSuccess = conf.getBoolean(
+    commitAllOutputsOnSuccess = dagConf.getBoolean(
         TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT);
 
@@ -1353,7 +1362,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static void assignDAGScheduler(DAGImpl dag) {
-    String dagSchedulerClassName = dag.conf.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS,
+    String dagSchedulerClassName = dag.dagConf.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS,
         TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT);
     LOG.info("Using DAG Scheduler: " + dagSchedulerClassName);
     dag.dagScheduler = ReflectionUtils.createClazzInstance(dagSchedulerClassName, new Class<?>[] {
@@ -1368,7 +1377,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         .convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
 
     VertexImpl v = new VertexImpl(
-        vertexId, vertexPlan, vertexName, dag.conf,
+        vertexId, vertexPlan, vertexName, dag.dagConf,
         dag.eventHandler, dag.taskAttemptListener,
         dag.clock, dag.taskHeartbeatHandler,
         !dag.commitAllOutputsOnSuccess, dag.appContext, vertexLocationHint,

@@ -64,11 +64,13 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
@@ -441,6 +443,10 @@ public class TestDAGImpl {
     LOG.info("Setting up dag plan");
     DAGPlan dag = DAGPlan.newBuilder()
         .setName("testverteximpl")
+        .setDagConf(ConfigurationProto.newBuilder()
+            .addConfKeyValues(PlanKeyValuePair.newBuilder()
+                .setKey(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS)
+                .setValue(3 + "")))
         .addVertex(
             VertexPlan.newBuilder()
             .setName("vertex1")
@@ -460,6 +466,10 @@ public class TestDAGImpl {
                 .setTaskModule("x1.y1")
                 .build()
                 )
+            .setVertexConf(ConfigurationProto.newBuilder()
+                .addConfKeyValues(PlanKeyValuePair.newBuilder()
+                    .setKey(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS)
+                    .setValue(2+"")))
             .addOutEdgeId("e1")
             .build()
             )
@@ -1117,7 +1127,7 @@ public class TestDAGImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGroupDAGWithVertexReRunning() {
-    conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
+    groupDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
     initDAG(groupDag);
     startDAG(groupDag);
     dispatcher.await();
@@ -1141,7 +1151,7 @@ public class TestDAGImpl {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGroupDAGWithVertexReRunningAfterCommit() {
-    conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
+    groupDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
     initDAG(groupDag);
     startDAG(groupDag);
     dispatcher.await();
@@ -1329,7 +1339,7 @@ public class TestDAGImpl {
   @Test(timeout=5000)
   public void testDAGErrorAbortNonSuccessfulOutputs() {
     // vertex success -> vertex output commit. failed dag aborts only non-successful vertices
-    conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
+    mrrDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
     initDAG(mrrDag);
     dispatcher.await();
     startDAG(mrrDag);
@@ -1608,6 +1618,22 @@ public class TestDAGImpl {
     Assert.assertEquals(5, dag.getSuccessfulVertices());
     Assert.assertEquals(dag.getVertex(TezVertexID.getInstance(dagId, 5)).getTerminationCause(), VertexTerminationCause.DAG_KILL);
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
+  }
+
+  @Test(timeout = 5000)
+  public void testConfiguration() throws AMUserCodeException {
+    initDAG(dag);
+    // dag override the default configuration
+    Assert.assertEquals(3, dag.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+        TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
+    Vertex v1 = dag.getVertex("vertex1");
+    Vertex v2 = dag.getVertex("vertex2");
+    // v1 override the dagConfiguration
+    Assert.assertEquals(2, v1.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+        TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
+    // v2 inherit the configuration from dag
+    Assert.assertEquals(3, v2.getConf().getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+        TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
   }
 
   public static class CustomizedEdgeManager extends EdgeManagerPlugin {

@@ -71,6 +71,7 @@ import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
+import org.apache.tez.dag.api.Scope;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -85,6 +86,8 @@ import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.api.event.VertexStateUpdateParallelismUpdated;
 import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -211,7 +214,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private TezCounters fullCounters = null;
   private Resource taskResource;
 
-  private Configuration conf;
+  private Configuration vertexConf;
   
   private final boolean isSpeculationEnabled;
 
@@ -717,7 +720,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOpts;
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
-      String vertexName, Configuration conf, EventHandler eventHandler,
+      String vertexName, Configuration dagConf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Clock clock,
       TaskHeartbeatHandler thh, boolean commitVertexOutputs,
       AppContext appContext, VertexLocationHint vertexLocationHint,
@@ -726,7 +729,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
     this.vertexName = StringInterner.weakIntern(vertexName);
-    this.conf = conf;
+    this.vertexConf = new Configuration(dagConf);
+    // override dag configuration by using vertex's specified configuration
+    if (vertexPlan.hasVertexConf()) {
+      ConfigurationProto confProto = vertexPlan.getVertexConf();
+      for (PlanKeyValuePair keyValuePair : confProto.getConfKeyValuesList()) {
+        TezConfiguration.validateProperty(keyValuePair.getKey(), Scope.VERTEX);
+        vertexConf.set(keyValuePair.getKey(), keyValuePair.getValue());
+      }
+    }
     this.clock = clock;
     this.appContext = appContext;
     this.commitVertexOutputs = commitVertexOutputs;
@@ -761,7 +772,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     // Set up log properties, including task specific log properties.
     String javaOptsWithoutLoggerMods =
         vertexPlan.getTaskConfig().hasJavaOpts() ? vertexPlan.getTaskConfig().getJavaOpts() : null;
-    String logString = conf.get(TezConfiguration.TEZ_TASK_LOG_LEVEL, TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT);
+    String logString = vertexConf.get(TezConfiguration.TEZ_TASK_LOG_LEVEL, TezConfiguration.TEZ_TASK_LOG_LEVEL_DEFAULT);
     String [] taskLogParams = TezClientUtils.parseLogParams(logString);
     this.javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts(taskLogParams[0], javaOptsWithoutLoggerMods);
 
@@ -803,11 +814,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     this.dagVertexGroups = dagVertexGroups;
     
-    isSpeculationEnabled = conf.getBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED,
+    isSpeculationEnabled = vertexConf.getBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED,
         TezConfiguration.TEZ_AM_SPECULATION_ENABLED_DEFAULT);
-    
+    LOG.info("isSpeculationEnabled:" + isSpeculationEnabled);
     if (isSpeculationEnabled()) {
-      speculator = new LegacySpeculator(conf, getAppContext(), this);
+      speculator = new LegacySpeculator(vertexConf, getAppContext(), this);
     }
     
     logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
@@ -817,6 +828,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     stateMachine = new StateMachineTez<VertexState, VertexEventType, VertexEvent, VertexImpl>(
         stateMachineFactory.make(this), this);
     augmentStateMachine();
+  }
+
+  @Override
+  public Configuration getConf() {
+    return vertexConf;
   }
 
   private boolean isSpeculationEnabled() {
@@ -2018,7 +2034,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       TaskImpl task =
           new TaskImpl(this.getVertexId(), i,
               this.eventHandler,
-              conf,
+              vertexConf,
               this.taskAttemptListener,
               this.clock,
               this.taskHeartbeatHandler,
@@ -2211,7 +2227,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Setting vertexManager to ShuffleVertexManager for "
             + logIdentifier);
         // shuffle vertex manager needs a conf payload
-        vertexManager = new VertexManager(ShuffleVertexManager.createConfigBuilder(conf).build(),
+        vertexManager = new VertexManager(ShuffleVertexManager.createConfigBuilder(vertexConf).build(),
             dagUgi, this, appContext, stateChangeNotifier);
       } else {
         // schedule all tasks upon vertex start. Default behavior.

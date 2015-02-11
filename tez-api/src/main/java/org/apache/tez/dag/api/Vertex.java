@@ -55,6 +55,7 @@ public class Vertex {
   private Resource taskResource;
   private final Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
+  private Map<String, String> vertexConf = new HashMap<String, String>();
   private final List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs 
                       = new ArrayList<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
   private final List<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> additionalOutputs 
@@ -288,6 +289,10 @@ public class Vertex {
     return taskEnvironment;
   }
 
+  public Map<String, String> getConf() {
+    return vertexConf;
+  }
+
   /**
    * Set the command opts for tasks of this vertex. This method should be used 
    * when different vertices have different opts. Else, set the launch opts for '
@@ -384,6 +389,12 @@ public class Vertex {
    */
   public String getTaskLaunchCmdOpts(){
 	  return taskLaunchCmdOpts;
+  }
+
+  public Vertex setConf(String property, String value) {
+    TezConfiguration.validateProperty(property, Scope.VERTEX);
+    this.vertexConf.put(property, value);
+    return this;
   }
 
   @Override
