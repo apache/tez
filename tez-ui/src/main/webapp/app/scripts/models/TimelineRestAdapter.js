@@ -229,7 +229,6 @@ var timelineJsonToTaskMap = {
   counterGroups: 'counterGroups',
   successfulAttemptId: 'otherinfo.successfulAttemptId',
   attempts: 'relatedentities.TEZ_TASK_ATTEMPT_ID',
-  dagID: 'primaryfilters.TEZ_DAG_ID.0',
   numAttempts: 'relatedentities.TEZ_TASK_ATTEMPT_ID.length'
 };
 

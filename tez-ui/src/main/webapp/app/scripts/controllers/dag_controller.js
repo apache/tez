@@ -46,6 +46,13 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
         that.set('tezApp', app);
       });
 
+    var appDetailFetcher = that.store.find('appDetail', applicationId).then(function(appDetail) {
+      var appState = appDetail.get('appState');
+      if (appState) {
+        that.set('yarnAppState', appState);
+      }
+    });
+    loaders.push(appDetailFetcher);
     Em.RSVP.allSettled(loaders).then(function(){
       that.set('loading', false);
     });

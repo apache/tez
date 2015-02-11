@@ -25,12 +25,13 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
   updateLoading: function() {
     var loaders = [],
-      that = this;
+      that = this,
+      applicationId = this.get('applicationId');
 
     if (this.get('status') == 'RUNNING') {
       var vertexIdx = that.get('id').split('_').splice(-1).pop();
       var progressLoader = this.store.find('vertexProgress', vertexIdx, {
-        appId: that.get('applicationId'),
+        appId: applicationId,
         dagIdx: that.get('dagIdx')
       }).then(function(vertexProgressInfo) {
         if (vertexProgressInfo) {
@@ -41,6 +42,14 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       });
       loaders.push(progressLoader);
     }
+
+    var appDetailFetcher = that.store.find('appDetail', applicationId).then(function(appDetail) {
+      var appState = appDetail.get('appState');
+      if (appState) {
+        that.set('yarnAppState', appState);
+      }
+    });
+    loaders.push(appDetailFetcher);
     Em.RSVP.allSettled(loaders).then(function(){
       that.set('loading', false);
     });

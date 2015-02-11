@@ -54,6 +54,7 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
   },
 
   defaultColumnConfigs: function() {
+    var that = this;
     return [
       {
         id: 'taskId',
@@ -159,19 +160,36 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">\
-              {{#unless view.cellContent}}\
+              {{#unless view.cellContent.notAvailable}}\
                 Not Available\
               {{else}}\
-                <a target="_blank" href="//{{unbound view.cellContent}}">View</a>\
-                &nbsp;\
-                <a target="_blank" href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+                {{#if view.cellContent.viewUrl}}\
+                  <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>\
+                  &nbsp;\
+                {{/if}}\
+                {{#if view.cellContent.downloadUrl}}\
+                  <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>\
+                {{/if}}\
               {{/unless}}\
             </span>')
         }),
         getCellContent: function(row) {
-          var logFile = row.get('inProgressLog') || row.get('completedLog');
-          if(logFile) logFile += "/syslog_" + row.get('id');
-          return logFile;
+          var yarnAppState = that.get('controllers.vertex.yarnAppState'),
+              suffix = "/syslog_" + row.get('id'),
+              link = row.get('inProgressLog') || row.get('completedLog'),
+              cellContent = {};
+
+          if(link) {
+            cellContent.viewUrl = link + suffix;
+          }
+          link = row.get('completedLog');
+          if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
+            cellContent.downloadUrl = link + suffix;
+          }
+
+          cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
+
+          return cellContent;
         }
       }
     ];

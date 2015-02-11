@@ -41,6 +41,49 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
     this.setFiltersAndLoadEntities(filters);
   },
 
+  loadEntities: function () {
+    var that = this;
+    var childEntityType = this.get('childEntityType');
+    var defaultErrMsg = 'Error while loading %@. could not connect to %@'
+      .fmt(childEntityType, App.env.timelineBaseUrl);
+
+    that.set('loading', true);
+
+    this.get('store').unloadAll(childEntityType);
+    this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+      that.set('entities', entities);
+      var loaders = [];
+      try {
+        var loader = Em.tryInvoke(that, 'loadAdditional');
+        if (!!loader) {
+          loaders.push(loader);
+        }
+      } catch(error) {
+        Em.Logger.error("Exception invoking additional load", error);
+      }
+
+      var appDetailFetcher = that.store.find('dag', that.get('controllers.task.dagID')).
+        then(function (dag) {
+          return that.store.find('appDetail', dag.get('applicationId'));
+        }).
+        then(function(appDetail) {
+          var appState = appDetail.get('appState');
+          if (appState) {
+            that.set('yarnAppState', appState);
+          }
+        });
+      loaders.push(appDetailFetcher);
+      Em.RSVP.allSettled(loaders).then(function(){
+          that.set('loading', false);
+      });
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  },
+
   actions : {
     filterUpdated: function(filterID, value) {
       // any validations required goes here.
@@ -54,6 +97,7 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
   },
 
   defaultColumnConfigs: function() {
+    var that = this;
     return [
       {
         id: 'id',
@@ -159,19 +203,36 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">\
-              {{#unless view.cellContent}}\
+              {{#unless view.cellContent.notAvailable}}\
                 Not Available\
               {{else}}\
-                <a target="_blank" href="//{{unbound view.cellContent}}">View</a>\
-                &nbsp;\
-                <a target="_blank" href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+                {{#if view.cellContent.viewUrl}}\
+                  <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>\
+                  &nbsp;\
+                {{/if}}\
+                {{#if view.cellContent.downloadUrl}}\
+                  <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>\
+                {{/if}}\
               {{/unless}}\
             </span>')
         }),
         getCellContent: function(row) {
-          var logFile = row.get('inProgressLog') || row.get('completedLog');
-          if(logFile) logFile += "/syslog_" + row.get('id');
-          return logFile;
+          var yarnAppState = that.get('yarnAppState'),
+              suffix = "/syslog_" + row.get('id'),
+              link = row.get('inProgressLog') || row.get('completedLog'),
+              cellContent = {};
+
+          if(link) {
+            cellContent.viewUrl = link + suffix;
+          }
+          link = row.get('completedLog');
+          if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
+            cellContent.downloadUrl = link + suffix;
+          }
+
+          cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
+
+          return cellContent;
         }
       }
     ];
