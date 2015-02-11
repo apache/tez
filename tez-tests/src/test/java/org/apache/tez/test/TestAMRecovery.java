@@ -200,7 +200,7 @@ public class TestAMRecovery {
   @Test(timeout = 120000)
   public void testVertexPartiallyFinished_Broadcast() throws Exception {
     DAG dag =
-        createDAG(ControlledImmediateStartVertexManager.class,
+        createDAG("VertexPartiallyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
             DataMovementType.BROADCAST, true);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
@@ -231,7 +231,7 @@ public class TestAMRecovery {
   @Test(timeout = 120000)
   public void testVertexCompletelyFinished_Broadcast() throws Exception {
     DAG dag =
-        createDAG(ControlledImmediateStartVertexManager.class,
+        createDAG("VertexCompletelyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
             DataMovementType.BROADCAST, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
@@ -262,7 +262,7 @@ public class TestAMRecovery {
   @Test(timeout = 120000)
   public void testVertexPartialFinished_One2One() throws Exception {
     DAG dag =
-        createDAG(ControlledInputReadyVertexManager.class,
+        createDAG("VertexPartialFinished_One2One", ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, true);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
@@ -294,7 +294,7 @@ public class TestAMRecovery {
   @Test(timeout = 120000)
   public void testVertexCompletelyFinished_One2One() throws Exception {
     DAG dag =
-        createDAG(ControlledInputReadyVertexManager.class,
+        createDAG("VertexCompletelyFinished_One2One", ControlledInputReadyVertexManager.class,
             DataMovementType.ONE_TO_ONE, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
@@ -326,7 +326,7 @@ public class TestAMRecovery {
   @Test(timeout = 120000)
   public void testVertexPartiallyFinished_ScatterGather() throws Exception {
     DAG dag =
-        createDAG(ControlledShuffleVertexManager.class,
+        createDAG("VertexPartiallyFinished_ScatterGather", ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, true);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
@@ -358,7 +358,7 @@ public class TestAMRecovery {
   @Test(timeout = 120000)
   public void testVertexCompletelyFinished_ScatterGather() throws Exception {
     DAG dag =
-        createDAG(ControlledShuffleVertexManager.class,
+        createDAG("VertexCompletelyFinished_ScatterGather", ControlledShuffleVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
@@ -391,7 +391,7 @@ public class TestAMRecovery {
     tezConf.set(FAIL_ON_ATTEMPT, rand.nextInt(MAX_AM_ATTEMPT) + "");
     LOG.info("Set FAIL_ON_ATTEMPT=" + tezConf.get(FAIL_ON_ATTEMPT));
     DAG dag =
-        createDAG(FailOnAttemptVertexManager.class,
+        createDAG("HighMaxAttempt", FailOnAttemptVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
 
@@ -418,14 +418,14 @@ public class TestAMRecovery {
    * @return
    * @throws IOException
    */
-  private DAG createDAG(Class vertexManagerClass, DataMovementType dmType,
+  private DAG createDAG(String dagName, Class vertexManagerClass, DataMovementType dmType,
       boolean failOnParitialCompleted) throws IOException {
     if (failOnParitialCompleted) {
       tezConf.set(FAIL_ON_PARTIAL_FINISHED, "true");
     } else {
       tezConf.set(FAIL_ON_PARTIAL_FINISHED, "false");
     }
-    DAG dag = DAG.create("dag");
+    DAG dag = DAG.create(dagName);
     UserPayload payload = UserPayload.create(null);
     Vertex v1 = Vertex.create("v1", MyProcessor.getProcDesc(), 2);
     v1.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
