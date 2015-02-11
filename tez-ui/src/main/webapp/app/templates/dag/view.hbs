@@ -16,14 +16,16 @@
 * limitations under the License.
 }}
 
-{{#unless loading}}
-  {{dag-view-component
-    data=viewData
-    vertexProperties=columns
-    entityClicked='entityClicked'
-    configure='selectColumns'
-  }}
-  <div class="dag-view-legend">Double click source/sink bubble to toggle visibility locally.</div>
-{{else}}
-  {{partial 'partials/loading-spinner'}}
-{{/unless}}
+<div class="dag-view-component-container">
+  {{#unless loading}}
+    {{dag-view-component
+      data=viewData
+      vertexProperties=columns
+      entityClicked='entityClicked'
+      configure='selectColumns'
+    }}
+    <div class="dag-view-legend">Double click source/sink bubble to toggle visibility locally.</div>
+  {{else}}
+    {{partial 'partials/loading-spinner'}}
+  {{/unless}}
+</div>
