@@ -6,6 +6,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2068. Tez UI: Dag view should use full window height, disable webuiservice in localmode.
   TEZ-2079. Tez UI: trailing slash in timelineBaseUrl in ui should be handled. 
   TEZ-2069. Tez UI: appId should link to application in dag details view.
   TEZ-2063. Tez UI: Flaky log url in tasks table.
