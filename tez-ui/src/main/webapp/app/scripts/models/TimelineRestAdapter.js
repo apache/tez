@@ -117,7 +117,7 @@ var timelineJsonToDagMap = {
 
 App.DagSerializer = App.TimelineSerializer.extend({
   _normalizeSingleDagPayload: function(dag) {
-    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('dag', dag.entity, 
+    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('dag', dag.entity,
       dag);
     dag.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
     delete dag.otherinfo.counters;
@@ -144,7 +144,7 @@ App.DagSerializer = App.TimelineSerializer.extend({
         [].push.apply(normalizedPayload.counterGroups, n.counterGroups);
         [].push.apply(normalizedPayload.counters, n.counters);
       }, this);
-      
+
       // delete so that we dont hang on to the json data.
       delete rawPayload.dags;
 
@@ -174,12 +174,13 @@ var timelineJsonToTaskAttemptMap = {
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
   containerId: 'otherinfo.containerId',
-  nodeId: 'otherinfo.nodeId'
+  nodeId: 'otherinfo.nodeId',
+  diagnostics: 'otherinfo.diagnostics'
 };
 
 App.TaskAttemptSerializer = App.TimelineSerializer.extend({
   _normalizeSingleTaskAttemptPayload: function(taskAttempt) {
-    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('taskAttempt', 
+    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('taskAttempt',
       taskAttempt.entity, taskAttempt);
     taskAttempt.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
     delete taskAttempt.otherinfo.counters;
@@ -199,11 +200,11 @@ App.TaskAttemptSerializer = App.TimelineSerializer.extend({
       };
       rawPayload.taskAttempts.forEach(function(taskAttempt){
         var n = this._normalizeSingleTaskAttemptPayload(taskAttempt);
-        normalizedPayload.taskAttempts.push(n.taskAttempt); 
+        normalizedPayload.taskAttempts.push(n.taskAttempt);
         [].push.apply(normalizedPayload.counterGroups, n.counterGroups);
         [].push.apply(normalizedPayload.counters, n.counters);
       }, this);
-      
+
       // delete so that we dont hang on to the json data.
       delete rawPayload.taskAttempts;
       return normalizedPayload;
@@ -234,7 +235,7 @@ var timelineJsonToTaskMap = {
 
 App.TaskSerializer = App.TimelineSerializer.extend({
   _normalizeSingleTaskPayload: function(task) {
-    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('task', task.entity, 
+    var normalizedCounterGroupData = this.normalizeCounterGroupsHelper('task', task.entity,
       task);
     task.counterGroups = normalizedCounterGroupData.counterGroupsIDs;
 
@@ -260,7 +261,7 @@ App.TaskSerializer = App.TimelineSerializer.extend({
         [].push.apply(normalizedPayload.counterGroups, n.counterGroups);
         [].push.apply(normalizedPayload.counters, n.counters);
       }, this);
-      
+
       // delete so that we dont hang on to the json data.
       delete rawPayload.tasks;
 
@@ -369,7 +370,7 @@ App.VertexSerializer = App.TimelineSerializer.extend({
         [].push.apply(normalizedPayload.inputs, n.inputs);
         [].push.apply(normalizedPayload.outputs, n.outputs);
       }, this);
-      
+
       // delete so that we dont hang on to the json data.
       delete rawPayload.vertices;
 

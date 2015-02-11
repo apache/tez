@@ -23,15 +23,15 @@ App.TaskAttempt = App.AbstractEntity.extend({
   // end time of the entity
   endTime: DS.attr('number'),
 
-	entityType: App.EntityType.TASK_ATTEMPT,
+  entityType: App.EntityType.TASK_ATTEMPT,
 
 
-	// container
-	containerId: DS.attr('string'),
+  // container
+  containerId: DS.attr('string'),
   nodeId: DS.attr('string'),
 
   // status of the task attempt
-	status: DS.attr('string'),
+  status: DS.attr('string'),
 
   taskID: DS.attr('string'),
   vertexID: DS.attr('string'),
@@ -39,6 +39,8 @@ App.TaskAttempt = App.AbstractEntity.extend({
 
   inProgressLog: DS.attr('string'),
   completedLog: DS.attr('string'),
+
+  diagnostics: DS.attr('string'),
 
   counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
 });
