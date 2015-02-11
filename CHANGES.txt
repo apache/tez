@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2071. TestAMRecovery should set test names for test DAGs.
   TEZ-1233. Allow configuration of framework parameters per vertex.
   TEZ-2045. TaskAttemptListener should not pull Tasks from AMContainer. Instead these should be registered with the listener.
   TEZ-1914. VertexManager logic should not run on the central dispatcher
