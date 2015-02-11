@@ -54,6 +54,12 @@ App.Configs = Em.Namespace.create();
 App.ready = function () {
   $.extend(App.env, App.Configs.envDefaults);
 
+  ["timelineBaseUrl", "RMWebUrl"].forEach(function(item) {
+    if (!!App.env[item]) {
+      App.env[item] = App.Helpers.misc.normalizePath(App.env[item]);
+    }
+  })
+
   App.ApplicationAdapter = App.TimelineRESTAdapter.extend({
     host: App.env.timelineBaseUrl
   });
