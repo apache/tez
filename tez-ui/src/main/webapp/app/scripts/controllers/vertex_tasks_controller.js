@@ -87,6 +87,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
   },
 
   defaultColumnConfigs: function() {
+    var that = this;
     return [
       {
         id: 'id',
@@ -167,20 +168,42 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">\
-              {{#unless view.cellContent}}\
+              {{#unless view.cellContent.notAvailable}}\
                 Not Available\
               {{else}}\
-                <a target="_blank" href="//{{unbound view.cellContent}}">View</a>\
-                &nbsp;\
-                <a target="_blank" href="//{{unbound view.cellContent}}?start=0" download target="_blank" type="application/octet-stream">Download</a>\
+                {{#if view.cellContent.viewUrl}}\
+                  <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>\
+                  &nbsp;\
+                {{/if}}\
+                {{#if view.cellContent.downloadUrl}}\
+                  <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>\
+                {{/if}}\
               {{/unless}}\
             </span>')
         }),
         getCellContent: function(row) {
-          var attempt = row.get('pivotAttempt');
-          var logFile = attempt && (attempt.get('inProgressLog') || attempt.get('completedLog'));
-          if(logFile) logFile += "/syslog_" + attempt.get('id');
-          return logFile;
+          var yarnAppState = that.get('controllers.vertex.yarnAppState'),
+              attempt = row.get('pivotAttempt'),
+              suffix,
+              link,
+              cellContent = {};
+
+          if(attempt) {
+            suffix = "/syslog_" + attempt.get('id'),
+            link = attempt.get('inProgressLog') || attempt.get('completedLog');
+
+            if(link) {
+              cellContent.viewUrl = link + suffix;
+            }
+            link = attempt.get('completedLog');
+            if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
+              cellContent.downloadUrl = link + suffix;
+            }
+          }
+
+          cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
+
+          return cellContent;
         }
       }
     ];
