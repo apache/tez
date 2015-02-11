@@ -29,7 +29,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.logging.HistoryLoggingService;
@@ -67,7 +66,7 @@ public class SimpleHistoryLoggingService extends HistoryLoggingService {
       LOG.info("Log file location for SimpleHistoryLoggingService not specified, defaulting to"
           + " containerLogDir=" + logDir);
       Path p;
-      logFileFS = FileSystem.getLocal(conf);
+      logFileFS = FileSystem.getLocal(conf).getRawFileSystem();
       if (logDir != null) {
         p = new Path(logDir, logFileName);
       } else {
