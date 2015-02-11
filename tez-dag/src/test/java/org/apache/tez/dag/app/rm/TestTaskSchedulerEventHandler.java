@@ -269,6 +269,17 @@ public class TestTaskSchedulerEventHandler {
     doReturn(mockApplicationId).when(mockAppContext).getApplicationID();
     Assert.assertTrue("http://ui-host:9999/#/tez-app/TEST_APP_ID"
         .equals(schedulerHandler.getHistoryUrl()));
+
+    // ensure the trailing / in history url is handled
+    conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://ui-host:9998/");
+    Assert.assertTrue("http://ui-host:9998/#/tez-app/TEST_APP_ID"
+        .equals(schedulerHandler.getHistoryUrl()));
+
+    // handle bad template ex without begining /
+    conf.set(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
+        "__HISTORY_URL_BASE__#/somepath");
+    Assert.assertTrue("http://ui-host:9998/#/somepath"
+        .equals(schedulerHandler.getHistoryUrl()));
   }
 
 }
