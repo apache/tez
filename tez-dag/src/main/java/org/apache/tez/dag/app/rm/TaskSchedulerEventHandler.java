@@ -600,9 +600,12 @@ public class TaskSchedulerEventHandler extends AbstractService
     if (loggingClass.equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService") &&
         !historyUrlTemplate.isEmpty() &&
         !historyUrlBase.isEmpty()) {
+      // replace the placeholders, while tolerating extra or missing "/" in input. replace all
+      // instances of consecutive "/" with single (except for the http(s):// case
       historyUrl = historyUrlTemplate
           .replaceAll(APPLICATION_ID_PLACEHOLDER, appContext.getApplicationID().toString())
-          .replaceAll(HISTORY_URL_BASE, historyUrlBase);
+          .replaceAll(HISTORY_URL_BASE, historyUrlBase + "/")
+          .replaceAll("([^:])/{2,}", "$1/");
     }
 
     return historyUrl;

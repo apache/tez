@@ -61,6 +61,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2065. Setting up tez.tez-ui.history-url.base with a trailing slash can result in failures to redirect correctly. 
   TEZ-2068. Tez UI: Dag view should use full window height, disable webuiservice in localmode.
   TEZ-2079. Tez UI: trailing slash in timelineBaseUrl in ui should be handled. 
   TEZ-2069. Tez UI: appId should link to application in dag details view.
