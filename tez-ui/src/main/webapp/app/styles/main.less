@@ -455,7 +455,17 @@ div.indent {
 }
 
 .table-container {
-  min-height: 380px;
+  min-height: 100px;
+  width: 100%;
+  overflow: auto;
+  border-right: 1px solid @border-lite;
+  border-left: 1px solid @border-lite;
+  .ember-table-table-block {
+    overflow: visible !important;
+  }
+  .ember-table-scroll-container {
+    display: none;
+  }
 }
 
 .input-dirty {
