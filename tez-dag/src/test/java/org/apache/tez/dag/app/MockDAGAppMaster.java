@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.service.AbstractService;
@@ -50,7 +51,10 @@ import org.apache.tez.client.TezApiVersionInfo;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TaskHeartbeatRequest;
+import org.apache.tez.dag.api.TaskHeartbeatResponse;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.launcher.ContainerLauncher;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
@@ -72,8 +76,6 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
-import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
-import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -130,6 +132,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     Map<ContainerId, ContainerData> containers = Maps.newConcurrentMap();
     ArrayBlockingQueue<Worker> workers;
     TaskAttemptListenerImpTezDag taListener;
+    TezTaskCommunicatorImpl taskCommunicator;
     
     AtomicBoolean startScheduling = new AtomicBoolean(true);
     AtomicBoolean goFlag;
@@ -194,6 +197,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     @Override
     public void serviceStart() throws Exception {
       taListener = (TaskAttemptListenerImpTezDag) getTaskAttemptListener();
+      taskCommunicator = (TezTaskCommunicatorImpl) taListener.getTaskCommunicator();
       eventHandlingThread = new Thread(this);
       eventHandlingThread.start();
       ExecutorService rawExecutor = Executors.newFixedThreadPool(handlerConcurrency,
@@ -333,10 +337,10 @@ public class MockDAGAppMaster extends DAGAppMaster {
       }
     }
     
-    private void doHeartbeat(TezHeartbeatRequest request, ContainerData cData) throws Exception {
+    private void doHeartbeat(TaskHeartbeatRequest request, ContainerData cData) throws Exception {
       long startTime = System.nanoTime();
       long startCpuTime = threadMxBean.getCurrentThreadCpuTime();
-      TezHeartbeatResponse response = taListener.heartbeat(request);
+      TaskHeartbeatResponse response = taListener.heartbeat(request);
       if (response.shouldDie()) {
         cData.remove();
       } else {
@@ -388,7 +392,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
         try {
           if (cData.taId == null) {
             // if container is not assigned a task, ask for a task
-            ContainerTask cTask = taListener.getTask(new ContainerContext(cData.cIdStr));
+            ContainerTask cTask =
+                taskCommunicator.getUmbilical().getTask(new ContainerContext(cData.cIdStr));
             if (cTask != null) {
               if (cTask.shouldDie()) {
                 cData.remove();
@@ -424,8 +429,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
               events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
                   getContext().getClock().getTime()));
-              TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
-                  cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
+//              TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
+//                  cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
+              TaskHeartbeatRequest request =
+                  new TaskHeartbeatRequest(cData.cIdStr, cData.taId, events, cData.nextFromEventId, cData.nextPreRoutedFromEventId,
+                      50000);
               doHeartbeat(request, cData);
             } else if (version != null && cData.taId.getId() <= version.intValue()) {
               preemptContainer(cData);
@@ -436,8 +444,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
                   new TaskAttemptCompletedEvent(), new EventMetaData(
                       EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
                   getContext().getClock().getTime()));
-              TezHeartbeatRequest request = new TezHeartbeatRequest(++cData.numUpdates, events,
-                  cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 10000);
+              TaskHeartbeatRequest request =
+                  new TaskHeartbeatRequest(cData.cIdStr, cData.taId, events, cData.nextFromEventId, cData.nextPreRoutedFromEventId,
+                      10000);
               doHeartbeat(request, cData);
               cData.clear();
             }
