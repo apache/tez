@@ -18,6 +18,14 @@
 
 App.ExTable = Ember.Namespace.create();
 
+Ember.Table.BodyTableContainer.reopen({
+  width: Ember.computed.alias('tableComponent._tableContainerWidth'),
+  didInsertElement: function () {
+    this._super();
+    this.$().unbind();
+  }
+});
+
 App.ExTable.FilterTextField = Em.TextField.extend({
 	classNames: ['filter'],
   classNameBindings: ['isPopulated','isInputDirty:input-dirty'],
@@ -161,11 +169,18 @@ App.ExTable.ColumnDefinition = Ember.Table.ColumnDefinition.extend({
 App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
 	layoutName: 'components/extended-table/extable',
 	filters: {},
+	styleBindings: ['height', 'width'],
 	hasFilter: true,
 	minFilterHeight: 30, //TODO: less changes
 
   enableContentSelection: false,
   selectionMode: 'none',
+
+  width: function () {
+    return Math.max(this.get('_width'), this._getTotalWidth(this.get('tableColumns')));
+  }.property('tableColumns', '_tableColumnsWidth', '_width'),
+
+  _tableContainerWidth: Ember.computed.alias('width'),
 
   actions: {
     filterUpdated: function(columnDef, value) {
@@ -175,6 +190,13 @@ App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
       	this.sendAction('onFilterUpdated', filterID, value);
       }
     },
+  },
+
+  updateLayout: function () {
+    if ((this.get('_state') || this.get('state')) !== 'inDOM') {
+      return;
+    }
+    return this.doForceFillColumns();
   },
 
   doForceFillColumns: function() {
@@ -189,6 +211,9 @@ App.ExTable.TableComponent = Ember.Table.EmberTableComponent.extend({
     remainingWidth = availableContentWidth - contentWidth;
     columnsToResize = tableColumns.filterProperty('canAutoResize');
 
+    if(totalWidth < contentWidth) {
+      return [];
+    }
     additionWidthPerColumn = Math.floor(remainingWidth / columnsToResize.length);
     if(availableContentWidth <= this._getTotalWidth(tableColumns, 'minWidth')) {
       return columnsToResize;
