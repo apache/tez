@@ -62,6 +62,7 @@ import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.apache.tez.common.security.JobTokenSecretManager;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 @SuppressWarnings("unchecked")
@@ -218,13 +219,18 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           if (LOG.isDebugEnabled()) {
             LOG.debug("No task current assigned to Container with id: " + containerId);
           }
+        } else if (task == TASK_FOR_INVALID_JVM) { 
+          LOG.info("Container with id: " + containerId
+              + " is valid, but no longer registered, and will be killed. Race condition.");          
         } else {
-            context.getEventHandler().handle(
-                new TaskAttemptEventStartedRemotely(task.getTaskSpec()
-                    .getTaskAttemptID(), containerId, context
-                    .getApplicationACLs()));
-            LOG.info("Container with id: " + containerId + " given task: "
-                + task.getTaskSpec().getTaskAttemptID());
+          Preconditions.checkState(task != null && task != TASK_FOR_INVALID_JVM, "CId: "
+              + containerId);
+          context.getEventHandler().handle(
+              new TaskAttemptEventStartedRemotely(task.getTaskSpec()
+                  .getTaskAttemptID(), containerId, context
+                  .getApplicationACLs()));
+          LOG.info("Container with id: " + containerId + " given task: "
+              + task.getTaskSpec().getTaskAttemptID());
         }
       }
     }
