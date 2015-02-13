@@ -29,7 +29,11 @@ App.DagViewView = Ember.View.extend({
   },
 
   didInsertElement: function() {
-    $(window).resize(this.setHeight.bind(this));
+    $(window).on('resize', this.setHeight);
     this.setHeight();
   },
+
+  willDestroyElement: function () {
+    $(window).off('resize', this.setHeight);
+  }
 });
