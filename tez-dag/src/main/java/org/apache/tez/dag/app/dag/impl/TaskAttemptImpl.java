@@ -1420,6 +1420,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskEventType.T_ATTEMPT_KILLED));
           taskAttempt.sendEvent(createDAGCounterUpdateEventTAFinished(taskAttempt,
               getExternalState(TaskAttemptStateInternal.KILLED)));
+          taskAttempt.logJobHistoryAttemptUnsuccesfulCompletion(TaskAttemptState.KILLED);
           endState = TaskAttemptStateInternal.KILLED;
           break;
         case SUCCEEDED:
