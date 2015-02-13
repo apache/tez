@@ -280,6 +280,13 @@ public class TestTaskSchedulerEventHandler {
         "__HISTORY_URL_BASE__#/somepath");
     Assert.assertTrue("http://ui-host:9998/#/somepath"
         .equals(schedulerHandler.getHistoryUrl()));
+
+    conf.set(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
+        "__HISTORY_URL_BASE__?viewPath=tez-app/__APPLICATION_ID__");
+    conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://localhost/ui/tez");
+    Assert.assertTrue("http://localhost/ui/tez?viewPath=tez-app/TEST_APP_ID"
+        .equals(schedulerHandler.getHistoryUrl()));
+
   }
 
 }
