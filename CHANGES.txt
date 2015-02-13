@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2095. master branch fails to compile against hadoop-2.4.
   TEZ-2093. Add events to MockDAGAppMaster and add e2e test for event routing
   TEZ-2075. Incompatible issue caused by TEZ-1233 that TezConfiguration.TEZ_SITE_XML is made private
   TEZ-2082. Race condition in TaskAttemptListenerImpTezDag.getTask()

@@ -156,9 +156,9 @@ public class TestTaskAttemptListenerImplTezDag {
     assertNull(containerTask);
   }
 
-  private ContainerId createContainerId(ApplicationId applicationId, long containerIdLong) {
+  private ContainerId createContainerId(ApplicationId applicationId, int containerIdx) {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
-    ContainerId containerId = ContainerId.newContainerId(appAttemptId, containerIdLong);
+    ContainerId containerId = ContainerId.newInstance(appAttemptId, containerIdx);
     return containerId;
   }
 
