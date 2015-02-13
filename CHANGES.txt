@@ -61,6 +61,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2024. TaskFinishedEvent may not be logged in recovery.
   TEZ-2031. Tez UI: horizontal scrollbars do not appear in tables, causing them to look truncated. 
   TEZ-2073. SimpleHistoryLoggingService cannot be read by log aggregation (umask)
   TEZ-2078. Tez UI: Task logs url use in-progress url causing various errors.

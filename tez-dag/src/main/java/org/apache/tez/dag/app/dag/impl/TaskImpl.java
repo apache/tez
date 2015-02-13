@@ -512,6 +512,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           this.attempts = new LinkedHashMap<TezTaskAttemptID, TaskAttempt>();
         }
         recoveredState = TaskState.SCHEDULED;
+        historyTaskStartGenerated = true;
         taskAttemptStatus.clear();
         return recoveredState;
       }

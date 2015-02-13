@@ -58,6 +58,7 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.impl.TestTaskAttemptRecovery.MockHistoryEventHandler;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
@@ -82,6 +83,7 @@ public class TestTaskRecovery {
 
   private Configuration conf = new Configuration();
   private AppContext mockAppContext;
+  private MockHistoryEventHandler  mockHistoryEventHandler;
   private ApplicationId appId = ApplicationId.newInstance(
       System.currentTimeMillis(), 1);
   private TezDAGID dagId = TezDAGID.getInstance(appId, 1);
@@ -181,7 +183,8 @@ public class TestTaskRecovery {
     mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
     when(mockAppContext.getCurrentDAG().getVertex(any(TezVertexID.class)))
         .thenReturn(vertex);
-
+    mockHistoryEventHandler = new MockHistoryEventHandler(mockAppContext);
+    when(mockAppContext.getHistoryHandler()).thenReturn(mockHistoryEventHandler);
     task =
         new TaskImpl(vertexId, 0, dispatcher.getEventHandler(),
             new Configuration(), mock(TaskAttemptListener.class),
@@ -313,6 +316,7 @@ public class TestTaskRecovery {
     assertEquals(0, task.failedAttempts);
     assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
+    mockHistoryEventHandler.verifyTaskFinishedEvent(task.getTaskId(), TaskState.SUCCEEDED, 1);
   }
 
   /**
@@ -420,6 +424,7 @@ public class TestTaskRecovery {
     assertEquals(0, task.failedAttempts);
     assertEquals(0, task.getUncompletedAttemptsCount());
     assertEquals(taId, task.successfulAttempt);
+    mockHistoryEventHandler.verifyTaskFinishedEvent(task.getTaskId(), TaskState.SUCCEEDED, 1);
   }
 
   /**
