@@ -137,7 +137,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         filterID: 'dagName_filter',
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
-            "{{#link-to 'dag.view' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
+            "{{#link-to 'dag.index' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
         }),
         getCellContent: function(row) {
           return {
