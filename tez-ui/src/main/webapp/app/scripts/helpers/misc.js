@@ -17,6 +17,8 @@
 
 App.Helpers.misc = {
   getStatusClassForEntity: function(dag) {
+    if(!dag) return '';
+
     var st = dag.get('status');
     switch(st) {
       case 'FAILED':
