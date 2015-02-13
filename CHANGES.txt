@@ -62,6 +62,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2092. Tez UI history url handler injects spurious trailing slash.
   TEZ-2098. Tez UI: Dag details should be the default page for dag, fix invalid time entries for failed Vertices.
   TEZ-2024. TaskFinishedEvent may not be logged in recovery.
   TEZ-2031. Tez UI: horizontal scrollbars do not appear in tables, causing them to look truncated. 
