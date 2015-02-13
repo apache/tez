@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -56,6 +57,7 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
+import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -106,6 +108,19 @@ public class TestTaskAttemptRecovery {
           TaskAttemptFinishedEvent tfEvent = (TaskAttemptFinishedEvent)event.getHistoryEvent();
           if (tfEvent.getTaskAttemptID().equals(taId) &&
               tfEvent.getState().equals(finalState)) {
+            actualTimes ++;
+          }
+        }
+      }
+      assertEquals(expectedTimes, actualTimes);
+    }
+
+    void verifyTaskFinishedEvent(TezTaskID taskId, TaskState finalState, int expectedTimes) {
+      int actualTimes = 0;
+      for (DAGHistoryEvent event : events) {
+        if (event.getHistoryEvent().getEventType() == HistoryEventType.TASK_FINISHED) {
+          TaskFinishedEvent tfEvent = (TaskFinishedEvent)event.getHistoryEvent();
+          if (tfEvent.getTaskID().equals(taskId) && tfEvent.getState().equals(finalState)) {
             actualTimes ++;
           }
         }
