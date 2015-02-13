@@ -52,8 +52,8 @@ App.Helpers.date = {
    * @method dateFormat
    */
   dateFormat: function (timestamp, showSeconds, showMilliseconds) {
-    if (!App.Helpers.number.isValidInt(timestamp)) {
-      return timestamp;
+    if (!App.Helpers.number.isValidInt(timestamp) || timestamp == 0) {
+      return "";
     }
     if(showSeconds == undefined) showSeconds = true;
     var format = 'DD MMM YYYY HH:mm';
@@ -165,7 +165,7 @@ App.Helpers.date = {
    */
   timingFormat: function (time, /* optional */ zeroValid) {
     var intTime = parseInt(time);
-    if (zeroValid && intTime == 0) {
+    if (zeroValid && intTime <= 0) {
       return 0 + ' secs';
     }
     if (!intTime) {
