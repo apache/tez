@@ -31,7 +31,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -54,9 +53,14 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
@@ -69,6 +73,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   MockContainerLauncher containerLauncher;
   boolean initFailFlag;
   boolean startFailFlag;
+  boolean sendDMEvents;
 
   // mock container launcher does not launch real tasks.
   // Upon, launch of a container is simulates the container asking for tasks
@@ -99,6 +104,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       ContainerId cId;
       TezTaskAttemptID taId;
       String vName;
+      TaskSpec taskSpec;
       ContainerLaunchContext launchContext;
       int numUpdates = 0;
       boolean completed;
@@ -111,6 +117,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       void clear() {
         taId = null;
         vName = null;
+        taskSpec = null;
         completed = false;
         launchContext = null;
       }
@@ -215,7 +222,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
     @Override
     public void run() {
       // wait for test to sync with us and get a reference to us. Go when sync is done
+      LOG.info("Waiting to go");
       waitToGo();
+      LOG.info("Signal to go");
       while(true) {
         if (!startScheduling.get()) { // schedule when asked to do so by the test code
           continue;
@@ -236,6 +245,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               } else {
                 cData.taId = cTask.getTaskSpec().getTaskAttemptID();
                 cData.vName = cTask.getTaskSpec().getVertexName();
+                cData.taskSpec = cTask.getTaskSpec();
               }
             } catch (IOException e) {
               e.printStackTrace();
@@ -261,6 +271,20 @@ public class MockDAGAppMaster extends DAGAppMaster {
               // send a done notification
               TezVertexID vertexId = cData.taId.getTaskID().getVertexID();
               cData.completed = true;
+              if (sendDMEvents) {
+                Event event = null;
+                for (OutputSpec output : cData.taskSpec.getOutputs()) {
+                  if (output.getPhysicalEdgeCount() == 1) {
+                    event = DataMovementEvent.create(0, null);
+                  } else {
+                    event = CompositeDataMovementEvent.create(0, output.getPhysicalEdgeCount(), null);
+                  }
+                  getContext().getEventHandler().handle(
+                      new VertexEventRouteEvent(vertexId, Collections.singletonList(new TezEvent(
+                          event, new EventMetaData(EventProducerConsumerType.OUTPUT, cData.vName,
+                              output.getDestinationVertexName(), cData.taId)))));
+                }
+              }
               getContext().getEventHandler().handle(
                   new VertexEventRouteEvent(vertexId, Collections.singletonList(new TezEvent(
                       new TaskAttemptCompletedEvent(), new EventMetaData(

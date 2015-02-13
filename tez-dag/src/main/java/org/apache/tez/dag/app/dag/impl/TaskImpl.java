@@ -37,6 +37,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -1442,6 +1443,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     } finally {
       this.writeLock.unlock();
     }
+  }
+  
+  @Private
+  @VisibleForTesting
+  public List<TezEvent> getTaskEvents() {
+    return tezEventsForTaskAttempts;
   }
 
   private static class KillTransition
