@@ -195,6 +195,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2037. Should log TaskAttemptFinishedEvent if taskattempt is recovered to KILLED.
   TEZ-2071. TestAMRecovery should set test names for test DAGs.
   TEZ-1928. Tez local mode hang in Pig tez local mode.
   TEZ-1893. Verify invalid -1 parallelism in DAG.verify().
