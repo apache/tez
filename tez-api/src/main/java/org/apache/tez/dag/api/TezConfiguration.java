@@ -43,7 +43,7 @@ import com.google.common.annotations.VisibleForTesting;
 @Public
 public class TezConfiguration extends Configuration {
 
-  private final static String TEZ_SITE_XML = "tez-site.xml";
+  public final static String TEZ_SITE_XML = "tez-site.xml";
 
   private final static Log LOG = LogFactory.getLog(TezConfiguration.class);
 

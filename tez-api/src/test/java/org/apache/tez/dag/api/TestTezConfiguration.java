@@ -57,7 +57,8 @@ public class TestTezConfiguration {
     Class<?> c = TezConfiguration.class;
     Set<String> expectedKeys = new HashSet<String>();
     for (Field f : c.getFields()) {
-      if (!f.getName().endsWith("DEFAULT") && f.getType() == String.class) {
+      if (!f.getName().endsWith("DEFAULT") && f.getType() == String.class
+          && !f.getName().equals("TEZ_SITE_XML")) {
         String value = (String)f.get(null);
         // not prefix
         if (!value.endsWith(".")) {
