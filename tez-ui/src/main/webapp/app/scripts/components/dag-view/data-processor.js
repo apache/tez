@@ -74,7 +74,7 @@
  *          + Other custom properties including data to be displayed
  *        }
  *      ]
- *      maxDepth, inputCount
+ *      maxDepth, leafCount
  *    }
  *
  * Data Nodes:
@@ -579,27 +579,27 @@ App.DagViewComponent.dataProcessor = (function (){
    */
   function _getGraphDetails(tree) {
     var maxDepth = 0,
-        inputCount = 0,
+        leafCount = 0,
 
         links = _getLinks(tree);
 
     tree.ifForEach('children', function (child) {
       var details = _getGraphDetails(child);
       maxDepth = Math.max(maxDepth, details.maxDepth);
-
-      if(child.type == types.INPUT) {
-        inputCount++;
-      }
-      inputCount += details.inputCount;
+      leafCount += details.leafCount;
 
       links.push.apply(links, details.links);
     });
+
+    if(!tree.get('children')) {
+      leafCount++;
+    }
 
     return {
       tree: tree,
       links: links,
       maxDepth: maxDepth + 1,
-      inputCount: inputCount
+      leafCount: leafCount
     };
   }
 

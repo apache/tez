@@ -86,6 +86,7 @@ App.DagViewComponent.graphView = (function (){
           hSpacing: 180,     // Horizontal spacing between nodes
           vSpacing: 70,      // Vertical spacing between nodes
           depthSpacing: 180, // In leftToRight depthSpacing = hSpacing
+          linkDelta: 30,     // Used for links starting and ending at the same point
           projector: function (x, y) { // Converts coordinate based on current orientation
             return {x: y, y: x};
           },
@@ -96,6 +97,7 @@ App.DagViewComponent.graphView = (function (){
           hSpacing: 120,
           vSpacing: 100,
           depthSpacing: 100, // In topToBottom depthSpacing = vSpacing
+          linkDelta: 15,
           projector: function (x, y) {
             return {x: x, y: y};
           },
@@ -218,7 +220,7 @@ App.DagViewComponent.graphView = (function (){
    * @param d {VertexDataNode}
    */
   function _addStatusBar(node, d) {
-    var group = node.append('g');
+    var group = node.append('g'),
         statusIcon = App.Helpers.misc.getStatusClassForEntity(d.get('data'));
     group.attr('class', 'status-bar');
 
@@ -486,6 +488,14 @@ App.DagViewComponent.graphView = (function (){
   }
 
   /**
+   * Callback for mousedown & mousemove interactions. To disable click on drag
+   * @param d {DataNode} Data of the clicked element
+   */
+  function _onMouse(d) {
+    d3.select(this).on('click', d3.event.type == 'mousedown' ? _onClick : null);
+  }
+
+  /**
    * Double click event handler.
    * @param d {DataNode} Data of the clicked element
    */
@@ -530,8 +540,8 @@ App.DagViewComponent.graphView = (function (){
         sV = 45,
         mY -= 50;
         if(sX == tX) {
-          sX += 30,
-          tX -= 30;
+          sX += _layout.linkDelta,
+          tX -= _layout.linkDelta;
         }
       }
       sH = Math.abs(sX - tX) * 1.1;
@@ -575,7 +585,8 @@ App.DagViewComponent.graphView = (function (){
       .on({
         mouseover: _onMouseOver,
         mouseout: _tip.hide,
-        click: _onClick,
+        mousedown: _onMouse,
+        mousemove: _onMouse,
         dblclick: _onDblclick
       })
       .style('opacity', 1e-6)
@@ -786,7 +797,14 @@ App.DagViewComponent.graphView = (function (){
    * @param layout {Object} One of the values defined in LAYOUTS object
    */
   function _setLayout(layout) {
-    var dimention = layout.projector(_data.inputCount, _data.maxDepth - 1);
+    var leafCount = _data.leafCount,
+        dimention;
+
+    // If count is even dummy will be replaced by output, so output would no more be leaf
+    if(_data.tree.get('children.length') % 2 == 0) {
+      leafCount--;
+    }
+    dimention = layout.projector(leafCount, _data.maxDepth - 1);
 
     _layout = layout;
 
@@ -818,7 +836,7 @@ App.DagViewComponent.graphView = (function (){
       _tip.init($(element).find('.tool-tip'), _svg);
 
       _treeData = data.tree,
-      _treeData.x0 = _height / 2,
+      _treeData.x0 = 0,
       _treeData.y0 = 0;
 
       _panZoom = _attachPanZoom(_svg, _g);
