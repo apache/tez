@@ -1,5 +1,6 @@
 ALL CHANGES:
   TEZ-2019. Temporarily allow the scheduler and launcher to be specified via configuration.
   TEZ-2006. Task communication plane needs to be pluggable.
+  TEZ-2090. Add tests for jobs running in external services.
 
 INCOMPATIBLE CHANGES:

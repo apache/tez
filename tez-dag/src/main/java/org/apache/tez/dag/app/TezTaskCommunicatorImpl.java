@@ -74,16 +74,22 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       new ConcurrentHashMap<TaskAttempt, ContainerId>();
 
   private final TezTaskUmbilicalProtocol taskUmbilical;
+  private final String tokenIdentifier;
+  private final Token<JobTokenIdentifier> sessionToken;
   private InetSocketAddress address;
   private Server server;
 
-  private static final class ContainerInfo {
+  public static final class ContainerInfo {
 
-    ContainerInfo(ContainerId containerId) {
+    ContainerInfo(ContainerId containerId, String host, int port) {
       this.containerId = containerId;
+      this.host = host;
+      this.port = port;
     }
 
-    ContainerId containerId;
+    final ContainerId containerId;
+    public final String host;
+    public final int port;
     TezHeartbeatResponse lastResponse = null;
     TaskSpec taskSpec = null;
     long lastRequestId = 0;
@@ -110,6 +116,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     super(TezTaskCommunicatorImpl.class.getName());
     this.taskCommunicatorContext = taskCommunicatorContext;
     this.taskUmbilical = new TezTaskUmbilicalProtocolImpl();
+    this.tokenIdentifier = this.taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString();
+    this.sessionToken = TokenCache.getSessionToken(taskCommunicatorContext.getCredentials());
   }
 
 
@@ -130,9 +138,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       try {
         JobTokenSecretManager jobTokenSecretManager =
             new JobTokenSecretManager();
-        Token<JobTokenIdentifier> sessionToken = TokenCache.getSessionToken(taskCommunicatorContext.getCredentials());
-        jobTokenSecretManager.addTokenForJob(
-            taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString(), sessionToken);
+        jobTokenSecretManager.addTokenForJob(tokenIdentifier, sessionToken);
 
         server = new RPC.Builder(conf)
             .setProtocol(TezTaskUmbilicalProtocol.class)
@@ -184,7 +190,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
   @Override
   public void registerRunningContainer(ContainerId containerId, String host, int port) {
-    ContainerInfo oldInfo = registeredContainers.putIfAbsent(containerId, new ContainerInfo(containerId));
+    ContainerInfo oldInfo = registeredContainers.putIfAbsent(containerId, new ContainerInfo(containerId, host, port));
     if (oldInfo != null) {
       throw new TezUncheckedException("Multiple registrations for containerId: " + containerId);
     }
@@ -232,8 +238,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
                 ". Already registered to containerId: " + oldId);
       }
     }
-
   }
+
 
   @Override
   public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID) {
@@ -258,6 +264,18 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   @Override
   public InetSocketAddress getAddress() {
     return address;
+  }
+
+  protected String getTokenIdentifier() {
+    return tokenIdentifier;
+  }
+
+  protected Token<JobTokenIdentifier> getSessionToken() {
+    return sessionToken;
+  }
+
+  protected TaskCommunicatorContext getTaskCommunicatorContext() {
+    return taskCommunicatorContext;
   }
 
   public TezTaskUmbilicalProtocol getUmbilical() {
@@ -472,5 +490,13 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     public String toString() {
       return "TaskAttempt{" + "taskAttemptId=" + taskAttemptId + '}';
     }
+  }
+
+  protected ContainerInfo getContainerInfo(ContainerId containerId) {
+    return registeredContainers.get(containerId);
+  }
+
+  protected ContainerId getContainerForAttempt(TezTaskAttemptID taskAttemptId) {
+    return attemptToContainerMap.get(new TaskAttempt(taskAttemptId));
   }
 }

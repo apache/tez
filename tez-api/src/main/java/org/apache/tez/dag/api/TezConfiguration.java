@@ -1219,6 +1219,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_CONTAINER_LAUNCHER_CLASS = TEZ_AM_PREFIX + "container-launcher.class";
   @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_AM_TASK_SCHEDULER_CLASS = TEZ_AM_PREFIX + "task-scheduler.class";
+  @ConfigurationScope(Scope.VERTEX)
+  public static final String TEZ_AM_TASK_COMMUNICATOR_CLASS = TEZ_AM_PREFIX + "task-communicator.class";
 
 
   // TODO only validate property here, value can also be validated if necessary

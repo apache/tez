@@ -44,5 +44,8 @@ public interface TaskCommunicatorContext {
   // TODO TEZ-2003 Move to vertex, taskIndex, version
   void taskStartedRemotely(TezTaskAttemptID taskAttemptID, ContainerId containerId);
 
+  // TODO TEZ-2003 Add an API to register task failure - for example, a communication failure.
+  // This will have to take into consideration the TA_FAILED event
+
   // TODO Eventually Add methods to report availability stats to the scheduler.
 }

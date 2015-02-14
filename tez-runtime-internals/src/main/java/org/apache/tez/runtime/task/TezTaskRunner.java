@@ -67,7 +67,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
   private final AtomicBoolean taskRunning;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
 
-  TezTaskRunner(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
+  public TezTaskRunner(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
       TaskSpec taskSpec, int appAttemptNumber,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> serviceProviderEnvMap,
       Multimap<String, String> startedInputsMap, TaskReporter taskReporter,

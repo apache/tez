@@ -175,6 +175,11 @@
         <type>test-jar</type>
       </dependency>
       <dependency>
+        <groupId>org.apache.tez</groupId>
+        <artifactId>tez-ext-service-tests</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.pig</groupId>
         <artifactId>pig</artifactId>
         <version>${pig.version}</version>
@@ -680,6 +685,7 @@
     <module>tez-ui</module>
     <module>tez-plugins</module>
     <module>tez-tools</module>
+    <module>tez-ext-service-tests</module>
     <module>tez-dist</module>
     <module>docs</module>
   </modules>

@@ -350,7 +350,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         try {
           Constructor<? extends TaskSchedulerService> ctor = taskSchedulerClazz
               .getConstructor(TaskSchedulerAppCallback.class, AppContext.class, String.class,
-                  Integer.class, String.class, Configuration.class);
+                  int.class, String.class, Configuration.class);
           ctor.setAccessible(true);
           TaskSchedulerService taskSchedulerService =
               ctor.newInstance(this, appContext, host, port, trackingUrl, getConfig());
