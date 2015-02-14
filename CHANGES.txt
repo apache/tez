@@ -64,6 +64,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2102. Tez UI: DAG view has hidden edges, dragging DAG by holding vertex causes unintended click.
   TEZ-2101. Tez UI: Issues on displaying a table.
   TEZ-2092. Tez UI history url handler injects spurious trailing slash.
   TEZ-2098. Tez UI: Dag details should be the default page for dag, fix invalid time entries for failed Vertices.
