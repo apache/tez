@@ -79,6 +79,10 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
           fetcher = store.find('appDetail', appId);
           fetcher.then(function (app) {
             dag.set('appDetail', app);
+            if (dag.get('status') === 'RUNNING') {
+              dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('appState'),
+                app.get('finalAppStatus')));
+            }
           });
           loaders.push(fetcher);
           //Load tezApp details

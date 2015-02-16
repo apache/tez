@@ -48,6 +48,8 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       if (appState) {
         that.set('yarnAppState', appState);
       }
+      that.set('status', App.Helpers.misc.getRealStatus(that.get('status'), appDetail.get('appState'),
+        appDetail.get('finalAppStatus')));
     });
     loaders.push(appDetailFetcher);
     Em.RSVP.allSettled(loaders).then(function(){

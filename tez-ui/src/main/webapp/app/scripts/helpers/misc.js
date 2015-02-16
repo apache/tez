@@ -41,9 +41,23 @@ App.Helpers.misc = {
         }
 
         return 'success';
+      case 'UNDEFINED':
+        return 'unknown';
       default:
         return 'submitted';
     }
+  },
+
+  getRealStatus: function(entityState, yarnAppState, yarnAppFinalState) {
+    if (entityState != 'RUNNING' || (yarnAppState != 'FINISHED' && yarnAppState != 'KILLED' && yarnAppState != 'FAILED')) {
+      return entityState;
+    }
+
+    if (yarnAppState == 'KILLED' || yarnAppState == 'FAILED') {
+      return yarnAppState;
+    }
+
+    return yarnFinalState;
   },
 
 	getCounterValueForDag: function(counterGroups, dagID, counterGroupName, counterName) {
@@ -74,6 +88,10 @@ App.Helpers.misc = {
 
   isValidTaskStatus: function(status) {
     return $.inArray(status, ['RUNNING', 'SUCCEEDED', 'FAILED', 'KILLED']) != -1;
+  },
+
+  isStatusInUnsuccessful: function(status) {
+    return $.inArray(status, ['FAILED', 'KILLED', 'UNDEFINED']) != -1;
   },
 
   /**
