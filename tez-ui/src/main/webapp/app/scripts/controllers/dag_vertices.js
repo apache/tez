@@ -49,6 +49,15 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
 
     var that = this;
         vertices = this.get('entities');
+
+    var dagStatus = this.get('controllers.dag.status');
+    if (App.Helpers.misc.isStatusInUnsuccessful(dagStatus)) {
+      vertices.filterBy('status', 'RUNNING')
+        .forEach(function(item) {
+          item.set('status', 'KILLED');
+        });
+    }
+
     var runningVerticesIdx = vertices
       .filterBy('status', 'RUNNING')
       .map(function(item) {

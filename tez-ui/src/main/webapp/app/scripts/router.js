@@ -141,6 +141,9 @@ App.DagRoute = Em.Route.extend({
   model: function(params) {
     return this.store.find('dag', params.dag_id);
   },
+  afterModel: function(model) {
+    return this.controllerFor('dag').loadAdditional(model);
+  },
   setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id')
 });
 

@@ -338,12 +338,17 @@ body, html, body > .ember-view {
 
   &.killed {
     .fa-icon(exclamation-circle);
-    color: @warning-color;
+    color: @error-color;
   }
 
   &.warning {
     .fa-icon(exclamation-triangle);
     color: @warning-color;
+  }
+
+  &.unknown {
+    .fa-icon(exclamation);
+    color: @unknown-color;
   }
 }
 

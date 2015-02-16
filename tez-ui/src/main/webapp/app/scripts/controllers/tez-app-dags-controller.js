@@ -57,14 +57,17 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
     that.set('loading', true);
 
     this.get('store').unloadAll(childEntityType);
-    this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+    this.get('store').findQuery(childEntityType, this.getFilterProperties())
+      .then(function(entities){
+
       that.set('entities', entities);
 
       var loaders = [];
       entities.forEach(function (dag) {
+        var applicationId = dag.get('applicationId');
         if (dag.get('status') === 'RUNNING') {
           amInfoFetcher = that.store.find('dagProgress', dag.get('id'), {
-            appId: dag.get('applicationId'),
+            appId: applicationId,
             dagIdx: dag.get('idx')
           }).then(function(dagProgressInfo) {
               dag.set('progress', dagProgressInfo.get('progress'));
@@ -73,7 +76,19 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
           });
           loaders.push(amInfoFetcher);
         }
+
+        var appDetailLoader = that.store.find('appDetail', applicationId)
+          .then(function(app){
+          dag.set('appDetail', app);
+          var appState = app.get('appState');
+          if (appState) {
+            dag.set('yarnAppState', appState);
+          }
+          dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'),
+            app.get('appState'), app.get('finalAppStatus')));
+        });
       });
+
       Em.RSVP.allSettled(loaders).then(function(){
         that.set('loading', false);
       });

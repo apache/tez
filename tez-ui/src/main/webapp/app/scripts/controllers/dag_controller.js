@@ -21,17 +21,17 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   pageTitle: 'Dag',
   loading: true,
 
-  updateLoading: function() {
+  loadAdditional: function(dag) {
     var that = this;
     var loaders = [];
-    var applicationId = this.get('applicationId');
-    if (this.get('status') === 'RUNNING') {
+    var applicationId = dag.get('applicationId');
+    if (dag.get('status') === 'RUNNING') {
       // update the progress info if available. this need not block the UI
-      var aminfoLoader = that.store.find('dagProgress', that.get('id'), {
+      var aminfoLoader = that.store.find('dagProgress', dag.get('id'), {
         appId: applicationId,
-        dagIdx: that.get('idx')
+        dagIdx: dag.get('idx')
       }).then(function(dagProgressInfo) {
-        that.set('progress', dagProgressInfo.get('progress'));
+        dag.set('progress', dagProgressInfo.get('progress'));
       }).catch(function (error) {
         Em.Logger.error("Failed to fetch dagProgress")
       });
@@ -39,24 +39,26 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     }
     var appDetailLoader = this.store.find('appDetail', applicationId)
       .then(function(app){
-        that.set('appDetail', app);
+        dag.set('appDetail', app);
+        var appState = app.get('appState');
+        if (appState) {
+          dag.set('yarnAppState', appState);
+        }
+        dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('appState'), app.get('finalAppStatus')));
       });
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId)
       .then(function(app){
-        that.set('tezApp', app);
+        dag.set('tezApp', app);
       });
 
-    var appDetailFetcher = that.store.find('appDetail', applicationId).then(function(appDetail) {
-      var appState = appDetail.get('appState');
-      if (appState) {
-        that.set('yarnAppState', appState);
-      }
-    });
-    loaders.push(appDetailFetcher);
+    loaders.push(appDetailLoader);
+
     Em.RSVP.allSettled(loaders).then(function(){
       that.set('loading', false);
     });
-  }.observes('content'),
+
+    return Em.RSVP.all(loaders);
+  },
 
   enableAppIdLink: function() {
     return !!(this.get('tezApp') && this.get('appDetail'));
