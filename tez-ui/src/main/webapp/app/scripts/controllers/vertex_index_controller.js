@@ -21,7 +21,7 @@ App.VertexIndexController = Em.ObjectController.extend({
 
   //TODO: TEZ-1705 : Create a parent class and move this function there to avoid duplication.
   iconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
+    return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
   }.property('id', 'status', 'counterGroups'),
 
   progressStr: function() {

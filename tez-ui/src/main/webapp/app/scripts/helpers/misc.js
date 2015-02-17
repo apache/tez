@@ -16,11 +16,10 @@
  */
 
 App.Helpers.misc = {
-  getStatusClassForEntity: function(dag) {
-    if(!dag) return '';
+  getStatusClassForEntity: function(status, hasFailedTasks) {
+    if(!status) return '';
 
-    var st = dag.get('status');
-    switch(st) {
+    switch(status) {
       case 'FAILED':
         return 'failed';
       case 'KILLED':
@@ -30,6 +29,11 @@ App.Helpers.misc = {
       case 'ERROR':
         return 'error';
       case 'SUCCEEDED':
+        if (!!hasFailedTasks) {
+          return 'warning';
+        }
+        /*
+        TODO: TEZ-2113
         var counterGroups = dag.get('counterGroups');
         var numFailedTasks = this.getCounterValueForDag(counterGroups,
           dag.get('id'), 'org.apache.tez.common.counters.DAGCounter',
@@ -38,7 +42,7 @@ App.Helpers.misc = {
 
         if (numFailedTasks > 0) {
           return 'warning';
-        }
+        }*/
 
         return 'success';
       case 'UNDEFINED':
@@ -193,6 +197,21 @@ App.Helpers.misc = {
     return path;
   },
 
+  // Tez originally shows the status for task and task attempt only on
+  // completion. this causes confusion to the user as the status would not be
+  // displayed. so if status is not set return the status as 'RUNNING'. We do
+  // not diffentiate between running and scheduled.
+  getFixedupDisplayStatus: function(originalStatus) {
+    // if status is not set show it as running, since originally the task did
+    // not have a status set on scheduled/running.
+    // with the new version we set the status of task as scheduled and that of
+    // task attempt as running
+    if (!originalStatus || originalStatus == 'SCHEDULED') {
+      originalStatus = 'RUNNING';
+    }
+    return originalStatus;
+  },
+
   /**
    * Merge content of obj2 into obj2, array elements will be concated.
    * @param obj1 {Object}
@@ -232,6 +251,14 @@ App.Helpers.misc = {
   ],
 
   taskStatusUIOptions: [
+    { label: 'All', id: null },
+    { label: 'Running', id: 'SCHEDULED' },
+    { label: 'Succeeded', id: 'SUCCEEDED' },
+    { label: 'Failed', id: 'FAILED' },
+    { label: 'Killed', id: 'KILLED' },
+  ],
+
+  taskAttemptStatusUIOptions: [
     { label: 'All', id: null },
     { label: 'Running', id: 'RUNNING' },
     { label: 'Succeeded', id: 'SUCCEEDED' },

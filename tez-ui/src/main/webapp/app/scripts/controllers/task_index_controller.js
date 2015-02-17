@@ -18,10 +18,14 @@
 
  //TODO: watch individual counters.
 App.TaskIndexController = Em.ObjectController.extend({
-	controllerName: 'TaskIndexController',
+  controllerName: 'TaskIndexController',
 
-	taskIconStatus: function() {
-		return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
-	}.property('id', 'status', 'counterGroups'),
+  taskStatus: function() {
+    return App.Helpers.misc.getFixedupDisplayStatus(this.get('model.status'));
+  }.property('id', 'status'),
+
+  taskIconStatus: function() {
+    return App.Helpers.misc.getStatusClassForEntity(this.get('taskStatus'));
+  }.property('id', 'status', 'counterGroups'),
 
 });

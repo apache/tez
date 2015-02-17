@@ -50,8 +50,18 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
 
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      var pivotLoaders = [];
+      var pivotLoaders = [],
+          vertexStatus = that.get('controllers.vertex.status');
       entities.forEach(function (task) {
+        var taskStatus = App.Helpers.misc
+          .getFixedupDisplayStatus(task.get('status'));
+        if (taskStatus == 'RUNNING' &&
+          App.Helpers.misc.isStatusInUnsuccessful(vertexStatus)) {
+          taskStatus = 'KILLED';
+        }
+        if (taskStatus != task.get('status')) {
+          task.set('status', taskStatus);
+        }
         var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
         if (!!taskAttemptId) {
           // Pivot attempt selection logic
@@ -143,9 +153,10 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
+          var status = row.get('status');
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
           };
         }
       },

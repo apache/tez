@@ -176,13 +176,15 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
             {{#if view.cellContent.progress}} {{bs-badge content=view.cellContent.progress}}{{/if}}</span>')
         }),
         getCellContent: function(row) {
-          var pct;
+          var pct,
+              vertexStatus = row.get('status');
           if (Ember.typeOf(row.get('progress')) === 'number') {
             pct = App.Helpers.number.fractionToPercentage(row.get('progress'));
           }
+
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row),
+            status: vertexStatus,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(vertexStatus),
             progress: pct
           };
         }
