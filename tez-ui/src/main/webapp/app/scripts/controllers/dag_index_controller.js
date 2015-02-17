@@ -21,7 +21,7 @@ App.DagIndexController = Em.ObjectController.extend({
 	controllerName: 'DagIndexController',
 
 	taskIconStatus: function() {
-		return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
+		return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
 	}.property('id', 'status', 'counterGroups'),
 
   progressStr: function() {

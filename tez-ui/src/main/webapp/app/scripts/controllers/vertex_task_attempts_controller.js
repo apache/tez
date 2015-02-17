@@ -54,7 +54,8 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
   },
 
   defaultColumnConfigs: function() {
-    var that = this;
+    var that = this,
+        vertexStatus = that.get('controllers.vertex.status');
     return [
       {
         id: 'taskId',
@@ -118,7 +119,7 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
         headerCellName: 'Status',
         filterID: 'status_filter',
         filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
+        dropdownValues: App.Helpers.misc.taskAttemptStatusUIOptions,
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
@@ -126,9 +127,14 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
+          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
+          if (status == 'RUNNING' &&
+            App.Helpers.misc.isStatusInUnsuccessful(vertexStatus)) {
+            status = 'KILLED'
+          }
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
           };
         }
       },

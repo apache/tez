@@ -23,19 +23,19 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
   loading: true,
 
-  updateLoading: function() {
+  loadAdditional: function(vertex) {
     var loaders = [],
       that = this,
-      applicationId = this.get('applicationId');
+      applicationId = vertex.get('applicationId');
 
-    if (this.get('status') == 'RUNNING') {
-      var vertexIdx = that.get('id').split('_').splice(-1).pop();
+    if (vertex.get('status') == 'RUNNING') {
+      var vertexIdx = vertex.get('id').split('_').splice(-1).pop();
       var progressLoader = this.store.find('vertexProgress', vertexIdx, {
         appId: applicationId,
-        dagIdx: that.get('dagIdx')
+        dagIdx: vertex.get('dagIdx')
       }).then(function(vertexProgressInfo) {
         if (vertexProgressInfo) {
-          that.set('progress', vertexProgressInfo.get('progress'));
+          vertex.set('progress', vertexProgressInfo.get('progress'));
         }
       }).catch(function(error) {
         Em.Logger.error("Failed to fetch vertexProgress" + error)
@@ -46,16 +46,18 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     var appDetailFetcher = that.store.find('appDetail', applicationId).then(function(appDetail) {
       var appState = appDetail.get('appState');
       if (appState) {
-        that.set('yarnAppState', appState);
+        vertex.set('yarnAppState', appState);
       }
-      that.set('status', App.Helpers.misc.getRealStatus(that.get('status'), appDetail.get('appState'),
+      vertex.set('status', App.Helpers.misc.getRealStatus(vertex.get('status'), appDetail.get('appState'),
         appDetail.get('finalAppStatus')));
-    });
+    }).catch(function(){});
     loaders.push(appDetailFetcher);
     Em.RSVP.allSettled(loaders).then(function(){
       that.set('loading', false);
     });
-  }.observes('content'),
+
+    return Em.RSVP.all(loaders);
+  },
 
   childDisplayViews: [
     Ember.Object.create({title: 'Details', linkTo: 'vertex.index'}),

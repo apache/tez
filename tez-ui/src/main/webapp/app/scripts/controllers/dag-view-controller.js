@@ -74,7 +74,9 @@ App.DagViewController = Em.ObjectController.extend(App.PaginatedContentMixin, Ap
   viewData: function () {
     var vertices = this.get('controllers.dag.vertices'),
         entities = this.get('entities'),
-        finalVertex;
+        finalVertex,
+        dagStatus = this.get('controllers.dag.status'),
+        needsStatusFixup = App.Helpers.misc.isStatusInUnsuccessful(dagStatus);
 
     entities = entities.reduce(function (obj, vertexData) {
       obj[vertexData.get('name')] = vertexData;
@@ -83,6 +85,9 @@ App.DagViewController = Em.ObjectController.extend(App.PaginatedContentMixin, Ap
 
     vertices.forEach(function (vertex) {
       vertex.data = entities[vertex.vertexName];
+      if (needsStatusFixup && vertex.data.get('status') == 'RUNNING') {
+        vertex.data.set('status', 'KILLED');
+      }
     });
 
     return {

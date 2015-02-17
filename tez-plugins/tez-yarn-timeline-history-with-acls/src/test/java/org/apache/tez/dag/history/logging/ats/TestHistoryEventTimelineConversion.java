@@ -705,6 +705,8 @@ public class TestHistoryEventTimelineConversion {
         ((Long)timelineEntity.getOtherInfo().get(ATSConstants.SCHEDULED_TIME)).longValue());
     Assert.assertEquals(startTime,
         ((Long)timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
+    Assert.assertTrue(TaskState.SCHEDULED.name()
+        .equals(timelineEntity.getOtherInfo().get(ATSConstants.STATUS)));
   }
 
   @Test(timeout = 5000)
@@ -759,6 +761,8 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.CONTAINER_ID));
     Assert.assertEquals("nodeHttpAddress",
         timelineEntity.getOtherInfo().get(ATSConstants.NODE_HTTP_ADDRESS));
+    Assert.assertTrue(TaskAttemptState.RUNNING.name()
+        .equals(timelineEntity.getOtherInfo().get(ATSConstants.STATUS)));
   }
 
   @Test(timeout = 5000)

@@ -161,7 +161,7 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         headerCellName: 'Status',
         filterID: 'status_filter',
         filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
+        dropdownValues: App.Helpers.misc.taskAttemptStatusUIOptions,
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
@@ -169,9 +169,10 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
+          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
           };
         }
       },
@@ -255,8 +256,12 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
 App.TaskAttemptIndexController = Em.ObjectController.extend({
   controllerName: 'TaskAttemptIndexController',
 
-  taskIconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('model'));
+  taskAttemptStatus: function() {
+    return App.Helpers.misc.getFixedupDisplayStatus(this.get('status'));
+  }.property('id', 'status'),
+
+  taskAttemptIconStatus: function() {
+    return App.Helpers.misc.getStatusClassForEntity(this.get('taskAttemptStatus'));
   }.property('id', 'status', 'counterGroups'),
 
 });

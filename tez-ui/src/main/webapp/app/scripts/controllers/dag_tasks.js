@@ -57,9 +57,21 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
       .fmt(App.env.timelineBaseUrl);
 
     store.unloadAll(childEntityType);
-    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+    store.findQuery(childEntityType, this.getFilterProperties())
+      .then(function(entities){
+
       var pivotLoaders = [];
+      var dagStatus = that.get('controllers.dag.status');
       entities.forEach(function (task) {
+        var taskStatus = App.Helpers.misc
+          .getFixedupDisplayStatus(task.get('status'));
+        if (taskStatus == 'RUNNING' &&
+          App.Helpers.misc.isStatusInUnsuccessful(dagStatus)) {
+          taskStatus = 'KILLED'
+        }
+        if (taskStatus != task.get('status')) {
+          task.set('status', taskStatus);
+        }
         var taskAttemptId = task.get('successfulAttemptId') ||
             task.get('attempts.lastObject');
         if (!!taskAttemptId) {
@@ -158,9 +170,10 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
+          var status = row.get('status');
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
           };
         }
       },

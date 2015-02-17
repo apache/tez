@@ -88,9 +88,10 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
+          var taskStatus = row.get('status');
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            status: taskStatus,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(taskStatus)
           };
         }
       }

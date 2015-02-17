@@ -29,6 +29,8 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -435,6 +437,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.NODE_ID, event.getNodeId().toString());
     atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
     atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
+    atsEntity.addOtherInfo(ATSConstants.STATUS, TaskAttemptState.RUNNING.name());
 
     return atsEntity;
   }
@@ -497,6 +500,7 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
     atsEntity.addOtherInfo(ATSConstants.SCHEDULED_TIME, event.getScheduledTime());
+    atsEntity.addOtherInfo(ATSConstants.STATUS, TaskState.SCHEDULED.name());
 
     return atsEntity;
   }

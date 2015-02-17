@@ -45,11 +45,11 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
           dag.set('yarnAppState', appState);
         }
         dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('appState'), app.get('finalAppStatus')));
-      });
+      }).catch(function(){});
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId)
       .then(function(app){
         dag.set('tezApp', app);
-      });
+      }).catch(function(){});
 
     loaders.push(appDetailLoader);
 

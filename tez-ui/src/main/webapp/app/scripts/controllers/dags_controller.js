@@ -179,9 +179,10 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
           if (Ember.typeOf(row.get('progress')) === 'number') {
             pct = App.Helpers.number.fractionToPercentage(row.get('progress'));
           }
+          var dagStatus = row.get('status');
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row),
+            status: dagStatus,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(dagStatus),
             progress: pct
           };
         }

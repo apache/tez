@@ -54,6 +54,7 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
 
   defaultColumnConfigs: function() {
     var that = this;
+    var dagStatus = this.get('controllers.dag.status');
     return [
       {
         id: 'taskId',
@@ -117,7 +118,7 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
         headerCellName: 'Status',
         filterID: 'status_filter',
         filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
+        dropdownValues: App.Helpers.misc.taskAttemptStatusUIOptions,
         tableCellViewClass: Em.Table.TableCell.extend({
           template: Em.Handlebars.compile(
             '<span class="ember-table-content">&nbsp;\
@@ -125,9 +126,14 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
+          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
+          if (status == 'RUNNING' &&
+            App.Helpers.misc.isStatusInUnsuccessful(dagStatus)) {
+            status = 'KILLED';
+          }
           return {
-            status: row.get('status'),
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(row)
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
           };
         }
       },

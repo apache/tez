@@ -187,6 +187,9 @@ App.VertexRoute = Em.Route.extend({
   model: function(params) {
     return this.store.find('vertex', params.vertex_id);
   },
+  afterModel: function(model) {
+    return this.controllerFor('vertex').loadAdditional(model);
+  },
   setupController: setupControllerFactory('Vertex: %@ (%@)', 'name', 'id')
 });
 
