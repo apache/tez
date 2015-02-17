@@ -18,14 +18,18 @@
 
 App.DagViewView = Ember.View.extend({
   setHeight: function () {
-    var container = $('.dag-view-component-container');
-    container.height(
-      Math.max(
-        // 50 pixel is left at the bottom
-        $(window).height() - container.offset().top - 50,
-        450 // Minimum dag view component container height
-      )
-    );
+    var container = $('.dag-view-component-container'),
+        offset;
+    if(container) {
+      offset = container.offset();
+      container.height(
+        Math.max(
+          // 50 pixel is left at the bottom
+          offset ? $(window).height() - offset.top - 50 : 0,
+          450 // Minimum dag view component container height
+        )
+      );
+    }
   },
 
   didInsertElement: function() {
