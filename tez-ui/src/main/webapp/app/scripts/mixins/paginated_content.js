@@ -181,11 +181,28 @@ App.PaginatedContentMixin = Em.Mixin.create({
     };
 
     var f = this._paginationFilters;
-    var primary = f.primary;
+    var primary = f.primary || {};
     var secondary = f.secondary || {};
 
-    primary = this._concatFilters(primary);
+    // TimelineRest API allows only one primaryFilter but any number of
+    // secondary filters. secondary filters are first checked in otherInfo
+    // field and then in primaryFilter field. this is tricky (for ex. when
+    // otherInfo and primaryFilter has same key). so we move all filters
+    // other than first non null primary to secondary.
+    var foundOnePrimaryFilter = false;
+    $.each(primary, function(name, value) {
+      if (!value) {
+        delete primary[name];
+        return true;
+      }
+      if (foundOnePrimaryFilter) {
+        secondary[name] = value;
+        delete primary[name];
+      }
+      foundOnePrimaryFilter = true;
+    });
 
+    primary = this._concatFilters(primary);
     secondary = this._concatFilters(secondary);
 
     if (!Em.empty(primary)) {
