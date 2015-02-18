@@ -41,6 +41,23 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
     this.setFiltersAndLoadEntities(filters);
   },
 
+  load: function () {
+    var vertex = this.get('controllers.vertex.model'),
+        controller = this.get('controllers.vertex'),
+        t = this;
+    vertex.reload().then(function () {
+      return controller.loadAdditional(vertex);
+    }).then(function () {
+      t.resetNavigation();
+      t.loadEntities();
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  }.observes('count'),
+
   actions : {
     filterUpdated: function(filterID, value) {
       // any validations required goes here.
@@ -53,9 +70,32 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
     }
   },
 
-  defaultColumnConfigs: function() {
-    var that = this,
+  updateLoading: function () {
+    var controller = this.get('controllers.vertex'),
+        model = this.get('controllers.vertex.model'),
+        that = this,
         vertexStatus = that.get('controllers.vertex.status');
+
+    controller.loadAdditional(model).then(function () {
+      that.get('entities').forEach(function (attempt) {
+
+        var attemptStatus = App.Helpers.misc
+          .getFixedupDisplayStatus(attempt.get('status'));
+        if (attemptStatus == 'RUNNING' &&
+          App.Helpers.misc.isStatusInUnsuccessful(vertexStatus)) {
+          attemptStatus = 'KILLED'
+        }
+        if (attemptStatus != attempt.get('status')) {
+          attempt.set('status', attemptStatus);
+        }
+      });
+
+      that.set('loading', false);
+    });
+  },
+
+  defaultColumnConfigs: function() {
+    var that = this;
     return [
       {
         id: 'taskId',
@@ -127,11 +167,7 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
-          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
-          if (status == 'RUNNING' &&
-            App.Helpers.misc.isStatusInUnsuccessful(vertexStatus)) {
-            status = 'KILLED'
-          }
+          var status = row.get('status');
           return {
             status: status,
             statusIcon: App.Helpers.misc.getStatusClassForEntity(status)

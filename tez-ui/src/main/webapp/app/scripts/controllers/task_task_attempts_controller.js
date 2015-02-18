@@ -48,10 +48,8 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
       .fmt(childEntityType, App.env.timelineBaseUrl);
 
     that.set('loading', true);
-
     this.get('store').unloadAll(childEntityType);
     this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      that.set('entities', entities);
       var loaders = [];
       try {
         var loader = Em.tryInvoke(that, 'loadAdditional');
@@ -62,8 +60,10 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         Em.Logger.error("Exception invoking additional load", error);
       }
 
+      App.Helpers.misc.removeRecord(that.store, 'dag', that.get('controllers.task.dagID'));
       var appDetailFetcher = that.store.find('dag', that.get('controllers.task.dagID')).
         then(function (dag) {
+          App.Helpers.misc.removeRecord(that.store, 'appDetail', dag.get('applicationId'));
           return that.store.find('appDetail', dag.get('applicationId'));
         }).
         then(function(appDetail) {
@@ -74,7 +74,8 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         });
       loaders.push(appDetailFetcher);
       Em.RSVP.allSettled(loaders).then(function(){
-          that.set('loading', false);
+        that.set('entities', entities);
+        that.set('loading', false);
       });
     }).catch(function(error){
       Em.Logger.error(error);
@@ -253,7 +254,7 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
 });
 
 
-App.TaskAttemptIndexController = Em.ObjectController.extend({
+App.TaskAttemptIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   controllerName: 'TaskAttemptIndexController',
 
   taskAttemptStatus: function() {

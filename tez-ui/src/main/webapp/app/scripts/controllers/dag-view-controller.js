@@ -37,6 +37,24 @@ App.DagViewController = Em.ObjectController.extend(App.PaginatedContentMixin, Ap
     this.setFiltersAndLoadEntities(filters);
   },
 
+  load: function () {
+    var dag = this.get('controllers.dag.model'),
+        controller = this.get('controllers.dag'),
+        t = this;
+    t.set('loading', true);
+    dag.reload().then(function () {
+      return controller.loadAdditional(dag);
+    }).then(function () {
+      t.resetNavigation();
+      t.loadEntities();
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  },
+
   actions: {
     entityClicked: function (details) {
       switch(details.type) {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
+App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
   controllerName: 'VertexController',
 
   pageTitle: 'Vertex',
@@ -30,6 +30,7 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
     if (vertex.get('status') == 'RUNNING') {
       var vertexIdx = vertex.get('id').split('_').splice(-1).pop();
+      App.Helpers.misc.removeRecord(this.store, 'vertexProgress', vertexIdx);
       var progressLoader = this.store.find('vertexProgress', vertexIdx, {
         appId: applicationId,
         dagIdx: vertex.get('dagIdx')
@@ -43,6 +44,7 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       loaders.push(progressLoader);
     }
 
+    App.Helpers.misc.removeRecord(that.store, 'appDetail', applicationId);
     var appDetailFetcher = that.store.find('appDetail', applicationId).then(function(appDetail) {
       var appState = appDetail.get('appState');
       if (appState) {

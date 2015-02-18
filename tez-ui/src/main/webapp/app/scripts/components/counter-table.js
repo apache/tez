@@ -49,7 +49,7 @@ App.CounterTableComponent = Em.Component.extend({
     })
 
     return filtered;
-  }.property('data', 'nameFilter')
+  }.property('data', 'nameFilter', 'timeStamp')
 });
 
 Em.Handlebars.helper('counter-table-component', App.CounterTableComponent);

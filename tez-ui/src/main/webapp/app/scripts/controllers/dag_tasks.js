@@ -48,6 +48,24 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
     this.setFiltersAndLoadEntities(filters);
   },
 
+  load: function () {
+    var dag = this.get('controllers.dag.model'),
+        controller = this.get('controllers.dag'),
+        t = this;
+    t.set('loading', true);
+    dag.reload().then(function () {
+      return controller.loadAdditional(dag);
+    }).then(function () {
+      t.resetNavigation();
+      t.loadEntities();
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  }.observes('count'),
+
   loadEntities: function() {
     var that = this,
     store = this.get('store'),
@@ -56,6 +74,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
     var defaultErrMsg = 'Error while loading tasks. could not connect to %@'
       .fmt(App.env.timelineBaseUrl);
 
+    that.set('loading', true);
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties())
       .then(function(entities){
@@ -76,6 +95,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
             task.get('attempts.lastObject');
         if (!!taskAttemptId) {
           // Pivot attempt selection logic
+          App.Helpers.misc.removeRecord(store, 'taskAttempt', taskAttemptId);
           fetcher = store.find('taskAttempt', taskAttemptId);
           fetcher.then(function (attempt) {
             task.set('pivotAttempt', attempt);

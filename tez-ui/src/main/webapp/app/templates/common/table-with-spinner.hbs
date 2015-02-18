@@ -17,7 +17,12 @@
 }}
 
 {{#unless loading}}
-  <div class='margin-small align-children-right'>
+  {{load-time-component
+    isRefreshable=isRefreshable
+    time=sortedContent.0.timeStamp
+    refresh='refresh'
+  }}
+  <div class='align-children-right'>
     {{partial 'partials/table-controls'}}
   </div>
   {{partial 'partials/table'}}

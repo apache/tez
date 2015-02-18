@@ -65,33 +65,42 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     var that = this,
     store = this.get('store'),
     childEntityType = this.get('childEntityType'),
-    fetcher;
+    fetcher,
+    record;
     var defaultErrMsg = 'Error while loading dag info. could not connect to %@'.fmt(App.env.timelineBaseUrl);
 
+    that.set('loading', true);
     store.unloadAll(childEntityType);
+    store.unloadAll('dagProgress');
+
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
       var loaders = [];
-      that.set('entities', entities);
       entities.forEach(function (dag) {
         var appId = dag.get('applicationId');
         if(appId) {
           // Pivot attempt selection logic
-          fetcher = store.find('appDetail', appId);
-          fetcher.then(function (app) {
+          record = store.getById('appDetail', appId);
+          if(record && !App.Helpers.misc.isStatusInUnsuccessful(record.get('appState'))) {
+            store.unloadRecord(record);
+          }
+          fetcher = store.find('appDetail', appId).then(function (app) {
             dag.set('appDetail', app);
             if (dag.get('status') === 'RUNNING') {
-              dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('appState'),
-                app.get('finalAppStatus')));
+              dag.set('status', App.Helpers.misc.getRealStatus(
+                dag.get('status'),
+                app.get('appState'),
+                app.get('finalAppStatus')
+              ));
+              App.Helpers.misc.removeRecord(store, 'tezApp', 'tez_' + appId);
             }
+            return store.find('tezApp', 'tez_' + appId).then(function (app) {
+              dag.set('tezApp', app);
+            });
           });
           loaders.push(fetcher);
           //Load tezApp details
-          fetcher = store.find('tezApp', 'tez_' + appId);
-          fetcher.then(function (app) {
-            dag.set('tezApp', app);
-          });
-          loaders.push(fetcher);
           if (dag.get('status') === 'RUNNING') {
+            App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
             amInfoFetcher = store.find('dagProgress', dag.get('id'), {
               appId: dag.get('applicationId'),
               dagIdx: dag.get('idx')
@@ -107,6 +116,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         }
       });
       Em.RSVP.allSettled(loaders).then(function(){
+        that.set('entities', entities);
         that.set('loading', false);
       });
     }).catch(function(error){

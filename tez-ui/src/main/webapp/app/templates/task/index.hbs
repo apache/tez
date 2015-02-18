@@ -16,6 +16,13 @@
 * limitations under the License.
 }}
 
+<div class="margin-small-vertical">
+  {{load-time-component
+    isRefreshable=isRefreshable
+    time=timeStamp
+    refresh='refresh'
+  }}
+</div>
 <div class='type-table fill-full margin-small-horizontal'>
 	<div class='align-left'>
 		<table class='detail-list'>
@@ -23,8 +30,7 @@
 				<tr>
 					<td>{{t 'common.status'}}</td>
 					<td>
-						{{taskStatus}}
-						<i {{bind-attr class=':task-status taskIconStatus'}}></i>
+						<i {{bind-attr class=':task-status taskIconStatus'}}></i> {{taskStatus}}
 					</td>
 				</tr>
 			</tbody>

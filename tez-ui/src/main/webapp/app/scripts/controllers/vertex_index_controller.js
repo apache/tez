@@ -16,8 +16,24 @@
  * limitations under the License.
  */
 
-App.VertexIndexController = Em.ObjectController.extend({
+App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   controllerName: 'VertexIndexController',
+
+  needs: 'vertex',
+
+  load: function () {
+    var vertex = this.get('controllers.vertex.model'),
+        controller = this.get('controllers.vertex'),
+        t = this;
+    vertex.reload().then(function () {
+      return controller.loadAdditional(vertex);
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  },
 
   //TODO: TEZ-1705 : Create a parent class and move this function there to avoid duplication.
   iconStatus: function() {

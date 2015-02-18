@@ -16,24 +16,19 @@
  * limitations under the License.
  */
 
-App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
-  controllerName: 'AppController',
+App.LoadTimeComponent = Em.Component.extend({
+  layoutName: 'components/load-time',
 
-  pageTitle: 'App',
+  actions: {
+    refresh: function() {
+      this.sendAction('refresh');
+    }
+  },
 
-  loading: true,
-
-  rmTrackingURL: function() {
-    return App.env.RMWebUrl + '/cluster/app/' + this.get('appId');
-  }.property('appId'),
-
-  updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-  childDisplayViews: [
-    Ember.Object.create({title: 'Details', linkTo: 'tez-app.index'}),
-    Ember.Object.create({title: 'Dags', linkTo: 'tez-app.dags'}),
-    Ember.Object.create({title: 'Configuration', linkTo: 'tez-app.configs'}),
-  ],
+  displayTime: function() {
+    var time = this.get('time');
+    return time ? App.Helpers.date.dateFormat(time.getTime(), true) : null;
+  }.property('time')
 });
+
+Em.Handlebars.helper('load-time-component', App.LoadTimeComponent);

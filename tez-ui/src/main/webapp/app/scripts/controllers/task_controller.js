@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
+App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
 	controllerName: 'TaskController',
 
 	pageTitle: 'Task',

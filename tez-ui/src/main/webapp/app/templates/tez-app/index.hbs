@@ -16,6 +16,13 @@
 * limitations under the License.
 }}
 
+<div class="margin-small-vertical">
+  {{load-time-component
+    isRefreshable=isRefreshable
+    time=timeStamp
+    refresh='refresh'
+  }}
+</div>
 <div class='type-table fill-full margin-small-horizontal'>
   <div class='align-left'>
     <table class='detail-list'>
@@ -48,7 +55,9 @@
         </tr>
         <tr>
           <td>Final App Status</td>
-          <td>{{appDetail.finalAppStatus}}</td>
+          <td>
+            <i {{bind-attr class=':task-status iconStatus'}}></i> {{appDetail.finalAppStatus}}
+          </td>
         </tr>
       </tbody>
     </table>

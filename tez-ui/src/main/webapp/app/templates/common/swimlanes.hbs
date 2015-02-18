@@ -16,6 +16,11 @@
 * limitations under the License.
 }}
 
+{{load-time-component
+  isRefreshable=isRefreshable
+  time=controller.model.content.0.timeStamp
+  refresh='refresh'
+}}
 <div id="swimlane">
   {{#view App.SwimlanesView contentBinding="controller.model.content"}}
   {{/view}}
