@@ -93,9 +93,12 @@ public class PipelinedSorter extends ExternalSorter {
   private ListIterator<ByteBuffer> listIterator;
 
   //total memory capacity allocated to sorter
-  private long capacity;
+  private final long capacity;
 
-  private static final int BLOCK_SIZE = 1536 << 20;
+  //track buffer overflow recursively in all buffers
+  private int bufferOverflowRecursion;
+
+  private final int blockSize;
 
 
   // Merger
@@ -111,15 +114,15 @@ public class PipelinedSorter extends ExternalSorter {
 
   public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
-    this(outputContext,conf,numOutputs, initialMemoryAvailable, BLOCK_SIZE);
+    this(outputContext,conf,numOutputs, initialMemoryAvailable, 0);
   }
 
-  public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
-      long initialMemoryAvailable, int blockSize) throws IOException {
+  PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
+      long initialMemoryAvailable, int blkSize) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
     
     partitionBits = bitcount(partitions)+1;
-   
+
     //sanity checks
     final long sortmb = this.availableMemoryMb;
     indexCacheMemoryLimit = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
@@ -127,20 +130,24 @@ public class PipelinedSorter extends ExternalSorter {
 
     // buffers and accounting
     long maxMemUsage = sortmb << 20;
-    Preconditions.checkArgument(blockSize > 0 && blockSize < Integer.MAX_VALUE,"Block size should be" + " within 1 - Integer.MAX_VALUE" + blockSize);
+
+    this.blockSize = computeBlockSize(blkSize, maxMemUsage);
+
     long usage = sortmb << 20;
     //Divide total memory into different blocks.
     int numberOfBlocks = Math.max(1, (int) Math.ceil(1.0 * usage / blockSize));
     LOG.info("Number of Blocks : " + numberOfBlocks
         + ", maxMemUsage=" + maxMemUsage + ", BLOCK_SIZE=" + blockSize);
+    long totalCapacityWithoutMeta = 0;
     for (int i = 0; i < numberOfBlocks; i++) {
       Preconditions.checkArgument(usage > 0, "usage can't be less than zero " + usage);
       long size = Math.min(usage, blockSize);
       int sizeWithoutMeta = (int) ((size) - (size % METASIZE));
       bufferList.add(ByteBuffer.allocate(sizeWithoutMeta));
-      capacity += sizeWithoutMeta;
+      totalCapacityWithoutMeta += sizeWithoutMeta;
       usage -= size;
     }
+    capacity = totalCapacityWithoutMeta;
     listIterator = bufferList.listIterator();
 
 
@@ -168,6 +175,20 @@ public class PipelinedSorter extends ExternalSorter {
     valSerializer.open(span.out);
     keySerializer.open(span.out);
     minSpillsForCombine = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 3);
+  }
+
+  @VisibleForTesting
+  static int computeBlockSize(int blkSize, long maxMemUsage) {
+    if (blkSize == 0) {
+      return (int) Math.min(maxMemUsage, Integer.MAX_VALUE);
+    } else {
+      Preconditions.checkArgument(blkSize > 0, "blkSize should be between 1 and Integer.MAX_VALUE");
+      if (blkSize >= maxMemUsage) {
+        return (maxMemUsage > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) maxMemUsage;
+      } else {
+        return blkSize;
+      }
+    }
   }
 
   private int bitcount(int n) {
@@ -259,9 +280,20 @@ public class PipelinedSorter extends ExternalSorter {
       // restore limit
       span.kvbuffer.position(keystart);
       this.sort();
+
+      bufferOverflowRecursion++;
+      if (bufferOverflowRecursion > bufferList.size()) {
+        throw new MapBufferTooSmallException("Record too large for in-memory buffer. Exceeded "
+            + "buffer overflow limit, bufferOverflowRecursion=" + bufferOverflowRecursion + ", bufferList"
+            + ".size=" + bufferList.size() + ", blockSize=" + blockSize);
+      }
       // try again
       this.collect(key, value, partition);
       return;
+    }
+
+    if (bufferOverflowRecursion > 0) {
+      bufferOverflowRecursion--;
     }
 
     int prefix = 0;

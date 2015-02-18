@@ -14,6 +14,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.junit.After;
 import org.junit.Assert;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -102,6 +104,21 @@ public class TestPipelinedSorter {
     //# partition, # of keys, size per key, InitialMem, blockSize
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
     basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
+
+    try {
+      //3 MB key & 3 MB value, whereas block size is just 3 MB
+      basicTest(1, 5, (3 << 20), (10 * 1024l * 1024l), 3 << 20);
+      fail();
+    } catch (IOException ioe) {
+      Assert.assertTrue(
+          ioe.getMessage().contains("Record too large for in-memory buffer."
+              + " Exceeded buffer overflow limit"));
+    }
+
+    //15 MB key & 15 MB value, 48 MB sort buffer.  block size is 48MB (or 1 block)
+    //meta would be 16 MB
+    basicTest(1, 5, (15 << 20), (48 * 1024l * 1024l), 48 << 20);
+
   }
 
   public void basicTest(int partitions, int numKeys, int keySize,
@@ -130,7 +147,7 @@ public class TestPipelinedSorter {
     long size = ExternalSorter.getInitialMemoryRequirement(conf, 4096 * 1024 * 1024l);
     Assert.assertTrue(size == (3076l << 20));
 
-    //Verify BLOCK_SIZEs
+    //Verify number of block buffers allocated
     this.initialAvailableMem = 10 * 1024 * 1024;
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
         initialAvailableMem, 1 << 20);
@@ -143,6 +160,27 @@ public class TestPipelinedSorter {
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
         initialAvailableMem, 10 << 20);
     Assert.assertTrue(sorter.bufferList.size() == 1);
+
+    //Verify block sizes
+    int blockSize = PipelinedSorter.computeBlockSize(0, (10 * 1024 * 1024));
+    //initialAvailableMem is < 2 GB. So consider it as the blockSize
+    Assert.assertTrue(blockSize == (10 * 1024 * 1024));
+
+    blockSize = PipelinedSorter.computeBlockSize(0, (10 * 1024 * 1024 * 1024l));
+    //initialAvailableMem is > 2 GB. Restrict block size to Integer.MAX_VALUE;
+    Assert.assertTrue(blockSize == Integer.MAX_VALUE);
+
+    blockSize = PipelinedSorter.computeBlockSize((1*1024*1024*1024), (10 * 1024 * 1024));
+    //sort buffer is 10 MB. But block size requested is 1 GB. Restrict block size to 10 MB.
+    Assert.assertTrue(blockSize == (10 * 1024 * 1024));
+
+    try {
+      blockSize = PipelinedSorter.computeBlockSize(-1, (10 * 1024 * 1024 * 1024l));
+      //block size can't set to -1
+      fail();
+    } catch(IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains("should be between 1 and Integer.MAX_VALUE"));
+    }
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
