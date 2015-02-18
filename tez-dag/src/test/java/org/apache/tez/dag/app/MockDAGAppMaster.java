@@ -57,6 +57,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.launcher.ContainerLauncher;
+import org.apache.tez.dag.app.launcher.ContainerLauncherRouter;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
@@ -514,9 +515,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
   
   // use mock container launcher for tests
   @Override
-  protected ContainerLauncher createContainerLauncher(final AppContext context)
+  protected ContainerLauncherRouter createContainerLauncherRouter(final Configuration conf)
       throws UnknownHostException {
-    return containerLauncher;
+    return new ContainerLauncherRouter(containerLauncher);
   }
 
   @Override

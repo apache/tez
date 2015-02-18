@@ -25,8 +25,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -142,9 +140,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
-import org.apache.tez.dag.app.launcher.ContainerLauncher;
-import org.apache.tez.dag.app.launcher.ContainerLauncherImpl;
-import org.apache.tez.dag.app.launcher.LocalContainerLauncher;
+import org.apache.tez.dag.app.launcher.ContainerLauncherRouter;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
@@ -230,7 +226,7 @@ public class DAGAppMaster extends AbstractService {
   private AppContext context;
   private Configuration amConf;
   private AsyncDispatcher dispatcher;
-  private ContainerLauncher containerLauncher;
+  private ContainerLauncherRouter containerLauncherRouter;
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskAttemptListener taskAttemptListener;
@@ -508,9 +504,9 @@ public class DAGAppMaster extends AbstractService {
         taskSchedulerEventHandler);
     addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
 
-    containerLauncher = createContainerLauncher(context);
-    addIfService(containerLauncher, true);
-    dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
+    this.containerLauncherRouter = createContainerLauncherRouter(conf);
+    addIfService(containerLauncherRouter, true);
+    dispatcher.register(NMCommunicatorEventType.class, containerLauncherRouter);
 
     historyEventHandler = createHistoryEventHandler(context);
     addIfService(historyEventHandler, true);
@@ -1039,38 +1035,10 @@ public class DAGAppMaster extends AbstractService {
     return chh;
   }
 
-  protected ContainerLauncher
-      createContainerLauncher(final AppContext context) throws UnknownHostException {
-    if(isLocal){
-      LOG.info("Creating LocalContainerLauncher");
-      return new LocalContainerLauncher(context, taskAttemptListener, workingDirectory);
-    } else {
-      // TODO: Temporary reflection with specific parameters until a clean interface is defined.
-      String containerLauncherClassName = getConfig().get(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHER_CLASS);
-      if (containerLauncherClassName == null) {
-        LOG.info("Creating Default Container Launcher");
-        return new ContainerLauncherImpl(context);
-      } else {
-        LOG.info("Creating container launcher : " + containerLauncherClassName);
-        Class<? extends ContainerLauncher> containerLauncherClazz = (Class<? extends ContainerLauncher>) ReflectionUtils.getClazz(
-            containerLauncherClassName);
-        try {
-          Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
-              .getConstructor(AppContext.class, Configuration.class, TaskAttemptListener.class);
-          ctor.setAccessible(true);
-          ContainerLauncher instance = ctor.newInstance(context, getConfig(), taskAttemptListener);
-          return instance;
-        } catch (NoSuchMethodException e) {
-          throw new TezUncheckedException(e);
-        } catch (InvocationTargetException e) {
-          throw new TezUncheckedException(e);
-        } catch (InstantiationException e) {
-          throw new TezUncheckedException(e);
-        } catch (IllegalAccessException e) {
-          throw new TezUncheckedException(e);
-        }
-      }
-    }
+  protected ContainerLauncherRouter createContainerLauncherRouter(Configuration conf) throws
+      UnknownHostException {
+    return  new ContainerLauncherRouter(conf, isLocal, context, taskAttemptListener, workingDirectory);
+
   }
 
   public ApplicationId getAppID() {
@@ -1093,8 +1061,8 @@ public class DAGAppMaster extends AbstractService {
     return dispatcher;
   }
 
-  public ContainerLauncher getContainerLauncher() {
-    return containerLauncher;
+  public ContainerLauncherRouter getContainerLauncherRouter() {
+    return containerLauncherRouter;
   }
 
   public TaskAttemptListener getTaskAttemptListener() {
