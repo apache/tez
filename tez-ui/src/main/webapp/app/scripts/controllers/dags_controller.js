@@ -50,9 +50,9 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
   loadData: function() {
     var filters = {
       primary: {
-        user: this.user_filter,
+        dagName: this.dagName_filter,
         applicationId: this.appId_filter,
-        dagName: this.dagName_filter
+        user: this.user_filter
       },
       secondary: {
         status: this.status_filter
