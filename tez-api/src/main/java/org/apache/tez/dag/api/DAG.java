@@ -334,7 +334,9 @@ public class DAG {
   public Map<String, LocalResource> getTaskLocalFiles() {
     return commonTaskLocalFiles;
   }
-  
+
+  @Private
+  @VisibleForTesting
   void checkAndInferOneToOneParallelism() {
     // infer all 1-1 via dependencies
     // collect all 1-1 edges where the source parallelism is set
@@ -664,6 +666,7 @@ public class DAG {
   }
 
   // create protobuf message describing DAG
+  @Private
   public DAGPlan createDag(Configuration tezConf, Credentials extraCredentials,
                            Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
                            boolean tezLrsAsArchive) {
