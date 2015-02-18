@@ -16,6 +16,13 @@
 * limitations under the License.
 }}
 
+<div class="margin-small-vertical">
+  {{load-time-component
+    isRefreshable=isRefreshable
+    time=timeStamp
+    refresh='refresh'
+  }}
+</div>
 {{#unless loading}}
   <h3>Sources</h3>
   {{#if inputsAvailable}}

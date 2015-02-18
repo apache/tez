@@ -16,24 +16,9 @@
  * limitations under the License.
  */
 
-App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
-  controllerName: 'AppController',
+App.DagCountersController =
+    App.VertexCountersController =
+    App.TaskCountersController =
+    App.TaskAttemptCountersController =
 
-  pageTitle: 'App',
-
-  loading: true,
-
-  rmTrackingURL: function() {
-    return App.env.RMWebUrl + '/cluster/app/' + this.get('appId');
-  }.property('appId'),
-
-  updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
-
-  childDisplayViews: [
-    Ember.Object.create({title: 'Details', linkTo: 'tez-app.index'}),
-    Ember.Object.create({title: 'Dags', linkTo: 'tez-app.dags'}),
-    Ember.Object.create({title: 'Configuration', linkTo: 'tez-app.configs'}),
-  ],
-});
+    Em.ObjectController.extend(App.ModelRefreshMixin);

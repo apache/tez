@@ -17,12 +17,29 @@
  */
 
  //TODO: watch individual counters.
-App.DagIndexController = Em.ObjectController.extend({
-	controllerName: 'DagIndexController',
+App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
+  controllerName: 'DagIndexController',
 
-	taskIconStatus: function() {
-		return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
-	}.property('id', 'status', 'counterGroups'),
+  needs: 'dag',
+
+  load: function () {
+    var dag = this.get('controllers.dag.model'),
+        controller = this.get('controllers.dag'),
+        t = this;
+    t.set('loading', true);
+    dag.reload().then(function () {
+      return controller.loadAdditional(dag);
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  },
+
+  taskIconStatus: function() {
+    return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
+  }.property('id', 'status', 'counterGroups'),
 
   progressStr: function() {
     var pct;
@@ -32,29 +49,29 @@ App.DagIndexController = Em.ObjectController.extend({
     return pct;
   }.property('id', 'status', 'progress'),
 
-	totalTasks: function() {
-		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), 
-			this.get('id'), 'org.apache.tez.common.counters.DAGCounter', 'TOTAL_LAUNCHED_TASKS')
-	}.property('id', 'counterGroups'),
+  totalTasks: function() {
+    return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'),
+      this.get('id'), 'org.apache.tez.common.counters.DAGCounter', 'TOTAL_LAUNCHED_TASKS')
+  }.property('id', 'counterGroups'),
 
-	sucessfulTasks: function() {
-		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
-			'org.apache.tez.common.counters.DAGCounter', 'NUM_SUCCEEDED_TASKS')
-	}.property('id', 'counterGroups'),
+  sucessfulTasks: function() {
+    return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
+      'org.apache.tez.common.counters.DAGCounter', 'NUM_SUCCEEDED_TASKS')
+  }.property('id', 'counterGroups'),
 
-	failedTasks: function() {
-		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
-			'org.apache.tez.common.counters.DAGCounter', 'NUM_FAILED_TASKS')
-	}.property('id', 'counterGroups'),
+  failedTasks: function() {
+    return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
+      'org.apache.tez.common.counters.DAGCounter', 'NUM_FAILED_TASKS')
+  }.property('id', 'counterGroups'),
 
-	killedTasks: function() {
-		return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
-			'org.apache.tez.common.counters.DAGCounter', 'NUM_KILLED_TASKS')
-	}.property('id', 'counterGroups'),
+  killedTasks: function() {
+    return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'), this.get('id'),
+      'org.apache.tez.common.counters.DAGCounter', 'NUM_KILLED_TASKS')
+  }.property('id', 'counterGroups'),
 
-	hasFailedTasks: function() {
-		return this.get('failedTasks') > 0;
-	}.property('id', 'counterGroups'),
+  hasFailedTasks: function() {
+    return this.get('failedTasks') > 0;
+  }.property('id', 'counterGroups'),
 
   failedTasksLink: function() {
     return '#tasks?status=FAILED&parentType=TEZ_DAG_ID&parentID=' + this.get('id');

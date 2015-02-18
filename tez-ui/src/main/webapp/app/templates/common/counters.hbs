@@ -16,6 +16,14 @@
 * limitations under the License.
 }}
 
-<div class='table-container'>
-  {{counter-table-component data=counterGroups}}
+{{load-time-component
+  isRefreshable=isRefreshable
+  time=timeStamp
+  refresh='refresh'
+}}
+<div class='table-container margin-small-vertical'>
+  {{counter-table-component
+    data=counterGroups
+    timeStamp=timeStamp
+  }}
 </div>

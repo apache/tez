@@ -16,13 +16,24 @@
  */
 
 App.AbstractEntity = DS.Model.extend({
-	// type of the entity. should be one of App.EntityType
-	entityType: DS.attr('string')
+  // type of the entity. should be one of App.EntityType
+  entityType: DS.attr('string'),
+  timeStamp: null,
+
+  didLoad: function () {
+    this.set('timeStamp', new Date());
+  },
+
+  observeReloading: function () {
+    if(!this.get('isReloading')) {
+      this.didLoad();
+    }
+  }.observes('isReloading')
 });
 
 App.EntityType = {
-	DAG: 'dag',
-	VERTEX: 'vertex',
-	TASK: 'task',
+  DAG: 'dag',
+  VERTEX: 'vertex',
+  TASK: 'task',
   TASK_ATTEMPT: 'task_attempt',
 };

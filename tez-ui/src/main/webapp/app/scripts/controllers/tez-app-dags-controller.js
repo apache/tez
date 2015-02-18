@@ -48,48 +48,61 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
   },
 
   loadEntities: function() {
-    var that = this;
-    var childEntityType = this.get('childEntityType');
-    var defaultErrMsg = 'Error while loading %@. could not connect to %@'
-      .fmt(childEntityType, App.env.timelineBaseUrl);
-
+    var that = this,
+    store = this.get('store'),
+    childEntityType = this.get('childEntityType'),
+    fetcher,
+    record;
+    var defaultErrMsg = 'Error while loading dag info. could not connect to %@'.fmt(App.env.timelineBaseUrl);
 
     that.set('loading', true);
+    store.unloadAll(childEntityType);
+    store.unloadAll('dagProgress');
 
-    this.get('store').unloadAll(childEntityType);
-    this.get('store').findQuery(childEntityType, this.getFilterProperties())
-      .then(function(entities){
-
-      that.set('entities', entities);
-
+    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
       var loaders = [];
       entities.forEach(function (dag) {
-        var applicationId = dag.get('applicationId');
-        if (dag.get('status') === 'RUNNING') {
-          amInfoFetcher = that.store.find('dagProgress', dag.get('id'), {
-            appId: applicationId,
-            dagIdx: dag.get('idx')
-          }).then(function(dagProgressInfo) {
-              dag.set('progress', dagProgressInfo.get('progress'));
-          }).catch(function(error) {
-            Em.Logger.error('Failed to fetch dagProgress' + error);
-          });
-          loaders.push(amInfoFetcher);
-        }
-
-        var appDetailLoader = that.store.find('appDetail', applicationId)
-          .then(function(app){
-          dag.set('appDetail', app);
-          var appState = app.get('appState');
-          if (appState) {
-            dag.set('yarnAppState', appState);
+        var appId = dag.get('applicationId');
+        if(appId) {
+          // Pivot attempt selection logic
+          record = store.getById('appDetail', appId);
+          if(record && !App.Helpers.misc.isStatusInUnsuccessful(record.get('appState'))) {
+            store.unloadRecord(record);
           }
-          dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'),
-            app.get('appState'), app.get('finalAppStatus')));
-        });
+          fetcher = store.find('appDetail', appId).then(function (app) {
+            dag.set('appDetail', app);
+            if (dag.get('status') === 'RUNNING') {
+              dag.set('status', App.Helpers.misc.getRealStatus(
+                dag.get('status'),
+                app.get('appState'),
+                app.get('finalAppStatus')
+              ));
+              App.Helpers.misc.removeRecord(store, 'tezApp', 'tez_' + appId);
+            }
+            return store.find('tezApp', 'tez_' + appId).then(function (app) {
+              dag.set('tezApp', app);
+            });
+          });
+          loaders.push(fetcher);
+          //Load tezApp details
+          if (dag.get('status') === 'RUNNING') {
+            App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
+            amInfoFetcher = store.find('dagProgress', dag.get('id'), {
+              appId: dag.get('applicationId'),
+              dagIdx: dag.get('idx')
+            })
+            .then(function(dagProgressInfo) {
+              dag.set('progress', dagProgressInfo.get('progress'));
+            })
+            .catch(function(error) {
+              Em.Logger.error('Failed to fetch dagProgress' + error);
+            });
+            loaders.push(amInfoFetcher);
+          }
+        }
       });
-
       Em.RSVP.allSettled(loaders).then(function(){
+        that.set('entities', entities);
         that.set('loading', false);
       });
     }).catch(function(error){

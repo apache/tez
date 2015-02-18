@@ -231,6 +231,19 @@ App.Helpers.misc = {
     });
   },
 
+  /**
+   * Remove the specific record from store
+   * @param store {DS.Store}
+   * @param type {String}
+   * @param id {String}
+   */
+  removeRecord: function (store, type, id) {
+    var record = store.getById(type, id);
+    if(record) {
+      store.unloadRecord(record);
+    }
+  },
+
   dagStatusUIOptions: [
     { label: 'All', id: null },
     { label: 'Submitted', id: 'SUBMITTED' },

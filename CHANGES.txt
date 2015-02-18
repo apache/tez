@@ -64,6 +64,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2106. TEZ UI: Display data load time, and add a refresh button for items that can be refreshed.
   TEZ-2114. Tez UI: task/task attempt status is not available when its running.
   TEZ-2112. Tez UI: fix offset calculation, add home button to breadcrumbs.
   TEZ-2038. TEZ-UI DAG is always running in tez-ui when the app is failed but no DAGFinishedEvent is logged.

@@ -17,7 +17,7 @@
  */
 
  //TODO: watch individual counters.
-App.TaskIndexController = Em.ObjectController.extend({
+App.TaskIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   controllerName: 'TaskIndexController',
 
   taskStatus: function() {

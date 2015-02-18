@@ -16,6 +16,13 @@
 * limitations under the License.
 }}
 
+<div {{bind-attr class=":margin-small-vertical loading:no-visible"}}>
+  {{load-time-component
+    isRefreshable=isRefreshable
+    time=entities.content.0.timeStamp
+    refresh='refresh'
+  }}
+</div>
 <div class="dag-view-component-container">
   {{#unless loading}}
     {{dag-view-component

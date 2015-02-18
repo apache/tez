@@ -40,6 +40,24 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
     this.setFiltersAndLoadEntities(filters);
   },
 
+  load: function () {
+    var dag = this.get('controllers.dag.model'),
+        controller = this.get('controllers.dag'),
+        t = this;
+    t.set('loading', true);
+    dag.reload().then(function () {
+      return controller.loadAdditional(dag);
+    }).then(function () {
+      t.resetNavigation();
+      t.loadEntities();
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  }.observes('count'),
+
   actions : {
     filterUpdated: function(filterID, value) {
       // any validations required goes here.
@@ -52,9 +70,32 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
     }
   },
 
+  updateLoading: function () {
+    var dagController = this.get('controllers.dag'),
+        model = this.get('controllers.dag.model'),
+        that = this,
+        dagStatus = that.get('controllers.dag.status');
+
+    dagController.loadAdditional(model).then(function () {
+      that.get('entities').forEach(function (attempt) {
+
+        var attemptStatus = App.Helpers.misc
+          .getFixedupDisplayStatus(attempt.get('status'));
+        if (attemptStatus == 'RUNNING' &&
+          App.Helpers.misc.isStatusInUnsuccessful(dagStatus)) {
+          attemptStatus = 'KILLED'
+        }
+        if (attemptStatus != attempt.get('status')) {
+          attempt.set('status', attemptStatus);
+        }
+      });
+
+      that.set('loading', false);
+    });
+  },
+
   defaultColumnConfigs: function() {
     var that = this;
-    var dagStatus = this.get('controllers.dag.status');
     return [
       {
         id: 'taskId',
@@ -126,11 +167,7 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
             &nbsp;&nbsp;{{view.cellContent.status}}</span>')
         }),
         getCellContent: function(row) {
-          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
-          if (status == 'RUNNING' &&
-            App.Helpers.misc.isStatusInUnsuccessful(dagStatus)) {
-            status = 'KILLED';
-          }
+          var status = row.get('status');
           return {
             status: status,
             statusIcon: App.Helpers.misc.getStatusClassForEntity(status)

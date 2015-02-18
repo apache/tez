@@ -25,8 +25,10 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     var that = this;
     var loaders = [];
     var applicationId = dag.get('applicationId');
+
     if (dag.get('status') === 'RUNNING') {
       // update the progress info if available. this need not block the UI
+      App.Helpers.misc.removeRecord(this.store, 'dagProgress', dag.get('id'));
       var aminfoLoader = that.store.find('dagProgress', dag.get('id'), {
         appId: applicationId,
         dagIdx: dag.get('idx')
@@ -37,6 +39,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       });
       loaders.push(aminfoLoader);
     }
+    App.Helpers.misc.removeRecord(this.store, 'appDetail', applicationId);
     var appDetailLoader = this.store.find('appDetail', applicationId)
       .then(function(app){
         dag.set('appDetail', app);
@@ -46,6 +49,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
         }
         dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('appState'), app.get('finalAppStatus')));
       }).catch(function(){});
+    App.Helpers.misc.removeRecord(this.store, 'tezApp', 'tez_' + applicationId);
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId)
       .then(function(app){
         dag.set('tezApp', app);

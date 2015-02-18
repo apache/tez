@@ -44,10 +44,28 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
     this.setFiltersAndLoadEntities(filters);
   },
 
+  load: function () {
+    var dag = this.get('controllers.dag.model'),
+        controller = this.get('controllers.dag'),
+        t = this;
+    t.set('loading', true);
+    dag.reload().then(function () {
+      return controller.loadAdditional(dag);
+    }).then(function () {
+      t.resetNavigation();
+      t.loadEntities();
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  }.observes('count'),
+
   loadAdditional: function() {
     var defer = Em.RSVP.defer();
 
-    var that = this;
+    var that = this,
         vertices = this.get('entities');
 
     var dagStatus = this.get('controllers.dag.status');
@@ -64,6 +82,7 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
         return item.get('id').split('_').splice(-1).pop();
       });
     if (runningVerticesIdx.length > 0) {
+      this.store.unloadAll('vertexProgress');
       this.store.findQuery('vertexProgress', {
         metadata: {
           appId: that.get('applicationId'),

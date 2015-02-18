@@ -41,6 +41,23 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
     this.setFiltersAndLoadEntities(filters);
   },
 
+  load: function () {
+    var vertex = this.get('controllers.vertex.model'),
+        controller = this.get('controllers.vertex'),
+        t = this;
+    vertex.reload().then(function () {
+      return controller.loadAdditional(vertex);
+    }).then(function () {
+      t.resetNavigation();
+      t.loadEntities();
+    }).catch(function(error){
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
+  }.observes('count'),
+
   loadEntities: function() {
     var that = this,
     store = this.get('store'),
@@ -48,6 +65,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
     childEntityType = this.get('childEntityType');
     var defaultErrMsg = 'Error while loading tasks. could not connect to %@'.fmt(App.env.timelineBaseUrl);
 
+    that.set('loading', true);
     store.unloadAll(childEntityType);
     store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
       var pivotLoaders = [],
@@ -65,6 +83,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
         var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
         if (!!taskAttemptId) {
           // Pivot attempt selection logic
+          App.Helpers.misc.removeRecord(store, 'taskAttempt', taskAttemptId);
           fetcher = store.find('taskAttempt', taskAttemptId);
           fetcher.then(function (attempt) {
             task.set('pivotAttempt', attempt);

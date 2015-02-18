@@ -95,7 +95,7 @@ App.Edge = DS.Model.extend({
   dag: DS.belongsTo('dag')
 });
 
-App.Vertex = DS.Model.extend({
+App.Vertex = App.AbstractEntity.extend({
   name: DS.attr('string'),
   vertexIdx: function() {
     return this.get('id').split('_').splice(-1).pop();
@@ -257,7 +257,7 @@ App.Vertex = DS.Model.extend({
   }.property('duration')
 });
 
-App.Input = DS.Model.extend({
+App.Input = App.AbstractEntity.extend({
   entity: DS.attr('string'),
 
   inputName: DS.attr('string'),
@@ -267,7 +267,7 @@ App.Input = DS.Model.extend({
   configs: DS.hasMany('kVData', { async: false })
 });
 
-App.Output = DS.Model.extend({
+App.Output = App.AbstractEntity.extend({
   entity: DS.attr('string'),
 
   outputName: DS.attr('string'),
@@ -276,7 +276,7 @@ App.Output = DS.Model.extend({
   configs: DS.hasMany('kVData', { async: false })
 });
 
-App.AppDetail = DS.Model.extend({
+App.AppDetail = App.AbstractEntity.extend({
   attemptId: DS.attr('string'),
 
   user: DS.attr('string'),
@@ -296,7 +296,7 @@ App.AppDetail = DS.Model.extend({
   diagnostics: DS.attr('string'),
 });
 
-App.TezApp = DS.Model.extend({
+App.TezApp = App.AbstractEntity.extend({
   appId: DS.attr('string'),
   entityType: DS.attr('string'),
   domain: DS.attr('string'),

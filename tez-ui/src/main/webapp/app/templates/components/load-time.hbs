@@ -16,17 +16,22 @@
 * limitations under the License.
 }}
 
-{{#if configs}}
-  {{load-time-component
-    isRefreshable=isRefreshable
-    time=timeStamp
-    refresh='refresh'
-  }}
-  <div class='table-container margin-small-vertical'>
-    {{kv-table-component data=configs filterExp="^tez."}}
+<div class="panel panel-default load-component">
+  <div class="panel-body">
+    <div class="horizontal-half">
+      <i class='fa fa-clock-o'></i>
+    </div><div class="horizontal-half align-children-right">
+      <span class="margin-small-horizontal">
+        {{#if displayTime}}
+          Last refreshed at <b>{{displayTime}}</b>
+        {{else}}
+          Load time not available!
+        {{/if}}
+      </span>
+      <button type="button" {{bind-attr class=":btn :btn-success :btn-sm isRefreshable::no-display"}} {{action 'refresh'}}>
+        <i class='fa fa-refresh'></i>
+        Refresh
+      </button>
+    </div>
   </div>
-{{else}}
-  <div class='margin-small-horizontal'>
-    <h4>No configurations available!</h4>
-  </div>
-{{/if}}
+</div>

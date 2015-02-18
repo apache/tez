@@ -27,6 +27,8 @@ App.PaginatedContentMixin = Em.Mixin.create({
   // The dropdown contents for number of items to show.
   countOptions: [5, 10, 25, 50, 100],
 
+  isRefreshable: true,
+
   /* There is currently no efficient way in ATS to get pagination data, so we fake one.
    * store the first dag id on a page so that we can navigate back and store the last one 
    * (not shown on page to get the id where next page starts)
@@ -45,8 +47,9 @@ App.PaginatedContentMixin = Em.Mixin.create({
   _paginationFilters: {},
   loading: true,
 
-  countUpdated: function() {
-    this.loadData();
+  load: function() {
+    this.resetNavigation();
+    this.loadEntities();
   }.observes('count'),
 
   sortedContent: function() {
@@ -58,6 +61,10 @@ App.PaginatedContentMixin = Em.Mixin.create({
     this.updatePagination(sorted.toArray());
     return sorted.slice(0, this.count);
   }.property('entities', 'numEntities'),
+
+  updateLoading: function () {
+    this.set('loading', false);
+  },
 
   loadEntities: function() {
     var that = this;
@@ -81,7 +88,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
         Em.Logger.error("Exception invoking additional load", error);
       }
       Em.RSVP.allSettled(loaders).then(function(){
-          that.set('loading', false);
+        that.updateLoading();
       });
     }).catch(function(error){
       Em.Logger.error(error);
@@ -93,8 +100,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
   setFiltersAndLoadEntities: function(filters) {
     this._paginationFilters = filters;
-    this.resetNavigation();
-    this.loadEntities();
+    this.load();
   },
 
   resetNavigation: function() {
@@ -133,6 +139,10 @@ App.PaginatedContentMixin = Em.Mixin.create({
       this.set('loading', true);
       this.set('page', this.get('page') - 1);
       this.loadEntities();
+    },
+
+    refresh: function () {
+      this.load();
     },
 
     // goto first page.
