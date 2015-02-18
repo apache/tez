@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2080. Localclient should be using tezconf in init instead of yarnconf.
   TEZ-2072. Add missing Private annotation to createDAG in the DAG API class.
   TEZ-2095. master branch fails to compile against hadoop-2.4.
   TEZ-2093. Add events to MockDAGAppMaster and add e2e test for event routing
