@@ -58,6 +58,7 @@ import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
@@ -694,10 +695,47 @@ public class TestTezJobs {
       remoteFs.mkdirs(inputDir);
       String outputDirStr = "/tmp/owc-output";
       outputPaths[0] = outputDirStr;
+      int result = job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
+          StringUtils.join(",", outputPaths), "2" }, null);
+      Assert.assertTrue("Job should have failed", result != 0);
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage().contains("Failed to submit application to YARN"));
+    } finally {
+      if (yarnClient != null) {
+        yarnClient.stop();
+      }
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testInvalidQueueSubmissionToSession() throws Exception {
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    YarnClient yarnClient = YarnClient.createYarnClient();
+    try {
+
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+
+      SimpleSessionExample job = new SimpleSessionExample();
+      tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
+      tezConf.set(TezConfiguration.TEZ_QUEUE_NAME, "nonexistent");
+
+      String[] inputPaths = new String[1];
+      String[] outputPaths = new String[1];
+      String inputDirStr = "/tmp/owc-input";
+      inputPaths[0] = inputDirStr;
+      Path inputDir = new Path(inputDirStr);
+      remoteFs.mkdirs(inputDir);
+      String outputDirStr = "/tmp/owc-output";
+      outputPaths[0] = outputDirStr;
       job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
           StringUtils.join(",", outputPaths), "2" }, null);
-      fail("Job submission should have thrown an exception");
-    } catch(IOException e) {
+      fail("Job submission should have failed");
+    } catch (SessionNotRunning e) {
+      // Expected
+      LOG.info("Session not running", e);
+    } catch (IOException e) {
       Assert.assertTrue(e.getMessage().contains("Failed to submit application to YARN"));
     } finally {
       if (yarnClient != null) {
@@ -706,6 +744,7 @@ public class TestTezJobs {
     }
 
   }
+
 
   @Test (timeout=60000)
   public void testVertexOrder() throws Exception {
