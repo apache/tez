@@ -3,5 +3,6 @@ ALL CHANGES:
   TEZ-2006. Task communication plane needs to be pluggable.
   TEZ-2090. Add tests for jobs running in external services.
   TEZ-2117. Add a manager for ContainerLaunchers running in the AM.
+  TEZ-2122. Setup pluggable components at AM/Vertex level.
 
 INCOMPATIBLE CHANGES:

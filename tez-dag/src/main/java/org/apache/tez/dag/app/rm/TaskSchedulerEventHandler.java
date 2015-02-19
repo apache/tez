@@ -46,6 +46,7 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint.TaskBasedLocationAffinity;
@@ -92,7 +93,6 @@ public class TaskSchedulerEventHandler extends AbstractService
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private final String historyUrl;
-  protected TaskSchedulerService taskScheduler;
   private DAGAppMaster dagAppMaster;
   private Map<ApplicationAccessType, String> appAcls = null;
   private Thread eventHandlingThread;
@@ -105,14 +105,27 @@ public class TaskSchedulerEventHandler extends AbstractService
   private AtomicBoolean shouldUnregisterFlag =
       new AtomicBoolean(false);
   private final WebUIService webUI;
+  private final String[] taskSchedulerClasses;
+  protected final TaskSchedulerService []taskSchedulers;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
 
+  /**
+   *
+   * @param appContext
+   * @param clientService
+   * @param eventHandler
+   * @param containerSignatureMatcher
+   * @param webUI
+   * @param schedulerClasses the list of scheduler classes / codes. Tez internal classes are represented as codes.
+   *                         An empty list defaults to using the YarnTaskScheduler as the only source.
+   */
   @SuppressWarnings("rawtypes")
   public TaskSchedulerEventHandler(AppContext appContext,
       DAGClientServer clientService, EventHandler eventHandler, 
-      ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI) {
+      ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI,
+      String [] schedulerClasses) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
     this.eventHandler = eventHandler;
@@ -123,6 +136,12 @@ public class TaskSchedulerEventHandler extends AbstractService
     if (this.webUI != null) {
       this.webUI.setHistoryUrl(this.historyUrl);
     }
+    if (schedulerClasses == null || schedulerClasses.length == 0) {
+      this.taskSchedulerClasses = new String[] {TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT};
+    } else {
+      this.taskSchedulerClasses = schedulerClasses;
+    }
+    taskSchedulers = new TaskSchedulerService[this.taskSchedulerClasses.length];
   }
 
   public Map<ApplicationAccessType, String> getApplicationAcls() {
@@ -139,11 +158,11 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
   
   public Resource getAvailableResources() {
-    return taskScheduler.getAvailableResources();
+    return taskSchedulers[0].getAvailableResources();
   }
 
   public Resource getTotalResources() {
-    return taskScheduler.getTotalResources();
+    return taskSchedulers[0].getTotalResources();
   }
 
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
@@ -209,9 +228,9 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   private void handleNodeBlacklistUpdate(AMSchedulerEventNodeBlacklistUpdate event) {
     if (event.getType() == AMSchedulerEventType.S_NODE_BLACKLISTED) {
-      taskScheduler.blacklistNode(event.getNodeId());
+      taskSchedulers[0].blacklistNode(event.getNodeId());
     } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLACKLISTED) {
-      taskScheduler.unblacklistNode(event.getNodeId());
+      taskSchedulers[0].unblacklistNode(event.getNodeId());
     } else {
       throw new TezUncheckedException("Invalid event type: " + event.getType());
     }
@@ -223,14 +242,14 @@ public class TaskSchedulerEventHandler extends AbstractService
     // TODO what happens to the task that was connected to this container?
     // current assumption is that it will eventually call handleTaStopRequest
     //TaskAttempt taskAttempt = (TaskAttempt)
-    taskScheduler.deallocateContainer(containerId);
+    taskSchedulers[0].deallocateContainer(containerId);
     // TODO does this container need to be stopped via C_STOP_REQUEST
     sendEvent(new AMContainerEventStopRequest(containerId));
   }
 
   private void handleTAUnsuccessfulEnd(AMSchedulerEventTAEnded event) {
     TaskAttempt attempt = event.getAttempt();
-    boolean wasContainerAllocated = taskScheduler.deallocateTask(attempt, false);
+    boolean wasContainerAllocated = taskSchedulers[0].deallocateTask(attempt, false);
     // use stored value of container id in case the scheduler has removed this
     // assignment because the task has been deallocated earlier.
     // retroactive case
@@ -272,7 +291,7 @@ public class TaskSchedulerEventHandler extends AbstractService
           event.getAttemptID()));
     }
 
-    boolean wasContainerAllocated = taskScheduler.deallocateTask(attempt, true);
+    boolean wasContainerAllocated = taskSchedulers[0].deallocateTask(attempt, true);
     if (!wasContainerAllocated) {
       LOG.error("De-allocated successful task: " + attempt.getID()
           + ", but TaskScheduler reported no container assigned to task");
@@ -297,7 +316,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         TaskAttempt affinityAttempt = vertex.getTask(taskIndex).getSuccessfulAttempt();
         if (affinityAttempt != null) {
           Preconditions.checkNotNull(affinityAttempt.getAssignedContainerID(), affinityAttempt.getID());
-          taskScheduler.allocateTask(taskAttempt,
+          taskSchedulers[0].allocateTask(taskAttempt,
               event.getCapability(),
               affinityAttempt.getAssignedContainerID(),
               Priority.newInstance(event.getPriority()),
@@ -316,57 +335,59 @@ public class TaskSchedulerEventHandler extends AbstractService
             .toArray(new String[locationHint.getRacks().size()]) : null;
       }
     }
-    
-    taskScheduler.allocateTask(taskAttempt,
-                               event.getCapability(),
-                               hosts,
-                               racks,
-                               Priority.newInstance(event.getPriority()),
-                               event.getContainerContext(),
-                               event);
+
+    taskSchedulers[0].allocateTask(taskAttempt,
+        event.getCapability(),
+        hosts,
+        racks,
+        Priority.newInstance(event.getPriority()),
+        event.getContainerContext(),
+        event);
   }
 
-
-  protected TaskSchedulerService createTaskScheduler(String host, int port,
-      String trackingUrl, AppContext appContext) {
-    boolean isLocal = getConfig().getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
-        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
-    if (isLocal) {
-      LOG.info("Using TaskScheduler: LocalTaskSchedulerService");
+  private TaskSchedulerService createTaskScheduler(String host, int port, String trackingUrl,
+                                                   AppContext appContext,
+                                                   String schedulerClassName) {
+    if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
+      LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
+      return new YarnTaskSchedulerService(this, this.containerSignatureMatcher,
+          host, port, trackingUrl, appContext);
+    } else if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
+      LOG.info("Creating TaskScheduler: Local TaskScheduler");
       return new LocalTaskSchedulerService(this, this.containerSignatureMatcher,
           host, port, trackingUrl, appContext);
-    }
-    else {
-      String schedulerClassName = getConfig().get(TezConfiguration.TEZ_AM_TASK_SCHEDULER_CLASS);
-      if (schedulerClassName == null) {
-        LOG.info("Using TaskScheduler: YarnTaskSchedulerService");
-        return new YarnTaskSchedulerService(this, this.containerSignatureMatcher,
-            host, port, trackingUrl, appContext);
-      } else {
-        LOG.info("Using custom TaskScheduler: " + schedulerClassName);
-        // TODO Temporary reflection with specific parameters. Remove once there is a clean interface.
-        Class<? extends TaskSchedulerService> taskSchedulerClazz =
-            (Class<? extends TaskSchedulerService>) ReflectionUtils.getClazz(schedulerClassName);
-        try {
-          Constructor<? extends TaskSchedulerService> ctor = taskSchedulerClazz
-              .getConstructor(TaskSchedulerAppCallback.class, AppContext.class, String.class,
-                  int.class, String.class, Configuration.class);
-          ctor.setAccessible(true);
-          TaskSchedulerService taskSchedulerService =
-              ctor.newInstance(this, appContext, host, port, trackingUrl, getConfig());
-          return taskSchedulerService;
-        } catch (NoSuchMethodException e) {
-          throw new TezUncheckedException(e);
-        } catch (InvocationTargetException e) {
-          throw new TezUncheckedException(e);
-        } catch (InstantiationException e) {
-          throw new TezUncheckedException(e);
-        } catch (IllegalAccessException e) {
-          throw new TezUncheckedException(e);
-        }
+    } else {
+      LOG.info("Creating custom TaskScheduler: " + schedulerClassName);
+      // TODO TEZ-2003 Temporary reflection with specific parameters. Remove once there is a clean interface.
+      Class<? extends TaskSchedulerService> taskSchedulerClazz =
+          (Class<? extends TaskSchedulerService>) ReflectionUtils.getClazz(schedulerClassName);
+      try {
+        Constructor<? extends TaskSchedulerService> ctor = taskSchedulerClazz
+            .getConstructor(TaskSchedulerAppCallback.class, AppContext.class, String.class,
+                int.class, String.class, Configuration.class);
+        ctor.setAccessible(true);
+        return ctor.newInstance(this, appContext, host, port, trackingUrl, getConfig());
+      } catch (NoSuchMethodException e) {
+        throw new TezUncheckedException(e);
+      } catch (InvocationTargetException e) {
+        throw new TezUncheckedException(e);
+      } catch (InstantiationException e) {
+        throw new TezUncheckedException(e);
+      } catch (IllegalAccessException e) {
+        throw new TezUncheckedException(e);
       }
     }
   }
+
+  @VisibleForTesting
+  protected void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
+    // Iterate over the list and create all the taskSchedulers
+    for (int i = 0; i < taskSchedulerClasses.length; i++) {
+      taskSchedulers[i] = createTaskScheduler(host, port,
+          trackingUrl, appContext, taskSchedulerClasses[i]);
+    }
+  }
+
   
   @Override
   public synchronized void serviceStart() {
@@ -377,13 +398,17 @@ public class TaskSchedulerEventHandler extends AbstractService
     // always try to connect to AM and proxy the response. hence it wont work if the webUIService
     // is not enabled.
     String trackingUrl = (webUI != null) ? webUI.getTrackingURL() : "";
-    taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
-        serviceAddr.getPort(), trackingUrl, appContext);
-    taskScheduler.init(getConfig());
-    taskScheduler.start();
+    instantiateScheduelrs(serviceAddr.getHostName(), serviceAddr.getPort(), trackingUrl, appContext);
+
+    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+      taskSchedulers[i].init(getConfig());
+      taskSchedulers[i].start();
+    }
+
+    // TODO TEZ-2118 Start using multiple task schedulers
     if (shouldUnregisterFlag.get()) {
       // Flag may have been set earlier when task scheduler was not initialized
-      taskScheduler.setShouldUnregister();
+      taskSchedulers[0].setShouldUnregister();
     }
 
     this.eventHandlingThread = new Thread("TaskSchedulerEventHandlerThread") {
@@ -436,8 +461,8 @@ public class TaskSchedulerEventHandler extends AbstractService
       if (eventHandlingThread != null)
         eventHandlingThread.interrupt();
     }
-    if (taskScheduler != null) {
-      ((AbstractService)taskScheduler).stop();
+    if (taskSchedulers[0] != null) {
+      ((AbstractService)taskSchedulers[0]).stop();
     }
   }
 
@@ -582,7 +607,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   public float getProgress() {
     // at this point allocate has been called and so node count must be available
     // may change after YARN-1722
-    int nodeCount = taskScheduler.getClusterNodeCount();
+    int nodeCount = taskSchedulers[0].getClusterNodeCount();
     if (nodeCount != cachedNodeCount) {
       cachedNodeCount = nodeCount;
       sendEvent(new AMNodeEventNodeCountUpdated(cachedNodeCount));
@@ -597,7 +622,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   public void dagCompleted() {
-    taskScheduler.dagComplete();
+    taskSchedulers[0].dagComplete();
   }
 
   public void dagSubmitted() {
@@ -607,7 +632,7 @@ public class TaskSchedulerEventHandler extends AbstractService
 
   @Override
   public void preemptContainer(ContainerId containerId) {
-    taskScheduler.deallocateContainer(containerId);
+    taskSchedulers[0].deallocateContainer(containerId);
     // Inform the Containers about completion.
     sendEvent(new AMContainerEventCompleted(containerId, ContainerExitStatus.INVALID,
         "Container preempted internally", TaskAttemptTerminationCause.INTERNAL_PREEMPTION));
@@ -616,13 +641,13 @@ public class TaskSchedulerEventHandler extends AbstractService
   public void setShouldUnregisterFlag() {
     LOG.info("TaskScheduler notified that it should unregister from RM");
     this.shouldUnregisterFlag.set(true);
-    if (this.taskScheduler != null) {
-      this.taskScheduler.setShouldUnregister();
+    if (this.taskSchedulers[0] != null) {
+      this.taskSchedulers[0].setShouldUnregister();
     }
   }
 
   public boolean hasUnregistered() {
-    return this.taskScheduler.hasUnregistered();
+    return this.taskSchedulers[0].hasUnregistered();
   }
 
   @VisibleForTesting

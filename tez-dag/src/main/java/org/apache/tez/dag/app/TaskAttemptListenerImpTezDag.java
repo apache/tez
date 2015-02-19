@@ -37,7 +37,6 @@ import org.apache.tez.runtime.api.impl.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -46,7 +45,7 @@ import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.TaskHeartbeatResponse;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -56,7 +55,6 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
-import org.apache.tez.dag.app.rm.TaskSchedulerService;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -73,7 +71,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       .getLogger(TaskAttemptListenerImpTezDag.class);
 
   private final AppContext context;
-  private TaskCommunicator taskCommunicator;
+  private final TaskCommunicator[] taskCommunicators;
 
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
   protected final ContainerHeartbeatHandler containerHeartbeatHandler;
@@ -99,28 +97,52 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   public TaskAttemptListenerImpTezDag(AppContext context,
                                       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
                                       // TODO TEZ-2003 pre-merge. Remove reference to JobTokenSecretManager.
-                                      JobTokenSecretManager jobTokenSecretManager) {
+                                      JobTokenSecretManager jobTokenSecretManager,
+                                      String [] taskCommunicatorClassIdentifiers) {
     super(TaskAttemptListenerImpTezDag.class.getName());
     this.context = context;
     this.taskHeartbeatHandler = thh;
     this.containerHeartbeatHandler = chh;
-    this.taskCommunicator = new TezTaskCommunicatorImpl(this);
+    if (taskCommunicatorClassIdentifiers == null || taskCommunicatorClassIdentifiers.length == 0) {
+      taskCommunicatorClassIdentifiers = new String[] {TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT};
+    }
+    this.taskCommunicators = new TaskCommunicator[taskCommunicatorClassIdentifiers.length];
+    for (int i = 0 ; i < taskCommunicatorClassIdentifiers.length ; i++) {
+      taskCommunicators[i] = createTaskCommunicator(taskCommunicatorClassIdentifiers[i]);
+    }
+    // TODO TEZ-2118 Start using taskCommunicator indices properly
   }
 
   @Override
-  public void serviceInit(Configuration conf) {
-    String taskCommClassName = conf.get(TezConfiguration.TEZ_AM_TASK_COMMUNICATOR_CLASS);
-    if (taskCommClassName == null) {
+  public void serviceStart() {
+    // TODO Why is init tied to serviceStart
+    for (int i = 0 ; i < taskCommunicators.length ; i++) {
+      taskCommunicators[i].init(getConfig());
+      taskCommunicators[i].start();
+    }
+  }
+
+  @Override
+  public void serviceStop() {
+    for (int i = 0 ; i < taskCommunicators.length ; i++) {
+      taskCommunicators[i].stop();
+    }
+  }
+
+  private TaskCommunicator createTaskCommunicator(String taskCommClassIdentifier) {
+    if (taskCommClassIdentifier.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT) ||
+        taskCommClassIdentifier
+            .equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
       LOG.info("Using Default Task Communicator");
-      this.taskCommunicator = new TezTaskCommunicatorImpl(this);
+      return new TezTaskCommunicatorImpl(this);
     } else {
-      LOG.info("Using TaskCommunicator: " + taskCommClassName);
+      LOG.info("Using TaskCommunicator: " + taskCommClassIdentifier);
       Class<? extends TaskCommunicator> taskCommClazz = (Class<? extends TaskCommunicator>) ReflectionUtils
-          .getClazz(taskCommClassName);
+          .getClazz(taskCommClassIdentifier);
       try {
         Constructor<? extends TaskCommunicator> ctor = taskCommClazz.getConstructor(TaskCommunicatorContext.class);
         ctor.setAccessible(true);
-        this.taskCommunicator = ctor.newInstance(this);
+        return ctor.newInstance(this);
       } catch (NoSuchMethodException e) {
         throw new TezUncheckedException(e);
       } catch (InvocationTargetException e) {
@@ -130,20 +152,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       } catch (IllegalAccessException e) {
         throw new TezUncheckedException(e);
       }
-    }
-  }
-
-  @Override
-  public void serviceStart() {
-    taskCommunicator.init(getConfig());
-    taskCommunicator.start();
-  }
-
-  @Override
-  public void serviceStop() {
-    if (taskCommunicator != null) {
-      taskCommunicator.stop();
-      taskCommunicator = null;
     }
   }
 
@@ -235,7 +243,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   @Override
   public void taskStartedRemotely(TezTaskAttemptID taskAttemptID, ContainerId containerId) {
-    context.getEventHandler().handle(new TaskAttemptEventStartedRemotely(taskAttemptID, containerId, null));
+    context.getEventHandler()
+        .handle(new TaskAttemptEventStartedRemotely(taskAttemptID, containerId, null));
     pingContainerHeartbeatHandler(containerId);
   }
 
@@ -265,7 +274,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   @Override
   public InetSocketAddress getAddress() {
-    return taskCommunicator.getAddress();
+    return taskCommunicators[0].getAddress();
   }
 
   // The TaskAttemptListener register / unregister methods in this class are not thread safe.
@@ -297,7 +306,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           "Multiple registrations for containerId: " + containerId);
     }
     NodeId nodeId = context.getAllContainers().get(containerId).getContainer().getNodeId();
-    taskCommunicator.registerRunningContainer(containerId, nodeId.getHost(), nodeId.getPort());
+    taskCommunicators[0].registerRunningContainer(containerId, nodeId.getHost(), nodeId.getPort());
   }
 
   @Override
@@ -309,7 +318,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     if (containerInfo.taskAttemptId != null) {
       registeredAttempts.remove(containerInfo.taskAttemptId);
     }
-    taskCommunicator.registerContainerEnd(containerId);
+    taskCommunicators[0].registerContainerEnd(containerId);
   }
 
   @Override
@@ -344,7 +353,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           + amContainerTask.getTask().getTaskAttemptID() + " to container: " + containerId
           + " when already assigned to: " + containerIdFromMap);
     }
-    taskCommunicator.registerRunningTaskAttempt(containerId, amContainerTask.getTask(),
+    taskCommunicators[0].registerRunningTaskAttempt(containerId, amContainerTask.getTask(),
         amContainerTask.getAdditionalResources(), amContainerTask.getCredentials(),
         amContainerTask.haveCredentialsChanged());
   }
@@ -364,7 +373,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     // Explicitly putting in a new entry so that synchronization is not required on the existing element in the map.
     registeredContainers.put(containerId, NULL_CONTAINER_INFO);
-    taskCommunicator.unregisterRunningTaskAttempt(attemptId);
+    taskCommunicators[0].unregisterRunningTaskAttempt(attemptId);
   }
 
   private void pingContainerHeartbeatHandler(ContainerId containerId) {
@@ -383,6 +392,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
 
   public TaskCommunicator getTaskCommunicator() {
-    return taskCommunicator;
+    return taskCommunicators[0];
   }
 }

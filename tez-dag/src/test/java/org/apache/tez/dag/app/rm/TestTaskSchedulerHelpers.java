@@ -127,31 +127,29 @@ class TestTaskSchedulerHelpers {
         EventHandler eventHandler,
         TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
         ContainerSignatureMatcher containerSignatureMatcher) {
-      super(appContext, null, eventHandler, containerSignatureMatcher, null);
+      super(appContext, null, eventHandler, containerSignatureMatcher, null, new String[]{});
       this.amrmClientAsync = amrmClientAsync;
       this.containerSignatureMatcher = containerSignatureMatcher;
     }
 
     @Override
-    public TaskSchedulerService createTaskScheduler(String host, int port,
-        String trackingUrl, AppContext appContext) {
-      return new TaskSchedulerWithDrainableAppCallback(this,
+    public void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
+      taskSchedulers[0] = new TaskSchedulerWithDrainableAppCallback(this,
           containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync,
           appContext);
     }
 
     public TaskSchedulerService getSpyTaskScheduler() {
-      return this.taskScheduler;
+      return taskSchedulers[0];
     }
 
     @Override
     public void serviceStart() {
-      TaskSchedulerService taskSchedulerReal = createTaskScheduler("host", 0, "",
-        appContext);
+      instantiateScheduelrs("host", 0, "", appContext);
       // Init the service so that reuse configuration is picked up.
-      ((AbstractService)taskSchedulerReal).init(getConfig());
-      ((AbstractService)taskSchedulerReal).start();
-      taskScheduler = spy(taskSchedulerReal);
+      ((AbstractService)taskSchedulers[0]).init(getConfig());
+      ((AbstractService)taskSchedulers[0]).start();
+      taskSchedulers[0] = spy(taskSchedulers[0]);
     }
 
     @Override

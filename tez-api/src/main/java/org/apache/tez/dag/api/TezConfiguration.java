@@ -1215,13 +1215,36 @@ public class TezConfiguration extends Configuration {
       + "tez-ui.webservice.enable";
   public static final boolean TEZ_AM_WEBSERVICE_ENABLE_DEFAULT = true;
 
+  /** defaults container-launcher for the specific vertex */
   @ConfigurationScope(Scope.VERTEX)
-  public static final String TEZ_AM_CONTAINER_LAUNCHER_CLASS = TEZ_AM_PREFIX + "container-launcher.class";
+  public static final String TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME = TEZ_AM_PREFIX + "vertex.container-launcher.name";
+  /** defaults task-scheduler for the specific vertex */
   @ConfigurationScope(Scope.VERTEX)
-  public static final String TEZ_AM_TASK_SCHEDULER_CLASS = TEZ_AM_PREFIX + "task-scheduler.class";
+  public static final String TEZ_AM_VERTEX_TASK_SCHEDULER_NAME = TEZ_AM_PREFIX + "vertex.task-scheduler.name";
+  /** defaults task-communicator for the specific vertex */
   @ConfigurationScope(Scope.VERTEX)
-  public static final String TEZ_AM_TASK_COMMUNICATOR_CLASS = TEZ_AM_PREFIX + "task-communicator.class";
+  public static final String TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME = TEZ_AM_PREFIX + "vertex.task-communicator.name";
 
+  /** Comma separated list of named container-launcher classes running in the AM.
+   * The format for each entry is NAME:CLASSNAME, except for tez default which is specified as Tez
+   * e.g. Tez, ExtService:org.apache.ExtLauncherClasss
+   * */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_CONTAINER_LAUNCHERS = TEZ_AM_PREFIX + "container-launchers";
+
+  /** Comma separated list of task-schedulers classes running in the AM.
+   * The format for each entry is NAME:CLASSNAME, except for tez default which is specified as Tez
+   * e.g. Tez, ExtService:org.apache.ExtSchedulerClasss
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_TASK_SCHEDULERS = TEZ_AM_PREFIX + "task-schedulers";
+
+  /** Comma separated list of task-communicators classes running in the AM.
+   * The format for each entry is NAME:CLASSNAME, except for tez default which is specified as Tez
+   * e.g. Tez, ExtService:org.apache.ExtTaskCommClass
+   * */
+   @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_TASK_COMMUNICATORS = TEZ_AM_PREFIX + "task-communicators";
 
   // TODO only validate property here, value can also be validated if necessary
   public static void validateProperty(String property, Scope usedScope) {

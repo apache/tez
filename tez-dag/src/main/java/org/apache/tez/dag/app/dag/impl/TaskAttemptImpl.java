@@ -1096,9 +1096,15 @@ public class TaskAttemptImpl implements TaskAttempt,
         priority = (scheduleEvent.getPriorityHighLimit() + scheduleEvent.getPriorityLowLimit()) / 2;
       }
 
+      // TODO Jira post TEZ-2003 getVertex implementation is very inefficient. This should be via references, instead of locked table lookups.
+      Vertex vertex = ta.getVertex();
       AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
           ta.attemptId, ta.taskResource, remoteTaskSpec, ta, locationHint,
-          priority, ta.containerContext);
+          priority, ta.containerContext,
+          vertex.getTaskSchedulerIdentifier(),
+          vertex.getContainerLauncherIdentifier(),
+          vertex.getTaskCommunicatorIdentifier());
+
       ta.sendEvent(launchRequestEvent);
       return TaskAttemptStateInternal.START_WAIT;
     }

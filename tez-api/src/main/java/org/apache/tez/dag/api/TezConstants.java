@@ -102,4 +102,7 @@ public class TezConstants {
   /// Version-related Environment variables
   public static final String TEZ_CLIENT_VERSION_ENV = "TEZ_CLIENT_VERSION";
 
+
+  public static final String TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT = "Tez";
+  public static final String TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT = "TezLocal";
 }

@@ -26,6 +26,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -36,73 +37,93 @@ public class ContainerLauncherRouter extends AbstractService
 
   static final Log LOG = LogFactory.getLog(ContainerLauncherImpl.class);
 
-  private final ContainerLauncher containerLauncher;
+  private final ContainerLauncher containerLaunchers[];
 
   @VisibleForTesting
   public ContainerLauncherRouter(ContainerLauncher containerLauncher) {
     super(ContainerLauncherRouter.class.getName());
-    this.containerLauncher = containerLauncher;
+    containerLaunchers = new ContainerLauncher[] {containerLauncher};
   }
 
   // Accepting conf to setup final parameters, if required.
-  public ContainerLauncherRouter(Configuration conf, boolean isLocal, AppContext context,
+  public ContainerLauncherRouter(Configuration conf, AppContext context,
                                  TaskAttemptListener taskAttemptListener,
-                                 String workingDirectory) throws UnknownHostException {
+                                 String workingDirectory,
+                                 String[] containerLauncherClassIdentifiers) throws UnknownHostException {
     super(ContainerLauncherRouter.class.getName());
 
-    if (isLocal) {
+    if (containerLauncherClassIdentifiers == null || containerLauncherClassIdentifiers.length == 0) {
+      containerLauncherClassIdentifiers = new String[] {TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT};
+    }
+    containerLaunchers = new ContainerLauncher[containerLauncherClassIdentifiers.length];
+
+    for (int i = 0; i < containerLauncherClassIdentifiers.length; i++) {
+      containerLaunchers[i] = createContainerLauncher(containerLauncherClassIdentifiers[i], context,
+          taskAttemptListener, workingDirectory, conf);
+    }
+  }
+
+  private ContainerLauncher createContainerLauncher(String containerLauncherClassIdentifier,
+                                                    AppContext context,
+                                                    TaskAttemptListener taskAttemptListener,
+                                                    String workingDirectory,
+                                                    Configuration conf) throws
+      UnknownHostException {
+    if (containerLauncherClassIdentifier.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
+      LOG.info("Creating DefaultContainerLauncher");
+      return new ContainerLauncherImpl(context);
+    } else if (containerLauncherClassIdentifier
+        .equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
       LOG.info("Creating LocalContainerLauncher");
-      containerLauncher =
+      return
           new LocalContainerLauncher(context, taskAttemptListener, workingDirectory);
     } else {
-      // TODO: Temporary reflection with specific parameters until a clean interface is defined.
-      String containerLauncherClassName =
-          conf.get(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHER_CLASS);
-      if (containerLauncherClassName == null) {
-        LOG.info("Creating Default Container Launcher");
-        containerLauncher = new ContainerLauncherImpl(context);
-      } else {
-        LOG.info("Creating container launcher : " + containerLauncherClassName);
-        Class<? extends ContainerLauncher> containerLauncherClazz =
-            (Class<? extends ContainerLauncher>) ReflectionUtils.getClazz(
-                containerLauncherClassName);
-        try {
-          Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
-              .getConstructor(AppContext.class, Configuration.class, TaskAttemptListener.class);
-          ctor.setAccessible(true);
-          containerLauncher = ctor.newInstance(context, conf, taskAttemptListener);
-        } catch (NoSuchMethodException e) {
-          throw new TezUncheckedException(e);
-        } catch (InvocationTargetException e) {
-          throw new TezUncheckedException(e);
-        } catch (InstantiationException e) {
-          throw new TezUncheckedException(e);
-        } catch (IllegalAccessException e) {
-          throw new TezUncheckedException(e);
-        }
+      LOG.info("Creating container launcher : " + containerLauncherClassIdentifier);
+      Class<? extends ContainerLauncher> containerLauncherClazz =
+          (Class<? extends ContainerLauncher>) ReflectionUtils.getClazz(
+              containerLauncherClassIdentifier);
+      try {
+        Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
+            .getConstructor(AppContext.class, Configuration.class, TaskAttemptListener.class);
+        ctor.setAccessible(true);
+        return ctor.newInstance(context, conf, taskAttemptListener);
+      } catch (NoSuchMethodException e) {
+        throw new TezUncheckedException(e);
+      } catch (InvocationTargetException e) {
+        throw new TezUncheckedException(e);
+      } catch (InstantiationException e) {
+        throw new TezUncheckedException(e);
+      } catch (IllegalAccessException e) {
+        throw new TezUncheckedException(e);
       }
-
     }
+    // TODO TEZ-2118 Handle routing to multiple launchers
   }
 
   @Override
   public void serviceInit(Configuration conf) {
-    ((AbstractService)containerLauncher).init(conf);
+    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+      ((AbstractService) containerLaunchers[i]).init(conf);
+    }
   }
 
   @Override
   public void serviceStart() {
-    ((AbstractService)containerLauncher).start();
+    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+      ((AbstractService) containerLaunchers[i]).start();
+    }
   }
 
   @Override
   public void serviceStop() {
-    ((AbstractService)containerLauncher).stop();
+    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+      ((AbstractService) containerLaunchers[i]).stop();
+    }
   }
 
 
   @Override
   public void handle(NMCommunicatorEvent event) {
-    containerLauncher.handle(event);
+    containerLaunchers[0].handle(event);
   }
 }

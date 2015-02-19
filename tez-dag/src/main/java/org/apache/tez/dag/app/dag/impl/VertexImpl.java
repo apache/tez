@@ -74,6 +74,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.Scope;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -231,6 +232,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private Configuration vertexConf;
   
   private final boolean isSpeculationEnabled;
+
+  private final int taskSchedulerIdentifier;
+  private final int containerLauncherIdentifier;
+  private final int taskCommunicatorIdentifier;
 
   //fields initialized in init
 
@@ -986,6 +991,33 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
 
+    boolean isLocal = vertexConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+
+    String tezDefaultComponentName =
+        isLocal ? TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT :
+            TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT;
+    String taskSchedulerName =
+        vertexConf.get(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, tezDefaultComponentName);
+    String taskCommName = vertexConf
+        .get(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, tezDefaultComponentName);
+    String containerLauncherName = vertexConf
+        .get(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, tezDefaultComponentName);
+    taskSchedulerIdentifier = appContext.getTaskScheduerIdentifier(taskSchedulerName);
+    taskCommunicatorIdentifier = appContext.getTaskCommunicatorIdentifier(taskCommName);
+    containerLauncherIdentifier = appContext.getContainerLauncherIdentifier(containerLauncherName);
+
+    Preconditions.checkNotNull(taskSchedulerIdentifier, "Unknown taskScheduler: " + taskSchedulerName);
+    Preconditions.checkNotNull(taskCommunicatorIdentifier, "Unknown taskCommunicator: " + containerLauncherName);
+    Preconditions.checkNotNull(containerLauncherIdentifier, "Unknown containerLauncher: " + taskCommName);
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("Running vertex: ").append(logIdentifier).append(" : ")
+        .append("TaskScheduler=").append(taskSchedulerIdentifier).append(":").append(taskSchedulerName)
+        .append(", ContainerLauncher=").append(containerLauncherIdentifier).append(":").append(containerLauncherName)
+        .append(", TaskCommunicator=").append(taskCommunicatorIdentifier).append(":").append(taskCommName);
+    LOG.info(sb.toString());
+
     stateMachine = new StateMachineTez<VertexState, VertexEventType, VertexEvent, VertexImpl>(
         stateMachineFactory.make(this), this);
     augmentStateMachine();
@@ -994,6 +1026,21 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Override
   public Configuration getConf() {
     return vertexConf;
+  }
+
+  @Override
+  public int getTaskSchedulerIdentifier() {
+    return this.taskSchedulerIdentifier;
+  }
+
+  @Override
+  public int getContainerLauncherIdentifier() {
+    return this.containerLauncherIdentifier;
+  }
+
+  @Override
+  public int getTaskCommunicatorIdentifier() {
+    return this.taskCommunicatorIdentifier;
   }
 
   private boolean isSpeculationEnabled() {

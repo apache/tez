@@ -89,13 +89,13 @@ public class TestTaskSchedulerEventHandler {
     public MockTaskSchedulerEventHandler(AppContext appContext,
         DAGClientServer clientService, EventHandler eventHandler,
         ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI) {
-      super(appContext, clientService, eventHandler, containerSignatureMatcher, webUI);
+      super(appContext, clientService, eventHandler, containerSignatureMatcher, webUI, new String[] {});
     }
-    
+
     @Override
-    protected TaskSchedulerService createTaskScheduler(String host, int port,
-        String trackingUrl, AppContext appContext) {
-      return mockTaskScheduler;
+    protected void instantiateScheduelrs(String host, int port, String trackingUrl,
+                                         AppContext appContext) {
+      taskSchedulers[0] = mockTaskScheduler;
     }
     
     @Override
@@ -194,7 +194,7 @@ public class TestTaskSchedulerEventHandler {
     when(mockAppContext.getCurrentDAG().getVertex(affVertexName)).thenReturn(affVertex);
     Resource resource = Resource.newInstance(100, 1);
     AMSchedulerEventTALaunchRequest event = new AMSchedulerEventTALaunchRequest
-        (taId, resource, null, mockTaskAttempt, locHint, 3, null);
+        (taId, resource, null, mockTaskAttempt, locHint, 3, null, 0, 0, 0);
     schedulerHandler.notify.set(false);
     schedulerHandler.handle(event);
     synchronized (schedulerHandler.notify) {

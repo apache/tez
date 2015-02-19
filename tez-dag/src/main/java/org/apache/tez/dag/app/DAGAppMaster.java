@@ -56,6 +56,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
@@ -270,7 +272,12 @@ public class DAGAppMaster extends AbstractService {
   
   private ExecutorService rawExecutor;
   private ListeningExecutorService execService;
-  
+
+  // TODO May not need to be a bidi map
+  private final BiMap<String, Integer> taskSchedulers = HashBiMap.create();
+  private final BiMap<String, Integer> containerLaunchers = HashBiMap.create();
+  private final BiMap<String, Integer> taskCommunicators = HashBiMap.create();
+
   /**
    * set of already executed dag names.
    */
@@ -374,6 +381,29 @@ public class DAGAppMaster extends AbstractService {
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
 
+    String tezDefaultClassIdentifier =
+        isLocal ? TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT :
+            TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT;
+
+    String[] taskSchedulerClassIdentifiers = parsePlugins(taskSchedulers,
+        conf.getTrimmedStrings(TezConfiguration.TEZ_AM_TASK_SCHEDULERS,
+            tezDefaultClassIdentifier),
+        TezConfiguration.TEZ_AM_TASK_SCHEDULERS);
+
+    String[] containerLauncherClassIdentifiers = parsePlugins(containerLaunchers,
+        conf.getTrimmedStrings(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHERS,
+            tezDefaultClassIdentifier),
+        TezConfiguration.TEZ_AM_CONTAINER_LAUNCHERS);
+
+    String[] taskCommunicatorClassIdentifiers = parsePlugins(taskCommunicators,
+        conf.getTrimmedStrings(TezConfiguration.TEZ_AM_TASK_COMMUNICATORS,
+            tezDefaultClassIdentifier),
+        TezConfiguration.TEZ_AM_TASK_COMMUNICATORS);
+
+    LOG.info(buildPluginComponentLog(taskSchedulerClassIdentifiers, taskSchedulers, "TaskSchedulers"));
+    LOG.info(buildPluginComponentLog(containerLauncherClassIdentifiers, containerLaunchers, "ContainerLaunchers"));
+    LOG.info(buildPluginComponentLog(taskCommunicatorClassIdentifiers, taskCommunicators, "TaskCommunicators"));
+
     boolean disableVersionCheck = conf.getBoolean(
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK,
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT);
@@ -439,7 +469,7 @@ public class DAGAppMaster extends AbstractService {
 
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
-        taskHeartbeatHandler, containerHeartbeatHandler);
+        taskHeartbeatHandler, containerHeartbeatHandler, taskCommunicatorClassIdentifiers);
     addIfService(taskAttemptListener, true);
 
     containerSignatureMatcher = createContainerSignatureMatcher();
@@ -486,7 +516,8 @@ public class DAGAppMaster extends AbstractService {
     }
 
     this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
-        clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService);
+        clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService,
+        taskSchedulerClassIdentifiers);
     addIfService(taskSchedulerEventHandler, true);
 
     if (enableWebUIService()) {
@@ -504,7 +535,7 @@ public class DAGAppMaster extends AbstractService {
         taskSchedulerEventHandler);
     addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
 
-    this.containerLauncherRouter = createContainerLauncherRouter(conf);
+    this.containerLauncherRouter = createContainerLauncherRouter(conf, containerLauncherClassIdentifiers);
     addIfService(containerLauncherRouter, true);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncherRouter);
 
@@ -1012,9 +1043,9 @@ public class DAGAppMaster extends AbstractService {
   }
 
   protected TaskAttemptListener createTaskAttemptListener(AppContext context,
-      TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh) {
+      TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh, String[] taskCommunicatorClasses) {
     TaskAttemptListener lis =
-        new TaskAttemptListenerImpTezDag(context, thh, chh,jobTokenSecretManager);
+        new TaskAttemptListenerImpTezDag(context, thh, chh,jobTokenSecretManager, taskCommunicatorClasses);
     return lis;
   }
 
@@ -1035,9 +1066,9 @@ public class DAGAppMaster extends AbstractService {
     return chh;
   }
 
-  protected ContainerLauncherRouter createContainerLauncherRouter(Configuration conf) throws
+  protected ContainerLauncherRouter createContainerLauncherRouter(Configuration conf, String []containerLauncherClasses) throws
       UnknownHostException {
-    return  new ContainerLauncherRouter(conf, isLocal, context, taskAttemptListener, workingDirectory);
+    return  new ContainerLauncherRouter(conf, context, taskAttemptListener, workingDirectory, containerLauncherClasses);
 
   }
 
@@ -1496,6 +1527,21 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public Credentials getAppCredentials() {
       return amCredentials;
+    }
+
+    @Override
+    public Integer getTaskCommunicatorIdentifier(String name) {
+      return taskCommunicators.get(name);
+    }
+
+    @Override
+    public Integer getTaskScheduerIdentifier(String name) {
+      return taskSchedulers.get(name);
+    }
+
+    @Override
+    public Integer getContainerLauncherIdentifier(String name) {
+      return taskCommunicators.get(name);
     }
 
     @Override
@@ -2296,5 +2342,64 @@ public class DAGAppMaster extends AbstractService {
   private boolean enableWebUIService() {
     return amConf.getBoolean(TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE,
         TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE_DEFAULT);
+  }
+
+  // Tez default classnames are populated as TezConfiguration.TEZ_AM_SERVICE_PLUGINS_DEFAULT
+  private String[] parsePlugins(BiMap<String, Integer> pluginMap, String[] pluginStrings,
+                                   String context) {
+    Preconditions.checkState(pluginStrings != null && pluginStrings.length > 0,
+        "Plugin strings should not be null or empty: " + context);
+
+    String[] classNames = new String[pluginStrings.length];
+
+    int index = 0;
+    for (String pluginString : pluginStrings) {
+
+      String className;
+      String identifierString;
+
+      Preconditions.checkState(pluginString != null && !pluginString.isEmpty(),
+          "Plugin string: " + pluginString + " should not be null or empty");
+      if (pluginString.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT) ||
+          pluginString.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
+        // Kind of ugly, but Tez internal routing is encoded via a String instead of classnames.
+        // Individual components - TaskComm, Scheduler, Launcher deal with actual classname translation,
+        // and avoid reflection.
+        identifierString = pluginString;
+        className = pluginString;
+      } else {
+        String[] parts = pluginString.split(":");
+        Preconditions.checkState(
+            parts.length == 2 && parts[0] != null && !parts[0].isEmpty() && parts[1] != null &&
+                !parts[1].isEmpty(),
+            "Invalid configuration string for " + context + ": " + pluginString);
+        Preconditions.checkState(
+            !parts[0].equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT) &&
+                !parts[0].equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT),
+            "Identifier cannot be " + TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT + " or " +
+                TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT + " for " +
+                pluginString);
+        identifierString = parts[0];
+        className = parts[1];
+      }
+      pluginMap.put(identifierString, index);
+      classNames[index] = className;
+    }
+    return classNames;
+  }
+
+  String buildPluginComponentLog(String[] classIdentifiers, BiMap<String, Integer> map,
+                                 String component) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("AM Level configured ").append(component).append(": ");
+    for (int i = 0; i < classIdentifiers.length; i++) {
+      sb.append("[").append(i).append(":").append(map.inverse().get(i)).append(":")
+          .append(taskSchedulers.inverse().get(i)).append(
+          "]");
+      if (i != classIdentifiers.length - 1) {
+        sb.append(",");
+      }
+    }
+    return sb.toString();
   }
 }

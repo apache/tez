@@ -512,10 +512,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
     this.handlerConcurrency = handlerConcurrency;
     this.numConcurrentContainers = numConcurrentContainers;
   }
-  
+
   // use mock container launcher for tests
   @Override
-  protected ContainerLauncherRouter createContainerLauncherRouter(final Configuration conf)
+  protected ContainerLauncherRouter createContainerLauncherRouter(final Configuration conf,
+                                                                  String[] containerLaunchers)
       throws UnknownHostException {
     return new ContainerLauncherRouter(containerLauncher);
   }
