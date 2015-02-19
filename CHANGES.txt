@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1935. Organization should be removed from http://tez.apache.org/team-list.html.
   TEZ-2009. Change license/copyright headers to 2015.
   TEZ-2085. PipelinedSorter should bail out (on BufferOverflowException) instead of retrying continuously.
   TEZ-167. Create tests for MR Combiner.

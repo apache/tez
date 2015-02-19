@@ -93,9 +93,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>bikas</id>
@@ -105,9 +102,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>billgraham</id>
@@ -117,9 +111,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Twitter
-        </organization>
       </developer>
       <developer>
         <id>bobby</id>
@@ -129,9 +120,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>cdouglas</id>
@@ -141,9 +129,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Microsoft
-        </organization>
       </developer>
       <developer>
         <id>daryn</id>
@@ -153,9 +138,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>ddas</id>
@@ -165,21 +147,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
-      </developer>
-      <developer>
-        <id>gates</id>
-        <name>Alan Gates</name>
-        <email>gates@apache.org</email>
-        <timezone>-8</timezone>
-        <roles>
-          <role>PMC</role>
-        </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>gopalv</id>
@@ -189,9 +156,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>gunther</id>
@@ -201,9 +165,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>hashutosh</id>
@@ -213,9 +174,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>hitesh</id>
@@ -225,9 +183,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>jeagles</id>
@@ -237,9 +192,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>jghoman</id>
@@ -249,9 +201,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          LinkedIn
-        </organization>
       </developer>
       <developer>
         <id>jitendra</id>
@@ -261,9 +210,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>jlowe</id>
@@ -273,9 +219,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>julien</id>
@@ -285,9 +228,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Twitter
-        </organization>
       </developer>
       <developer>
         <id>kamrul</id>
@@ -297,9 +237,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          LinkedIn Inc.
-        </organization>
       </developer>
       <developer>
         <id>kevinwilfong</id>
@@ -309,9 +246,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Facebook
-        </organization>
       </developer>
       <developer>
         <id>mattmann</id>
@@ -321,9 +255,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          NASA JPL
-        </organization>
       </developer>
       <developer>
         <id>mliddell</id>
@@ -333,9 +264,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Microsoft
-        </organization>
       </developer>
       <developer>
         <id>namit</id>
@@ -345,9 +273,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Facebook
-        </organization>
       </developer>
       <developer>
         <id>nroberts</id>
@@ -357,9 +282,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>omalley</id>
@@ -369,9 +291,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>prakash</id>
@@ -381,9 +300,6 @@
         <roles>
           <role>Committer</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>     
       <developer>
         <id>rbalamohan</id>
@@ -393,9 +309,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>rohini</id>
@@ -405,9 +318,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>sseth</id>
@@ -417,9 +327,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>tassapola</id>
@@ -429,9 +336,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>tgraves</id>
@@ -441,9 +345,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Yahoo!
-        </organization>
       </developer>
       <developer>
         <id>tomwhite</id>
@@ -453,9 +354,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Cloudera
-        </organization>
       </developer>
       <developer>
         <id>vikram</id>
@@ -465,9 +363,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>vinodkv</id>
@@ -477,9 +372,6 @@
         <roles>
           <role>PMC</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
       <developer>
         <id>zjffdu</id>
@@ -489,9 +381,6 @@
         <roles>
           <role>Committer</role>
         </roles>
-        <organization>
-          Hortonworks
-        </organization>
       </developer>
     </developers>
 
