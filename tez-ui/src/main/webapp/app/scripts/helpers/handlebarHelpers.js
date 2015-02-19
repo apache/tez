@@ -17,14 +17,14 @@
  */
 
 /**
-   * formats the given unix timestamp. returns NaN if its not a number.
+   * formats the given unix timestamp. returns Not Available if its not a number.
    *
    * @param {number} unixtimestamp 
    * @returns {string} 
    * @method formatUnixTimestamp
    */
 Em.Handlebars.helper('formatUnixTimestamp', function(timestamp) {
-	if (!App.Helpers.number.isValidInt(timestamp)) return 'NaN';
+	if (!App.Helpers.number.isValidInt(timestamp)) return 'Not Available';
 	if (timestamp > 0) {
 		return App.Helpers.date.dateFormat(timestamp);
 	}
