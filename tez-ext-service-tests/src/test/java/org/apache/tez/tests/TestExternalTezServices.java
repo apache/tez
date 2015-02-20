@@ -15,11 +15,11 @@
 package org.apache.tez.tests;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -28,13 +28,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.launcher.TezTestServiceNoOpContainerLauncher;
 import org.apache.tez.dag.app.rm.TezTestServiceTaskSchedulerService;
 import org.apache.tez.dag.app.taskcomm.TezTestServiceTaskCommunicatorImpl;
 import org.apache.tez.examples.HashJoinExample;
 import org.apache.tez.examples.JoinDataGen;
-import org.apache.tez.examples.JoinValidate;
+import org.apache.tez.examples.JoinValidateConfigured;
 import org.apache.tez.service.MiniTezTestServiceCluster;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
@@ -47,23 +48,31 @@ public class TestExternalTezServices {
 
   private static final String EXT_PUSH_ENTITY_NAME = "ExtServiceTestPush";
 
-  private static MiniTezCluster tezCluster;
-  private static MiniDFSCluster dfsCluster;
-  private static MiniTezTestServiceCluster tezTestServiceCluster;
+  private static volatile MiniTezCluster tezCluster;
+  private static volatile MiniDFSCluster dfsCluster;
+  private static volatile MiniTezTestServiceCluster tezTestServiceCluster;
 
-  private static Configuration clusterConf = new Configuration();
-  private static Configuration confForJobs;
+  private static volatile Configuration clusterConf = new Configuration();
+  private static volatile Configuration confForJobs;
 
-  private static FileSystem remoteFs;
-  private static FileSystem localFs;
+  private static volatile FileSystem remoteFs;
+  private static volatile FileSystem localFs;
 
-  private static TezClient sharedTezClient;
+  private static volatile TezClient sharedTezClient;
+
+  private static final Path SRC_DATA_DIR = new Path("/tmp/" + TestExternalTezServices.class.getSimpleName());
+  private static final Path HASH_JOIN_EXPECTED_RESULT_PATH = new Path(SRC_DATA_DIR, "expectedOutputPath");
+  private static final Path HASH_JOIN_OUTPUT_PATH = new Path(SRC_DATA_DIR, "outPath");
+
+  private static final Map<String, String> PROPS_EXT_SERVICE_PUSH = Maps.newHashMap();
+  private static final Map<String, String> PROPS_REGULAR_CONTAINERS = Maps.newHashMap();
+  private static final Map<String, String> PROPS_IN_AM = Maps.newHashMap();
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestExternalTezServices.class.getName()
       + "-tmpDir";
 
   @BeforeClass
-  public static void setup() throws IOException, TezException, InterruptedException {
+  public static void setup() throws Exception {
 
     localFs = FileSystem.getLocal(clusterConf);
 
@@ -108,27 +117,79 @@ public class TestExternalTezServices {
     remoteFs.mkdirs(stagingDirPath);
     // This is currently configured to push tasks into the Service, and then use the standard RPC
     confForJobs.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
-    confForJobs.set(TezConfiguration.TEZ_AM_TASK_SCHEDULERS,
+
+    confForJobs.setStrings(TezConfiguration.TEZ_AM_TASK_SCHEDULERS,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
+//        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
         EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceTaskSchedulerService.class.getName());
-    confForJobs.set(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHERS,
+
+    confForJobs.setStrings(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHERS,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
+//        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
         EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceNoOpContainerLauncher.class.getName());
-    confForJobs.set(TezConfiguration.TEZ_AM_TASK_COMMUNICATORS,
+
+    confForJobs.setStrings(TezConfiguration.TEZ_AM_TASK_COMMUNICATORS,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
+//        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
         EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceTaskCommunicatorImpl.class.getName());
 
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, EXT_PUSH_ENTITY_NAME);
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, EXT_PUSH_ENTITY_NAME);
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, EXT_PUSH_ENTITY_NAME);
+    // Default all jobs to run via the service. Individual tests override this on a per vertex/dag level.
+    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+
+    // Setup various executor sets
+    PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+    PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+    PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+
+    PROPS_EXT_SERVICE_PUSH.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, EXT_PUSH_ENTITY_NAME);
+    PROPS_EXT_SERVICE_PUSH.put(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, EXT_PUSH_ENTITY_NAME);
+    PROPS_EXT_SERVICE_PUSH.put(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, EXT_PUSH_ENTITY_NAME);
+
+    PROPS_IN_AM.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT);
+    PROPS_IN_AM.put(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT);
+    PROPS_IN_AM.put(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT);
 
 
-    TezConfiguration tezConf = new TezConfiguration(confForJobs);
+    // Create a session to use for all tests.
+    TezConfiguration tezClientConf = new TezConfiguration(confForJobs);
 
     sharedTezClient = TezClient.create(TestExternalTezServices.class.getSimpleName() + "_session",
-        tezConf, true);
+        tezClientConf, true);
     sharedTezClient.start();
     LOG.info("Shared TezSession started");
     sharedTezClient.waitTillReady();
     LOG.info("Shared TezSession ready for submission");
 
+    // Generate the join data set used for each run.
+    // Can a timeout be enforced here ?
+    remoteFs.mkdirs(SRC_DATA_DIR);
+    Path dataPath1 = new Path(SRC_DATA_DIR, "inPath1");
+    Path dataPath2 = new Path(SRC_DATA_DIR, "inPath2");
+    TezConfiguration tezConf = new TezConfiguration(confForJobs);
+    //   Generate join data - with 2 tasks.
+    JoinDataGen dataGen = new JoinDataGen();
+    String[] dataGenArgs = new String[]{
+        dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
+        HASH_JOIN_EXPECTED_RESULT_PATH.toString(), "2"};
+    assertEquals(0, dataGen.run(tezConf, dataGenArgs, sharedTezClient));
+    //    Run the actual join - with 2 reducers
+    HashJoinExample joinExample = new HashJoinExample();
+    String[] args = new String[]{
+        dataPath1.toString(), dataPath2.toString(), "2", HASH_JOIN_OUTPUT_PATH.toString()};
+    assertEquals(0, joinExample.run(tezConf, args, sharedTezClient));
+
+    LOG.info("Completed generating Data - Expected Hash Result and Actual Join Result");
   }
 
   @AfterClass
@@ -156,35 +217,50 @@ public class TestExternalTezServices {
 
 
   @Test(timeout = 60000)
-  public void test1() throws Exception {
-    Path testDir = new Path("/tmp/testHashJoinExample");
+  public void testAllInService() throws Exception {
+    int expectedExternalSubmissions = 4 + 3; //4 for 4 src files, 3 for num reducers.
+    runJoinValidate("AllInService", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
+        PROPS_EXT_SERVICE_PUSH, PROPS_EXT_SERVICE_PUSH);
+  }
 
-    remoteFs.mkdirs(testDir);
+  @Test(timeout = 60000)
+  public void testAllInContainers() throws Exception {
+    int expectedExternalSubmissions = 0; // All in containers
+    runJoinValidate("AllInContainers", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
+        PROPS_REGULAR_CONTAINERS, PROPS_REGULAR_CONTAINERS);
+  }
 
-    Path dataPath1 = new Path(testDir, "inPath1");
-    Path dataPath2 = new Path(testDir, "inPath2");
-    Path expectedOutputPath = new Path(testDir, "expectedOutputPath");
-    Path outPath = new Path(testDir, "outPath");
+  @Test(timeout = 60000)
+  public void testMixed1() throws Exception { // M-ExtService, R-containers
+    int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 3 for num reducers.
+    runJoinValidate("Mixed1", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
+        PROPS_EXT_SERVICE_PUSH, PROPS_REGULAR_CONTAINERS);
+  }
+
+  @Test(timeout = 60000)
+  public void testMixed2() throws Exception { // M-Containers, R-ExtService
+    int expectedExternalSubmissions = 0 + 3; //4 for 4 src files, 3 for num reducers.
+    runJoinValidate("Mixed2", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
+        PROPS_REGULAR_CONTAINERS, PROPS_EXT_SERVICE_PUSH);
+  }
+
+
+  private void runJoinValidate(String name, int extExpectedCount, Map<String, String> lhsProps,
+                               Map<String, String> rhsProps,
+                               Map<String, String> validateProps) throws
+      Exception {
+    int externalSubmissionCount = tezTestServiceCluster.getNumSubmissions();
 
     TezConfiguration tezConf = new TezConfiguration(confForJobs);
-
-    JoinDataGen dataGen = new JoinDataGen();
-    String[] dataGenArgs = new String[]{
-        dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
-        expectedOutputPath.toString(), "2"};
-    assertEquals(0, dataGen.run(tezConf, dataGenArgs, sharedTezClient));
-
-    HashJoinExample joinExample = new HashJoinExample();
-    String[] args = new String[]{
-        dataPath1.toString(), dataPath2.toString(), "2", outPath.toString()};
-    assertEquals(0, joinExample.run(tezConf, args, sharedTezClient));
-
-    JoinValidate joinValidate = new JoinValidate();
-    String[] validateArgs = new String[]{
-        expectedOutputPath.toString(), outPath.toString(), "3"};
+    JoinValidateConfigured joinValidate =
+        new JoinValidateConfigured(lhsProps, rhsProps,
+            validateProps, name);
+    String[] validateArgs = new String[]{"-disableSplitGrouping",
+        HASH_JOIN_EXPECTED_RESULT_PATH.toString(), HASH_JOIN_OUTPUT_PATH.toString(), "3"};
     assertEquals(0, joinValidate.run(tezConf, validateArgs, sharedTezClient));
 
     // Ensure this was actually submitted to the external cluster
-    assertTrue(tezTestServiceCluster.getNumSubmissions() > 0);
+    assertEquals(extExpectedCount,
+        (tezTestServiceCluster.getNumSubmissions() - externalSubmissionCount));
   }
 }

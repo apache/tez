@@ -14,6 +14,8 @@
 
 package org.apache.tez.dag.app.launcher;
 
+import java.net.InetSocketAddress;
+
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
@@ -124,7 +126,8 @@ public class TezTestServiceContainerLauncher extends AbstractService implements 
 
   private RunContainerRequestProto constructRunContainerRequest(NMCommunicatorLaunchRequestEvent event) {
     RunContainerRequestProto.Builder builder = RunContainerRequestProto.newBuilder();
-    builder.setAmHost(tal.getAddress().getHostName()).setAmPort(tal.getAddress().getPort());
+    InetSocketAddress address = tal.getTaskCommunicator(event.getTaskCommId()).getAddress();
+    builder.setAmHost(address.getHostName()).setAmPort(address.getPort());
     builder.setAppAttemptNumber(event.getContainer().getId().getApplicationAttemptId().getAttemptId());
     builder.setApplicationIdString(
         event.getContainer().getId().getApplicationAttemptId().getApplicationId().toString());

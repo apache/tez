@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -81,8 +83,12 @@ public class TestLocalTaskSchedulerService {
    */
   @Test(timeout = 5000)
   public void testDeallocationBeforeAllocation() {
+    AppContext appContext = mock(AppContext.class);
+    ApplicationAttemptId appAttemptId =
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
+    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce
-        (mock(TaskSchedulerAppCallback.class), mock(ContainerSignatureMatcher.class), "", 0, "", mock(AppContext.class));
+        (mock(TaskSchedulerAppCallback.class), mock(ContainerSignatureMatcher.class), "", 0, "", appContext);
     taskSchedulerService.init(new Configuration());
     taskSchedulerService.start();
 
@@ -105,8 +111,12 @@ public class TestLocalTaskSchedulerService {
    */
   @Test(timeout = 5000)
   public void testDeallocationAfterAllocation() {
+    AppContext appContext = mock(AppContext.class);
+    ApplicationAttemptId appAttemptId =
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
+    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce
-        (mock(TaskSchedulerAppCallback.class), mock(ContainerSignatureMatcher.class), "", 0, "", mock(AppContext.class));
+        (mock(TaskSchedulerAppCallback.class), mock(ContainerSignatureMatcher.class), "", 0, "", appContext);
     taskSchedulerService.init(new Configuration());
     taskSchedulerService.start();
 
@@ -132,13 +142,13 @@ public class TestLocalTaskSchedulerService {
         String appHostName, int appHostPort, String appTrackingUrl,
         AppContext appContext) {
       super(appClient, containerSignatureMatcher, appHostName, appHostPort,
-          appTrackingUrl, appContext);
+          appTrackingUrl, 10000l, appContext);
     }
 
     @Override
     public AsyncDelegateRequestHandler createRequestHandler(Configuration conf) {
       requestHandler = new MockAsyncDelegateRequestHandler(taskRequestQueue,
-          new LocalContainerFactory(appContext),
+          new LocalContainerFactory(appContext, customContainerAppId),
           taskAllocations,
           appClientDelegate,
           conf);

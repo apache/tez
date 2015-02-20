@@ -31,6 +31,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.Token;
+import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -43,8 +44,9 @@ public class TestAMContainerMap {
 
   private TaskAttemptListener mockTaskAttemptListener() {
     TaskAttemptListener tal = mock(TaskAttemptListener.class);
-    InetSocketAddress socketAddr = new InetSocketAddress("localhost", 21000);
-    doReturn(socketAddr).when(tal).getAddress();
+    TaskCommunicator taskComm = mock(TaskCommunicator.class);
+    doReturn(new InetSocketAddress("localhost", 21000)).when(taskComm).getAddress();
+    doReturn(taskComm).when(tal).getTaskCommunicator(0);
     return tal;
   }
 
