@@ -40,7 +40,6 @@ import org.apache.tez.service.MiniTezTestServiceCluster;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestExternalTezServices {
@@ -229,6 +228,13 @@ public class TestExternalTezServices {
   }
 
   @Test(timeout = 60000)
+  public void testAllInAM() throws Exception {
+    int expectedExternalSubmissions = 0; // All in AM
+    runJoinValidate("AllInAM", expectedExternalSubmissions, PROPS_IN_AM,
+        PROPS_IN_AM, PROPS_IN_AM);
+  }
+
+  @Test(timeout = 60000)
   public void testMixed1() throws Exception { // M-ExtService, R-containers
     int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers.
     runJoinValidate("Mixed1", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
@@ -263,8 +269,6 @@ public class TestExternalTezServices {
         PROPS_EXT_SERVICE_PUSH, PROPS_IN_AM);
   }
 
-
-  @Ignore // Re-activate this after the AM registers the shuffle token with the launcher.
   @Test(timeout = 60000)
   public void testMixed6() throws Exception { // M - AM, R - Service
     int expectedExternalSubmissions = 0 + 3; // 3 for R in service
