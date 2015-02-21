@@ -29,7 +29,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,16 +45,23 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
+import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
+import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -196,20 +205,59 @@ public class TestTezClientUtils {
   }
 
   @Test(timeout = 5000)
+  public void testSessionTokenInAmClc() throws IOException, YarnException {
+
+    TezConfiguration tezConf = new TezConfiguration();
+
+    ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    DAG dag = DAG.create("testdag");
+    dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
+        .setTaskLaunchCmdOpts("initialLaunchOpts"));
+
+    Credentials credentials = new Credentials();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
+    Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
+    assertNotNull(jobToken);
+
+    AMConfiguration amConf =
+        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), credentials);
+    ApplicationSubmissionContext appSubmissionContext =
+        TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
+            new HashMap<String, LocalResource>(), credentials, false, new TezApiVersionInfo(),
+            mock(HistoryACLPolicyManager.class));
+
+    ContainerLaunchContext amClc = appSubmissionContext.getAMContainerSpec();
+    Map<String, ByteBuffer> amServiceData = amClc.getServiceData();
+    assertNotNull(amServiceData);
+    assertEquals(1, amServiceData.size());
+
+    DataInputByteBuffer dibb = new DataInputByteBuffer();
+    dibb.reset(amServiceData.values().iterator().next());
+    Token<JobTokenIdentifier> jtSent = new Token<JobTokenIdentifier>();
+    jtSent.readFields(dibb);
+
+    assertTrue(Arrays.equals(jobToken.getIdentifier(), jtSent.getIdentifier()));
+  }
+
+  @Test(timeout = 5000)
   public void testAMLoggingOptsSimple() throws IOException, YarnException {
 
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "WARN");
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    Credentials credentials = new Credentials();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
     DAG dag = DAG.create("testdag");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
-        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), new Credentials());
+        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), credentials);
     ApplicationSubmissionContext appSubmissionContext =
         TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
-            new HashMap<String, LocalResource>(), new Credentials(), false, new TezApiVersionInfo(),
+            new HashMap<String, LocalResource>(), credentials, false, new TezApiVersionInfo(),
             mock(HistoryACLPolicyManager.class));
 
     List<String> expectedCommands = new LinkedList<String>();
@@ -238,14 +286,17 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "WARN;org.apache.hadoop.ipc=DEBUG;org.apache.hadoop.security=DEBUG");
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    Credentials credentials = new Credentials();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
     DAG dag = DAG.create("testdag");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
-        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), new Credentials());
+        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), credentials);
     ApplicationSubmissionContext appSubmissionContext =
         TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
-            new HashMap<String, LocalResource>(), new Credentials(), false, new TezApiVersionInfo(),
+            new HashMap<String, LocalResource>(), credentials, false, new TezApiVersionInfo(),
             mock(HistoryACLPolicyManager.class));
 
     List<String> expectedCommands = new LinkedList<String>();

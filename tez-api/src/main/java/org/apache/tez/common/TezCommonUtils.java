@@ -439,4 +439,24 @@ public class TezCommonUtils {
 
     return str.split("\\s*,\\s*");
   }
+
+  /**
+   * A helper function to serialize the JobTokenIdentifier to be sent to the
+   * ShuffleHandler as ServiceData.
+   *
+   * *NOTE* This is a copy of what is done by the MapReduce ShuffleHandler. Not using that directly
+   * to avoid a dependency on mapreduce.
+   *
+   * @param jobToken
+   *          the job token to be used for authentication of shuffle data
+   *          requests.
+   * @return the serialized version of the jobToken.
+   */
+  public static ByteBuffer serializeServiceData(Token<JobTokenIdentifier> jobToken)
+      throws IOException {
+    // TODO these bytes should be versioned
+    DataOutputBuffer jobToken_dob = new DataOutputBuffer();
+    jobToken.write(jobToken_dob);
+    return ByteBuffer.wrap(jobToken_dob.getData(), 0, jobToken_dob.getLength());
+  }
 }

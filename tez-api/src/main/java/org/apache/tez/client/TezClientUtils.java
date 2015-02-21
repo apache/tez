@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -621,10 +622,17 @@ public class TezClientUtils {
       }
     }
 
+    // Send the shuffle token as part of the AM launch context, so that the NM running the AM can
+    // provide this to AuxServices running on the AM node - in case tasks run within the AM,
+    // and no other task runs on this node.
+    Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
+    serviceData.put(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
+        TezCommonUtils.serializeServiceData(TokenCache.getSessionToken(amLaunchCredentials)));
+
     // Setup ContainerLaunchContext for AM container
     ContainerLaunchContext amContainer =
         ContainerLaunchContext.newInstance(amLocalResources, environment,
-            vargsFinal, null, securityTokens, acls);
+            vargsFinal, serviceData, securityTokens, acls);
 
     // Set up the ApplicationSubmissionContext
     ApplicationSubmissionContext appContext = Records

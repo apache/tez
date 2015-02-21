@@ -35,7 +35,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -46,7 +45,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -121,7 +120,7 @@ public class AMContainerHelpers {
       // Add shuffle token
       LOG.info("Putting shuffle token in serviceData");
       serviceData.put(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
-          serializeServiceData(TokenCache.getSessionToken(containerCredentials)));
+          TezCommonUtils.serializeServiceData(TokenCache.getSessionToken(containerCredentials)));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
@@ -211,25 +210,4 @@ public class AMContainerHelpers {
 
     return container;
   }
-  
-  /**
-   * A helper function to serialize the JobTokenIdentifier to be sent to the
-   * ShuffleHandler as ServiceData.
-   * 
-   * *NOTE* This is a copy of what is done by the MapReduce ShuffleHandler. Not using that directly
-   * to avoid a dependency on mapreduce.
-   * 
-   * @param jobToken
-   *          the job token to be used for authentication of shuffle data
-   *          requests.
-   * @return the serialized version of the jobToken.
-   */
-  private static ByteBuffer serializeServiceData(Token<JobTokenIdentifier> jobToken)
-      throws IOException {
-    // TODO these bytes should be versioned
-    DataOutputBuffer jobToken_dob = new DataOutputBuffer();
-    jobToken.write(jobToken_dob);
-    return ByteBuffer.wrap(jobToken_dob.getData(), 0, jobToken_dob.getLength());
-  }
-
 }
