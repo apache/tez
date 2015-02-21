@@ -516,7 +516,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
   // use mock container launcher for tests
   @Override
   protected ContainerLauncherRouter createContainerLauncherRouter(final Configuration conf,
-                                                                  String[] containerLaunchers)
+                                                                  String[] containerLaunchers,
+                                                                  boolean isLocal)
       throws UnknownHostException {
     return new ContainerLauncherRouter(containerLauncher);
   }

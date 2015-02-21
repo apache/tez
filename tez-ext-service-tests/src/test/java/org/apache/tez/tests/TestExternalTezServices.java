@@ -40,6 +40,7 @@ import org.apache.tez.service.MiniTezTestServiceCluster;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestExternalTezServices {
@@ -120,26 +121,23 @@ public class TestExternalTezServices {
 
     confForJobs.setStrings(TezConfiguration.TEZ_AM_TASK_SCHEDULERS,
         TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
-//        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
         EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceTaskSchedulerService.class.getName());
 
     confForJobs.setStrings(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHERS,
         TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
-//        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
         EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceNoOpContainerLauncher.class.getName());
 
     confForJobs.setStrings(TezConfiguration.TEZ_AM_TASK_COMMUNICATORS,
         TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
-//        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
+        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
         EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceTaskCommunicatorImpl.class.getName());
 
     // Default all jobs to run via the service. Individual tests override this on a per vertex/dag level.
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
+    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, EXT_PUSH_ENTITY_NAME);
+    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, EXT_PUSH_ENTITY_NAME);
+    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, EXT_PUSH_ENTITY_NAME);
 
     // Setup various executor sets
     PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
@@ -232,16 +230,53 @@ public class TestExternalTezServices {
 
   @Test(timeout = 60000)
   public void testMixed1() throws Exception { // M-ExtService, R-containers
-    int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 3 for num reducers.
+    int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers.
     runJoinValidate("Mixed1", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
         PROPS_EXT_SERVICE_PUSH, PROPS_REGULAR_CONTAINERS);
   }
 
   @Test(timeout = 60000)
   public void testMixed2() throws Exception { // M-Containers, R-ExtService
-    int expectedExternalSubmissions = 0 + 3; //4 for 4 src files, 3 for num reducers.
+    int expectedExternalSubmissions = 0 + 3; // 3 for num reducers.
     runJoinValidate("Mixed2", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
         PROPS_REGULAR_CONTAINERS, PROPS_EXT_SERVICE_PUSH);
+  }
+
+  @Test(timeout = 60000)
+  public void testMixed3() throws Exception { // M - service, R-AM
+    int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers (in-AM).
+    runJoinValidate("Mixed3", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
+        PROPS_EXT_SERVICE_PUSH, PROPS_IN_AM);
+  }
+
+  @Test(timeout = 60000)
+  public void testMixed4() throws Exception { // M - containers, R-AM
+    int expectedExternalSubmissions = 0 + 0; // Nothing in external service.
+    runJoinValidate("Mixed4", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
+        PROPS_REGULAR_CONTAINERS, PROPS_IN_AM);
+  }
+
+  @Test(timeout = 60000)
+  public void testMixed5() throws Exception { // M1 - containers, M2-extservice, R-AM
+    int expectedExternalSubmissions = 2 + 0; // 2 for M2
+    runJoinValidate("Mixed5", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
+        PROPS_EXT_SERVICE_PUSH, PROPS_IN_AM);
+  }
+
+
+  @Ignore // Re-activate this after the AM registers the shuffle token with the launcher.
+  @Test(timeout = 60000)
+  public void testMixed6() throws Exception { // M - AM, R - Service
+    int expectedExternalSubmissions = 0 + 3; // 3 for R in service
+    runJoinValidate("Mixed6", expectedExternalSubmissions, PROPS_IN_AM,
+        PROPS_IN_AM, PROPS_EXT_SERVICE_PUSH);
+  }
+
+  @Test(timeout = 60000)
+  public void testMixed7() throws Exception { // M - AM, R - Containers
+    int expectedExternalSubmissions = 0; // Nothing in ext service
+    runJoinValidate("Mixed7", expectedExternalSubmissions, PROPS_IN_AM,
+        PROPS_IN_AM, PROPS_REGULAR_CONTAINERS);
   }
 
 

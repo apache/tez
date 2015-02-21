@@ -36,6 +36,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -90,9 +91,10 @@ public class LocalContainerLauncher extends AbstractService implements
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private final String workingDirectory;
   private final TaskAttemptListener tal;
-  private final Map<String, String> localEnv = new HashMap<String, String>();
+  private final Map<String, String> localEnv;
   private final ExecutionContext executionContext;
   private int numExecutors;
+  private final boolean isPureLocalMode;
 
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
       runningContainers =
@@ -112,16 +114,26 @@ public class LocalContainerLauncher extends AbstractService implements
 
   public LocalContainerLauncher(AppContext context,
                                 TaskAttemptListener taskAttemptListener,
-                                String workingDirectory) throws UnknownHostException {
+                                String workingDirectory,
+                                boolean isPureLocalMode) throws UnknownHostException {
     super(LocalContainerLauncher.class.getName());
     this.context = context;
     this.tal = taskAttemptListener;
 
     this.workingDirectory = workingDirectory;
-    AuxiliaryServiceHelper.setServiceDataIntoEnv(
-        ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, ByteBuffer.allocate(4).putInt(0), localEnv);
-    executionContext = new ExecutionContextImpl(InetAddress.getLocalHost().getHostName());
-    // User cannot be set here since it isn't available till a DAG is running.
+    this.isPureLocalMode = isPureLocalMode;
+    if (isPureLocalMode) {
+      localEnv = Maps.newHashMap();
+      AuxiliaryServiceHelper.setServiceDataIntoEnv(
+          ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, ByteBuffer.allocate(4).putInt(0), localEnv);
+    } else {
+      localEnv = System.getenv();
+    }
+
+    // Check if the hostname is set in the environment before overriding it.
+    String host = isPureLocalMode ? InetAddress.getLocalHost().getHostName() :
+        System.getenv(Environment.NM_HOST.name());
+    executionContext = new ExecutionContextImpl(host);
   }
 
   @Override
@@ -349,7 +361,9 @@ public class LocalContainerLauncher extends AbstractService implements
       InterruptedException, TezException, IOException {
     Map<String, String> containerEnv = new HashMap<String, String>();
     containerEnv.putAll(localEnv);
-    containerEnv.put(Environment.USER.name(), context.getUser());
+    // Use the user from env if it's available.
+    String user = isPureLocalMode ? System.getenv(Environment.USER.name()) : context.getUser();
+    containerEnv.put(Environment.USER.name(), user);
 
     long memAvailable;
     synchronized (this) { // needed to fix findbugs Inconsistent synchronization warning
@@ -358,8 +372,7 @@ public class LocalContainerLauncher extends AbstractService implements
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
             attemptNumber, localDirs, workingDirectory, containerEnv, "", executionContext, credentials,
-            memAvailable, context.getUser());
-    tezChild.setUmbilical(tezTaskUmbilicalProtocol);
+            memAvailable, context.getUser(), tezTaskUmbilicalProtocol);
     return tezChild;
   }
 
