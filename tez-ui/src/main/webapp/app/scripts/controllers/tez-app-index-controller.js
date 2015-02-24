@@ -21,6 +21,10 @@ App.TezAppIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   needs: "tezApp",
   controllerName: 'TezAppIndexController',
 
+  rmTrackingURL: function() {
+    return App.env.RMWebUrl + '/cluster/app/' + this.get('appId');
+  }.property('appId'),
+
   load: function () {
     var tezApp = this.get('model'),
       store  = this.get('store');

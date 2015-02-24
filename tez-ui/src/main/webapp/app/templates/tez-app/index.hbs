@@ -24,14 +24,27 @@
   }}
 </div>
 <div class='type-table fill-full margin-small-horizontal'>
-  <div class='align-left'>
+  <div style="padding-top: 20px;">
     <table class='detail-list'>
+       <thead>
+         <tr>
+            <th colspan=2>Tez Application Description</th>
+         </tr>
+      </thead>
       <tbody>
         <tr>
-          <td>App Name</td>
+          <td>Application Tracking URL</td>
+          <td><a target="_blank" {{bind-attr href=rmTrackingURL}}>{{unbound appId}}</a></td>
+        </tr>
+        <tr>
+          <td>Application Name</td>
           <td>
             {{appDetail.name}}
           </td>
+        </tr>
+        <tr>
+          <td>Application Attempt Id</td>
+          <td>{{appDetail.attemptId}}</td>
         </tr>
         <tr>
           <td>Queue</td>
@@ -44,27 +57,32 @@
           <td>{{appDetail.user}}</td>
         </tr>
         <tr>
-          <td>Type</td>
+          <td>Application Type</td>
           <td>{{appDetail.type}}</td>
         </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="padding-top: 20px;">
+    <table class='detail-list'>
+      <thead>
+         <tr>
+            <th colspan=2>Tez Application Details</th>
+         </tr>
+      </thead>
+      <tbody>
         <tr>
-          <td>App State</td>
+          <td>Application State</td>
           <td>
             {{appDetail.appState}}
           </td>
         </tr>
         <tr>
-          <td>Final App Status</td>
+          <td>Final Application Status</td>
           <td>
             <i {{bind-attr class=':task-status iconStatus'}}></i> {{appDetail.finalAppStatus}}
           </td>
         </tr>
-      </tbody>
-    </table>
-  </div>
-  <div class='align-right'>
-    <table class='detail-list'>
-      <tbody>
         <tr>
           <td>{{t 'common.time.start'}}</td>
           <td>{{formatUnixTimestamp appDetail.startedTime}}</td>
@@ -83,7 +101,9 @@
 </div>
 
 {{#if diagnostics}}
-  {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
-    {{formatDiagnostics diagnostics}}
-  {{/bs-panel}}
+  <div class="margin-small-vertical">
+    {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
+      {{formatDiagnostics diagnostics}}
+    {{/bs-panel}}
+  </div>
 {{/if}}

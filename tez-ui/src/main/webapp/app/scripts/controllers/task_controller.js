@@ -28,9 +28,9 @@ App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.M
   }.observes('content'),
 
 	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'task.index'}),
+		Ember.Object.create({title: 'Task Details', linkTo: 'task.index'}),
+		Ember.Object.create({title: 'Task Counters', linkTo: 'task.counters'}),
 		Ember.Object.create({title: 'Task Attempts', linkTo: 'task.attempts'}),
-		Ember.Object.create({title: 'Counters', linkTo: 'task.counters'}),
 	],
 
 });
