@@ -105,6 +105,7 @@ body, html, body > .ember-view {
 
   .breadcrumb {
     padding: 5px 15px;
+    border: 1px solid @logo-orange;
     font-size: 16px;
     .active .sub {
       font-size: 12px;
@@ -344,8 +345,18 @@ body, html, body > .ember-view {
 /* dag page */
 .detail-list {
   table-layout: fixed;
-  overflow: hidden;
   white-space: nowrap;
+
+  tr {
+    margin: 0px 0px 0px 15px;
+    overflow: hidden;
+  }
+
+  thead {
+    background-color: @bg-lite;
+    font-style: italic;
+    font-weight: bold;
+  }
 
   td {
     padding: 0px 20px 0px 0px;
@@ -353,6 +364,11 @@ body, html, body > .ember-view {
 
   td:first-child {
     width:120px;
+  }
+
+  th, td {
+    border: 1px solid @border-lite;
+    padding: 5px;
   }
 }
 

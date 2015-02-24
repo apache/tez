@@ -26,25 +26,36 @@
 <div class='type-table fill-full margin-small-horizontal'>
   <div class='align-left'>
     <table class='detail-list'>
+       <thead>
+         <tr>
+            <th colspan=2>DAG Details</th>
+         </tr>
+      </thead>
       <tbody>
+        <tr>
+          <td>{{t 'common.applicationId'}}</td>
+          <td>
+            {{#if controllers.dag.enableAppIdLink}}
+              {{#link-to 'tez-app' applicationId class='ember-table-content'}}{{applicationId}}{{/link-to}}
+            {{else}}
+              <span class='ember-table-content'>{{applicationId}}</span>
+            {{/if}}
+          </td>
+        </tr>
+        <tr>
+          <td>{{t 'common.user'}}</td>
+          <td>{{user}}</td>
+        </tr>
         <tr>
           <td>{{t 'common.status'}}</td>
           <td>
             <i {{bind-attr class=':task-status taskIconStatus'}}></i> {{status}}
             {{#if progressStr}} {{bs-badge content=progressStr}}{{/if}}
-          </td>
-          <td>
             {{#if hasFailedTasks}}
-              <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
+              [ <a href='{{unbound failedTasksLink}}'>Failed Tasks</a> ]
             {{/if}}
           </td>
         </tr>
-      </tbody>
-    </table>
-  </div>
-  <div class='align-right'>
-    <table class='detail-list'>
-      <tbody>
         <tr>
           <td>{{t 'common.time.start'}}</td>
           <td>{{formatUnixTimestamp startTime}}</td>
@@ -63,7 +74,9 @@
 </div>
 
 {{#if diagnostics}}
-	{{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
-    {{formatDiagnostics diagnostics}}
-	{{/bs-panel}}
+  <div class="margin-small-vertical">
+    {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
+      {{formatDiagnostics diagnostics}}
+    {{/bs-panel}}
+  </div>
 {{/if}}

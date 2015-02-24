@@ -27,13 +27,38 @@
 
   <div class="horizontal-half align-children-left">
     <table class='detail-list'>
+       <thead>
+         <tr>
+           <th colspan=2>Vertex description</th>
+          </tr>
+      </thead>
       <tbody>
+        <tr>
+          <td>Vertex ID</td>
+          <td>{{id}}</td>
+        </tr>
         <tr>
           <td>Vertex Name</td>
           <td>
             {{name}}
           </td>
         </tr>
+        <tr>
+          <td>Processor Class</td>
+          <td>{{processorClassName}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="padding-top: 20px;">
+    <table class='detail-list'>
+       <thead>
+         <tr>
+           <th colspan=2>Vertex details</th>
+          </tr>
+      </thead>
+      <tbody>
         <tr>
           <td>{{t 'common.status'}}</td>
           <td>
@@ -42,55 +67,6 @@
             {{#if progressStr}} {{bs-badge content=progressStr}}{{/if}}
           </td>
         </tr>
-        <tr>
-          <td>Total Tasks</td>
-          <td>{{numTasks}}</td>
-        </tr>
-        <tr>
-          <td>Successful Tasks</td>
-          <td>{{sucessfulTasks}}</td>
-        </tr>
-        <tr>
-          <td>Failed Tasks</td>
-          <td>
-            {{failedTasks}}
-          </td>
-          <td>
-            {{#if hasFailedTasks}}
-              <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
-            {{/if}}
-          </td>
-        </tr>
-        <tr>
-          <td>Killed Tasks</td>
-          <td>{{killedTasks}}</td>
-        </tr>
-        {{#if hasFirstTaskStarted}}
-          <tr>
-            <td>First Task Start Time</td>
-            <td>{{formatUnixTimestamp firstTaskStartTime}}
-            <td>
-              {{#each taskid in firstTasksToStart}}
-                {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
-              {{/each}}
-            </td>
-          </tr>
-        {{/if}}
-        {{#if hasLastTaskFinished}}
-          <tr>
-            <td>Last Task Finish Time</td>
-            <td>{{formatUnixTimestamp lastTaskFinishTime}}
-            <td>
-              {{#each taskid in lastTasksToFinish}}
-                {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
-              {{/each}}
-          </tr>
-        {{/if}}
-      </tbody>
-    </table>
-  </div><div class="horizontal-half align-children-left" style="vertical-align: top; padding-left: 50px;">
-    <table class='detail-list inline-block'>
-      <tbody>
         <tr>
           <td>{{t 'common.time.start'}}</td>
           <td>{{formatUnixTimestamp startTime}}</td>
@@ -103,10 +79,32 @@
           <td>{{t 'common.time.duration'}}</td>
           <td>{{formatDuration startTime endTime}}</td>
         </tr>
-        <tr>
-          <td>Processor Class</td>
-          <td>{{processorClassName}}</td>
-        </tr>
+        {{#if hasFirstTaskStarted}}
+          <tr>
+            <td>First Task Start Time</td>
+            <td>{{formatUnixTimestamp firstTaskStartTime}}
+              [
+              {{#each taskid in firstTasksToStart}}
+                {{#if _view.contentIndex}} | {{/if}}
+                {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}
+              {{/each}}
+              ]
+            </td>
+          </tr>
+        {{/if}}
+        {{#if hasLastTaskFinished}}
+          <tr>
+            <td>Last Task Finish Time</td>
+            <td>{{formatUnixTimestamp lastTaskFinishTime}}
+              [
+              {{#each taskid in lastTasksToFinish}}
+                {{#if _view.contentIndex}} | {{/if}}
+                {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}
+              {{/each}}
+              ]
+            </td>
+          </tr>
+        {{/if}}
       </tbody>
     </table>
   </div>
@@ -116,10 +114,32 @@
       <table class='detail-list'>
         <thead>
           <tr>
-            <th>Task Stats</th>
+            <th colspan=2>Tasks of this Vertex</th>
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td>Total Tasks</td>
+            <td>{{numTasks}}</td>
+          </tr>
+          <tr>
+            <td>Successful Tasks</td>
+            <td>{{sucessfulTasks}}</td>
+          </tr>
+          <tr>
+            <td>Failed Tasks</td>
+            <td>
+              {{failedTasks}}
+            </td>
+              {{#if hasFailedTasks}}
+                <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
+              {{/if}}
+          </tr>
+          <tr>
+            <td>Killed Tasks</td>
+            <td>{{killedTasks}}</td>
+          </tr>
+
           {{#if avgTaskDuration}}
             <tr>
               <td>Average Duration</td>
@@ -129,22 +149,26 @@
           {{#if minTaskDuration}}
             <tr>
               <td>Minimum Duration</td>
-              <td>{{formatTimeMillis minTaskDuration}}</td>
-              <td>
+              <td>{{formatTimeMillis minTaskDuration}}
+                [
                 {{#each taskid in shortestDurationTasks}}
-                  {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
+                  {{#if _view.contentIndex}} | {{/if}}
+                  {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}
                 {{/each}}
+                ]
               </td>
             </tr>
           {{/if}}
           {{#if maxTaskDuration}}
             <tr>
               <td>Maximum Duration</td>
-              <td>{{formatTimeMillis maxTaskDuration}}</td>
-              <td>
+              <td>{{formatTimeMillis maxTaskDuration}}
+                [
                 {{#each taskid in longestDurationTasks}}
-                  {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}<br/>
+                  {{#if _view.contentIndex}} | {{/if}}
+                  {{#link-to 'task' taskid}}{{taskid}}{{/link-to}}
                 {{/each}}
+                ]
               </td>
             </tr>
           {{/if}}
@@ -156,7 +180,9 @@
 </div>
 
 {{#if diagnostics}}
-  {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
-    {{formatDiagnostics diagnostics}}
-  {{/bs-panel}}
+  <div class="margin-small-vertical">
+    {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}
+      {{formatDiagnostics diagnostics}}
+    {{/bs-panel}}
+  </div>
 {{/if}}

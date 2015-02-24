@@ -19,7 +19,7 @@
 App.TaskAttemptController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 	controllerName: 'TaskAttemptController',
 
-	pageTitle: 'Task Attempt',
+	pageTitle: 'TaskAttempt',
 
 	loading: true,
 
@@ -28,8 +28,8 @@ App.TaskAttemptController = Em.ObjectController.extend(App.Helpers.DisplayHelper
   }.observes('content'),
 
 	childDisplayViews: [
-		Ember.Object.create({title: 'Details', linkTo: 'taskAttempt.index'}),
-		Ember.Object.create({title: 'Counters', linkTo: 'taskAttempt.counters'}),
+		Ember.Object.create({title: 'TaskAttempt Details', linkTo: 'taskAttempt.index'}),
+		Ember.Object.create({title: 'TaskAttempt Counters', linkTo: 'taskAttempt.counters'}),
 	],
 
 });

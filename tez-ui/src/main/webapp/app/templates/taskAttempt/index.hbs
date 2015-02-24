@@ -26,27 +26,34 @@
 <div class='type-table fill-full margin-small-horizontal'>
 	<div class='align-left'>
 		<table class='detail-list'>
+			<thead>
+				<tr>
+					<th colspan=2>TaskAttempt Details</th>
+				</tr>
+			</thead>
 			<tbody>
+				<tr>
+					<td>Task Attempt ID</td>
+					<td>{{id}}</td>
+				</tr>
+				<tr>
+					<td>Task ID</td>
+					<td>{{taskID}}</td>
+				</tr>
+				<tr>
+					<td>Container</td>
+					<td>{{containerId}}</td>
+				</tr>
+				<tr>
+					<td>Node</td>
+					<td>{{nodeId}}</td>
+				</tr>
 				<tr>
 					<td>{{t 'common.status'}}</td>
 					<td>
 						<i {{bind-attr class=':task-status taskAttemptIconStatus'}}></i> {{taskAttemptStatus}}
 					</td>
 				</tr>
-				<tr>
-					<td>Container</td>
-					<td>{{containerId}}</td>
-				</tr>
-        <tr>
-          <td>Node</td>
-          <td>{{nodeId}}</td>
-        </tr>
-			</tbody>
-		</table>
-	</div>
-	<div class='align-right'>
-		<table class='detail-list'>
-			<tbody>
 				<tr>
 					<td>{{t 'common.time.start'}}</td>
 					<td>{{formatUnixTimestamp startTime}}</td>
@@ -65,7 +72,9 @@
 </div>
 
 {{#if diagnostics}}
-	{{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger' class="margin-medium-vertical"}}
-    {{formatDiagnostics diagnostics}}
-	{{/bs-panel}}
+	<div class="margin-small-vertical">
+		{{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger' class="margin-medium-vertical"}}
+		{{formatDiagnostics diagnostics}}
+		{{/bs-panel}}
+	</div>
 {{/if}}

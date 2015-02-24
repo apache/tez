@@ -21,9 +21,9 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
 
 	controllerName: 'DagsController',
 
-	pageTitle: 'Dags',
+	pageTitle: 'Tez DAGs',
 
-	pageSubTitle: 'All Dags',
+	pageSubTitle: 'All Tez DAGs',
 
   // query parameters supported through url. The same named variables in this controller get
   // bound automatically to the ones defined in the route.

@@ -17,27 +17,13 @@
 }}
 
 <ul class="breadcrumb">
-  <li>{{#link-to 'application'}}<i class="fa fa-home"> All Dags</i>{{/link-to}} <span class="divider"></span></li>
-  <li>{{#link-to 'dag.vertices' dagID}}Dag{{/link-to}} <span class="divider"></span></li>
-  <li class="active">Vertex - <span class='sub'>{{name}}</span></li>
+  <li>{{#link-to 'application'}}<i class="fa fa-home"> All DAGs</i>{{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'dag.vertices' dagID}} DAG [ {{dagID}}  ] {{/link-to}} <span class="divider"></span></li>
+  <li class="active">Vertex [ {{id}} ]</li>
 </ul>
 
 {{#unless loading}}
   <div class='type-table margin-small-horizontal fill-full'>
-    <div class='align-left'>
-      <table class='detail-list'>
-        <tbody>
-          <tr>
-            <td>Vertex ID</td>
-            <td>{{id}}</td>
-          </tr>
-          <tr>
-            <td>DAG ID</td>
-            <td>{{dagID}}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
     <div class='pill-container align-right'>
       {{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
     </div>
