@@ -174,6 +174,7 @@ public class TaskSchedulerEventHandler extends AbstractService
           for (int i = 0 ; i < schedulerClasses.length ; i++) { // Copy over the rest.
             this.taskSchedulerClasses[i] = schedulerClasses[i];
           }
+          this.taskSchedulerClasses[foundYarnTaskSchedulerIndex] = TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT;
         } else {
           this.taskSchedulerClasses = schedulerClasses;
         }

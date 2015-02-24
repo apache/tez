@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.AppContext;
@@ -54,6 +55,7 @@ public class TezTestServiceContainerLauncher extends AbstractService implements 
   private final int servicePort;
   private final TezTestServiceCommunicator communicator;
   private final Clock clock;
+  private final ApplicationAttemptId appAttemptId;
 
 
   // Configuration passed in here to set up final parameters
@@ -70,6 +72,7 @@ public class TezTestServiceContainerLauncher extends AbstractService implements 
     this.communicator = new TezTestServiceCommunicator(numThreads);
     this.context = appContext;
     this.tokenIdentifier = context.getApplicationID().toString();
+    this.appAttemptId = appContext.getApplicationAttemptId();
     this.tal = tal;
   }
 
@@ -128,9 +131,8 @@ public class TezTestServiceContainerLauncher extends AbstractService implements 
     RunContainerRequestProto.Builder builder = RunContainerRequestProto.newBuilder();
     InetSocketAddress address = tal.getTaskCommunicator(event.getTaskCommId()).getAddress();
     builder.setAmHost(address.getHostName()).setAmPort(address.getPort());
-    builder.setAppAttemptNumber(event.getContainer().getId().getApplicationAttemptId().getAttemptId());
-    builder.setApplicationIdString(
-        event.getContainer().getId().getApplicationAttemptId().getApplicationId().toString());
+    builder.setAppAttemptNumber(appAttemptId.getAttemptId());
+    builder.setApplicationIdString(appAttemptId.getApplicationId().toString());
     builder.setTokenIdentifier(tokenIdentifier);
     builder.setContainerIdString(event.getContainer().getId().toString());
     builder.setCredentialsBinary(

@@ -1547,7 +1547,7 @@ public class DAGAppMaster extends AbstractService {
 
     @Override
     public Integer getContainerLauncherIdentifier(String name) {
-      return taskCommunicators.get(name);
+      return containerLaunchers.get(name);
     }
 
     @Override

@@ -1003,6 +1003,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         .get(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, tezDefaultComponentName);
     String containerLauncherName = vertexConf
         .get(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, tezDefaultComponentName);
+
+    LOG.info("Vertex: " + logIdentifier + " configured with TaskScheduler=" + taskSchedulerName +
+        ", ContainerLauncher=" + containerLauncherName + ", TaskComm=" + taskCommName);
+
     taskSchedulerIdentifier = appContext.getTaskScheduerIdentifier(taskSchedulerName);
     taskCommunicatorIdentifier = appContext.getTaskCommunicatorIdentifier(taskCommName);
     containerLauncherIdentifier = appContext.getContainerLauncherIdentifier(containerLauncherName);
