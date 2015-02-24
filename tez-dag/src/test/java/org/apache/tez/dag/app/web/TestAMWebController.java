@@ -35,7 +35,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
@@ -53,7 +55,8 @@ public class TestAMWebController {
   AppContext mockAppContext;
   Controller.RequestContext mockRequestContext;
   HttpServletResponse mockResponse;
-  HttpServletRequest mockRequst;
+  HttpServletRequest mockRequest;
+  String[] userGroups = {};
 
   @Before
   public void setup() {
@@ -65,7 +68,7 @@ public class TestAMWebController {
     when(mockAppContext.getAMConf()).thenReturn(conf);
     mockRequestContext = mock(Controller.RequestContext.class);
     mockResponse = mock(HttpServletResponse.class);
-    mockRequst = mock(HttpServletRequest.class);
+    mockRequest = mock(HttpServletRequest.class);
   }
 
   @Test(timeout = 5000)
@@ -92,8 +95,8 @@ public class TestAMWebController {
     doReturn(false).when(spy).hasAccess();
     doNothing().when(spy).setCorsHeaders();
     doReturn(mockResponse).when(spy).response();
-    doReturn(mockRequst).when(spy).request();
-    doReturn("dummyuser").when(mockRequst).getRemoteUser();
+    doReturn(mockRequest).when(spy).request();
+    doReturn("dummyuser").when(mockRequest).getRemoteUser();
 
     spy.getDagProgress();
     verify(mockResponse).sendError(eq(HttpServletResponse.SC_UNAUTHORIZED), anyString());
@@ -166,4 +169,40 @@ public class TestAMWebController {
     Assert.assertTrue("vertex_1422960590892_0007_42_43".equals(progressInfo.getId()));
     Assert.assertEquals(66.0f, progressInfo.getProgress(), 0.1);
   }
+
+  @Test (timeout = 5000)
+  public void testHasAccessWithAclsDisabled() {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, false);
+    ACLManager aclManager = new ACLManager("amUser", conf);
+
+    when(mockAppContext.getAMACLManager()).thenReturn(aclManager);
+
+    Assert.assertEquals(true, AMWebController._hasAccess(null, mockAppContext));
+
+    UserGroupInformation mockUser = UserGroupInformation.createUserForTesting(
+        "mockUser", userGroups);
+    Assert.assertEquals(true, AMWebController._hasAccess(mockUser, mockAppContext));
+  }
+
+  @Test (timeout = 5000)
+  public void testHasAccess() {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, true);
+    ACLManager aclManager = new ACLManager("amUser", conf);
+
+    when(mockAppContext.getAMACLManager()).thenReturn(aclManager);
+
+    Assert.assertEquals(false, AMWebController._hasAccess(null, mockAppContext));
+
+    UserGroupInformation mockUser = UserGroupInformation.createUserForTesting(
+        "mockUser", userGroups);
+    Assert.assertEquals(false, AMWebController._hasAccess(mockUser, mockAppContext));
+
+    UserGroupInformation testUser = UserGroupInformation.createUserForTesting(
+        "amUser", userGroups);
+    Assert.assertEquals(true, AMWebController._hasAccess(testUser, mockAppContext));
+  }
+
+
 }

@@ -93,6 +93,10 @@ public class ACLManager {
     }
   }
 
+  public boolean isAclsEnabled() {
+    return aclsEnabled;
+  }
+
   @VisibleForTesting
   boolean checkAccess(UserGroupInformation ugi, ACLType aclType) {
 

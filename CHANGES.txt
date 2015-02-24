@@ -71,6 +71,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2135. ACL checks handled incorrectly in AMWebController.
   TEZ-1990. Tez UI: DAG details page shows Nan for end time when a DAG is running.
   TEZ-2116. Tez UI: dags page filter does not work if more than one filter is specified.
   TEZ-2106. TEZ UI: Display data load time, and add a refresh button for items that can be refreshed.
