@@ -139,6 +139,14 @@ public class AMWebController extends Controller {
   }
 
   @VisibleForTesting
+  static boolean _hasAccess(UserGroupInformation callerUGI, AppContext appContext) {
+    if (callerUGI == null) {
+      // Allow anonymous access iff acls disabled
+      return !appContext.getAMACLManager().isAclsEnabled();
+    }
+    return appContext.getAMACLManager().checkDAGViewAccess(callerUGI);
+  }
+
   public boolean hasAccess() {
     String remoteUser = request().getRemoteUser();
     UserGroupInformation callerUGI = null;
@@ -146,11 +154,7 @@ public class AMWebController extends Controller {
       callerUGI = UserGroupInformation.createRemoteUser(remoteUser);
     }
 
-    if (callerUGI != null && appContext.getAMACLManager().checkDAGViewAccess(callerUGI)) {
-      return false;
-    }
-
-    return true;
+    return _hasAccess(callerUGI, appContext);
   }
 
   public void getDagProgress() {
