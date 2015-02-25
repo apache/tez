@@ -116,7 +116,7 @@ App.ApplicationRoute = Em.Route.extend({
     error: function(error, transition, originRoute) {
       this.replaceWith('error');
       Em.Logger.error(error);
-      var defaultError = 'Error while loading %@. could not connect to %@'.fmt(transition.targetName, App.env.timelineBaseUrl);
+      var defaultError = 'Error while loading %@.'.fmt(transition.targetName);
       var err = App.Helpers.misc.formatError(error, defaultError);
       var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
       App.Helpers.ErrorBar.getInstance().show(msg, error.details);

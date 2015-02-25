@@ -28,6 +28,7 @@ App.TimelineRESTAdapter = DS.RESTAdapter.extend({
     hash = hash || {}; // hash may be undefined
     hash.crossDomain = true;
     hash.xhrFields = {withCredentials: true};
+    hash.targetServer = "Timeline Server";
     return this._super(url, method, hash);
   },
 	namespace: App.Configs.restNamespace.timeline,

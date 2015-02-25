@@ -70,6 +70,7 @@ App.ready = function () {
       hash = hash || {}; // hash may be undefined
       hash.crossDomain = true;
       hash.xhrFields = {withCredentials: true};
+      hash.targetServer = "Timeline Server";
       return this._super(url, method, hash);
     },
     namespace: App.Configs.restNamespace.applicationHistory,
@@ -130,6 +131,7 @@ App.ready = function () {
       }
       hash.crossDomain = true;
       hash.xhrFields = {withCredentials: true};
+      hash.targetServer = "Resource Manager";
       return this._super(url, method, hash);
     },
     host: App.env.RMWebUrl,
@@ -165,6 +167,10 @@ App.ready = function () {
     }
   });
 };
+
+$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
+  jqXHR.requestOptions = originalOptions;
+});
 
 /* Order and include */
 require('scripts/default-configs');

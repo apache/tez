@@ -63,7 +63,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
     store = this.get('store'),
     fetcher;
     childEntityType = this.get('childEntityType');
-    var defaultErrMsg = 'Error while loading tasks. could not connect to %@'.fmt(App.env.timelineBaseUrl);
+    var defaultErrMsg = 'Error while loading tasks.';
 
     that.set('loading', true);
     store.unloadAll(childEntityType);

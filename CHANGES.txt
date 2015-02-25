@@ -71,6 +71,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2134. TEZ UI: On request failure, display request URL and server name in error bar.
   TEZ-2136. Some enhancements to the new Tez UI.
   TEZ-2135. ACL checks handled incorrectly in AMWebController.
   TEZ-1990. Tez UI: DAG details page shows Nan for end time when a DAG is running.

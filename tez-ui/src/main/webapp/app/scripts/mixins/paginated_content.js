@@ -69,8 +69,8 @@ App.PaginatedContentMixin = Em.Mixin.create({
   loadEntities: function() {
     var that = this;
     var childEntityType = this.get('childEntityType');
-    var defaultErrMsg = 'Error while loading %@. could not connect to %@'
-      .fmt(childEntityType, App.env.timelineBaseUrl);
+    var defaultErrMsg = 'Error while loading %@.'
+      .fmt(childEntityType);
 
 
     that.set('loading', true);
