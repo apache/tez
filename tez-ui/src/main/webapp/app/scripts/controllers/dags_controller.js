@@ -67,7 +67,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     childEntityType = this.get('childEntityType'),
     fetcher,
     record;
-    var defaultErrMsg = 'Error while loading dag info. could not connect to %@'.fmt(App.env.timelineBaseUrl);
+    var defaultErrMsg = 'Error while loading dag info.';
 
     that.set('loading', true);
     store.unloadAll(childEntityType);

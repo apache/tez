@@ -178,6 +178,15 @@ App.Helpers.misc = {
     if (!!error.responseText) {
       msg += error.responseText;
     }
+
+    if(error.requestOptions) {
+      msg = '%@<br/>Could not retrieve expected data from %@ @ %@'.fmt(
+        msg,
+        error.requestOptions.targetServer,
+        error.requestOptions.url
+      )
+    }
+
     return {
       errCode: error.status || 'Unknown', 
       msg: msg,
