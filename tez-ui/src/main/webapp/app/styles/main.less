@@ -31,71 +31,6 @@ body, html, body > .ember-view {
   overflow: visible;
 }
 
-// TEZ UI in stand alone mode
-.standalone {
-  height: 100%;
-
-  a {
-    color: @logo-orange;
-  }
-
-  #top-nav {
-    a.logo {
-      img {
-        margin-top: 2px;
-      }
-      span {
-        vertical-align: bottom;
-        color: @logo-orange;
-      }
-      &:hover {
-        text-decoration: none;
-      }
-    }
-
-    .navbar-inner {
-      background-color: @bg-lite;
-
-      max-height: 40px;
-      border-bottom: 1px @border-lite solid;
-    }
-  }
-
-  .nav-pills > li.active > a,
-  .nav-pills > li.active > a:hover,
-  .nav-pills > li.active > a:focus {
-    background-color: @logo-orange;
-  }
-
-  .top-wrapper {
-    min-height: 100%;
-    height: auto !important;
-    height: 100%;
-    margin: 0 auto -40px; // Must be same as footer & footer-frame
-  }
-
-  .footer, .footer-frame {
-    height: 40px;
-  }
-
-  .footer {
-    background-color: @white;
-    color: @text-color;
-
-    padding: 10px 0px;
-    margin: 0px;
-
-    border-top: 1px @border-lite solid;
-  }
-}
-
-// TEZ UI wrapped in a host like Ambari
-.wrapped {
-  #top-nav, .footer, .push {
-    display: none;
-  }
-}
-
 // Styles used in both standalone and wrapped modes
 .standalone, .wrapped {
 
@@ -105,7 +40,7 @@ body, html, body > .ember-view {
 
   .breadcrumb {
     padding: 5px 15px;
-    border: 1px solid @logo-orange;
+    border: 1px solid @border-lite;
     font-size: 16px;
     .active .sub {
       font-size: 12px;
@@ -155,7 +90,75 @@ body, html, body > .ember-view {
   .navbar {
     margin-bottom: 0px;
   }
+}
 
+// TEZ UI in stand alone mode
+.standalone {
+  height: 100%;
+
+  a {
+    color: @logo-orange;
+  }
+
+  #top-nav {
+    a.logo {
+      img {
+        margin-top: 2px;
+      }
+      span {
+        vertical-align: bottom;
+        color: @logo-orange;
+      }
+      &:hover {
+        text-decoration: none;
+      }
+    }
+
+    .navbar-inner {
+      background-color: @bg-lite;
+
+      max-height: 40px;
+      border-bottom: 1px @border-lite solid;
+    }
+  }
+
+  .breadcrumb {
+    border: 1px solid @logo-orange;
+  }
+
+  .nav-pills > li.active > a,
+  .nav-pills > li.active > a:hover,
+  .nav-pills > li.active > a:focus {
+    background-color: @logo-orange;
+  }
+
+  .top-wrapper {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -40px; // Must be same as footer & footer-frame
+  }
+
+  .footer, .footer-frame {
+    height: 40px;
+  }
+
+  .footer {
+    background-color: @white;
+    color: @text-color;
+
+    padding: 10px 0px;
+    margin: 0px;
+
+    border-top: 1px @border-lite solid;
+  }
+}
+
+// TEZ UI wrapped in a host like Ambari
+.wrapped {
+  #top-nav, .footer, .push {
+    display: none;
+  }
 }
 
 .error-bar {
