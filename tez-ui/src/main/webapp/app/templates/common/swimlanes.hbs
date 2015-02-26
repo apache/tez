@@ -21,7 +21,14 @@
   time=controller.model.content.0.timeStamp
   refresh='refresh'
 }}
-<div id="swimlane">
+<div class="svg-container">
   {{#view App.SwimlanesView contentBinding="controller.model.content"}}
   {{/view}}
+</div>
+<div class="tool-tip">
+  <div class="bubble">
+    <div class="tip-title">Title</div>
+    <div class="tip-text"></div>
+    <div class="tip-list"></div>
+  </div>
 </div>

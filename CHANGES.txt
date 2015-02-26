@@ -72,6 +72,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2147. Swimlanes: Improved tooltip
   TEZ-2142. TEZ UI: Breadcrumb border color looks out of place in wrapped mode.
   TEZ-2134. TEZ UI: On request failure, display request URL and server name in error bar.
   TEZ-2136. Some enhancements to the new Tez UI.
