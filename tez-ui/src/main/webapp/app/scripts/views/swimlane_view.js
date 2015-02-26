@@ -19,6 +19,7 @@
 App.SwimlanesView = Ember.View.extend({
 
   didInsertElement: function() {
+    var _tip;     // Instance of tip.js
     var task_attempts = this.get("content");
     var controller = this.get("controller");
     var timeBegin = d3.min(task_attempts, function (d) { return d.get('startTime') });
@@ -52,17 +53,13 @@ App.SwimlanesView = Ember.View.extend({
     .tickSize(0)
     .orient("left");
 
-    $('#swimlane').html('');
-    var div = d3.select("#swimlane")
-    .append("div") // declare the tooltip div
-    .attr("class", "tooltip") // apply the 'tooltip' class
-    .style("opacity", 0);
-
-    var svg = d3.select("#swimlane")
+    var svg = d3.select('.svg-container')
     .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .attr("class", "svg");
+    _tip = App.DagViewComponent.tip;
+    _tip.init($('.tool-tip'), $(svg.node()));
 
     var mini = svg.append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
@@ -104,22 +101,54 @@ App.SwimlanesView = Ember.View.extend({
     .attr("width", function(d) {return x(d.get('endTime')) - x(d.get('startTime'));})
     .attr("rx", 6)
     .attr("height", y.rangeBand())
-    // Tooltip stuff after this
-    .on("mouseover", function(d) {
-      div.transition()
-      .duration(500)
-      .style("opacity", 0);
-      div.transition()
-      .duration(200)
-      .style("opacity", .9);
-      div .html(
-        d.get('id') +
-        "<br/>Start: " + moment(d.get('startTime')).format() +
-        "<br/>End: " + moment(d.get('endTime')).format())
-        .style("left", (d3.event.pageX) + "px")
-        .style("top", (d3.event.pageY - 28) + "px")
-        .on("click", function () {controller.send('taskAttemptClicked', d.get('id'))});
+    .on({
+      mouseover: _onMouseOver,
+      mouseout: _tip.hide,
+      click: function (d) { controller.send('taskAttemptClicked', d.get('id'))}
     });
+
+  /**
+   * Mouse over handler for all displayed SVG DOM elements.
+   * Later the implementation will be refactored and moved into the respective DataNode.
+   * d {DataNode} Contains data to be displayed
+   */
+  function _onMouseOver(d) {
+    var event = d3.event,
+        node = event.target,
+        tooltipData = {}; // Will be populated with {title/text/kvList}.
+
+    node = node.correspondingUseElement || node;
+
+    switch(_getType(node)) {
+      case "task_attempt":
+        node = d3.event.target;
+        tooltipData = {
+          position: {
+            x: event.clientX,
+            y: event.clientY
+          },
+          title: '%@'.fmt(
+            "Task Attempt"
+          )
+        };
+        tooltipData.kvList = {
+          "Id": d.get('id'),
+          "Task Id": d.get("taskID"),
+          "Vertex Id": d.get("vertexID"),
+          "DAG Id": d.get("dagID"),
+          "Start Time": App.Helpers.date.dateFormat(d.get("startTime")),
+          "End Time": App.Helpers.date.dateFormat(d.get("endTime")),
+          "Duration": App.Helpers.date.timingFormat(App.Helpers.date.duration(d.get("startTime"), d.get("endTime"))),
+        };
+      break;
+    }
+
+    _tip.show(node, tooltipData, event);
+  }
+
+  function _getType(node) {
+    return $(node).attr('class');
+  }
 
     /*
     // TODO: task attempt labels - draw labels if they fit

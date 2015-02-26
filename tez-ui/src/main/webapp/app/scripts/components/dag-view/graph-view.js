@@ -432,8 +432,8 @@ App.DagViewComponent.graphView = (function (){
       case "path":
         tooltipData = {
           position: {
-            x: event.pageX,
-            y: event.pageY
+            x: event.clientX,
+            y: event.clientY
           },
           title: '%@ - %@'.fmt(
             d.get('source.name') || d.get('source.vertexName'),
