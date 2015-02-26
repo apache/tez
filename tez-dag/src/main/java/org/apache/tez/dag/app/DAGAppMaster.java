@@ -1703,14 +1703,21 @@ public class DAGAppMaster extends AbstractService {
       // Delete tez scratch data dir
       if (this.tezSystemStagingDir != null) {
         try {
-          FileSystem fs = this.tezSystemStagingDir.getFileSystem(this.amConf);
-          boolean deletedStagingDir = fs.delete(this.tezSystemStagingDir, true);
-          if (!deletedStagingDir) {
-            LOG.warn("Failed to delete tez scratch data dir, path=" + this.tezSystemStagingDir);
-          } else {
-            LOG.info("Completed deletion of tez scratch data dir, path="
-                + this.tezSystemStagingDir);
-          }
+          this.appMasterUgi.doAs(new PrivilegedExceptionAction<Void>() {
+            @Override
+            public Void run() throws Exception {
+              FileSystem fs = tezSystemStagingDir.getFileSystem(amConf);
+              boolean deletedStagingDir = fs.delete(tezSystemStagingDir, true);
+              if (!deletedStagingDir) {
+                LOG.warn("Failed to delete tez scratch data dir, path="
+                + tezSystemStagingDir);
+              } else {
+                LOG.info("Completed deletion of tez scratch data dir, path="
+                  + tezSystemStagingDir);
+              }
+              return null;
+            }
+          });
         } catch (IOException e) {
           // Best effort to delete tez scratch data dir
           LOG.warn("Failed to delete tez scratch data dir", e);
