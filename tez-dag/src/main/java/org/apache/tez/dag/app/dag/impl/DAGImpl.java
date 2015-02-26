@@ -61,6 +61,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.Scope;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -386,6 +387,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @VisibleForTesting
   boolean recoveryCommitInProgress = false;
   Map<String, Boolean> recoveredGroupCommits = new HashMap<String, Boolean>();
+  long statusPollInterval;
 
   static class VertexGroupInfo {
     String groupName;
@@ -464,6 +466,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
     this.entityUpdateTracker = new StateChangeNotifier(this);
+    statusPollInterval = dagConf.getLong(
+        TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS,
+        TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT);
+    if(statusPollInterval < 0) {
+      LOG.error("DAG Status poll interval cannot be negative and setting to default value.");
+      statusPollInterval = TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT;
+    }
   }
 
   protected StateMachine<DAGState, DAGEventType, DAGEvent> getStateMachine() {
@@ -728,6 +737,26 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } finally {
       readLock.unlock();
     }
+  }
+
+  public DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions,
+      long timeout) throws TezException {
+    long currentStatusPollInterval = statusPollInterval;
+    if(timeout >= 0 && currentStatusPollInterval > timeout) {
+      currentStatusPollInterval = timeout;
+    }
+    long timeoutTime = System.currentTimeMillis() + timeout;
+    while (timeout < 0 || (timeout > 0 && timeoutTime > System.currentTimeMillis())) {
+      if(isComplete()) {
+        break;
+      }
+      try {
+        Thread.sleep(currentStatusPollInterval);
+      } catch (InterruptedException e) {
+        throw new TezException(e);
+      }
+    }
+    return getDAGStatus(statusOptions);
   }
 
   private ProgressBuilder getDAGProgress() {

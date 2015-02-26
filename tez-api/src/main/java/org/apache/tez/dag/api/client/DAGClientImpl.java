@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -69,6 +70,7 @@ public class DAGClientImpl extends DAGClient {
   private EnumSet<VertexStatus.State> vertexCompletionStates = EnumSet.of(
       VertexStatus.State.SUCCEEDED, VertexStatus.State.FAILED, VertexStatus.State.KILLED,
       VertexStatus.State.ERROR);
+  private long statusPollInterval;
 
   public DAGClientImpl(ApplicationId appId, String dagId, TezConfiguration conf,
                        @Nullable FrameworkClient frameworkClient) {
@@ -92,6 +94,13 @@ public class DAGClientImpl extends DAGClient {
     }
 
     realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient);
+    statusPollInterval = conf.getLong(
+        TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS,
+        TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT);
+    if(statusPollInterval < 0) {
+      LOG.error("DAG Status poll interval cannot be negative and setting to default value.");
+      statusPollInterval = TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT;
+    }
   }
 
   @Override
@@ -105,14 +114,77 @@ public class DAGClientImpl extends DAGClient {
   }
 
   @Override
-  public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions) throws
-      TezException, IOException {
+  public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
+      final long timeout) throws TezException, IOException {
+    long currentStatusPollInterval = statusPollInterval;
+    if(timeout >= 0 && currentStatusPollInterval > timeout) {
+      currentStatusPollInterval = timeout;
+    }
+    DAGStatus dagStatus = null;
+    if(cachedDagStatus != null) {
+      dagStatus = cachedDagStatus;
+    } else {
+      dagStatus = getDAGStatus(statusOptions);
+    }
+    //Handling when client dag status init or submitted
+    if (dagStatus.getState() == DAGStatus.State.INITING
+        || dagStatus.getState() == DAGStatus.State.SUBMITTED) {
+      boolean initOrSubmittedState = true;
+      long timeoutTime = System.currentTimeMillis() + timeout;
+      while (timeout < 0
+          || (timeout > 0 && timeoutTime > System.currentTimeMillis())) {
+        if (initOrSubmittedState) {
+          dagStatus = getDAGStatus(statusOptions);
+        }
+        if (dagStatus.getState() == DAGStatus.State.RUNNING) {
+          initOrSubmittedState = false;
+          // When RUNNING State, Check for AM status is also RUNNING
+          DAGStatus dagStatusFromAM = getDAGStatusViaAM(statusOptions, 0);
+          if (dagStatusFromAM != null) {
+            if (dagStatusFromAM.getState() == DAGStatus.State.RUNNING) {
+              long remainingTimeout = 0;
+              if (timeout <= 0) {
+                remainingTimeout = timeout;
+              } else {
+                if (timeoutTime > System.currentTimeMillis()) {
+                  remainingTimeout = timeoutTime - System.currentTimeMillis();
+                } else {
+                  return dagStatusFromAM;
+                }
+              }
+              dagStatus = getDAGStatusInternal(statusOptions, remainingTimeout);
+            } else {
+              dagStatus = dagStatusFromAM;
+            }
+            break;
+          }
+        }
+        if(dagStatus.getState() == DAGStatus.State.SUCCEEDED
+            || dagStatus.getState() == DAGStatus.State.FAILED
+            || dagStatus.getState() == DAGStatus.State.KILLED
+            || dagStatus.getState() == DAGStatus.State.ERROR) {
+          break;
+        }
+        try {
+          Thread.sleep(currentStatusPollInterval);
+        } catch (InterruptedException e) {
+          throw new TezException(e);
+        }
+      }// End of while
+      return dagStatus;
+    } else {
+      return getDAGStatusInternal(statusOptions, timeout);
+    }
+  }
+
+  private DAGStatus getDAGStatusInternal(@Nullable Set<StatusGetOpts> statusOptions,
+      long timeout) throws TezException, IOException {
 
     if (!dagCompleted) {
       // fetch from AM. on Error and while DAG is still not completed (could not reach AM, AM got
       // killed). return cached status. This prevents the progress being reset (for ex fetching from
       // RM does not give status).
-      final DAGStatus dagStatus = getDAGStatusViaAM(statusOptions);
+      final DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
 
       if (!dagCompleted) {
         if (dagStatus != null) {
@@ -152,6 +224,12 @@ public class DAGClientImpl extends DAGClient {
 
     // everything else fails rely on RM.
     return getDAGStatusViaRM();
+  }
+
+  @Override
+  public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions) throws
+      TezException, IOException {
+    return getDAGStatusInternal(statusOptions, 0);
   }
 
   @Override
@@ -228,11 +306,11 @@ public class DAGClientImpl extends DAGClient {
     }
   }
 
-  private DAGStatus getDAGStatusViaAM(@Nullable Set<StatusGetOpts> statusOptions) throws
-      IOException {
+  private DAGStatus getDAGStatusViaAM(@Nullable Set<StatusGetOpts> statusOptions,
+      long timeout) throws IOException {
     DAGStatus dagStatus = null;
     try {
-      dagStatus = realClient.getDAGStatus(statusOptions);
+      dagStatus = realClient.getDAGStatus(statusOptions, timeout);
     } catch (DAGNotRunningException e) {
       dagCompleted = true;
     } catch (TezException e) {

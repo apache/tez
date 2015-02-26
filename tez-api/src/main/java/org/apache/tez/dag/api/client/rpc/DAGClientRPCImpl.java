@@ -81,9 +81,16 @@ public class DAGClientRPCImpl extends DAGClient {
   @Override
   public DAGStatus getDAGStatus(Set<StatusGetOpts> statusOptions)
       throws IOException, TezException {
+    return getDAGStatus(statusOptions, 0);
+  }
+
+
+  @Override
+  public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
+      long timeout) throws IOException, TezException {
     if(createAMProxyIfNeeded()) {
       try {
-        DAGStatus dagStatus = getDAGStatusViaAM(statusOptions);
+        DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
         return dagStatus;
       } catch (TezException e) {
         resetProxy(e); // create proxy again
@@ -149,14 +156,14 @@ public class DAGClientRPCImpl extends DAGClient {
     proxy = null;
   }
 
-  DAGStatus getDAGStatusViaAM(Set<StatusGetOpts> statusOptions)
+  DAGStatus getDAGStatusViaAM(Set<StatusGetOpts> statusOptions, long timeout)
       throws IOException, TezException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
     }
     GetDAGStatusRequestProto.Builder requestProtoBuilder =
         GetDAGStatusRequestProto.newBuilder()
-          .setDagId(dagId);
+          .setDagId(dagId).setTimeout(timeout);
 
     if (statusOptions != null) {
       requestProtoBuilder.addAllStatusOptions(

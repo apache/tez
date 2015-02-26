@@ -505,4 +505,10 @@ public class DAGClientTimelineImpl extends DAGClient {
     }
   }
 
+  @Override
+  public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
+      long timeout) throws IOException, TezException {
+    return getDAGStatus(statusOptions);
+  }
+
 }

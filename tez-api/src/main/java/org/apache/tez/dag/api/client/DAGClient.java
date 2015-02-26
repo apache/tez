@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
 
@@ -57,6 +58,22 @@ public abstract class DAGClient implements Closeable {
    *                      specified options. To retrieve basic information, this can be null
    */
   public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions)
+      throws IOException, TezException;
+
+  /**
+   * Get the status of the specified DAG when it reaches a final state, or the timeout expires.
+   *
+   * @param statusOptions Optionally, retrieve additional information based on
+   *                      specified options. To retrieve basic information, this can be null
+   * @param timeout RPC call timeout. Value -1 waits for infinite and returns when
+   *                DAG reaches final state
+   * @return DAG Status
+   * @throws IOException
+   * @throws TezException
+   */
+  @Unstable
+  public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
+      long timeout)
       throws IOException, TezException;
 
   /**

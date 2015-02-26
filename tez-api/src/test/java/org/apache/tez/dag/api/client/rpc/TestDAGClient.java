@@ -207,13 +207,13 @@ public class TestDAGClient {
   public void testDAGStatus() throws Exception{
     DAGStatus resultDagStatus = dagClient.getDAGStatus(null);
     verify(mockProxy, times(1)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).build());
+        .setDagId(dagIdStr).setTimeout(0).build());
     assertEquals(new DAGStatus(dagStatusProtoWithoutCounters), resultDagStatus);
     System.out.println("DAGStatusWithoutCounter:" + resultDagStatus);
     
     resultDagStatus = dagClient.getDAGStatus(Sets.newSet(StatusGetOpts.GET_COUNTERS));
     verify(mockProxy, times(1)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
+        .setDagId(dagIdStr).setTimeout(0).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
     assertEquals(new DAGStatus(dagStatusProtoWithCounters), resultDagStatus);
     System.out.println("DAGStatusWithCounter:" + resultDagStatus);
   }
@@ -252,7 +252,7 @@ public class TestDAGClient {
       
     dagClient.waitForCompletion();
     verify(mockProxy, times(2)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).build());
+        .setDagId(dagIdStr).setTimeout(0).build());
   }
 
   @Test(timeout = 5000)
@@ -271,7 +271,7 @@ public class TestDAGClient {
     //  second & third time for check completion
     dagClient.waitForCompletionWithStatusUpdates(null);
     verify(mockProxy, times(3)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-        .setDagId(dagIdStr).build());
+        .setDagId(dagIdStr).setTimeout(0).build());
 
     
     when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
@@ -282,7 +282,7 @@ public class TestDAGClient {
              .build());
     dagClient.waitForCompletionWithStatusUpdates(Sets.newSet(StatusGetOpts.GET_COUNTERS));
     verify(mockProxy, times(3)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
-      .setDagId(dagIdStr).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
+      .setDagId(dagIdStr).setTimeout(0).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
   }
   
 }

@@ -1155,4 +1155,13 @@ public class TezConfiguration extends Configuration {
   static Set<String> getPropertySet() {
     return PropertyScope.keySet();
   }
+
+  /**
+   * Long value
+   * Status Poll interval in Milliseconds used when getting DAG status with timeout.
+   */
+  @ConfigurationScope(Scope.DAG)
+  public static final String TEZ_DAG_STATUS_POLLINTERVAL_MS = TEZ_PREFIX
+      + "dag.status.pollinterval-ms";
+  public static final long TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT = 500;
 }

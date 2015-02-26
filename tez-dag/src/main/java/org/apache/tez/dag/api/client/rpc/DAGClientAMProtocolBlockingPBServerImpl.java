@@ -91,13 +91,14 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     UserGroupInformation user = getRPCUser();
     try {
       String dagId = request.getDagId();
+      long timeout = request.getTimeout();
       if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
       DAGStatus status;
       status = real.getDAGStatus(dagId,
         DagTypeConverters.convertStatusGetOptsFromProto(
-          request.getStatusOptionsList()));
+            request.getStatusOptionsList()), timeout);
       assert status instanceof DAGStatusBuilder;
       DAGStatusBuilder builder = (DAGStatusBuilder) status;
       return GetDAGStatusResponseProto.newBuilder().

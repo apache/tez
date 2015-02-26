@@ -62,6 +62,11 @@ public class DAGClientHandler {
     return getDAG(dagIdStr).getDAGStatus(statusOptions);
   }
 
+  public DAGStatus getDAGStatus(String dagIdStr,
+      Set<StatusGetOpts> statusOptions, long timeout) throws TezException {
+    return getDAG(dagIdStr).getDAGStatus(statusOptions, timeout);
+  }
+
   public VertexStatus getVertexStatus(String dagIdStr, String vertexName,
       Set<StatusGetOpts> statusOptions) throws TezException {
     VertexStatus status =
