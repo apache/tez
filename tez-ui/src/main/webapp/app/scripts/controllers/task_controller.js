@@ -17,20 +17,45 @@
  */
 
 App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
-	controllerName: 'TaskController',
+  controllerName: 'TaskController',
 
-	pageTitle: 'Task',
+  pageTitle: 'Task',
 
-	loading: true,
+  loading: true,
 
-	updateLoading: function() {
-    this.set('loading', false);
-  }.observes('content'),
+  loadAdditional: function(task) {
+    var that = this;
 
-	childDisplayViews: [
-		Ember.Object.create({title: 'Task Details', linkTo: 'task.index'}),
-		Ember.Object.create({title: 'Task Counters', linkTo: 'task.counters'}),
-		Ember.Object.create({title: 'Task Attempts', linkTo: 'task.attempts'}),
-	],
+    var dagLoader = this.store.find('dag', task.get('dagID'));
+    var vertexLoader = this.store.find('vertex', task.get('vertexID'));
+
+    var allLoaders = Em.RSVP.hash({
+      dag: dagLoader,
+      vertex: vertexLoader
+    });
+
+    allLoaders.then(function(results) {
+      task.set('vertex', results.vertex);
+      task.set('vertex.dag', results.dag);
+    }).finally(function() {
+      that.set('loading', false);
+    });
+
+    return allLoaders;
+  },
+
+  vertexName: function() {
+    return this.get('vertex.name') || this.get('vertexID');
+  }.property('vertex.name', 'vertexID'),
+
+  dagName: function() {
+    return this.get('vertex.dag.name') || this.get('dagID');
+  }.property('vertex.dag.name', 'dagID'),
+
+  childDisplayViews: [
+    Ember.Object.create({title: 'Task Details', linkTo: 'task.index'}),
+    Ember.Object.create({title: 'Task Counters', linkTo: 'task.counters'}),
+    Ember.Object.create({title: 'Task Attempts', linkTo: 'task.attempts'}),
+  ],
 
 });

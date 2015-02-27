@@ -313,12 +313,19 @@ App.TezApp = App.AbstractEntity.extend({
 App.Task = App.AbstractEntity.extend({
   status: DS.attr('status'),
 
+  index: function () {
+    var id = this.get('id'),
+        idPrefix = 'task_%@_'.fmt(this.get('dagID').substr(4));
+    return id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id;
+  }.property('id'),
+
   dagID: DS.attr('string'),
 
   successfulAttemptId: DS.attr('string'),
 
   attempts: DS.attr('array'),
-  
+
+  vertex: DS.belongsTo('vertex'),
   vertexID: DS.attr('string'),
 
   startTime: DS.attr('number'),

@@ -74,6 +74,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2158. TEZ UI: Display dag/vertex names, and task/attempt index in breadcrumb.
   TEZ-2160. Tez UI: App tracking URL should support navigation back.
   TEZ-2147. Swimlanes: Improved tooltip
   TEZ-2142. TEZ UI: Breadcrumb border color looks out of place in wrapped mode.

@@ -16,6 +16,11 @@
  */
 
 App.TaskAttempt = App.AbstractEntity.extend({
+  index: function () {
+    var id = this.get('id'),
+        idPrefix = 'attempt_%@_'.fmt(this.get('dagID').substr(4));
+    return id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id;
+  }.property('id'),
 
   // start time of the entity
   startTime: DS.attr('number'),
@@ -25,7 +30,6 @@ App.TaskAttempt = App.AbstractEntity.extend({
 
   entityType: App.EntityType.TASK_ATTEMPT,
 
-
   // container
   containerId: DS.attr('string'),
   nodeId: DS.attr('string'),
@@ -33,6 +37,7 @@ App.TaskAttempt = App.AbstractEntity.extend({
   // status of the task attempt
   status: DS.attr('string'),
 
+  task: DS.belongsTo('task'),
   taskID: DS.attr('string'),
   vertexID: DS.attr('string'),
   dagID: DS.attr('string'),

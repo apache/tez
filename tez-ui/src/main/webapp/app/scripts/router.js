@@ -168,6 +168,9 @@ App.TaskRoute = Em.Route.extend({
   model: function(params) {
     return this.store.find('task', params.task_id);
   },
+  afterModel: function(model) {
+    return this.controllerFor('task').loadAdditional(model);
+  },
   setupController: setupControllerFactory('Task: %@', 'id')
 });
 
@@ -227,7 +230,17 @@ App.VertexSwimlaneRoute = Em.Route.extend({
   setupController: setupControllerFactory()
 });
 
-/* --- Task  related routes--- */
+/* --- Task Attempt related routes--- */
+
+App.TaskAttemptRoute = Em.Route.extend({
+  model: function(params) {
+    return this.store.find('task_attempt', params.task_attempt_id);
+  },
+  afterModel: function(model) {
+    return this.controllerFor('task_attempt').loadAdditional(model);
+  },
+  setupController: setupControllerFactory('Task Attempt: %@', 'id')
+});
 
 App.TaskAttemptsRoute = Em.Route.extend({
   renderTemplate: renderTableWithSpinner,
