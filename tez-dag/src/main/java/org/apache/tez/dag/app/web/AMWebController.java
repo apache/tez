@@ -327,7 +327,7 @@ public class AMWebController extends Controller {
             "<a href='" + historyUrl + "'><b>here</b></a></p>"
         );
         pw.write("<script type='text/javascript'>setTimeout(function() { " +
-          "window.location.assign('" + historyUrl + "');" +
+          "window.location.replace('" + historyUrl + "');" +
           "}, 0); </script>");
       }
       pw.write("</body>");
