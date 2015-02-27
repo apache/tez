@@ -18,8 +18,8 @@
 
 <ul class="breadcrumb">
   <li>{{#link-to 'application'}}<i class="fa fa-home"> All DAGs</i>{{/link-to}} <span class="divider"></span></li>
-  <li>{{#link-to 'dag.vertices' dagID}} DAG [ {{dagID}}  ] {{/link-to}} <span class="divider"></span></li>
-  <li class="active">Vertex [ {{id}} ]</li>
+  <li>{{#link-to 'dag.vertices' dagID}}DAG [ {{dag.name}}  ] {{/link-to}} <span class="divider"></span></li>
+  <li class="active">Vertex [ {{name}} ]</li>
 </ul>
 
 {{#unless loading}}

@@ -18,10 +18,10 @@
 
 <ul class="breadcrumb">
   <li>{{#link-to 'application'}}<i class="fa fa-home"> All DAGs</i>{{/link-to}} <span class="divider"></span></li>
-  <li>{{#link-to 'dag.vertices' dagID}}DAG [ {{dagID}} ] {{/link-to}} <span class="divider"></span></li>
-  <li>{{#link-to 'vertex.tasks' vertexID}}Vertex [ {{vertexID}} ] {{/link-to}} <span class="divider"></span></li>
-  <li>{{#link-to 'task.attempts' taskID}}Task [ {{taskID}} ] {{/link-to}} <span class="divider"></span></li>
-  <li class="active">Task Attempt [ {{id}} ]</li>
+  <li>{{#link-to 'dag.vertices' dagID}}DAG [ {{dagName}} ] {{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'vertex.tasks' vertexID}}Vertex [ {{vertexName}} ] {{/link-to}} <span class="divider"></span></li>
+  <li>{{#link-to 'task.attempts' taskID}}Task [ {{taskIndex}} ] {{/link-to}} <span class="divider"></span></li>
+  <li class="active">Task Attempt [ {{index}} ]</li>
 </ul>
 
 {{#unless loading}}

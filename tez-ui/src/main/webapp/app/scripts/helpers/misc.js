@@ -240,6 +240,11 @@ App.Helpers.misc = {
     });
   },
 
+  getTaskIndex: function(dagID, taskID) {
+    var idPrefix = 'task_%@_'.fmt(dagID.substr(4));
+    return taskID.indexOf(idPrefix) == 0 ? taskID.substr(idPrefix.length) : id;
+  },
+
   /**
    * Remove the specific record from store
    * @param store {DS.Store}

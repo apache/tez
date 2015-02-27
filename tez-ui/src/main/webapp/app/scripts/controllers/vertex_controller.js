@@ -54,6 +54,12 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
         appDetail.get('finalAppStatus')));
     }).catch(function(){});
     loaders.push(appDetailFetcher);
+
+    var dagFetcher = that.store.find('dag', vertex.get('dagID')).then(function (dag) {
+      vertex.set('dag', dag);
+    });
+    loaders.push(dagFetcher);
+
     Em.RSVP.allSettled(loaders).then(function(){
       that.set('loading', false);
     });

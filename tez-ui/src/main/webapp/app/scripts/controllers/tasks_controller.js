@@ -32,6 +32,7 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
     status_filter: 'status'
   },
 
+  parentName: 'Loading...', // So that a proper message is displayed
   parentType: null,
   parentID: null,
   status_filter: null,
@@ -45,6 +46,14 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
     }
     filters.primary[this.parentType] = this.parentID;
     this.setFiltersAndLoadEntities(filters);
+  },
+
+  loadAdditional: function (loader) {
+    var that = this;
+    return this.store.find('dag', this.get('parentID')).
+      then(function (parent) {
+        that.set('parentName', parent.get('name'));
+      });
   },
 
   defaultColumnConfigs: function() {
