@@ -115,7 +115,7 @@ public class TezRuntimeConfiguration {
 
   public static final String TEZ_RUNTIME_SORT_THREADS = TEZ_RUNTIME_PREFIX +
       "sort.threads";
-  public static final int TEZ_RUNTIME_SORT_THREADS_DEFAULT = 1;
+  public static final int TEZ_RUNTIME_SORT_THREADS_DEFAULT = 2;
 
   /**
    * Size of the buffer to use if not writing directly to disk.

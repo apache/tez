@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2083. Make PipelinedSorter as the default sorter.
   TEZ-1967. Add a monitoring API on DAGClient which returns after a time interval or on DAG final state change.
   TEZ-2130. Send the sessionToken as part of the AM CLC.
   TEZ-1935. Organization should be removed from http://tez.apache.org/team-list.html.
