@@ -838,7 +838,7 @@ public class DAGAppMaster extends AbstractService {
         outputNode.setShape("box");
         n.addEdge(outputNode, "Output"
             + " [outputClass=" + getShortClassName(output.getIODescriptor().getClassName())
-            + ", initializer=" + getShortClassName(output.getControllerDescriptor().getClassName()) + "]");
+            + ", committer=" + getShortClassName(output.getControllerDescriptor().getClassName()) + "]");
       }
     }
 
