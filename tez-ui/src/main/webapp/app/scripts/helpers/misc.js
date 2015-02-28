@@ -61,7 +61,7 @@ App.Helpers.misc = {
       return yarnAppState;
     }
 
-    return yarnFinalState;
+    return yarnAppFinalState;
   },
 
 	getCounterValueForDag: function(counterGroups, dagID, counterGroupName, counterName) {
