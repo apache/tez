@@ -18,7 +18,7 @@ Apache Tez
 Apache Tez is a generic data-processing pipeline engine envisioned as a low-level engine for higher abstractions
 such as Apache Hadoop Map-Reduce, Apache Pig, Apache Hive etc.
 
-At it's heart, tez is very simple and has just two components:
+At its heart, tez is very simple and has just two components:
 
 *   The data-processing pipeline engine where-in one can plug-in input, processing and output implementations to 
     perform arbitrary data-processing. Every 'task' in tez has the following:
