@@ -18,8 +18,6 @@
 
 package org.apache.tez.dag.app;
 
-import com.google.common.base.Preconditions;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.File;
@@ -64,7 +62,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -96,7 +93,9 @@ import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -107,7 +106,6 @@ import org.apache.tez.dag.api.client.DAGClientHandler;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.RecoveryParser.RecoveredDAGData;
@@ -117,8 +115,8 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
-import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventRecoverEvent;
@@ -146,7 +144,6 @@ import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventType;
 import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.dag.app.web.WebUIService;
-import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -158,12 +155,12 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
-import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.codehaus.jettison.json.JSONException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -319,9 +316,6 @@ public class DAGAppMaster extends AbstractService {
         .createRemoteUser(jobUserName);
     this.appMasterUgi.addCredentials(amCredentials);
 
-
-    // TODO Metrics
-    //this.metrics = DAGAppMetrics.create();
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo.toString());
   }
@@ -1587,10 +1581,6 @@ public class DAGAppMaster extends AbstractService {
       shutdownHandler.shutdown();
       return;
     }
-
-    // metrics system init is really init & start.
-    // It's more test friendly to put it here.
-    DefaultMetricsSystem.initialize("DAGAppMaster");
 
     this.appsStartTime = clock.getTime();
     AMStartedEvent startEvent = new AMStartedEvent(appAttemptID,

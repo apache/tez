@@ -18,8 +18,6 @@
 
 package org.apache.tez.runtime.task;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -35,10 +33,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
@@ -353,7 +352,6 @@ public class TezChild {
       if (taskReporter != null) {
         taskReporter.shutdown();
       }
-      DefaultMetricsSystem.shutdown();
       if (!isLocal) {
         RPC.stopProxy(umbilical);
         LogManager.shutdown();
@@ -419,10 +417,6 @@ public class TezChild {
     // TODO TEZ-1233. This needs to be moved over the wire rather than localizing the file
     // for each and every task, and reading it back from disk. Also needs to be per vertex.
     Limits.setConfiguration(conf);
-
-    // Should this be part of main - Metrics and ObjectRegistry. TezTask setup should be independent
-    // of this class. Leaving it here, till there's some entity representing a running JVM.
-    DefaultMetricsSystem.initialize("TezTask");
 
     // singleton of ObjectRegistry for this JVM
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
