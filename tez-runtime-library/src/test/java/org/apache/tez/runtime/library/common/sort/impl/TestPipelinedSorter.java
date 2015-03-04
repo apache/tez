@@ -6,15 +6,19 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.junit.After;
 import org.junit.Assert;
@@ -22,13 +26,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -73,7 +83,7 @@ public class TestPipelinedSorter {
   }
 
   @Before
-  public void setup() {
+  public void setup() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
@@ -95,6 +105,7 @@ public class TestPipelinedSorter {
   public void cleanup() throws IOException {
     localFs.delete(workDir, true);
     sortedDataMap.clear();
+    localFs.mkdirs(workDir);
   }
 
   @Test
@@ -121,13 +132,29 @@ public class TestPipelinedSorter {
 
   }
 
+  @Test
+  public void testWithPipelinedShuffle() throws IOException {
+    this.numOutputs = 1;
+    this.initialAvailableMem = 5 *1024 * 1024;
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 1<<20);
+
+    //Write 100 keys each of size 10
+    writeData(sorter, 10000, 100);
+
+    //final merge is disabled. Final output file would not be populated in this case.
+    assertTrue(sorter.finalOutputFile == null);
+    verify(outputContext, times(1)).sendEvents(anyListOf(Event.class));
+  }
+
   public void basicTest(int partitions, int numKeys, int keySize,
       long initialAvailableMem, int blockSize) throws IOException {
     this.numOutputs = partitions; // single output
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
         initialAvailableMem, blockSize);
 
-    //Write 100 keys each of size 10
     writeData(sorter, numKeys, keySize);
 
     Path outputFile = sorter.finalOutputFile;
@@ -225,8 +252,18 @@ public class TestPipelinedSorter {
   }
 
   private OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
-      String uniqueId) {
+      String uniqueId) throws IOException {
     OutputContext outputContext = mock(OutputContext.class);
+
+    ExecutionContext execContext = new ExecutionContextImpl("localhost");
+
+    DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
+    serviceProviderMetaData.writeInt(80);
+    doReturn(ByteBuffer.wrap(serviceProviderMetaData.getData())).when(outputContext)
+        .getServiceProviderMetaData
+            (ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+
+    doReturn(execContext).when(outputContext).getExecutionContext();
     doReturn(counters).when(outputContext).getCounters();
     doReturn(appId).when(outputContext).getApplicationId();
     doReturn(1).when(outputContext).getDAGAttemptNumber();

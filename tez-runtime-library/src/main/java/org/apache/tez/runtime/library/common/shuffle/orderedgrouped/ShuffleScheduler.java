@@ -20,10 +20,10 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -34,6 +34,11 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -68,7 +73,13 @@ class ShuffleScheduler {
   private int remainingMaps;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
   //TODO Clean this and other maps at some point
-  private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>(); 
+  private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>();
+
+  //To track shuffleInfo events when finalMerge is disabled in source or pipelined shuffle is
+  // enabled in source.
+  @VisibleForTesting
+  final Map<InputAttemptIdentifier, ShuffleEventInfo> shuffleInfoEventsMap = Maps.newHashMap();
+
   private Set<MapHost> pendingHosts = new HashSet<MapHost>();
   private Set<InputAttemptIdentifier> obsoleteInputs = new HashSet<InputAttemptIdentifier>();
   
@@ -171,7 +182,44 @@ class ShuffleScheduler {
     lastEventReceived.setValue(relativeTime);
   }
 
-  public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier, 
+  /**
+   * Placeholder for tracking shuffle events in case we get multiple spills info for the same
+   * attempt.
+   */
+  static class ShuffleEventInfo {
+    BitSet eventsProcessed;
+    int finalEventId = -1; //0 indexed
+    String id;
+
+
+    ShuffleEventInfo(InputAttemptIdentifier input) {
+      this.id = input.getInputIdentifier().getInputIndex() + "_" + input.getAttemptNumber();
+      this.eventsProcessed = new BitSet();
+    }
+
+    void spillProcessed(int spillId) {
+      if (finalEventId != -1) {
+        Preconditions.checkState(eventsProcessed.cardinality() <= (finalEventId + 1),
+            "Wrong state " + toString());
+      }
+      eventsProcessed.set(spillId);
+    }
+
+    void setFinalEventId(int spillId) {
+      finalEventId = spillId;
+    }
+
+    boolean isDone() {
+      return ((finalEventId != -1) && (finalEventId + 1) == eventsProcessed.cardinality());
+    }
+
+    public String toString() {
+      return "[eventsProcessed=" + eventsProcessed + ", finalEventId=" + finalEventId
+          +  ", id=" + id + "]";
+    }
+  }
+
+  public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier,
                                          MapHost host,
                                          long bytesCompressed,
                                          long bytesDecompressed,
@@ -203,9 +251,57 @@ class ShuffleScheduler {
         // registered without needing to fetch data
         skippedInputCounter.increment(1);
       }
-      setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
-      
-      if (--remainingMaps == 0) {
+
+      /**
+       * In case of pipelined shuffle, it is quite possible that fetchers pulled the FINAL_UPDATE
+       * spill in advance due to smaller output size.  In such scenarios, we need to wait until
+       * we retrieve all spill details to claim success.
+       */
+      if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+        remainingMaps = remainingMaps - 1;
+        setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
+      } else {
+        ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(srcAttemptIdentifier);
+
+        //TODO: need to check for speculative tasks later. TEZ-2132
+        if (eventInfo != null && srcAttemptIdentifier.getAttemptNumber() > 0) {
+          //speculative attempts or failure attempts. Fail fast here.
+          shuffle.reportException(new IOException("Previous event already got scheduled for " +
+              srcAttemptIdentifier + ". Previous attempt's data could have been already merged "
+              + "to memory/disk outputs.  Failing the fetch early."));
+          return;
+        }
+
+        //Possible that Shuffle event handler invoked this, due to empty partitions
+        if (eventInfo == null && output == null) {
+          eventInfo = new ShuffleEventInfo(srcAttemptIdentifier);
+          shuffleInfoEventsMap.put(srcAttemptIdentifier, eventInfo);
+        }
+
+        assert(eventInfo != null);
+        eventInfo.spillProcessed(srcAttemptIdentifier.getSpillEventId());
+
+        if (srcAttemptIdentifier.getFetchTypeInfo() == InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE) {
+          eventInfo.setFinalEventId(srcAttemptIdentifier.getSpillEventId());
+        }
+
+        //check if we downloaded all spills pertaining to this InputAttemptIdentifier
+        if (eventInfo.isDone()) {
+          remainingMaps = remainingMaps - 1;
+          setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
+          shuffleInfoEventsMap.remove(srcAttemptIdentifier);
+          if (LOG.isTraceEnabled()) {
+            LOG.trace("Removing : " + srcAttemptIdentifier + ", pending: " +
+                shuffleInfoEventsMap);
+          }
+        }
+
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("eventInfo " + eventInfo.toString());
+        }
+      }
+
+      if (remainingMaps == 0) {
         LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
         notifyAll();
       }
@@ -312,11 +408,11 @@ class ShuffleScheduler {
       boolean connectError) {
     if ((reportReadErrorImmediately && (readError || connectError))
         || ((failures % maxFetchFailuresBeforeReporting) == 0)) {
-      LOG.info("Reporting fetch failure for InputIdentifier: " 
+      LOG.info("Reporting fetch failure for InputIdentifier: "
           + srcAttempt + " taskAttemptIdentifier: "
           + TezRuntimeUtils.getTaskAttemptIdentifier(
-              inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
-              srcAttempt.getAttemptNumber()) + " to AM.");
+          inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
+          srcAttempt.getAttemptNumber()) + " to AM.");
       List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
       failedEvents.add(InputReadErrorEvent.create("Fetch failure for "
           + TezRuntimeUtils.getTaskAttemptIdentifier(
@@ -379,7 +475,7 @@ class ShuffleScheduler {
     }
 
   }
-  
+
   public synchronized void addKnownMapOutput(String inputHostName,
                                              int port,
                                              int partitionId,
@@ -387,12 +483,28 @@ class ShuffleScheduler {
                                              InputAttemptIdentifier srcAttempt) {
     String hostPort = (inputHostName + ":" + String.valueOf(port));
     String identifier = MapHost.createIdentifier(hostPort, partitionId);
+
+
     MapHost host = mapLocations.get(identifier);
     if (host == null) {
       host = new MapHost(partitionId, hostPort, hostUrl);
       assert identifier.equals(host.getIdentifier());
       mapLocations.put(identifier, host);
     }
+
+    if (srcAttempt.canRetrieveInputInChunks()) {
+      if (shuffleInfoEventsMap.get(srcAttempt) == null) {
+        //TODO: need to check for speculative tasks later. TEZ-2132
+        shuffleInfoEventsMap.put(srcAttempt, new ShuffleEventInfo(srcAttempt));
+      } else if (srcAttempt.getAttemptNumber() > 0) {
+        //speculative attempts or failure attempts. Fail fast here.
+        shuffle.reportException(new IOException(srcAttempt + " already exists. "
+            + "Previous attempt's data could have been already merged "
+            + "to memory/disk outputs.  Failing the fetch early."));
+        return;
+      }
+    }
+
     host.addKnownMap(srcAttempt);
     pathToIdentifierMap.put(
         getIdentifierFromPathAndReduceId(srcAttempt.getPathComponent(), partitionId), srcAttempt);
@@ -407,6 +519,13 @@ class ShuffleScheduler {
   public synchronized void obsoleteInput(InputAttemptIdentifier srcAttempt) {
     // The incoming srcAttempt does not contain a path component.
     LOG.info("Adding obsolete input: " + srcAttempt);
+    if (shuffleInfoEventsMap.containsKey(srcAttempt)) {
+      //Fail fast here.
+      shuffle.reportException(new IOException(srcAttempt + " is marked as obsoleteInput, but it "
+          + "exists in shuffleInfoEventMap. Some data could have been already merged "
+          + "to memory/disk outputs.  Failing the fetch early."));
+      return;
+    }
     obsoleteInputs.add(srcAttempt);
   }
   
@@ -447,11 +566,12 @@ class ShuffleScheduler {
     return (!obsoleteInputs.contains(id) && 
              !isInputFinished(id.getInputIdentifier().getInputIndex()));
   }
-  
+
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
     List<InputAttemptIdentifier> origList = host.getAndClearKnownMaps();
 
-    Map<Integer, InputAttemptIdentifier> dedupedList = new LinkedHashMap<Integer, InputAttemptIdentifier>();
+    ListMultimap<Integer, InputAttemptIdentifier> dedupedList = LinkedListMultimap.create();
+
     Iterator<InputAttemptIdentifier> listItr = origList.iterator();
     while (listItr.hasNext()) {
       // we may want to try all versions of the input but with current retry
@@ -460,39 +580,67 @@ class ShuffleScheduler {
       InputAttemptIdentifier id = listItr.next();
       if (inputShouldBeConsumed(id)) {
         Integer inputNumber = Integer.valueOf(id.getInputIdentifier().getInputIndex());
-        InputAttemptIdentifier oldId = dedupedList.get(inputNumber);
-        if (oldId == null || oldId.getAttemptNumber() < id.getAttemptNumber()) {
+        List<InputAttemptIdentifier> oldIdList = dedupedList.get(inputNumber);
+
+        if (oldIdList == null || oldIdList.isEmpty()) {
           dedupedList.put(inputNumber, id);
-          if (oldId != null) {
+          continue;
+        }
+
+        //In case of pipelined shuffle, we can have multiple spills. In such cases, we can have
+        // more than one item in the oldIdList.
+        boolean addIdentifierToList = false;
+        Iterator<InputAttemptIdentifier> oldIdIterator = oldIdList.iterator();
+        while(oldIdIterator.hasNext()) {
+          InputAttemptIdentifier oldId = oldIdIterator.next();
+
+          //no need to add if spill ids are same
+          if (id.canRetrieveInputInChunks()) {
+            if (oldId.getSpillEventId() == id.getSpillEventId()) {
+              //TODO: need to handle deterministic spills later.
+              addIdentifierToList = false;
+              continue;
+            } else if (oldId.getAttemptNumber() == id.getAttemptNumber()) {
+              //but with different spill id.
+              addIdentifierToList = true;
+              break;
+            }
+          }
+
+          //if its from different attempt, take the latest attempt
+          if (oldId.getAttemptNumber() < id.getAttemptNumber()) {
+            //remove existing identifier
+            oldIdIterator.remove();
             LOG.warn("Old Src for InputIndex: " + inputNumber + " with attemptNumber: "
                 + oldId.getAttemptNumber()
                 + " was not determined to be invalid. Ignoring it for now in favour of "
                 + id.getAttemptNumber());
+            addIdentifierToList = true;
+            break;
           }
+        }
+        if (addIdentifierToList) {
+          dedupedList.put(inputNumber, id);
         }
       } else {
         LOG.info("Ignoring finished or obsolete source: " + id);
       }
     }
-    
+
     // Compute the final list, limited by NUM_FETCHERS_AT_ONCE
     List<InputAttemptIdentifier> result = new ArrayList<InputAttemptIdentifier>();
     int includedMaps = 0;
     int totalSize = dedupedList.size();
-    Iterator<Map.Entry<Integer, InputAttemptIdentifier>> dedupedItr = dedupedList.entrySet().iterator();
-    // find the maps that we still need, up to the limit
-    while (dedupedItr.hasNext()) {
-      InputAttemptIdentifier id = dedupedItr.next().getValue();
-      result.add(id);
-      if (++includedMaps >= maxTaskOutputAtOnce) {
-        break;
-      }
-    }
 
-    // put back the maps left after the limit
-    while (dedupedItr.hasNext()) {
-      InputAttemptIdentifier id = dedupedItr.next().getValue();
-      host.addKnownMap(id);
+    for(Integer inputIndex : dedupedList.keySet()) {
+      List<InputAttemptIdentifier> attemptIdentifiers = dedupedList.get(inputIndex);
+      for (InputAttemptIdentifier inputAttemptIdentifier : attemptIdentifiers) {
+        if (includedMaps++ >= maxTaskOutputAtOnce) {
+          host.addKnownMap(inputAttemptIdentifier);
+        } else {
+          result.add(inputAttemptIdentifier);
+        }
+      }
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("assigned " + includedMaps + " of " + totalSize + " to " +

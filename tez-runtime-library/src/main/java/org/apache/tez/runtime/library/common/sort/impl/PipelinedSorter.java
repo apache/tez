@@ -38,6 +38,7 @@ import java.util.concurrent.Future;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -45,6 +46,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.library.common.comparator.ProxyComparator;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
@@ -53,6 +55,7 @@ import org.apache.hadoop.util.Progress;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 
@@ -79,10 +82,6 @@ public class PipelinedSorter extends ExternalSorter {
   private static final int NMETA = 4;            // num meta ints
   private static final int METASIZE = NMETA * 4; // size in bytes
 
-  // spill accounting
-  volatile Throwable sortSpillException = null;
-
-  int numSpills = 0;
   private final int minSpillsForCombine;
   private final ProxyComparator hasher;
   // SortSpans  
@@ -110,6 +109,10 @@ public class PipelinedSorter extends ExternalSorter {
   private int totalIndexCacheMemory;
   private int indexCacheMemoryLimit;
 
+  private final boolean pipelinedShuffle;
+  private final boolean finalMergeEnabled;
+  private final boolean sendEmptyPartitionDetails;
+
   // TODO Set additional countesr - total bytes written, spills etc.
 
   public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
@@ -122,6 +125,21 @@ public class PipelinedSorter extends ExternalSorter {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
     
     partitionBits = bitcount(partitions)+1;
+
+    finalMergeEnabled = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER,
+        TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER_DEFAULT);
+
+    boolean confPipelinedShuffle = this.conf.getBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT);
+
+    sendEmptyPartitionDetails = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
+        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
+
+
+    pipelinedShuffle = !finalMergeEnabled && confPipelinedShuffle;
 
     //sanity checks
     final long sortmb = this.availableMemoryMb;
@@ -137,7 +155,9 @@ public class PipelinedSorter extends ExternalSorter {
     //Divide total memory into different blocks.
     int numberOfBlocks = Math.max(1, (int) Math.ceil(1.0 * usage / blockSize));
     LOG.info("Number of Blocks : " + numberOfBlocks
-        + ", maxMemUsage=" + maxMemUsage + ", BLOCK_SIZE=" + blockSize);
+        + ", maxMemUsage=" + maxMemUsage + ", BLOCK_SIZE=" + blockSize + ", finalMergeEnabled="
+        + finalMergeEnabled + ", pipelinedShuffle=" + pipelinedShuffle + ", "
+        + "sendEmptyPartitionDetails=" + sendEmptyPartitionDetails);
     long totalCapacityWithoutMeta = 0;
     for (int i = 0; i < numberOfBlocks; i++) {
       Preconditions.checkArgument(usage > 0, "usage can't be less than zero " + usage);
@@ -211,6 +231,15 @@ public class PipelinedSorter extends ExternalSorter {
       spill();
       stopWatch.stop();
       LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
+      if (pipelinedShuffle) {
+        List<Event> events = Lists.newLinkedList();
+        String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
+        ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, false, outputContext,
+            (numSpills - 1), indexCacheList.get(numSpills - 1), partitions, sendEmptyPartitionDetails,
+            pathComponent);
+        outputContext.sendEvents(events);
+        LOG.info("Adding spill event for spill (final update=false), spillId=" + (numSpills - 1));
+      }
       //safe to reset the iterator
       listIterator = bufferList.listIterator();
       int items = 1024*1024;
@@ -346,8 +375,8 @@ public class PipelinedSorter extends ExternalSorter {
         // record offsets
         final TezIndexRecord rec = 
             new TezIndexRecord(
-                segmentStart, 
-                writer.getRawLength(), 
+                segmentStart,
+                writer.getRawLength(),
                 writer.getCompressedLength());
         spillRec.putIndex(rec, i);
       }
@@ -356,8 +385,9 @@ public class PipelinedSorter extends ExternalSorter {
         mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
             * MAP_OUTPUT_INDEX_RECORD_LENGTH);
       spillFileIndexPaths.put(numSpills, indexFilename);
-      // TODO: cache
       spillRec.writeToFile(indexFilename, conf);
+      //TODO: honor cache limits
+      indexCacheList.add(spillRec);
       ++numSpills;
     } catch(InterruptedException ie) {
       // TODO:the combiner has been interrupted
@@ -369,10 +399,6 @@ public class PipelinedSorter extends ExternalSorter {
   @Override
   public void flush() throws IOException {
     final String uniqueIdentifier = outputContext.getUniqueIdentifier();
-    finalOutputFile =
-        mapOutputFile.getOutputFileForWrite(0); //TODO
-    finalIndexFile =
-        mapOutputFile.getOutputIndexFileForWrite(0); //TODO
 
     LOG.info("Starting flush of map output");
     span.end();
@@ -385,6 +411,29 @@ public class PipelinedSorter extends ExternalSorter {
 
     numAdditionalSpills.increment(numSpills - 1);
 
+    if (!finalMergeEnabled) {
+      //Generate events for all spills
+      List<Event> events = Lists.newLinkedList();
+
+      //For pipelined shuffle, previous events are already sent. Just generate the last event alone
+      int startIndex = (pipelinedShuffle) ? (numSpills - 1) : 0;
+      int endIndex = numSpills;
+
+      for (int i = startIndex; i < endIndex; i++) {
+        boolean isLastEvent = (i == numSpills - 1);
+
+        String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
+        ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, isLastEvent,
+            outputContext, i, indexCacheList.get(i), partitions,
+            sendEmptyPartitionDetails, pathComponent);
+        LOG.info("Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
+      }
+      outputContext.sendEvents(events);
+      //No need to generate final merge
+      return;
+    }
+
+    //In case final merge is required, the following code path is executed.
     if(numSpills == 1) {
       // someday be able to pass this directly to shuffle
       // without writing to disk
@@ -395,21 +444,30 @@ public class PipelinedSorter extends ExternalSorter {
 
       sameVolRename(filename, finalOutputFile);
       sameVolRename(indexFilename, finalIndexFile);
+      if (LOG.isInfoEnabled()) {
+        LOG.info("numSpills=" + numSpills + ", finalOutputFile=" + finalOutputFile + ", "
+            + "finalIndexFile=" + finalIndexFile + ", filename=" + filename + ", indexFilename=" +
+            indexFilename);
+      }
       return;
     }
-    
+
+    finalOutputFile =
+        mapOutputFile.getOutputFileForWrite(0); //TODO
+    finalIndexFile =
+        mapOutputFile.getOutputIndexFileForWrite(0); //TODO
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("numSpills: " + numSpills + ", finalOutputFile:" + finalOutputFile + ", finalIndexFile:"
+              + finalIndexFile);
+    }
+
     //The output stream for the final single output file
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
 
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
 
-    for(int i = 0; i < numSpills; i++) {
-      // TODO: build this cache before
-      Path indexFilename = spillFileIndexPaths.get(i);
-      TezSpillRecord spillIndex = new TezSpillRecord(indexFilename, conf);
-      indexCacheList.add(spillIndex);
-    }
-    
+
     for (int parts = 0; parts < partitions; parts++) {
       //create the segments to be merged
       List<Segment> segmentList =

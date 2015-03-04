@@ -27,6 +27,9 @@ message DataMovementEventPayloadProto {
   optional string path_component = 4;
   optional int32 run_duration = 5;
   optional DataProto data = 6;
+  optional bool pipelined = 7; // Related to pipelined shuffle
+  optional bool last_event = 8; // Related to pipelined shuffle
+  optional int32 spill_id = 9; //  Related to pipelined shuffle.
 } 
 
 message DataProto {

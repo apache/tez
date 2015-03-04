@@ -35,6 +35,7 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
@@ -94,8 +95,7 @@ public class ShuffleInputEventHandlerOrderedGrouped {
         byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
         BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
-          InputAttemptIdentifier srcAttemptIdentifier =
-              new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion());
+          InputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dmEvent, shufflePayload);
           if (LOG.isDebugEnabled()) {
             LOG.debug(
                 "Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
@@ -110,9 +110,7 @@ public class ShuffleInputEventHandlerOrderedGrouped {
       }
     }
 
-    InputAttemptIdentifier srcAttemptIdentifier =
-        new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(),
-            shufflePayload.getPathComponent());
+    InputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dmEvent, shufflePayload);
 
     URI baseUri = getBaseURI(shufflePayload.getHost(), shufflePayload.getPort(), partitionId);
     scheduler.addKnownMapOutput(shufflePayload.getHost(), shufflePayload.getPort(),
@@ -134,5 +132,30 @@ public class ShuffleInputEventHandlerOrderedGrouped {
     return u;
   }
 
+  /**
+   * Helper method to create InputAttemptIdentifier
+   *
+   * @param dmEvent
+   * @param shufflePayload
+   * @return InputAttemptIdentifier
+   */
+  private InputAttemptIdentifier constructInputAttemptIdentifier(DataMovementEvent dmEvent,
+      DataMovementEventPayloadProto shufflePayload) {
+    String pathComponent = (shufflePayload.hasPathComponent()) ? shufflePayload.getPathComponent() : null;
+    int spillEventId = shufflePayload.getSpillId();
+    InputAttemptIdentifier srcAttemptIdentifier = null;
+    if (shufflePayload.hasSpillId()) {
+      boolean lastEvent = shufflePayload.getLastEvent();
+      InputAttemptIdentifier.SPILL_INFO info = (lastEvent) ? InputAttemptIdentifier.SPILL_INFO
+          .FINAL_UPDATE : InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE;
+      srcAttemptIdentifier =
+          new InputAttemptIdentifier(new InputIdentifier(dmEvent.getTargetIndex()), dmEvent
+              .getVersion(), pathComponent, false, info, spillEventId);
+    } else {
+      srcAttemptIdentifier =
+          new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(), pathComponent);
+    }
+    return srcAttemptIdentifier;
+  }
 }
 

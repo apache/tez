@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.common.task.local.output;
 
 import java.io.IOException;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -46,9 +47,9 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   private static final Log LOG = LogFactory.getLog(TezTaskOutputFiles.class);
 
+  private static final String SPILL_FILE_DIR_PATTERN = "%s_%d";
+
   private static final String SPILL_FILE_PATTERN = "%s_spill_%d.out";
-  private static final String SPILL_INDEX_FILE_PATTERN = SPILL_FILE_PATTERN
-      + ".index";
 
   /*
   Under YARN, this defaults to one or more of the local directories, along with the appId in the path.
@@ -116,7 +117,12 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    * same volume.
    *
    * ${appDir}/output/${uniqueId}/file.out
-   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out
+   * e.g.
+   * existing:
+   * application_1424502260528_0119/output/attempt_1424502260528_0119_1_07_000058_0_10012_0/file.out
+   *
+   * returnValue:
+   * application_1424502260528_0119/output/attempt_1424502260528_0119_1_07_000058_0_10012/file.out
    *
    * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
    *
@@ -124,9 +130,11 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    */
   @Override
   public Path getOutputFileForWriteInVolume(Path existing) {
-    Path outputDir = new Path(existing.getParent(), Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
-    Path attemptOutputDir = new Path(outputDir, uniqueId);
-    return new Path(attemptOutputDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
+    //Get hold attempt directory (${appDir}/output/)
+    Preconditions.checkArgument(existing.getParent().getParent() != null, "Parent directory's "
+        + "parent can not be null");
+    Path attemptDir = new Path(existing.getParent().getParent(), uniqueId);
+    return new Path(attemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
   }
 
 
@@ -157,23 +165,32 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    * associated data file.
    *
    * ${appDir}/output/${uniqueId}/file.out.index
-   * e.g. application_1418684642047_0006/output/attempt_1418684642047_0006_1_00_000000_0_10003/file.out.index
+   * e.g.
+   * existing:
+   * application_1424502260528_0119/output/attempt_1424502260528_0119_1_07_000058_0_10012_0/file
+   * .out.index
+   *
+   * returnValue:
+   * application_1424502260528_0119/output/attempt_1424502260528_0119_1_07_000058_0_10012/file
+   * .out.index
    *
    * The structure of this file name is critical, to be served by the MapReduce ShuffleHandler.
    */
   @Override
   public Path getOutputIndexFileForWriteInVolume(Path existing) {
-    Path outputDir = new Path(existing.getParent(), Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
-    Path attemptOutputDir = new Path(outputDir, uniqueId);
-    return new Path(attemptOutputDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
-                                      Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+    //Get hold attempt directory (${appDir}/output/)
+    Preconditions.checkArgument(existing.getParent().getParent() != null, "Parent directory's "
+        + "parent can not be null");
+    Path attemptDir = new Path(existing.getParent().getParent(), uniqueId);
+    return new Path(attemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING
+        + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
   }
 
   /**
    * Create a local spill file name.
    *
-   * ${appDir}/${uniqueId}_spill_${spillNumber}.out
-   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10003_spill_0.out
+   * ${appDir}/output/${uniqueId}_${spillNumber}/file.out
+   * e.g. application_1422270854961_0027/output/attempt_1422270854961_0027_1_00_000001_0_10003_1/file.out
    *
    * @param spillNumber the spill number
    * @param size the size of the spill file
@@ -183,16 +200,18 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException {
-    return lDirAlloc.getLocalPathForWrite(
-        String.format(SPILL_FILE_PATTERN,
-            uniqueId, spillNumber), size, conf);
+    Preconditions.checkArgument(spillNumber >= 0, "Provide a valid spill number " + spillNumber);
+    Path taskAttemptDir = new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR,
+        String.format(SPILL_FILE_DIR_PATTERN, uniqueId, spillNumber));
+    Path outputDir = new Path(taskAttemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
+    return lDirAlloc.getLocalPathForWrite(outputDir.toString(), size, conf);
   }
 
   /**
    * Create a local output spill index file name.
    *
-   * ${appDir}/${uniqueId}_spill_${spillNumber}.out.index
-   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10003_spill_0.out.index
+   * ${appDir}/output/${uniqueId}_${spillNumber}/file.out.index
+   * e.g. application_1422270854961_0027/output/attempt_1422270854961_0027_1_00_000001_0_10003_1/file.out.index
    *
    * @param spillNumber the spill number
    * @param size the size of the file
@@ -202,9 +221,12 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public Path getSpillIndexFileForWrite(int spillNumber, long size)
       throws IOException {
-    return lDirAlloc.getLocalPathForWrite(
-        String.format(SPILL_INDEX_FILE_PATTERN,
-            uniqueId, spillNumber), size, conf);
+    Preconditions.checkArgument(spillNumber >= 0, "Provide a valid spill number " + spillNumber);
+    Path taskAttemptDir = new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR,
+        String.format(SPILL_FILE_DIR_PATTERN, uniqueId, spillNumber));
+    Path outputDir = new Path(taskAttemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+    return lDirAlloc.getLocalPathForWrite(outputDir.toString(), size, conf);
   }
 
 

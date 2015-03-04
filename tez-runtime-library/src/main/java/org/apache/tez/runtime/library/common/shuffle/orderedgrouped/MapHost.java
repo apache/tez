@@ -51,7 +51,7 @@ class MapHost {
   public static String createIdentifier(String hostName, int partitionId) {
     return hostName + ":" + Integer.toString(partitionId);
   }
-  
+
   public String getIdentifier() {
     return identifier;
   }

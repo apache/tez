@@ -25,25 +25,38 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
+import java.util.BitSet;
 import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import com.google.common.base.Preconditions;
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParamsBuilder;
+import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
+import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 public class ShuffleUtils {
@@ -242,6 +255,128 @@ public class ShuffleUtils {
     sb.append("]");
     return sb.toString();
   }
+
+  /**
+   * Generate DataMovementEvent
+   *
+   * @param sendEmptyPartitionDetails
+   * @param numPhysicalOutputs
+   * @param spillRecord
+   * @param context
+   * @param spillId
+   * @param finalMergeEnabled
+   * @param isLastEvent
+   * @param pathComponent
+   * @return ByteBuffer
+   * @throws IOException
+   */
+  static ByteBuffer generateDMEPayload(boolean sendEmptyPartitionDetails,
+      int numPhysicalOutputs, TezSpillRecord spillRecord, OutputContext context,
+      int spillId, boolean finalMergeEnabled, boolean isLastEvent, String pathComponent)
+      throws IOException {
+    DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
+        .newBuilder();
+
+    boolean outputGenerated = true;
+    if (sendEmptyPartitionDetails) {
+      BitSet emptyPartitionDetails = new BitSet();
+      for(int i=0;i<spillRecord.size();i++) {
+        TezIndexRecord indexRecord = spillRecord.getIndex(i);
+        if (!indexRecord.hasData()) {
+          emptyPartitionDetails.set(i);
+        }
+      }
+      int emptyPartitions = emptyPartitionDetails.cardinality();
+      outputGenerated = (spillRecord.size() != emptyPartitions);
+      if (emptyPartitions > 0) {
+        ByteString emptyPartitionsBytesString =
+            TezCommonUtils.compressByteArrayToByteString(
+                TezUtilsInternal.toByteArray(emptyPartitionDetails));
+        payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
+        LOG.info("EmptyPartition bitsetSize=" + emptyPartitionDetails.cardinality() + ", numOutputs="
+            + numPhysicalOutputs + ", emptyPartitions=" + emptyPartitions
+            + ", compressedSize=" + emptyPartitionsBytesString.size());
+      }
+    }
+
+    if (!sendEmptyPartitionDetails || outputGenerated) {
+      String host = context.getExecutionContext().getHostName();
+      ByteBuffer shuffleMetadata = context
+          .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+      int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
+      payloadBuilder.setHost(host);
+      payloadBuilder.setPort(shufflePort);
+      //Path component is always 0 indexed
+      payloadBuilder.setPathComponent(pathComponent);
+    }
+
+    if (!finalMergeEnabled) {
+      payloadBuilder.setSpillId(spillId);
+      payloadBuilder.setLastEvent(isLastEvent);
+    }
+
+    payloadBuilder.setRunDuration(0); //TODO: who is dependent on this?
+    DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
+    ByteBuffer payload = payloadProto.toByteString().asReadOnlyByteBuffer();
+    return payload;
+  }
+
+  /**
+   * Generate events when spill happens
+   *
+   * @param eventList events would be added to this list
+   * @param finalMergeEnabled
+   * @param isLastEvent
+   * @param context
+   * @param spillId
+   * @param spillRecord
+   * @param numPhysicalOutputs
+   * @param pathComponent
+   * @throws IOException
+   */
+  public static void generateEventOnSpill(List<Event> eventList, boolean finalMergeEnabled,
+      boolean isLastEvent, OutputContext context, int spillId, TezSpillRecord spillRecord,
+      int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent)
+      throws IOException {
+    Preconditions.checkArgument(eventList != null, "EventList can't be null");
+
+    if (finalMergeEnabled) {
+      Preconditions.checkArgument(isLastEvent, "Can not send multiple events when final merge is "
+          + "enabled");
+    }
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("pathComponent=" + pathComponent + ", isLastEvent="
+          + isLastEvent + ", spillId=" + spillId + ", finalMergeDisabled=" + finalMergeEnabled +
+          ", numPhysicalOutputs=" + numPhysicalOutputs);
+    }
+
+    ByteBuffer payload = generateDMEPayload(sendEmptyPartitionDetails, numPhysicalOutputs,
+        spillRecord, context, spillId,
+        finalMergeEnabled, isLastEvent, pathComponent);
+
+    if (finalMergeEnabled || isLastEvent) {
+      ShuffleUserPayloads.VertexManagerEventPayloadProto.Builder vmBuilder =
+          ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder();
+
+      long outputSize = context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
+
+      //Set this information only when required.  In pipelined shuffle, multiple events would end
+      // up adding up to final outputsize.  This is needed for auto-reduce parallelism to work
+      // properly.
+      vmBuilder.setOutputSize(outputSize);
+      VertexManagerEvent vmEvent = VertexManagerEvent.create(
+          context.getDestinationVertexName(), vmBuilder.build().toByteString().asReadOnlyByteBuffer());
+      eventList.add(vmEvent);
+    }
+
+
+    CompositeDataMovementEvent csdme =
+        CompositeDataMovementEvent.create(0, numPhysicalOutputs, payload);
+    eventList.add(csdme);
+  }
+
+
 
   /**
    * Log individual fetch complete event.

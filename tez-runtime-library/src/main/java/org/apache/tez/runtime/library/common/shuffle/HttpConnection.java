@@ -250,7 +250,6 @@ public class HttpConnection {
    */
   public DataInputStream getInputStream() throws IOException {
     stopWatch.reset().start();
-    DataInputStream input = null;
     if (connectionSucceeed) {
       input =
           new DataInputStream(new BufferedInputStream(

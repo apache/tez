@@ -24,10 +24,8 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -87,7 +85,7 @@ class FetcherOrderedGrouped extends Thread {
   
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
-  private LinkedHashSet<InputAttemptIdentifier> remaining;
+  private LinkedList<InputAttemptIdentifier> remaining;
 
   volatile HttpURLConnection connection;
   volatile DataInputStream input;
@@ -243,7 +241,7 @@ class FetcherOrderedGrouped extends Thread {
     }
     
     // List of maps to be fetched yet
-    remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
+    remaining = new LinkedList<InputAttemptIdentifier>(srcAttempts);
     
     // Construct the url and connect
     if (!setupConnection(host, srcAttempts)) {
@@ -573,7 +571,7 @@ class FetcherOrderedGrouped extends Thread {
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
-      int forReduce, Set<InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
+      int forReduce, List<InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
       LOG.warn(getName() + " invalid lengths in map output header: id: " +
@@ -628,7 +626,7 @@ class FetcherOrderedGrouped extends Thread {
     }
 
     // List of maps to be fetched yet
-    remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
+    remaining = new LinkedList<InputAttemptIdentifier>(srcAttempts);
 
     try {
       final Iterator<InputAttemptIdentifier> iter = remaining.iterator();
@@ -675,6 +673,7 @@ class FetcherOrderedGrouped extends Thread {
   }
 
   @VisibleForTesting
+  //TODO: Refactor following to make use of methods from TezTaskOutputFiles to be consistent.
   protected Path getShuffleInputFileName(String pathComponent, String suffix)
       throws IOException {
     LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);

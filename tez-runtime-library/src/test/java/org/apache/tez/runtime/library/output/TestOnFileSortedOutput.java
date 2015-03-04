@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -158,6 +159,72 @@ public class TestOnFileSortedOutput {
     sortedOutput.initialize();
     sortedOutput.start();
     writer = sortedOutput.getWriter();
+  }
+
+  @Test (timeout = 5000)
+  public void testPipelinedShuffle() throws Exception {
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
+
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 2);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
+    OutputContext context = createTezOutputContext();
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+
+    sortedOutput.initialize();
+    sortedOutput.start();
+
+    assertFalse(sortedOutput.finalMergeEnabled);
+    assertTrue(sortedOutput.pipelinedShuffle);
+
+  }
+
+  @Test (timeout = 5000)
+  public void testPipelinedShuffleWithFinalMerge() throws Exception {
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
+
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 2);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, true);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
+    OutputContext context = createTezOutputContext();
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+
+    sortedOutput.initialize();
+    try {
+      sortedOutput.start();
+      fail("Should have thrown illegal arguement exception as final merge & pipelining are "
+          + "enabled together");
+    } catch(IllegalArgumentException ie) {
+      assertTrue(ie.getMessage().contains("has to be set to false for pipelined"));
+    }
+  }
+
+  @Test
+  public void testPipelinedSettingsWithDefaultSorter() throws Exception {
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
+    //negative. with sort threads-1
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 1);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
+
+    OutputContext context = createTezOutputContext();
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
+    doReturn(payLoad).when(context).getUserPayload();
+    sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
+
+    sortedOutput.initialize();
+    try {
+      sortedOutput.start();
+      fail("Should have thrown illegal argument exception as pipelining is enabled with "
+          + "DefaultSorter");
+    } catch(IllegalArgumentException ie) {
+      assertTrue(ie.getMessage().contains("works with PipelinedSorter"));
+    }
+
   }
 
   @Test (timeout = 5000)

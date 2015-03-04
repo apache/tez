@@ -113,6 +113,7 @@ public abstract class ExternalSorter {
 
   protected Path finalOutputFile;
   protected Path finalIndexFile;
+  protected int numSpills;
 
   // Counters
   // MR compatilbity layer needs to rename counters back to what MR requries.
@@ -251,6 +252,10 @@ public abstract class ExternalSorter {
     return finalIndexFile;
   }
 
+  public Path getFinalOutputFile() {
+    return finalOutputFile;
+  }
+
   protected void runCombineProcessor(TezRawKeyValueIterator kvIter,
       Writer writer) throws IOException {
     try {
@@ -304,5 +309,9 @@ public abstract class ExternalSorter {
         + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + "): "
         + initialMemRequestMb);
     return reqBytes;
+  }
+
+  public int getNumSpills() {
+    return numSpills;
   }
 }

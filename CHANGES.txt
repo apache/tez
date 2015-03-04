@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2001. Support pipelined data transfer for ordered output.
   TEZ-2170. Incorrect its in README.md.
   TEZ-2070. Controller class of output should be committer rather than initializer in DAG's dot file.
   TEZ-2083. Make PipelinedSorter as the default sorter.

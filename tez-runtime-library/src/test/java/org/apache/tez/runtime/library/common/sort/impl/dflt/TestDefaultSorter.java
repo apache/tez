@@ -25,10 +25,14 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,18 +41,27 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -80,9 +93,15 @@ public class TestDefaultSorter {
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
   }
 
-  @After
-  public void cleanup() throws IOException {
+  @AfterClass
+  public static void cleanup() throws IOException {
     localFs.delete(workingDir, true);
+  }
+
+  @After
+  public void reset() throws IOException {
+    cleanup();
+    localFs.mkdirs(workingDir);
   }
 
   @Test(timeout = 5000)
@@ -131,10 +150,114 @@ public class TestDefaultSorter {
     //Write 1000 keys each of size 1000, (> 1 spill should happen)
     try {
       writeData(sorter, 1000, 1000);
-      assertTrue(sorter.numSpills > 2);
+      assertTrue(sorter.getNumSpills() > 2);
     } catch(IOException ioe) {
       fail(ioe.getMessage());
     }
+  }
+
+  @Test(timeout = 30000)
+  public void testWithEmptyData() throws IOException {
+    OutputContext context = createTezOutputContext();
+
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+        context.getTotalMemoryAvailableToTask()), handler);
+    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+
+    //no data written. Empty
+    try {
+      sorter.flush();
+      sorter.close();
+      assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID));
+    } catch(Exception e) {
+      fail();
+    }
+  }
+
+  @Test(timeout = 30000)
+  public void testWithEmptyDataWithFinalMergeDisabled() throws IOException {
+    OutputContext context = createTezOutputContext();
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+        context.getTotalMemoryAvailableToTask()), handler);
+    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+
+    //no data written. Empty
+    try {
+      sorter.flush();
+      sorter.close();
+      assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID +
+          "_0"));
+      assertTrue(context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL).getValue() > 0);
+    } catch(Exception e) {
+      fail();
+    }
+  }
+
+  @Test(timeout = 30000)
+  @SuppressWarnings("unchecked")
+  public void testWithSingleSpillWithFinalMergeDisabled() throws IOException {
+    OutputContext context = createTezOutputContext();
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+        context.getTotalMemoryAvailableToTask()), handler);
+    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+
+    writeData(sorter, 1000, 10);
+    assertTrue(sorter.getNumSpills() == 1);
+    ArgumentCaptor<List> eventCaptor = ArgumentCaptor.forClass(List.class);
+    verify(context, times(1)).sendEvents(eventCaptor.capture());
+    List<Event> events = eventCaptor.getValue();
+    for(Event event : events) {
+      if (event instanceof CompositeDataMovementEvent) {
+        CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) event;
+        ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload = ShuffleUserPayloads
+            .DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
+        assertTrue(shufflePayload.getPathComponent().equalsIgnoreCase(UniqueID + "_0"));
+      }
+    }
+
+    assertTrue(context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL).getValue() > 0);
+  }
+
+  @Test(timeout = 30000)
+  @SuppressWarnings("unchecked")
+  public void testWithMultipleSpillsWithFinalMergeDisabled() throws IOException {
+    OutputContext context = createTezOutputContext();
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES, 1);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+        context.getTotalMemoryAvailableToTask()), handler);
+    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+
+    writeData(sorter, 10000, 1000);
+    int spillCount = sorter.getNumSpills();
+    ArgumentCaptor<List> eventCaptor = ArgumentCaptor.forClass(List.class);
+    verify(context, times(1)).sendEvents(eventCaptor.capture());
+    List<Event> events = eventCaptor.getValue();
+    int spillIndex = 0;
+    for(Event event : events) {
+      if (event instanceof CompositeDataMovementEvent) {
+        CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) event;
+        ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload = ShuffleUserPayloads
+            .DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
+        assertTrue(shufflePayload.getPathComponent().equalsIgnoreCase(UniqueID + "_" + spillIndex));
+        spillIndex++;
+      }
+    }
+    assertTrue(spillIndex == spillCount);
+    assertTrue(context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL).getValue() > 0);
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
@@ -156,6 +279,8 @@ public class TestDefaultSorter {
     TezCounters counters = new TezCounters();
 
     OutputContext context = mock(OutputContext.class);
+    ExecutionContext execContext = new ExecutionContextImpl("localhost");
+    doReturn(execContext).when(context).getExecutionContext();
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
     doReturn(payLoad).when(context).getUserPayload();

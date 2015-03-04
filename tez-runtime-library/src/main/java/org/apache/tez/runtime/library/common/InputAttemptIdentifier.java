@@ -34,6 +34,20 @@ public class InputAttemptIdentifier {
 
   public static final String PATH_PREFIX = "attempt";
 
+  public enum SPILL_INFO {
+    FINAL_MERGE_ENABLED, //Final merge is enabled at source
+    INCREMENTAL_UPDATE, //Final merge is disabled and qualifies for incremental spill updates.(i.e spill 0, 1 etc)
+    FINAL_UPDATE //Indicates final piece of data in the pipelined shuffle.
+  }
+
+  /**
+   * For pipelined shuffles. These fields need not be part of equals() or hashCode() computation.
+   * These fields are added for additional information about the source and are not meant to
+   * alter the way these sources would be stored in hashmap.
+   */
+  private final SPILL_INFO fetchTypeInfo;
+  private final int spillEventId;
+
   public InputAttemptIdentifier(int inputIndex, int attemptNumber) {
     this(new InputIdentifier(inputIndex), attemptNumber, null);
   }
@@ -43,10 +57,17 @@ public class InputAttemptIdentifier {
   }
 
   public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent, boolean shared) {
+    this(inputIdentifier, attemptNumber, pathComponent, shared, SPILL_INFO.FINAL_MERGE_ENABLED, -1);
+  }
+
+  public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent,
+      boolean shared, SPILL_INFO fetchTypeInfo, int spillEventId) {
     this.inputIdentifier = inputIdentifier;
     this.attemptNumber = attemptNumber;
     this.pathComponent = pathComponent;
     this.shared = shared;
+    this.fetchTypeInfo = fetchTypeInfo;
+    this.spillEventId = spillEventId;
     if (pathComponent != null && !pathComponent.startsWith(PATH_PREFIX)) {
       throw new TezUncheckedException(
           "Path component must start with: " + PATH_PREFIX + " " + this);
@@ -75,6 +96,19 @@ public class InputAttemptIdentifier {
 
   public boolean isShared() {
     return this.shared;
+  }
+
+  public SPILL_INFO getFetchTypeInfo() {
+    return fetchTypeInfo;
+  }
+
+  public int getSpillEventId() {
+    return spillEventId;
+  }
+
+  public boolean canRetrieveInputInChunks() {
+    return (fetchTypeInfo == SPILL_INFO.INCREMENTAL_UPDATE) ||
+        (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE);
   }
 
   // PathComponent & shared does not need to be part of the hashCode and equals computation.
@@ -112,6 +146,6 @@ public class InputAttemptIdentifier {
   public String toString() {
     return "InputAttemptIdentifier [inputIdentifier=" + inputIdentifier
         + ", attemptNumber=" + attemptNumber + ", pathComponent="
-        + pathComponent + "]";
+        + pathComponent + ", fetchTypeInfo=" + fetchTypeInfo + ", spillEventId=" + spillEventId  +"]";
   }
 }
