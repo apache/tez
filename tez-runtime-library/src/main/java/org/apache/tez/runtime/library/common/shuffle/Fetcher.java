@@ -50,6 +50,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -68,7 +69,7 @@ import com.google.common.base.Preconditions;
  * Responsible for fetching inputs served by the ShuffleHandler for a single
  * host. Construct using {@link FetcherBuilder}
  */
-public class Fetcher implements Callable<FetchResult> {
+public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private static final Log LOG = LogFactory.getLog(Fetcher.class);
 
@@ -161,7 +162,7 @@ public class Fetcher implements Callable<FetchResult> {
   }
 
   @Override
-  public FetchResult call() throws Exception {
+  protected FetchResult callInternal() throws Exception {
     boolean multiplex = (this.sharedFetchEnabled && this.localDiskFetchEnabled);
 
     if (srcAttempts.size() == 0) {

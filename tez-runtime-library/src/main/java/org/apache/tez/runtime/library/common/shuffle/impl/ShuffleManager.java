@@ -50,6 +50,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -255,7 +256,7 @@ public class ShuffleManager implements FetcherCallback {
     schedulerExecutor.shutdown();
   }
   
-  private class RunShuffleCallable implements Callable<Void> {
+  private class RunShuffleCallable extends CallableWithNdc<Void> {
 
     private final Configuration conf;
 
@@ -264,7 +265,7 @@ public class ShuffleManager implements FetcherCallback {
     }
 
     @Override
-    public Void call() throws Exception {
+    protected Void callInternal() throws Exception {
       while (!isShutdown.get() && numCompletedInputs.get() < numInputs) {
         lock.lock();
         try {

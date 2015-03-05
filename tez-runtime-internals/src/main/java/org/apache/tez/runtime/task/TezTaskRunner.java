@@ -33,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -163,10 +164,9 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
     return true;
   }
 
-  private class TaskRunnerCallable implements Callable<Void> {
-
+  private class TaskRunnerCallable extends CallableWithNdc<Void> {
     @Override
-    public Void call() throws Exception {
+    protected Void callInternal() throws Exception {
       try {
         return ugi.doAs(new PrivilegedExceptionAction<Void>() {
           @Override

@@ -42,7 +42,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.RunnableWithNdc;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -362,7 +364,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
-  private class InitializeInputCallable implements Callable<Void> {
+  private class InitializeInputCallable extends CallableWithNdc<Void> {
 
     private final InputSpec inputSpec;
     private final int inputIndex;
@@ -373,7 +375,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
 
     @Override
-    public Void call() throws Exception {
+    protected Void callInternal() throws Exception {
       LOG.info("Initializing Input using InputSpec: " + inputSpec);
       String edgeName = inputSpec.getSourceVertexName();
       InputContext inputContext = createInputContext(inputsMap, inputSpec, inputIndex);
@@ -392,7 +394,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
-  private static class StartInputCallable implements Callable<Void> {
+  private static class StartInputCallable extends CallableWithNdc<Void> {
     private final LogicalInput input;
     private final String srcVertexName;
 
@@ -402,7 +404,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
 
     @Override
-    public Void call() throws Exception {
+    protected Void callInternal() throws Exception {
       LOG.info("Starting Input with src edge: " + srcVertexName);
       input.start();
       LOG.info("Started Input with src edge: " + srcVertexName);
@@ -410,7 +412,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
-  private class InitializeOutputCallable implements Callable<Void> {
+  private class InitializeOutputCallable extends CallableWithNdc<Void> {
 
     private final OutputSpec outputSpec;
     private final int outputIndex;
@@ -421,7 +423,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
 
     @Override
-    public Void call() throws Exception {
+    protected Void callInternal() throws Exception {
       LOG.info("Initializing Output using OutputSpec: " + outputSpec);
       String edgeName = outputSpec.getDestinationVertexName();
       OutputContext outputContext = createOutputContext(outputSpec, outputIndex);
@@ -662,8 +664,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   private void startRouterThread() {
-    eventRouterThread = new Thread(new Runnable() {
-      public void run() {
+    eventRouterThread = new Thread(new RunnableWithNdc() {
+      public void runInternal() {
         while (!isTaskDone() && !Thread.currentThread().isInterrupted()) {
           try {
             TezEvent e = eventsToBeProcessed.take();

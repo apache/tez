@@ -46,6 +46,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.library.common.comparator.ProxyComparator;
 import org.apache.hadoop.io.RawComparator;
@@ -898,7 +899,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-  private static class SortTask implements Callable<SpanIterator> {
+  private static class SortTask extends CallableWithNdc<SpanIterator> {
     private final SortSpan sortable;
     private final IndexedSorter sorter;
 
@@ -907,7 +908,8 @@ public class PipelinedSorter extends ExternalSorter {
         this.sorter = sorter;
     }
 
-    public SpanIterator call() {
+    @Override
+    protected SpanIterator callInternal() {
       return sortable.sort(sorter);
     }
   }

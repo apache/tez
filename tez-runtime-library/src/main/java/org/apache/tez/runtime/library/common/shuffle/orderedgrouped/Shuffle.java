@@ -41,6 +41,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -325,9 +326,9 @@ public class Shuffle implements ExceptionReporter {
   }
 
   // Not handling any shutdown logic here. That's handled by the callback from this invocation.
-  private class RunShuffleCallable implements Callable<TezRawKeyValueIterator> {
+  private class RunShuffleCallable extends CallableWithNdc<TezRawKeyValueIterator> {
     @Override
-    public TezRawKeyValueIterator call() throws IOException, InterruptedException {
+    protected TezRawKeyValueIterator callInternal() throws IOException, InterruptedException {
 
       synchronized (this) {
         for (int i = 0; i < numFetchers; ++i) {
