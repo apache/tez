@@ -71,4 +71,10 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
   @Override public boolean checkPidPgrpidForMatch() {
     return true;
   }
+
+  public float getCpuUsagePercent() {
+    //osBean.getProcessCpuLoad() can be closer and returns [0 - 1.0], but might not be accurate.
+    //Returning -1 to indicate, this feature is not yet supported.
+    return -1;
+  }
 }
