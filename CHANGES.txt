@@ -7,6 +7,7 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2174. Make task priority available to TaskAttemptListener.
   TEZ-2169. Add NDC context to various threads and pools.
   TEZ-2171. Remove unused metrics code.
   TEZ-2001. Support pipelined data transfer for ordered output.

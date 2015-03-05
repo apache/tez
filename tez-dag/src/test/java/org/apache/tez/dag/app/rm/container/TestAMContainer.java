@@ -124,6 +124,7 @@ public class TestAMContainer {
     verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID));
     assertEquals(1, argumentCaptor.getAllValues().size());
     assertEquals(wc.taskAttemptID, argumentCaptor.getAllValues().get(0).getTask().getTaskAttemptID());
+    assertEquals(WrappedContainer.taskPriority, argumentCaptor.getAllValues().get(0).getPriority());
 
     // Attempt succeeded
     wc.taskAttemptSucceeded(wc.taskAttemptID);
@@ -1158,6 +1159,7 @@ public class TestAMContainer {
   private static class WrappedContainer {
 
     long rmIdentifier = 2000;
+    static final int taskPriority = 10;
     ApplicationId applicationID;
     ApplicationAttemptId appAttemptID;
     ContainerId containerID;
@@ -1288,7 +1290,7 @@ public class TestAMContainer {
       reset(eventHandler);
       doReturn(taID).when(taskSpec).getTaskAttemptID();
       amContainer.handle(new AMContainerEventAssignTA(containerID, taID, taskSpec,
-          additionalResources, credentials));
+          additionalResources, credentials, taskPriority));
     }
 
     public void containerLaunched() {

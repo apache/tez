@@ -30,14 +30,17 @@ public class AMContainerTask {
   private final TaskSpec tezTask;
   private final Credentials credentials;
   private final boolean credentialsChanged;
+  private final int priority;
 
   public AMContainerTask(TaskSpec tezTask,
-      Map<String, LocalResource> additionalResources, Credentials credentials, boolean credentialsChanged) {
+                         Map<String, LocalResource> additionalResources, Credentials credentials,
+                         boolean credentialsChanged, int priority) {
     Preconditions.checkNotNull(tezTask, "TaskSpec cannot be null");
     this.tezTask = tezTask;
     this.additionalResources = additionalResources;
     this.credentials = credentials;
     this.credentialsChanged = credentialsChanged;
+    this.priority = priority;
   }
 
   public TaskSpec getTask() {
@@ -54,5 +57,9 @@ public class AMContainerTask {
   
   public boolean haveCredentialsChanged() {
     return this.credentialsChanged;
+  }
+
+  public int getPriority() {
+    return priority;
   }
 }

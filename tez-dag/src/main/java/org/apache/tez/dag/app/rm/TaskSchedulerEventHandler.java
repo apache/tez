@@ -434,7 +434,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     sendEvent(new DAGEventSchedulerUpdateTAAssigned(taskAttempt, container));
     sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getID(),
         event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources(), event
-            .getContainerContext().getCredentials()));
+            .getContainerContext().getCredentials(), event.getPriority()));
   }
 
   @Override

@@ -565,7 +565,8 @@ public class AMContainerImpl implements AMContainer {
           "] to container: [" + container.getContainerId() + "]");
       AMContainerTask amContainerTask = new AMContainerTask(
           event.getRemoteTaskSpec(), container.additionalLocalResources,
-          container.credentialsChanged ? container.credentials : null, container.credentialsChanged);
+          container.credentialsChanged ? container.credentials : null, container.credentialsChanged,
+          event.getPriority());
       container.registerAttemptWithListener(amContainerTask);
       container.additionalLocalResources = null;
       container.credentialsChanged = false;

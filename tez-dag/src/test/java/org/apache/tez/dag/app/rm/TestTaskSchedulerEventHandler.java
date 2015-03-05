@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.rm;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
@@ -28,14 +30,19 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
@@ -44,13 +51,16 @@ import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
 import org.apache.tez.dag.app.dag.impl.TaskImpl;
 import org.apache.tez.dag.app.dag.impl.VertexImpl;
 import org.apache.tez.dag.app.rm.container.AMContainer;
+import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
+import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
@@ -122,7 +132,46 @@ public class TestTaskSchedulerEventHandler {
     schedulerHandler = new MockTaskSchedulerEventHandler(
         mockAppContext, mockClientService, mockEventHandler, mockSigMatcher, mockWebUIService);
   }
-  
+
+  @Test(timeout = 5000)
+  public void testSimpleAllocate() throws Exception {
+    Configuration conf = new Configuration(false);
+    schedulerHandler.init(conf);
+    schedulerHandler.start();
+
+    TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
+    TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
+    when(mockAttemptId.getId()).thenReturn(0);
+    when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
+    Resource resource = Resource.newInstance(1024, 1);
+    ContainerContext containerContext =
+        new ContainerContext(new HashMap<String, LocalResource>(), new Credentials(),
+            new HashMap<String, String>(), "");
+    int priority = 10;
+    TaskLocationHint locHint = TaskLocationHint.createTaskLocationHint(new HashSet<String>(), null);
+
+    ContainerId mockCId = mock(ContainerId.class);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(mockCId);
+
+    AMContainer mockAMContainer = mock(AMContainer.class);
+    when(mockAMContainer.getContainerId()).thenReturn(mockCId);
+    when(mockAMContainer.getState()).thenReturn(AMContainerState.IDLE);
+
+    when(mockAMContainerMap.get(mockCId)).thenReturn(mockAMContainer);
+
+    AMSchedulerEventTALaunchRequest lr =
+        new AMSchedulerEventTALaunchRequest(mockAttemptId, resource, null, mockTaskAttempt, locHint,
+            priority, containerContext);
+    schedulerHandler.taskAllocated(mockTaskAttempt, lr, container);
+    assertEquals(2, mockEventHandler.events.size());
+    assertTrue(mockEventHandler.events.get(1) instanceof AMContainerEventAssignTA);
+    AMContainerEventAssignTA assignEvent =
+        (AMContainerEventAssignTA) mockEventHandler.events.get(1);
+    assertEquals(priority, assignEvent.getPriority());
+    assertEquals(mockAttemptId, assignEvent.getTaskAttemptId());
+  }
+
   @Test (timeout = 5000)
   public void testTaskBasedAffinity() throws Exception {
     Configuration conf = new Configuration(false);
@@ -179,15 +228,15 @@ public class TestTaskSchedulerEventHandler {
     when(mockStatus.getDiagnostics()).thenReturn(diagnostics);
     when(mockStatus.getExitStatus()).thenReturn(ContainerExitStatus.PREEMPTED);
     schedulerHandler.containerCompleted(mockTask, mockStatus);
-    Assert.assertEquals(1, mockEventHandler.events.size());
+    assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
-    Assert.assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
+    assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
     AMContainerEventCompleted completedEvent = (AMContainerEventCompleted) event;
-    Assert.assertEquals(mockCId, completedEvent.getContainerId());
-    Assert.assertEquals("Container preempted externally. Container preempted by RM.", 
+    assertEquals(mockCId, completedEvent.getContainerId());
+    assertEquals("Container preempted externally. Container preempted by RM.",
         completedEvent.getDiagnostics());
-    Assert.assertTrue(completedEvent.isPreempted());
-    Assert.assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION,
+    assertTrue(completedEvent.isPreempted());
+    assertEquals(TaskAttemptTerminationCause.EXTERNAL_PREEMPTION,
         completedEvent.getTerminationCause());
     Assert.assertFalse(completedEvent.isDiskFailed());
 
@@ -205,15 +254,15 @@ public class TestTaskSchedulerEventHandler {
     verify(mockTaskScheduler, times(0)).deallocateContainer((ContainerId)any());
     schedulerHandler.preemptContainer(mockCId);
     verify(mockTaskScheduler, times(1)).deallocateContainer(mockCId);
-    Assert.assertEquals(1, mockEventHandler.events.size());
+    assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
-    Assert.assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
+    assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
     AMContainerEventCompleted completedEvent = (AMContainerEventCompleted) event;
-    Assert.assertEquals(mockCId, completedEvent.getContainerId());
-    Assert.assertEquals("Container preempted internally", completedEvent.getDiagnostics());
-    Assert.assertTrue(completedEvent.isPreempted());
+    assertEquals(mockCId, completedEvent.getContainerId());
+    assertEquals("Container preempted internally", completedEvent.getDiagnostics());
+    assertTrue(completedEvent.isPreempted());
     Assert.assertFalse(completedEvent.isDiskFailed());
-    Assert.assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
+    assertEquals(TaskAttemptTerminationCause.INTERNAL_PREEMPTION,
         completedEvent.getTerminationCause());
 
     schedulerHandler.stop();
@@ -237,16 +286,16 @@ public class TestTaskSchedulerEventHandler {
     when(mockStatus.getDiagnostics()).thenReturn(diagnostics);
     when(mockStatus.getExitStatus()).thenReturn(ContainerExitStatus.DISKS_FAILED);
     schedulerHandler.containerCompleted(mockTask, mockStatus);
-    Assert.assertEquals(1, mockEventHandler.events.size());
+    assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
-    Assert.assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
+    assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
     AMContainerEventCompleted completedEvent = (AMContainerEventCompleted) event;
-    Assert.assertEquals(mockCId, completedEvent.getContainerId());
-    Assert.assertEquals("Container disk failed. NM disk failed.", 
+    assertEquals(mockCId, completedEvent.getContainerId());
+    assertEquals("Container disk failed. NM disk failed.",
         completedEvent.getDiagnostics());
     Assert.assertFalse(completedEvent.isPreempted());
-    Assert.assertTrue(completedEvent.isDiskFailed());
-    Assert.assertEquals(TaskAttemptTerminationCause.NODE_DISK_ERROR,
+    assertTrue(completedEvent.isDiskFailed());
+    assertEquals(TaskAttemptTerminationCause.NODE_DISK_ERROR,
         completedEvent.getTerminationCause());
 
     schedulerHandler.stop();
@@ -259,7 +308,7 @@ public class TestTaskSchedulerEventHandler {
 
     // ensure history url is empty when timeline server is not the logging class
     conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://ui-host:9999");
-    Assert.assertTrue("".equals(schedulerHandler.getHistoryUrl()));
+    assertTrue("".equals(schedulerHandler.getHistoryUrl()));
 
     // ensure expansion of url happens
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
@@ -267,24 +316,24 @@ public class TestTaskSchedulerEventHandler {
     final ApplicationId mockApplicationId = mock(ApplicationId.class);
     doReturn("TEST_APP_ID").when(mockApplicationId).toString();
     doReturn(mockApplicationId).when(mockAppContext).getApplicationID();
-    Assert.assertTrue("http://ui-host:9999/#/tez-app/TEST_APP_ID"
+    assertTrue("http://ui-host:9999/#/tez-app/TEST_APP_ID"
         .equals(schedulerHandler.getHistoryUrl()));
 
     // ensure the trailing / in history url is handled
     conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://ui-host:9998/");
-    Assert.assertTrue("http://ui-host:9998/#/tez-app/TEST_APP_ID"
+    assertTrue("http://ui-host:9998/#/tez-app/TEST_APP_ID"
         .equals(schedulerHandler.getHistoryUrl()));
 
     // handle bad template ex without begining /
     conf.set(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
         "__HISTORY_URL_BASE__#/somepath");
-    Assert.assertTrue("http://ui-host:9998/#/somepath"
+    assertTrue("http://ui-host:9998/#/somepath"
         .equals(schedulerHandler.getHistoryUrl()));
 
     conf.set(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
         "__HISTORY_URL_BASE__?viewPath=tez-app/__APPLICATION_ID__");
     conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://localhost/ui/tez");
-    Assert.assertTrue("http://localhost/ui/tez?viewPath=tez-app/TEST_APP_ID"
+    assertTrue("http://localhost/ui/tez?viewPath=tez-app/TEST_APP_ID"
         .equals(schedulerHandler.getHistoryUrl()));
 
   }

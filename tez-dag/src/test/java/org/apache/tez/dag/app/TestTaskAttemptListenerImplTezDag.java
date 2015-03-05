@@ -64,7 +64,7 @@ public class TestTaskAttemptListenerImplTezDag {
     TaskSpec taskSpec = mock(TaskSpec.class);
     TezTaskAttemptID taskAttemptId = mock(TezTaskAttemptID.class);
     doReturn(taskAttemptId).when(taskSpec).getTaskAttemptID();
-    AMContainerTask amContainerTask = new AMContainerTask(taskSpec, null, null, false);
+    AMContainerTask amContainerTask = new AMContainerTask(taskSpec, null, null, false, 0);
     ContainerTask containerTask = null;
 
 
@@ -106,7 +106,7 @@ public class TestTaskAttemptListenerImplTezDag {
     TaskSpec taskSpec2 = mock(TaskSpec.class);
     TezTaskAttemptID taskAttemptId2 = mock(TezTaskAttemptID.class);
     doReturn(taskAttemptId2).when(taskSpec2).getTaskAttemptID();
-    AMContainerTask amContainerTask2 = new AMContainerTask(taskSpec, null, null, false);
+    AMContainerTask amContainerTask2 = new AMContainerTask(taskSpec, null, null, false, 0);
     taskAttemptListener.registerTaskAttempt(amContainerTask2, containerId3);
     taskAttemptListener.unregisterRunningContainer(containerId3);
     containerTask = taskAttemptListener.getTask(containerContext3);
@@ -134,7 +134,7 @@ public class TestTaskAttemptListenerImplTezDag {
     TaskSpec taskSpec = mock(TaskSpec.class);
     TezTaskAttemptID taskAttemptId = mock(TezTaskAttemptID.class);
     doReturn(taskAttemptId).when(taskSpec).getTaskAttemptID();
-    AMContainerTask amContainerTask = new AMContainerTask(taskSpec, null, null, false);
+    AMContainerTask amContainerTask = new AMContainerTask(taskSpec, null, null, false, 0);
     ContainerTask containerTask = null;
 
 
