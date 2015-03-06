@@ -51,6 +51,8 @@
             <exclude>src/main/webapp/.jshintrc</exclude>
             <exclude>src/main/webapp/bower.json</exclude>
             <exclude>src/main/webapp/package.json</exclude>
+            <exclude>tools/server/nodejs_conf.json</exclude>
+            <exclude>tools/server/package.json</exclude>
           </excludes>
         </configuration>
       </plugin>
