@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -58,6 +59,7 @@ import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.task.TaskReporter;
 import org.apache.tez.runtime.task.TezTaskRunner;
 import org.apache.tez.service.ContainerRunner;
@@ -68,13 +70,17 @@ import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.task.TezChild;
 import org.apache.tez.runtime.task.TezChild.ContainerExecutionResult;
 import org.apache.tez.shufflehandler.ShuffleHandler;
+import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;
+import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.TaskSpecProto;
 import org.apache.tez.util.ProtoConverters;
 
 public class ContainerRunnerImpl extends AbstractService implements ContainerRunner {
 
   private static final Logger LOG = Logger.getLogger(ContainerRunnerImpl.class);
+
+  public static final String DAG_NAME_INSTRUMENTED_FAILURES = "InstrumentedFailures";
 
   private final ListeningExecutorService executorService;
   private final AtomicReference<InetSocketAddress> localAddress;
@@ -146,10 +152,10 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
    * Submit a container which is ready for running.
    * The regular pull mechanism will be used to fetch work from the AM
    * @param request
-   * @throws IOException
+   * @throws TezException
    */
   @Override
-  public void queueContainer(RunContainerRequestProto request) throws IOException {
+  public void queueContainer(RunContainerRequestProto request) throws TezException {
     LOG.info("Queuing container for execution: " + request);
 
     Map<String, String> env = new HashMap<String, String>();
@@ -162,7 +168,11 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     for (int i = 0; i < localDirsBase.length; i++) {
       localDirs[i] = createAppSpecificLocalDir(localDirsBase[i], request.getApplicationIdString(),
           request.getUser());
-      localFs.mkdirs(new Path(localDirs[i]));
+      try {
+        localFs.mkdirs(new Path(localDirs[i]));
+      } catch (IOException e) {
+        throw new TezException(e);
+      }
     }
     LOG.info("DEBUG: Dirs are: " + Arrays.toString(localDirs));
 
@@ -175,7 +185,11 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     DataInputBuffer dib = new DataInputBuffer();
     byte[] tokenBytes = request.getCredentialsBinary().toByteArray();
     dib.reset(tokenBytes, tokenBytes.length);
-    credentials.readTokenStorageStream(dib);
+    try {
+      credentials.readTokenStorageStream(dib);
+    } catch (IOException e) {
+      throw new TezException(e);
+    }
 
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
 
@@ -197,12 +211,13 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
    * This is intended for a task push from the AM
    *
    * @param request
-   * @throws IOException
+   * @throws org.apache.tez.dag.api.TezException
    */
   @Override
-  public void submitWork(SubmitWorkRequestProto request) throws
-      IOException {
+  public void submitWork(SubmitWorkRequestProto request) throws TezException {
     LOG.info("Queuing work for execution: " + request);
+
+    checkAndThrowExceptionForTests(request);
 
     Map<String, String> env = new HashMap<String, String>();
     env.putAll(localEnv);
@@ -214,7 +229,11 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     for (int i = 0; i < localDirsBase.length; i++) {
       localDirs[i] = createAppSpecificLocalDir(localDirsBase[i], request.getApplicationIdString(),
           request.getUser());
-      localFs.mkdirs(new Path(localDirs[i]));
+      try {
+        localFs.mkdirs(new Path(localDirs[i]));
+      } catch (IOException e) {
+        throw new TezException(e);
+      }
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Dirs are: " + Arrays.toString(localDirs));
@@ -228,7 +247,11 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     DataInputBuffer dib = new DataInputBuffer();
     byte[] tokenBytes = request.getCredentialsBinary().toByteArray();
     dib.reset(tokenBytes, tokenBytes.length);
-    credentials.readTokenStorageStream(dib);
+    try {
+      credentials.readTokenStorageStream(dib);
+    } catch (IOException e) {
+      throw new TezException(e);
+    }
 
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
 
@@ -509,4 +532,23 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     }
   }
 
+
+  private void checkAndThrowExceptionForTests(SubmitWorkRequestProto request) throws TezException {
+    if (!request.getTaskSpec().getDagName().equals(DAG_NAME_INSTRUMENTED_FAILURES)) {
+      return;
+    }
+
+    TaskSpec taskSpec = ProtoConverters.getTaskSpecfromProto(request.getTaskSpec());
+    if (taskSpec.getTaskAttemptID().getTaskID().getId() == 0 &&
+        taskSpec.getTaskAttemptID().getId() == 0) {
+      LOG.info("Simulating Rejected work");
+      throw new RejectedExecutionException(
+          "Simulating Rejected work for taskAttemptId=" + taskSpec.getTaskAttemptID());
+    } else if (taskSpec.getTaskAttemptID().getTaskID().getId() == 1 &&
+        taskSpec.getTaskAttemptID().getId() == 0) {
+      LOG.info("Simulating Task Setup Failure during launch");
+      throw new TezException("Simulating Task Setup Failure during launch for taskAttemptId=" +
+          taskSpec.getTaskAttemptID());
+    }
+  }
 }

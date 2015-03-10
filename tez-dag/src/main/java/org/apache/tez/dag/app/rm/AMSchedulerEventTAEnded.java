@@ -18,6 +18,7 @@
 package org.apache.tez.dag.app.rm;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.dag.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -27,14 +28,16 @@ public class AMSchedulerEventTAEnded extends AMSchedulerEvent {
   private final TaskAttempt attempt;
   private final ContainerId containerId;
   private final TaskAttemptState state;
+  private final TaskAttemptEndReason taskAttemptEndReason;
   private final int schedulerId;
 
   public AMSchedulerEventTAEnded(TaskAttempt attempt, ContainerId containerId,
-      TaskAttemptState state, int schedulerId) {
+      TaskAttemptState state, TaskAttemptEndReason taskAttemptEndReason, int schedulerId) {
     super(AMSchedulerEventType.S_TA_ENDED);
     this.attempt = attempt;
     this.containerId = containerId;
     this.state = state;
+    this.taskAttemptEndReason = taskAttemptEndReason;
     this.schedulerId = schedulerId;
   }
 
@@ -56,5 +59,9 @@ public class AMSchedulerEventTAEnded extends AMSchedulerEvent {
 
   public int getSchedulerId() {
     return schedulerId;
+  }
+
+  public TaskAttemptEndReason getTaskAttemptEndReason() {
+    return taskAttemptEndReason;
   }
 }

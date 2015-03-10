@@ -45,6 +45,8 @@ public abstract class TaskCommunicator extends AbstractService {
                                                   Credentials credentials,
                                                   boolean credentialsChanged, int priority);
 
+  // TODO TEZ-2003. Are additional APIs required to mark a container as completed ? - for completeness.
+
   // TODO TEZ-2003 Remove reference to TaskAttemptID
   public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID);
 

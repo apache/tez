@@ -10,5 +10,6 @@ ALL CHANGES:
   TEZ-2138. Fix minor bugs in adding default scheduler, getting launchers.
   TEZ-2139. Update tez version to 0.7.0-TEZ-2003-SNAPSHOT.
   TEZ-2175. Task priority should be available to the TaskCommunicator plugin.
+  TEZ-2187. Allow TaskCommunicators to report failed / killed attempts.
 
 INCOMPATIBLE CHANGES:

@@ -51,6 +51,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -189,6 +190,11 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   private final StateMachine<TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent> stateMachine;
 
+  // TODO TEZ-2003 We may need some additional state management for STATUS_UPDATES, FAILED, KILLED coming in before
+  // TASK_STARTED_REMOTELY. In case of a PUSH it's more intuitive to send TASK_STARTED_REMOTELY after communicating
+  // with the listening service and getting a response, which in turn can trigger STATUS_UPDATES / FAILED / KILLED
+
+  // TA_KILLED handled the same as TA_KILL_REQUEST. Just a different name indicating a request / already killed.
   private static StateMachineFactory
   <TaskAttemptImpl, TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent>
   stateMachineFactory
@@ -218,6 +224,10 @@ public class TaskAttemptImpl implements TaskAttempt,
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedBeforeRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.START_WAIT,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_KILLED,
           new TerminatedBeforeRunningTransition(KILLED_HELPER))
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
@@ -257,6 +267,10 @@ public class TaskAttemptImpl implements TaskAttempt,
           new TerminatedWhileRunningTransition(KILLED_HELPER))
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_KILLED,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptEventType.TA_NODE_FAILED,
           new TerminatedWhileRunningTransition(KILLED_HELPER))
       .addTransition(TaskAttemptStateInternal.RUNNING,
@@ -291,6 +305,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
               TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_KILLED,
               TaskAttemptEventType.TA_NODE_FAILED,
               TaskAttemptEventType.TA_CONTAINER_TERMINATING,
               TaskAttemptEventType.TA_OUTPUT_FAILED))
@@ -308,6 +323,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
               TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_KILLED,
               TaskAttemptEventType.TA_NODE_FAILED,
               TaskAttemptEventType.TA_CONTAINER_TERMINATING,
               TaskAttemptEventType.TA_OUTPUT_FAILED))
@@ -322,6 +338,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
               TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_KILLED,
               TaskAttemptEventType.TA_NODE_FAILED,
               TaskAttemptEventType.TA_CONTAINER_TERMINATING,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED,
@@ -337,6 +354,7 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_DONE, TaskAttemptEventType.TA_FAILED,
               TaskAttemptEventType.TA_TIMED_OUT,
               TaskAttemptEventType.TA_KILL_REQUEST,
+              TaskAttemptEventType.TA_KILLED,
               TaskAttemptEventType.TA_NODE_FAILED,
               TaskAttemptEventType.TA_CONTAINER_TERMINATING,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED,
@@ -350,6 +368,12 @@ public class TaskAttemptImpl implements TaskAttempt,
           EnumSet.of(TaskAttemptStateInternal.KILLED,
               TaskAttemptStateInternal.SUCCEEDED),
           TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedAfterSuccessTransition())
+      .addTransition(
+          TaskAttemptStateInternal.SUCCEEDED,
+          EnumSet.of(TaskAttemptStateInternal.KILLED,
+              TaskAttemptStateInternal.SUCCEEDED),
+          TaskAttemptEventType.TA_KILLED,
           new TerminatedAfterSuccessTransition())
       .addTransition(
           TaskAttemptStateInternal.SUCCEEDED,
@@ -425,7 +449,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.containerContext = containerContext;
     this.leafVertex = leafVertex;
   }
-
 
   @Override
   public TezTaskAttemptID getID() {
@@ -1060,6 +1083,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       // Compute node/rack location request even if re-scheduled.
       Set<String> racks = new HashSet<String>();
+      // TODO Post TEZ-2003. Allow for a policy in the VMPlugin to define localicty for different attempts.
       TaskLocationHint locationHint = ta.getTaskLocationHint();
       if (locationHint != null) {
         if (locationHint.getRacks() != null) {
@@ -1121,6 +1145,8 @@ public class TaskAttemptImpl implements TaskAttempt,
 
     @Override
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
+      // This transition should not be invoked directly, if a scheduler event has already been sent out.
+      // Sub-classes should be used if a scheduler request has been sent.
       ta.setFinishTime();
 
       if (event instanceof DiagnosableEvent) {
@@ -1227,7 +1253,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Inform the scheduler
       if (sendSchedulerEvent()) {
         ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.containerId, helper
-            .getTaskAttemptState(), ta.getVertex().getTaskSchedulerIdentifier()));
+            .getTaskAttemptState(), TezUtilsInternal.toTaskAttemptEndReason(ta.terminationCause),
+            ta.getVertex().getTaskSchedulerIdentifier()));
       }
     }
   }
@@ -1309,7 +1336,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       // Inform the Scheduler.
       ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.containerId,
-          TaskAttemptState.SUCCEEDED, ta.getVertex().getTaskSchedulerIdentifier()));
+          TaskAttemptState.SUCCEEDED, null, ta.getVertex().getTaskSchedulerIdentifier()));
 
       // Inform the task.
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId,

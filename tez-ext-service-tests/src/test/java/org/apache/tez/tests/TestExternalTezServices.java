@@ -27,16 +27,23 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.client.DAGClient;
+import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.launcher.TezTestServiceNoOpContainerLauncher;
 import org.apache.tez.dag.app.rm.TezTestServiceTaskSchedulerService;
 import org.apache.tez.dag.app.taskcomm.TezTestServiceTaskCommunicatorImpl;
 import org.apache.tez.examples.HashJoinExample;
 import org.apache.tez.examples.JoinDataGen;
 import org.apache.tez.examples.JoinValidateConfigured;
+import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.service.MiniTezTestServiceCluster;
+import org.apache.tez.service.impl.ContainerRunnerImpl;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -283,6 +290,28 @@ public class TestExternalTezServices {
         PROPS_IN_AM, PROPS_REGULAR_CONTAINERS);
   }
 
+  @Test(timeout = 60000)
+  public void testErrorPropagation() throws TezException, InterruptedException, IOException {
+    runExceptionSimulation();
+  }
+
+
+
+  private void runExceptionSimulation() throws IOException, TezException, InterruptedException {
+    DAG dag = DAG.create(ContainerRunnerImpl.DAG_NAME_INSTRUMENTED_FAILURES);
+    Vertex v =Vertex.create("Vertex1", ProcessorDescriptor.create(SleepProcessor.class.getName()),
+        3);
+    for (Map.Entry<String, String> prop : PROPS_EXT_SERVICE_PUSH.entrySet()) {
+      v.setConf(prop.getKey(), prop.getValue());
+    }
+    dag.addVertex(v);
+    DAGClient dagClient = sharedTezClient.submitDAG(dag);
+    DAGStatus dagStatus = dagClient.waitForCompletion();
+    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+    assertEquals(1, dagStatus.getDAGProgress().getFailedTaskAttemptCount());
+    assertEquals(1, dagStatus.getDAGProgress().getKilledTaskAttemptCount());
+
+  }
 
   private void runJoinValidate(String name, int extExpectedCount, Map<String, String> lhsProps,
                                Map<String, String> rhsProps,

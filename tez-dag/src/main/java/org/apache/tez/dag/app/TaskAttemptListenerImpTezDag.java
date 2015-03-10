@@ -36,14 +36,17 @@ import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
+import org.apache.tez.dag.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TaskHeartbeatResponse;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -53,7 +56,10 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.api.TaskHeartbeatRequest;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -255,6 +261,33 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         .handle(new TaskAttemptEventStartedRemotely(taskAttemptID, containerId, null));
     pingContainerHeartbeatHandler(containerId);
   }
+
+  @Override
+  public void taskKilled(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,
+                         String diagnostics) {
+    // Regular flow via TaskAttempt will take care of un-registering from the heartbeat handler,
+    // and messages from the scheduler will release the container.
+    // TODO TEZ-2003 Maybe consider un-registering here itself, since the task is not active anymore,
+    // instead of waiting for the unregister to flow through the Container.
+    // Fix along the same lines as TEZ-2124 by introducing an explict context.
+    context.getEventHandler().handle(new TaskAttemptEventAttemptKilled(taskAttemptId,
+        diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
+        taskAttemptEndReason)));
+  }
+
+  @Override
+  public void taskFailed(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,
+                         String diagnostics) {
+    // Regular flow via TaskAttempt will take care of un-registering from the heartbeat handler,
+    // and messages from the scheduler will release the container.
+    // TODO TEZ-2003 Maybe consider un-registering here itself, since the task is not active anymore,
+    // instead of waiting for the unregister to flow through the Container.
+    // Fix along the same lines as TEZ-2124 by introducing an explict context.
+    context.getEventHandler().handle(new TaskAttemptEventAttemptFailed(taskAttemptId,
+        TaskAttemptEventType.TA_FAILED, diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
+        taskAttemptEndReason)));
+  }
+
 
   /**
    * Child checking whether it can commit.

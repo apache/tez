@@ -58,6 +58,7 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.resource.Resources;
+import org.apache.tez.dag.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
@@ -1004,10 +1005,13 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
    *          the task to de-allocate.
    * @param taskSucceeded
    *          specify whether the task succeeded or failed.
+   * @param endReason
+   *          reason for the task ending
    * @return true if a container is assigned to this task.
    */
   @Override
-  public boolean deallocateTask(Object task, boolean taskSucceeded) {
+  public boolean deallocateTask(Object task, boolean taskSucceeded,
+                                TaskAttemptEndReason endReason) {
     Map<CookieContainerRequest, Container> assignedContainers = null;
 
     synchronized (this) {
@@ -1225,7 +1229,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             CookieContainerRequest request = entry.getValue();
             if (request.getPriority().equals(lowestPriNewContainer.getPriority())) {
               LOG.info("Resending request for task again: " + task);
-              deallocateTask(task, true);
+              deallocateTask(task, true, null);
               allocateTask(task, request.getCapability(), 
                   (request.getNodes() == null ? null : 
                     request.getNodes().toArray(new String[request.getNodes().size()])), 

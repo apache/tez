@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.TaskAttemptEndReason;
 
 public abstract class TaskSchedulerService extends AbstractService{
 
@@ -61,8 +62,9 @@ public abstract class TaskSchedulerService extends AbstractService{
   public abstract void allocateTask(Object task, Resource capability,
       ContainerId containerId, Priority priority, Object containerSignature,
       Object clientCookie);
-  
-  public abstract boolean deallocateTask(Object task, boolean taskSucceeded);
+
+  /** Plugin writers must ensure to de-allocate a container once it's done, so that it can be collected. */
+  public abstract boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason);
 
   public abstract Object deallocateContainer(ContainerId containerId);
 

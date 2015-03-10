@@ -41,5 +41,10 @@ public enum TaskAttemptTerminationCause {
   CONTAINER_STOPPED, // Container stopped or released by Tez
   NODE_FAILED, // Node for the container failed
   NODE_DISK_ERROR, // Disk failed on the node runnign the task
-  
+
+  COMMUNICATION_ERROR, // Equivalent to a launch failure
+  SERVICE_BUSY, // Service rejected the task
+  INTERRUPTED_BY_SYSTEM, // Interrupted by the system. e.g. Pre-emption
+  INTERRUPTED_BY_USER, // Interrupted by the user
+
 }

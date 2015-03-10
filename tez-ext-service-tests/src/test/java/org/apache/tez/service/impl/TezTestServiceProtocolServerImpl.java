@@ -30,11 +30,13 @@ import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.service.TezTestServiceProtocolBlockingPB;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerResponseProto;
+import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkResponseProto;
 
 public class TezTestServiceProtocolServerImpl extends AbstractService
@@ -61,20 +63,20 @@ public class TezTestServiceProtocolServerImpl extends AbstractService
     LOG.info("Received request: " + request);
     try {
       containerRunner.queueContainer(request);
-    } catch (IOException e) {
+    } catch (TezException e) {
       throw new ServiceException(e);
     }
     return RunContainerResponseProto.getDefaultInstance();
   }
 
   @Override
-  public SubmitWorkResponseProto submitWork(RpcController controller, TezTestServiceProtocolProtos.SubmitWorkRequestProto request) throws
+  public SubmitWorkResponseProto submitWork(RpcController controller, SubmitWorkRequestProto request) throws
       ServiceException {
     LOG.info("Received submitWork request: " + request);
     try {
       containerRunner.submitWork(request);
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (TezException e) {
+      throw new ServiceException(e);
     }
     return SubmitWorkResponseProto.getDefaultInstance();
   }

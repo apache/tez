@@ -133,7 +133,10 @@ public class MiniTezTestServiceCluster extends AbstractService {
 
   @Override
   public void serviceStop() {
-    tezTestService.stop();
+    if (tezTestService != null) {
+      tezTestService.stop();
+      tezTestService = null;
+    }
   }
 
   /**

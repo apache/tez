@@ -14,7 +14,6 @@
 
 package org.apache.tez.service.impl;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.shufflehandler.ShuffleHandler;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
@@ -108,14 +108,14 @@ public class TezTestService extends AbstractService implements ContainerRunner {
 
 
   @Override
-  public void queueContainer(RunContainerRequestProto request) throws IOException {
+  public void queueContainer(RunContainerRequestProto request) throws TezException {
     numSubmissions.incrementAndGet();
     containerRunner.queueContainer(request);
   }
 
   @Override
   public void submitWork(TezTestServiceProtocolProtos.SubmitWorkRequestProto request) throws
-      IOException {
+      TezException {
     numSubmissions.incrementAndGet();
     containerRunner.submitWork(request);
   }

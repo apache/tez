@@ -41,6 +41,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Appender;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
@@ -49,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 @Private
 public class TezUtilsInternal {
@@ -234,4 +236,62 @@ public class TezUtilsInternal {
     return sb.toString();
   }
 
+  public static TaskAttemptTerminationCause fromTaskAttemptEndReason(
+      TaskAttemptEndReason taskAttemptEndReason) {
+    if (taskAttemptEndReason == null) {
+      return null;
+    }
+    switch (taskAttemptEndReason) {
+      case COMMUNICATION_ERROR:
+        return TaskAttemptTerminationCause.COMMUNICATION_ERROR;
+      case SERVICE_BUSY:
+        return TaskAttemptTerminationCause.SERVICE_BUSY;
+      case INTERRUPTED_BY_SYSTEM:
+        return TaskAttemptTerminationCause.INTERRUPTED_BY_SYSTEM;
+      case INTERRUPTED_BY_USER:
+        return TaskAttemptTerminationCause.INTERRUPTED_BY_USER;
+      case OTHER:
+        return TaskAttemptTerminationCause.UNKNOWN_ERROR;
+      default:
+        return TaskAttemptTerminationCause.UNKNOWN_ERROR;
+    }
+  }
+
+  public static TaskAttemptEndReason toTaskAttemptEndReason(TaskAttemptTerminationCause cause) {
+    // TODO Post TEZ-2003. Consolidate these states, and mappings.
+    if (cause == null) {
+      return null;
+    }
+    switch (cause) {
+      case COMMUNICATION_ERROR:
+        return TaskAttemptEndReason.COMMUNICATION_ERROR;
+      case SERVICE_BUSY:
+        return TaskAttemptEndReason.SERVICE_BUSY;
+      case INTERRUPTED_BY_SYSTEM:
+        return TaskAttemptEndReason.INTERRUPTED_BY_SYSTEM;
+      case INTERRUPTED_BY_USER:
+        return TaskAttemptEndReason.INTERRUPTED_BY_USER;
+      case UNKNOWN_ERROR:
+      case TERMINATED_BY_CLIENT:
+      case TERMINATED_AT_SHUTDOWN:
+      case INTERNAL_PREEMPTION:
+      case EXTERNAL_PREEMPTION:
+      case TERMINATED_INEFFECTIVE_SPECULATION:
+      case TERMINATED_EFFECTIVE_SPECULATION:
+      case TERMINATED_ORPHANED:
+      case APPLICATION_ERROR:
+      case FRAMEWORK_ERROR:
+      case INPUT_READ_ERROR:
+      case OUTPUT_WRITE_ERROR:
+      case OUTPUT_LOST:
+      case TASK_HEARTBEAT_ERROR:
+      case CONTAINER_LAUNCH_FAILED:
+      case CONTAINER_EXITED:
+      case CONTAINER_STOPPED:
+      case NODE_FAILED:
+      case NODE_DISK_ERROR:
+      default:
+        return TaskAttemptEndReason.OTHER;
+    }
+  }
 }

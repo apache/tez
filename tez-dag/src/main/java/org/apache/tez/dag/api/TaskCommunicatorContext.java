@@ -14,6 +14,7 @@
 
 package org.apache.tez.dag.api;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 import org.apache.hadoop.security.Credentials;
@@ -37,15 +38,21 @@ public interface TaskCommunicatorContext {
   // TODO TEZ-2003 Move to vertex, taskIndex, version
   boolean canCommit(TezTaskAttemptID taskAttemptId) throws IOException;
 
+  // TODO TEZ-2003 Split the heartbeat API to a liveness check and a status update
   TaskHeartbeatResponse heartbeat(TaskHeartbeatRequest request) throws IOException, TezException;
 
   boolean isKnownContainer(ContainerId containerId);
 
-  // TODO TEZ-2003 Move to vertex, taskIndex, version
+  // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
   void taskStartedRemotely(TezTaskAttemptID taskAttemptID, ContainerId containerId);
 
-  // TODO TEZ-2003 Add an API to register task failure - for example, a communication failure.
-  // This will have to take into consideration the TA_FAILED event
+  // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
+  void taskKilled(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason, @Nullable String diagnostics);
+
+  // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
+  void taskFailed(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason, @Nullable String diagnostics);
+
+  // TODO TEZ-2003 API. Should a method exist for task succeeded.
 
   // TODO Eventually Add methods to report availability stats to the scheduler.
 }
