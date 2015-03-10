@@ -359,7 +359,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     taskCommunicators[taskCommId].registerRunningTaskAttempt(containerId, amContainerTask.getTask(),
         amContainerTask.getAdditionalResources(), amContainerTask.getCredentials(),
-        amContainerTask.haveCredentialsChanged());
+        amContainerTask.haveCredentialsChanged(), amContainerTask.getPriority());
   }
 
   @Override

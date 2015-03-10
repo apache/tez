@@ -196,7 +196,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   @Override
   public void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
                                          Map<String, LocalResource> additionalResources,
-                                         Credentials credentials, boolean credentialsChanged) {
+                                         Credentials credentials, boolean credentialsChanged,
+                                         int priority) {
 
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     Preconditions.checkNotNull(containerInfo,

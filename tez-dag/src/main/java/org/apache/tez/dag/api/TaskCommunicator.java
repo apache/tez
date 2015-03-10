@@ -43,7 +43,7 @@ public abstract class TaskCommunicator extends AbstractService {
   public abstract void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
                                                   Map<String, LocalResource> additionalResources,
                                                   Credentials credentials,
-                                                  boolean credentialsChanged);
+                                                  boolean credentialsChanged, int priority);
 
   // TODO TEZ-2003 Remove reference to TaskAttemptID
   public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID);
