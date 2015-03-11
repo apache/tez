@@ -1152,4 +1152,28 @@ public class TestDAGVerify {
         InputDescriptor.create(dummyInputClassName))));
     dag.verify();
   }
+
+  @Test
+  public void testDAGWithSplitsOnClient() {
+    DAG dag = DAG.create("testDag");
+
+    // Mimic map which has a data source and shards set when splits are generated in the client
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
+    v1.addDataSource("input", DataSourceDescriptor.create(
+        InputDescriptor.create(dummyInputClassName), null, 10, null, null, null));
+    dag.addVertex(v1);
+
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create(dummyProcessorClassName));
+    dag.addVertex(v2);
+
+    dag.addEdge(Edge.create(v1, v2, EdgeProperty.create(
+        DataMovementType.ONE_TO_ONE,
+        DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(dummyOutputClassName),
+        InputDescriptor.create(dummyInputClassName))));
+
+    dag.verify();
+  }
+
 }

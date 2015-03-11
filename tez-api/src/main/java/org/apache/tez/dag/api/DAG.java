@@ -395,17 +395,27 @@ public class DAG {
     // 3. has custom vertex manager
     for (Vertex vertex : vertices.values()) {
       if (vertex.getParallelism() == -1) {
-        boolean hasInputInititlaizer = false;
-        if (vertex.getDataSources()!= null && !vertex.getDataSources().isEmpty()) {
+        boolean hasInputInitializer = false;
+        if (vertex.getDataSources() != null && !vertex.getDataSources().isEmpty()) {
           for (DataSourceDescriptor ds : vertex.getDataSources()) {
             if (ds.getInputInitializerDescriptor() != null) {
-              hasInputInititlaizer = true;
+              hasInputInitializer = true;
               break;
             }
           }
         }
-        if (hasInputInititlaizer) {
+        if (hasInputInitializer) {
           continue;
+        } else {
+          // Account for the case where the vertex has a data source with a determined number of
+          // shards e.g. splits calculated on the client and not in the AM
+          // In this case, vertex parallelism is setup later using the data source's numShards
+          // and as a result, an initializer is not needed.
+          if (vertex.getDataSources() != null
+              && vertex.getDataSources().size() == 1
+              &&  vertex.getDataSources().get(0).getNumberOfShards() > -1) {
+            continue;
+          }
         }
 
         boolean has1to1UninitedSources = false;
