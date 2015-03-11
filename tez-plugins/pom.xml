@@ -44,6 +44,7 @@
         </property>
       </activation>
       <modules>
+        <module>tez-yarn-timeline-history</module>
         <module>tez-yarn-timeline-history-with-acls</module>
       </modules>
     </profile>
