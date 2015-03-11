@@ -80,6 +80,8 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2168. Fix application dependencies on mutually exclusive artifacts: tez-yarn-timeline-history
+    and tez-yarn-timeline-history-with-acls.
   TEZ-2190. TestOrderedWordCount fails when generateSplitsInClient set to true.
   TEZ-2091. Add support for hosting TEZ_UI with nodejs.
   TEZ-2165. Tez UI: DAG shows running status if killed by RM in some cases.
