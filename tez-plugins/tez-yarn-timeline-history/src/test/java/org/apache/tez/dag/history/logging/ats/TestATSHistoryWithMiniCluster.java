@@ -131,9 +131,8 @@ public class TestATSHistoryWithMiniCluster {
   }
 
   @Test (timeout=50000)
-  public void testSimpleAMACls() throws Exception {
+  public void testDisabledACls() throws Exception {
     TezClient tezSession = null;
-    ApplicationId applicationId;
     try {
       SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
@@ -155,8 +154,6 @@ public class TestATSHistoryWithMiniCluster {
       tezSession = TezClient.create("TezSleepProcessor", tezConf, true);
       tezSession.start();
 
-      applicationId = tezSession.getAppMasterApplicationId();
-
       DAGClient dagClient = tezSession.submitDAG(dag);
 
       DAGStatus dagStatus = dagClient.getDAGStatus(null);
@@ -172,71 +169,6 @@ public class TestATSHistoryWithMiniCluster {
         tezSession.stop();
       }
     }
-
-//    verifyEntityExistence(applicationId);
   }
-
-  @Test (timeout=50000)
-  public void testDAGACls() throws Exception {
-    TezClient tezSession = null;
-    ApplicationId applicationId;
-    try {
-      SleepProcessorConfig spConf = new SleepProcessorConfig(1);
-
-      DAG dag = DAG.create("TezSleepProcessor");
-      Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
-              SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-          Resource.newInstance(256, 1));
-      dag.addVertex(vertex);
-
-      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
-      tezConf.setBoolean(TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS, true);
-      tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
-          ATSHistoryLoggingService.class.getName());
-      Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
-          .nextInt(100000))));
-      remoteFs.mkdirs(remoteStagingDir);
-      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
-
-      tezSession = TezClient.create("TezSleepProcessor", tezConf, true);
-      tezSession.start();
-
-      applicationId = tezSession.getAppMasterApplicationId();
-
-      DAGClient dagClient = tezSession.submitDAG(dag);
-
-      DAGStatus dagStatus = dagClient.getDAGStatus(null);
-      while (!dagStatus.isCompleted()) {
-        LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
-            + dagStatus.getState());
-        Thread.sleep(500l);
-        dagStatus = dagClient.getDAGStatus(null);
-      }
-      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    } finally {
-      if (tezSession != null) {
-        tezSession.stop();
-      }
-    }
-//    verifyEntityExistence(applicationId);
-  }
-
-  private void verifyEntityExistence(ApplicationId applicationId) {
-    Assert.assertNotNull(timelineAddress);
-
-    String appUrl = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_APPLICATION/"
-        + "tez_" + applicationId.toString()  + "?fields=otherinfo";
-    LOG.info("Getting timeline entity for tez application: " + appUrl);
-    TimelineEntity appEntity = getTimelineData(appUrl, TimelineEntity.class);
-    Assert.assertNotNull(appEntity);
-
-    TezDAGID tezDAGID = TezDAGID.getInstance(applicationId, 1);
-    String dagUrl = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"
-        + tezDAGID.toString() + "?fields=otherinfo";
-    LOG.info("Getting timeline entity for tez dag: " + dagUrl);
-    TimelineEntity dagEntity = getTimelineData(dagUrl, TimelineEntity.class);
-    Assert.assertNotNull(dagEntity);
-  }
-
 
 }
