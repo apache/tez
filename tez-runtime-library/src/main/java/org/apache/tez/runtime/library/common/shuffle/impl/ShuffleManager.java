@@ -23,16 +23,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +43,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.crypto.SecretKey;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -115,7 +119,8 @@ public class ShuffleManager implements FetcherCallback {
   private Set<Fetcher> runningFetchers;
   
   private final AtomicInteger numCompletedInputs = new AtomicInteger(0);
-  
+  private final AtomicInteger numFetchedSpills = new AtomicInteger(0);
+
   private final long startTime;
   private long lastProgressTime;
   private long totalBytesShuffledTillNow;
@@ -161,6 +166,10 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter firstEventReceived;
   private final TezCounter lastEventReceived;
 
+  //To track shuffleInfo events when finalMerge is disabled OR pipelined shuffle is enabled in source.
+  @VisibleForTesting
+  final Map<InputAttemptIdentifier, ShuffleEventInfo> shuffleInfoEventsMap = Maps.newHashMap();
+
   // TODO More counters - FetchErrors, speed?
   
   public ShuffleManager(InputContext inputContext, Configuration conf, int numInputs,
@@ -194,7 +203,11 @@ public class ShuffleManager implements FetcherCallback {
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
     completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
-    completedInputs = new LinkedBlockingQueue<FetchedInput>(numInputs);
+    /**
+     * In case of pipelined shuffle, it is possible to get multiple FetchedInput per attempt.
+     * We do not know upfront the number of spills from source.
+     */
+    completedInputs = new LinkedBlockingDeque<FetchedInput>();
     knownSrcHosts = new ConcurrentHashMap<String, InputHost>();
     pendingHosts = new LinkedBlockingQueue<InputHost>();
     obsoletedInputs = Collections.newSetFromMap(new ConcurrentHashMap<InputAttemptIdentifier, Boolean>());
@@ -370,6 +383,17 @@ public class ShuffleManager implements FetcherCallback {
     for (Iterator<InputAttemptIdentifier> inputIter = pendingInputsForHost
         .iterator(); inputIter.hasNext();) {
       InputAttemptIdentifier input = inputIter.next();
+
+      //For pipelined shuffle.
+      //TODO: TEZ-2132 for error handling. As of now, fail fast if there is a different attempt
+      if (input.canRetrieveInputInChunks() && input.getAttemptNumber() > 0) {
+        //speculative attempts or failure attempts. Fail fast here.
+        reportFatalError(new IOException(), input + " already exists. "
+            + "Previous attempt's data could have been already merged "
+            + "to memory/disk outputs.  Failing the fetch early instead of adding to fetcher");
+        continue;
+      }
+
       // Avoid adding attempts which have already completed.
       if (completedInputSet.contains(input.getInputIdentifier())) {
         inputIter.remove();
@@ -406,6 +430,21 @@ public class ShuffleManager implements FetcherCallback {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding input: " + srcAttemptIdentifier + ", to host: " + host);
     }
+
+    if (srcAttemptIdentifier.canRetrieveInputInChunks()) {
+      //TODO: need to check for speculative tasks later. TEZ-2132
+      if (srcAttemptIdentifier.getAttemptNumber() > 0) {
+        //speculative attempts or failure attempts. Fail fast here.
+        reportFatalError(new IOException(), srcAttemptIdentifier + " already exists. "
+            + "Previous attempt's data could have been already merged "
+            + "to memory/disk outputs.  Failing the fetch early instead of adding to addKnownInput");
+        return;
+      }
+      if (shuffleInfoEventsMap.get(srcAttemptIdentifier) == null) {
+        shuffleInfoEventsMap.put(srcAttemptIdentifier, new ShuffleEventInfo(srcAttemptIdentifier));
+      }
+    }
+
     host.addKnownInput(srcAttemptIdentifier);
     lock.lock();
     try {
@@ -429,7 +468,12 @@ public class ShuffleManager implements FetcherCallback {
     if (!completedInputSet.contains(inputIdentifier)) {
       synchronized (completedInputSet) {
         if (!completedInputSet.contains(inputIdentifier)) {
-          registerCompletedInput(new NullFetchedInput(srcAttemptIdentifier));
+          NullFetchedInput fetchedInput = new NullFetchedInput(srcAttemptIdentifier);
+          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+            registerCompletedInput(fetchedInput);
+          } else {
+            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
+          }
         }
       }
     }
@@ -474,7 +518,11 @@ public class ShuffleManager implements FetcherCallback {
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
-          registerCompletedInput(fetchedInput);
+          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+            registerCompletedInput(fetchedInput);
+          } else {
+            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
+          }
         }
       }
     }
@@ -499,7 +547,47 @@ public class ShuffleManager implements FetcherCallback {
 
   /////////////////// End of Methods for InputEventHandler
   /////////////////// Methods from FetcherCallbackHandler
-  
+
+  /**
+   * Placeholder for tracking shuffle events in case we get multiple spills info for the same
+   * attempt.
+   */
+  static class ShuffleEventInfo {
+    BitSet eventsProcessed;
+    int finalEventId = -1; //0 indexed
+    String id;
+
+
+    ShuffleEventInfo(InputAttemptIdentifier input) {
+      this.id = input.getInputIdentifier().getInputIndex() + "_" + input.getAttemptNumber();
+      this.eventsProcessed = new BitSet();
+    }
+
+    void spillProcessed(int spillId) {
+      if (finalEventId != -1) {
+        Preconditions.checkState(eventsProcessed.cardinality() <= (finalEventId + 1),
+            "Wrong state. eventsProcessed cardinality=" + eventsProcessed.cardinality() + " "
+                + "finalEventId=" + finalEventId + ", spillId=" + spillId + ", " + toString());
+      }
+      eventsProcessed.set(spillId);
+    }
+
+    void setFinalEventId(int spillId) {
+      finalEventId = spillId;
+    }
+
+    boolean isDone() {
+      LOG.info("finalEventId=" + finalEventId + ", eventsProcessed cardinality=" +
+          eventsProcessed.cardinality());
+      return ((finalEventId != -1) && (finalEventId + 1) == eventsProcessed.cardinality());
+    }
+
+    public String toString() {
+      return "[eventsProcessed=" + eventsProcessed + ", finalEventId=" + finalEventId
+          +  ", id=" + id + "]";
+    }
+  }
+
   @Override
   public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
       FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
@@ -537,7 +625,12 @@ public class ShuffleManager implements FetcherCallback {
           }
           decompressedDataSizeCounter.increment(decompressedLength);
 
-          registerCompletedInput(fetchedInput);
+          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+            registerCompletedInput(fetchedInput);
+          } else {
+            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
+          }
+
           lock.lock();
           try {
             totalBytesShuffledTillNow += fetchedBytes;
@@ -562,6 +655,104 @@ public class ShuffleManager implements FetcherCallback {
     // TODO NEWTEZ Maybe inform fetchers, in case they have an alternate attempt of the same task in their queue.
   }
 
+  private void registerCompletedInput(FetchedInput fetchedInput) {
+    lock.lock();
+    try {
+      maybeInformInputReady(fetchedInput);
+      adjustCompletedInputs(fetchedInput);
+      numFetchedSpills.getAndIncrement();
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void maybeInformInputReady(FetchedInput fetchedInput) {
+    lock.lock();
+    try {
+      completedInputs.add(fetchedInput);
+      if (!inputReadyNotificationSent.getAndSet(true)) {
+        // TODO Should eventually be controlled by Inputs which are processing the data.
+        inputContext.inputIsReady();
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void adjustCompletedInputs(FetchedInput fetchedInput) {
+    lock.lock();
+    try {
+      completedInputSet.add(fetchedInput.getInputAttemptIdentifier().getInputIdentifier());
+
+      int numComplete = numCompletedInputs.incrementAndGet();
+      if (numComplete == numInputs) {
+        LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void registerCompletedInputForPipelinedShuffle(InputAttemptIdentifier
+      srcAttemptIdentifier, FetchedInput fetchedInput) {
+    /**
+     * For pipelinedshuffle it is possible to get multiple spills. Claim success only when
+     * all spills pertaining to an attempt are done.
+     */
+    ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(srcAttemptIdentifier);
+
+    //TODO: need to check for speculative tasks later. TEZ-2132
+    if (srcAttemptIdentifier.getAttemptNumber() > 0) {
+      //speculative attempts or failure attempts. Fail fast here.
+      reportFatalError(new IOException(), "Previous event already got scheduled for " +
+          srcAttemptIdentifier + ". Previous attempt's data could have been already merged "
+          + "to memory/disk outputs.  Failing the fetch early.");
+      return;
+    }
+
+    //for empty partition case
+    if (eventInfo == null && fetchedInput instanceof NullFetchedInput) {
+      eventInfo = new ShuffleEventInfo(srcAttemptIdentifier);
+      shuffleInfoEventsMap.put(srcAttemptIdentifier, eventInfo);
+    }
+
+    assert(eventInfo != null);
+    eventInfo.spillProcessed(srcAttemptIdentifier.getSpillEventId());
+    numFetchedSpills.getAndIncrement();
+
+    if (srcAttemptIdentifier.getFetchTypeInfo() == InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE) {
+      eventInfo.setFinalEventId(srcAttemptIdentifier.getSpillEventId());
+    }
+
+    lock.lock();
+    try {
+      /**
+       * When fetch is complete for a spill, add it to completedInputs to ensure that it is
+       * available for downstream processing. Final success will be claimed only when all
+       * spills are downloaded from the source.
+       */
+      maybeInformInputReady(fetchedInput);
+
+
+      //check if we downloaded all spills pertaining to this InputAttemptIdentifier
+      if (eventInfo.isDone()) {
+        adjustCompletedInputs(fetchedInput);
+        shuffleInfoEventsMap.remove(srcAttemptIdentifier);
+      }
+    } finally {
+      lock.unlock();
+    }
+
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("eventInfo " + eventInfo.toString());
+    }
+  }
+
+  private void reportFatalError(Throwable exception, String message) {
+    LOG.fatal(message);
+    inputContext.fatalError(exception, message);
+  }
+
   @Override
   public void fetchFailed(String host,
       InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
@@ -572,9 +763,7 @@ public class ShuffleManager implements FetcherCallback {
         + connectFailed);
     failedShufflesCounter.increment(1);
     if (srcAttemptIdentifier == null) {
-      String message = "Received fetchFailure for an unknown src (null)";
-      LOG.fatal(message);
-      inputContext.fatalError(null, message);
+      reportFatalError(null, "Received fetchFailure for an unknown src (null)");
     } else {
     InputReadErrorEvent readError = InputReadErrorEvent.create(
         "Fetch failure while fetching from "
@@ -584,7 +773,7 @@ public class ShuffleManager implements FetcherCallback {
             srcAttemptIdentifier.getAttemptNumber()),
         srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
         srcAttemptIdentifier.getAttemptNumber());
-    
+
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
     failedEvents.add(readError);
     inputContext.sendEvents(failedEvents);
@@ -616,24 +805,6 @@ public class ShuffleManager implements FetcherCallback {
     }
   }
 
-  private void registerCompletedInput(FetchedInput fetchedInput) {
-    lock.lock();
-    try {
-      completedInputSet.add(fetchedInput.getInputAttemptIdentifier().getInputIdentifier());
-      completedInputs.add(fetchedInput);
-      if (!inputReadyNotificationSent.getAndSet(true)) {
-        // TODO Should eventually be controlled by Inputs which are processing the data.
-        inputContext.inputIsReady();
-      }
-      int numComplete = numCompletedInputs.incrementAndGet();
-      if (numComplete == numInputs) {
-        LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
-      }
-    } finally {
-      lock.unlock();
-    }
-  }
-  
   /////////////////// Methods for walking the available inputs
   
   /**
@@ -723,11 +894,12 @@ public class ShuffleManager implements FetcherCallback {
 
   private void logProgress() {
     double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);
-    int inputsDone = numInputs - numCompletedInputs.get();
+    int inputsDone = numCompletedInputs.get();
     long secsSinceStart = (System.currentTimeMillis() - startTime) / 1000 + 1;
 
     double transferRate = mbs / secsSinceStart;
-    LOG.info("copy(" + inputsDone + " of " + numInputs +
+    LOG.info("copy(" + inputsDone + " (spillsFetched=" + numFetchedSpills.get() + ") of " +
+        numInputs +
         ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
         + mbpsFormat.format(transferRate) + " MB/s)");
   }

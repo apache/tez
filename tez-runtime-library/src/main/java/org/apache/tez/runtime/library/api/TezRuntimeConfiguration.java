@@ -280,25 +280,25 @@ public class TezRuntimeConfiguration {
    */
   public static final boolean TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT = false;
 
-  //TODO: Change description when we start supporting pipelined shuffle in unordered cases
   /**
-   * Enable pipelined shuffle in ordered producer/consumer. Expert knob.
-   * Works only with PipelinedSorter. Set tez.runtime.sort.threads > 2 for enabling
-   * PipelinedSorter.  Ensure to set tez.runtime.disable.final-merge.in.sorter=true.
+   * Expert level setting. Enable pipelined shuffle in ordered outputs and in unordered
+   * partitioned outputs. In ordered cases, it works with PipelinedSorter.
+   * set tez.runtime.sort.threads to greater than 1 to enable pipelinedsorter.
+   * Ensure to set tez.runtime.enable.final-merge.in.output=false.
    * Speculative execution needs to be turned off when using this parameter. //TODO: TEZ-2132
    */
   public static final String TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED =
-      TEZ_RUNTIME_PREFIX +
-          "pipelined-shuffle.enabled";
+      TEZ_RUNTIME_PREFIX + "pipelined-shuffle.enabled";
   public static final boolean TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT = false;
 
   /**
-   * final merge in defaultsorter/pipelinedsorter.
-   * speculative execution needs to be turned off when disabling this parameter. //TODO: TEZ-2132
+   * Expert level setting. Enable final merge in ordered (defaultsorter/pipelinedsorter) outputs.
+   * Speculative execution needs to be turned off when disabling this parameter. //TODO: TEZ-2132
    */
-  public static final String TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER =
-      TEZ_RUNTIME_PREFIX + "enable.final-merge.in.sorter";
-  public static final boolean TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER_DEFAULT = true;
+  public static final String TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT =
+      TEZ_RUNTIME_PREFIX + "enable.final-merge.in.output";
+  public static final boolean TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT_DEFAULT = true;
+
 
   /**
    * Share data fetched between tasks running on the same host if applicable
@@ -368,7 +368,7 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
     tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER);
+    tezRuntimeKeys.add(TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT);
     tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED);
     tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE);
     tezRuntimeKeys.add(TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);

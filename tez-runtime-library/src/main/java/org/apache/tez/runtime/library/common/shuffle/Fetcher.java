@@ -30,7 +30,6 @@ import java.nio.channels.OverlappingFileLockException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +103,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   // Maps from the pathComponents (unique per srcTaskId) to the specific taskId
   private final Map<String, InputAttemptIdentifier> pathToAttemptMap;
-  private LinkedHashSet<InputAttemptIdentifier> remaining;
+  private List<InputAttemptIdentifier> remaining;
 
   private URL url;
   private volatile DataInputStream input;
@@ -181,7 +180,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
               + "- partition is non-zero (%d)", partition);
     }
 
-    remaining = new LinkedHashSet<InputAttemptIdentifier>(srcAttempts);
+    //Similar to TEZ-2172 (remove can be expensive with list)
+    remaining = new LinkedList<InputAttemptIdentifier>(srcAttempts);
 
     HostFetchResult hostFetchResult;
 

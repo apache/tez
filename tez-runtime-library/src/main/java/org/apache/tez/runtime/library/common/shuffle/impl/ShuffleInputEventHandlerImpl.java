@@ -32,10 +32,12 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.DiskFetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
@@ -112,8 +114,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
           .getEmptyPartitions());
       BitSet emptyPartionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
       if (emptyPartionsBitSet.get(srcIndex)) {
-        InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(dme.getTargetIndex(),
-            dme.getVersion());
+        InputAttemptIdentifier srcAttemptIdentifier =
+            constructInputAttemptIdentifier(dme, shufflePayload, false);
         if (LOG.isDebugEnabled()) {
           LOG.debug("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
               + srcAttemptIdentifier + "]. Not fetching.");
@@ -123,9 +125,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       }
     }
 
-    InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(
-        dme.getTargetIndex(), dme.getVersion(),
-        shufflePayload.getPathComponent(), (useSharedInputs && srcIndex == 0));
+    InputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme,
+        shufflePayload, (useSharedInputs && srcIndex == 0));
 
     if (shufflePayload.hasData()) {
       DataProto dataProto = shufflePayload.getData();
@@ -164,6 +165,33 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private void processInputFailedEvent(InputFailedEvent ife) {
     InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(ife.getTargetIndex(), ife.getVersion());
     shuffleManager.obsoleteKnownInput(srcAttemptIdentifier);
+  }
+
+  /**
+   * Helper method to create InputAttemptIdentifier
+   *
+   * @param dmEvent
+   * @param shufflePayload
+   * @return InputAttemptIdentifier
+   */
+  private InputAttemptIdentifier constructInputAttemptIdentifier(DataMovementEvent dmEvent,
+      DataMovementEventPayloadProto shufflePayload, boolean isShared) {
+    String pathComponent = (shufflePayload.hasPathComponent()) ? shufflePayload.getPathComponent() : null;
+    InputAttemptIdentifier srcAttemptIdentifier = null;
+    if (shufflePayload.hasSpillId()) {
+      int spillEventId = shufflePayload.getSpillId();
+      boolean lastEvent = shufflePayload.getLastEvent();
+      InputAttemptIdentifier.SPILL_INFO spillInfo = (lastEvent) ? InputAttemptIdentifier.SPILL_INFO
+          .FINAL_UPDATE : InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE;
+      srcAttemptIdentifier =
+          new InputAttemptIdentifier(new InputIdentifier(dmEvent.getTargetIndex()), dmEvent
+              .getVersion(), pathComponent, isShared, spillInfo, spillEventId);
+    } else {
+      srcAttemptIdentifier =
+          new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(),
+              pathComponent, isShared);
+    }
+    return srcAttemptIdentifier;
   }
 
 }

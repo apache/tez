@@ -22,10 +22,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
@@ -85,6 +90,9 @@ import org.junit.runners.Parameterized.Parameters;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import org.mockito.ArgumentCaptor;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 @RunWith(value = Parameterized.class)
 public class TestUnorderedPartitionedKVWriter {
@@ -127,7 +135,7 @@ public class TestUnorderedPartitionedKVWriter {
 
   @Test(timeout = 10000)
   public void testBufferSizing() throws IOException {
-    ApplicationId appId = ApplicationId.newInstance(10000, 1);
+    ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
@@ -190,34 +198,34 @@ public class TestUnorderedPartitionedKVWriter {
 
   @Test(timeout = 10000)
   public void testRandomText() throws IOException, InterruptedException {
-    textTest(100, 10, 2048, 0, 0, 0);
+    textTest(100, 10, 2048, 0, 0, 0, false);
   }
 
   @Test(timeout = 10000)
   public void testLargeKeys() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 10, 0, 0);
+    textTest(0, 10, 2048, 10, 0, 0, false);
   }
 
   @Test(timeout = 10000)
   public void testLargevalues() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 0, 10, 0);
+    textTest(0, 10, 2048, 0, 10, 0, false);
   }
 
   @Test(timeout = 10000)
   public void testLargeKvPairs() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 0, 0, 10);
+    textTest(0, 10, 2048, 0, 0, 10, false);
   }
 
   @Test(timeout = 10000)
   public void testTextMixedRecords() throws IOException, InterruptedException {
-    textTest(100, 10, 2048, 10, 10, 10);
+    textTest(100, 10, 2048, 10, 10, 10, false);
   }
 
   public void textTest(int numRegularRecords, int numPartitions, long availableMemory,
-      int numLargeKeys, int numLargevalues, int numLargeKvPairs) throws IOException,
+      int numLargeKeys, int numLargevalues, int numLargeKvPairs, boolean pipeliningEnabled) throws IOException,
       InterruptedException {
     Partitioner partitioner = new HashPartitioner();
-    ApplicationId appId = ApplicationId.newInstance(10000, 1);
+    ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
@@ -225,6 +233,10 @@ public class TestUnorderedPartitionedKVWriter {
 
     Configuration conf = createConfiguration(outputContext, Text.class, Text.class, shouldCompress,
         -1, HashPartitioner.class);
+    if (pipeliningEnabled) {
+      conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
+      conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    }
     CompressionCodec codec = null;
     if (shouldCompress) {
       codec = new DefaultCodec();
@@ -270,6 +282,9 @@ public class TestUnorderedPartitionedKVWriter {
       kvWriter.write(keyText, valText);
       numRecordsWritten++;
     }
+    if (pipeliningEnabled) {
+      verify(outputContext, times(numLargeKeys)).sendEvents(anyListOf(Event.class));
+    }
 
     // Write Large val records
     for (int i = 0; i < numLargevalues; i++) {
@@ -282,6 +297,9 @@ public class TestUnorderedPartitionedKVWriter {
       expectedValues.get(partition).put(key, val);
       kvWriter.write(keyText, valText);
       numRecordsWritten++;
+    }
+    if (pipeliningEnabled) {
+      verify(outputContext, times(numLargevalues + numLargeKeys)).sendEvents(anyListOf(Event.class));
     }
 
     // Write records where key + val are large (but both can fit in the buffer individually)
@@ -296,6 +314,10 @@ public class TestUnorderedPartitionedKVWriter {
       kvWriter.write(keyText, valText);
       numRecordsWritten++;
     }
+    if (pipeliningEnabled) {
+      verify(outputContext, times(numLargevalues + numLargeKeys + numLargeKvPairs))
+          .sendEvents(anyListOf(Event.class));
+    }
 
     List<Event> events = kvWriter.close();
     verify(outputContext, never()).fatalError(any(Throwable.class), any(String.class));
@@ -303,6 +325,10 @@ public class TestUnorderedPartitionedKVWriter {
     TezCounter outputLargeRecordsCounter = counters.findCounter(TaskCounter.OUTPUT_LARGE_RECORDS);
     assertEquals(numLargeKeys + numLargevalues + numLargeKvPairs,
         outputLargeRecordsCounter.getValue());
+
+    if (pipeliningEnabled) {
+      return;
+    }
 
     // Validate the event
     assertEquals(1, events.size());
@@ -373,10 +399,207 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals(0, expectedValues.size());
   }
 
+  @Test(timeout = 10000)
+  public void testNoSpill_WithPipelinedShuffle() throws IOException, InterruptedException {
+    baseTestWithPipelinedTransfer(10, 10, null, shouldCompress);
+  }
+
+  @Test(timeout = 10000)
+  public void testSingleSpill_WithPipelinedShuffle() throws IOException, InterruptedException {
+    baseTestWithPipelinedTransfer(50, 10, null, shouldCompress);
+  }
+
+  @Test(timeout = 10000)
+  public void testMultipleSpills_WithPipelinedShuffle() throws IOException, InterruptedException {
+    baseTestWithPipelinedTransfer(200, 10, null, shouldCompress);
+  }
+
+  @Test(timeout = 10000)
+  public void testNoRecords_WithPipelinedShuffle() throws IOException, InterruptedException {
+    baseTestWithPipelinedTransfer(0, 10, null, shouldCompress);
+  }
+
+  @Test(timeout = 10000)
+  public void testSkippedPartitions_WithPipelinedShuffle() throws IOException, InterruptedException {
+    baseTestWithPipelinedTransfer(200, 10, Sets.newHashSet(2, 5), shouldCompress);
+  }
+
+  @Test(timeout = 10000)
+  public void testLargeKvPairs_WithPipelinedShuffle() throws IOException, InterruptedException {
+    textTest(0, 10, 2048, 10, 20, 50, true);
+  }
+
+
+  @SuppressWarnings("unchecked")
+  private void baseTestWithPipelinedTransfer(int numRecords, int numPartitions, Set<Integer>
+      skippedPartitions, boolean shouldCompress) throws IOException, InterruptedException {
+
+    PartitionerForTest partitioner = new PartitionerForTest();
+    ApplicationId appId = ApplicationId.newInstance(10000000, 1);
+    TezCounters counters = new TezCounters();
+    String uniqueId = UUID.randomUUID().toString();
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+
+    Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
+        shouldCompress, -1);
+    conf.setBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    conf.setBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
+
+    CompressionCodec codec = null;
+    if (shouldCompress) {
+      codec = new DefaultCodec();
+      ((Configurable) codec).setConf(conf);
+    }
+
+    int numOutputs = numPartitions;
+    long availableMemory = 2048;
+    int numRecordsWritten = 0;
+
+    UnorderedPartitionedKVWriter kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext,
+        conf, numOutputs, availableMemory);
+
+    int sizePerBuffer = kvWriter.sizePerBuffer;
+    int sizePerRecord = 4 + 8; // IntW + LongW
+    int sizePerRecordWithOverhead = sizePerRecord + 12; // Record + META_OVERHEAD
+
+    IntWritable intWritable = new IntWritable();
+    LongWritable longWritable = new LongWritable();
+    for (int i = 0; i < numRecords; i++) {
+      intWritable.set(i);
+      longWritable.set(i);
+      int partition = partitioner.getPartition(intWritable, longWritable, numOutputs);
+      if (skippedPartitions != null && skippedPartitions.contains(partition)) {
+        continue;
+      }
+      kvWriter.write(intWritable, longWritable);
+      numRecordsWritten++;
+    }
+
+    int recordsPerBuffer = sizePerBuffer / sizePerRecordWithOverhead;
+    int numExpectedSpills = numRecordsWritten / recordsPerBuffer;
+
+    ArgumentCaptor<List> eventCaptor = ArgumentCaptor.forClass(List.class);
+    List<Event> events = kvWriter.close();
+    assertTrue(events.size() == 0); //no events are sent to kvWriter upon close with pipelining
+
+    verify(outputContext, atLeast(numExpectedSpills)).sendEvents(eventCaptor.capture());
+    events = eventCaptor.getValue();
+
+    assertTrue(events.size() == 1); //the last event which was sent out
+
+    verify(outputContext, never()).fatalError(any(Throwable.class), any(String.class));
+
+    // Verify the status of the buffers
+    if (numExpectedSpills == 0) {
+      assertEquals(1, kvWriter.numInitializedBuffers);
+    } else {
+      assertTrue(kvWriter.numInitializedBuffers > 1);
+    }
+    assertNull(kvWriter.currentBuffer);
+    assertEquals(0, kvWriter.availableBuffers.size());
+
+    // Verify the counters
+    TezCounter outputRecordBytesCounter = counters.findCounter(TaskCounter.OUTPUT_BYTES);
+    TezCounter outputRecordsCounter = counters.findCounter(TaskCounter.OUTPUT_RECORDS);
+    TezCounter outputBytesWithOverheadCounter = counters
+        .findCounter(TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
+    TezCounter fileOutputBytesCounter = counters.findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
+    TezCounter spilledRecordsCounter = counters.findCounter(TaskCounter.SPILLED_RECORDS);
+    TezCounter additionalSpillBytesWritternCounter = counters
+        .findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
+    TezCounter additionalSpillBytesReadCounter = counters
+        .findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
+    TezCounter numAdditionalSpillsCounter = counters
+        .findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
+    assertEquals(numRecordsWritten * sizePerRecord, outputRecordBytesCounter.getValue());
+    assertEquals(numRecordsWritten, outputRecordsCounter.getValue());
+    assertEquals(numRecordsWritten * sizePerRecordWithOverhead,
+        outputBytesWithOverheadCounter.getValue());
+    long fileOutputBytes = fileOutputBytesCounter.getValue();
+    if (numRecordsWritten > 0) {
+      assertTrue(fileOutputBytes > 0);
+      if (!shouldCompress) {
+        assertTrue(fileOutputBytes > outputRecordBytesCounter.getValue());
+      }
+    } else {
+      assertEquals(0, fileOutputBytes);
+    }
+    assertEquals(recordsPerBuffer * numExpectedSpills, spilledRecordsCounter.getValue());
+    long additionalSpillBytesWritten = additionalSpillBytesWritternCounter.getValue();
+    long additionalSpillBytesRead = additionalSpillBytesReadCounter.getValue();
+
+    //No additional spill bytes written when final merge is disabled.
+    assertEquals(additionalSpillBytesWritten, 0);
+
+    //No additional spills when final merge is disabled.
+    assertTrue(additionalSpillBytesWritten == additionalSpillBytesRead);
+
+    //No additional spills when final merge is disabled.
+    assertEquals(numAdditionalSpillsCounter.getValue(), 0);
+
+    BitSet emptyPartitionBits = null;
+    assertTrue(events.size() > 0);
+    //Get the last event
+    int index = events.size() - 1;
+    assertTrue(events.get(index) instanceof CompositeDataMovementEvent);
+    CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(index);
+    assertEquals(0, cdme.getSourceIndexStart());
+    assertEquals(numOutputs, cdme.getCount());
+    DataMovementEventPayloadProto eventProto =
+        DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
+    assertFalse(eventProto.hasData());
+    //Ensure that this is the last event
+    assertTrue(eventProto.getLastEvent());
+    if (eventProto.hasEmptyPartitions()) {
+      byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(eventProto
+          .getEmptyPartitions());
+      emptyPartitionBits = TezUtilsInternal.fromByteArray(emptyPartitions);
+      if (numRecordsWritten == 0) {
+        assertEquals(numPartitions, emptyPartitionBits.cardinality());
+      } else {
+        if (skippedPartitions != null) {
+          for (Integer e : skippedPartitions) {
+            assertTrue(emptyPartitionBits.get(e));
+          }
+          assertEquals(skippedPartitions.size(), emptyPartitionBits.cardinality());
+        }
+      }
+      if (emptyPartitionBits.cardinality() != numPartitions) {
+        assertEquals(HOST_STRING, eventProto.getHost());
+        assertEquals(SHUFFLE_PORT, eventProto.getPort());
+        assertTrue(eventProto.hasPathComponent());
+      } else {
+        assertFalse(eventProto.hasHost());
+        assertFalse(eventProto.hasPort());
+        assertFalse(eventProto.hasPathComponent());
+      }
+    } else {
+      assertEquals(HOST_STRING, eventProto.getHost());
+      assertEquals(SHUFFLE_PORT, eventProto.getPort());
+      assertTrue(eventProto.hasPathComponent());
+    }
+
+    // Verify if all spill files are available.
+    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
+
+    if (numRecordsWritten > 0) {
+      int numSpills = kvWriter.numSpills.get();
+      for (int i = 0; i < numSpills; i++) {
+        assertTrue(localFs.exists(taskOutput.getSpillFileForWrite(i, 10)));
+        assertTrue(localFs.exists(taskOutput.getSpillIndexFileForWrite(i, 10)));
+      }
+    } else {
+      return;
+    }
+  }
+
+
   private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
       boolean shouldCompress) throws IOException, InterruptedException {
     PartitionerForTest partitioner = new PartitionerForTest();
-    ApplicationId appId = ApplicationId.newInstance(10000, 1);
+    ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
@@ -582,12 +805,18 @@ public class TestUnorderedPartitionedKVWriter {
     doReturn(1).when(outputContext).getTaskVertexIndex();
     doReturn("vertexName").when(outputContext).getTaskVertexName();
     doReturn(uniqueId).when(outputContext).getUniqueIdentifier();
-    ByteBuffer portBuffer = ByteBuffer.allocate(4);
-    portBuffer.mark();
-    portBuffer.putInt(SHUFFLE_PORT);
-    portBuffer.reset();
-    doReturn(portBuffer).when(outputContext).getServiceProviderMetaData(
-        eq(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID));
+
+    doAnswer(new Answer<ByteBuffer>() {
+      @Override
+      public ByteBuffer answer(InvocationOnMock invocation) throws Throwable {
+        ByteBuffer portBuffer = ByteBuffer.allocate(4);
+        portBuffer.mark();
+        portBuffer.putInt(SHUFFLE_PORT);
+        portBuffer.reset();
+        return portBuffer;
+      }
+    }).when(outputContext).getServiceProviderMetaData(eq(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID));
+
     Path outDirBase = new Path(TEST_ROOT_DIR, "outDir_" + uniqueId);
     String[] outDirs = new String[] { outDirBase.toString() };
     doReturn(outDirs).when(outputContext).getWorkDirs();

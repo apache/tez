@@ -49,7 +49,6 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
-import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
@@ -180,7 +179,7 @@ public class TestDefaultSorter {
   public void testWithEmptyDataWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
 
-    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
     conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1);
     MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
     context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
@@ -204,7 +203,7 @@ public class TestDefaultSorter {
   public void testWithSingleSpillWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
 
-    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
     conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
     MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
     context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
@@ -233,7 +232,7 @@ public class TestDefaultSorter {
   public void testWithMultipleSpillsWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
 
-    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
     conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES, 1);
     MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();

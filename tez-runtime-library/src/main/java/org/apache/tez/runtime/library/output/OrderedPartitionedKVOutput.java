@@ -104,8 +104,8 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
           TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS_DEFAULT);
 
       finalMergeEnabled = conf.getBoolean(
-          TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER,
-          TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER_DEFAULT);
+          TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT,
+          TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT_DEFAULT);
 
       pipelinedShuffle = this.conf.getBoolean(TezRuntimeConfiguration
           .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
@@ -121,7 +121,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
       if (pipelinedShuffle) {
         Preconditions.checkArgument(!finalMergeEnabled, TezRuntimeConfiguration
-            .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER + " has to be set to false for pipelined "
+            .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT + " has to be set to false for pipelined "
             + "shuffle to work properly.");
 
         //TODO: Enable it for pipelinedsorter only and not for DefaultSorter
@@ -203,7 +203,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED);
-    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_SORTER);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT);
     confKeys.add(TezConfiguration.TEZ_COUNTERS_MAX);
     confKeys.add(TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH);
     confKeys.add(TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH);

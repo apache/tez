@@ -71,6 +71,7 @@ class ShuffleScheduler {
   private boolean[] finishedMaps;
   private final int numInputs;
   private int remainingMaps;
+  private int numFetchedSpills;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
   //TODO Clean this and other maps at some point
   private ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<String, InputAttemptIdentifier>();
@@ -200,7 +201,8 @@ class ShuffleScheduler {
     void spillProcessed(int spillId) {
       if (finalEventId != -1) {
         Preconditions.checkState(eventsProcessed.cardinality() <= (finalEventId + 1),
-            "Wrong state " + toString());
+            "Wrong state. eventsProcessed cardinality=" + eventsProcessed.cardinality() + " "
+                + "finalEventId=" + finalEventId + ", spillId=" + spillId + ", " + toString());
       }
       eventsProcessed.set(spillId);
     }
@@ -260,6 +262,7 @@ class ShuffleScheduler {
       if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
         remainingMaps = remainingMaps - 1;
         setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
+        numFetchedSpills++;
       } else {
         ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(srcAttemptIdentifier);
 
@@ -280,6 +283,7 @@ class ShuffleScheduler {
 
         assert(eventInfo != null);
         eventInfo.spillProcessed(srcAttemptIdentifier.getSpillEventId());
+        numFetchedSpills++;
 
         if (srcAttemptIdentifier.getFetchTypeInfo() == InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE) {
           eventInfo.setFinalEventId(srcAttemptIdentifier.getSpillEventId());
@@ -338,7 +342,7 @@ class ShuffleScheduler {
     long secsSinceStart = (System.currentTimeMillis() - startTime) / 1000 + 1;
 
     double transferRate = mbs / secsSinceStart;
-    LOG.info("copy(" + inputsDone + " of " + numInputs +
+    LOG.info("copy(" + inputsDone + " (spillsFetched=" + numFetchedSpills +  ") of " + numInputs +
         ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
         + mbpsFormat.format(transferRate) + " MB/s)");
   }
