@@ -1164,4 +1164,14 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_DAG_STATUS_POLLINTERVAL_MS = TEZ_PREFIX
       + "dag.status.pollinterval-ms";
   public static final long TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT = 500;
+
+  /**
+   * Long value.
+   * Time to wait (in seconds) for apps to complete on MiniTezCluster shutdown.
+   */
+  @ConfigurationScope(Scope.TEST)
+  public static final String TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS =
+      TEZ_PREFIX + "test.minicluster.app.wait.on.shutdown.secs";
+  public static final long TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS_DEFAULT = 30;
+
 }

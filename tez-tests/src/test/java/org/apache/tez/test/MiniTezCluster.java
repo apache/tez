@@ -23,7 +23,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,6 +41,7 @@ import org.apache.hadoop.mapred.ShuffleHandler;
 import org.apache.hadoop.mapreduce.v2.jobhistory.JobHistoryUtils;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.util.JarFinder;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
@@ -68,6 +72,8 @@ public class MiniTezCluster extends MiniYARNCluster {
 
   private Path confFilePath;
 
+  private long maxTimeToWaitForAppsOnShutdown;
+
   public MiniTezCluster(String testName) {
     this(testName, 1);
   }
@@ -92,12 +98,16 @@ public class MiniTezCluster extends MiniYARNCluster {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, new File(getTestWorkDir(),
           "apps_staging_dir" + Path.SEPARATOR).getAbsolutePath());
     }
-    
+
     if (conf.get(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC) == null) {
       // nothing defined. set quick delete value
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
     }
-    
+
+    maxTimeToWaitForAppsOnShutdown = conf.getLong(
+        TezConfiguration.TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS,
+        TezConfiguration.TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS_DEFAULT);
+
     File appJarLocalFile = new File(MiniTezCluster.APPJAR);
 
     if (!appJarLocalFile.exists()) {
@@ -108,7 +118,7 @@ public class MiniTezCluster extends MiniYARNCluster {
     } else {
       LOG.info("Using Tez AppJar: " + appJarLocalFile.getAbsolutePath());
     }
-    
+
     FileSystem fs = FileSystem.get(conf);
     Path testRootDir = fs.makeQualified(new Path("target", getName() + "-tmpDir"));
     Path appRemoteJar = new Path(testRootDir, "TezAppJar.jar");
@@ -213,25 +223,73 @@ public class MiniTezCluster extends MiniYARNCluster {
   }
 
   private void waitForAppsToFinish() {
-    YarnClient yarnClient = YarnClient.createYarnClient(); 
+    long waitStartTime = System.currentTimeMillis();
+    long waitEndTime = maxTimeToWaitForAppsOnShutdown == -1 ?
+        -1 : (waitStartTime + (1000 * maxTimeToWaitForAppsOnShutdown));
+
+    YarnClient yarnClient = YarnClient.createYarnClient();
     yarnClient.init(getConfig());
     yarnClient.start();
+    Collection<ApplicationReport> unCompletedApps = null;
     try {
-      while(true) {
+      do {
         List<ApplicationReport> appReports = yarnClient.getApplications();
-        Collection<ApplicationReport> unCompletedApps = Collections2.filter(appReports, new Predicate<ApplicationReport>(){
+        unCompletedApps = Collections2.filter(appReports, new Predicate<ApplicationReport>() {
           @Override
           public boolean apply(ApplicationReport appReport) {
             return EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
-            YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
-            .contains(appReport.getYarnApplicationState());
+                YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
+                .contains(appReport.getYarnApplicationState());
           }
         });
-        if (unCompletedApps.size()==0){
+        if (unCompletedApps.isEmpty()) {
           break;
         }
-        LOG.info("wait for applications to finish in MiniTezCluster");
+        LOG.info("Waiting for applications to finish in MiniTezCluster"
+            + ", incompleteAppsCount=" + unCompletedApps.size());
         Thread.sleep(1000);
+      } while (waitEndTime != -1 && waitEndTime > System.currentTimeMillis());
+
+
+      if (unCompletedApps != null && !unCompletedApps.isEmpty()) {
+        LOG.info("Killing incomplete applications in MiniTezCluster"
+            + ", incompleteAppsCount=" + unCompletedApps.size());
+        Set<ApplicationId> incompleteAppIds =
+            new HashSet<ApplicationId>();
+        for (ApplicationReport appReport : unCompletedApps) {
+          try {
+            LOG.info("Killing application, id=" + appReport.getApplicationId()
+                + ", appName=" + appReport.getName());
+            yarnClient.killApplication(appReport.getApplicationId());
+            incompleteAppIds.add(appReport.getApplicationId());
+          } catch (Exception e) {
+            LOG.warn("Failed to kill app on MiniTezCluster shutdown"
+                + ", appId=" + appReport.getApplicationId()
+                + ", appName=" + appReport.getName());
+          }
+        }
+
+        // Wait for RM to report back that incomplete apps are killed
+        waitStartTime = System.currentTimeMillis();
+        waitEndTime = maxTimeToWaitForAppsOnShutdown == -1 ?
+            -1 : (waitStartTime + (1000 * maxTimeToWaitForAppsOnShutdown));
+        do {
+          Iterator<ApplicationId> iter = incompleteAppIds.iterator();
+          while (iter.hasNext()) {
+            ApplicationId applicationId = iter.next();
+            ApplicationReport report = yarnClient.getApplicationReport(applicationId);
+            if (EnumSet.of(YarnApplicationState.FINISHED, YarnApplicationState.FAILED,
+                YarnApplicationState.KILLED).contains(report.getYarnApplicationState())) {
+              iter.remove();
+              LOG.info("Application completed, id=" + report.getApplicationId()
+                  + ", yarnState=" + report.getYarnApplicationState());
+            }
+          }
+          if (incompleteAppIds.isEmpty()) {
+            break;
+          }
+        } while (waitEndTime != -1 && waitEndTime > System.currentTimeMillis());
+
       }
     } catch (Exception e) {
       e.printStackTrace();

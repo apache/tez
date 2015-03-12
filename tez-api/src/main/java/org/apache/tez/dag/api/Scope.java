@@ -25,4 +25,6 @@ public enum Scope {
   AM,       // can only been set at AM level 
   DAG,      // can been set at AM/DAG level
   VERTEX,   // can been set at AM/DAG/VERTEX level
+  CLIENT,   // Client scope - only applicable on client
+  TEST,     // Test scope - only applicable for testing, for example, MiniTezCluster
 }
