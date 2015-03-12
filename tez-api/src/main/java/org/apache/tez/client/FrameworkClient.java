@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 
 @Private
 public abstract class FrameworkClient {
@@ -64,7 +65,8 @@ public abstract class FrameworkClient {
 
   public abstract YarnClientApplication createApplication() throws YarnException, IOException;
 
-  public abstract ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext) throws YarnException, IOException;
+  public abstract ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext)
+      throws YarnException, IOException, TezException;
 
   public abstract void killApplication(ApplicationId appId) throws YarnException, IOException;
 

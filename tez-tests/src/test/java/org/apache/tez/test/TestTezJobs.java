@@ -698,8 +698,8 @@ public class TestTezJobs {
       int result = job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
           StringUtils.join(",", outputPaths), "2" }, null);
       Assert.assertTrue("Job should have failed", result != 0);
-    } catch (IOException e) {
-      Assert.assertTrue(e.getMessage().contains("Failed to submit application to YARN"));
+    } catch (TezException e) {
+      Assert.assertTrue(e.getMessage().contains("Failed to submit application"));
     } finally {
       if (yarnClient != null) {
         yarnClient.stop();
@@ -735,8 +735,8 @@ public class TestTezJobs {
     } catch (SessionNotRunning e) {
       // Expected
       LOG.info("Session not running", e);
-    } catch (IOException e) {
-      Assert.assertTrue(e.getMessage().contains("Failed to submit application to YARN"));
+    } catch (TezException e) {
+      Assert.assertTrue(e.getMessage().contains("Failed to submit application"));
     } finally {
       if (yarnClient != null) {
         yarnClient.stop();

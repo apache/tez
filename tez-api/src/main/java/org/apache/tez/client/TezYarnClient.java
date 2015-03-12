@@ -30,6 +30,7 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 
 @Private
 public class TezYarnClient extends FrameworkClient {
@@ -66,11 +67,14 @@ public class TezYarnClient extends FrameworkClient {
   }
 
   @Override
-  public ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext) throws YarnException, IOException {
+  public ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext)
+      throws YarnException, IOException, TezException {
 	ApplicationId appId= yarnClient.submitApplication(appSubmissionContext);
     ApplicationReport appReport = getApplicationReport(appId);
     if (appReport.getYarnApplicationState() == YarnApplicationState.FAILED){
-      throw new IOException("Failed to submit application to YARN: " + appReport.getDiagnostics());
+      throw new TezException("Failed to submit application to YARN"
+          + ", applicationId=" + appId
+          + ", diagnostics=" + appReport.getDiagnostics());
     }
     return appId;
   }

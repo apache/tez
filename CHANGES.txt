@@ -7,6 +7,8 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2195. TestTezJobs::testInvalidQueueSubmission/testInvalidQueueSubmissionToSession
+    fail with hadoop branch-2.
   TEZ-1827. MiniTezCluster takes 10 minutes to shut down.
   TEZ-2178. YARN-3122 breaks tez compilation with hadoop 2.7.0.
   TEZ-2174. Make task priority available to TaskAttemptListener.
