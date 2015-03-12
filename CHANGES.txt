@@ -80,6 +80,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2179. Timeline relatedentries missing cause exaggerated warning.
   TEZ-2168. Fix application dependencies on mutually exclusive artifacts: tez-yarn-timeline-history
     and tez-yarn-timeline-history-with-acls.
   TEZ-2190. TestOrderedWordCount fails when generateSplitsInClient set to true.

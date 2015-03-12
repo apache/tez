@@ -135,14 +135,13 @@ public class HistoryEventTimelineConversion {
         + event.getApplicationId().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_APPLICATION.name());
 
-    atsEntity.addRelatedEntity(ATSConstants.APPLICATION_ID,
-        event.getApplicationId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.USER, event.getUser());
-
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
 
     atsEntity.addOtherInfo(ATSConstants.CONFIG,
         DAGUtils.convertConfigurationToATSMap(event.getConf()));
+    atsEntity.addOtherInfo(ATSConstants.APPLICATION_ID,
+            event.getApplicationId().toString());
+    atsEntity.addOtherInfo(ATSConstants.USER, event.getUser());
 
     atsEntity.setStartTime(event.getLaunchTime());
 
@@ -160,12 +159,6 @@ public class HistoryEventTimelineConversion {
         + event.getApplicationAttemptId().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
-    atsEntity.addRelatedEntity(ATSConstants.APPLICATION_ID,
-        event.getApplicationAttemptId().getApplicationId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.APPLICATION_ATTEMPT_ID,
-        event.getApplicationAttemptId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.USER, event.getUser());
-
     atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
     atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
         event.getApplicationAttemptId().getApplicationId().toString());
@@ -178,6 +171,11 @@ public class HistoryEventTimelineConversion {
     atsEntity.addEvent(launchEvt);
 
     atsEntity.addOtherInfo(ATSConstants.APP_SUBMIT_TIME, event.getAppSubmitTime());
+    atsEntity.addOtherInfo(ATSConstants.APPLICATION_ID,
+        event.getApplicationAttemptId().getApplicationId().toString());
+    atsEntity.addOtherInfo(ATSConstants.APPLICATION_ATTEMPT_ID,
+        event.getApplicationAttemptId().toString());
+    atsEntity.addOtherInfo(ATSConstants.USER, event.getUser());
 
     return atsEntity;
   }
@@ -208,12 +206,12 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addRelatedEntity(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(),
         "tez_" + event.getApplicationAttemptId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.CONTAINER_ID,
-        event.getContainerId().toString());
 
     atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
         event.getApplicationAttemptId().getApplicationId().toString());
 
+    atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID,
+            event.getContainerId().toString());
     atsEntity.setStartTime(event.getLaunchTime());
 
     TimelineEvent launchEvt = new TimelineEvent();
@@ -341,11 +339,6 @@ public class HistoryEventTimelineConversion {
         "tez_" + event.getApplicationAttemptId().getApplicationId().toString());
     atsEntity.addRelatedEntity(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(),
         "tez_" + event.getApplicationAttemptId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.APPLICATION_ID,
-        event.getApplicationAttemptId().getApplicationId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.APPLICATION_ATTEMPT_ID,
-        event.getApplicationAttemptId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.USER, event.getUser());
 
     TimelineEvent submitEvt = new TimelineEvent();
     submitEvt.setEventType(HistoryEventType.DAG_SUBMITTED.name());
@@ -367,6 +360,9 @@ public class HistoryEventTimelineConversion {
     }
     atsEntity.addOtherInfo(ATSConstants.APPLICATION_ID,
         event.getApplicationAttemptId().getApplicationId().toString());
+    atsEntity.addOtherInfo(ATSConstants.APPLICATION_ATTEMPT_ID,
+            event.getApplicationAttemptId().toString());
+    atsEntity.addOtherInfo(ATSConstants.USER, event.getUser());
 
     return atsEntity;
   }
@@ -412,8 +408,6 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.setStartTime(event.getStartTime());
 
-    atsEntity.addRelatedEntity(ATSConstants.NODE_ID, event.getNodeId().toString());
-    atsEntity.addRelatedEntity(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
     atsEntity.addRelatedEntity(EntityTypes.TEZ_TASK_ID.name(),
         event.getTaskAttemptID().getTaskID().toString());
 
