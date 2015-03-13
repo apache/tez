@@ -24,10 +24,12 @@ import java.net.InetSocketAddress;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.name.Names;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.http.HttpConfig;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.webapp.WebApp;
 import org.apache.hadoop.yarn.webapp.WebApps;
@@ -45,7 +47,7 @@ public class WebUIService extends AbstractService {
   private final AppContext context;
   private TezAMWebApp tezAMWebApp;
   private WebApp webApp;
-  private int port;
+  private String trackingUrl = "";
   private String historyUrl = "";
 
   public WebUIService(AppContext context) {
@@ -84,7 +86,12 @@ public class WebUIService extends AbstractService {
             .with(conf)
             .withHttpPolicy(conf, HttpConfig.Policy.HTTP_ONLY)
             .start(this.tezAMWebApp);
-        this.port = this.webApp.httpServer().getConnectorAddress(0).getPort();
+        InetSocketAddress address = webApp.getListenerAddress();
+        if (address != null) {
+          InetSocketAddress bindAddress = NetUtils.createSocketAddrForHost(context.getAppMaster().getAppNMHost(), address.getPort());
+          trackingUrl = "http://" + bindAddress.getAddress().getCanonicalHostName() + ":" + bindAddress.getPort() + "/ui/";
+          LOG.info("Instantiated WebUIService at " + trackingUrl);
+        }
       } catch (Exception e) {
         LOG.error("Tez UI WebService failed to start.", e);
         throw new TezUncheckedException(e);
@@ -104,21 +111,8 @@ public class WebUIService extends AbstractService {
     super.serviceStop();
   }
 
-  public int getPort() {
-    return this.port;
-  }
-
-  public String getURL() {
-    String url = "";
-    InetSocketAddress address = webApp.getListenerAddress();
-
-    if (address != null) {
-      final String hostName = address.getAddress().getCanonicalHostName();
-      final int port = address.getPort();
-      url = "http://" + hostName + ":" + port + "/ui/";
-    }
-
-    return url;
+  public String getTrackingURL() {
+    return trackingUrl;
   }
 
   public String getHistoryUrl() {
