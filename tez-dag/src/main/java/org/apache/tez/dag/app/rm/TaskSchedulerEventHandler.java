@@ -19,6 +19,8 @@
 package org.apache.tez.dag.app.rm;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -346,7 +348,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     // the actual url set on the rm web ui will be the proxy url set by WebAppProxyServlet, which
     // always try to connect to AM and proxy the response. hence it wont work if the webUIService
     // is not enabled.
-    String trackingUrl = (webUI != null) ? webUI.getURL() : "";
+    String trackingUrl = (webUI != null) ? webUI.getTrackingURL() : "";
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),
         serviceAddr.getPort(), trackingUrl, appContext);
     taskScheduler.init(getConfig());
@@ -606,6 +608,11 @@ public class TaskSchedulerEventHandler extends AbstractService
           .replaceAll(APPLICATION_ID_PLACEHOLDER, appContext.getApplicationID().toString())
           .replaceAll(HISTORY_URL_BASE, historyUrlBase)
           .replaceAll("([^:])/{2,}", "$1/");
+
+      // make sure we have a valid scheme
+      if (!historyUrl.startsWith("http")) {
+        historyUrl = "http://" + historyUrl;
+      }
     }
 
     return historyUrl;

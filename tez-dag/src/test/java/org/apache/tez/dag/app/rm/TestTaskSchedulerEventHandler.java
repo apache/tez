@@ -324,6 +324,11 @@ public class TestTaskSchedulerEventHandler {
     assertTrue("http://ui-host:9998/#/tez-app/TEST_APP_ID"
         .equals(schedulerHandler.getHistoryUrl()));
 
+    // ensure missing scheme in history url is handled
+    conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "ui-host:9998/");
+    Assert.assertTrue("http://ui-host:9998/#/tez-app/TEST_APP_ID"
+        .equals(schedulerHandler.getHistoryUrl()));
+
     // handle bad template ex without begining /
     conf.set(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
         "__HISTORY_URL_BASE__#/somepath");
