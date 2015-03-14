@@ -32,20 +32,21 @@ public class MockLocalClient extends LocalClient {
   Clock mockClock;
   final boolean initFailFlag;
   final boolean startFailFlag;
+  final int concurrency;
+  final int containers;
 
   public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock) {
-    this.mockAppLauncherGoFlag = mockAppLauncherGoFlag;
-    this.mockClock = clock;
-    this.initFailFlag = false;
-    this.startFailFlag = false;
+    this(mockAppLauncherGoFlag, clock, false, false, 1, 1);
   }
   
   public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock,
-      boolean initFailFlag, boolean startFailFlag) {
+      boolean initFailFlag, boolean startFailFlag, int concurrency, int containers) {
     this.mockAppLauncherGoFlag = mockAppLauncherGoFlag;
     this.mockClock = clock;
     this.initFailFlag = initFailFlag;
     this.startFailFlag = startFailFlag;
+    this.concurrency = concurrency;
+    this.containers = containers;
   }
 
   @Override
@@ -55,7 +56,8 @@ public class MockLocalClient extends LocalClient {
       String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName) {
     mockApp = new MockDAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         (mockClock!=null ? mockClock : clock), appSubmitTime, isSession, userDir, localDirs, logDirs,
-        mockAppLauncherGoFlag, initFailFlag, startFailFlag, credentials, jobUserName);
+        mockAppLauncherGoFlag, initFailFlag, startFailFlag, credentials, jobUserName, 
+        concurrency, containers);
     return mockApp;
   }
   

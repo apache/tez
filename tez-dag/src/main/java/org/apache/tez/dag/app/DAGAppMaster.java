@@ -1252,12 +1252,7 @@ public class DAGAppMaster extends AbstractService {
 
     @Override
     public DAG getCurrentDAG() {
-      try {
-        rLock.lock();
-        return dag;
-      } finally {
-        rLock.unlock();
-      }
+      return dag;
     }
     
     @Override
@@ -1676,7 +1671,6 @@ public class DAGAppMaster extends AbstractService {
     if (this.dagSubmissionTimer != null) {
       this.dagSubmissionTimer.cancel();
     }
-        
     stopServices();
 
     // Given pre-emption, we should delete tez scratch dir only if unregister is
@@ -1715,7 +1709,9 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
-    execService.shutdownNow();
+    if (execService != null) {
+      execService.shutdownNow();
+    }
 
     super.serviceStop();
   }

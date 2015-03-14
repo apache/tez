@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -45,12 +44,9 @@ import org.junit.Test;
 
 import com.google.common.base.Joiner;
 
-
-@SuppressWarnings("deprecation")
 public class TestSpeculation {
   static Configuration defaultConf;
   static FileSystem localFs;
-  static Path workDir;
   
   MockDAGAppMaster mockApp;
   MockContainerLauncher mockLauncher;
@@ -61,10 +57,9 @@ public class TestSpeculation {
       defaultConf.set("fs.defaultFS", "file:///");
       defaultConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
       defaultConf.setBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, true);
-      defaultConf.setInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS, 2);
       localFs = FileSystem.getLocal(defaultConf);
-      workDir = new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-          "TestSpeculation").makeQualified(localFs);
+      String stagingDir = "target" + Path.SEPARATOR + TestSpeculation.class.getName() + "-tmpDir";
+      defaultConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir);
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
@@ -74,7 +69,7 @@ public class TestSpeculation {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
     MockTezClient tezClient = new MockTezClient("testspeculation", tezconf, true, null, null,
-        new MockClock(), mockAppLauncherGoFlag);
+        new MockClock(), mockAppLauncherGoFlag, false, false, 1, 2);
     tezClient.start();
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
     return tezClient;

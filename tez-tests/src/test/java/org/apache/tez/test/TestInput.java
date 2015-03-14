@@ -18,7 +18,6 @@
 
 package org.apache.tez.test;
 
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -332,7 +331,7 @@ public class TestInput extends AbstractLogicalInput {
       if (event instanceof DataMovementEvent) {
         DataMovementEvent dmEvent = (DataMovementEvent) event;
         numCompletedInputs++;
-        LOG.info("Received DataMovement event sourceId : " + dmEvent.getSourceIndex() + 
+        LOG.info(getContext().getSourceVertexName() + " Received DataMovement event sourceId : " + dmEvent.getSourceIndex() + 
             " targetId: " + dmEvent.getTargetIndex() +
             " version: " + dmEvent.getVersion() +
             " numInputs: " + getNumPhysicalInputs() +

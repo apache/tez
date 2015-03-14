@@ -31,6 +31,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -45,6 +46,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.app.MockDAGAppMaster.CountersDelegate;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher.ContainerData;
 import org.apache.tez.dag.app.dag.DAGState;
@@ -57,17 +59,18 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-@SuppressWarnings("deprecation")
 public class TestMockDAGAppMaster {
   static Configuration defaultConf;
   static FileSystem localFs;
-  static Path workDir;
   
   static {
     try {
@@ -75,8 +78,8 @@ public class TestMockDAGAppMaster {
       defaultConf.set("fs.defaultFS", "file:///");
       defaultConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
       localFs = FileSystem.getLocal(defaultConf);
-      workDir = new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-          "TestDAGAppMaster").makeQualified(localFs);
+      String stagingDir = "target" + Path.SEPARATOR + TestMockDAGAppMaster.class.getName() + "-tmpDir";
+      defaultConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir);
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
@@ -219,6 +222,66 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
 
+    tezClient.stop();
+  }
+
+  @Test (timeout = 10000)
+  public void testBasicCounters() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
+        null, false, false);
+    tezClient.start();
+
+    final String vAName = "A";
+    final String vBName = "B";
+    final String procCounterName = "Proc";
+    final String globalCounterName = "Global";
+    DAG dag = DAG.create("testBasicCounters");
+    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10);
+    Vertex vB = Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 1);
+    dag.addVertex(vA)
+        .addVertex(vB)
+        .addEdge(
+            Edge.create(vA, vB, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
+
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+    mockApp.countersDelegate = new CountersDelegate() {
+      @Override
+      public TezCounters getCounters(TaskSpec taskSpec) {
+        String vName = taskSpec.getVertexName();
+        TezCounters counters = new TezCounters();
+        counters.findCounter(globalCounterName, globalCounterName).increment(1);
+        counters.findCounter(vName, procCounterName).increment(1);
+        for (OutputSpec output : taskSpec.getOutputs()) {
+          counters.findCounter(vName, output.getDestinationVertexName()).increment(1);
+        }
+        for (InputSpec input : taskSpec.getInputs()) {
+          counters.findCounter(vName, input.getSourceVertexName()).increment(1);
+        }
+        return counters;
+      }
+    };
+    mockApp.doSleep = false;
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    mockLauncher.startScheduling(true);
+    DAGStatus status = dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    TezCounters counters = dagImpl.getAllCounters();
+    // verify processor counters
+    Assert.assertEquals(10, counters.findCounter(vAName, procCounterName).getValue());
+    Assert.assertEquals(1, counters.findCounter(vBName, procCounterName).getValue());
+    // verify edge counters
+    Assert.assertEquals(10, counters.findCounter(vAName, vBName).getValue());
+    Assert.assertEquals(1, counters.findCounter(vBName, vAName).getValue());
+    // verify global counters
+    Assert.assertEquals(11, counters.findCounter(globalCounterName, globalCounterName).getValue());
+    
     tezClient.stop();
   }
   

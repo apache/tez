@@ -48,12 +48,10 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Assert;
 import org.junit.Test;
 
-@SuppressWarnings("deprecation")
 public class TestPreemption {
   
   static Configuration defaultConf;
   static FileSystem localFs;
-  static Path workDir;
   
   static {
     try {
@@ -61,8 +59,8 @@ public class TestPreemption {
       defaultConf.set("fs.defaultFS", "file:///");
       defaultConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
       localFs = FileSystem.getLocal(defaultConf);
-      workDir = new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-          "TestDAGAppMaster").makeQualified(localFs);
+      String stagingDir = "target" + Path.SEPARATOR + TestPreemption.class.getName() + "-tmpDir";
+      defaultConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir);
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
@@ -93,7 +91,7 @@ public class TestPreemption {
     tezconf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 0);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
     MockTezClient tezClient = new MockTezClient("testPreemption", tezconf, false, null, null,
-        null, mockAppLauncherGoFlag);
+        null, mockAppLauncherGoFlag, false, false, 2, 2);
     tezClient.start();
     
     DAGClient dagClient = tezClient.submitDAG(createDAG(DataMovementType.SCATTER_GATHER));
