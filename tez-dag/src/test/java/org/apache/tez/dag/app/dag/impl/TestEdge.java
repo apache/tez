@@ -28,6 +28,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,14 +41,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.records.TezDAGID;
@@ -52,6 +62,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -91,6 +102,27 @@ public class TestEdge {
         .intValue());
     Assert.assertEquals(0, destinationTaskAndInputIndices.entrySet().iterator().next().getValue()
         .get(0).intValue());
+  }
+
+  @Test(timeout = 5000)
+  public void testScatterGatherManager() {
+    EdgeManagerPluginContext mockContext = mock(EdgeManagerPluginContext.class);
+    when(mockContext.getSourceVertexName()).thenReturn("Source");
+    when(mockContext.getDestinationVertexName()).thenReturn("Destination");
+    ScatterGatherEdgeManager manager = new ScatterGatherEdgeManager(mockContext);
+    manager.initialize();
+
+    when(mockContext.getDestinationVertexNumTasks()).thenReturn(-1);
+    try {
+      manager.getNumSourceTaskPhysicalOutputs(0);
+      Assert.fail();
+    } catch (IllegalArgumentException e) {
+      e.printStackTrace();
+      Assert.assertTrue(e.getMessage()
+          .contains("ScatteGather edge manager must have destination vertex task parallelism specified"));
+    }
+    when(mockContext.getDestinationVertexNumTasks()).thenReturn(0);
+    manager.getNumSourceTaskPhysicalOutputs(0);
   }
 
   @SuppressWarnings({ "rawtypes" })
@@ -203,5 +235,213 @@ public class TestEdge {
   private TezTaskAttemptID createTAIDForTest(TezTaskID taskID, int taId) {
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, taId);
     return taskAttemptID;
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidPhysicalInputCount() throws Exception {
+    EventHandler mockEventHandler = mock(EventHandler.class);
+    Edge edge = new Edge(EdgeProperty.create(
+        EdgeManagerPluginDescriptor.create(CustomEdgeManagerWithInvalidReturnValue.class.getName())
+          .setUserPayload(new CustomEdgeManagerWithInvalidReturnValue.EdgeManagerConfig(-1,1,1,1).toUserPayload()),
+        DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(""),
+        InputDescriptor.create("")), mockEventHandler);
+    TezVertexID v1Id = createVertexID(1);
+    TezVertexID v2Id = createVertexID(2);
+    edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.setDestinationVertex(mockVertex("v2", v2Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.initialize();
+    try {
+      edge.getDestinationSpec(0);
+      Assert.fail();
+    } catch (AMUserCodeException e) {
+      e.printStackTrace();
+      assertTrue(e.getCause().getMessage().contains("PhysicalInputCount should not be negative"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidPhysicalOutputCount() throws Exception {
+    EventHandler mockEventHandler = mock(EventHandler.class);
+    Edge edge = new Edge(EdgeProperty.create(
+        EdgeManagerPluginDescriptor.create(CustomEdgeManagerWithInvalidReturnValue.class.getName())
+          .setUserPayload(new CustomEdgeManagerWithInvalidReturnValue.EdgeManagerConfig(1,-1,1,1).toUserPayload()),
+        DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(""),
+        InputDescriptor.create("")), mockEventHandler);
+    TezVertexID v1Id = createVertexID(1);
+    TezVertexID v2Id = createVertexID(2);
+    edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.setDestinationVertex(mockVertex("v2", v2Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.initialize();
+    try {
+      edge.getSourceSpec(0);
+      Assert.fail();
+    } catch (AMUserCodeException e) {
+      e.printStackTrace();
+      assertTrue(e.getCause().getMessage().contains("PhysicalOutputCount should not be negative"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidConsumerNumber() throws Exception {
+    EventHandler mockEventHandler = mock(EventHandler.class);
+    Edge edge = new Edge(EdgeProperty.create(
+        EdgeManagerPluginDescriptor.create(CustomEdgeManagerWithInvalidReturnValue.class.getName())
+          .setUserPayload(new CustomEdgeManagerWithInvalidReturnValue.EdgeManagerConfig(1,1,0,1).toUserPayload()),
+        DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(""),
+        InputDescriptor.create("")), mockEventHandler);
+    TezVertexID v1Id = createVertexID(1);
+    TezVertexID v2Id = createVertexID(2);
+    edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.setDestinationVertex(mockVertex("v2", v2Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.initialize();
+    try {
+      TezEvent ireEvent = new TezEvent(InputReadErrorEvent.create("diag", 0, 1),
+          new EventMetaData(EventProducerConsumerType.INPUT, "v2", "v1",
+              TezTaskAttemptID.getInstance(TezTaskID.getInstance(v2Id, 1), 1)));
+      edge.sendTezEventToSourceTasks(ireEvent);
+      Assert.fail();
+    } catch (AMUserCodeException e) {
+      e.printStackTrace();
+      assertTrue(e.getCause().getMessage().contains("ConsumerTaskNum must be positive"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidSourceTaskIndex() throws Exception {
+    EventHandler mockEventHandler = mock(EventHandler.class);
+    Edge edge = new Edge(EdgeProperty.create(
+        EdgeManagerPluginDescriptor.create(CustomEdgeManagerWithInvalidReturnValue.class.getName())
+          .setUserPayload(new CustomEdgeManagerWithInvalidReturnValue.EdgeManagerConfig(1,1,1,-1).toUserPayload()),
+        DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create(""),
+        InputDescriptor.create("")), mockEventHandler);
+    TezVertexID v1Id = createVertexID(1);
+    TezVertexID v2Id = createVertexID(2);
+    edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.setDestinationVertex(mockVertex("v2", v2Id, new LinkedHashMap<TezTaskID, Task>()));
+    edge.initialize();
+    try {
+      TezEvent ireEvent = new TezEvent(InputReadErrorEvent.create("diag", 0, 1),
+          new EventMetaData(EventProducerConsumerType.INPUT, "v2", "v1",
+              TezTaskAttemptID.getInstance(TezTaskID.getInstance(v2Id, 1), 1)));
+      edge.sendTezEventToSourceTasks(ireEvent);
+      Assert.fail();
+    } catch (AMUserCodeException e) {
+      e.printStackTrace();
+      assertTrue(e.getCause().getMessage().contains("SourceTaskIndex should not be negative"));
+    }
+  }
+
+  public static class CustomEdgeManagerWithInvalidReturnValue extends EdgeManagerPlugin {
+
+    public static class EdgeManagerConfig implements Writable {
+      int physicalInput = 1 ;
+      int physicalOutput = 1;
+      int consumerNumber = 1;
+      int sourceTaskIndex = 1;
+
+      public EdgeManagerConfig() {
+
+      }
+
+      public EdgeManagerConfig(int physicalInput, int physicalOutput,
+          int consumerNumber, int sourceTaskIndex) {
+        super();
+        this.physicalInput = physicalInput;
+        this.physicalOutput = physicalOutput;
+        this.consumerNumber = consumerNumber;
+        this.sourceTaskIndex = sourceTaskIndex;
+      }
+
+      public UserPayload toUserPayload() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutput out = new DataOutputStream(bos);
+        write(out);
+        return UserPayload.create(ByteBuffer.wrap(bos.toByteArray()));
+      }
+
+      public static EdgeManagerConfig fromUserPayload(UserPayload payload)
+          throws IOException {
+        EdgeManagerConfig emConf = new EdgeManagerConfig();
+        DataInputByteBuffer in  = new DataInputByteBuffer();
+        in.reset(payload.getPayload());
+        emConf.readFields(in);
+        return emConf;
+      }
+
+      @Override
+      public void write(DataOutput out) throws IOException {
+        out.writeInt(physicalInput);
+        out.writeInt(physicalOutput);
+        out.writeInt(consumerNumber);
+        out.writeInt(sourceTaskIndex);
+      }
+
+      @Override
+      public void readFields(DataInput in) throws IOException {
+        physicalInput = in.readInt();
+        physicalOutput = in.readInt();
+        consumerNumber = in.readInt();
+        sourceTaskIndex = in.readInt();
+      }
+    }
+
+    EdgeManagerConfig emConf;
+
+    public CustomEdgeManagerWithInvalidReturnValue(
+        EdgeManagerPluginContext context) {
+      super(context);
+    }
+
+    @Override
+    public void initialize() throws Exception {
+      emConf = EdgeManagerConfig.fromUserPayload(getContext().getUserPayload());
+    }
+
+    @Override
+    public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex)
+        throws Exception {
+      return emConf.physicalInput;
+    }
+
+    @Override
+    public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex)
+        throws Exception {
+      return emConf.physicalOutput;
+    }
+
+    @Override
+    public void routeDataMovementEventToDestination(DataMovementEvent event,
+        int sourceTaskIndex, int sourceOutputIndex,
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices)
+        throws Exception {
+    }
+
+    @Override
+    public void routeInputSourceTaskFailedEventToDestination(
+        int sourceTaskIndex,
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices)
+        throws Exception {
+    }
+
+    @Override
+    public int getNumDestinationConsumerTasks(int sourceTaskIndex)
+        throws Exception {
+      return emConf.consumerNumber;
+    }
+
+    @Override
+    public int routeInputErrorEventToSource(InputReadErrorEvent event,
+        int destinationTaskIndex, int destinationFailedInputIndex)
+        throws Exception {
+      return emConf.sourceTaskIndex;
+    }
   }
 }

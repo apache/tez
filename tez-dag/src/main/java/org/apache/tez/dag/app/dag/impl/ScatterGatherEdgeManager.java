@@ -27,6 +27,8 @@ import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
+import com.google.common.base.Preconditions;
+
 public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
 
   public ScatterGatherEdgeManager(EdgeManagerPluginContext context) {
@@ -35,6 +37,7 @@ public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
 
   @Override
   public void initialize() {
+
   }
 
   @Override
@@ -44,7 +47,10 @@ public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
   
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
-    return getContext().getDestinationVertexNumTasks();
+    int physicalOutputs = getContext().getDestinationVertexNumTasks();
+    Preconditions.checkArgument(physicalOutputs >= 0,
+        "ScatteGather edge manager must have destination vertex task parallelism specified");
+    return physicalOutputs;
   }
 
   @Override
