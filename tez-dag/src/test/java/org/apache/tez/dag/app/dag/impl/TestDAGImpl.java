@@ -198,12 +198,6 @@ public class TestDAGImpl {
     }
   }
 
-  private class TaskEventHandler implements EventHandler<TaskEvent> {
-    @Override
-    public void handle(TaskEvent event) {
-    }
-  }
-
   private class TaskEventDispatcher implements EventHandler<TaskEvent> {
     @SuppressWarnings("unchecked")
     @Override
@@ -825,7 +819,6 @@ public class TestDAGImpl {
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
     dagFinishEventHandler = new DAGFinishEventHandler();
     dispatcher.register(DAGAppMasterEventType.class, dagFinishEventHandler);
-    dispatcher.register(TaskEventType.class, new TaskEventHandler());
     dispatcher.init(conf);
     dispatcher.start();
   }
