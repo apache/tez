@@ -18,8 +18,6 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -35,7 +34,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
@@ -74,23 +74,26 @@ public class TestMRInputHelpers {
     Configuration testConf = new YarnConfiguration(
         dfsCluster.getFileSystem().getConf());
 
-    File testConfFile = new File(TEST_ROOT_DIR, "test.xml");
+
+    FSDataOutputStream dataOutputStream = null;
     try {
-      testConfFile.createNewFile();
-      testConf.writeXml(new FileOutputStream(testConfFile));
-      testConfFile.deleteOnExit();
+      dataOutputStream = remoteFs.create(new Path("/tmp/input/test.xml"), true);
+      testConf.writeXml(dataOutputStream);
+      dataOutputStream.hsync();
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
       throw new RuntimeException(e);
+    } finally {
+      if (dataOutputStream != null) {
+        dataOutputStream.close();
+      }
     }
 
     remoteFs.mkdirs(new Path("/tmp/input/"));
     remoteFs.mkdirs(new Path("/tmp/splitsDirNew/"));
     remoteFs.mkdirs(new Path("/tmp/splitsDirOld/"));
     testFilePath = remoteFs.makeQualified(new Path("/tmp/input/test.xml"));
-    remoteFs.copyFromLocalFile(new Path(testConfFile.getAbsolutePath()),
-        testFilePath);
     FileStatus fsStatus = remoteFs.getFileStatus(testFilePath);
     Assert.assertTrue(fsStatus.getLen() > 0);
 
@@ -226,4 +229,34 @@ public class TestMRInputHelpers {
 
     return MRInputHelpers.configureMRInputWithLegacySplitGeneration(jobConf, inputSplitsDir, true);
   }
+
+  @Test(timeout = 5000)
+  public void testInputSplitLocalResourceCreationWithDifferentFS() throws Exception {
+    FileSystem localFs = FileSystem.getLocal(conf);
+    Path LOCAL_TEST_ROOT_DIR = new Path("target"
+        + Path.SEPARATOR + TestMRHelpers.class.getName() + "-localtmpDir");
+
+    try {
+      localFs.mkdirs(LOCAL_TEST_ROOT_DIR);
+
+      Path splitsDir = localFs.resolvePath(LOCAL_TEST_ROOT_DIR);
+
+      DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(splitsDir);
+
+      Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
+
+      Assert.assertEquals(2, localResources.size());
+      Assert.assertTrue(localResources.containsKey(
+          MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+      Assert.assertTrue(localResources.containsKey(
+          MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
+
+      for (LocalResource lr : localResources.values()) {
+        Assert.assertFalse(lr.getResource().getScheme().contains(remoteFs.getScheme()));
+      }
+    } finally {
+      localFs.delete(LOCAL_TEST_ROOT_DIR, true);
+    }
+  }
+
 }
