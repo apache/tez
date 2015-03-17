@@ -209,9 +209,13 @@ public class Edge {
     Preconditions.checkState(edgeManager != null, 
         "Edge Manager must be initialized by this time");
     try {
+      int physicalInputCount = edgeManager.getNumDestinationTaskPhysicalInputs(destinationTaskIndex);
+      Preconditions.checkArgument(physicalInputCount >= 0,
+          "PhysicalInputCount should not be negative, "
+          + "physicalInputCount=" + physicalInputCount);
       return new InputSpec(sourceVertex.getName(),
           edgeProperty.getEdgeDestination(),
-          edgeManager.getNumDestinationTaskPhysicalInputs(destinationTaskIndex));
+          physicalInputCount);
     } catch (Exception e) {
       throw new AMUserCodeException(Source.EdgeManager,
           "Fail to getDestinationSpec, destinationTaskIndex="
@@ -223,9 +227,13 @@ public class Edge {
     Preconditions.checkState(edgeManager != null, 
         "Edge Manager must be initialized by this time");
     try {
+      int physicalOutputCount = edgeManager.getNumSourceTaskPhysicalOutputs(
+          sourceTaskIndex);
+      Preconditions.checkArgument(physicalOutputCount >= 0,
+          "PhysicalOutputCount should not be negative,"
+          + "physicalOutputCount=" + physicalOutputCount);
       return new OutputSpec(destinationVertex.getName(),
-          edgeProperty.getEdgeSource(), edgeManager.getNumSourceTaskPhysicalOutputs(
-          sourceTaskIndex));
+          edgeProperty.getEdgeSource(), physicalOutputCount);
     } catch (Exception e) {
       throw new AMUserCodeException(Source.EdgeManager,
           "Fail to getSourceSpec, sourceTaskIndex="
@@ -265,8 +273,14 @@ public class Edge {
         try {
           srcTaskIndex = edgeManager.routeInputErrorEventToSource(event,
               destTaskIndex, event.getIndex());
+          Preconditions.checkArgument(srcTaskIndex >= 0,
+              "SourceTaskIndex should not be negative,"
+              + "srcTaskIndex=" + srcTaskIndex);
           numConsumers = edgeManager.getNumDestinationConsumerTasks(
               srcTaskIndex);
+          Preconditions.checkArgument(numConsumers > 0,
+              "ConsumerTaskNum must be positive,"
+              + "numConsumers=" + numConsumers);
         } catch (Exception e) {
           throw new AMUserCodeException(Source.EdgeManager,
               "Fail to sendTezEventToSourceTasks, "
