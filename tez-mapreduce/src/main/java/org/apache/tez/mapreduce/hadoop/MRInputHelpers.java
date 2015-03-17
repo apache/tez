@@ -112,7 +112,7 @@ public class MRInputHelpers {
           .getName() : MRInput.class.getName())
           .setUserPayload(createMRInputPayload(conf, null));
       Map<String, LocalResource> additionalLocalResources = new HashMap<String, LocalResource>();
-      updateLocalResourcesForInputSplits(FileSystem.get(conf), inputSplitInfo,
+      updateLocalResourcesForInputSplits(conf, inputSplitInfo,
           additionalLocalResources);
       DataSourceDescriptor dsd =
           DataSourceDescriptor.create(inputDescriptor, null, inputSplitInfo.getNumTasks(),
@@ -618,13 +618,13 @@ public class MRInputHelpers {
    * Update provided localResources collection with the required local
    * resources needed by MapReduce tasks with respect to Input splits.
    *
-   * @param fs Filesystem instance to access status of splits related files
+   * @param conf Configuration
    * @param inputSplitInfo Information on location of split files
    * @param localResources LocalResources collection to be updated
    * @throws IOException
    */
   private static void updateLocalResourcesForInputSplits(
-      FileSystem fs,
+      Configuration conf,
       InputSplitInfo inputSplitInfo,
       Map<String, LocalResource> localResources) throws IOException {
     if (localResources.containsKey(JOB_SPLIT_RESOURCE_NAME)) {
@@ -636,10 +636,12 @@ public class MRInputHelpers {
           + " resource named " + JOB_SPLIT_METAINFO_RESOURCE_NAME);
     }
 
+    FileSystem splitsFS = inputSplitInfo.getSplitsFile().getFileSystem(conf);
     FileStatus splitFileStatus =
-        fs.getFileStatus(inputSplitInfo.getSplitsFile());
+        splitsFS.getFileStatus(inputSplitInfo.getSplitsFile());
     FileStatus metaInfoFileStatus =
-        fs.getFileStatus(inputSplitInfo.getSplitsMetaInfoFile());
+        splitsFS.getFileStatus(inputSplitInfo.getSplitsMetaInfoFile());
+
     localResources.put(JOB_SPLIT_RESOURCE_NAME,
         LocalResource.newInstance(
             ConverterUtils.getYarnUrlFromPath(inputSplitInfo.getSplitsFile()),
