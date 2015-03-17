@@ -28,8 +28,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -45,7 +47,6 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -114,13 +115,23 @@ public class MROutput extends AbstractLogicalOutput {
         useNewApi = conf.getBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, true);
         try {
           if (useNewApi) {
-            this.outputFormat = conf.getClassByName(conf.get(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR));
+            String outputClass = conf.get(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR);
+            if (StringUtils.isEmpty(outputClass)) {
+              throw new TezUncheckedException("no outputFormat setting on Configuration, useNewAPI:" + useNewApi);
+            }
+            this.outputFormat = conf.getClassByName(outputClass);
             Preconditions.checkState(org.apache.hadoop.mapreduce.OutputFormat.class
-                .isAssignableFrom(this.outputFormat));
+                .isAssignableFrom(this.outputFormat), "outputFormat must be assignable from "
+                    + "org.apache.hadoop.mapreduce.OutputFormat");
           } else {
-            this.outputFormat = conf.getClassByName(conf.get("mapred.output.format.class"));
+            String outputClass = conf.get("mapred.output.format.class");
+            if (StringUtils.isEmpty(outputClass)) {
+              throw new TezUncheckedException("no outputFormat setting on Configuration, useNewAPI:" + useNewApi);
+            }
+            this.outputFormat = conf.getClassByName(outputClass);
             Preconditions.checkState(org.apache.hadoop.mapred.OutputFormat.class
-                .isAssignableFrom(this.outputFormat));
+                .isAssignableFrom(this.outputFormat), "outputFormat must be assignable from "
+                    + "org.apache.hadoop.mapred.OutputFormat");
           }
         } catch (ClassNotFoundException e) {
           throw new TezUncheckedException(e);
@@ -132,7 +143,7 @@ public class MROutput extends AbstractLogicalOutput {
     private MROutputConfigBuilder setOutputPath(String outputPath) {
       if (!(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.isAssignableFrom(outputFormat) || 
           FileOutputFormat.class.isAssignableFrom(outputFormat))) {
-        throw new TezUncheckedException("When setting outputPath the outputFormat must " + 
+        throw new TezUncheckedException("When setting outputPath the outputFormat must " +
             "be assignable from either org.apache.hadoop.mapred.FileOutputFormat or " +
             "org.apache.hadoop.mapreduce.lib.output.FileOutputFormat. " +
             "Otherwise use the non-path config builder." +
@@ -311,10 +322,13 @@ public class MROutput extends AbstractLogicalOutput {
 
   private TezCounter outputRecordCounter;
 
-  private TaskAttemptContext newApiTaskAttemptContext;
-  private org.apache.hadoop.mapred.TaskAttemptContext oldApiTaskAttemptContext;
+  @VisibleForTesting
+  TaskAttemptContext newApiTaskAttemptContext;
+  @VisibleForTesting
+  org.apache.hadoop.mapred.TaskAttemptContext oldApiTaskAttemptContext;
 
-  private boolean isMapperOutput;
+  @VisibleForTesting
+  boolean isMapperOutput;
 
   protected OutputCommitter committer;
 
@@ -334,7 +348,7 @@ public class MROutput extends AbstractLogicalOutput {
     this.jobConf = new JobConf(conf);
     // Add tokens to the jobConf - in case they are accessed within the RW / OF
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
-    this.useNewApi = this.jobConf.getUseNewMapper();
+    this.useNewApi = this.jobConf.getUseNewReducer();
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
         false);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
