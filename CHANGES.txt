@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2203. Intern strings in tez counters
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions

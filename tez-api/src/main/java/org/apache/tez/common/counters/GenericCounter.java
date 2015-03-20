@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.util.StringInterner;
 
 /**
  * A generic counter implementation
@@ -41,13 +42,12 @@ public class GenericCounter extends AbstractCounter {
   }
 
   public GenericCounter(String name, String displayName) {
-    this.name = name;
-    this.displayName = displayName;
+    this(name, displayName, 0);
   }
 
   public GenericCounter(String name, String displayName, long value) {
-    this.name = name;
-    this.displayName = displayName;
+    this.name = StringInterner.weakIntern(name);
+    this.displayName = StringInterner.weakIntern(displayName);
     this.value = value;
   }
 
@@ -58,8 +58,8 @@ public class GenericCounter extends AbstractCounter {
 
   @Override
   public synchronized void readFields(DataInput in) throws IOException {
-    name = Text.readString(in);
-    displayName = in.readBoolean() ? Text.readString(in) : name;
+    name = StringInterner.weakIntern(Text.readString(in));
+    displayName = in.readBoolean() ? StringInterner.weakIntern(Text.readString(in)) : name;
     value = WritableUtils.readVLong(in);
   }
 
