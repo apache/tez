@@ -29,13 +29,16 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.google.common.base.Joiner;
+
 import static com.google.common.base.Preconditions.*;
+
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.util.StringInterner;
 
 /**
  * An abstract class to provide common implementation of the filesystem
@@ -54,7 +57,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
   // Just a few local casts probably worth not having to carry it around.
   private final Map<String, Object[]> map =
     new ConcurrentSkipListMap<String, Object[]>();
-  private String displayName = "File System Counters";
+  private String displayName = StringInterner.weakIntern("File System Counters");
 
   private static final Joiner NAME_JOINER = Joiner.on('_');
 
@@ -65,7 +68,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
     private long value;
 
     public FSCounter(String scheme, FileSystemCounter ref) {
-      this.scheme = scheme;
+      this.scheme = scheme; // this is interned in the checkScheme() method via a map
       key = ref;
     }
 
@@ -122,7 +125,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
 
   @Override
   public void setDisplayName(String displayName) {
-    this.displayName = displayName;
+    this.displayName = StringInterner.weakIntern(displayName);
   }
 
   @Override

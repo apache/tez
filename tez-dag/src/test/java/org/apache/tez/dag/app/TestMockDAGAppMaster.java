@@ -18,7 +18,11 @@
 
 package org.apache.tez.dag.app;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,11 +30,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -64,6 +72,7 @@ import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -245,6 +254,12 @@ public class TestMockDAGAppMaster {
             Edge.create(vA, vB, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
                 DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
                 OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
+    TezCounters temp = new TezCounters();
+    temp.findCounter(new String(globalCounterName), new String(globalCounterName)).increment(1);
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    DataOutput out = new DataOutputStream(bos);
+    temp.write(out);
+    final byte[] payload = bos.toByteArray();
 
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
@@ -254,7 +269,15 @@ public class TestMockDAGAppMaster {
       public TezCounters getCounters(TaskSpec taskSpec) {
         String vName = taskSpec.getVertexName();
         TezCounters counters = new TezCounters();
-        counters.findCounter(globalCounterName, globalCounterName).increment(1);
+        final DataInputByteBuffer in  = new DataInputByteBuffer();
+        in.reset(ByteBuffer.wrap(payload));
+        try {
+          // this ensures that the serde code path is covered.
+          // the internal merges of counters covers the constructor code path.
+          counters.readFields(in);
+        } catch (IOException e) {
+          Assert.fail(e.getMessage());
+        }
         counters.findCounter(vName, procCounterName).increment(1);
         for (OutputSpec output : taskSpec.getOutputs()) {
           counters.findCounter(vName, output.getDestinationVertexName()).increment(1);
@@ -281,7 +304,93 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(1, counters.findCounter(vBName, vAName).getValue());
     // verify global counters
     Assert.assertEquals(11, counters.findCounter(globalCounterName, globalCounterName).getValue());
+    VertexImpl vAImpl = (VertexImpl) dagImpl.getVertex(vAName);
+    VertexImpl vBImpl = (VertexImpl) dagImpl.getVertex(vBName);
+    TezCounters vACounters = vAImpl.getAllCounters();
+    TezCounters vBCounters = vBImpl.getAllCounters();
+    String vACounterName = vACounters.findCounter(globalCounterName, globalCounterName).getName();
+    String vBCounterName = vBCounters.findCounter(globalCounterName, globalCounterName).getName();
+    if (vACounterName != vBCounterName) {
+      Assert.fail("String counter name objects dont match despite interning.");
+    }
+    CounterGroup vaGroup = vACounters.getGroup(globalCounterName);
+    String vaGrouName = vaGroup.getName();
+    CounterGroup vBGroup = vBCounters.getGroup(globalCounterName);
+    String vBGrouName = vBGroup.getName();
+    if (vaGrouName != vBGrouName) {
+      Assert.fail("String group name objects dont match despite interning.");
+    }
     
+    tezClient.stop();
+  }
+  
+  private void checkMemory(String name, MockDAGAppMaster mockApp) {                
+    long mb = 1024*1024;                                                           
+                                                                                   
+    //Getting the runtime reference from system                                    
+    Runtime runtime = Runtime.getRuntime();                                        
+                                                                                   
+    System.out.println("##### Heap utilization statistics [MB] for " + name);      
+                                                                                   
+    runtime.gc();                                                                  
+                                                                                   
+    //Print used memory                                                            
+    System.out.println("##### Used Memory:"                                        
+        + (runtime.totalMemory() - runtime.freeMemory()) / mb);                    
+                                                                                    
+    //Print free memory                                                            
+    System.out.println("##### Free Memory:"                                        
+        + runtime.freeMemory() / mb);                                              
+                                                                                   
+    //Print total available memory                                                 
+    System.out.println("##### Total Memory:" + runtime.totalMemory() / mb);        
+                                                                                   
+    //Print Maximum available memory                                               
+    System.out.println("##### Max Memory:" + runtime.maxMemory() / mb);            
+  }  
+
+  @Ignore
+  @Test (timeout = 60000)
+  public void testBasicCounterMemory() throws Exception {
+    Logger.getRootLogger().setLevel(Level.WARN);
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
+        null, false, false);
+    tezClient.start();
+
+    final String vAName = "A";
+    
+    DAG dag = DAG.create("testBasicCounters");
+    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10000);
+    dag.addVertex(vA);
+
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+    mockApp.countersDelegate = new CountersDelegate() {
+      @Override
+      public TezCounters getCounters(TaskSpec taskSpec) {
+        TezCounters counters = new TezCounters();
+        final String longName = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+        final String shortName = "abcdefghijklmnopqrstuvwxyz";
+        for (int i=0; i<6; ++i) {
+          for (int j=0; j<15; ++j) {
+            counters.findCounter((i + longName), (i + (shortName))).increment(1);
+          }
+        }
+        return counters;
+      }
+    };
+    mockApp.doSleep = false;
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    mockLauncher.startScheduling(true);
+    DAGStatus status = dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    TezCounters counters = dagImpl.getAllCounters();
+    Assert.assertNotNull(counters);
+    checkMemory(dag.getName(), mockApp);
     tezClient.stop();
   }
   
