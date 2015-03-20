@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.util.StringInterner;
 
 import com.google.common.collect.Iterators;
 
@@ -49,8 +50,8 @@ public abstract class AbstractCounterGroup<T extends TezCounter>
 
   public AbstractCounterGroup(String name, String displayName,
                               Limits limits) {
-    this.name = name;
-    this.displayName = displayName;
+    this.name = StringInterner.weakIntern(name);
+    this.displayName = StringInterner.weakIntern(displayName);
     this.limits = limits;
   }
 
@@ -160,7 +161,7 @@ public abstract class AbstractCounterGroup<T extends TezCounter>
 
   @Override
   public synchronized void readFields(DataInput in) throws IOException {
-    displayName = Text.readString(in);
+    displayName = StringInterner.weakIntern(Text.readString(in));
     counters.clear();
     int size = WritableUtils.readVInt(in);
     for (int i = 0; i < size; i++) {

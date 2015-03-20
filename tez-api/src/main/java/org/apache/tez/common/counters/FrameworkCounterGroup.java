@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import com.google.common.base.Joiner;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -60,7 +59,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
 
     public FrameworkCounter(T ref, String groupName) {
       key = ref;
-      this.groupName = groupName;
+      this.groupName = groupName; // this is interned in the fmap/i2s of CounterGroupFactory
     }
 
     @Override
