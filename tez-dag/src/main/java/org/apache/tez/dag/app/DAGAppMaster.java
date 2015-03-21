@@ -86,8 +86,10 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.AsyncDispatcher;
+import org.apache.tez.common.GcTimeUpdater;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -283,6 +285,9 @@ public class DAGAppMaster extends AbstractService {
   private String clientVersion;
   private boolean versionMismatch = false;
   private String versionMismatchDiagnostics;
+  
+  private ResourceCalculatorProcessTree cpuPlugin;
+  private GcTimeUpdater gcPlugin;
 
   // must be LinkedHashMap to preserve order of service addition
   Map<Service, ServiceWithDependency> services =
@@ -319,11 +324,44 @@ public class DAGAppMaster extends AbstractService {
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo.toString());
   }
+  
+  private void initResourceCalculatorPlugins() {
+    Class<? extends ResourceCalculatorProcessTree> clazz = amConf.getClass(
+        TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
+        ResourceCalculatorProcessTree.class);
+
+    // this is set by YARN NM
+    String pid = System.getenv().get("JVM_PID");
+    // for the local debug test cases fallback to JVM hooks that are not portable
+    if (pid == null || pid.length() == 0) {
+      String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+      pid = processName.split("@")[0];
+    }
+    cpuPlugin = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, clazz, amConf);
+    
+    gcPlugin = new GcTimeUpdater(null);
+  }
+  
+  private long getAMCPUTime() {
+    if (cpuPlugin != null) {
+      cpuPlugin.updateProcessTree();
+      return cpuPlugin.getCumulativeCpuTime();
+    }
+    return 0;
+  }
+
+  private long getAMGCTime() {
+    if (gcPlugin != null) {
+      return gcPlugin.getCumulativaGcTime();
+    }
+    return 0;
+  }
 
   @Override
   public synchronized void serviceInit(final Configuration conf) throws Exception {
 
     this.amConf = conf;
+    initResourceCalculatorPlugins();
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
 
@@ -1377,6 +1415,16 @@ public class DAGAppMaster extends AbstractService {
         wLock.unlock();
       }
     }
+
+    @Override
+    public long getCumulativeCPUTime() {
+      return getAMCPUTime();
+    }
+    
+    @Override
+    public long getCumulativeGCTime() {
+      return getAMGCTime();
+    }
   }
 
   private static class ServiceWithDependency implements ServiceStateChangeListener {
@@ -2007,7 +2055,6 @@ public class DAGAppMaster extends AbstractService {
   private void startDAGExecution(DAG dag, final Map<String, LocalResource> additionalAmResources)
       throws TezException {
     currentDAG = dag;
-
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;
     try {

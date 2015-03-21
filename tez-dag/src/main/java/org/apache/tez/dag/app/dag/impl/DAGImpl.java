@@ -55,6 +55,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -64,7 +65,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
-import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -179,6 +179,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final DAGPlan jobPlan;
   
   Map<String, LocalResource> localResources;
+  
+  long startDAGCpuTime = 0;
+  long startDAGGCTime = 0;
 
   private final List<String> diagnostics = new ArrayList<String>();
 
@@ -460,7 +463,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     this.aclManager = new ACLManager(appContext.getAMACLManager(), dagUGI.getShortUserName(),
         this.dagConf);
-
+    // this is only for recovery in case it does not call the init transition
+    this.startDAGCpuTime = appContext.getCumulativeCPUTime();
+    this.startDAGGCTime = appContext.getCumulativeGCTime();
+    
     this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(dagConf);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
@@ -605,6 +611,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return fullCounters;
       }
 
+      // dag not yet finished. update cpu time counters
+      updateCpuCounters();
       TezCounters counters = new TezCounters();
       counters.incrAllCounters(dagCounters);
       return incrTaskCounters(counters, vertices.values());
@@ -1155,27 +1163,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return dag.getInternalState();
   }
 
-  private synchronized DAGState finished(DAGState finalState) {
-    // TODO Metrics
-    /*
-    if (getInternalState() == DAGState.RUNNING) {
-      metrics.endRunningJob(this);
-    }
-    */
-    // TODO Metrics
-    /*
-    switch (finalState) {
-      case KILLED:
-        metrics.killedJob(this);
-        break;
-      case FAILED:
-        metrics.failedJob(this);
-        break;
-      case SUCCEEDED:
-        metrics.completedJob(this);
-    }
-    */
-
+  private void updateCpuCounters() {
+    long stopDAGCpuTime = appContext.getCumulativeCPUTime();
+    long totalDAGCpuTime = stopDAGCpuTime - startDAGCpuTime;
+    long stopDAGGCTime = appContext.getCumulativeGCTime();
+    long totalDAGGCTime = stopDAGGCTime - startDAGGCTime;
+    dagCounters.findCounter(DAGCounter.AM_CPU_MILLISECONDS).setValue(totalDAGCpuTime);
+    dagCounters.findCounter(DAGCounter.AM_GC_TIME_MILLIS).setValue(totalDAGGCTime);
+  }
+  
+  private DAGState finished(DAGState finalState) {
     if (finishTime == 0) {
       setFinishTime();
     }
@@ -1188,6 +1185,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     boolean recoveryError = false;
+
+    // update cpu time counters before finishing the dag
+    updateCpuCounters();
+    
     try {
       if (finalState == DAGState.SUCCEEDED) {
         logJobHistoryFinishedEvent();
@@ -1209,29 +1210,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     LOG.info("DAG: " + getID() + " finished with state: " + finalState);
     return finalState;
-  }
-
-  private DAGStatus.State getDAGStatusFromState(DAGState finalState) {
-    switch (finalState) {
-      case NEW:
-        return DAGStatus.State.INITING;
-      case INITED:
-        return DAGStatus.State.INITING;
-      case RUNNING:
-        return DAGStatus.State.RUNNING;
-      case SUCCEEDED:
-        return DAGStatus.State.SUCCEEDED;
-      case FAILED:
-        return DAGStatus.State.FAILED;
-      case KILLED:
-        return DAGStatus.State.KILLED;
-      case ERROR:
-        return DAGStatus.State.ERROR;
-      case TERMINATING:
-        return DAGStatus.State.KILLED;
-      default:
-        throw new TezUncheckedException("Unknown DAGState: " + finalState);
-    }
   }
 
   @Override
@@ -1596,6 +1574,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // TODO Metrics
       //dag.metrics.submittedJob(dag);
       //dag.metrics.preparingJob(dag);
+      dag.startDAGCpuTime = dag.appContext.getCumulativeCPUTime();
+      dag.startDAGGCTime = dag.appContext.getCumulativeGCTime();
 
       DAGState state = dag.initializeDAG();
       if (state != DAGState.INITED) {

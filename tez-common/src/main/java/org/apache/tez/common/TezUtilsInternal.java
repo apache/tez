@@ -26,7 +26,6 @@ import java.nio.charset.Charset;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
@@ -36,13 +35,11 @@ import java.util.zip.Inflater;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.TextFormat;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -57,7 +54,6 @@ import com.google.common.base.Stopwatch;
 public class TezUtilsInternal {
 
   private static final Log LOG = LogFactory.getLog(TezUtilsInternal.class);
-  private static final Random RANDOM = new Random();
 
   public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
       IOException {

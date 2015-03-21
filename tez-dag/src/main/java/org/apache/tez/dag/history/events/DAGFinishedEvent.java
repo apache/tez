@@ -51,7 +51,6 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   private TezCounters tezCounters;
   private String user;
   private String dagName;
-
   Map<String, Integer> dagTaskStats;
 
   public DAGFinishedEvent() {

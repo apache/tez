@@ -26,8 +26,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.util.ShutdownHookManager;
@@ -45,8 +44,7 @@ import com.google.common.collect.Maps;
  * class and a thread pool can be used to dispatch the events.
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
-@Public
-@Evolving
+@Private
 public class AsyncDispatcher extends CompositeService implements Dispatcher {
 
   private static final Log LOG = LogFactory.getLog(AsyncDispatcher.class);

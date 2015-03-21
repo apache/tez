@@ -22,7 +22,6 @@ import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Uses sun's MBeans to return process information.

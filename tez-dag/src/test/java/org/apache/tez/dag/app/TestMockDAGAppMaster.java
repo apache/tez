@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -296,6 +297,7 @@ public class TestMockDAGAppMaster {
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     TezCounters counters = dagImpl.getAllCounters();
+    Assert.assertTrue(counters.findCounter(DAGCounter.AM_CPU_MILLISECONDS).getValue() > 0);
     // verify processor counters
     Assert.assertEquals(10, counters.findCounter(vAName, procCounterName).getValue());
     Assert.assertEquals(1, counters.findCounter(vBName, procCounterName).getValue());
