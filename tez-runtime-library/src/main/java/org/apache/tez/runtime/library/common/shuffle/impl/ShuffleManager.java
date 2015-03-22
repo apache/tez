@@ -25,6 +25,7 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -168,7 +169,7 @@ public class ShuffleManager implements FetcherCallback {
 
   //To track shuffleInfo events when finalMerge is disabled OR pipelined shuffle is enabled in source.
   @VisibleForTesting
-  final Map<InputAttemptIdentifier, ShuffleEventInfo> shuffleInfoEventsMap = Maps.newHashMap();
+  final Map<InputIdentifier, ShuffleEventInfo> shuffleInfoEventsMap;
 
   // TODO More counters - FetchErrors, speed?
   
@@ -250,6 +251,8 @@ public class ShuffleManager implements FetcherCallback {
         localDirAllocator.getAllLocalPathsToRead(".", conf), Path.class);
 
     Arrays.sort(this.localDisks);
+
+    shuffleInfoEventsMap = new ConcurrentHashMap<InputIdentifier, ShuffleEventInfo>();
 
     LOG.info(this.getClass().getSimpleName() + " : numInputs=" + numInputs + ", compressionCodec="
         + (codec == null ? "NoCompressionCodec" : codec.getClass().getName()) + ", numFetchers="
@@ -354,6 +357,24 @@ public class ShuffleManager implements FetcherCallback {
       return null;
     }
   }
+
+  private boolean validateInputAttemptForPipelinedShuffle(InputAttemptIdentifier input) {
+    //For pipelined shuffle.
+    //TODO: TEZ-2132 for error handling. As of now, fail fast if there is a different attempt
+    if (input.canRetrieveInputInChunks()) {
+      ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(input.getInputIdentifier());
+      if (eventInfo != null && input.getAttemptNumber() != eventInfo.attemptNum) {
+        //speculative attempts or failure attempts. Fail fast here.
+        reportFatalError(new IOException(), input + " already exists. "
+            + "Previous attempt's data could have been already merged "
+            + "to memory/disk outputs.  Failing the fetch early. currentAttemptNum=" + eventInfo
+            .attemptNum + ", eventsProcessed=" + eventInfo.eventsProcessed + ", newAttemptNum=" +
+            input.getAttemptNumber());
+        return false;
+      }
+    }
+    return true;
+  }
   
   private Fetcher constructFetcherForHost(InputHost inputHost, Configuration conf) {
 
@@ -385,12 +406,7 @@ public class ShuffleManager implements FetcherCallback {
       InputAttemptIdentifier input = inputIter.next();
 
       //For pipelined shuffle.
-      //TODO: TEZ-2132 for error handling. As of now, fail fast if there is a different attempt
-      if (input.canRetrieveInputInChunks() && input.getAttemptNumber() > 0) {
-        //speculative attempts or failure attempts. Fail fast here.
-        reportFatalError(new IOException(), input + " already exists. "
-            + "Previous attempt's data could have been already merged "
-            + "to memory/disk outputs.  Failing the fetch early instead of adding to fetcher");
+      if (!validateInputAttemptForPipelinedShuffle(input)) {
         continue;
       }
 
@@ -431,18 +447,13 @@ public class ShuffleManager implements FetcherCallback {
       LOG.debug("Adding input: " + srcAttemptIdentifier + ", to host: " + host);
     }
 
-    if (srcAttemptIdentifier.canRetrieveInputInChunks()) {
-      //TODO: need to check for speculative tasks later. TEZ-2132
-      if (srcAttemptIdentifier.getAttemptNumber() > 0) {
-        //speculative attempts or failure attempts. Fail fast here.
-        reportFatalError(new IOException(), srcAttemptIdentifier + " already exists. "
-            + "Previous attempt's data could have been already merged "
-            + "to memory/disk outputs.  Failing the fetch early instead of adding to addKnownInput");
-        return;
-      }
-      if (shuffleInfoEventsMap.get(srcAttemptIdentifier) == null) {
-        shuffleInfoEventsMap.put(srcAttemptIdentifier, new ShuffleEventInfo(srcAttemptIdentifier));
-      }
+    if (!validateInputAttemptForPipelinedShuffle(srcAttemptIdentifier)) {
+      return;
+    }
+
+    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    if (shuffleInfoEventsMap.get(inputIdentifier) == null) {
+      shuffleInfoEventsMap.put(inputIdentifier, new ShuffleEventInfo(srcAttemptIdentifier));
     }
 
     host.addKnownInput(srcAttemptIdentifier);
@@ -555,12 +566,14 @@ public class ShuffleManager implements FetcherCallback {
   static class ShuffleEventInfo {
     BitSet eventsProcessed;
     int finalEventId = -1; //0 indexed
+    int attemptNum;
     String id;
 
 
     ShuffleEventInfo(InputAttemptIdentifier input) {
       this.id = input.getInputIdentifier().getInputIndex() + "_" + input.getAttemptNumber();
       this.eventsProcessed = new BitSet();
+      this.attemptNum = input.getAttemptNumber();
     }
 
     void spillProcessed(int spillId) {
@@ -584,7 +597,7 @@ public class ShuffleManager implements FetcherCallback {
 
     public String toString() {
       return "[eventsProcessed=" + eventsProcessed + ", finalEventId=" + finalEventId
-          +  ", id=" + id + "]";
+          +  ", id=" + id + ", attemptNum=" + attemptNum + "]";
     }
   }
 
@@ -699,21 +712,17 @@ public class ShuffleManager implements FetcherCallback {
      * For pipelinedshuffle it is possible to get multiple spills. Claim success only when
      * all spills pertaining to an attempt are done.
      */
-    ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(srcAttemptIdentifier);
-
-    //TODO: need to check for speculative tasks later. TEZ-2132
-    if (srcAttemptIdentifier.getAttemptNumber() > 0) {
-      //speculative attempts or failure attempts. Fail fast here.
-      reportFatalError(new IOException(), "Previous event already got scheduled for " +
-          srcAttemptIdentifier + ". Previous attempt's data could have been already merged "
-          + "to memory/disk outputs.  Failing the fetch early.");
+    if (!validateInputAttemptForPipelinedShuffle(srcAttemptIdentifier)) {
       return;
     }
+
+    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(inputIdentifier);
 
     //for empty partition case
     if (eventInfo == null && fetchedInput instanceof NullFetchedInput) {
       eventInfo = new ShuffleEventInfo(srcAttemptIdentifier);
-      shuffleInfoEventsMap.put(srcAttemptIdentifier, eventInfo);
+      shuffleInfoEventsMap.put(inputIdentifier, eventInfo);
     }
 
     assert(eventInfo != null);
@@ -737,7 +746,7 @@ public class ShuffleManager implements FetcherCallback {
       //check if we downloaded all spills pertaining to this InputAttemptIdentifier
       if (eventInfo.isDone()) {
         adjustCompletedInputs(fetchedInput);
-        shuffleInfoEventsMap.remove(srcAttemptIdentifier);
+        shuffleInfoEventsMap.remove(srcAttemptIdentifier.getInputIdentifier());
       }
     } finally {
       lock.unlock();

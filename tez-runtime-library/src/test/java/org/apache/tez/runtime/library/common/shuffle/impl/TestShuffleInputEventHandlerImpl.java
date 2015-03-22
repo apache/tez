@@ -18,21 +18,41 @@
 
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.token.Token;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.junit.Test;
@@ -44,6 +64,7 @@ public class TestShuffleInputEventHandlerImpl {
   private static final String HOST = "localhost";
   private static final int PORT = 8080;
   private static final String PATH_COMPONENT = "attempttmp";
+  private final Configuration conf = new Configuration();
 
   @Test(timeout = 5000)
   public void testSimple() throws IOException {
@@ -132,6 +153,170 @@ public class TestShuffleInputEventHandlerImpl {
 
     verify(shuffleManager).addCompletedInputWithNoData(eq(expectedIdentifier1));
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier2), eq(0));
+  }
+
+
+  private InputContext createInputContext() {
+    InputContext inputContext = mock(InputContext.class);
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    return inputContext;
+  }
+
+  @SuppressWarnings("unchecked")
+  private ShuffleManager createShuffleManager(InputContext inputContext) throws IOException {
+    Path outDirBase = new Path(".", "outDir");
+    String[] outDirs = new String[] { outDirBase.toString() };
+    doReturn(outDirs).when(inputContext).getWorkDirs();
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, inputContext.getWorkDirs());
+
+    DataOutputBuffer out = new DataOutputBuffer();
+    Token<JobTokenIdentifier> token = new Token(new JobTokenIdentifier(), new JobTokenSecretManager(null));
+    token.write(out);
+    doReturn(ByteBuffer.wrap(out.getData())).when(inputContext).getServiceConsumerMetaData(
+        TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID);
+
+    FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
+    ShuffleManager realShuffleManager = new ShuffleManager(inputContext, conf, 2,
+        1024, false, -1, null, inputAllocator);
+    ShuffleManager shuffleManager = spy(realShuffleManager);
+    return shuffleManager;
+  }
+
+  /**
+   * In pipelined shuffle, check if multiple attempt numbers are processed and
+   * exceptions are reported properly.
+   *
+   * @throws IOException
+   */
+  @Test(timeout = 5000)
+  public void testPipelinedShuffleEvents() throws IOException {
+
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext);
+    FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
+
+    ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
+        shuffleManager, inputAllocator, null, false, 0);
+
+    //0--> 1 with spill id 0 (attemptNum 0)
+    Event dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 0);
+    handler.handleEvents(Collections.singletonList(dme));
+
+    InputAttemptIdentifier expectedId1 = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+    verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId1), eq(0));
+
+    //0--> 1 with spill id 1 (attemptNum 0)
+    dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 0);
+    handler.handleEvents(Collections.singletonList(dme));
+
+    InputAttemptIdentifier expectedId2 = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
+    verify(shuffleManager, times(2)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId2), eq(0));
+
+    //0--> 1 with spill id 1 (attemptNum 1).  This should report exception
+    dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 1);
+    handler.handleEvents(Collections.singletonList(dme));
+    verify(inputContext).fatalError(any(Throwable.class), anyString());
+  }
+
+  /**
+   * In pipelined shuffle, check if processing & exceptions are done correctly when attempts are
+   * received in out of order fashion (e.g attemptNum 1 arrives before attemptNum 0)
+   *
+   * @throws IOException
+   */
+  @Test(timeout = 5000)
+  public void testPipelinedShuffleEvents_WithOutOfOrderAttempts() throws IOException {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext);
+    FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
+
+    ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
+        shuffleManager, inputAllocator, null, false, 0);
+
+    //0--> 1 with spill id 0 (attemptNum 1).  attemptNum 0 is not sent.
+    Event dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 1);
+    handler.handleEvents(Collections.singletonList(dme));
+
+    InputAttemptIdentifier expected = new InputAttemptIdentifier(new InputIdentifier(1), 1,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
+    verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expected), eq(0));
+
+    //Now send attemptNum 0.  This should throw exception, because attempt #1 is already added
+    dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 0);
+    handler.handleEvents(Collections.singletonList(dme));
+    verify(inputContext).fatalError(any(Throwable.class), anyString());
+  }
+
+  /**
+   * In pipelined shuffle, check if processing & exceptions are done correctly when empty
+   * partitions are sent
+   *
+   * @throws IOException
+   */
+  @Test(timeout = 5000)
+  public void testPipelinedShuffleEvents_WithEmptyPartitions() throws IOException {
+    InputContext inputContext = createInputContext();
+    ShuffleManager shuffleManager = createShuffleManager(inputContext);
+    FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
+
+    ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
+        shuffleManager, inputAllocator, null, false, 0);
+
+    //0--> 1 with spill id 0 (attemptNum 0) with empty partitions
+    BitSet bitSet = new BitSet(4);
+    bitSet.flip(0, 4);
+    Event dme = createDataMovementEvent(true, 0, 1, 0, false, bitSet, 4, 0);
+    handler.handleEvents(Collections.singletonList(dme));
+
+    InputAttemptIdentifier expected = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+    verify(shuffleManager, times(1)).addCompletedInputWithNoData(expected);
+
+    //0--> 1 with spill id 1 (attemptNum 0)
+    handler.handleEvents(Collections.singletonList(dme));
+    dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 0);
+    expected = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
+    verify(shuffleManager, times(2)).addCompletedInputWithNoData(expected);
+
+
+    //Now send attemptNum 1.  This should throw exception, because attempt #1 is already added
+    dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 1);
+    handler.handleEvents(Collections.singletonList(dme));
+    verify(inputContext).fatalError(any(Throwable.class), anyString());
+  }
+
+  private Event createDataMovementEvent(boolean addSpillDetails, int srcIdx, int targetIdx,
+      int spillId, boolean isLastSpill, BitSet emptyPartitions, int numPartitions, int attemptNum)
+      throws IOException {
+
+    DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
+        .newBuilder();
+
+    if (emptyPartitions.cardinality() != 0) {
+      // Empty partitions exist
+      ByteString emptyPartitionsByteString =
+          TezCommonUtils.compressByteArrayToByteString(TezUtilsInternal.toByteArray(emptyPartitions));
+      payloadBuilder.setEmptyPartitions(emptyPartitionsByteString);
+    }
+
+    if (emptyPartitions.cardinality() != numPartitions) {
+      // Populate payload only if at least 1 partition has data
+      payloadBuilder.setHost(HOST);
+      payloadBuilder.setPort(PORT);
+      payloadBuilder.setPathComponent("attemptPath");
+    }
+
+    if (addSpillDetails) {
+      payloadBuilder.setSpillId(spillId);
+      payloadBuilder.setLastEvent(isLastSpill);
+    }
+
+    ByteBuffer payload = payloadBuilder.build().toByteString().asReadOnlyByteBuffer();
+    return  DataMovementEvent.create(srcIdx, targetIdx, attemptNum, payload);
   }
   
   private Event createDataMovementEvent(int srcIndex, int targetIndex,

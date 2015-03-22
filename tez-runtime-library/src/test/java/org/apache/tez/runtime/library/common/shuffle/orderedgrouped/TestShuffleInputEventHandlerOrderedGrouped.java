@@ -27,10 +27,12 @@ import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,22 +79,28 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
       ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
-      finalMergeDisabled, boolean incrementalEvent) {
-    return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
-        allPartitionsEmpty, finalMergeDisabled, incrementalEvent, 0);
-  }
-
-  private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
       finalMergeDisabled, boolean incrementalEvent, int spillId) {
     return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
         allPartitionsEmpty, finalMergeDisabled, incrementalEvent, spillId, HOST, PORT);
   }
 
+  private Event createDataMovementEvent(int srcIndex, int targetIndex,
+      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
+      finalMergeDisabled, boolean incrementalEvent, int spillId, int attemptNum) {
+    return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
+        allPartitionsEmpty, finalMergeDisabled, incrementalEvent, spillId, HOST, PORT, attemptNum);
+  }
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
       ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
       finalMergeDisabled, boolean incrementalEvent, int spillId, String host, int port) {
+    return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
+        allPartitionsEmpty, finalMergeDisabled, incrementalEvent, spillId, host, port, 0);
+  }
+
+  private Event createDataMovementEvent(int srcIndex, int targetIndex,
+      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
+      finalMergeDisabled, boolean incrementalEvent, int spillId, String host, int port, int attemptNum) {
     ShuffleUserPayloads.DataMovementEventPayloadProto.Builder builder =
         ShuffleUserPayloads.DataMovementEventPayloadProto
             .newBuilder();
@@ -110,7 +118,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
       builder.setEmptyPartitions(emptyPartitionByteString);
     }
     return DataMovementEvent
-        .create(srcIndex, targetIndex, 0, builder.build().toByteString().asReadOnlyByteBuffer());
+        .create(srcIndex, targetIndex, attemptNum, builder.build().toByteString().asReadOnlyByteBuffer());
   }
 
   @Before
@@ -139,7 +147,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
         inputContext,
         config,
         numInputs,
-        null,
+        mock(Shuffle.class),
         shuffledInputsCounter,
         reduceShuffleBytes,
         reduceDataSizeDecompressed,
@@ -153,8 +161,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     mergeManager = mock(MergeManager.class);
   }
 
-  @Test
-  public void testFinalMergeDisabledEvents() throws IOException, InterruptedException {
+  @Test (timeout = 10000)
+  public void testPiplinedShuffleEvents() throws IOException, InterruptedException {
     //test with 2 events per input (2 inputs)
     int attemptNum = 0;
     int inputIdx = 0;
@@ -166,7 +174,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     String baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
     int partitionId = attemptNum;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId), eq(baseUri), eq(id1));
-    verify(scheduler).shuffleInfoEventsMap.containsKey(id1);
+    verify(scheduler).shuffleInfoEventsMap.containsKey(id1.getInputIdentifier());
 
     //Send final_update event.
     Event dme2 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, false, 1);
@@ -176,9 +184,9 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(Collections.singletonList(dme2));
     baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
     partitionId = attemptNum;
-    assertTrue(scheduler.shuffleInfoEventsMap.containsKey(id2));
+    assertTrue(scheduler.shuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId), eq(baseUri), eq(id2));
-    assertTrue(scheduler.shuffleInfoEventsMap.containsKey(id2));
+    assertTrue(scheduler.shuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
 
     MapHost host = scheduler.getHost();
     assertTrue(host != null);
@@ -211,6 +219,34 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     output = MapOutput.createMemoryMapOutput(id3, mergeManager, 1000, true);
     scheduler.copySucceeded(id3, host, 1000, 10000, 10000, output);
     assertTrue(scheduler.isDone());
+  }
+
+  @Test (timeout = 5000)
+  public void testPiplinedShuffleEvents_WithOutofOrderAttempts() throws IOException, InterruptedException {
+    //Process attempt #1 first
+    int attemptNum = 1;
+    int inputIdx = 1;
+    String baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
+
+    Event dme1 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0, attemptNum);
+    handler.handleEvents(Collections.singletonList(dme1));
+
+    InputAttemptIdentifier id1 =
+        new InputAttemptIdentifier(new InputIdentifier(inputIdx), attemptNum,
+            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+
+    verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(baseUri), eq(id1));
+
+    //Attempt #0 comes up. When processing this, it should report exception
+    attemptNum = 0;
+    inputIdx = 1;
+    Event dme2 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0, attemptNum);
+    handler.handleEvents(Collections.singletonList(dme2));
+
+    InputAttemptIdentifier id2 =
+        new InputAttemptIdentifier(new InputIdentifier(inputIdx), attemptNum,
+            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+    verify(scheduler, times(1)).reportExceptionForInput(any(IOException.class));
   }
 
   @Test(timeout = 5000)

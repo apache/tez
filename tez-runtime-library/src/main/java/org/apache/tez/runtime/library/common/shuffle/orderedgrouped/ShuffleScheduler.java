@@ -51,6 +51,7 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
@@ -79,7 +80,7 @@ class ShuffleScheduler {
   //To track shuffleInfo events when finalMerge is disabled in source or pipelined shuffle is
   // enabled in source.
   @VisibleForTesting
-  final Map<InputAttemptIdentifier, ShuffleEventInfo> shuffleInfoEventsMap = Maps.newHashMap();
+  final Map<InputIdentifier, ShuffleEventInfo> shuffleInfoEventsMap;
 
   private Set<MapHost> pendingHosts = new HashSet<MapHost>();
   private Set<InputAttemptIdentifier> obsoleteInputs = new HashSet<InputAttemptIdentifier>();
@@ -164,6 +165,7 @@ class ShuffleScheduler {
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
 
+    shuffleInfoEventsMap = new HashMap<InputIdentifier, ShuffleEventInfo>();
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
         + "maxFetchFailuresBeforeReporting=" + maxFetchFailuresBeforeReporting
@@ -190,12 +192,14 @@ class ShuffleScheduler {
   static class ShuffleEventInfo {
     BitSet eventsProcessed;
     int finalEventId = -1; //0 indexed
+    int attemptNum;
     String id;
 
 
     ShuffleEventInfo(InputAttemptIdentifier input) {
       this.id = input.getInputIdentifier().getInputIndex() + "_" + input.getAttemptNumber();
       this.eventsProcessed = new BitSet();
+      this.attemptNum = input.getAttemptNumber();
     }
 
     void spillProcessed(int spillId) {
@@ -217,7 +221,7 @@ class ShuffleScheduler {
 
     public String toString() {
       return "[eventsProcessed=" + eventsProcessed + ", finalEventId=" + finalEventId
-          +  ", id=" + id + "]";
+          +  ", id=" + id + ", attemptNum=" + attemptNum + "]";
     }
   }
 
@@ -264,21 +268,18 @@ class ShuffleScheduler {
         setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
         numFetchedSpills++;
       } else {
-        ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(srcAttemptIdentifier);
-
-        //TODO: need to check for speculative tasks later. TEZ-2132
-        if (eventInfo != null && srcAttemptIdentifier.getAttemptNumber() > 0) {
-          //speculative attempts or failure attempts. Fail fast here.
-          shuffle.reportException(new IOException("Previous event already got scheduled for " +
-              srcAttemptIdentifier + ". Previous attempt's data could have been already merged "
-              + "to memory/disk outputs.  Failing the fetch early."));
+        InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+        //Allow only one task attempt to proceed.
+        if (!validateInputAttemptForPipelinedShuffle(srcAttemptIdentifier)) {
           return;
         }
+
+        ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(inputIdentifier);
 
         //Possible that Shuffle event handler invoked this, due to empty partitions
         if (eventInfo == null && output == null) {
           eventInfo = new ShuffleEventInfo(srcAttemptIdentifier);
-          shuffleInfoEventsMap.put(srcAttemptIdentifier, eventInfo);
+          shuffleInfoEventsMap.put(inputIdentifier, eventInfo);
         }
 
         assert(eventInfo != null);
@@ -292,8 +293,8 @@ class ShuffleScheduler {
         //check if we downloaded all spills pertaining to this InputAttemptIdentifier
         if (eventInfo.isDone()) {
           remainingMaps = remainingMaps - 1;
-          setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
-          shuffleInfoEventsMap.remove(srcAttemptIdentifier);
+          setInputFinished(inputIdentifier.getInputIndex());
+          shuffleInfoEventsMap.remove(inputIdentifier);
           if (LOG.isTraceEnabled()) {
             LOG.trace("Removing : " + srcAttemptIdentifier + ", pending: " +
                 shuffleInfoEventsMap);
@@ -335,6 +336,28 @@ class ShuffleScheduler {
     // TODO NEWTEZ Should this be releasing the output, if not committed ? Possible memory leak in case of speculation.
   }
 
+  private boolean validateInputAttemptForPipelinedShuffle(InputAttemptIdentifier input) {
+    //For pipelined shuffle.
+    //TODO: TEZ-2132 for error handling. As of now, fail fast if there is a different attempt
+    if (input.canRetrieveInputInChunks()) {
+      ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(input.getInputIdentifier());
+      if (eventInfo != null && input.getAttemptNumber() != eventInfo.attemptNum) {
+        reportExceptionForInput(new IOException("Previous event already got scheduled for " +
+            input + ". Previous attempt's data could have been already merged "
+            + "to memory/disk outputs.  Failing the fetch early. currentAttemptNum="
+            + eventInfo.attemptNum + ", eventsProcessed=" + eventInfo.eventsProcessed
+            + ", newAttemptNum=" + input.getAttemptNumber()));
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @VisibleForTesting
+  void reportExceptionForInput(Exception exception) {
+    LOG.fatal(exception);
+    shuffle.reportException(exception);
+  }
 
   private void logProgress() {
     double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);
@@ -496,17 +519,12 @@ class ShuffleScheduler {
       mapLocations.put(identifier, host);
     }
 
-    if (srcAttempt.canRetrieveInputInChunks()) {
-      if (shuffleInfoEventsMap.get(srcAttempt) == null) {
-        //TODO: need to check for speculative tasks later. TEZ-2132
-        shuffleInfoEventsMap.put(srcAttempt, new ShuffleEventInfo(srcAttempt));
-      } else if (srcAttempt.getAttemptNumber() > 0) {
-        //speculative attempts or failure attempts. Fail fast here.
-        shuffle.reportException(new IOException(srcAttempt + " already exists. "
-            + "Previous attempt's data could have been already merged "
-            + "to memory/disk outputs.  Failing the fetch early."));
-        return;
-      }
+    //Allow only one task attempt to proceed.
+    if (!validateInputAttemptForPipelinedShuffle(srcAttempt)) {
+      return;
+    }
+    if (shuffleInfoEventsMap.get(srcAttempt.getInputIdentifier()) == null) {
+      shuffleInfoEventsMap.put(srcAttempt.getInputIdentifier(), new ShuffleEventInfo(srcAttempt));
     }
 
     host.addKnownMap(srcAttempt);
@@ -523,7 +541,7 @@ class ShuffleScheduler {
   public synchronized void obsoleteInput(InputAttemptIdentifier srcAttempt) {
     // The incoming srcAttempt does not contain a path component.
     LOG.info("Adding obsolete input: " + srcAttempt);
-    if (shuffleInfoEventsMap.containsKey(srcAttempt)) {
+    if (shuffleInfoEventsMap.containsKey(srcAttempt.getInputIdentifier())) {
       //Fail fast here.
       shuffle.reportException(new IOException(srcAttempt + " is marked as obsoleteInput, but it "
           + "exists in shuffleInfoEventMap. Some data could have been already merged "
