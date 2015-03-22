@@ -20,7 +20,6 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -331,14 +330,18 @@ public class Shuffle implements ExceptionReporter {
     protected TezRawKeyValueIterator callInternal() throws IOException, InterruptedException {
 
       synchronized (this) {
-        for (int i = 0; i < numFetchers; ++i) {
-          FetcherOrderedGrouped
-              fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
-            metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
-            codec, inputContext, conf, localDiskFetchEnabled,
-              inputContext.getExecutionContext().getHostName());
-          fetchers.add(fetcher);
-          fetcher.start();
+        synchronized (fetchers) {
+          for (int i = 0; i < numFetchers; ++i) {
+            if (!isShutDown.get()) {
+              FetcherOrderedGrouped
+                fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
+                metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
+                codec, inputContext, conf, localDiskFetchEnabled,
+                inputContext.getExecutionContext().getHostName());
+              fetchers.add(fetcher);
+              fetcher.start();
+            }
+          }
         }
       }
 
@@ -386,23 +389,28 @@ public class Shuffle implements ExceptionReporter {
     // Stop the fetcher threads
     InterruptedException ie = null;
     if (!fetchersClosed.getAndSet(true)) {
-      for (FetcherOrderedGrouped fetcher : fetchers) {
-        try {
-          fetcher.shutDown();
-        } catch (InterruptedException e) {
-          if (ignoreErrors) {
-            LOG.info("Interrupted while shutting down fetchers. Ignoring.");
-          } else {
-            if (ie != null) {
-              ie = e;
+      synchronized (fetchers) {
+        for (FetcherOrderedGrouped fetcher : fetchers) {
+          try {
+            fetcher.shutDown();
+            LOG.info("Shutdown.." + fetcher.getName() + ", status:" + fetcher.isAlive() + ", "
+                + "isInterrupted:" + fetcher.isInterrupted());
+          } catch (InterruptedException e) {
+            if (ignoreErrors) {
+              LOG.info("Interrupted while shutting down fetchers. Ignoring.");
             } else {
-              LOG.warn("Ignoring exception while shutting down fetcher since a previous one was seen and will be thrown "
-                  + e);
+              if (ie != null) {
+                ie = e;
+              } else {
+                LOG.warn(
+                    "Ignoring exception while shutting down fetcher since a previous one was seen and will be thrown "
+                        + e);
+              }
             }
           }
         }
+        fetchers.clear();
       }
-      fetchers.clear();
       // throw only the first exception while attempting to shutdown.
       if (ie != null) {
         throw ie;
@@ -445,7 +453,7 @@ public class Shuffle implements ExceptionReporter {
       cleanupShuffleScheduler(true);
       cleanupMerger(true);
     } catch (Throwable t) {
-      // Ignore
+      LOG.info("Error in cleaning up.., ", t);
     }
   }
 
