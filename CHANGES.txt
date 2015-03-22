@@ -169,6 +169,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2186. OOM with a simple scatter gather job with re-use
   TEZ-2199. updateLocalResourcesForInputSplits assumes wrongly that split data is on same FS as the default FS.
   TEZ-2162. org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat is not recognized
   TEZ-2193. Check returned value from EdgeManagerPlugin before using it
