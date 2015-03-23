@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -56,10 +57,10 @@ public class Vertex {
   private final Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
   private Map<String, String> vertexConf = new HashMap<String, String>();
-  private final List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs 
-                      = new ArrayList<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
-  private final List<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> additionalOutputs 
-                      = new ArrayList<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>>();
+  private final Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs
+                      = new HashMap<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
+  private final Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> additionalOutputs
+                      = new HashMap<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>>();
   private VertexManagerPluginDescriptor vertexManagerPlugin;
 
   private final List<Vertex> inputVertices = new ArrayList<Vertex>();
@@ -329,8 +330,12 @@ public class Vertex {
    * @return this Vertex
    */
   public Vertex addDataSource(String inputName, DataSourceDescriptor dataSourceDescriptor) {
+    Preconditions.checkArgument(StringUtils.isNotBlank(inputName),
+        "InputName should not be null, empty or white space only, inputName=" + inputName);
+    Preconditions.checkArgument(!additionalInputs.containsKey(inputName),
+        "Duplicated input:" + inputName + ", vertexName=" + vertexName);
     additionalInputs
-        .add(new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>(
+        .put(inputName, new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>(
             inputName, dataSourceDescriptor.getInputDescriptor(),
             dataSourceDescriptor.getInputInitializerDescriptor()));
     this.dataSources.add(dataSourceDescriptor);
@@ -356,19 +361,27 @@ public class Vertex {
    * @return this Vertex
    */
   public Vertex addDataSink(String outputName, DataSinkDescriptor dataSinkDescriptor) {
+    Preconditions.checkArgument(StringUtils.isNotBlank(outputName),
+        "OutputName should not be null, empty or white space only, outputName=" + outputName);
+    Preconditions.checkArgument(!additionalOutputs.containsKey(outputName),
+        "Duplicated output:" + outputName + ", vertexName=" + vertexName);
     additionalOutputs
-        .add(new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(
+        .put(outputName, new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(
             outputName, dataSinkDescriptor.getOutputDescriptor(),
             dataSinkDescriptor.getOutputCommitterDescriptor()));
     this.dataSinks.add(dataSinkDescriptor);
     return this;
   }
-  
+
   Vertex addAdditionalDataSink(RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output) {
-    additionalOutputs.add(output);
+    Preconditions.checkArgument(StringUtils.isNotBlank(output.getName()),
+        "OutputName should not be null, empty or white space only, outputName=" + output.getName());
+    Preconditions.checkArgument(!additionalOutputs.containsKey(output.getName()),
+        "Duplicated output:" + output.getName() + ", vertexName=" + vertexName);
+    additionalOutputs.put(output.getName(), output);
     return this;
   }
-  
+
   /**
    * Specifies a {@link VertexManagerPlugin} for the vertex. This plugin can be
    * used to modify the parallelism or reconfigure the vertex at runtime using
@@ -471,11 +484,11 @@ public class Vertex {
   }
   
   List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> getInputs() {
-    return additionalInputs;
+    return Lists.newArrayList(additionalInputs.values());
   }
 
   List<RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> getOutputs() {
-    return additionalOutputs;
+    return Lists.newArrayList(additionalOutputs.values());
   }
 
   @Override
