@@ -46,8 +46,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.protobuf.ByteString;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -97,7 +97,7 @@ import org.mockito.stubbing.Answer;
 @RunWith(value = Parameterized.class)
 public class TestUnorderedPartitionedKVWriter {
 
-  private static final Log LOG = LogFactory.getLog(TestUnorderedPartitionedKVWriter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestUnorderedPartitionedKVWriter.class);
 
   private static final String HOST_STRING = "localhost";
   private static final int SHUFFLE_PORT = 4000;

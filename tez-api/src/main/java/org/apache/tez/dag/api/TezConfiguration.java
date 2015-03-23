@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -45,7 +45,7 @@ public class TezConfiguration extends Configuration {
 
   public final static String TEZ_SITE_XML = "tez-site.xml";
 
-  private final static Log LOG = LogFactory.getLog(TezConfiguration.class);
+  private final static Logger LOG = LoggerFactory.getLogger(TezConfiguration.class);
 
   private static Map<String, Scope> PropertyScope = new HashMap<String, Scope>();
 

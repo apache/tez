@@ -34,8 +34,8 @@ import java.util.Map;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.hadoop.yarn.webapp.MimeType;
@@ -50,7 +50,7 @@ import org.apache.tez.dag.records.TezVertexID;
 
 public class AMWebController extends Controller {
 
-  private final static Log LOG = LogFactory.getLog(AMWebController.class);
+  private final static Logger LOG = LoggerFactory.getLogger(AMWebController.class);
 
   // HTTP CORS Response Headers
   static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";

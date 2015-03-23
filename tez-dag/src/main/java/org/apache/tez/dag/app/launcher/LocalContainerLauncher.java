@@ -43,8 +43,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.service.AbstractService;
@@ -83,7 +83,7 @@ import org.apache.tez.runtime.task.TezChild;
 public class LocalContainerLauncher extends AbstractService implements
   ContainerLauncher {
 
-  private static final Log LOG = LogFactory.getLog(LocalContainerLauncher.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalContainerLauncher.class);
   private final AppContext context;
   private final TaskAttemptListener taskAttemptListener;
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);

@@ -20,8 +20,8 @@ package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
@@ -38,7 +38,7 @@ import com.google.common.base.Preconditions;
 
 public class MRReaderMapred extends MRReader {
 
-  private static final Log LOG = LogFactory.getLog(MRReaderMapred.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRReaderMapred.class);
 
   Object key;
   Object value;

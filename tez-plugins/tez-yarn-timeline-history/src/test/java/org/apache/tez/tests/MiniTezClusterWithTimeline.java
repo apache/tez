@@ -28,8 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileContext;
@@ -66,7 +66,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
 
   public static final String APPJAR = JarFinder.getJar(DAGAppMaster.class);
 
-  private static final Log LOG = LogFactory.getLog(MiniTezClusterWithTimeline.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MiniTezClusterWithTimeline.class);
 
   private static final String YARN_CLUSTER_CONFIG = "yarn-site.xml";
 

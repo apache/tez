@@ -21,8 +21,8 @@ package org.apache.tez.dag.app.rm.container;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -33,7 +33,7 @@ import org.apache.tez.dag.app.TaskAttemptListener;
 
 public class AMContainerMap extends AbstractService implements EventHandler<AMContainerEvent> {
 
-  private static final Log LOG = LogFactory.getLog(AMContainerMap.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AMContainerMap.class);
 
   private final ContainerHeartbeatHandler chh;
   private final TaskAttemptListener tal;

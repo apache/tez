@@ -31,8 +31,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.util.StringInterner;
@@ -115,7 +115,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   // TODO Ensure MAPREDUCE-4457 is factored in. Also MAPREDUCE-4068.
   // TODO Consider TAL registration in the TaskAttempt instead of the container.
 
-  private static final Log LOG = LogFactory.getLog(TaskAttemptImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptImpl.class);
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
 

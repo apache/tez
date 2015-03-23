@@ -22,8 +22,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
@@ -39,7 +39,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class AMNodeTracker extends AbstractService implements
     EventHandler<AMNodeEvent> {
   
-  static final Log LOG = LogFactory.getLog(AMNodeTracker.class);
+  static final Logger LOG = LoggerFactory.getLogger(AMNodeTracker.class);
   
   private final ConcurrentHashMap<NodeId, AMNode> nodeMap;
   private final ConcurrentHashMap<String, Set<NodeId>> blacklistMap;

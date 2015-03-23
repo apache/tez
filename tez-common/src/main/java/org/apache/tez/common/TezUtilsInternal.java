@@ -35,25 +35,25 @@ import java.util.zip.Inflater;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.TextFormat;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Appender;
-import org.apache.log4j.Logger;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 
 @Private
 public class TezUtilsInternal {
 
-  private static final Log LOG = LogFactory.getLog(TezUtilsInternal.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezUtilsInternal.class);
 
   public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
       IOException {
@@ -160,7 +160,7 @@ public class TezUtilsInternal {
 
     LOG.info("Redirecting log file based on addend: " + addend);
 
-    Appender appender = Logger.getRootLogger().getAppender(
+    Appender appender = org.apache.log4j.Logger.getRootLogger().getAppender(
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
     if (appender != null) {
       if (appender instanceof TezContainerLogAppender) {

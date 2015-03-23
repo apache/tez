@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.DAGNotRunningException;
@@ -37,7 +37,7 @@ import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGClientHandler {
 
-  private Log LOG = LogFactory.getLog(DAGClientHandler.class);
+  private Logger LOG = LoggerFactory.getLogger(DAGClientHandler.class);
 
   private DAGAppMaster dagAppMaster;
   

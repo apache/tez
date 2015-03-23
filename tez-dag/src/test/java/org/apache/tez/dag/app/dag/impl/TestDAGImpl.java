@@ -33,8 +33,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -142,7 +142,7 @@ import com.google.protobuf.ByteString;
 
 public class TestDAGImpl {
 
-  private static final Log LOG = LogFactory.getLog(TestDAGImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestDAGImpl.class);
   private DAGPlan dagPlan;
   private TezDAGID dagId;
   private static Configuration conf;
@@ -947,7 +947,7 @@ public class TestDAGImpl {
     dispatcher.await();
 
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    LOG.info(v2.getTasks().size());
+    LOG.info(String.valueOf(v2.getTasks().size()));
     Task t1= v2.getTask(0);
     TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
 

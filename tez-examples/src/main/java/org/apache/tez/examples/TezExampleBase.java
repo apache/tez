@@ -27,8 +27,8 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 import org.apache.commons.cli.Options;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -48,7 +48,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 @InterfaceAudience.Private
 public abstract class TezExampleBase extends Configured implements Tool {
 
-  private static final Log LOG = LogFactory.getLog(TezExampleBase.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezExampleBase.class);
 
   private TezClient tezClientInternal;
   protected static final String DISABLE_SPLIT_GROUPING = "disableSplitGrouping";
@@ -121,7 +121,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * @throws InterruptedException
    * @throws IOException
    */
-  public int runDag(DAG dag, boolean printCounters, Log logger) throws TezException,
+  public int runDag(DAG dag, boolean printCounters, Logger logger) throws TezException,
       InterruptedException, IOException {
     tezClientInternal.waitTillReady();
     DAGClient dagClient = tezClientInternal.submitDAG(dag);
@@ -230,7 +230,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    * @param tezConf   the tez configuration instance to be used while processing the DAG
    * @param tezClient the tez client instance to use to run the DAG if any custom monitoring is
    *                  required. Otherwise the utility method {@link #runDag(org.apache.tez.dag.api.DAG,
-   *                  boolean, org.apache.commons.logging.Log)} should be used
+   *                  boolean, org.slf4j.Logger)} should be used
    * @return Zero indicates success, non-zero indicates failure
    * @throws IOException
    * @throws TezException

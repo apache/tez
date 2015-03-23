@@ -38,8 +38,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
@@ -64,7 +64,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
   
-  private static final Log LOG = LogFactory.getLog(PipelinedSorter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PipelinedSorter.class);
   
   /**
    * The size of each record in the index file for the map-outputs.

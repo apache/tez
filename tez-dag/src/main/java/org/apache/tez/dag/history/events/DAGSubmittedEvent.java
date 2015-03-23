@@ -23,8 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -44,7 +44,7 @@ import org.apache.tez.dag.utils.ProtoUtils;
 
 public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
-  private static final Log LOG = LogFactory.getLog(DAGSubmittedEvent.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAGSubmittedEvent.class);
 
   private static final String CHARSET_NAME = "utf-8";
 

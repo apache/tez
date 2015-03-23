@@ -20,8 +20,8 @@ package org.apache.tez.runtime.library.broadcast.output;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -48,7 +48,7 @@ import com.google.common.base.Preconditions;
 @Private
 public class FileBasedKVWriter extends KeyValuesWriter {
 
-  private static final Log LOG = LogFactory.getLog(FileBasedKVWriter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FileBasedKVWriter.class);
   
   public static final int INDEX_RECORD_LENGTH = 24;
 

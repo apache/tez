@@ -39,8 +39,8 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -77,7 +77,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 
 public class RootInputInitializerManager {
 
-  private static final Log LOG = LogFactory.getLog(RootInputInitializerManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RootInputInitializerManager.class);
 
   private final ExecutorService rawExecutor;
   private final ListeningExecutorService executor;

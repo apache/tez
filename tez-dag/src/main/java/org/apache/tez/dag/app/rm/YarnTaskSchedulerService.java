@@ -37,8 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -81,7 +81,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 public class YarnTaskSchedulerService extends TaskSchedulerService
                              implements AMRMClientAsync.CallbackHandler {
-  private static final Log LOG = LogFactory.getLog(YarnTaskSchedulerService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(YarnTaskSchedulerService.class);
 
 
 

@@ -49,7 +49,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.log4j.Logger;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
@@ -79,6 +78,8 @@ import org.apache.tez.runtime.common.resources.ScalingAllocator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -88,7 +89,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 // Tests in this class cannot be run in parallel.
 public class TestTaskExecution {
 
-  private static final Logger LOG = Logger.getLogger(TestTaskExecution.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTaskExecution.class);
 
   private static final String HEARTBEAT_EXCEPTION_STRING = "HeartbeatException";
 
@@ -379,7 +380,7 @@ public class TestTaskExecution {
     public static final byte[] CONF_SIGNAL_FATAL_AND_LOOP = new byte[] { 8 };
     public static final byte[] CONF_SIGNAL_FATAL_AND_COMPLETE = new byte[] { 16 };
 
-    private static final Logger LOG = Logger.getLogger(TestProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TestProcessor.class);
 
     private static final ReentrantLock processorLock = new ReentrantLock();
     private static final Condition processorCondition = processorLock.newCondition();
@@ -528,7 +529,7 @@ public class TestTaskExecution {
 
   private static class TezTaskUmbilicalForTest implements TezTaskUmbilicalProtocol {
 
-    private static final Logger LOG = Logger.getLogger(TezTaskUmbilicalForTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TezTaskUmbilicalForTest.class);
 
     private final List<TezEvent> requestEvents = new LinkedList<TezEvent>();
 

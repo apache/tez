@@ -23,8 +23,8 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -34,7 +34,7 @@ import org.junit.Test;
 
 public class TestSimpleFetchedInputAllocator {
 
-  private static final Log LOG = LogFactory.getLog(TestSimpleFetchedInputAllocator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestSimpleFetchedInputAllocator.class);
   
   @Test(timeout = 5000)
   public void testInMemAllocation() throws IOException {

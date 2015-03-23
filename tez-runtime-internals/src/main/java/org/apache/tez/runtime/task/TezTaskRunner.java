@@ -32,7 +32,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezException;
@@ -44,6 +43,8 @@ import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -51,7 +52,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 
 public class TezTaskRunner implements TezUmbilical, ErrorReporter {
 
-  private static final Logger LOG = Logger.getLogger(TezTaskRunner.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezTaskRunner.class);
 
   private final Configuration tezConf;
   private final LogicalIOProcessorRuntimeTask task;

@@ -22,8 +22,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -43,7 +43,7 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 @InterfaceStability.Unstable
 public class SplitMetaInfoReaderTez {
 
-  public static final Log LOG = LogFactory.getLog(SplitMetaInfoReaderTez.class);
+  public static final Logger LOG = LoggerFactory.getLogger(SplitMetaInfoReaderTez.class);
 
   public static final int META_SPLIT_VERSION = JobSplit.META_SPLIT_VERSION;
   public static final byte[] META_SPLIT_FILE_HEADER = JobSplit.META_SPLIT_FILE_HEADER;

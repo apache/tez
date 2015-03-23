@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -59,8 +59,8 @@ import com.google.common.collect.Sets;
 import static org.mockito.Mockito.*;
 
 public class TestGroupedSplits {
-  private static final Log LOG =
-    LogFactory.getLog(TestGroupedSplits.class);
+  private static final Logger LOG =
+    LoggerFactory.getLogger(TestGroupedSplits.class);
 
   private static JobConf defaultConf = new JobConf();
   private static FileSystem localFs = null;

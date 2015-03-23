@@ -20,8 +20,8 @@ package org.apache.tez.examples;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -52,7 +52,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 public class JoinValidate extends TezExampleBase {
-  private static final Log LOG = LogFactory.getLog(JoinValidate.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JoinValidate.class);
 
   private static final String LHS_INPUT_NAME = "lhsfile";
   private static final String RHS_INPUT_NAME = "rhsfile";
@@ -167,7 +167,7 @@ public class JoinValidate extends TezExampleBase {
 
   public static class JoinValidateProcessor extends SimpleProcessor {
 
-    private static final Log LOG = LogFactory.getLog(JoinValidateProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(JoinValidateProcessor.class);
 
     public JoinValidateProcessor(ProcessorContext context) {
       super(context);

@@ -20,8 +20,8 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
@@ -33,7 +33,7 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class InMemoryWriter extends Writer {
-  private static final Log LOG = LogFactory.getLog(InMemoryWriter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(InMemoryWriter.class);
 
   // TODO Verify and fix counters if required.
 

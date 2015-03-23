@@ -21,8 +21,8 @@ package org.apache.tez.mapreduce.examples.processor;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -43,7 +43,7 @@ import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 
 public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 
-  private static final Log LOG = LogFactory.getLog(FilterByWordInputProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FilterByWordInputProcessor.class);
 
   private String filterWord;
 

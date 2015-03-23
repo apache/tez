@@ -31,8 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.protobuf.ByteString;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -67,7 +67,7 @@ import org.junit.Test;
 
 public class TestOnFileUnorderedKVOutput {
 
-  private static final Log LOG = LogFactory.getLog(TestOnFileUnorderedKVOutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestOnFileUnorderedKVOutput.class);
 
   private static Configuration defaultConf = new Configuration();
   private static FileSystem localFs = null;

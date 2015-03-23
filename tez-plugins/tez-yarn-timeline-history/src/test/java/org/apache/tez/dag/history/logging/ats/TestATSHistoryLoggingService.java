@@ -18,8 +18,8 @@
 
 package org.apache.tez.dag.history.logging.ats;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
 
 public class TestATSHistoryLoggingService {
 
-  private static final Log LOG = LogFactory.getLog(TestATSHistoryLoggingService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestATSHistoryLoggingService.class);
 
   private ATSHistoryLoggingService atsHistoryLoggingService;
   private AppContext appContext;

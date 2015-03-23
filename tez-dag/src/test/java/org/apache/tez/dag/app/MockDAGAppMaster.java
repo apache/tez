@@ -34,8 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.service.AbstractService;
@@ -85,7 +85,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings("unchecked")
 public class MockDAGAppMaster extends DAGAppMaster {
   
-  private static final Log LOG = LogFactory.getLog(MockDAGAppMaster.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MockDAGAppMaster.class);
   MockContainerLauncher containerLauncher;
   boolean initFailFlag;
   boolean startFailFlag;
@@ -338,7 +338,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
         @Override
         public void onFailure(Throwable t) {
-          LOG.fatal("Unexpected error during processing", t);
+          LOG.error("Unexpected error during processing", t);
           Worker.this.cData.remove();
           completeOperation();
         }

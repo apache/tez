@@ -37,8 +37,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -100,7 +100,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TestContainerReuse {
-  private static final Log LOG = LogFactory.getLog(TestContainerReuse.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestContainerReuse.class);
 
   @BeforeClass
   public static void setup() {

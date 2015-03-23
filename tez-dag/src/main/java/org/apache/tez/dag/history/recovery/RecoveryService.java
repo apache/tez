@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -44,12 +42,14 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.records.TezDAGID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public class RecoveryService extends AbstractService {
 
-  private static final Log LOG = LogFactory.getLog(RecoveryService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RecoveryService.class);
   private final AppContext appContext;
 
   public static final String RECOVERY_FATAL_OCCURRED_DIR =
@@ -305,7 +305,7 @@ public class RecoveryService extends AbstractService {
               throw ioe;
             }
           } catch (IOException e) {
-            LOG.fatal("Failed to create fatal error flag dir "
+            LOG.error("Failed to create fatal error flag dir "
                 + fatalErrorDir.toString(), e);
             throw ioe;
           }

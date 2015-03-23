@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.fs.ChecksumException;
@@ -60,7 +60,7 @@ public class IFileInputStream extends InputStream {
   private final boolean readahead;
   private final int readaheadLength;
 
-  public static final Log LOG = LogFactory.getLog(IFileInputStream.class);
+  public static final Logger LOG = LoggerFactory.getLogger(IFileInputStream.class);
 
   private boolean disableChecksumValidation = false;
 

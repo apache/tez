@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Stopwatch;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -52,7 +52,7 @@ import sun.misc.IOUtils;
 
 public class RPCLoadGen extends TezExampleBase {
 
-  private static final Log LOG = LogFactory.getLog(RPCLoadGen.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RPCLoadGen.class);
 
   private static final String VIA_RPC = "viaRpc";
   private static final byte VIA_RPC_BYTE = (byte) 0x00;

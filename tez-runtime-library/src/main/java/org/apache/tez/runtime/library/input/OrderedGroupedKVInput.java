@@ -27,8 +27,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
@@ -70,7 +70,7 @@ import com.google.common.base.Preconditions;
 @Public
 public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
-  static final Log LOG = LogFactory.getLog(OrderedGroupedKVInput.class);
+  static final Logger LOG = LoggerFactory.getLogger(OrderedGroupedKVInput.class);
 
   protected TezRawKeyValueIterator rawIter = null;
   protected Configuration conf;

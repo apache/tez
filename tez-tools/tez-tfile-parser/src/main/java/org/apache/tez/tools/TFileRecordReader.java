@@ -19,8 +19,8 @@
 package org.apache.tez.tools;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,7 +39,7 @@ import java.io.IOException;
  */
 public class TFileRecordReader extends RecordReader<Text, Text> {
 
-  private static final Log LOG = LogFactory.getLog(TFileRecordReader.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TFileRecordReader.class);
 
   private long start, end;
 

@@ -45,8 +45,8 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
 import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -73,7 +73,7 @@ import org.codehaus.jettison.json.JSONObject;
 
 @Private
 public class DAGClientTimelineImpl extends DAGClient {
-  private static final Log LOG = LogFactory.getLog(DAGClientTimelineImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAGClientTimelineImpl.class);
 
   private static final String FILTER_BY_FIELDS = "primaryfilters,otherinfo";
   private static final String HTTPS_SCHEME = "https://";

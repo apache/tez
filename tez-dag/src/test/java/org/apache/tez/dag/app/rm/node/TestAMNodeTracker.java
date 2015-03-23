@@ -26,8 +26,8 @@ import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -55,7 +55,7 @@ import com.google.common.collect.Lists;
 @SuppressWarnings({ "resource", "rawtypes" })
 public class TestAMNodeTracker {
 
-  private static final Log LOG = LogFactory.getLog(TestAMNodeTracker.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestAMNodeTracker.class);
 
   DrainDispatcher dispatcher;
   EventHandler eventHandler;

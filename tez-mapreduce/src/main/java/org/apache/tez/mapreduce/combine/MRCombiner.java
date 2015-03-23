@@ -20,8 +20,8 @@ package org.apache.tez.mapreduce.combine;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -63,7 +63,7 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MRCombiner implements Combiner {
 
-  private static Log LOG = LogFactory.getLog(MRCombiner.class);
+  private static Logger LOG = LoggerFactory.getLogger(MRCombiner.class);
   
   private final Configuration conf;
   private final Class<?> keyClass;

@@ -24,9 +24,8 @@ import java.net.InetSocketAddress;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.name.Names;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.http.HttpConfig;
 import org.apache.hadoop.net.NetUtils;
@@ -42,7 +41,7 @@ public class WebUIService extends AbstractService {
   public static final String VERTEX_ID = "vertexID";
   public static final String DAG_ID = "dagID";
 
-  private static final Log LOG = LogFactory.getLog(WebUIService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WebUIService.class);
 
   private final AppContext context;
   private TezAMWebApp tezAMWebApp;

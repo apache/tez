@@ -47,7 +47,6 @@ import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezCommonUtils;
@@ -66,6 +65,8 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -79,7 +80,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class TezChild {
 
-  private static final Logger LOG = Logger.getLogger(TezChild.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezChild.class);
 
   private final Configuration defaultConf;
   private final String containerIdString;
@@ -156,7 +157,7 @@ public class TezChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Executing with tokens:");
       for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug(token);
+        LOG.debug("",token);
       }
     }
 

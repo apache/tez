@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -43,7 +43,7 @@ import com.google.common.annotations.VisibleForTesting;
 @Private
 public class ACLManager {
 
-  private static final Log LOG = LogFactory.getLog(ACLManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ACLManager.class);
   public static final String WILDCARD_ACL_VALUE = "*";
 
   private final String dagUser;

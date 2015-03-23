@@ -24,8 +24,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -45,7 +45,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
 
-  private final static Log LOG = LogFactory.getLog(ATSHistoryACLPolicyManager.class);
+  private final static Logger LOG = LoggerFactory.getLogger(ATSHistoryACLPolicyManager.class);
 
   TimelineClient timelineClient;
   Configuration conf;

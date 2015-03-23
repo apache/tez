@@ -24,8 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -59,7 +59,7 @@ import com.google.common.collect.Maps;
 @Unstable
 public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator {
 
-  private static final Log LOG = LogFactory.getLog(WeightedScalingMemoryDistributor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WeightedScalingMemoryDistributor.class);
 
   static final double MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO = 0.1d;
   static final double RESERVATION_FRACTION_PER_IO = 0.015d;

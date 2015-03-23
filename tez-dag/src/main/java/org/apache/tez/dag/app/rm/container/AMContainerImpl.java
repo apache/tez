@@ -27,8 +27,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -68,7 +68,7 @@ import com.google.common.base.Preconditions;
 @SuppressWarnings("rawtypes")
 public class AMContainerImpl implements AMContainer {
 
-  private static final Log LOG = LogFactory.getLog(AMContainerImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AMContainerImpl.class);
 
   private final ReadLock readLock;
   private final WriteLock writeLock;

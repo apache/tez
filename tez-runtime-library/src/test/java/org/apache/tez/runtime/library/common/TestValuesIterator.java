@@ -6,8 +6,8 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 
 import java.nio.ByteBuffer;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -88,7 +88,7 @@ import static org.mockito.Mockito.mock;
 @RunWith(Parameterized.class)
 public class TestValuesIterator {
 
-  private static final Log LOG = LogFactory.getLog(TestValuesIterator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestValuesIterator.class);
 
   static final String TEZ_BYTES_SERIALIZATION = TezBytesWritableSerialization.class.getName();
 

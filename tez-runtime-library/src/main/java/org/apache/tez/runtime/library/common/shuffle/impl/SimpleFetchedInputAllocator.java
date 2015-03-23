@@ -20,8 +20,8 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
@@ -47,7 +47,7 @@ import org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput;
 public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
     FetchedInputCallback {
 
-  private static final Log LOG = LogFactory.getLog(SimpleFetchedInputAllocator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SimpleFetchedInputAllocator.class);
   
   private final Configuration conf;
 

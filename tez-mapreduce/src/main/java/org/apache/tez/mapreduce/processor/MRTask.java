@@ -31,8 +31,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -88,7 +88,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 @Private
 public abstract class MRTask extends AbstractLogicalIOProcessor {
 
-  static final Log LOG = LogFactory.getLog(MRTask.class);
+  static final Logger LOG = LoggerFactory.getLogger(MRTask.class);
 
   protected JobConf jobConf;
   protected JobContext jobContext;

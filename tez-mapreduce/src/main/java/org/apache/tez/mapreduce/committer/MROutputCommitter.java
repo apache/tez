@@ -18,8 +18,8 @@
 
 package org.apache.tez.mapreduce.committer;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.JobConf;
@@ -52,7 +52,7 @@ import java.io.IOException;
 @Public
 public class MROutputCommitter extends OutputCommitter {
 
-  private static final Log LOG = LogFactory.getLog(MROutputCommitter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MROutputCommitter.class);
 
   private org.apache.hadoop.mapreduce.OutputCommitter committer = null;
   private JobContext jobContext = null;

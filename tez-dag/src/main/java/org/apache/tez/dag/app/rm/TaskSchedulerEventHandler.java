@@ -29,8 +29,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -82,7 +82,7 @@ import com.google.common.base.Preconditions;
 public class TaskSchedulerEventHandler extends AbstractService
                                          implements TaskSchedulerAppCallback,
                                                EventHandler<AMSchedulerEvent> {
-  static final Log LOG = LogFactory.getLog(TaskSchedulerEventHandler.class);
+  static final Logger LOG = LoggerFactory.getLogger(TaskSchedulerEventHandler.class);
 
   static final String APPLICATION_ID_PLACEHOLDER = "__APPLICATION_ID__";
   static final String HISTORY_URL_BASE = "__HISTORY_URL_BASE__";

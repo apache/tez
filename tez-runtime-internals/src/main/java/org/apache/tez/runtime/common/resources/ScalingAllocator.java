@@ -21,8 +21,8 @@ package org.apache.tez.runtime.common.resources;
 import java.text.DecimalFormat;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
@@ -37,7 +37,7 @@ import com.google.common.collect.Lists;
 @Unstable
 public class ScalingAllocator implements InitialMemoryAllocator {
 
-  private static final Log LOG = LogFactory.getLog(ScalingAllocator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScalingAllocator.class);
 
   private Configuration conf;
 

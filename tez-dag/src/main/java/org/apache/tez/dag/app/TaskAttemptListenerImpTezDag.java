@@ -28,8 +28,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -71,8 +71,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   private static final ContainerTask TASK_FOR_INVALID_JVM = new ContainerTask(
       null, true, null, null, false);
 
-  private static final Log LOG = LogFactory
-      .getLog(TaskAttemptListenerImpTezDag.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(TaskAttemptListenerImpTezDag.class);
 
   private final AppContext context;
 

@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Preconditions;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
@@ -51,7 +51,7 @@ import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWrite
 @Public
 public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
-  private static final Log LOG = LogFactory.getLog(UnorderedPartitionedKVOutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UnorderedPartitionedKVOutput.class);
 
   private Configuration conf;
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;

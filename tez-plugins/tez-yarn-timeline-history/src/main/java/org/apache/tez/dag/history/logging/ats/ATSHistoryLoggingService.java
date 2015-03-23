@@ -27,8 +27,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
@@ -49,7 +49,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ATSHistoryLoggingService extends HistoryLoggingService {
 
-  private static final Log LOG = LogFactory.getLog(ATSHistoryLoggingService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ATSHistoryLoggingService.class);
 
   private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();

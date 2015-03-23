@@ -57,8 +57,8 @@ import java.util.regex.Pattern;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -189,7 +189,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @SuppressWarnings("rawtypes")
 public class DAGAppMaster extends AbstractService {
 
-  private static final Log LOG = LogFactory.getLog(DAGAppMaster.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAGAppMaster.class);
 
   /**
    * Priority of the DAGAppMaster shutdown hook.
@@ -384,7 +384,7 @@ public class DAGAppMaster extends AbstractService {
         LOG.warn("Ignoring client-AM version mismatch as check disabled. "
             + versionMismatchDiagnostics);
       } else {
-        LOG.fatal(versionMismatchDiagnostics);
+        LOG.error(versionMismatchDiagnostics);
         versionMismatch = true;
       }
     }
@@ -651,7 +651,7 @@ public class DAGAppMaster extends AbstractService {
           }
           // This is a pass-through. Kill the AM if DAG state is ERROR.
         default:
-          LOG.fatal("Received a DAG Finished Event with state="
+          LOG.error("Received a DAG Finished Event with state="
               + finishEvt.getDAGState()
               + ". Error. Shutting down.");
           state = DAGAppMasterState.ERROR;
@@ -1584,7 +1584,7 @@ public class DAGAppMaster extends AbstractService {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Stopping service : " + service);
       }
-      Exception ex = ServiceOperations.stopQuietly(LOG, service);
+      Exception ex = ServiceOperations.stopQuietly(service);
       if (ex != null && firstException == null) {
         LOG.warn("Failed to stop service, name=" + service.getName(), ex);
         firstException = ex;
@@ -1938,7 +1938,7 @@ public class DAGAppMaster extends AbstractService {
       initAndStartAppMaster(appMaster, conf);
 
     } catch (Throwable t) {
-      LOG.fatal("Error starting DAGAppMaster", t);
+      LOG.error("Error starting DAGAppMaster", t);
       System.exit(1);
     }
   }

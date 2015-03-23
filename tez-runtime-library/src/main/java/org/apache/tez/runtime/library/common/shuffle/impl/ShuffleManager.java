@@ -46,8 +46,8 @@ import javax.crypto.SecretKey;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
@@ -97,8 +97,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 // (multiple src-indices), modifications will be required.
 public class ShuffleManager implements FetcherCallback {
 
-  private static final Log LOG = LogFactory.getLog(ShuffleManager.class);
-  
+  private static final Logger LOG = LoggerFactory.getLogger(ShuffleManager.class);
+
   private final InputContext inputContext;
   private final int numInputs;
 
@@ -758,7 +758,7 @@ public class ShuffleManager implements FetcherCallback {
   }
 
   private void reportFatalError(Throwable exception, String message) {
-    LOG.fatal(message);
+    LOG.error(message);
     inputContext.fatalError(exception, message);
   }
 

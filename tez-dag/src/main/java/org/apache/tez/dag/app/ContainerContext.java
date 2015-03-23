@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -34,7 +34,7 @@ import com.google.common.base.Preconditions;
 
 public class ContainerContext {
 
-  private static final Log LOG = LogFactory.getLog(ContainerContext.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ContainerContext.class);
 
   private final Map<String, LocalResource> localResources;
   private final Credentials credentials;

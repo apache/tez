@@ -25,8 +25,8 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -54,7 +54,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  */
 public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
-  private static final Log LOG = LogFactory.getLog(ShuffleInputEventHandlerImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ShuffleInputEventHandlerImpl.class);
   
   private final ShuffleManager shuffleManager;
   private final FetchedInputAllocator inputAllocator;

@@ -28,8 +28,8 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -97,7 +97,7 @@ import org.apache.tez.runtime.library.partitioner.HashPartitioner;
  */
 public class MRRSleepJob extends Configured implements Tool {
 
-  private static final Log LOG = LogFactory.getLog(MRRSleepJob.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRRSleepJob.class);
 
   public static final String MAP_SLEEP_COUNT = "mrr.sleepjob.map.sleep.count";
   public static final String REDUCE_SLEEP_COUNT =

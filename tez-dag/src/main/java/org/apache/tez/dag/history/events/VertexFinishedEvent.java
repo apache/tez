@@ -23,8 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
@@ -39,7 +39,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexFinishedProto;
 
 public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
 
-  private static final Log LOG = LogFactory.getLog(VertexFinishedEvent.class);
+  private static final Logger LOG = LoggerFactory.getLogger(VertexFinishedEvent.class);
 
   private TezVertexID vertexID;
   private String vertexName;

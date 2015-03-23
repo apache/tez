@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
@@ -44,7 +44,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 @SuppressWarnings("rawtypes")
 public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
 
-  private static final Log LOG = LogFactory.getLog(BaseUnorderedPartitionedKVWriter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BaseUnorderedPartitionedKVWriter.class);
   
   protected final OutputContext outputContext;
   protected final Configuration conf;

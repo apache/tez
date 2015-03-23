@@ -26,8 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -56,7 +56,7 @@ import org.apache.hadoop.util.ToolRunner;
  */
 public class MapredWordCount extends Configured implements Tool {
 
-  private static final Log LOG = LogFactory.getLog(MapredWordCount.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MapredWordCount.class);
 
   /**
    * Counts the words in each line.

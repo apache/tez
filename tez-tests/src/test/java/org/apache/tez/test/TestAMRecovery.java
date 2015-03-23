@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -83,7 +83,7 @@ import com.google.common.collect.Lists;
 
 public class TestAMRecovery {
 
-  private static final Log LOG = LogFactory.getLog(TestAMRecovery.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestAMRecovery.class);
 
   private static Configuration conf = new Configuration();
   private static TezConfiguration tezConf;

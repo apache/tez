@@ -30,10 +30,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -301,7 +300,7 @@ public class MROutput extends AbstractLogicalOutput {
     return configurer;
   }
 
-  private static final Log LOG = LogFactory.getLog(MROutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MROutput.class);
 
   private final NumberFormat taskNumberFormat = NumberFormat.getInstance();
   private final NumberFormat nonTaskNumberFormat = NumberFormat.getInstance();

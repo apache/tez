@@ -20,8 +20,8 @@ package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -45,7 +45,7 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 @Private
 public class MRInputUtils {
 
-  private static final Log LOG = LogFactory.getLog(MRInputUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRInputUtils.class);
 
   public static TaskSplitMetaInfo[] readSplits(Configuration conf) throws IOException {
     TaskSplitMetaInfo[] allTaskSplitMetaInfo;

@@ -23,8 +23,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -57,7 +57,7 @@ import org.apache.tez.runtime.library.utils.BufferUtils;
 @InterfaceStability.Unstable
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class TezMerger {
-  private static final Log LOG = LogFactory.getLog(TezMerger.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezMerger.class);
 
   
   // Local directories

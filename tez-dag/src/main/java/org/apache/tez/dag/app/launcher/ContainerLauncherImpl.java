@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.service.AbstractService;
@@ -74,7 +74,7 @@ public class ContainerLauncherImpl extends AbstractService implements
     ContainerLauncher {
 
   // TODO XXX Ensure the same thread is used to launch / stop the same container. Or - ensure event ordering.
-  static final Log LOG = LogFactory.getLog(ContainerLauncherImpl.class);
+  static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherImpl.class);
 
   private ConcurrentHashMap<ContainerId, Container> containers =
     new ConcurrentHashMap<ContainerId, Container>();

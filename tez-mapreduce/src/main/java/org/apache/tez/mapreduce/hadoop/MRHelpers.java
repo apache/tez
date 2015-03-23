@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
@@ -47,7 +47,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 @Evolving
 public class MRHelpers {
 
-  private static final Log LOG = LogFactory.getLog(MRHelpers.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRHelpers.class);
 
 
   /**

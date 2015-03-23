@@ -26,8 +26,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -86,7 +86,7 @@ import com.google.common.collect.HashMultimap;
 @SuppressWarnings("deprecation")
 public class TestReduceProcessor {
   
-  private static final Log LOG = LogFactory.getLog(TestReduceProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestReduceProcessor.class);
 
   private static JobConf defaultConf = new JobConf();
   private static FileSystem localFs = null;

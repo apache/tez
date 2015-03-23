@@ -37,8 +37,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -64,6 +62,8 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -77,7 +77,7 @@ import com.google.protobuf.ByteString;
 
 public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWriter {
 
-  private static final Log LOG = LogFactory.getLog(UnorderedPartitionedKVWriter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UnorderedPartitionedKVWriter.class);
 
   private static final int INT_SIZE = 4;
   private static final int NUM_META = 3; // Number of meta fields.
@@ -434,7 +434,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       spillLock.unlock();
     }
     if (spillException != null) {
-      LOG.fatal("Error during spill, throwing");
+      LOG.error("Error during spill, throwing");
       // Assuming close will be called on the same thread as the write
       cleanup();
       currentBuffer.cleanup();
@@ -849,7 +849,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       LOG.info("Adding spill event for spill (final update=" + isFinalUpdate + "), spillId=" + spillNumber);
       outputContext.sendEvents(Collections.singletonList(compEvent));
     } catch (IOException e) {
-      LOG.fatal("Error in sending pipelined events", e);
+      LOG.error("Error in sending pipelined events", e);
       outputContext.fatalError(e, "Error in sending pipelined events");
     }
   }
@@ -879,7 +879,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         availableBuffers.add(result.wrappedBuffer);
 
       } catch (Throwable e) {
-        LOG.fatal("Failure while attempting to reset buffer after spill", e);
+        LOG.error("Failure while attempting to reset buffer after spill", e);
         outputContext.fatalError(e, "Failure while attempting to reset buffer after spill");
       }
 
@@ -904,7 +904,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     public void onFailure(Throwable t) {
       // spillException setup to throw an exception back to the user. Requires synchronization.
       // Consider removing it in favor of having Tez kill the task
-      LOG.fatal("Failure while spilling to disk", t);
+      LOG.error("Failure while spilling to disk", t);
       spillException = t;
       outputContext.fatalError(t, "Failure while spilling to disk");
       spillLock.lock();

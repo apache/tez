@@ -25,8 +25,8 @@ import java.util.Iterator;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -63,7 +63,7 @@ import com.google.common.base.Preconditions;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public abstract class ExternalSorter {
 
-  private static final Log LOG = LogFactory.getLog(ExternalSorter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ExternalSorter.class);
 
   public void close() throws IOException {
     spillFileIndexPaths.clear();

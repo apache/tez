@@ -22,8 +22,8 @@ import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -34,7 +34,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFile
 
 
 class MapOutput {
-  private static final Log LOG = LogFactory.getLog(MapOutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MapOutput.class);
   private static AtomicInteger ID = new AtomicInteger(0);
   
   public static enum Type {

@@ -18,8 +18,8 @@
 
 package org.apache.tez.mapreduce.partition;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
@@ -37,7 +37,7 @@ import org.apache.tez.runtime.library.common.ConfigUtils;
 @Public
 public class MRPartitioner implements org.apache.tez.runtime.library.api.Partitioner {
 
-  static final Log LOG = LogFactory.getLog(MRPartitioner.class);
+  static final Logger LOG = LoggerFactory.getLogger(MRPartitioner.class);
 
   private final boolean useNewApi;
 

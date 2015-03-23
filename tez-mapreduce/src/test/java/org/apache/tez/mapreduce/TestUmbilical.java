@@ -23,8 +23,8 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -32,7 +32,7 @@ import org.apache.tez.runtime.api.impl.TezUmbilical;
 
 public class TestUmbilical implements TezUmbilical {
 
-  private static final Log LOG = LogFactory.getLog(TestUmbilical.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestUmbilical.class);
 
   private final List<TezEvent> events = Lists.newLinkedList();
 

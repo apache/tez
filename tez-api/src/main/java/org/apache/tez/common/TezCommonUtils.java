@@ -32,8 +32,8 @@ import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -59,7 +59,7 @@ public class TezCommonUtils {
       .createImmutable((short) 0700); // rwx--------
   public static final FsPermission TEZ_AM_FILE_PERMISSION = FsPermission
       .createImmutable((short) 0644); // rw-r--r--
-  private static final Log LOG = LogFactory.getLog(TezClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezClient.class);
 
   public static final String TEZ_SYSTEM_SUB_DIR = ".tez";
 
@@ -410,7 +410,7 @@ public class TezCommonUtils {
     }
   }
 
-  public static void logCredentials(Log log, Credentials credentials, String identifier) {
+  public static void logCredentials(Logger log, Credentials credentials, String identifier) {
     if (log.isDebugEnabled()) {
       log.debug(getCredentialsInfo(credentials, identifier));
     }

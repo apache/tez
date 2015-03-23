@@ -33,8 +33,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -98,7 +98,7 @@ public class VertexManager {
   private final AtomicBoolean eventInFlight;
   private final AtomicBoolean pluginFailed;
 
-  private static final Log LOG = LogFactory.getLog(VertexManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(VertexManager.class);
   private final VertexManagerCallback VM_CALLBACK = new VertexManagerCallback();
 
   class VertexManagerPluginContextImpl implements VertexManagerPluginContext, VertexStateUpdateListener {

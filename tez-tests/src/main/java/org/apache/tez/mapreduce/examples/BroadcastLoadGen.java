@@ -22,8 +22,8 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -49,7 +49,7 @@ import com.google.common.base.Preconditions;
 
 public class BroadcastLoadGen extends TezExampleBase {
 
-  private static final Log LOG = LogFactory.getLog(RPCLoadGen.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RPCLoadGen.class);
 
   public static class InputGenProcessor extends SimpleProcessor {
 

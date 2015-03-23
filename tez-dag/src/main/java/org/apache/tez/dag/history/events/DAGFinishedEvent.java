@@ -23,8 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.dag.DAGState;
@@ -41,7 +41,7 @@ import com.google.protobuf.ByteString;
 
 public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
-  private static final Log LOG = LogFactory.getLog(DAGFinishedEvent.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAGFinishedEvent.class);
 
   private TezDAGID dagID;
   private long startTime;

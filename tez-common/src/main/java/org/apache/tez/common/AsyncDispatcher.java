@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
@@ -34,6 +32,8 @@ import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -47,7 +47,7 @@ import com.google.common.collect.Maps;
 @Private
 public class AsyncDispatcher extends CompositeService implements Dispatcher {
 
-  private static final Log LOG = LogFactory.getLog(AsyncDispatcher.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AsyncDispatcher.class);
 
   private final String name;
   private final BlockingQueue<Event> eventQueue;
@@ -184,7 +184,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
         throw new Exception("No handler for registered for " + type);
       }
     } catch (Throwable t) {
-      LOG.fatal("Error in dispatcher thread", t);
+      LOG.error("Error in dispatcher thread", t);
       // If serviceStop is called, we should exit this thread gracefully.
       if (exitOnDispatchException
           && (ShutdownHookManager.get().isShutdownInProgress()) == false

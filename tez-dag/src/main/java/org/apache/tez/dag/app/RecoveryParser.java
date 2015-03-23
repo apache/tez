@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -75,7 +75,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class RecoveryParser {
 
-  private static final Log LOG = LogFactory.getLog(RecoveryParser.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RecoveryParser.class);
 
   private final DAGAppMaster dagAppMaster;
   private final FileSystem recoveryFS;

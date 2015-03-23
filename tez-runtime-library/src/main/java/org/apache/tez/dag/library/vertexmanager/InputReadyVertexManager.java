@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -48,8 +48,8 @@ import com.google.common.collect.Multimap;
 
 @Private
 public class InputReadyVertexManager extends VertexManagerPlugin {
-  private static final Log LOG = 
-      LogFactory.getLog(InputReadyVertexManager.class);
+  private static final Logger LOG = 
+      LoggerFactory.getLogger(InputReadyVertexManager.class);
 
   Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
   boolean taskIsStarted[];

@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.shuffle;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,8 +33,8 @@ import javax.crypto.SecretKey;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
@@ -61,7 +62,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovem
 
 public class ShuffleUtils {
 
-  private static final Log LOG = LogFactory.getLog(ShuffleUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
   public static final String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
 
   static final ThreadLocal<DecimalFormat> MBPS_FORMAT =
@@ -102,7 +103,7 @@ public class ShuffleUtils {
   public static void shuffleToMemory(byte[] shuffleData,
       InputStream input, int decompressedLength, int compressedLength,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength,
-      Log LOG, String identifier) throws IOException {
+      Logger LOG, String identifier) throws IOException {
     try {
       IFile.Reader.readToMemory(shuffleData, input, compressedLength, codec,
         ifileReadAhead, ifileReadAheadLength);
@@ -111,14 +112,14 @@ public class ShuffleUtils {
           + identifier);
     } catch (IOException ioe) {
       // Close the streams
-      IOUtils.cleanup(LOG, input);
+      ioCleanup(input);
       // Re-throw
       throw ioe;
     }
   }
   
   public static void shuffleToDisk(OutputStream output, String hostIdentifier,
-      InputStream input, long compressedLength, Log LOG, String identifier)
+      InputStream input, long compressedLength, Logger LOG, String identifier)
       throws IOException {
     // Copy data to local-disk
     long bytesLeft = compressedLength;
@@ -142,7 +143,7 @@ public class ShuffleUtils {
       output.close();
     } catch (IOException ioe) {
       // Close the streams
-      IOUtils.cleanup(LOG, input, output);
+      ioCleanup(input, output);
       // Re-throw
       throw ioe;
     }
@@ -154,6 +155,19 @@ public class ShuffleUtils {
           hostIdentifier + " (" + 
           bytesLeft + " bytes missing of " + 
           compressedLength + ")");
+    }
+  }
+
+  public static void ioCleanup(Closeable... closeables) {
+    for (Closeable c : closeables) {
+      if (c == null)
+        continue;
+      try {
+        c.close();
+      } catch (IOException e) {
+        if (LOG.isDebugEnabled())
+          LOG.debug("Exception in closing " + c, e);
+      }
     }
   }
 
@@ -392,7 +406,7 @@ public class ShuffleUtils {
    * @param outputType
    * @param srcAttemptIdentifier
    */
-  public static void logIndividualFetchComplete(Log log, long millis, long
+  public static void logIndividualFetchComplete(Logger log, long millis, long
       bytesCompressed,
       long bytesDecompressed, String outputType, InputAttemptIdentifier srcAttemptIdentifier) {
     double rate = 0;

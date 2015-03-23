@@ -18,8 +18,8 @@
 
 package org.apache.tez.examples;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
@@ -37,7 +37,7 @@ import org.apache.tez.dag.api.TezConfiguration;
  */
 public class SimpleSessionExample extends TezExampleBase {
 
-  private static final Log LOG = LogFactory.getLog(SimpleSessionExample.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SimpleSessionExample.class);
   private static final String enablePrewarmConfig = "simplesessionexample.prewarm";
 
   @Override

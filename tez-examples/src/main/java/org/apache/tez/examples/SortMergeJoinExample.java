@@ -20,8 +20,8 @@ package org.apache.tez.examples;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -71,7 +71,7 @@ import com.google.common.base.Preconditions;
  */
 public class SortMergeJoinExample extends TezExampleBase {
 
-  private static final Log LOG = LogFactory.getLog(SortMergeJoinExample.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SortMergeJoinExample.class);
 
   private static final String input1 = "input1";
   private static final String input2 = "input2";

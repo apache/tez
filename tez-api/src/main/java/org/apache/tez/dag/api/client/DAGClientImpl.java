@@ -29,8 +29,8 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -49,7 +49,7 @@ import org.apache.tez.dag.api.records.DAGProtos;
 
 @Private
 public class DAGClientImpl extends DAGClient {
-  private static final Log LOG = LogFactory.getLog(DAGClientImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAGClientImpl.class);
 
   private final ApplicationId appId;
   private final String dagId;

@@ -27,8 +27,8 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -59,7 +59,7 @@ import org.apache.tez.common.counters.TezCounter;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class IFile {
-  private static final Log LOG = LogFactory.getLog(IFile.class);
+  private static final Logger LOG = LoggerFactory.getLogger(IFile.class);
   public static final int EOF_MARKER = -1; // End of File Marker
   public static final int RLE_MARKER = -2; // Repeat same key marker
   public static final int V_END_MARKER = -3; // End of values marker
@@ -618,7 +618,15 @@ public class IFile {
       try {
         IOUtils.readFully(in, buffer, 0, buffer.length - IFile.HEADER.length);
       } catch (IOException ioe) {
-        IOUtils.cleanup(LOG, in);
+        if(in != null) {
+          try {
+            in.close();
+          } catch(IOException e) {
+            if(LOG.isDebugEnabled()) {
+              LOG.debug("Exception in closing " + in, e);
+            }
+          }
+        }
         throw ioe;
       } finally {
         if (decompressor != null) {

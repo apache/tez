@@ -31,8 +31,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
@@ -60,7 +60,7 @@ import com.google.common.base.Preconditions;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   
-  private static final Log LOG = LogFactory.getLog(DefaultSorter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultSorter.class);
 
   // TODO NEWTEZ Progress reporting to Tez framework. (making progress vs %complete)
   

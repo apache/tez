@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -38,7 +38,7 @@ import com.google.common.base.Strings;
  * different vertices.
  */
 public class TaskSpecificLaunchCmdOption {
-  private static final Log LOG = LogFactory.getLog(TaskSpecificLaunchCmdOption.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskSpecificLaunchCmdOption.class);
 
   //To check any characters apart from "a-zA-Z_0-9 : ; , [] space" anywhere in input.
   final static Pattern INVALID_TASK_NAME_REGEX = Pattern

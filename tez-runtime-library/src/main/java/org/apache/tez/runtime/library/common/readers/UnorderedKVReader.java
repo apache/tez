@@ -20,8 +20,8 @@ package org.apache.tez.runtime.library.common.readers;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
@@ -43,7 +43,7 @@ import org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput;
 @Private
 public class UnorderedKVReader<K, V> extends KeyValueReader {
 
-  private static final Log LOG = LogFactory.getLog(UnorderedKVReader.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UnorderedKVReader.class);
   
   private final ShuffleManager shuffleManager;
   private final CompressionCodec codec;

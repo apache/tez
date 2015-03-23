@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
@@ -47,7 +47,7 @@ import com.google.common.base.Stopwatch;
  */
 public class HttpConnection {
 
-  private static final Log LOG = LogFactory.getLog(HttpConnection.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HttpConnection.class);
 
   /** Basic/unit connection timeout (in milliseconds) */
   private final static int UNIT_CONNECT_TIMEOUT = 60 * 1000;

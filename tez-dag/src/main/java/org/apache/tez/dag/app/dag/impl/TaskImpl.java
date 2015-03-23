@@ -35,8 +35,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -105,7 +105,7 @@ import org.apache.tez.state.StateMachineTez;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
-  private static final Log LOG = LogFactory.getLog(TaskImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskImpl.class);
 
   private static final String LINE_SEPARATOR = System
     .getProperty("line.separator");

@@ -28,8 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.crypto.SecretKey;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -76,7 +76,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @InterfaceStability.Unstable
 public class Shuffle implements ExceptionReporter {
   
-  private static final Log LOG = LogFactory.getLog(Shuffle.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Shuffle.class);
   private static final int PROGRESS_FREQUENCY = 2000;
   
   private final Configuration conf;

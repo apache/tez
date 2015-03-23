@@ -22,8 +22,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ImmediateStartVertexManager extends VertexManagerPlugin {
 
-  private static final Log LOG = LogFactory.getLog(ImmediateStartVertexManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ImmediateStartVertexManager.class);
 
   private final Map<String, Boolean> srcVertexConfigured = Maps.newConcurrentMap();
   private int managedTasks;

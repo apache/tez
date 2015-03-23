@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -38,8 +38,8 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFile
 @Private
 public class TezRuntimeUtils {
 
-  private static final Log LOG = LogFactory
-      .getLog(TezRuntimeUtils.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(TezRuntimeUtils.class);
   
   public static String getTaskIdentifier(String vertexName, int taskIndex) {
     return String.format("%s_%06d", vertexName, taskIndex);

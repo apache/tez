@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 @Public
 @Evolving
 public class TezMapredSplitsGrouper {
-  private static final Log LOG = LogFactory.getLog(TezMapredSplitsGrouper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezMapredSplitsGrouper.class);
 
   static class SplitHolder {
     InputSplit split;

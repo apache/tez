@@ -21,8 +21,8 @@ package org.apache.tez.runtime.library.common.task.local.output;
 import java.io.IOException;
 
 import com.google.common.base.Preconditions;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -45,7 +45,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     super(conf, uniqueId);
   }
 
-  private static final Log LOG = LogFactory.getLog(TezTaskOutputFiles.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezTaskOutputFiles.class);
 
   private static final String SPILL_FILE_DIR_PATTERN = "%s_%d";
 

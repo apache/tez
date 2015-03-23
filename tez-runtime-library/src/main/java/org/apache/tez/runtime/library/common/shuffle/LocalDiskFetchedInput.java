@@ -25,8 +25,8 @@ import java.io.OutputStream;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.io.input.BoundedInputStream;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,7 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 public class LocalDiskFetchedInput extends FetchedInput {
-  private static final Log LOG = LogFactory.getLog(LocalDiskFetchedInput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalDiskFetchedInput.class);
 
   private final Path inputFile;
   private final FileSystem localFS;

@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -54,8 +54,8 @@ import com.google.common.collect.Sets;
  * by the name of the vertex that executes this input.
  */
 public class TestInput extends AbstractLogicalInput {
-  private static final Log LOG = LogFactory
-      .getLog(TestInput.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(TestInput.class);
   
   Configuration conf;
   int numCompletedInputs = 0;

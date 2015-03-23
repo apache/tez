@@ -26,8 +26,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
@@ -49,7 +49,7 @@ import com.google.common.collect.Sets;
 
 public class AMNodeImpl implements AMNode {
 
-  private static final Log LOG = LogFactory.getLog(AMNodeImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AMNodeImpl.class);
 
   private final ReadLock readLock;
   private final WriteLock writeLock;

@@ -18,15 +18,15 @@
 package org.apache.tez.dag.records;
 
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestTezIds {
 
-  private static final Log LOG = LogFactory.getLog(TestTezIds.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTezIds.class);
 
   private void verifyDagInfo(String[] splits, TezDAGID dagId) {
     Assert.assertEquals(dagId.getApplicationId().getClusterTimestamp(),

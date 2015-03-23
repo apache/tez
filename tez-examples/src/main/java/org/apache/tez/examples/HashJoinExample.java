@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -73,7 +73,7 @@ import com.google.common.base.Preconditions;
  */
 public class HashJoinExample extends TezExampleBase {
 
-  private static final Log LOG = LogFactory.getLog(HashJoinExample.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HashJoinExample.class);
 
   private static final String broadcastOption = "doBroadcast";
   private static final String streamingSide = "streamingSide";

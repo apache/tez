@@ -35,8 +35,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -75,7 +75,7 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 @Unstable
 public class MRInputHelpers {
 
-  private static final Log LOG = LogFactory.getLog(MRInputHelpers.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRInputHelpers.class);
   private static final int SPLIT_SERIALIZED_LENGTH_ESTIMATE = 40;
   static final String JOB_SPLIT_RESOURCE_NAME = "job.split";
   static final String JOB_SPLIT_METAINFO_RESOURCE_NAME = "job.splitmetainfo";

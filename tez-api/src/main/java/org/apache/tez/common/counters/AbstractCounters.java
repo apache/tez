@@ -29,8 +29,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -55,7 +55,7 @@ public abstract class AbstractCounters<C extends TezCounter,
                                        G extends CounterGroupBase<C>>
     implements Writable, Iterable<G> {
 
-  protected static final Log LOG = LogFactory.getLog("mapreduce.Counters");
+  protected static final Logger LOG = LoggerFactory.getLogger("mapreduce.Counters");
 
   /**
    * A cache from enum values to the associated counter.

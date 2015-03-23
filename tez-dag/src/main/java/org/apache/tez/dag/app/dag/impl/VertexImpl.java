@@ -43,8 +43,6 @@ import com.google.common.base.Strings;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -179,6 +177,8 @@ import com.google.common.collect.Sets;
 
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Implementation of Vertex interface. Maintains the state machines of Vertex.
  * The read and write calls use ReadWriteLock for concurrency.
@@ -190,7 +190,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
 
-  private static final Log LOG = LogFactory.getLog(VertexImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(VertexImpl.class);
 
   //final fields
   private final Clock clock;
@@ -2118,7 +2118,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
 
     if (hasBipartite && inputsWithInitializers != null) {
-      LOG.fatal("A vertex with an Initial Input and a Shuffle Input are not supported at the moment");
+      LOG.error("A vertex with an Initial Input and a Shuffle Input are not supported at the moment");
       if (event != null) {
         return VertexState.FAILED;
       } else {

@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.io.IOUtils;
@@ -34,7 +34,7 @@ import com.google.common.annotations.VisibleForTesting;
 @Private
 @Unstable
 public class VersionInfo {
-  private static final Log LOG = LogFactory.getLog(VersionInfo.class);
+  private static final Logger LOG = LoggerFactory.getLogger(VersionInfo.class);
 
   private final Properties info;
   private final String component;

@@ -33,7 +33,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.log4j.Logger;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
@@ -47,6 +46,8 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -65,7 +66,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  */
 public class TaskReporter {
 
-  private static final Logger LOG = Logger.getLogger(TaskReporter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskReporter.class);
 
   private final TezTaskUmbilicalProtocol umbilical;
   private final long pollInterval;

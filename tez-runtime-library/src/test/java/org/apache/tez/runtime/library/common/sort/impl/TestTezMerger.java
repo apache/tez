@@ -24,8 +24,8 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -56,7 +56,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TestTezMerger {
 
-  private static final Log LOG = LogFactory.getLog(TestTezMerger.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTezMerger.class);
 
   private static Configuration defaultConf = new Configuration();
   private static FileSystem localFs = null;

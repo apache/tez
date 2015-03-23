@@ -46,8 +46,8 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -135,7 +135,7 @@ import com.google.common.collect.Sets;
 
 public class TestMRRJobsDAGApi {
 
-  private static final Log LOG = LogFactory.getLog(TestMRRJobsDAGApi.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestMRRJobsDAGApi.class);
 
   protected static MiniTezCluster mrrTezCluster;
   protected static MiniDFSCluster dfsCluster;

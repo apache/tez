@@ -28,8 +28,8 @@ import java.util.Set;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGScheduler;
@@ -52,8 +52,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 @SuppressWarnings("rawtypes")
 public class DAGSchedulerNaturalOrderControlled implements DAGScheduler {
 
-  private static final Log LOG =
-      LogFactory.getLog(DAGSchedulerNaturalOrderControlled.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(DAGSchedulerNaturalOrderControlled.class);
 
   private final DAG dag;
   private final EventHandler handler;

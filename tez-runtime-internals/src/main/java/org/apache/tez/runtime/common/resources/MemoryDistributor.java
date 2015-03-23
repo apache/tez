@@ -26,8 +26,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
@@ -49,7 +49,7 @@ import com.google.common.collect.Iterables;
 @Private
 public class MemoryDistributor {
 
-  private static final Log LOG = LogFactory.getLog(MemoryDistributor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MemoryDistributor.class);
 
   private final int numTotalInputs;
   private final int numTotalOutputs;
@@ -206,7 +206,7 @@ public class MemoryDistributor {
 
   private static class RequestorInfo {
 
-    private static final Log LOG = LogFactory.getLog(RequestorInfo.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RequestorInfo.class);
 
     private final MemoryUpdateCallback callback;
     private final InitialMemoryRequestContext requestContext;

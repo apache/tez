@@ -30,8 +30,8 @@ import java.util.LinkedHashMap;
 
 import com.google.common.primitives.Ints;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -48,7 +48,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class LocalTaskSchedulerService extends TaskSchedulerService {
 
-  private static final Log LOG = LogFactory.getLog(LocalTaskSchedulerService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalTaskSchedulerService.class);
 
   final TaskSchedulerAppCallback realAppClient;
   final TaskSchedulerAppCallback appClientDelegate;

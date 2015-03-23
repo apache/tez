@@ -29,8 +29,6 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -78,6 +76,8 @@ import org.apache.tez.mapreduce.processor.reduce.ReduceProcessor;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -94,7 +94,7 @@ import com.google.common.collect.Maps;
  */
 public class TestOrderedWordCount extends Configured implements Tool {
 
-  private static Log LOG = LogFactory.getLog(TestOrderedWordCount.class);
+  private static Logger LOG = LoggerFactory.getLogger(TestOrderedWordCount.class);
 
   private static final String DAG_VIEW_ACLS = "tez.testorderedwordcount.view-acls";
   private static final String DAG_MODIFY_ACLS = "tez.testorderedwordcount.modify-acls";
@@ -509,7 +509,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             }
             dagStatus = dagClient.getDAGStatus(statusGetOpts);
           } catch (TezException e) {
-            LOG.fatal("Failed to get application progress. Exiting");
+            LOG.error("Failed to get application progress. Exiting");
             return -1;
           }
         }

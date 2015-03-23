@@ -39,8 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
@@ -70,7 +71,7 @@ import com.google.common.base.Preconditions;
  */
 public class Fetcher extends CallableWithNdc<FetchResult> {
 
-  private static final Log LOG = LogFactory.getLog(Fetcher.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Fetcher.class);
 
   private static final AtomicInteger fetcherIdGen = new AtomicInteger(0);
   private final Configuration conf;
@@ -646,7 +647,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         LOG.info("Exception while shutting down fetcher on " + logIdentifier + " : "
             + e.getMessage());
         if (LOG.isDebugEnabled()) {
-          LOG.debug(e);
+          LOG.debug(StringUtils.EMPTY, e);
         }
       }
     }

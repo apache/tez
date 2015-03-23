@@ -25,8 +25,8 @@ import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ByteString;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -43,7 +43,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ShuffleInputEventHandlerOrderedGrouped {
   
-  private static final Log LOG = LogFactory.getLog(ShuffleInputEventHandlerOrderedGrouped.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ShuffleInputEventHandlerOrderedGrouped.class);
 
   private final ShuffleScheduler scheduler;
   private final InputContext inputContext;

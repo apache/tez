@@ -32,8 +32,8 @@ import java.util.Stack;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
@@ -74,7 +74,7 @@ import com.google.common.collect.Sets;
 @Public
 public class DAG {
   
-  private static final Log LOG = LogFactory.getLog(DAG.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAG.class);
   
   final BidiMap<String, Vertex> vertices =
       new DualLinkedHashBidiMap<String, Vertex>();

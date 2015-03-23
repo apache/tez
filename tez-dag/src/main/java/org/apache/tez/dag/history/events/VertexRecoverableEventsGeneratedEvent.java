@@ -24,8 +24,8 @@ import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.common.ProtoConverters;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -48,7 +48,7 @@ import com.google.common.collect.Lists;
 // TODO PreCommit - rename this to VertexRecoverableEventGeneratedEvent
 public class VertexRecoverableEventsGeneratedEvent implements HistoryEvent {
 
-  private static final Log LOG = LogFactory.getLog(
+  private static final Logger LOG = LoggerFactory.getLogger(
       VertexRecoverableEventsGeneratedEvent.class);
   private List<TezEvent> events;
   private TezVertexID vertexID;

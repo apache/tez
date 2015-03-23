@@ -20,8 +20,8 @@ package org.apache.tez.examples;
 import java.io.IOException;
 import java.util.StringTokenizer;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -60,7 +60,7 @@ public class WordCount extends TezExampleBase {
   static String OUTPUT = "Output";
   static String TOKENIZER = "Tokenizer";
   static String SUMMATION = "Summation";
-  private static final Log LOG = LogFactory.getLog(WordCount.class);
+  private static final Logger LOG = LoggerFactory.getLogger(WordCount.class);
 
   /*
    * Example code to write a processor in Tez.

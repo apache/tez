@@ -21,8 +21,8 @@ package org.apache.tez.test;
 import java.io.IOException;
 import java.util.Random;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -50,7 +50,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestFaultTolerance {
-  private static final Log LOG = LogFactory.getLog(TestFaultTolerance.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestFaultTolerance.class);
 
   private static Configuration conf = new Configuration();
   private static MiniTezCluster miniTezCluster;

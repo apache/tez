@@ -28,8 +28,8 @@ import java.util.TreeSet;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -73,7 +73,7 @@ import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 @SuppressWarnings(value={"rawtypes"})
 public class MergeManager {
   
-  private static final Log LOG = LogFactory.getLog(MergeManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MergeManager.class);
 
   private final Configuration conf;
   private final FileSystem localFS;

@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.runtime.api.Input;
@@ -47,7 +47,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 @Public
 public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
 
-  private static final Log LOG = LogFactory.getLog(OrderedGroupedMergedKVInput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OrderedGroupedMergedKVInput.class);
   private final Set<Input> completedInputs = Collections
       .newSetFromMap(new IdentityHashMap<Input, Boolean>());
 

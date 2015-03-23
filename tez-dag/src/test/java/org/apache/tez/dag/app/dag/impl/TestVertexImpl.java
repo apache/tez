@@ -46,8 +46,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputByteBuffer;
@@ -192,7 +192,7 @@ import org.mockito.stubbing.Answer;
 
 public class TestVertexImpl {
 
-  private static final Log LOG = LogFactory.getLog(TestVertexImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestVertexImpl.class);
   private ListeningExecutorService execService;
 
   private boolean useCustomInitializer = false;

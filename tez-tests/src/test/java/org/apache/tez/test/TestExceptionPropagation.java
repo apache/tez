@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -94,8 +94,8 @@ import com.google.common.collect.Lists;
 
 public class TestExceptionPropagation {
 
-  private static final Log LOG = LogFactory
-      .getLog(TestExceptionPropagation.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(TestExceptionPropagation.class);
 
   private static TezConfiguration tezConf;
   private static Configuration conf = new Configuration();

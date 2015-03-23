@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.logging.Log;
 
 public class MRCounters extends org.apache.hadoop.mapred.Counters {
   private final org.apache.tez.common.counters.TezCounters raw;
@@ -109,18 +108,6 @@ public class MRCounters extends org.apache.hadoop.mapred.Counters {
   @Override
   public int size() {
     return countCounters();
-  }
-
-  @Override
-  public void log(Log log) {
-    log.info("Counters: " + size());
-    for(Group group: this) {
-      log.info("  " + group.getDisplayName());
-      for (Counter counter: group) {
-        log.info("    " + counter.getDisplayName() + "=" +
-                 counter.getCounter());
-      }
-    }
   }
 
   @Override

@@ -39,8 +39,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezUtilsInternal;
@@ -65,7 +65,7 @@ class ShuffleScheduler {
     }
   };
 
-  private static final Log LOG = LogFactory.getLog(ShuffleScheduler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ShuffleScheduler.class);
   private static final long INITIAL_PENALTY = 2000l; // 2 seconds
   private static final float PENALTY_GROWTH_RATE = 1.3f;
 
@@ -355,7 +355,7 @@ class ShuffleScheduler {
 
   @VisibleForTesting
   void reportExceptionForInput(Exception exception) {
-    LOG.fatal(exception);
+    LOG.error("Reporting exception for input", exception);
     shuffle.reportException(exception);
   }
 
@@ -492,7 +492,7 @@ class ShuffleScheduler {
         failureCounts.size() == (numInputs - doneMaps))
         && !reducerHealthy
         && (!reducerProgressedEnough || reducerStalled)) {
-      LOG.fatal("Shuffle failed with too many fetch failures " + "and insufficient progress!"
+      LOG.error("Shuffle failed with too many fetch failures " + "and insufficient progress!"
           + "failureCounts=" + failureCounts.size() + ", pendingInputs=" + (numInputs - doneMaps)
           + ", reducerHealthy=" + reducerHealthy + ", reducerProgressedEnough="
           + reducerProgressedEnough + ", reducerStalled=" + reducerStalled);

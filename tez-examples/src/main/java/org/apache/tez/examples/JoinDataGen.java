@@ -26,8 +26,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 
 public class JoinDataGen extends TezExampleBase {
 
-  private static final Log LOG = LogFactory.getLog(JoinDataGen.class);
+  private static final Logger LOG = LoggerFactory.getLogger(JoinDataGen.class);
 
   private static final String STREAM_OUTPUT_NAME = "streamoutput";
   private static final String HASH_OUTPUT_NAME = "hashoutput";
@@ -159,7 +159,7 @@ public class JoinDataGen extends TezExampleBase {
 
   public static class GenDataProcessor extends SimpleMRProcessor {
 
-    private static final Log LOG = LogFactory.getLog(GenDataProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GenDataProcessor.class);
 
     long streamOutputFileSize;
     long hashOutputFileSize;

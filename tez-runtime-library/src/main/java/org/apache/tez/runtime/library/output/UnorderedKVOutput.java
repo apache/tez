@@ -25,8 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -61,7 +61,7 @@ import com.google.protobuf.ByteString;
 @Public
 public class UnorderedKVOutput extends AbstractLogicalOutput {
 
-  private static final Log LOG = LogFactory.getLog(UnorderedKVOutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UnorderedKVOutput.class);
 
   private FileBasedKVWriter kvWriter;
   

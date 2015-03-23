@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
@@ -57,7 +57,7 @@ import com.google.common.collect.Maps;
 
 public class Edge {
 
-  private static final Log LOG = LogFactory.getLog(Edge.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Edge.class);
 
   class EdgeManagerPluginContextImpl implements EdgeManagerPluginContext {
 

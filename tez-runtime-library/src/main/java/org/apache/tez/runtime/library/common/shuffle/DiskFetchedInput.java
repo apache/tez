@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
@@ -35,7 +35,7 @@ import com.google.common.base.Preconditions;
 
 public class DiskFetchedInput extends FetchedInput {
 
-  private static final Log LOG = LogFactory.getLog(DiskFetchedInput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DiskFetchedInput.class);
   
   private final FileSystem localFS;
   private final Path tmpOutputPath;

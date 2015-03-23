@@ -38,8 +38,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.CallableWithNdc;
@@ -92,8 +92,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 @Private
 public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
-  private static final Log LOG = LogFactory
-      .getLog(LogicalIOProcessorRuntimeTask.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(LogicalIOProcessorRuntimeTask.class);
 
   private final String[] localDirs;
   /** Responsible for maintaining order of Inputs */

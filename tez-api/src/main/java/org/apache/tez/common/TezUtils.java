@@ -31,8 +31,8 @@ import java.util.zip.InflaterInputStream;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.TezClientUtils;
@@ -50,7 +50,7 @@ import org.codehaus.jettison.json.JSONObject;
 @InterfaceAudience.Public
 public class TezUtils {
 
-  private static final Log LOG = LogFactory.getLog(TezUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezUtils.class);
 
   /**
    * Allows changing the log level for task / AM logging. </p>

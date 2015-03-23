@@ -39,8 +39,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -92,7 +92,7 @@ import org.junit.Test;
  */
 public class TestTezJobs {
 
-  private static final Log LOG = LogFactory.getLog(TestTezJobs.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTezJobs.class);
 
   protected static MiniTezCluster mrrTezCluster;
   protected static MiniDFSCluster dfsCluster;

@@ -25,8 +25,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -87,7 +87,7 @@ import com.google.protobuf.ServiceException;
 @Public
 public class TezClient {
 
-  private static final Log LOG = LogFactory.getLog(TezClient.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezClient.class);
   
   @VisibleForTesting
   static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";

@@ -34,8 +34,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
@@ -56,7 +56,7 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 @Evolving
 public class MultiMRInput extends MRInputBase {
 
-  private static final Log LOG = LogFactory.getLog(MultiMRInput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MultiMRInput.class);
 
   public MultiMRInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);

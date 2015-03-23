@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -70,7 +70,7 @@ import com.google.common.collect.HashMultimap;
 
 public class MapUtils {
 
-  private static final Log LOG = LogFactory.getLog(MapUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MapUtils.class);
   
   public static void configureLocalDirs(Configuration conf, String localDir)
       throws IOException {

@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -36,7 +36,7 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 @LimitedPrivate("Hive")
 public class MRInputLegacy extends MRInput {
 
-  private static final Log LOG = LogFactory.getLog(MRInputLegacy.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRInputLegacy.class);
   
   private InputDataInformationEvent initEvent;
   private volatile boolean inited = false;

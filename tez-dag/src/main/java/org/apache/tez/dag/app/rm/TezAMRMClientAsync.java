@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -39,7 +39,7 @@ import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 
 public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAsyncImpl<T> {
 
-  private static final Log LOG = LogFactory.getLog(TezAMRMClientAsync.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezAMRMClientAsync.class);
 
   /**
    * Used to track the type of requests at a given priority.

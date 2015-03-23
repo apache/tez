@@ -20,8 +20,8 @@ package org.apache.tez.mapreduce.processor;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -40,7 +40,7 @@ import com.google.common.collect.Lists;
 @Public
 @Evolving
 public abstract class SimpleMRProcessor extends SimpleProcessor {
-  private static final Log LOG = LogFactory.getLog(SimpleMRProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SimpleMRProcessor.class);
 
   public SimpleMRProcessor(ProcessorContext context) {
     super(context);

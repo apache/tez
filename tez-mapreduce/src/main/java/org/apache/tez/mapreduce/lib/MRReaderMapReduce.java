@@ -20,8 +20,8 @@ package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -36,7 +36,7 @@ import com.google.common.base.Preconditions;
 
 public class MRReaderMapReduce extends MRReader {
 
-  private static final Log LOG = LogFactory.getLog(MRReader.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MRReader.class);
 
   private final TezCounter inputRecordCounter;
 

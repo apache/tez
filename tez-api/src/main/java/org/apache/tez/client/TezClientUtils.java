@@ -39,8 +39,8 @@ import java.util.Map.Entry;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -110,7 +110,7 @@ import com.google.common.collect.Lists;
 @Private
 public class TezClientUtils {
 
-  private static Log LOG = LogFactory.getLog(TezClientUtils.class);
+  private static Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
   private static FileStatus[] getLRFileStatus(String fileName, Configuration conf) throws

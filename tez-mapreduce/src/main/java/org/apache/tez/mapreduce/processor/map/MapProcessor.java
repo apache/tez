@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.FileSplit;
@@ -56,7 +56,7 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 @Private
 public class MapProcessor extends MRTask{
 
-  private static final Log LOG = LogFactory.getLog(MapProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MapProcessor.class);
 
   public MapProcessor(ProcessorContext processorContext) {
     super(processorContext, true);

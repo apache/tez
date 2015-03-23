@@ -31,8 +31,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -59,7 +59,7 @@ import org.junit.Test;
 
 public class TestMultiMRInput {
 
-  private static final Log LOG = LogFactory.getLog(TestMultiMRInput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestMultiMRInput.class);
 
   private static final JobConf defaultConf = new JobConf();
   private static final String testTmpDir;

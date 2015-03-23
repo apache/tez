@@ -20,8 +20,8 @@ package org.apache.tez.examples;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -60,7 +60,7 @@ public class OrderedWordCount extends TezExampleBase {
   private static String TOKENIZER = WordCount.TOKENIZER;
   private static String SUMMATION = WordCount.SUMMATION;
   private static String SORTER = "Sorter";
-  private static final Log LOG = LogFactory.getLog(OrderedWordCount.class);
+  private static final Logger LOG = LoggerFactory.getLogger(OrderedWordCount.class);
 
   /*
    * SumProcessor similar to WordCount except that it writes the count as key and the 

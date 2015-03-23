@@ -43,7 +43,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.log4j.Logger;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -52,11 +51,13 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public class LocalClient extends FrameworkClient {
-  public static final Logger LOG = Logger.getLogger(LocalClient.class);
+  public static final Logger LOG = LoggerFactory.getLogger(LocalClient.class);
 
   private volatile DAGAppMaster dagAppMaster = null;
   private volatile DAGClientHandler clientHandler = null;
@@ -244,7 +245,7 @@ public class LocalClient extends FrameworkClient {
           }
         }
       } catch (Throwable t) {
-        LOG.fatal("Error starting DAGAppMaster", t);
+        LOG.error("Error starting DAGAppMaster", t);
         if (dagAmThread != null) {
           dagAmThread.interrupt();
         }
@@ -305,7 +306,7 @@ public class LocalClient extends FrameworkClient {
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, conf);
 
         } catch (Throwable t) {
-          LOG.fatal("Error starting DAGAppMaster", t);
+          LOG.error("Error starting DAGAppMaster", t);
           if (dagAppMaster != null) {
             dagAppMaster.stop();
           }

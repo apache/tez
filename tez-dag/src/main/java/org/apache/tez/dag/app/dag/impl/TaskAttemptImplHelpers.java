@@ -22,12 +22,12 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskAttemptImplHelpers {
 
-  private static final Log LOG = LogFactory.getLog(TaskAttemptImplHelpers.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptImplHelpers.class);
    
   static String[] resolveHosts(String[] src) {
     String[] result = new String[src.length];

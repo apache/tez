@@ -23,8 +23,8 @@ import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,7 +37,7 @@ import org.codehaus.jettison.json.JSONObject;
 
 public class SimpleHistoryLoggingService extends HistoryLoggingService {
 
-  private static final Log LOG = LogFactory.getLog(SimpleHistoryLoggingService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SimpleHistoryLoggingService.class);
   private Path logFileLocation;
   private FileSystem logFileFS;
   private FSDataOutputStream outputStream;

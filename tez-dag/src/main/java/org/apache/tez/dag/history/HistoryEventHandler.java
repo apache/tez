@@ -20,8 +20,8 @@ package org.apache.tez.dag.history;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.tez.common.ReflectionUtils;
@@ -33,7 +33,7 @@ import org.apache.tez.dag.records.TezDAGID;
 
 public class HistoryEventHandler extends CompositeService {
 
-  private static Log LOG = LogFactory.getLog(HistoryEventHandler.class);
+  private static Logger LOG = LoggerFactory.getLogger(HistoryEventHandler.class);
 
   private final AppContext context;
   private RecoveryService recoveryService;

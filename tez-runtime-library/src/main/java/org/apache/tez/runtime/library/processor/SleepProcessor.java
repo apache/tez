@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Charsets;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
@@ -44,7 +44,7 @@ import org.apache.tez.runtime.api.ProcessorContext;
 @Private
 public class SleepProcessor extends AbstractLogicalIOProcessor {
 
-  private static final Log LOG = LogFactory.getLog(SleepProcessor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SleepProcessor.class);
 
   private int timeToSleepMS;
 

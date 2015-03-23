@@ -22,8 +22,8 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -35,7 +35,7 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import com.google.common.collect.Lists;
 
 public class TestOutput extends AbstractLogicalOutput {
-  private static final Log LOG = LogFactory.getLog(TestOutput.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestOutput.class);
 
   public TestOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);

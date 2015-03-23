@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configurable;
@@ -47,7 +47,7 @@ import com.google.common.base.Preconditions;
 public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   implements Configurable{
   
-  private static final Log LOG = LogFactory.getLog(TezGroupedSplitsInputFormat.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezGroupedSplitsInputFormat.class);
 
   InputFormat<K, V> wrappedInputFormat;
   int desiredNumSplits = 0;

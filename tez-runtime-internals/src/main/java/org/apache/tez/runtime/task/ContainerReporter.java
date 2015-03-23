@@ -21,11 +21,12 @@ package org.apache.tez.runtime.task;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Responsible for communication between a running Container and the ApplicationMaster. The main
@@ -34,7 +35,7 @@ import org.apache.tez.common.TezTaskUmbilicalProtocol;
  */
 public class ContainerReporter extends CallableWithNdc<ContainerTask> {
 
-  private static final Logger LOG = Logger.getLogger(ContainerReporter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ContainerReporter.class);
 
   private final TezTaskUmbilicalProtocol umbilical;
   private final ContainerContext containerContext;

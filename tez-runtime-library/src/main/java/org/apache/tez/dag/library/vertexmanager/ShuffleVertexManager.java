@@ -27,8 +27,8 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
@@ -118,8 +118,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   public static final int TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT = 1;
 
   
-  private static final Log LOG = 
-                   LogFactory.getLog(ShuffleVertexManager.class);
+  private static final Logger LOG = 
+                   LoggerFactory.getLogger(ShuffleVertexManager.class);
 
   float slowStartMinSrcCompletionFraction;
   float slowStartMaxSrcCompletionFraction;

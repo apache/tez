@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -49,7 +49,7 @@ public class TestTezCommonUtils {
       + TestTezCommonUtils.class.getName() + "-tmpDir";
   private static MiniDFSCluster dfsCluster = null;
   private static FileSystem remoteFs = null;
-  private static final Log LOG = LogFactory.getLog(TestTezCommonUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestTezCommonUtils.class);
 
   @BeforeClass
   public static void setup() throws Exception {

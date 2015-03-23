@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -34,7 +34,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskFinishedProto;
 
 public class TaskFinishedEvent implements HistoryEvent {
 
-  private static final Log LOG = LogFactory.getLog(TaskFinishedEvent.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TaskFinishedEvent.class);
 
   private TezTaskID taskID;
   private String vertexName;

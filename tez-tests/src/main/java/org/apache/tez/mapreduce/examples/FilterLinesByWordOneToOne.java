@@ -23,8 +23,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -69,10 +67,12 @@ import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.library.conf.UnorderedKVEdgeConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FilterLinesByWordOneToOne extends Configured implements Tool {
 
-  private static Log LOG = LogFactory.getLog(FilterLinesByWordOneToOne.class);
+  private static Logger LOG = LoggerFactory.getLogger(FilterLinesByWordOneToOne.class);
 
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
 
@@ -231,7 +231,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
           }
           dagStatus = dagClient.getDAGStatus(null);
         } catch (TezException e) {
-          LOG.fatal("Failed to get application progress. Exiting");
+          LOG.error("Failed to get application progress. Exiting");
           return -1;
         }
       }
