@@ -49,6 +49,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.TezClient;
@@ -539,9 +540,8 @@ public class TestTezJobs {
       remoteFs.mkdirs(inputDir);
       String outputDirStr = "/tmp/owc-output";
       outputPaths[0] = outputDirStr;
-      int result = job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
-          StringUtils.join(",", outputPaths), "2" }, null);
-      Assert.assertTrue("Job should have failed", result != 0);
+      boolean result = job.run(inputPaths, outputPaths, tezConf, 2);
+      Assert.assertFalse("Job should have failed", result);
     } catch (IOException e) {
       Assert.assertTrue(e.getMessage().contains("Failed to submit application to YARN"));
     } finally {
@@ -573,8 +573,7 @@ public class TestTezJobs {
       remoteFs.mkdirs(inputDir);
       String outputDirStr = "/tmp/owc-output";
       outputPaths[0] = outputDirStr;
-      job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
-          StringUtils.join(",", outputPaths), "2" }, null);
+      job.run(inputPaths, outputPaths, tezConf, 2);
       fail("Job submission should have failed");
     } catch (SessionNotRunning e) {
       // Expected
