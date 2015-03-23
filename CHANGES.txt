@@ -7,7 +7,6 @@ Release 0.7.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-2186. OOM with a simple scatter gather job with re-use
   TEZ-2209. Fix pipelined shuffle to fetch data from any one attempt
   TEZ-2210. Record DAG AM CPU usage stats
   TEZ-2203. Intern strings in tez counters
@@ -250,6 +249,8 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2186. OOM with a simple scatter gather job with re-use
+  TEZ-2220. TestTezJobs compile failure in branch 0.5.
   TEZ-2199. updateLocalResourcesForInputSplits assumes wrongly that split data is on same FS as the default FS.
   TEZ-2162. org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat is not recognized
   TEZ-2193. Check returned value from EdgeManagerPlugin before using it
