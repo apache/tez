@@ -13,9 +13,10 @@
 -->
 <FindBugsFilter>
 
+  <!-- TEZ-2204 -->
   <Match>
-    <Class name="org.apache.tez.common.AsyncDispatcher"/>
-    <Method name="dispatch"/>
+    <Class name="org.apache.tez.common.AsyncDispatcher$2"/>
+    <Method name="run" />
     <Bug pattern="DM_EXIT"/>
   </Match>
 

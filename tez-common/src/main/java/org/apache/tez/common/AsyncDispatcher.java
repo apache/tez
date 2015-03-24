@@ -189,8 +189,9 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
       if (exitOnDispatchException
           && (ShutdownHookManager.get().isShutdownInProgress()) == false
           && stopped == false) {
-        LOG.info("Exiting, bbye..");
-        System.exit(-1);
+        Thread shutDownThread = new Thread(createShutDownThread());
+        shutDownThread.setName("AsyncDispatcher ShutDown handler");
+        shutDownThread.start();
       }
     }
   }
@@ -314,5 +315,15 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
       listofHandlers.add(handler);
     }
 
+  }
+
+  Runnable createShutDownThread() {
+    return new Runnable() {
+      @Override
+      public void run() {
+        LOG.info("Exiting, bbye..");
+        System.exit(-1);
+      }
+    };
   }
 }

@@ -716,6 +716,13 @@ public class DAGAppMaster extends AbstractService {
       EventHandler<DAGAppMasterEvent> {
     @Override
     public void handle(DAGAppMasterEvent event) {
+      // don't handle events if DAGAppMaster is in the state of STOPPED,
+      // otherwise there may be dead-lock happen.  TEZ-2204
+      if (DAGAppMaster.this.getServiceState() == STATE.STOPPED) {
+        LOG.info("ignore event when DAGAppMaster is in the state of STOPPED, eventType="
+          + event.getType());
+        return;
+      }
       DAGAppMaster.this.handle(event);
     }
   }
