@@ -90,6 +90,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2047. Build fails against hadoop-2.2 post TEZ-2018
   TEZ-2064. SessionNotRunning Exception not thrown is all cases
   TEZ-2189. Tez UI live AM tracking url only works for localhost addresses
   TEZ-2179. Timeline relatedentries missing cause exaggerated warning.

@@ -27,7 +27,6 @@ import com.google.inject.name.Names;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.http.HttpConfig;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.webapp.WebApp;
@@ -57,6 +56,7 @@ public class WebUIService extends AbstractService {
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    Configuration config = new Configuration(conf);
     if (historyUrl == null || historyUrl.isEmpty()) {
       LOG.error("Tez UI History URL is not set");
     } else {
@@ -66,24 +66,25 @@ public class WebUIService extends AbstractService {
     if (tezAMWebApp != null) {
       this.tezAMWebApp.setHistoryUrl(historyUrl);
     }
-    super.serviceInit(conf);
+    super.serviceInit(config);
   }
 
   @Override
   protected void serviceStart() throws Exception {
     if (tezAMWebApp != null) {
       // use AmIpFilter to restrict connections only from the rm proxy
-      final Configuration conf = getConfig();
+      Configuration conf = getConfig();
       conf.set("hadoop.http.filter.initializers",
           "org.apache.hadoop.yarn.server.webproxy.amfilter.AmFilterInitializer");
       try {
         // Explicitly disabling SSL for the web service. For https we do not want AM users to allow
         // access to the keystore file for opening SSL listener. We can trust RM/NM to issue SSL
         // certificates, however AM user is not trusted.
+        // ideally the withHttpPolicy should be used, however hadoop 2.2 does not have the api
+        conf.set("yarn.http.policy", "HTTP_ONLY");
         this.webApp = WebApps
             .$for(this.tezAMWebApp)
             .with(conf)
-            .withHttpPolicy(conf, HttpConfig.Policy.HTTP_ONLY)
             .start(this.tezAMWebApp);
         InetSocketAddress address = webApp.getListenerAddress();
         if (address != null) {
