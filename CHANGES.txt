@@ -251,6 +251,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2214. FetcherOrderedGrouped can get stuck indefinitely when MergeManager misses memToDiskMerging
   TEZ-1923. FetcherOrderedGrouped gets into infinite loop due to memory pressure
   TEZ-2219. Should verify the input_name/output_name to be unique per vertex
   TEZ-2186. OOM with a simple scatter gather job with re-use

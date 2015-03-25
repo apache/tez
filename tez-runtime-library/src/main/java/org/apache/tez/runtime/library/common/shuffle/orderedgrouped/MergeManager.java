@@ -325,8 +325,29 @@ public class MergeManager {
 
   public void waitForInMemoryMerge() throws InterruptedException {
     inMemoryMerger.waitForMerge();
+
+    /**
+     * Memory released during merge process could have been used by active fetchers and if they
+     * are too fast, 'commitMemory & usedMemory' could have grown beyond allowed threshold. Since
+     * merge was already in progress, this would not have kicked off another merge and fetchers
+     * could get into indefinite wait state later. To address this, trigger another merge process
+     * if needed and wait for it to complete (to release committedMemory & usedMemory).
+     */
+    boolean triggerAdditionalMerge = false;
+    synchronized (this) {
+      if (commitMemory >= mergeThreshold) {
+        startMemToDiskMerge();
+        triggerAdditionalMerge = true;
+      }
+    }
+    if (triggerAdditionalMerge) {
+      inMemoryMerger.waitForMerge();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Additional in-memory merge triggered");
+      }
+    }
   }
-  
+
   private boolean canShuffleToMemory(long requestedSize) {
     return (requestedSize < maxSingleShuffleLimit);
   }
@@ -578,7 +599,7 @@ public class MergeManager {
       if (inputs == null || inputs.size() == 0) {
         return;
       }
-      
+
       numMemToDiskMerges.increment(1);
       
       //name this output file same as the name of the first file that is 
