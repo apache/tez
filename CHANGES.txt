@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2176. Move all logging to slf4j. (commons-logging jar no longer part of Tez tar)
 
 ALL CHANGES:
+  TEZ-2213. For the ordered case, enabling pipelined shuffle should automatically disable final merge.
   TEZ-2204. TestAMRecovery increasingly flaky on jenkins builds.
   TEZ-2209. Fix pipelined shuffle to fetch data from any one attempt
   TEZ-2210. Record DAG AM CPU usage stats
