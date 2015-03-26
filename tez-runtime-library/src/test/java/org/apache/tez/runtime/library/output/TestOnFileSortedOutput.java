@@ -186,6 +186,7 @@ public class TestOnFileSortedOutput {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
 
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 2);
+    //wrong setting for final merge enable in output
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
     OutputContext context = createTezOutputContext();
@@ -194,13 +195,9 @@ public class TestOnFileSortedOutput {
     sortedOutput = new OrderedPartitionedKVOutput(context, partitions);
 
     sortedOutput.initialize();
-    try {
-      sortedOutput.start();
-      fail("Should have thrown illegal arguement exception as final merge & pipelining are "
-          + "enabled together");
-    } catch(IllegalArgumentException ie) {
-      assertTrue(ie.getMessage().contains("has to be set to false for pipelined"));
-    }
+    sortedOutput.start();
+    assertFalse(sortedOutput.finalMergeEnabled); //should be disabled as pipelining is on
+    assertTrue(sortedOutput.pipelinedShuffle);
   }
 
   @Test

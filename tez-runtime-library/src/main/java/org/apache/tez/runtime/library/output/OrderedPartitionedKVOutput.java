@@ -111,22 +111,25 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
           .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
           .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT);
 
+      if (pipelinedShuffle) {
+        if (finalMergeEnabled) {
+          LOG.info("Disabling final merge as "
+              + TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " is enabled.");
+          finalMergeEnabled = false;
+          conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+        }
+
+        //TODO: Enable it for pipelinedsorter only and not for DefaultSorter
+        Preconditions.checkArgument((sortThreads > 1), TezRuntimeConfiguration
+            .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " works with PipelinedSorter.");
+      }
+
       if (sortThreads > 1) {
         sorter = new PipelinedSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
       } else {
         sorter = new DefaultSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
-      }
-
-      if (pipelinedShuffle) {
-        Preconditions.checkArgument(!finalMergeEnabled, TezRuntimeConfiguration
-            .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT + " has to be set to false for pipelined "
-            + "shuffle to work properly.");
-
-        //TODO: Enable it for pipelinedsorter only and not for DefaultSorter
-        Preconditions.checkArgument((sortThreads > 1), TezRuntimeConfiguration
-            .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " works with PipelinedSorter.");
       }
 
       isStarted.set(true);
