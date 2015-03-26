@@ -197,6 +197,12 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   @Test(timeout = 10000)
+  public void testNoSpill_SinglPartition() throws IOException, InterruptedException {
+    baseTest(10, 1, null, shouldCompress);
+  }
+
+
+  @Test(timeout = 10000)
   public void testRandomText() throws IOException, InterruptedException {
     textTest(100, 10, 2048, 0, 0, 0, false);
   }
@@ -339,7 +345,6 @@ public class TestUnorderedPartitionedKVWriter {
     DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(
         ByteString.copyFrom(cdme
             .getUserPayload()));
-    assertFalse(eventProto.hasData());
     BitSet emptyPartitionBits = null;
     if (partitionsWithData.cardinality() != numPartitions) {
       assertTrue(eventProto.hasEmptyPartitions());
@@ -549,7 +554,6 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals(numOutputs, cdme.getCount());
     DataMovementEventPayloadProto eventProto =
         DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
-    assertFalse(eventProto.hasData());
     //Ensure that this is the last event
     assertTrue(eventProto.getLastEvent());
     if (eventProto.hasEmptyPartitions()) {
@@ -671,9 +675,11 @@ public class TestUnorderedPartitionedKVWriter {
     TezCounter numAdditionalSpillsCounter = counters
         .findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
     assertEquals(numRecordsWritten * sizePerRecord, outputRecordBytesCounter.getValue());
+    if (numPartitions > 1) {
+      assertEquals(numRecordsWritten * sizePerRecordWithOverhead, outputBytesWithOverheadCounter.getValue());
+    }
     assertEquals(numRecordsWritten, outputRecordsCounter.getValue());
-    assertEquals(numRecordsWritten * sizePerRecordWithOverhead,
-        outputBytesWithOverheadCounter.getValue());
+
     long fileOutputBytes = fileOutputBytesCounter.getValue();
     if (numRecordsWritten > 0) {
       assertTrue(fileOutputBytes > 0);
@@ -710,7 +716,6 @@ public class TestUnorderedPartitionedKVWriter {
     DataMovementEventPayloadProto eventProto =
         DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(
             cdme.getUserPayload()));
-    assertFalse(eventProto.hasData());
     if (skippedPartitions == null && numRecordsWritten > 0) {
       assertFalse(eventProto.hasEmptyPartitions());
       emptyPartitionBits = new BitSet(numPartitions);

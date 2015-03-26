@@ -104,7 +104,6 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     }
     int srcIndex = dme.getSourceIndex();
-    String hostIdentifier = shufflePayload.getHost() + ":" + shufflePayload.getPort();
     LOG.info("DME srcIdx: " + srcIndex + ", targetIndex: " + dme.getTargetIndex()
         + ", attemptNum: " + dme.getVersion() + ", payload: " + ShuffleUtils
         .stringify(shufflePayload));
@@ -128,40 +127,10 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     InputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme,
         shufflePayload, (useSharedInputs && srcIndex == 0));
 
-    if (shufflePayload.hasData()) {
-      DataProto dataProto = shufflePayload.getData();
-      FetchedInput fetchedInput = inputAllocator.allocate(dataProto.getRawLength(),
-          dataProto.getCompressedLength(), srcAttemptIdentifier);
-      moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
-      shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
-    } else {
-      shuffleManager.addKnownInput(shufflePayload.getHost(),
-          shufflePayload.getPort(), srcAttemptIdentifier, srcIndex);
-    }
-
+    shuffleManager.addKnownInput(shufflePayload.getHost(),
+        shufflePayload.getPort(), srcAttemptIdentifier, srcIndex);
   }
 
-  private void moveDataToFetchedInput(DataProto dataProto,
-      FetchedInput fetchedInput, String hostIdentifier) throws IOException {
-    switch (fetchedInput.getType()) {
-    case DISK:
-      ShuffleUtils.shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
-        hostIdentifier, dataProto.getData().newInput(), dataProto.getCompressedLength(), LOG,
-          fetchedInput.getInputAttemptIdentifier().toString());
-      break;
-    case MEMORY:
-      ShuffleUtils.shuffleToMemory(((MemoryFetchedInput) fetchedInput).getBytes(),
-        dataProto.getData().newInput(), dataProto.getRawLength(), dataProto.getCompressedLength(),
-        codec, ifileReadAhead, ifileReadAheadLength, LOG,
-        fetchedInput.getInputAttemptIdentifier().toString());
-      break;
-    case WAIT:
-    default:
-      throw new TezUncheckedException("Unexpected type: "
-          + fetchedInput.getType());
-    }
-  }
-  
   private void processInputFailedEvent(InputFailedEvent ife) {
     InputAttemptIdentifier srcAttemptIdentifier = new InputAttemptIdentifier(ife.getTargetIndex(), ife.getVersion());
     shuffleManager.obsoleteKnownInput(srcAttemptIdentifier);

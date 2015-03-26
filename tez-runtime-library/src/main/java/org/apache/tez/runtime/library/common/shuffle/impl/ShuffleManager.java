@@ -508,49 +508,6 @@ public class ShuffleManager implements FetcherCallback {
     lastEventReceived.setValue(relativeTime);
   }
 
-  public void addCompletedInputWithData(
-      InputAttemptIdentifier srcAttemptIdentifier, FetchedInput fetchedInput)
-      throws IOException {
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
-
-    LOG.info("Received Data via Event: " + srcAttemptIdentifier + " to "
-        + fetchedInput.getType());
-    // Count irrespective of whether this is a copy of an already fetched input
-    lock.lock();
-    try {
-      lastProgressTime = System.currentTimeMillis();
-    } finally {
-      lock.unlock();
-    }
-
-    boolean committed = false;
-    if (!completedInputSet.contains(inputIdentifier)) {
-      synchronized (completedInputSet) {
-        if (!completedInputSet.contains(inputIdentifier)) {
-          fetchedInput.commit();
-          committed = true;
-          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
-            registerCompletedInput(fetchedInput);
-          } else {
-            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
-          }
-        }
-      }
-    }
-    if (!committed) {
-      fetchedInput.abort(); // If this fails, the fetcher may attempt another
-                            // abort.
-    } else {
-      lock.lock();
-      try {
-        // Signal the wakeLoop to check for termination.
-        wakeLoop.signal();
-      } finally {
-        lock.unlock();
-      }
-    }
-  }
-
   public synchronized void obsoleteKnownInput(InputAttemptIdentifier srcAttemptIdentifier) {
     obsoletedInputs.add(srcAttemptIdentifier);
     // TODO NEWTEZ Maybe inform the fetcher about this. For now, this is used during the initial fetch list construction.

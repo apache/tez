@@ -133,6 +133,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   @VisibleForTesting
   Path finalOutPath;
 
+  //for single partition cases (e.g UnorderedKVOutput)
+  private final IFile.Writer writer;
+  private final boolean skipBuffers;
+
   private final ReentrantLock spillLock = new ReentrantLock();
   private final Condition spillInProgress = spillLock.newCondition();
 
@@ -143,7 +147,22 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   public UnorderedPartitionedKVWriter(OutputContext outputContext, Configuration conf,
       int numOutputs, long availableMemoryBytes) throws IOException {
     super(outputContext, conf, numOutputs);
-    Preconditions.checkArgument(availableMemoryBytes > 0, "availableMemory should not be > 0 bytes");
+    Preconditions.checkArgument(availableMemoryBytes >= 0, "availableMemory should be >= 0 bytes");
+
+    //Not checking for TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT as it might not add much value in
+    // this case.  Add it later if needed.
+    pipelinedShuffle = this.conf.getBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT);
+
+    if (availableMemoryBytes == 0) {
+      Preconditions.checkArgument(((numPartitions == 1) && !pipelinedShuffle), "availableMemory "
+          + "can be set to 0 only when numPartitions=1 and " + TezRuntimeConfiguration
+          .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " is disabled. current numPartitions=" +
+          numPartitions + ", " + TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + "="
+          + pipelinedShuffle);
+    }
+
     // Ideally, should be significantly larger.
     availableMemory = availableMemoryBytes;
 
@@ -179,15 +198,22 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     outputLargeRecordsCounter = outputContext.getCounters().findCounter(
         TaskCounter.OUTPUT_LARGE_RECORDS);
 
-    //Not checking for TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT as it might not add much value in
-    // this case.  Add it later if needed.
-    pipelinedShuffle = this.conf.getBoolean(TezRuntimeConfiguration
-        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
-        .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT);
 
 
     indexFileSizeEstimate = numPartitions * Constants.MAP_OUTPUT_INDEX_RECORD_LENGTH;
-    LOG.info("pipelinedShuffle=" + pipelinedShuffle);
+
+    if (numPartitions == 1 && !pipelinedShuffle) {
+      //special case, where in only one partition is available.
+      finalOutPath = outputFileHandler.getOutputFileForWrite();
+      finalIndexPath = outputFileHandler.getOutputIndexFileForWrite(indexFileSizeEstimate);
+      skipBuffers = true;
+      writer = new IFile.Writer(conf, rfs, finalOutPath, keyClass, valClass,
+          codec, outputRecordsCounter, outputRecordBytesCounter);
+    } else {
+      skipBuffers = false;
+      writer = null;
+    }
+    LOG.info("pipelinedShuffle=" + pipelinedShuffle + ", skipBuffers=" + skipBuffers);
   }
 
   private void computeNumBuffersAndSize(int bufferLimit) {
@@ -210,8 +236,13 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       // Already reported as a fatalError - report to the user code
       throw new IOException("Exception during spill", new IOException(spillException));
     }
-    int partition = partitioner.getPartition(key, value, numPartitions);
-    write(key, value, partition);
+    if (skipBuffers) {
+      //special case, where we have only one partition and pipeliing is disabled.
+      writer.append(key, value);
+    } else {
+      int partition = partitioner.getPartition(key, value, numPartitions);
+      write(key, value, partition);
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -451,6 +482,27 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
       List<Event> events = Lists.newLinkedList();
       if (!pipelinedShuffle) {
+        if (skipBuffers) {
+          writer.close();
+          long rawLen = writer.getRawLength();
+          long compLen = writer.getCompressedLength();
+          TezIndexRecord rec = new TezIndexRecord(0, rawLen, compLen);
+          TezSpillRecord sr = new TezSpillRecord(1);
+          sr.putIndex(rec, 0);
+          sr.writeToFile(finalIndexPath, conf);
+
+          BitSet emptyPartitions = new BitSet();
+          if (outputRecordsCounter.getValue() == 0) {
+            emptyPartitions.set(0);
+          }
+          cleanupCurrentBuffer();
+
+          outputBytesWithOverheadCounter.increment(rawLen);
+          fileOutputBytesCounter.increment(compLen + indexFileSizeEstimate);
+          return Collections.singletonList(generateDMEvent(false, -1, false, outputContext
+              .getUniqueIdentifier(), emptyPartitions));
+        }
+
         //Regular code path.
         if (numSpills.get() > 0) {
           mergeAll();

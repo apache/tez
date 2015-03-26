@@ -54,7 +54,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
   public void testSimpleWeightedScaling() {
     Configuration conf = new Configuration(this.conf);
     conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS,
-        WeightedScalingMemoryDistributor.generateWeightStrings(0, 1, 2, 3, 1, 1));
+        WeightedScalingMemoryDistributor.generateWeightStrings(0, 0, 1, 2, 3, 1, 1));
     System.err.println(Joiner.on(",").join(conf.getStringCollection(
         TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS)));
 
@@ -101,7 +101,7 @@ public class TestWeightedScalingMemoryDistributor extends TestMemoryDistributor 
   public void testAdditionalReserveFractionWeightedScaling() {
     Configuration conf = new Configuration(this.conf);
     conf.setStrings(TezConfiguration.TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS,
-        WeightedScalingMemoryDistributor.generateWeightStrings(0, 2, 3, 6, 1, 1));
+        WeightedScalingMemoryDistributor.generateWeightStrings(0, 0, 2, 3, 6, 1, 1));
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO, 0.025d);
     conf.setDouble(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX, 0.2d);
 

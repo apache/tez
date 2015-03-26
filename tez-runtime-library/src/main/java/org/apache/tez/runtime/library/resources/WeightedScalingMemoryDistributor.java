@@ -64,7 +64,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   static final double MAX_ADDITIONAL_RESERVATION_FRACTION_PER_IO = 0.1d;
   static final double RESERVATION_FRACTION_PER_IO = 0.015d;
   static final String[] DEFAULT_TASK_MEMORY_WEIGHTED_RATIOS =
-      generateWeightStrings(1, 1, 12, 12, 1, 1);
+      generateWeightStrings(1, 1, 1, 12, 12, 1, 1);
 
   private Configuration conf;
 
@@ -265,11 +265,11 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
     return reserveFraction;
   }
 
-  public static String[] generateWeightStrings(int unsortedPartitioned, int broadcastIn,
-      int sortedOut, int scatterGatherShuffleIn, int proc, int other) {
+  public static String[] generateWeightStrings(int unsortedPartitioned, int unsorted,
+      int broadcastIn, int sortedOut, int scatterGatherShuffleIn, int proc, int other) {
     String[] weights = new String[RequestType.values().length];
     weights[0] = RequestType.PARTITIONED_UNSORTED_OUTPUT.name() + ":" + unsortedPartitioned;
-    weights[1] = RequestType.UNSORTED_OUTPUT.name() + ":" + 0;
+    weights[1] = RequestType.UNSORTED_OUTPUT.name() + ":" + unsorted;
     weights[2] = RequestType.UNSORTED_INPUT.name() + ":" + broadcastIn;
     weights[3] = RequestType.SORTED_OUTPUT.name() + ":" + sortedOut;
     weights[4] = RequestType.SORTED_MERGED_INPUT.name() + ":" + scatterGatherShuffleIn;
