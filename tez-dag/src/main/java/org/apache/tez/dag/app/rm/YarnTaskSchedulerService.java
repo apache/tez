@@ -353,10 +353,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             ", reuseNonLocal: " + reuseNonLocal + 
             ", localitySchedulingDelay: " + localitySchedulingDelay +
             ", preemptionPercentage: " + preemptionPercentage +
-            ", numHeartbeatsBetweenPreemptions" + numHeartbeatsBetweenPreemptions +
-            ", idleContainerMinTimeout=" + idleContainerTimeoutMin +
-            ", idleContainerMaxTimeout=" + idleContainerTimeoutMax +
-            ", sessionMinHeldContainers=" + sessionNumMinHeldContainers);
+            ", numHeartbeatsBetweenPreemptions: " + numHeartbeatsBetweenPreemptions +
+            ", idleContainerMinTimeout: " + idleContainerTimeoutMin +
+            ", idleContainerMaxTimeout: " + idleContainerTimeoutMax +
+            ", sessionMinHeldContainers: " + sessionNumMinHeldContainers);
   }
 
   @Override
@@ -561,6 +561,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   
   @VisibleForTesting
   long getHeldContainerExpireTime(long startTime) {
+    // expire time is at least extended by min time.
+    // corner case when min time = -1 but then it does not matter because
+    // expire time is irrelevant at that point.
     long expireTime = (startTime + idleContainerTimeoutMin);
     if (idleContainerTimeoutMin != -1 && idleContainerTimeoutMin < idleContainerTimeoutMax) {
       long expireTimeMax = startTime + idleContainerTimeoutMax;
@@ -614,22 +617,23 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           && idleContainerTimeoutMin != -1)) {
         // container idle timeout has expired or is a new unused container. 
         // new container is possibly a spurious race condition allocation.
-        if (!isNew && appContext.isSession() && 
-            sessionMinHeldContainers.contains(heldContainer.getContainer().getId())) {
-          // Not a potentially spurious new container.
+        if (appContext.isSession()
+            && sessionMinHeldContainers.contains(heldContainer.getContainer().getId())) {
+          // There are no outstanding requests. So its safe to hold new containers.
+          // We may have received more containers than necessary and some are unused
           // In session mode and container in set of chosen min held containers
           // increase the idle container expire time to maintain sanity with 
-          // the rest of the code
+          // the rest of the code.
           heldContainer.setContainerExpiryTime(getHeldContainerExpireTime(currentTime));
         } else {
-          releaseContainer = true;
+          releaseContainer = true;          
         }
       }
       
       if (releaseContainer) {
         LOG.info("No taskRequests. Container's idle timeout delay expired or is new. " +
             "Releasing container"
-            + ", containerId=" + heldContainer.container.getId()
+            + ", containerId=" + heldContainer.getContainer().getId()
             + ", containerExpiryTime="
             + heldContainer.getContainerExpiryTime()
             + ", idleTimeout=" + idleContainerTimeoutMin
@@ -638,7 +642,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
             + ", isNew=" + isNew);
           releaseUnassignedContainers(
-              Lists.newArrayList(heldContainer.container));        
+              Lists.newArrayList(heldContainer.getContainer()));        
       } else {
         // no outstanding work and container idle timeout not expired
         if (LOG.isDebugEnabled()) {
@@ -656,7 +660,20 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       }
    } else if (state.equals(DAGAppMasterState.RUNNING)) {
       // clear min held containers since we need to allocate to tasks
-      sessionMinHeldContainers.clear();
+      if (!sessionMinHeldContainers.isEmpty()) {
+        // update the expire time of min held containers so that they are
+        // not released immediately, when new requests come in, if they come in 
+        // just before these containers are about to expire (race condition)
+        long currentTime = System.currentTimeMillis();
+        for (ContainerId minHeldCId : sessionMinHeldContainers) {
+          HeldContainer minHeldContainer = heldContainers.get(minHeldCId);
+          if (minHeldContainer != null) {
+            // check in case it got removed because of external reasons
+            minHeldContainer.setContainerExpiryTime(getHeldContainerExpireTime(currentTime));
+          }
+        }
+        sessionMinHeldContainers.clear();
+      }
       HeldContainer.LocalityMatchLevel localityMatchLevel =
         heldContainer.getLocalityMatchLevel();
       Map<CookieContainerRequest, Container> assignedContainers =
@@ -1441,11 +1458,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   }
   
   private void pushNewContainerToDelayed(List<Container> containers){
-    long expireTime = -1;
-    if (idleContainerTimeoutMin > 0) {
-      long currentTime = System.currentTimeMillis();
-      expireTime = currentTime + idleContainerTimeoutMin;
-    }
+    long expireTime = getHeldContainerExpireTime(System.currentTimeMillis());
 
     synchronized (delayedContainerManager) {
       for (Container container : containers) {
@@ -1953,7 +1966,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       releaseUnassignedContainers(new ContainerIterable(pendingContainers));
     }
 
-    private void addDelayedContainer(Container container,
+    @VisibleForTesting
+    void addDelayedContainer(Container container,
         long nextScheduleTime) {
       HeldContainer delayedContainer = heldContainers.get(container.getId());
       if (delayedContainer == null) {
@@ -2055,7 +2069,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       }
     }
     
-    LOG.info("Holding on to " + sessionMinHeldContainers.size() + " containers");
+    LOG.info("Holding on to " + sessionMinHeldContainers.size() + " containers"
+        + " out of total held containers: " + heldContainers.size());
   }
 
   private static class ContainerIterable implements Iterable<Container> {
