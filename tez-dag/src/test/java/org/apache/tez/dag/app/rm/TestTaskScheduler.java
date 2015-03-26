@@ -998,12 +998,13 @@ public class TestTaskScheduler {
   }
   
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test (timeout=5000)
   public void testTaskSchedulerDetermineMinHeldContainers() throws Exception {
     RackResolver.init(new YarnConfiguration());
     TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
     AppContext mockAppContext = mock(AppContext.class);
     when(mockAppContext.getAMState()).thenReturn(DAGAppMasterState.RUNNING);
+    when(mockAppContext.isSession()).thenReturn(true);
 
     TezAMRMClientAsync<CookieContainerRequest> mockRMClient =
                                                   mock(TezAMRMClientAsync.class);
@@ -1015,6 +1016,8 @@ public class TestTaskScheduler {
       new TaskSchedulerWithDrainableAppCallback(
         mockApp, new AlwaysMatchesContainerMatcher(), appHost, appPort,
         appUrl, mockRMClient, mockAppContext);
+    TaskSchedulerAppCallbackDrainable drainableAppCallback = scheduler
+        .getDrainableAppCallback();
 
     Configuration conf = new Configuration();
     scheduler.init(conf);
@@ -1042,42 +1045,71 @@ public class TestTaskScheduler {
     String node1Rack3 = "n1r3";
     ApplicationAttemptId appId = ApplicationAttemptId.newInstance(ApplicationId.newInstance(0, 0), 0);
 
+    Resource r = Resource.newInstance(0, 0);
     ContainerId mockCId1 = ContainerId.newInstance(appId, 0);
-    HeldContainer hc1 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c1 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c1.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc1 = Mockito.spy(new HeldContainer(c1, 0, 0, null));
     when(hc1.getNode()).thenReturn(node1Rack1);
     when(hc1.getRack()).thenReturn(rack1);
-    when(hc1.getContainer().getId()).thenReturn(mockCId1);
+    when(c1.getId()).thenReturn(mockCId1);
+    when(c1.getResource()).thenReturn(r);
+    when(hc1.getContainer()).thenReturn(c1);
     ContainerId mockCId2 = ContainerId.newInstance(appId, 1);
-    HeldContainer hc2 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c2 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c2.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc2 = Mockito.spy(new HeldContainer(c2, 0, 0, null));
     when(hc2.getNode()).thenReturn(node2Rack1);
     when(hc2.getRack()).thenReturn(rack1);
-    when(hc2.getContainer().getId()).thenReturn(mockCId2);
+    when(c2.getId()).thenReturn(mockCId2);
+    when(c2.getResource()).thenReturn(r);
+    when(hc2.getContainer()).thenReturn(c2);
     ContainerId mockCId3 = ContainerId.newInstance(appId, 2);
-    HeldContainer hc3 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c3 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c3.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc3 = Mockito.spy(new HeldContainer(c3, 0, 0, null));
     when(hc3.getNode()).thenReturn(node1Rack1);
     when(hc3.getRack()).thenReturn(rack1);
-    when(hc3.getContainer().getId()).thenReturn(mockCId3);
+    when(c3.getId()).thenReturn(mockCId3);
+    when(c3.getResource()).thenReturn(r);
+    when(hc3.getContainer()).thenReturn(c3);
     ContainerId mockCId4 = ContainerId.newInstance(appId, 3);
-    HeldContainer hc4 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c4 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c4.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc4 = Mockito.spy(new HeldContainer(c4, 0, 0, null));
     when(hc4.getNode()).thenReturn(node2Rack1);
     when(hc4.getRack()).thenReturn(rack1);
-    when(hc4.getContainer().getId()).thenReturn(mockCId4);
+    when(c4.getId()).thenReturn(mockCId4);
+    when(c4.getResource()).thenReturn(r);
+    when(hc4.getContainer()).thenReturn(c4);
     ContainerId mockCId5 = ContainerId.newInstance(appId, 4);
-    HeldContainer hc5 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c5 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c5.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc5 = Mockito.spy(new HeldContainer(c5, 0, 0, null));
     when(hc5.getNode()).thenReturn(node1Rack2);
     when(hc5.getRack()).thenReturn(rack2);
-    when(hc5.getContainer().getId()).thenReturn(mockCId5);
+    when(c5.getId()).thenReturn(mockCId5);
+    when(c5.getResource()).thenReturn(r);
+    when(hc5.getContainer()).thenReturn(c5);
     ContainerId mockCId6 = ContainerId.newInstance(appId, 5);
-    HeldContainer hc6 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c6 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c6.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc6 = Mockito.spy(new HeldContainer(c6, 0, 0, null));
     when(hc6.getNode()).thenReturn(node2Rack2);
     when(hc6.getRack()).thenReturn(rack2);
-    when(hc6.getContainer().getId()).thenReturn(mockCId6);
+    when(c6.getId()).thenReturn(mockCId6);
+    when(c6.getResource()).thenReturn(r);
+    when(hc6.getContainer()).thenReturn(c6);
     ContainerId mockCId7 = ContainerId.newInstance(appId, 6);
-    HeldContainer hc7 = mock(HeldContainer.class, RETURNS_DEEP_STUBS);
+    Container c7 = mock(Container.class, RETURNS_DEEP_STUBS);
+    when(c7.getNodeId().getHost()).thenReturn(""); // we are mocking directly
+    HeldContainer hc7 = Mockito.spy(new HeldContainer(c7, 0, 0, null));
     when(hc7.getNode()).thenReturn(node1Rack3);
     when(hc7.getRack()).thenReturn(rack3);
-    when(hc7.getContainer().getId()).thenReturn(mockCId7);
-    
+    when(c7.getId()).thenReturn(mockCId7);
+    when(c7.getResource()).thenReturn(r);
+    when(hc7.getContainer()).thenReturn(c7);
+
     scheduler.heldContainers.put(mockCId1, hc1);
     scheduler.heldContainers.put(mockCId2, hc2);
     scheduler.heldContainers.put(mockCId3, hc3);
@@ -1123,6 +1155,19 @@ public class TestTaskScheduler {
     Assert.assertTrue(racks.contains(rack1) && racks.contains(rack2) &&
         racks.contains(rack3));
     
+    long currTime = System.currentTimeMillis();
+    heldContainers.clear();
+    heldContainers.addAll(scheduler.heldContainers.values());
+    for (HeldContainer hc : heldContainers) {
+      when(hc.isNew()).thenReturn(true);
+      scheduler.delayedContainerManager.addDelayedContainer(hc.getContainer(), currTime);
+    }
+    Thread.sleep(1000);
+    drainableAppCallback.drain();
+    // only the 2 container not in min-held containers are released
+    verify(mockRMClient, times(2)).releaseAssignedContainer((ContainerId)any());
+    Assert.assertEquals(5, scheduler.heldContainers.size());
+
     String appMsg = "success";
     AppFinalStatus finalStatus =
         new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
