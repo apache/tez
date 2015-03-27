@@ -319,7 +319,6 @@ class TestTaskSchedulerHelpers {
         } else {
           fail("Timed out while trying to drain queue");
         }
-
       }
     }
   }

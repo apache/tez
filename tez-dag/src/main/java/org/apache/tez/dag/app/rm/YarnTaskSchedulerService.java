@@ -1831,8 +1831,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             try {
               // test only signaling to make TestTaskScheduler work
               if (drainedDelayedContainersForTest != null) {
-                drainedDelayedContainersForTest.set(true);
                 synchronized (drainedDelayedContainersForTest) {
+                  drainedDelayedContainersForTest.set(true);
                   drainedDelayedContainersForTest.notifyAll();
                 }
               }
