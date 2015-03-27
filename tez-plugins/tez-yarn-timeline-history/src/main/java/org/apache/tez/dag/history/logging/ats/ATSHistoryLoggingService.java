@@ -36,6 +36,7 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse.TimelineP
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -72,6 +73,8 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
   private long maxPollingTimeMillis;
 
   private String sessionDomainId;
+  private static final String atsHistoryLoggingServiceClassName =
+      "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
   private HistoryACLPolicyManager historyACLPolicyManager;
@@ -83,8 +86,19 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
   @Override
   public void serviceInit(Configuration conf) throws Exception {
     LOG.info("Initializing ATSService");
-    timelineClient = TimelineClient.createTimelineClient();
-    timelineClient.init(conf);
+    if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
+      YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
+      timelineClient = TimelineClient.createTimelineClient();
+      timelineClient.init(conf);
+    } else {
+      this.timelineClient = null;
+      if (conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
+        .equals(atsHistoryLoggingServiceClassName)) {
+        LOG.warn(atsHistoryLoggingServiceClassName
+            + " is disabled due to Timeline Service being disabled, "
+            + YarnConfiguration.TIMELINE_SERVICE_ENABLED + " set to false");
+      }
+    }
     maxTimeToWaitOnShutdown = conf.getLong(
         TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS,
         TezConfiguration.YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT);
@@ -118,6 +132,9 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   @Override
   public void serviceStart() {
+    if (timelineClient == null) {
+      return;
+    }
     LOG.info("Starting ATSService");
     timelineClient.start();
 
@@ -169,6 +186,9 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   @Override
   public void serviceStop() {
+    if (timelineClient == null) {
+      return;
+    }
     LOG.info("Stopping ATSService"
         + ", eventQueueBacklog=" + eventQueue.size());
     stopped.set(true);
@@ -233,7 +253,9 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
 
   public void handle(DAGHistoryEvent event) {
-    eventQueue.add(event);
+    if (timelineClient != null) {
+      eventQueue.add(event);
+    }
   }
 
   private boolean isValidEvent(DAGHistoryEvent event) {

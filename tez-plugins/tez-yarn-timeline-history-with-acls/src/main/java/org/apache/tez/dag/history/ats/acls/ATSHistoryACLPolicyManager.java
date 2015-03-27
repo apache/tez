@@ -38,6 +38,7 @@ import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.ACLType;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 
@@ -51,6 +52,8 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
   Configuration conf;
   String user;
   final static String DOMAIN_ID_PREFIX = "Tez_ATS_";
+  private static final String atsHistoryLoggingServiceClassName =
+      "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
 
   private void initializeTimelineClient() {
     if (this.conf == null) {
@@ -60,9 +63,20 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
       this.timelineClient.stop();
       this.timelineClient = null;
     }
-    this.timelineClient = TimelineClient.createTimelineClient();
-    this.timelineClient.init(this.conf);
-    this.timelineClient.start();
+    if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
+      YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
+      this.timelineClient = TimelineClient.createTimelineClient();
+      this.timelineClient.init(this.conf);
+      this.timelineClient.start();
+    } else {
+      this.timelineClient = null;
+      if (conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
+         .equals(atsHistoryLoggingServiceClassName)) {
+        LOG.warn(atsHistoryLoggingServiceClassName
+            + " is disabled due to Timeline Service being disabled, "
+            + YarnConfiguration.TIMELINE_SERVICE_ENABLED + " set to false");
+      }
+    }
     try {
       this.user = UserGroupInformation.getCurrentUser().getShortUserName();
     } catch (IOException e) {
@@ -110,7 +124,9 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
     timelineDomain.setWriters(user);
 
     try {
-      timelineClient.putDomain(timelineDomain);
+      if (timelineClient != null) {
+        timelineClient.putDomain(timelineDomain);
+      }
     } catch (Exception e) {
       LOG.warn("Could not post timeline domain", e);
     }

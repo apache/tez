@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -142,4 +143,53 @@ public class TestATSHistoryLoggingService {
     Assert.assertEquals(atsEntitiesCounter/2, atsInvokeCounter);
   }
 
+  @Test(timeout=20000)
+  public void testTimelineServiceDisable() throws Exception {
+    ATSHistoryLoggingService atsHistoryLoggingService1;
+    AppContext appContext1;
+    appContext1 = mock(AppContext.class);
+    atsHistoryLoggingService1 = new ATSHistoryLoggingService();
+
+    atsHistoryLoggingService1.setAppContext(appContext);
+    atsHistoryLoggingService1.timelineClient = mock(TimelineClient.class);
+    when(atsHistoryLoggingService1.timelineClient.putEntities(
+      Matchers.<TimelineEntity[]>anyVararg())).thenAnswer(
+      new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        ++atsInvokeCounter;
+        atsEntitiesCounter += invocation.getArguments().length;
+        try {
+          Thread.sleep(500l);
+        } catch (InterruptedException e) {
+          // do nothing
+        }
+        return null;
+      }
+    });
+    conf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, false);
+    conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
+      ATSHistoryLoggingService.class.getName());
+    atsHistoryLoggingService1.init(conf);
+    atsHistoryLoggingService1.start();
+    TezDAGID tezDAGID = TezDAGID.getInstance(
+         ApplicationId.newInstance(100l, 1), 1);
+    DAGHistoryEvent historyEvent = new DAGHistoryEvent(tezDAGID,
+    new DAGStartedEvent(tezDAGID, 1001l, "user1", "dagName1"));
+    for (int i = 0; i < 100; ++i) {
+      atsHistoryLoggingService1.handle(historyEvent);
+    }
+
+    try {
+        Thread.sleep(1000l);
+    } catch (InterruptedException e) {
+        // Do nothing
+    }
+    LOG.info("ATS entitiesSent=" + atsEntitiesCounter
+         + ", timelineInvocations=" + atsInvokeCounter);
+    Assert.assertEquals(atsInvokeCounter, 0);
+    Assert.assertEquals(atsEntitiesCounter, 0);
+    Assert.assertNull(atsHistoryLoggingService1.timelineClient);
+    
+  }
 }
