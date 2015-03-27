@@ -342,7 +342,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       long startTime = System.nanoTime();
       long startCpuTime = threadMxBean.getCurrentThreadCpuTime();
       TaskHeartbeatResponse response = taListener.heartbeat(request);
-      if (response.shouldDie()) {
+      if (response.isShouldDie()) {
         cData.remove();
       } else {
         cData.nextFromEventId = response.getNextFromEventId();

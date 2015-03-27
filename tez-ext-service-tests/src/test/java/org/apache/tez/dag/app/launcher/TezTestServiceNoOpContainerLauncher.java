@@ -14,8 +14,6 @@
 
 package org.apache.tez.dag.app.launcher;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.util.Clock;
@@ -28,10 +26,12 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezTestServiceNoOpContainerLauncher extends AbstractService implements ContainerLauncher {
 
-  static final Log LOG = LogFactory.getLog(TezTestServiceNoOpContainerLauncher.class);
+  static final Logger LOG = LoggerFactory.getLogger(TezTestServiceNoOpContainerLauncher.class);
 
   private final AppContext context;
   private final Clock clock;

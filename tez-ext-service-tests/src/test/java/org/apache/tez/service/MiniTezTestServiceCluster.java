@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import com.google.common.base.Preconditions;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.Path;
@@ -28,10 +26,12 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.tez.service.impl.TezTestService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MiniTezTestServiceCluster extends AbstractService {
 
-  private static final Log LOG = LogFactory.getLog(MiniTezTestServiceCluster.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MiniTezTestServiceCluster.class);
 
   private final File testWorkDir;
   private final long availableMemory;

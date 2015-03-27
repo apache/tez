@@ -52,7 +52,6 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
-import org.apache.log4j.Logger;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -75,10 +74,12 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainer
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.TaskSpecProto;
 import org.apache.tez.util.ProtoConverters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContainerRunnerImpl extends AbstractService implements ContainerRunner {
 
-  private static final Logger LOG = Logger.getLogger(ContainerRunnerImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ContainerRunnerImpl.class);
 
   public static final String DAG_NAME_INSTRUMENTED_FAILURES = "InstrumentedFailures";
 

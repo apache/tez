@@ -18,14 +18,14 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezLocalTaskCommunicatorImpl extends TezTaskCommunicatorImpl {
 
-  private static final Log LOG = LogFactory.getLog(TezLocalTaskCommunicatorImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezLocalTaskCommunicatorImpl.class);
 
   public TezLocalTaskCommunicatorImpl(
       TaskCommunicatorContext taskCommunicatorContext) {

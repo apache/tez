@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.google.common.collect.Maps;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,10 +46,12 @@ import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestExternalTezServices {
 
-  private static final Log LOG = LogFactory.getLog(TestExternalTezServices.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TestExternalTezServices.class);
 
   private static final String EXT_PUSH_ENTITY_NAME = "ExtServiceTestPush";
 

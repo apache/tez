@@ -22,8 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.BlockingService;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
@@ -38,11 +36,13 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainer
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerResponseProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkResponseProto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezTestServiceProtocolServerImpl extends AbstractService
     implements TezTestServiceProtocolBlockingPB {
 
-  private static final Log LOG = LogFactory.getLog(TezTestServiceProtocolServerImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezTestServiceProtocolServerImpl.class);
 
   private final ContainerRunner containerRunner;
   private RPC.Server server;

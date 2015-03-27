@@ -19,8 +19,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -30,11 +28,13 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContainerLauncherRouter extends AbstractService
     implements EventHandler<NMCommunicatorEvent> {
 
-  static final Log LOG = LogFactory.getLog(ContainerLauncherImpl.class);
+  static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherImpl.class);
 
   private final ContainerLauncher containerLaunchers[];
 

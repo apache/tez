@@ -11,5 +11,6 @@ ALL CHANGES:
   TEZ-2139. Update tez version to 0.7.0-TEZ-2003-SNAPSHOT.
   TEZ-2175. Task priority should be available to the TaskCommunicator plugin.
   TEZ-2187. Allow TaskCommunicators to report failed / killed attempts.
+  TEZ-2241. Miscellaneous fixes after last reabse.
 
 INCOMPATIBLE CHANGES:

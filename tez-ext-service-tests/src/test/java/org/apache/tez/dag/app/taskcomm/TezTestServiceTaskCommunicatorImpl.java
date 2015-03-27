@@ -23,8 +23,6 @@ import java.util.concurrent.RejectedExecutionException;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ServiceException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.ipc.RemoteException;
@@ -41,11 +39,14 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkResponseProto;
 import org.apache.tez.util.ProtoConverters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl {
 
-  private static final Log LOG = LogFactory.getLog(TezTestServiceTaskCommunicatorImpl.class);
+  private static final Logger
+      LOG = LoggerFactory.getLogger(TezTestServiceTaskCommunicatorImpl.class);
 
   private final TezTestServiceCommunicator communicator;
   private final SubmitWorkRequestProto BASE_SUBMIT_WORK_REQUEST;

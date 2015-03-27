@@ -23,16 +23,16 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.shufflehandler.ShuffleHandler;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
+import org.slf4j.LoggerFactory;
 
 public class TezTestService extends AbstractService implements ContainerRunner {
 
-  private static final Logger LOG = Logger.getLogger(TezTestService.class);
+  private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(TezTestService.class);
 
   private final Configuration shuffleHandlerConf;
   private final int numExecutors;

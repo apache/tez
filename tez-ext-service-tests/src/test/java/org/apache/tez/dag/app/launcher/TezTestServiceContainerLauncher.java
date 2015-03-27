@@ -18,8 +18,6 @@ import java.net.InetSocketAddress;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -40,6 +38,8 @@ import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.service.TezTestServiceConfConstants;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezTestServiceContainerLauncher extends AbstractService implements ContainerLauncher {
 
@@ -47,7 +47,7 @@ public class TezTestServiceContainerLauncher extends AbstractService implements 
 
   // TODO May need multiple connections per target machine, depending upon how synchronization is handled in the RPC layer
 
-  static final Log LOG = LogFactory.getLog(TezTestServiceContainerLauncher.class);
+  static final Logger LOG = LoggerFactory.getLogger(TezTestServiceContainerLauncher.class);
 
   private final AppContext context;
   private final String tokenIdentifier;
