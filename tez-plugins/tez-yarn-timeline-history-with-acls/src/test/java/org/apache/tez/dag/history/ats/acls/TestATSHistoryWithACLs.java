@@ -43,6 +43,7 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -56,6 +57,7 @@ import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -293,6 +295,20 @@ public class TestATSHistoryWithACLs {
         Sets.newHashSet("nobody_group", "nobody_group2"));
 
     verifyEntityDomains(applicationId, false);
+  }
+
+  private static final String atsHistoryACLManagerClassName =
+      "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
+  @Test (timeout=50000)
+  public void testTimelineServiceDisabled() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
+        ATSHistoryLoggingService.class.getName());
+    tezConf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,false);
+    ATSHistoryACLPolicyManager historyACLPolicyManager = ReflectionUtils.createClazzInstance(
+        atsHistoryACLManagerClassName);
+    historyACLPolicyManager.setConf(tezConf);
+    Assert.assertNull(historyACLPolicyManager.timelineClient);
   }
 
   private void verifyEntityDomains(ApplicationId applicationId, boolean sameDomain) {
