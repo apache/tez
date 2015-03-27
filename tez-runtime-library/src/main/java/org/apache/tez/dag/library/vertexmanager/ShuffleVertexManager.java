@@ -141,6 +141,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   @VisibleForTesting
   int bipartiteSources = 0;
   long completedSourceTasksOutputSize = 0;
+  List<VertexStateUpdate> pendingStateUpdates = Lists.newArrayList();
 
   static class SourceVertexInfo {
     EdgeProperty edgeProperty;
@@ -326,7 +327,26 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   
   @Override
-  public void onVertexStarted(Map<String, List<Integer>> completions) {
+  public synchronized void onVertexStarted(Map<String, List<Integer>> completions) {
+    // examine edges after vertex started because until then these may not have been defined
+    Map<String, EdgeProperty> inputs = getContext().getInputVertexEdgeProperties();
+    for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
+      srcVertexInfo.put(entry.getKey(), new SourceVertexInfo(entry.getValue()));
+      // TODO what if derived class has already called this
+      getContext().registerForVertexStateUpdates(entry.getKey(),
+          EnumSet.of(VertexState.CONFIGURED));
+      if (entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
+        bipartiteSources++;
+      }
+    }
+    if(bipartiteSources == 0) {
+      throw new TezUncheckedException("Atleast 1 bipartite source should exist");
+    }
+    for (VertexStateUpdate stateUpdate : pendingStateUpdates) {
+      handleVertexStateUpdate(stateUpdate);
+    }
+    pendingStateUpdates.clear();
+    
     // track the tasks in this vertex
     updatePendingTasks();
     updateSourceTaskCount();
@@ -348,7 +368,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   }
 
   @Override
-  public void onSourceTaskCompleted(String srcVertexName, Integer srcTaskId) {
+  public synchronized void onSourceTaskCompleted(String srcVertexName, Integer srcTaskId) {
     updateSourceTaskCount();
     SourceVertexInfo srcInfo = srcVertexInfo.get(srcVertexName);
 
@@ -368,7 +388,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   }
   
   @Override
-  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+  public synchronized void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
     // TODO handle duplicates from retries
     if (enableAutoParallelism) {
       // save output size
@@ -678,19 +698,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         + " desiredTaskIput:" + desiredTaskInputDataSize + " minTasks:"
         + minTaskParallelism);
     
-    Map<String, EdgeProperty> inputs = getContext().getInputVertexEdgeProperties();
-    for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
-      srcVertexInfo.put(entry.getKey(), new SourceVertexInfo(entry.getValue()));
-      getContext().registerForVertexStateUpdates(entry.getKey(),
-          EnumSet.of(VertexState.CONFIGURED));
-      if (entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
-        bipartiteSources++;
-      }
-    }
-    if(bipartiteSources == 0) {
-      throw new TezUncheckedException("Atleast 1 bipartite source should exist");
-    }
-    
     if (enableAutoParallelism) {
       getContext().vertexReconfigurationPlanned();
     }
@@ -699,8 +706,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   }
 
-  @Override
-  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+  private void handleVertexStateUpdate(VertexStateUpdate stateUpdate) {
     Preconditions.checkArgument(stateUpdate.getVertexState() == VertexState.CONFIGURED,
         "Received incorrect state notification : " + stateUpdate.getVertexState() + " for vertex: "
             + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
@@ -716,7 +722,31 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   }
   
   @Override
-  public void onRootVertexInitialized(String inputName,
+  public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+    if (stateUpdate.getVertexState() == VertexState.CONFIGURED) {
+      // we will not register for updates until our vertex starts.
+      // derived classes can make other update requests for other states that we should
+      // ignore. However that will not be allowed until the state change notified supports
+      // multiple registers for the same vertex
+      if (onVertexStartedDone.get()) {
+        // normally this if check will always be true because we register after vertex
+        // start.
+        handleVertexStateUpdate(stateUpdate);
+      } else {
+        // normally this code will not trigger since we are the ones who register for
+        // the configured states updates and that will happen after vertex starts.
+        // So this code will only trigger if a derived class also registers for updates
+        // for the same vertices but multiple registers to the same vertex is currently
+        // not supported by the state change notifier code. This is just future proofing
+        // when that is supported
+        // vertex not started yet. So edge info may not have been defined correctly yet.
+        pendingStateUpdates.add(stateUpdate);
+      }
+    }
+  }
+  
+  @Override
+  public synchronized void onRootVertexInitialized(String inputName,
       InputDescriptor inputDescriptor, List<Event> events) {
     // Not allowing this for now. Nothing to do.
   }
