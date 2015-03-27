@@ -212,17 +212,16 @@ public class TestShuffleVertexManager {
     
     // check initialization
     manager = createManager(conf, mockContext, 0.1f, 0.1f); // Tez notified of reconfig
-    verify(mockContext, times(2)).vertexReconfigurationPlanned();
-    Assert.assertTrue(manager.bipartiteSources == 2);
-    
-    
     // source vertices have 0 tasks.
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(0);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(0);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(1);
 
-    // check waiting for notification before scheduling
     manager.onVertexStarted(null);
+    verify(mockContext, times(2)).vertexReconfigurationPlanned();
+    Assert.assertTrue(manager.bipartiteSources == 2);
+    
+    // check waiting for notification before scheduling
     Assert.assertFalse(manager.pendingTasks.isEmpty());
     // source vertices have 0 tasks. so only 1 notification needed. triggers scheduling
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
@@ -235,12 +234,14 @@ public class TestShuffleVertexManager {
     // check scheduling only after onVertexStarted
     manager = createManager(conf, mockContext, 0.1f, 0.1f); // Tez notified of reconfig
     verify(mockContext, times(3)).vertexReconfigurationPlanned();
-    Assert.assertTrue(manager.bipartiteSources == 2);
     // source vertices have 0 tasks. so only 1 notification needed. does not trigger scheduling
+    // normally this event will not come before onVertexStarted() is called
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-    verify(mockContext, times(1)).doneReconfiguringVertex(); // reconfig done
+    verify(mockContext, times(1)).doneReconfiguringVertex(); // no change. will trigger after start
     Assert.assertTrue(scheduledTasks.size() == 0); // no tasks scheduled
+    // trigger start and processing of pending notification events
     manager.onVertexStarted(null);
+    Assert.assertTrue(manager.bipartiteSources == 2);
     verify(mockContext, times(2)).doneReconfiguringVertex(); // reconfig done
     Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 4); // all tasks scheduled
@@ -500,6 +501,7 @@ public class TestShuffleVertexManager {
     mockInputVertices.put(mockSrcVertexId3, eProp3);
     try {
       manager = createManager(conf, mockContext, 0.1f, 0.1f);
+      manager.onVertexStarted(null);
       Assert.assertFalse(true);
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains(
@@ -511,6 +513,7 @@ public class TestShuffleVertexManager {
     
     // check initialization
     manager = createManager(conf, mockContext, 0.1f, 0.1f);
+    manager.onVertexStarted(null);
     Assert.assertTrue(manager.bipartiteSources == 2);
 
     final HashSet<Integer> scheduledTasks = new HashSet<Integer>();
@@ -791,7 +794,6 @@ public class TestShuffleVertexManager {
 
     // check initialization
     manager = createManager(conf, mockContext_R2, 0.001f, 0.001f);
-    Assert.assertTrue(manager.bipartiteSources == 3);
 
     final HashSet<Integer> scheduledTasks = new HashSet<Integer>();
     doAnswer(new Answer() {
@@ -806,6 +808,7 @@ public class TestShuffleVertexManager {
       }}).when(mockContext_R2).scheduleVertexTasks(anyList());
 
     manager.onVertexStarted(null);
+    Assert.assertTrue(manager.bipartiteSources == 3);
     manager.onVertexStateUpdated(new VertexStateUpdate(m2, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(m3, VertexState.CONFIGURED));
 
@@ -915,10 +918,6 @@ public class TestShuffleVertexManager {
     when(mockContext.getVertexNumTasks(m2)).thenReturn(3);
     when(mockContext.getVertexNumTasks(m3)).thenReturn(3);
 
-    // check initialization
-    manager = createManager(conf, mockContext, 0.001f, 0.001f);
-    Assert.assertTrue(manager.bipartiteSources == 1);
-
     final HashSet<Integer> scheduledTasks = new HashSet<Integer>();
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
@@ -931,7 +930,11 @@ public class TestShuffleVertexManager {
         return null;
       }}).when(mockContext).scheduleVertexTasks(anyList());
 
+    // check initialization
+    manager = createManager(conf, mockContext, 0.001f, 0.001f);
     manager.onVertexStarted(null);
+    Assert.assertTrue(manager.bipartiteSources == 1);
+
     manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(m2, VertexState.CONFIGURED));
 
