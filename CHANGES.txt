@@ -91,6 +91,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2061. Tez UI: vertex id column and filter on tasks page should be changed to vertex name
   TEZ-2242. Refactor ShuffleVertexManager code
   TEZ-2205. Tez still tries to post to ATS when yarn.timeline-service.enabled=false.
   TEZ-2047. Build fails against hadoop-2.2 post TEZ-2018
