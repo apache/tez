@@ -33,6 +33,7 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
   },
 
   parentName: 'Loading...', // So that a proper message is displayed
+  vertexIdToNameMap: {},
   parentType: null,
   parentID: null,
   status_filter: null,
@@ -53,11 +54,12 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
     return this.store.find('dag', this.get('parentID')).
       then(function (parent) {
         that.set('parentName', parent.get('name'));
+        that.set('vertexIdToNameMap', parent.get('vertexIdToNameMap') || {});
       });
   },
 
   defaultColumnConfigs: function() {
-
+    var that = this;
     return [
       {
         id: 'taskId',
@@ -69,9 +71,13 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
         })
       },
       {
-        id: 'vertexId',
-        headerCellName: 'Vertex ID',
-        contentPath: 'vertexID'
+        id: 'vertexName',
+        headerCellName: 'Vertex Name',
+        getCellContent: function(row) {
+          var vertexId = row.get('vertexID'),
+              vertexIdToNameMap = that.get('vertexIdToNameMap');
+          return vertexIdToNameMap[vertexId] || vertexId;
+        }
       },
       {
         id: 'submissionTime',

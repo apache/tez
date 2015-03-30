@@ -112,6 +112,16 @@ var timelineJsonToDagMap = {
   vertices: 'otherinfo.dagPlan.vertices',
   edges: 'otherinfo.dagPlan.edges',
   vertexGroups: 'otherinfo.dagPlan.vertexGroups',
+  vertexIdToNameMap: {
+    custom: function(source) {
+      var nameToIdMap = Em.get(source, 'otherinfo.vertexNameIdMapping') || {};
+      var idToNameMap = {};
+      $.each(nameToIdMap, function(vertexName, vertexId) {
+        idToNameMap[vertexId] = vertexName;
+      });
+      return idToNameMap;
+    }
+  },
 
   counterGroups: 'counterGroups'
 };

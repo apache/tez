@@ -26,17 +26,20 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
 
   queryParams: {
     status_filter: 'status',
-    vertex_id_filter: 'vertex_id',
+    vertex_name_filter: 'vertex_name',
   },
   status_filter: null,
-  vertex_id_filter: null,
+  vertex_name_filter: null,
 
   loadData: function() {
-    var primaryFilter;
-    if (!!this.vertex_id_filter) {
-      primaryFilter = { TEZ_VERTEX_ID : this.vertex_id_filter };
-    } else {
-      primaryFilter = { TEZ_DAG_ID : this.get('controllers.dag.id') };
+    var primaryFilter = {
+      TEZ_DAG_ID : this.get('controllers.dag.id')
+    };
+    if (!!this.vertex_name_filter) {
+      var vertexIdMap = this.get('controllers.dag.vertexIdToNameMap');
+      var vertexId = App.Helpers.misc.getVertexIdFromName(vertexIdMap, this.vertex_name_filter)
+        || 'unknown';
+      primaryFilter = { TEZ_VERTEX_ID : vertexId };
     }
 
     var filters = {
@@ -127,7 +130,8 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
   },
 
   defaultColumnConfigs: function() {
-    var that = this;
+    var that = this,
+        vertexIdToNameMap = this.get('controllers.dag.vertexIdToNameMap') || {};
     return [
       {
         id: 'id',
@@ -146,10 +150,13 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
         }
       },
       {
-        id: 'vertexID',
-        headerCellName: 'Vertex ID',
-        filterID: 'vertex_id_filter',
-        contentPath: 'vertexID'
+        id: 'vertexName',
+        headerCellName: 'Vertex Name',
+        filterID: 'vertex_name_filter',
+        getCellContent: function(row) {
+          var vertexId = row.get('vertexID');
+          return vertexIdToNameMap[vertexId] || vertexId;
+        }
       },
       {
         id: 'startTime',

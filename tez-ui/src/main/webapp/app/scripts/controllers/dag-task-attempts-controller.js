@@ -25,14 +25,24 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
 
   queryParams: {
     status_filter: 'status',
+    vertex_name_filter: 'vertex_name',
   },
   status_filter: null,
+  vertex_name_filter: null,
 
   loadData: function() {
+    var primaryFilter = {
+      TEZ_DAG_ID : this.get('controllers.dag.id')
+    };
+    if (!!this.vertex_name_filter) {
+      var vertexIdMap = this.get('controllers.dag.vertexIdToNameMap');
+      var vertexId = App.Helpers.misc.getVertexIdFromName(vertexIdMap, this.vertex_name_filter)
+        || 'unknown';
+      primaryFilter = { TEZ_VERTEX_ID : vertexId };
+    }
+
     var filters = {
-      primary: {
-        TEZ_DAG_ID: this.get('controllers.dag.id')
-      },
+      primary: primaryFilter,
       secondary: {
         status: this.status_filter
       }
@@ -95,7 +105,8 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
   },
 
   defaultColumnConfigs: function() {
-    var that = this;
+    var that = this,
+        vertexIdToNameMap = this.get('controllers.dag.vertexIdToNameMap') || {};
     return [
       {
         id: 'taskId',
@@ -127,6 +138,15 @@ App.DagTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentM
             attemptNo: attemptNo,
             attemptID: attemptID
           };
+        }
+      },
+      {
+        id: 'vertexName',
+        headerCellName: 'Vertex Name',
+        filterID: 'vertex_name_filter',
+        getCellContent: function(row) {
+          var vertexId = row.get('vertexID');
+          return vertexIdToNameMap[vertexId] || vertexId;
         }
       },
       {

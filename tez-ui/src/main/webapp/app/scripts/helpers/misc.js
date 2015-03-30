@@ -245,6 +245,18 @@ App.Helpers.misc = {
     return taskID.indexOf(idPrefix) == 0 ? taskID.substr(idPrefix.length) : id;
   },
 
+  getVertexIdFromName: function(idToNameMap, vertexName) {
+    idToNameMap = idToNameMap || {};
+    var vertexId = undefined;
+    $.each(idToNameMap, function(id, name) {
+      if (name === vertexName) {
+        vertexId = id;
+        return false;
+      }
+    });
+    return vertexId;
+  },
+
   /**
    * Remove the specific record from store
    * @param store {DS.Store}
