@@ -37,6 +37,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -2646,7 +2647,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.FAILED, v.getState());
     Assert.assertEquals(VertexTerminationCause.OWN_TASK_FAILURE, v.getTerminationCause());
     String diagnostics =
-        StringUtils.join(v.getDiagnostics(), ",").toLowerCase();
+        StringUtils.join(v.getDiagnostics(), ",").toLowerCase(Locale.ENGLISH);
     assertTrue(diagnostics.contains("task failed"
         + ", taskid=" + t1.toString()));
   }
@@ -2657,7 +2658,7 @@ public class TestVertexImpl {
     VertexImpl v2 = vertices.get("vertex4");
     killVertex(v2);
     String diagnostics =
-        StringUtils.join(v2.getDiagnostics(), ",").toLowerCase();
+        StringUtils.join(v2.getDiagnostics(), ",").toLowerCase(Locale.ENGLISH);
     LOG.info("diagnostics v2: " + diagnostics);
     assertTrue(diagnostics.contains(
         "vertex received kill in inited state"));
@@ -2672,7 +2673,7 @@ public class TestVertexImpl {
     startVertex(vertices.get("vertex2"));
     killVertex(v3);
     String diagnostics =
-        StringUtils.join(v3.getDiagnostics(), ",").toLowerCase();
+        StringUtils.join(v3.getDiagnostics(), ",").toLowerCase(Locale.ENGLISH);
     assertTrue(diagnostics.contains(
         "vertex received kill while in running state"));
   }
