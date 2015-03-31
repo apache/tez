@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
@@ -42,8 +43,8 @@ public class DAGStatus {
     .getProperty("line.separator");
 
   public enum State {
-    SUBMITTED,
-    INITING,
+    SUBMITTED, // Returned from the RM only
+    INITING, // This is currently never returned. DAG_INITING is treated as RUNNING.
     RUNNING,
     SUCCEEDED,
     KILLED,
@@ -51,6 +52,7 @@ public class DAGStatus {
     ERROR,
   }
 
+  final DagStatusSource source;
   DAGStatusProtoOrBuilder proxy = null;
   Progress progress = null;
   // use LinkedHashMap to ensure the vertex order (TEZ-1065)
@@ -58,8 +60,10 @@ public class DAGStatus {
   TezCounters dagCounters = null;
   AtomicBoolean countersInitialized = new AtomicBoolean(false);
 
-  public DAGStatus(DAGStatusProtoOrBuilder proxy) {
+  @InterfaceAudience.Private
+  public DAGStatus(DAGStatusProtoOrBuilder proxy, DagStatusSource source) {
     this.proxy = proxy;
+    this.source = source;
   }
 
   public State getState() {
@@ -147,8 +151,14 @@ public class DAGStatus {
     return dagCounters;
   }
 
+  @InterfaceAudience.Private
+  DagStatusSource getSource() {
+    return this.source;
+  }
+
   @Override
   public boolean equals(Object obj) {
+    // Source explicitly exclude from equals
     if (obj instanceof DAGStatus){
       DAGStatus other = (DAGStatus)obj;
       return getState() == other.getState()
@@ -164,6 +174,7 @@ public class DAGStatus {
 
   @Override
   public int hashCode() {
+    // Source explicitly exclude from hashCode
     final int prime = 44017;
     int result = 1;
     result = prime +

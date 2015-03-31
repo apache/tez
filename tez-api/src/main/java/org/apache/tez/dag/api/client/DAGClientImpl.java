@@ -29,6 +29,7 @@ import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -116,54 +117,72 @@ public class DAGClientImpl extends DAGClient {
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
       final long timeout) throws TezException, IOException {
-    long currentStatusPollInterval = statusPollInterval;
-    if(timeout >= 0 && currentStatusPollInterval > timeout) {
-      currentStatusPollInterval = timeout;
+
+    Preconditions.checkArgument(timeout >= -1, "Timeout must be >= -1");
+    // Short circuit a timeout of 0.
+    if (timeout == 0) {
+      return getDAGStatusInternal(statusOptions, timeout);
     }
-    DAGStatus dagStatus = null;
+
+    long startTime = System.currentTimeMillis();
+    boolean refreshStatus;
+    DAGStatus dagStatus;
     if(cachedDagStatus != null) {
       dagStatus = cachedDagStatus;
+      refreshStatus = true;
     } else {
+      // For the first lookup only. After this cachedDagStatus should be populated.
       dagStatus = getDAGStatus(statusOptions);
+      refreshStatus = false;
     }
-    //Handling when client dag status init or submitted
+
+    // Handling when client dag status init or submitted. This really implies that the RM was
+    // contacted to get status. INITING is never used. DAG_INITING implies a DagState of RUNNING.
     if (dagStatus.getState() == DAGStatus.State.INITING
         || dagStatus.getState() == DAGStatus.State.SUBMITTED) {
-      boolean initOrSubmittedState = true;
-      long timeoutTime = System.currentTimeMillis() + timeout;
+      long timeoutAbsolute = startTime + timeout;
       while (timeout < 0
-          || (timeout > 0 && timeoutTime > System.currentTimeMillis())) {
-        if (initOrSubmittedState) {
-          dagStatus = getDAGStatus(statusOptions);
+          || (timeout > 0 && timeoutAbsolute > System.currentTimeMillis())) {
+        if (refreshStatus) {
+          // Try fetching the state with a timeout, in case the AM is already up.
+          dagStatus = getDAGStatusInternal(statusOptions, timeout);
         }
+        refreshStatus = true; // For the next iteration of the loop.
+
         if (dagStatus.getState() == DAGStatus.State.RUNNING) {
-          initOrSubmittedState = false;
-          // When RUNNING State, Check for AM status is also RUNNING
-          DAGStatus dagStatusFromAM = getDAGStatusViaAM(statusOptions, 0);
-          if (dagStatusFromAM != null) {
-            if (dagStatusFromAM.getState() == DAGStatus.State.RUNNING) {
-              long remainingTimeout = 0;
-              if (timeout <= 0) {
-                remainingTimeout = timeout;
-              } else {
-                if (timeoutTime > System.currentTimeMillis()) {
-                  remainingTimeout = timeoutTime - System.currentTimeMillis();
-                } else {
-                  return dagStatusFromAM;
-                }
-              }
-              dagStatus = getDAGStatusInternal(statusOptions, remainingTimeout);
-            } else {
-              dagStatus = dagStatusFromAM;
-            }
-            break;
+          // Refreshed status indicates that the DAG is running.
+          // This status could have come from the AM or the RM - client sleep if RM, otherwise send request to the AM.
+          if (dagStatus.getSource() == DagStatusSource.AM) {
+            // RUNNING + AM should only happen if timeout is > -1.
+            // Otherwise the AM ignored the -1 value, or the AM source in the DAGStatus is invalid.
+            Preconditions.checkState(timeout > -1, "Should not reach here with a timeout of -1. File a bug");
+            return dagStatus;
+          } else {
+            // From the RM. Fall through to the Sleep.
           }
-        }
-        if(dagStatus.getState() == DAGStatus.State.SUCCEEDED
+        } else if(dagStatus.getState() == DAGStatus.State.SUCCEEDED
             || dagStatus.getState() == DAGStatus.State.FAILED
             || dagStatus.getState() == DAGStatus.State.KILLED
             || dagStatus.getState() == DAGStatus.State.ERROR) {
-          break;
+          // Again, check if this was from the RM. If it was, try getting it from a more informative source.
+          if (dagStatus.getSource() == DagStatusSource.RM) {
+            return getDAGStatusInternal(statusOptions, 0);
+          } else {
+            return dagStatus;
+          }
+        }
+        // Sleep before checking again.
+        long currentStatusPollInterval;
+        if (timeout < 0) {
+          currentStatusPollInterval = statusPollInterval;
+        } else {
+          long remainingTimeout = timeoutAbsolute - System.currentTimeMillis();
+          if (remainingTimeout < 0) {
+            // Timeout expired. Return the latest known dag status.
+            return dagStatus;
+          } else {
+            currentStatusPollInterval = remainingTimeout < statusPollInterval ? remainingTimeout : statusPollInterval;
+          }
         }
         try {
           Thread.sleep(currentStatusPollInterval);
@@ -171,8 +190,13 @@ public class DAGClientImpl extends DAGClient {
           throw new TezException(e);
         }
       }// End of while
-      return dagStatus;
-    } else {
+      // Timeout may have expired before a single refresh
+      if (refreshStatus) {
+        return getDAGStatus(statusOptions);
+      } else {
+        return dagStatus;
+      }
+    } else { // Already running, or complete. Fallback to regular dagStatus with a timeout.
       return getDAGStatusInternal(statusOptions, timeout);
     }
   }
@@ -184,6 +208,8 @@ public class DAGClientImpl extends DAGClient {
       // fetch from AM. on Error and while DAG is still not completed (could not reach AM, AM got
       // killed). return cached status. This prevents the progress being reset (for ex fetching from
       // RM does not give status).
+
+      // dagCompleted may be reset within getDagStatusViaAM
       final DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
 
       if (!dagCompleted) {
@@ -306,6 +332,13 @@ public class DAGClientImpl extends DAGClient {
     }
   }
 
+  /**
+   * Get the DAG status via the AM
+   * @param statusOptions
+   * @param timeout
+   * @return null if the AM cannot be contacted, otherwise the DAGstatus
+   * @throws IOException
+   */
   private DAGStatus getDAGStatusViaAM(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout) throws IOException {
     DAGStatus dagStatus = null;
@@ -342,7 +375,14 @@ public class DAGClientImpl extends DAGClient {
     return vertexStatus;
   }
 
-  DAGStatus getDAGStatusViaRM() throws TezException, IOException {
+  /**
+   * Get the DAG status via the YARN ResourceManager
+   * @return the dag status, inferred from the RM App state. Does not return null.
+   * @throws TezException
+   * @throws IOException
+   */
+  @VisibleForTesting
+  protected DAGStatus getDAGStatusViaRM() throws TezException, IOException {
     if(LOG.isDebugEnabled()) {
       LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
     }
@@ -358,7 +398,7 @@ public class DAGClientImpl extends DAGClient {
     }
 
     DAGProtos.DAGStatusProto.Builder builder = DAGProtos.DAGStatusProto.newBuilder();
-    DAGStatus dagStatus = new DAGStatus(builder);
+    DAGStatus dagStatus = new DAGStatus(builder, DagStatusSource.RM);
     DAGProtos.DAGStatusStateProto dagState;
     switch (appReport.getYarnApplicationState()) {
       case NEW:
@@ -416,7 +456,7 @@ public class DAGClientImpl extends DAGClient {
     double dagProgress = -1.0; // Print the first one
     // monitoring
     while (true) {
-      dagStatus = getDAGStatus(statusGetOpts);
+      dagStatus = getDAGStatus(statusGetOpts, SLEEP_FOR_COMPLETION);
       if (!initPrinted
           && (dagStatus.getState() == DAGStatus.State.INITING || dagStatus.getState() == DAGStatus.State.SUBMITTED)) {
         initPrinted = true; // Print once
@@ -429,7 +469,6 @@ public class DAGClientImpl extends DAGClient {
           || dagStatus.getState() == DAGStatus.State.ERROR) {
         break;
       }
-      Thread.sleep(SLEEP_FOR_COMPLETION);
     }// End of while(true)
 
     Set<String> vertexNames = Collections.emptySet();
@@ -442,8 +481,7 @@ public class DAGClientImpl extends DAGClient {
         vertexNames = getDAGStatus(statusGetOpts).getVertexProgress().keySet();
       }
       dagProgress = monitorProgress(vertexNames, dagProgress, null, dagStatus);
-      Thread.sleep(SLEEP_FOR_COMPLETION);
-      dagStatus = getDAGStatus(statusGetOpts);
+      dagStatus = getDAGStatus(statusGetOpts, SLEEP_FOR_COMPLETION);
     }// end of while
     // Always print the last status irrespective of progress change
     monitorProgress(vertexNames, -1.0, statusGetOpts, dagStatus);

@@ -32,7 +32,7 @@ import org.apache.tez.dag.app.dag.DAGState;
 public class DAGStatusBuilder extends DAGStatus {
 
   public DAGStatusBuilder() {
-    super(DAGStatusProto.newBuilder());
+    super(DAGStatusProto.newBuilder(), null);
   }
 
   public void setState(DAGState state) {

@@ -144,7 +144,7 @@ public class DAGClientTimelineImpl extends DAGClient {
         throw new TezException("Failed to get DagStatus from ATS");
       }
 
-      return new DAGStatus(statusBuilder);
+      return new DAGStatus(statusBuilder, DagStatusSource.TIMELINE);
     } catch (JSONException je) {
       throw new TezException("Failed to parse DagStatus json from YARN Timeline", je);
     }

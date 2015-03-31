@@ -25,12 +25,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -61,7 +68,11 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatusBuilder;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
@@ -1516,6 +1527,121 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
+  @Test(timeout = 10000)
+  public void testGetDAGStatusWithWait() throws TezException {
+    initDAG(dag);
+    startDAG(dag);
+    dispatcher.await();
+
+    // All vertices except one succeed
+    for (int i = 0; i < dag.getVertices().size() - 1; ++i) {
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+          TezVertexID.getInstance(dagId, i), VertexState.SUCCEEDED));
+    }
+    dispatcher.await();
+    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    Assert.assertEquals(5, dag.getSuccessfulVertices());
+
+    long dagStatusStartTime = System.currentTimeMillis();
+    DAGStatusBuilder dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    long dagStatusEndTime = System.currentTimeMillis();
+    long diff = dagStatusEndTime - dagStatusStartTime;
+    Assert.assertTrue(diff > 1500 && diff < 2500);
+    Assert.assertEquals(DAGStatusBuilder.State.RUNNING, dagStatus.getState());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 20000)
+  public void testGetDAGStatusReturnOnDagSucceeded() throws InterruptedException, TezException {
+    runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.SUCCEEDED);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 20000)
+  public void testGetDAGStatusReturnOnDagFailed() throws InterruptedException, TezException {
+    runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.FAILED);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 20000)
+  public void testGetDAGStatusReturnOnDagKilled() throws InterruptedException, TezException {
+    runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.KILLED);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 20000)
+  public void testGetDAGStatusReturnOnDagError() throws InterruptedException, TezException {
+    runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.ERROR);
+  }
+
+
+  @SuppressWarnings("unchecked")
+  public void runTestGetDAGStatusReturnOnDagFinished(DAGStatusBuilder.State testState) throws TezException, InterruptedException {
+    initDAG(dag);
+    startDAG(dag);
+    dispatcher.await();
+
+    // All vertices except one succeed
+    for (int i = 0; i < dag.getVertices().size() - 1; ++i) {
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+          TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
+    }
+    dispatcher.await();
+    Assert.assertEquals(DAGState.RUNNING, dag.getState());
+    Assert.assertEquals(5, dag.getSuccessfulVertices());
+
+    ReentrantLock lock = new ReentrantLock();
+    Condition startCondition = lock.newCondition();
+    Condition endCondition = lock.newCondition();
+    DagStatusCheckRunnable statusCheckRunnable =
+        new DagStatusCheckRunnable(lock, startCondition, endCondition);
+    Thread t1 = new Thread(statusCheckRunnable);
+    t1.start();
+    lock.lock();
+    try {
+      while (!statusCheckRunnable.started.get()) {
+        startCondition.await();
+      }
+    } finally {
+      lock.unlock();
+    }
+
+    // Sleep for 2 seconds. Then mark the last vertex is successful.
+    Thread.sleep(2000l);
+    if (testState == DAGStatus.State.SUCCEEDED) {
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+          TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
+    } else if (testState == DAGStatus.State.FAILED) {
+      dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+          TezVertexID.getInstance(dagId, 5), VertexState.FAILED));
+    } else if (testState == DAGStatus.State.KILLED) {
+      dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    } else if (testState == DAGStatus.State.ERROR) {
+      dispatcher.getEventHandler().handle(new DAGEventStartDag(dagId, new LinkedList<URL>()));
+    } else {
+      throw new UnsupportedOperationException("Unsupported state for test: " + testState);
+    }
+    dispatcher.await();
+
+    // Wait for the dag status to return
+    lock.lock();
+    try {
+      while (!statusCheckRunnable.ended.get()) {
+        endCondition.await();
+      }
+    } finally {
+      lock.unlock();
+    }
+
+    long diff = statusCheckRunnable.dagStatusEndTime - statusCheckRunnable.dagStatusStartTime;
+    Assert.assertNotNull(statusCheckRunnable.dagStatus);
+    Assert.assertTrue(diff > 1000 && diff < 3500);
+    Assert.assertEquals(testState, statusCheckRunnable.dagStatus.getState());
+    t1.join();
+  }
+
+
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexFailureHandling() {
     initDAG(dag);
@@ -1716,6 +1842,54 @@ public class TestDAGImpl {
         throw new Exception(exLocation.name());
       }
       return 0;
+    }
+  }
+
+
+  // Specificially for testGetDAGStatusReturnOnDagSuccess
+  private class DagStatusCheckRunnable implements Runnable {
+
+    private volatile DAGStatusBuilder dagStatus;
+    private volatile long dagStatusStartTime = -1;
+    private volatile long dagStatusEndTime = -1;
+    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final AtomicBoolean ended = new AtomicBoolean(false);
+
+    private final ReentrantLock lock;
+    private final Condition startCondition;
+    private final Condition endCondition;
+
+    public DagStatusCheckRunnable(ReentrantLock lock,
+                                  Condition startCondition,
+                                  Condition endCondition) {
+      this.lock = lock;
+      this.startCondition = startCondition;
+      this.endCondition = endCondition;
+    }
+
+    @Override
+    public void run() {
+      started.set(true);
+      lock.lock();
+      try {
+        startCondition.signal();
+      } finally {
+        lock.unlock();
+      }
+      try {
+        dagStatusStartTime = System.currentTimeMillis();
+        dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 10000l);
+        dagStatusEndTime = System.currentTimeMillis();
+      } catch (TezException e) {
+
+      }
+      lock.lock();
+      ended.set(true);
+      try {
+        endCondition.signal();
+      } finally {
+        lock.unlock();
+      }
     }
   }
 }

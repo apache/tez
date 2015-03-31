@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -149,6 +150,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final TaskAttemptListener taskAttemptListener;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private final Object tasksSyncHandle = new Object();
+  private final Condition dagCompleteCondition;
 
   private volatile boolean committedOrAborted = false;
   private volatile boolean allOutputsCommitted = false;
@@ -390,7 +392,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @VisibleForTesting
   boolean recoveryCommitInProgress = false;
   Map<String, Boolean> recoveredGroupCommits = new HashMap<String, Boolean>();
-  long statusPollInterval;
 
   static class VertexGroupInfo {
     String groupName;
@@ -445,7 +446,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     this.readLock = readWriteLock.readLock();
     this.writeLock = readWriteLock.writeLock();
-    
+    this.dagCompleteCondition = writeLock.newCondition();
+
     this.localResources = DagTypeConverters.createLocalResourceMapFromDAGPlan(jobPlan
         .getLocalResourceList());
 
@@ -472,13 +474,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     //  instance variable.
     stateMachine = stateMachineFactory.make(this);
     this.entityUpdateTracker = new StateChangeNotifier(this);
-    statusPollInterval = dagConf.getLong(
-        TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS,
-        TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT);
-    if(statusPollInterval < 0) {
-      LOG.error("DAG Status poll interval cannot be negative and setting to default value.");
-      statusPollInterval = TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT;
-    }
   }
 
   protected StateMachine<DAGState, DAGEventType, DAGEvent> getStateMachine() {
@@ -748,20 +743,34 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   public DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions,
-      long timeout) throws TezException {
-    long currentStatusPollInterval = statusPollInterval;
-    if(timeout >= 0 && currentStatusPollInterval > timeout) {
-      currentStatusPollInterval = timeout;
+                                       long timeoutMillis) throws TezException {
+    long timeoutNanos = timeoutMillis * 1000l * 1000l;
+    if (timeoutMillis < 0) {
+      // Return only on SUCCESS
+      timeoutNanos = Long.MAX_VALUE;
     }
-    long timeoutTime = System.currentTimeMillis() + timeout;
-    while (timeout < 0 || (timeout > 0 && timeoutTime > System.currentTimeMillis())) {
-      if(isComplete()) {
-        break;
-      }
+    if (isComplete()) {
+      return getDAGStatus(statusOptions);
+    }
+    while (true) {
+      long nanosLeft;
+      writeLock.lock();
       try {
-        Thread.sleep(currentStatusPollInterval);
+        // Check within the lock to ensure we don't end up waiting after the notify has happened
+        if (isComplete()) {
+          break;
+        }
+        nanosLeft = dagCompleteCondition.awaitNanos(timeoutNanos);
       } catch (InterruptedException e) {
-        throw new TezException(e);
+        throw new TezException("Interrupted while waiting for dag to complete", e);
+      } finally {
+        writeLock.unlock();
+      }
+      if (nanosLeft <= 0) {
+        // Time expired.
+        break;
+      } else {
+        timeoutNanos = nanosLeft;
       }
     }
     return getDAGStatus(statusOptions);
@@ -1209,7 +1218,24 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     LOG.info("DAG: " + getID() + " finished with state: " + finalState);
+
+    // Signal dag completion.
+    // The state will move to the final state after the Transition which invoked this method completes.
+    // However, it is OK to send the signal from here itself.
+    // This happens within a writeLock. The dagCompletionCondition check attempts to check for
+    // dagCompletion within the associated lock - so it will block till the full transition
+    // completes and the state updates.
+    notifyDagFinished();
     return finalState;
+  }
+
+  private void notifyDagFinished() {
+    writeLock.lock();
+    try {
+      dagCompleteCondition.signal();
+    } finally {
+      writeLock.unlock();
+    }
   }
 
   @Override

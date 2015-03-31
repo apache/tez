@@ -40,6 +40,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
@@ -173,7 +174,7 @@ public class DAGClientRPCImpl extends DAGClient {
     try {
       return new DAGStatus(
         proxy.getDAGStatus(null,
-          requestProtoBuilder.build()).getDagStatus());
+          requestProtoBuilder.build()).getDagStatus(), DagStatusSource.AM);
     } catch (ServiceException e) {
       final Throwable cause = e.getCause();
       if (cause instanceof RemoteException) {

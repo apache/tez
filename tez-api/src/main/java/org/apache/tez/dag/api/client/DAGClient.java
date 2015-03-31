@@ -71,7 +71,6 @@ public abstract class DAGClient implements Closeable {
    * @throws IOException
    * @throws TezException
    */
-  @Unstable
   public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout)
       throws IOException, TezException;
