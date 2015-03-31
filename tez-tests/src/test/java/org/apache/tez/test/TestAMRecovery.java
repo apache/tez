@@ -171,7 +171,7 @@ public class TestAMRecovery {
     tezConf.setBoolean(
         TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE, false);
     tezConf.setBoolean(
-        RecoveryService.TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED,
+        RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED,
         true);
     tezSession = TezClient.create("TestDAGRecovery", tezConf);
     tezSession.start();

@@ -255,6 +255,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2224. EventQueue empty doesn't mean events are consumed in RecoveryService
   TEZ-2240. Fix toUpperCase/toLowerCase to use Locale.ENGLISH.
   TEZ-2238. TestContainerReuse flaky
   TEZ-2217. The min-held-containers being released prematurely

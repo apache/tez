@@ -34,6 +34,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.dag.api.ConfigurationScope;
+import org.apache.tez.dag.api.Scope;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.AppContext;
@@ -54,21 +56,19 @@ public class RecoveryService extends AbstractService {
 
   public static final String RECOVERY_FATAL_OCCURRED_DIR =
       "RecoveryFatalErrorOccurred";
-
   /**
    * whether to handle remaining event in the eventqueue when AM is stopped
    */
   @VisibleForTesting
-  public static final String TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED =
-      TezConfiguration.TEZ_AM_PREFIX + "recovery.handle_remaining_event_when_stopped";
+  public static final String TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED =
+      TezConfiguration.TEZ_PREFIX + "test.recovery.drain_event";
 
   /**
-   * by default do not handle remaining event when AM is stopped.
-   * Most of time, true is for recovery unit test
+   * by default handle remaining event when AM is stopped.
+   * This should be helpful for recovery
    */
   @VisibleForTesting
-  public static final boolean TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED_DEFAULT = false;
-
+  public static final boolean TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED_DEFAULT = true;
 
   private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
@@ -92,7 +92,12 @@ public class RecoveryService extends AbstractService {
   private int maxUnflushedEvents;
   private int flushInterval;
   private AtomicBoolean recoveryFatalErrorOccurred = new AtomicBoolean(false);
-  private boolean handleRemainingEventWhenStopped;
+  private boolean drainEventsFlag;
+
+  // Indicates all the remaining events on stop have been drained
+  // and processed.
+  private volatile boolean drained = true;
+  private Object waitForDrained = new Object();
 
   public RecoveryService(AppContext appContext) {
     super(RecoveryService.class.getName());
@@ -112,9 +117,9 @@ public class RecoveryService extends AbstractService {
     maxUnflushedEvents = conf.getInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS,
         TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS_DEFAULT);
 
-    handleRemainingEventWhenStopped = conf.getBoolean(
-        TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED,
-        TEZ_AM_RECOVERY_HANDLE_REMAINING_EVENT_WHEN_STOPPED_DEFAULT);
+    drainEventsFlag = conf.getBoolean(
+        TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED,
+        TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED_DEFAULT);
   }
 
   @Override
@@ -126,6 +131,16 @@ public class RecoveryService extends AbstractService {
       public void run() {
         DAGHistoryEvent event;
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
+          drained = eventQueue.isEmpty();
+          // adding this service state check is to avoid the overhead of acquiring the lock
+          // and calling notify every time in the normal run of the loop.
+          if (getServiceState() == STATE.STOPPED) {
+            synchronized (waitForDrained) {
+              if (drained) {
+                waitForDrained.notify();
+              }
+            }
+          }
 
           if (recoveryFatalErrorOccurred.get()) {
             LOG.error("Recovery failure occurred. Stopping recovery thread."
@@ -170,27 +185,26 @@ public class RecoveryService extends AbstractService {
   }
 
   @Override
-  public void serviceStop() {
+  public void serviceStop() throws Exception {
     LOG.info("Stopping RecoveryService");
+
+    if (drainEventsFlag) {
+      LOG.info("Handle the remaining events in queue, queue size=" + eventQueue.size());
+      synchronized (waitForDrained) {
+        while (!drained && eventHandlingThread.isAlive()) {
+          waitForDrained.wait(1000);
+          LOG.info("Waiting for RecoveryEventHandlingThread to drain.");
+        }
+      }
+    }
 
     stopped.set(true);
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
-    }
-
-    if (handleRemainingEventWhenStopped) {
-      LOG.info("Handle the remaining events in queue, queue size=" + eventQueue.size());
-      while(!eventQueue.isEmpty()) {
-        synchronized (lock) {
-          try {
-            DAGHistoryEvent event = eventQueue.take();
-            handleRecoveryEvent(event);
-          } catch (Exception e) {
-            // For now, ignore any such errors as these are non-critical
-            // All summary event related errors are handled as critical
-            LOG.warn("Error handling recovery event", e);
-          }
-        }
+      try {
+        eventHandlingThread.join();
+      } catch (InterruptedException ie) {
+        LOG.warn("Interrupted Exception while stopping", ie);
       }
     }
 
@@ -214,6 +228,13 @@ public class RecoveryService extends AbstractService {
     }
   }
 
+  // ---------- IMPORTANT ----------------------
+  // ALWAYS USE THIS METHOD TO ADD EVENT TO QUEUE
+  private void addToEventQueue(DAGHistoryEvent event) {
+    drained = false;
+    eventQueue.add(event);
+  }
+
   public void handle(DAGHistoryEvent event) throws IOException {
     if (stopped.get()) {
       LOG.warn("Igoring event as service stopped, eventType"
@@ -229,7 +250,7 @@ public class RecoveryService extends AbstractService {
     if (!started.get()) {
       LOG.warn("Adding event of type " + eventType
           + " to queue as service not started");
-      eventQueue.add(event);
+      addToEventQueue(event);
       return;
     }
 
@@ -272,7 +293,7 @@ public class RecoveryService extends AbstractService {
               LOG.debug("Queueing Non-immediate Summary/Recovery event of type"
                   + eventType.name());
             }
-            eventQueue.add(event);
+            addToEventQueue(event);
           }
           if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
             LOG.info("DAG completed"
@@ -320,7 +341,7 @@ public class RecoveryService extends AbstractService {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Queueing Non-Summary Recovery event of type " + eventType.name());
       }
-      eventQueue.add(event);
+      addToEventQueue(event);
     }
   }
 
@@ -352,7 +373,8 @@ public class RecoveryService extends AbstractService {
     summaryEvent.toSummaryProtoStream(summaryStream);
   }
 
-  private void handleRecoveryEvent(DAGHistoryEvent event) throws IOException {
+  @VisibleForTesting
+  protected void handleRecoveryEvent(DAGHistoryEvent event) throws IOException {
     HistoryEventType eventType = event.getHistoryEvent().getEventType();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Handling recovery event of type "
@@ -451,4 +473,9 @@ public class RecoveryService extends AbstractService {
     return recoveryFatalErrorOccurred.get();
   }
 
+  public void await() {
+    while (!this.drained) {
+      Thread.yield();
+    }
+  }
 }
