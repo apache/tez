@@ -34,8 +34,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.common.TezCommonUtils;
-import org.apache.tez.dag.api.ConfigurationScope;
-import org.apache.tez.dag.api.Scope;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.AppContext;
