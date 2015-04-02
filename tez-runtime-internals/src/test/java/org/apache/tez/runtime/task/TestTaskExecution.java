@@ -716,7 +716,7 @@ public class TestTaskExecution {
     TaskSpec taskSpec = new TaskSpec(taskAttemptId, "dagName", "vertexName", -1, processorDescriptor,
         new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
 
-    TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, umbilical, 1,
+    TezTaskRunner taskRunner = new TezTaskRunner(tezConf, ugi, localDirs, taskSpec, 1,
         new HashMap<String, ByteBuffer>(), new HashMap<String, String>(), HashMultimap.<String, String> create(), taskReporter,
         executor, null, "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
     return taskRunner;

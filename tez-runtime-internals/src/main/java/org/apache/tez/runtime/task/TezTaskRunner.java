@@ -24,7 +24,6 @@ import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,7 +32,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.CallableWithNdc;
-import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
@@ -70,7 +68,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
 
   TezTaskRunner(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
-      TaskSpec taskSpec, TezTaskUmbilicalProtocol umbilical, int appAttemptNumber,
+      TaskSpec taskSpec, int appAttemptNumber,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> serviceProviderEnvMap,
       Multimap<String, String> startedInputsMap, TaskReporter taskReporter,
       ListeningExecutorService executor, ObjectRegistry objectRegistry, String pid,
@@ -83,8 +81,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
     task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs, this,
         serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, objectRegistry, pid,
         executionContext, memAvailable);
-    taskReporter.registerTask(task, this);
-    taskRunning = new AtomicBoolean(true);
+    taskRunning = new AtomicBoolean(false);
   }
 
   /**
@@ -94,6 +91,8 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
    */
   public boolean run() throws InterruptedException, IOException, TezException {
     waitingThread = Thread.currentThread();
+    taskRunning.set(true);
+    taskReporter.registerTask(task, this);
     TaskRunnerCallable callable = new TaskRunnerCallable();
     Throwable failureCause = null;
     taskFuture = executor.submit(callable);

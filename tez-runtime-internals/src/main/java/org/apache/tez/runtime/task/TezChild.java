@@ -235,7 +235,7 @@ public class TezChild {
 
         // Execute the Actual Task
         TezTaskRunner taskRunner = new TezTaskRunner(defaultConf, childUGI,
-            localDirs, containerTask.getTaskSpec(), umbilical, appAttemptNumber,
+            localDirs, containerTask.getTaskSpec(), appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
             executor, objectRegistry, pid, executionContext, memAvailable);
         boolean shouldDie;
