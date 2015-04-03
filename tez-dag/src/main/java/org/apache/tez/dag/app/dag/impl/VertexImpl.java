@@ -1352,7 +1352,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     + parallelism + " for vertex: " + logIdentifier);
     setVertexLocationHint(vertexLocationHint);
     writeLock.lock();
-    
+
     try {
       if (parallelismSet == true) {
         String msg = "Parallelism can only be set dynamically once per vertex: " + logIdentifier; 
@@ -4186,12 +4186,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                 rootInputDescriptorEntry.getKey()).getNumPhysicalInputsForWorkUnit(taskIndex)));
       }
     }
-    for (Entry<Vertex, Edge> entry : this.getInputVertices().entrySet()) {
-      InputSpec inputSpec = entry.getValue().getDestinationSpec(taskIndex);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("For vertex : " + this.getLogIdentifier()
-            + ", Using InputSpec : " + inputSpec);
-      }
+    for(Vertex vertex : getInputVertices().keySet()) {
+      /**
+       * It is possible that setParallelism is in the middle of processing in target vertex with
+       * its write lock. So we need to get inputspec by acquiring read lock in target vertex to
+       * get consistent view.
+       * Refer TEZ-2251
+       */
+      InputSpec inputSpec = ((VertexImpl) vertex).getDestinationSpecFor(this, taskIndex);
       // TODO DAGAM This should be based on the edge type.
       inputSpecList.add(inputSpec);
     }
@@ -4204,12 +4206,43 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     List<OutputSpec> outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
         + this.additionalOutputSpecs.size());
     outputSpecList.addAll(additionalOutputSpecs);
-    for (Entry<Vertex, Edge> entry : this.getOutputVertices().entrySet()) {
-      OutputSpec outputSpec = entry.getValue().getSourceSpec(taskIndex);
+    for(Vertex vertex : targetVertices.keySet()) {
+      /**
+       * It is possible that setParallelism (which could change numTasks) is in the middle of
+       * processing in target vertex with its write lock. So we need to get outputspec by
+       * acquiring read lock in target vertex to get consistent view.
+       * Refer TEZ-2251
+       */
+      OutputSpec outputSpec = ((VertexImpl) vertex).getSourceSpecFor(this, taskIndex);
       outputSpecList.add(outputSpec);
     }
     return outputSpecList;
   }
+
+  private OutputSpec getSourceSpecFor(VertexImpl vertex, int taskIndex) throws
+      AMUserCodeException {
+    readLock.lock();
+    try {
+      Edge edge = sourceVertices.get(vertex);
+      Preconditions.checkState(edge != null, getLogIdentifier());
+      return edge.getSourceSpec(taskIndex);
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  private InputSpec getDestinationSpecFor(VertexImpl vertex, int taskIndex) throws
+      AMUserCodeException {
+    readLock.lock();
+    try {
+      Edge edge = targetVertices.get(vertex);
+      Preconditions.checkState(edge != null, getLogIdentifier());
+      return edge.getDestinationSpec(taskIndex);
+    } finally {
+      readLock.unlock();
+    }
+  }
+
 
   //TODO Eventually remove synchronization.
   @Override
