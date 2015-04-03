@@ -8,6 +8,8 @@ INCOMPATIBLE CHANGES
   TEZ-2176. Move all logging to slf4j. (commons-logging jar no longer part of Tez tar)
 
 ALL CHANGES:
+  TEZ-2232. Allow setParallelism to be called multiple times before tasks get
+  scheduled
   TEZ-2265. All inputs/outputs in a task share the same counter object
   TEZ-2251. Race condition in VertexImpl & Edge causes DAG to hang.
   TEZ-2264. Remove unused taskUmbilical reference in TezTaskRunner, register as running late.

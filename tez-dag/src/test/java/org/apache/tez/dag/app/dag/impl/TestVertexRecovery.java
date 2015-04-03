@@ -69,6 +69,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
@@ -361,6 +362,67 @@ public class TestVertexRecovery {
     assertEquals(0, vertexEventHandler.getEvents().size());
 
   }
+
+  @Test(timeout = 5000)
+  public void testRecovery_SetParallelism() {
+    VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
+    int oldNumTasks = 10;
+    VertexState recoveredState = vertex1
+        .restoreFromEvent(new VertexInitializedEvent(vertex1.getVertexId(), "vertex1",
+            initRequestedTime, initedTime, oldNumTasks, "", null));
+    assertEquals(VertexState.INITED, recoveredState);
+    recoveredState = vertex1.restoreFromEvent(new VertexParallelismUpdatedEvent(vertex1
+        .getVertexId(), 5, null, null, null, oldNumTasks));
+    assertEquals(5, vertex1.getTotalTasks());
+    vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
+        VertexState.SUCCEEDED));
+    dispatcher.await();
+    assertEquals(VertexState.SUCCEEDED, vertex1.getState());
+    assertEquals(vertex1.numTasks, vertex1.succeededTaskCount);
+    assertEquals(vertex1.numTasks, vertex1.completedTaskCount);
+    // recover its task
+    assertTaskRecoveredEventSent(vertex1);
+
+    // vertex3 is still in NEW, when the desiredState is
+    // Completed State, each vertex recovery by itself, not depend on its parent
+    VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
+    assertEquals(VertexState.NEW, vertex3.getState());
+    // no VertexEvent pass to downstream vertex
+    assertEquals(0, vertexEventHandler.getEvents().size());
+  }
+  
+  @Test(timeout = 5000)
+  public void testRecovery_SetParallelismMultiple() {
+    VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
+    int oldNumTasks = 10;
+    VertexState recoveredState = vertex1
+        .restoreFromEvent(new VertexInitializedEvent(vertex1.getVertexId(), "vertex1",
+            initRequestedTime, initedTime, oldNumTasks, "", null));
+    assertEquals(VertexState.INITED, recoveredState);
+    recoveredState = vertex1.restoreFromEvent(new VertexParallelismUpdatedEvent(vertex1
+        .getVertexId(), 5, null, null, null, oldNumTasks));
+    assertEquals(5, vertex1.getTotalTasks());
+    recoveredState = vertex1.restoreFromEvent(new VertexParallelismUpdatedEvent(vertex1
+        .getVertexId(), 7, null, null, null, 5));
+    assertEquals(7, vertex1.getTotalTasks());
+    vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
+        VertexState.SUCCEEDED));
+    dispatcher.await();
+    assertEquals(VertexState.SUCCEEDED, vertex1.getState());
+    assertEquals(vertex1.numTasks, vertex1.succeededTaskCount);
+    assertEquals(vertex1.numTasks, vertex1.completedTaskCount);
+    // recover its task
+    assertTaskRecoveredEventSent(vertex1);
+
+    // vertex3 is still in NEW, when the desiredState is
+    // Completed State, each vertex recovery by itself, not depend on its parent
+    VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
+    assertEquals(VertexState.NEW, vertex3.getState());
+    // no VertexEvent pass to downstream vertex
+    assertEquals(0, vertexEventHandler.getEvents().size());
+
+  }
+
 
   /**
    * vertex1(New) -> StartRecoveryTransition(SUCCEEDED)

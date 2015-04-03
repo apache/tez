@@ -685,8 +685,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final UserGroupInformation dagUgi;
 
-  private boolean parallelismSet = false;
-
   private AtomicBoolean committed = new AtomicBoolean(false);
   private AtomicBoolean aborted = new AtomicBoolean(false);
   private boolean commitVertexOutputs = false;
@@ -1121,19 +1119,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private void handleParallelismUpdate(int newParallelism,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates) {
-    LinkedHashMap<TezTaskID, Task> currentTasks = this.tasks;
-    Iterator<Map.Entry<TezTaskID, Task>> iter = currentTasks.entrySet()
-        .iterator();
-    int i = 0;
-    while (iter.hasNext()) {
-      i++;
-      iter.next();
-      if (i <= newParallelism) {
-        continue;
-      }
-      iter.remove();
+      Map<String, InputSpecUpdate> rootInputSpecUpdates, int oldParallelism) {
+    // initial parallelism must have been set by this time
+    // parallelism update is recorded in history only for change from an initialized value
+    Preconditions.checkArgument(oldParallelism != -1, getLogIdentifier());
+    if (oldParallelism < newParallelism) {
+      addTasks(newParallelism);
+    } else if (oldParallelism > newParallelism) {
+      removeTasks(newParallelism);
     }
+    Preconditions.checkState(this.numTasks == newParallelism, getLogIdentifier());
     this.recoveredSourceEdgeManagers = sourceEdgeManagers;
     this.recoveredRootInputSpecUpdates = rootInputSpecUpdates;
   }
@@ -1168,17 +1163,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         }
         return recoveredState;
       case VERTEX_PARALLELISM_UPDATED:
+        // TODO TEZ-1019 this should flow through setParallelism method
         VertexParallelismUpdatedEvent updatedEvent =
             (VertexParallelismUpdatedEvent) historyEvent;
-        if (updatedEvent.getVertexLocationHint() != null) {
-          setTaskLocationHints(updatedEvent.getVertexLocationHint());
-        }
         int oldNumTasks = numTasks;
-        numTasks = updatedEvent.getNumTasks();
+        int newNumTasks = updatedEvent.getNumTasks();
+        handleParallelismUpdate(newNumTasks, updatedEvent.getSourceEdgeManagers(),
+          updatedEvent.getRootInputSpecUpdates(), oldNumTasks);
+        Preconditions.checkState(this.numTasks == newNumTasks, getLogIdentifier());
+        if (updatedEvent.getVertexLocationHint() != null) {
+          setVertexLocationHint(updatedEvent.getVertexLocationHint());
+        }
         stateChangeNotifier.stateChanged(vertexId,
             new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
-        handleParallelismUpdate(numTasks, updatedEvent.getSourceEdgeManagers(),
-          updatedEvent.getRootInputSpecUpdates());
         if (LOG.isDebugEnabled()) {
           LOG.debug("Recovered state for vertex after parallelism updated event"
               + ", vertex=" + logIdentifier
@@ -1250,6 +1247,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertexLocationHint.getTaskLocationHints() != null &&
         !vertexLocationHint.getTaskLocationHints().isEmpty()) {
       List<TaskLocationHint> locHints = vertexLocationHint.getTaskLocationHints();
+      // TODO TEZ-2246 hints size must match num tasks
       taskLocationHints = locHints.toArray(new TaskLocationHint[locHints.size()]);
     }
   }
@@ -1348,14 +1346,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         writeLock.unlock();
       }
     }
-    Preconditions.checkArgument(parallelism >= 0, "Parallelism must be >=0. Value: "
-    + parallelism + " for vertex: " + logIdentifier);
-    setVertexLocationHint(vertexLocationHint);
+    Preconditions.checkArgument(parallelism >= 0, "Parallelism must be >=0. Value: " + parallelism
+        + " for vertex: " + logIdentifier);
     writeLock.lock();
 
     try {
-      if (parallelismSet == true) {
-        String msg = "Parallelism can only be set dynamically once per vertex: " + logIdentifier; 
+      // disallow changing things after a vertex has started
+      if (!tasksNotYetScheduled) {
+        String msg = "setParallelism cannot be called after scheduling tasks. Vertex: "
+            + getLogIdentifier();
         LOG.info(msg);
         throw new TezUncheckedException(msg);
       }
@@ -1364,13 +1363,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         // vertex is fully defined. setParallelism has been called. VertexManager should have 
         // informed us about this. Otherwise we would have notified listeners that we are fully 
         // defined before we are actually fully defined
-        Preconditions.checkState(vertexToBeReconfiguredByManager, "Vertex is fully configured but still"
-            + " the reconfiguration API has been called. VertexManager must notify the framework using " 
-            + " context.vertexReconfigurationPlanned() before re-configuring the vertex.");
+        Preconditions
+            .checkState(
+                vertexToBeReconfiguredByManager,
+                "Vertex is fully configured but still"
+                    + " the reconfiguration API has been called. VertexManager must notify the framework using "
+                    + " context.vertexReconfigurationPlanned() before re-configuring the vertex.");
       }
       
-      parallelismSet = true;
-
       // Input initializer/Vertex Manager/1-1 split expected to set parallelism.
       if (numTasks == -1) {
         if (getState() != VertexState.INITIALIZING) {
@@ -1414,6 +1414,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         stateChangeNotifier.stateChanged(vertexId,
             new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
         this.createTasks();
+        setVertexLocationHint(vertexLocationHint);
         LOG.info("Vertex " + getLogIdentifier() +
             " parallelism set to " + parallelism);
         if (canInitVertex()) {
@@ -1427,55 +1428,39 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         // for a vertex to start.
         Preconditions.checkState(rootInputSpecUpdates == null,
             "Root Input specs can only be updated when the vertex is configured with -1 tasks");
-        if (parallelism >= numTasks) {
-          // not that hard to support perhaps. but checking right now since there
-          // is no use case for it and checking may catch other bugs.
-          String msg = "Increasing parallelism is not supported, vertexId=" + logIdentifier; 
-          LOG.warn(msg);
-          throw new TezUncheckedException(msg);
+ 
+        int oldNumTasks = numTasks;
+        
+        // start buffering incoming events so that we can re-route existing events
+        for (Edge edge : sourceVertices.values()) {
+          edge.startEventBuffering();
         }
+
         if (parallelism == numTasks) {
           LOG.info("setParallelism same as current value: " + parallelism +
               " for vertex: " + logIdentifier);
           Preconditions.checkArgument(sourceEdgeManagers != null,
               "Source edge managers or RootInputSpecs must be set when not changing parallelism");
         } else {
-          LOG.info(
-              "Resetting vertex location hints due to change in parallelism for vertex: " + logIdentifier);
+          LOG.info("Resetting vertex location hints due to change in parallelism for vertex: "
+              + logIdentifier);
           vertexLocationHint = null;
+
+          if (parallelism > numTasks) {
+            addTasks((parallelism));
+          } else if (parallelism < numTasks) {
+            removeTasks(parallelism);
+          }
         }
 
-        // start buffering incoming events so that we can re-route existing events
-        for (Edge edge : sourceVertices.values()) {
-          edge.startEventBuffering();
-        }
-
-        // assign to local variable of LinkedHashMap to make sure that changing
-        // type of task causes compile error. We depend on LinkedHashMap for order
-        LinkedHashMap<TezTaskID, Task> currentTasks = this.tasks;
-        Iterator<Map.Entry<TezTaskID, Task>> iter = currentTasks.entrySet()
-            .iterator();
-        int i = 0;
-        while (iter.hasNext()) {
-          i++;
-          Map.Entry<TezTaskID, Task> entry = iter.next();
-          Task task = entry.getValue();
-          if (task.getState() != TaskState.NEW) {
-            String msg = "All tasks must be in initial state when changing parallelism"
-                + " for vertex: " + getLogIdentifier();
-            LOG.warn(msg);
-            throw new TezUncheckedException(msg);
-          }
-          if (i <= parallelism) {
-            continue;
-          }
-          LOG.info("Removing task: " + entry.getKey());
-          iter.remove();
-        }
-        LOG.info("Vertex " + logIdentifier +
-            " parallelism set to " + parallelism + " from " + numTasks);
-        int oldNumTasks = numTasks;
-        this.numTasks = parallelism;
+        Preconditions.checkState(this.numTasks == parallelism, getLogIdentifier());
+        
+        // set new vertex location hints
+        setVertexLocationHint(vertexLocationHint);
+        LOG.info("Vertex " + getLogIdentifier() + " parallelism set to " + parallelism + " from "
+            + numTasks);
+        
+        // notify listeners
         stateChangeNotifier.stateChanged(vertexId,
             new VertexStateUpdateParallelismUpdated(vertexName, numTasks, oldNumTasks));
         assert tasks.size() == numTasks;
@@ -1495,12 +1480,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
         }
 
-        VertexParallelismUpdatedEvent parallelismUpdatedEvent =
-            new VertexParallelismUpdatedEvent(vertexId, numTasks,
-                vertexLocationHint,
-                sourceEdgeManagers, rootInputSpecUpdates, oldNumTasks);
-        appContext.getHistoryHandler().handle(new DAGHistoryEvent(getDAGId(),
-            parallelismUpdatedEvent));
+        // update history
+        VertexParallelismUpdatedEvent parallelismUpdatedEvent = new VertexParallelismUpdatedEvent(
+            vertexId, numTasks, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
+            oldNumTasks);
+        appContext.getHistoryHandler().handle(
+            new DAGHistoryEvent(getDAGId(), parallelismUpdatedEvent));
 
         // stop buffering events
         for (Edge edge : sourceVertices.values()) {
@@ -2028,29 +2013,73 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  private TaskImpl createTask(int taskIndex) {
+    ContainerContext conContext = getContainerContext(taskIndex);
+    return new TaskImpl(this.getVertexId(), taskIndex,
+        this.eventHandler,
+        vertexConf,
+        this.taskAttemptListener,
+        this.clock,
+        this.taskHeartbeatHandler,
+        this.appContext,
+        (this.targetVertices != null ?
+          this.targetVertices.isEmpty() : true),
+        this.taskResource,
+        conContext,
+        this.stateChangeNotifier);
+  }
+  
   private void createTasks() {
     for (int i=0; i < this.numTasks; ++i) {
-      ContainerContext conContext = getContainerContext(i);
-      TaskImpl task =
-          new TaskImpl(this.getVertexId(), i,
-              this.eventHandler,
-              vertexConf,
-              this.taskAttemptListener,
-              this.clock,
-              this.taskHeartbeatHandler,
-              this.appContext,
-              (this.targetVertices != null ?
-                this.targetVertices.isEmpty() : true),
-              this.taskResource,
-              conContext,
-              this.stateChangeNotifier);
+      TaskImpl task = createTask(i);
       this.addTask(task);
       if(LOG.isDebugEnabled()) {
         LOG.debug("Created task for vertex " + logIdentifier + ": " +
             task.getTaskId());
       }
     }
-
+  }
+  
+  private void addTasks(int newNumTasks) {
+    Preconditions.checkArgument(newNumTasks > this.numTasks, getLogIdentifier());
+    int initialNumTasks = this.numTasks;
+    for (int i = initialNumTasks; i < newNumTasks; ++i) {
+      TaskImpl task = createTask(i);
+      this.addTask(task);
+      this.numTasks++;
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Created task for vertex " + logIdentifier + ": " +
+            task.getTaskId());
+      }
+    }
+  }
+  
+  private void removeTasks(int newNumTasks) {
+    Preconditions.checkArgument(newNumTasks < this.numTasks, getLogIdentifier());
+    // assign to local variable of LinkedHashMap to make sure that changing
+    // type of task causes compile error. We depend on LinkedHashMap for order
+    LinkedHashMap<TezTaskID, Task> currentTasks = this.tasks;
+    Iterator<Map.Entry<TezTaskID, Task>> iter = currentTasks.entrySet()
+        .iterator();
+    // remove tasks from the end to maintain index numbers
+    int i = 0;
+    while (iter.hasNext()) {
+      i++;
+      Map.Entry<TezTaskID, Task> entry = iter.next();
+      Task task = entry.getValue();
+      if (task.getState() != TaskState.NEW) {
+        String msg = "All tasks must be in initial state when changing parallelism"
+            + " for vertex: " + getLogIdentifier();
+        LOG.warn(msg);
+        throw new TezUncheckedException(msg);
+      }
+      if (i <= newNumTasks) {
+        continue;
+      }
+      LOG.info("Removing task: " + entry.getKey());
+      iter.remove();
+      this.numTasks--;
+    }
   }
 
   private VertexState setupVertex() {
@@ -2709,6 +2738,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           }
           boolean successSetParallelism ;
           try {
+            // recovering only edge manager
             vertex.setParallelism(0,
               null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true, false);
             successSetParallelism = true;

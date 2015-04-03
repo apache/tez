@@ -2468,16 +2468,27 @@ public class TestVertexImpl {
       Assert.assertTrue(e.getMessage().contains("context.vertexReconfigurationPlanned() cannot be called after initialize()"));
     }
   }
+
+  private void checkTasks(Vertex v, int numTasks) {
+    Assert.assertEquals(numTasks, v.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v.getTasks();
+    Assert.assertEquals(numTasks, tasks.size());
+    // check all indices
+    int i = 0;
+    // iteration maintains order due to linked hash map
+    for(Task task : tasks.values()) {
+      Assert.assertEquals(i, task.getTaskId().getId());
+      i++;
+    }
+  }
   
   @Test(timeout = 5000)
-  public void testVertexSetParallelism() throws Exception {
+  public void testVertexSetParallelismDecrease() throws Exception {
     VertexImpl v3 = vertices.get("vertex3");
     v3.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
     Assert.assertEquals(2, v3.getTotalTasks());
-    Map<TezTaskID, Task> tasks = v3.getTasks();
-    Assert.assertEquals(2, tasks.size());
-    TezTaskID firstTask = tasks.keySet().iterator().next();
+    Assert.assertEquals(2, v3.getTasks().size());
 
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
@@ -2492,15 +2503,36 @@ public class TestVertexImpl {
     v3.doneReconfiguringVertex();
     assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
         EdgeManagerForTest);
-    Assert.assertEquals(1, v3.getTotalTasks());
-    Assert.assertEquals(1, tasks.size());
-    // the last one is removed
-    assertTrue(tasks.keySet().iterator().next().equals(firstTask));
-
+    checkTasks(v3, 1);
   }
 
   @Test(timeout = 5000)
-  public void testVertexSetParallelismIncreaseException() throws Exception {
+  public void testVertexSetParallelismIncrease() throws Exception {
+    VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Assert.assertEquals(2, v3.getTasks().size());
+
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(vertices.get("vertex2"));
+    startVertex(v1);
+
+    EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
+        EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
+
+    Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
+        Collections.singletonMap(
+       v1.getName(), mockEdgeManagerDescriptor);
+    v3.setParallelism(10, null, edgeManagerDescriptors, null, true);
+    v3.doneReconfiguringVertex();
+    assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
+        EdgeManagerForTest);
+    checkTasks(v3, 10);
+  }
+  
+  @Test(timeout = 5000)
+  public void testVertexSetParallelismMultiple() throws Exception {
     VertexImpl v3 = vertices.get("vertex3");
     v3.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
@@ -2511,19 +2543,63 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
+    v3.setParallelism(10, null, null, null, true);
+    checkTasks(v3, 10);
+    
+    v3.setParallelism(5, null, null, null, true);
+    checkTasks(v3, 5);
+    v3.doneReconfiguringVertex();
+  }
 
-    // increase not supported
+  @Test(timeout = 5000)
+  public void testVertexSetParallelismMultipleFailAfterDone() throws Exception {
+    VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v3.getTasks();
+    Assert.assertEquals(2, tasks.size());
+
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(vertices.get("vertex2"));
+    startVertex(v1);
+    v3.setParallelism(10, null, null, null, true);
+    checkTasks(v3, 10);
+    v3.doneReconfiguringVertex();
+
     try {
-      v3.setParallelism(100, null, null, null, true);
-      v3.doneReconfiguringVertex();
+      v3.setParallelism(5, null, null, null, true);
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertTrue(e.getMessage().contains("Vertex is fully configured but still"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexSetParallelismMultipleFailAfterSchedule() throws Exception {
+    VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v3.getTasks();
+    Assert.assertEquals(2, tasks.size());
+
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(vertices.get("vertex2"));
+    startVertex(v1);
+    v3.setParallelism(10, null, null, null, true);
+    checkTasks(v3, 10);
+    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
+    try {
+      v3.setParallelism(5, null, null, null, true);
       Assert.fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Increasing parallelism is not supported"));
+      Assert.assertTrue(e.getMessage().contains("setParallelism cannot be called after scheduling"));
     }
   }
   
   @Test(timeout = 5000)
-  public void testVertexSetParallelismMultipleException() throws Exception {
+  public void testVertexSetParallelismFailAfterSchedule() throws Exception {
     VertexImpl v3 = vertices.get("vertex3");
     v3.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
@@ -2534,18 +2610,15 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    v3.setParallelism(1, null, null, null, true);
-
-    // multiple invocations not supported
+    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     try {
-      v3.setParallelism(1, null, null, null, true);
+      v3.setParallelism(5, null, null, null, true);
       Assert.fail();
     } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains("Parallelism can only be set dynamically once per vertex"));
+      Assert.assertTrue(e.getMessage().contains("setParallelism cannot be called after scheduling"));
     }
-    v3.doneReconfiguringVertex();
   }
-
+  
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexPendingTaskEvents() {
