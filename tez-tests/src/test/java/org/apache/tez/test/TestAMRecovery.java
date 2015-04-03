@@ -40,6 +40,7 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.DAGCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
@@ -363,6 +364,11 @@ public class TestAMRecovery {
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
+    TezCounter outputCounter = counters.findCounter(TestOutput.COUNTER_NAME, TestOutput.COUNTER_NAME);
+    TezCounter inputCounter = counters.findCounter(TestInput.COUNTER_NAME, TestInput.COUNTER_NAME);
+    // verify that processor, input and output counters, are all being collected
+    Assert.assertTrue(outputCounter.getValue() > 0);
+    Assert.assertTrue(inputCounter.getValue() > 0);
 
     List<HistoryEvent> historyEvents1 = readRecoveryLog(1);
     List<HistoryEvent> historyEvents2 = readRecoveryLog(2);

@@ -57,6 +57,8 @@ public class TestInput extends AbstractLogicalInput {
   private static final Logger LOG = LoggerFactory
       .getLogger(TestInput.class);
   
+  public static final String COUNTER_NAME = "TestInput";
+
   Configuration conf;
   int numCompletedInputs = 0;
   int[] completedInputVersion;
@@ -369,6 +371,7 @@ public class TestInput extends AbstractLogicalInput {
 
   @Override
   public List<Event> close() throws Exception {
+    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);;
     return null;
   }
 

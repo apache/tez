@@ -62,7 +62,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              TezUmbilical tezUmbilical, String dagName, 
                              String taskVertexName, String sourceVertexName,
                              int vertexParallelism, TezTaskAttemptID taskAttemptID,
-                             TezCounters counters, int inputIndex, @Nullable UserPayload userPayload,
+                             int inputIndex, @Nullable UserPayload userPayload,
                              RuntimeTask runtimeTask,
                              Map<String, ByteBuffer> serviceConsumerMetadata,
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
@@ -70,7 +70,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
                              ExecutionContext ExecutionContext, long memAvailable) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
-        vertexParallelism, taskAttemptID, wrapCounters(counters,
+        vertexParallelism, taskAttemptID, wrapCounters(runtimeTask,
         taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
         serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
         objectRegistry, ExecutionContext, memAvailable);
@@ -88,8 +88,9 @@ public class TezInputContextImpl extends TezTaskContextImpl
     this.inputReadyTracker = inputReadyTracker;
   }
 
-  private static TezCounters wrapCounters(TezCounters tezCounters, String taskVertexName,
+  private static TezCounters wrapCounters(RuntimeTask task, String taskVertexName,
       String edgeVertexName, Configuration conf) {
+    TezCounters tezCounters = task.addAndGetTezCounter(edgeVertexName);
     if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
         TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT)) {
       return new TezCountersDelegate(tezCounters, taskVertexName, edgeVertexName, "INPUT");

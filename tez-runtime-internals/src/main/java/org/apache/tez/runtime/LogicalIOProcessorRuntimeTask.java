@@ -45,6 +45,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.RunnableWithNdc;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -85,6 +86,7 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -488,7 +490,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         inputSpec.getSourceVertexName(),
         taskSpec.getVertexParallelism(),
         taskSpec.getTaskAttemptID(),
-        tezCounters, inputIndex,
+        inputIndex,
         inputSpec.getInputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
         inputSpec.getInputDescriptor(), inputMap, inputReadyTracker, objectRegistry,
@@ -503,7 +505,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         outputSpec.getDestinationVertexName(),
         taskSpec.getVertexParallelism(),
         taskSpec.getTaskAttemptID(),
-        tezCounters, outputIndex,
+        outputIndex,
         outputSpec.getOutputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
         outputSpec.getOutputDescriptor(), objectRegistry, ExecutionContext,
@@ -517,7 +519,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getDAGName(), taskSpec.getVertexName(),
         taskSpec.getVertexParallelism(),
         taskSpec.getTaskAttemptID(),
-        tezCounters, processorDescriptor.getUserPayload(), this,
+        processorDescriptor.getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
         processorDescriptor, inputReadyTracker, objectRegistry, ExecutionContext, memAvailable);
     return processorContext;
@@ -694,7 +696,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   public synchronized void cleanup() {
-    LOG.info("Final Counters : " + tezCounters.toShortString());
+    LOG.info("Final Counters : " + getCounters().toShortString());
     setTaskDone();
     if (eventRouterThread != null) {
       eventRouterThread.interrupt();

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.Assert.assertEquals;
@@ -205,6 +206,7 @@ public class TestOnFileUnorderedKVOutput {
     TezCounters counters = new TezCounters();
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
     RuntimeTask runtimeTask = mock(RuntimeTask.class);
+    when(runtimeTask.addAndGetTezCounter(destinationVertexName)).thenReturn(counters);
 
 
     Map<String, String> auxEnv = new HashMap<String, String>();
@@ -219,9 +221,10 @@ public class TestOnFileUnorderedKVOutput {
 
     OutputContext realOutputContext = new TezOutputContextImpl(conf, new String[] {workDir.toString()},
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
-        -1, taskAttemptID, counters, 0, userPayload, runtimeTask,
+        -1, taskAttemptID, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null,
         new ExecutionContextImpl("localhost"), 2048);
+    verify(runtimeTask, times(1)).addAndGetTezCounter(destinationVertexName);
     OutputContext outputContext = spy(realOutputContext);
     doAnswer(new Answer() {
       @Override public Object answer(InvocationOnMock invocation) throws Throwable {

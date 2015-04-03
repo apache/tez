@@ -19,6 +19,7 @@
 package org.apache.tez.runtime;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,6 +32,8 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.metrics.TaskCounterUpdater;
 
+import com.google.common.collect.Maps;
+
 public abstract class RuntimeTask {
 
   protected AtomicBoolean hasFatalError = new AtomicBoolean(false);
@@ -38,6 +41,8 @@ public abstract class RuntimeTask {
   protected String fatalErrorMessage = null;
   protected float progress;
   protected final TezCounters tezCounters;
+  private final Map<String, TezCounters> counterMap = Maps.newConcurrentMap();
+  
   protected final TaskSpec taskSpec;
   protected final Configuration tezConf;
   protected final TezUmbilical tezUmbilical;
@@ -63,6 +68,12 @@ public abstract class RuntimeTask {
 
   protected final AtomicReference<State> state = new AtomicReference<State>();
 
+  public TezCounters addAndGetTezCounter(String name) {
+    TezCounters counter = new TezCounters();
+    counterMap.put(name, counter);
+    return counter;
+  }
+  
   public String getVertexName() {
     return taskSpec.getVertexName();
   }
@@ -90,7 +101,12 @@ public abstract class RuntimeTask {
   }
 
   public TezCounters getCounters() {
-    return this.tezCounters;
+    TezCounters fullCounters = new TezCounters();
+    fullCounters.incrAllCounters(tezCounters);
+    for (TezCounters counter : counterMap.values()) {
+      fullCounters.incrAllCounters(counter);
+    }
+    return fullCounters;
   }
 
   public TezTaskAttemptID getTaskAttemptID() {

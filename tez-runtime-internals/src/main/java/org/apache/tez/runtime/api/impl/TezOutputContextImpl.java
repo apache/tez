@@ -58,7 +58,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       String taskVertexName,
       String destinationVertexName,
       int vertexParallelism,
-      TezTaskAttemptID taskAttemptID, TezCounters counters, int outputIndex,
+      TezTaskAttemptID taskAttemptID, int outputIndex,
       @Nullable UserPayload userPayload, RuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
@@ -66,7 +66,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       ExecutionContext ExecutionContext, long memAvailable) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, 
         vertexParallelism, taskAttemptID,
-        wrapCounters(counters, taskVertexName, destinationVertexName, conf),
+        wrapCounters(runtimeTask, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor, objectRegistry, ExecutionContext, memAvailable);
     checkNotNull(outputIndex, "outputIndex is null");
@@ -78,8 +78,9 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         taskVertexName, destinationVertexName, taskAttemptID);
   }
 
-  private static TezCounters wrapCounters(TezCounters tezCounters, String taskVertexName,
+  private static TezCounters wrapCounters(RuntimeTask runtimeTask, String taskVertexName,
       String edgeVertexName, Configuration conf) {
+    TezCounters tezCounters = runtimeTask.addAndGetTezCounter(edgeVertexName);
     if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
         TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT)) {
       return new TezCountersDelegate(tezCounters, taskVertexName, edgeVertexName, "OUTPUT");

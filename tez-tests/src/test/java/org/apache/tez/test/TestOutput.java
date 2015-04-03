@@ -37,6 +37,7 @@ import com.google.common.collect.Lists;
 public class TestOutput extends AbstractLogicalOutput {
   private static final Logger LOG = LoggerFactory.getLogger(TestOutput.class);
 
+  public static final String COUNTER_NAME = "TestOutput";
   public TestOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
   }
@@ -77,6 +78,7 @@ public class TestOutput extends AbstractLogicalOutput {
   @Override
   public List<Event> close() throws Exception {
     LOG.info("Sending data movement event with value: " + output);
+    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);;
     ByteBuffer result = ByteBuffer.allocate(4).putInt(output);
     result.flip();
     List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs());
