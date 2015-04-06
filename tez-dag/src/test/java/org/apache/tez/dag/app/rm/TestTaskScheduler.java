@@ -73,6 +73,7 @@ import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerAppCallba
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableAppCallback;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.PreemptionMatcher;
+import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -87,6 +88,8 @@ public class TestTaskScheduler {
 
   RecordFactory recordFactory =
       RecordFactoryProvider.getRecordFactory(null);
+
+  static ContainerSignatureMatcher containerSignatureMatcher = new AlwaysMatchesContainerMatcher();
 
   @SuppressWarnings({ "unchecked" })
   @Test(timeout=10000)
@@ -520,6 +523,7 @@ public class TestTaskScheduler {
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     // to release immediately after deallocate
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
+    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
     scheduler.init(conf);
     drainableAppCallback.drain();
 
@@ -1042,7 +1046,7 @@ public class TestTaskScheduler {
     ContainerId mockCId1 = ContainerId.newInstance(appId, 0);
     Container c1 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c1.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc1 = Mockito.spy(new HeldContainer(c1, 0, 0, null));
+    HeldContainer hc1 = Mockito.spy(new HeldContainer(c1, 0, 0, null, containerSignatureMatcher));
     when(hc1.getNode()).thenReturn(node1Rack1);
     when(hc1.getRack()).thenReturn(rack1);
     when(c1.getId()).thenReturn(mockCId1);
@@ -1051,7 +1055,7 @@ public class TestTaskScheduler {
     ContainerId mockCId2 = ContainerId.newInstance(appId, 1);
     Container c2 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c2.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc2 = Mockito.spy(new HeldContainer(c2, 0, 0, null));
+    HeldContainer hc2 = Mockito.spy(new HeldContainer(c2, 0, 0, null, containerSignatureMatcher));
     when(hc2.getNode()).thenReturn(node2Rack1);
     when(hc2.getRack()).thenReturn(rack1);
     when(c2.getId()).thenReturn(mockCId2);
@@ -1060,7 +1064,7 @@ public class TestTaskScheduler {
     ContainerId mockCId3 = ContainerId.newInstance(appId, 2);
     Container c3 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c3.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc3 = Mockito.spy(new HeldContainer(c3, 0, 0, null));
+    HeldContainer hc3 = Mockito.spy(new HeldContainer(c3, 0, 0, null, containerSignatureMatcher));
     when(hc3.getNode()).thenReturn(node1Rack1);
     when(hc3.getRack()).thenReturn(rack1);
     when(c3.getId()).thenReturn(mockCId3);
@@ -1069,7 +1073,7 @@ public class TestTaskScheduler {
     ContainerId mockCId4 = ContainerId.newInstance(appId, 3);
     Container c4 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c4.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc4 = Mockito.spy(new HeldContainer(c4, 0, 0, null));
+    HeldContainer hc4 = Mockito.spy(new HeldContainer(c4, 0, 0, null, containerSignatureMatcher));
     when(hc4.getNode()).thenReturn(node2Rack1);
     when(hc4.getRack()).thenReturn(rack1);
     when(c4.getId()).thenReturn(mockCId4);
@@ -1078,7 +1082,7 @@ public class TestTaskScheduler {
     ContainerId mockCId5 = ContainerId.newInstance(appId, 4);
     Container c5 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c5.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc5 = Mockito.spy(new HeldContainer(c5, 0, 0, null));
+    HeldContainer hc5 = Mockito.spy(new HeldContainer(c5, 0, 0, null, containerSignatureMatcher));
     when(hc5.getNode()).thenReturn(node1Rack2);
     when(hc5.getRack()).thenReturn(rack2);
     when(c5.getId()).thenReturn(mockCId5);
@@ -1087,7 +1091,7 @@ public class TestTaskScheduler {
     ContainerId mockCId6 = ContainerId.newInstance(appId, 5);
     Container c6 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c6.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc6 = Mockito.spy(new HeldContainer(c6, 0, 0, null));
+    HeldContainer hc6 = Mockito.spy(new HeldContainer(c6, 0, 0, null, containerSignatureMatcher));
     when(hc6.getNode()).thenReturn(node2Rack2);
     when(hc6.getRack()).thenReturn(rack2);
     when(c6.getId()).thenReturn(mockCId6);
@@ -1096,7 +1100,7 @@ public class TestTaskScheduler {
     ContainerId mockCId7 = ContainerId.newInstance(appId, 6);
     Container c7 = mock(Container.class, RETURNS_DEEP_STUBS);
     when(c7.getNodeId().getHost()).thenReturn(""); // we are mocking directly
-    HeldContainer hc7 = Mockito.spy(new HeldContainer(c7, 0, 0, null));
+    HeldContainer hc7 = Mockito.spy(new HeldContainer(c7, 0, 0, null, containerSignatureMatcher));
     when(hc7.getNode()).thenReturn(node1Rack3);
     when(hc7.getRack()).thenReturn(rack3);
     when(c7.getId()).thenReturn(mockCId7);
@@ -1465,7 +1469,8 @@ public class TestTaskScheduler {
     containers.add(mockContainer4);
     
     // Fudge new container being present in delayed allocation list due to race
-    HeldContainer heldContainer = new HeldContainer(mockContainer4, -1, -1, null);
+    HeldContainer heldContainer = new HeldContainer(mockContainer4, -1, -1, null,
+        containerSignatureMatcher);
     scheduler.delayedContainerManager.delayedContainers.add(heldContainer);
     // no preemption - container assignment attempts < 3
     scheduler.getProgress();

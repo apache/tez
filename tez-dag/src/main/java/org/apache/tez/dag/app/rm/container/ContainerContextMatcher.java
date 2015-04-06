@@ -70,4 +70,11 @@ public class ContainerContextMatcher implements ContainerSignatureMatcher {
     }
     return c2LocalResources;
   }
+
+  @Override
+  public Object union(Object cs1, Object cs2) {
+    checkArguments(cs1, cs2);
+    return ContainerContext.union((ContainerContext) cs1, (ContainerContext) cs2);
+  }
+
 }
