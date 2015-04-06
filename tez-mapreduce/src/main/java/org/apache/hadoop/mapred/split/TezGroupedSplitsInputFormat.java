@@ -31,6 +31,7 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.split.SplitSizeEstimator;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 
@@ -50,6 +51,8 @@ public class TezGroupedSplitsInputFormat<K, V>
   InputFormat<K, V> wrappedInputFormat;
   int desiredNumSplits = 0;
   Configuration conf;
+
+  SplitSizeEstimator estimator;
   
   public TezGroupedSplitsInputFormat() {
     
@@ -59,6 +62,14 @@ public class TezGroupedSplitsInputFormat<K, V>
     this.wrappedInputFormat = wrappedInputFormat;
     if (LOG.isDebugEnabled()) {
       LOG.debug("wrappedInputFormat: " + wrappedInputFormat.getClass().getName());
+    }
+  }
+
+  public void setSplitSizeEstimator(SplitSizeEstimator estimator) {
+    Preconditions.checkArgument(estimator != null);
+    this.estimator = estimator;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Split size estimator : " + estimator);
     }
   }
   
@@ -75,7 +86,7 @@ public class TezGroupedSplitsInputFormat<K, V>
     InputSplit[] originalSplits = wrappedInputFormat.getSplits(job, numSplits);
     TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
     String wrappedInputFormatName = wrappedInputFormat.getClass().getName();
-    return grouper.getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName);
+    return grouper.getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator);
   }
   
   @Override

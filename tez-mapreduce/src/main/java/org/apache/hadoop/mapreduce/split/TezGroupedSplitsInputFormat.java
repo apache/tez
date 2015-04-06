@@ -52,6 +52,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   InputFormat<K, V> wrappedInputFormat;
   int desiredNumSplits = 0;
   Configuration conf;
+  SplitSizeEstimator estimator;
   
   public TezGroupedSplitsInputFormat() {
     
@@ -71,7 +72,15 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
       LOG.debug("desiredNumSplits: " + desiredNumSplits);
     }
   }
-  
+
+  public void setSplitSizeEstimator(SplitSizeEstimator estimator) {
+    Preconditions.checkArgument(estimator != null);
+    this.estimator = estimator;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Split size estimator : " + estimator);
+    }
+  }
+
   class SplitHolder {
     InputSplit split;
     boolean isProcessed = false;
@@ -110,7 +119,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
     List<InputSplit> originalSplits = wrappedInputFormat.getSplits(context);
     TezMapReduceSplitsGrouper grouper = new TezMapReduceSplitsGrouper();
     String wrappedInputFormatName = wrappedInputFormat.getClass().getName();
-    return grouper.getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName);
+    return grouper.getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator);
   }
 
   @Override

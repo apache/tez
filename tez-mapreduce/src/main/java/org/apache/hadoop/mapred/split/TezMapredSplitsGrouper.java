@@ -33,6 +33,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.split.SplitSizeEstimator;
 import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -81,6 +82,15 @@ public class TezMapredSplitsGrouper {
     }
   }
   
+  private static final SplitSizeEstimator DEFAULT_SPLIT_ESTIMATOR = new DefaultSplitSizeEstimator();
+
+  static final class DefaultSplitSizeEstimator implements SplitSizeEstimator {
+    @Override
+    public long getEstimatedSize(InputSplit split) throws IOException {
+      return split.getLength();
+    }
+  }
+
   Map<String, LocationHolder> createLocationsMap(Configuration conf) {
     if (conf.getBoolean(TezMapReduceSplitsGrouper.TEZ_GROUPING_REPEATABLE, 
         TezMapReduceSplitsGrouper.TEZ_GROUPING_REPEATABLE_DEFAULT)) {
@@ -92,6 +102,12 @@ public class TezMapredSplitsGrouper {
   public InputSplit[] getGroupedSplits(Configuration conf,
       InputSplit[] originalSplits, int desiredNumSplits,
       String wrappedInputFormatName) throws IOException {
+    return getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, null);
+  }
+
+  public InputSplit[] getGroupedSplits(Configuration conf,
+      InputSplit[] originalSplits, int desiredNumSplits,
+      String wrappedInputFormatName, SplitSizeEstimator estimator) throws IOException {
     LOG.info("Grouping splits in Tez");
 
     int configNumSplits = conf.getInt(TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_COUNT, 0);
@@ -100,7 +116,11 @@ public class TezMapredSplitsGrouper {
       desiredNumSplits = configNumSplits;
       LOG.info("Desired numSplits overridden by config to: " + desiredNumSplits);
     }
-    
+
+    if (estimator == null) {
+      estimator = DEFAULT_SPLIT_ESTIMATOR;
+    }
+
     if (! (configNumSplits > 0 || 
           originalSplits == null || 
           originalSplits.length == 0) ) {
@@ -110,7 +130,7 @@ public class TezMapredSplitsGrouper {
       // Do sanity checks
       long totalLength = 0;
       for (InputSplit split : originalSplits) {
-        totalLength += split.getLength();
+        totalLength += estimator.getEstimatedSize(split);
       }
 
       int splitCount = desiredNumSplits>0?desiredNumSplits:originalSplits.length;
@@ -183,7 +203,7 @@ public class TezMapredSplitsGrouper {
     Map<String, LocationHolder> distinctLocations = createLocationsMap(conf);
     // go through splits and add them to locations
     for (InputSplit split : originalSplits) {
-      totalLength += split.getLength();
+      totalLength += estimator.getEstimatedSize(split);
       String[] locations = split.getLocations();
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
@@ -272,13 +292,13 @@ public class TezMapredSplitsGrouper {
         int groupNumSplits = 0;
         do {
           group.add(splitHolder);
-          groupLength += splitHolder.split.getLength();
+          groupLength += estimator.getEstimatedSize(splitHolder.split);
           groupNumSplits++;
           holder.incrementHeadIndex();
           splitHolder = holder.getUnprocessedHeadSplit();
         } while(splitHolder != null  
             && (!groupByLength || 
-                (groupLength + splitHolder.split.getLength() <= lengthPerGroup))
+                (groupLength + estimator.getEstimatedSize(splitHolder.split) <= lengthPerGroup))
             && (!groupByCount || 
                 (groupNumSplits + 1 <= numSplitsInGroup)));
 

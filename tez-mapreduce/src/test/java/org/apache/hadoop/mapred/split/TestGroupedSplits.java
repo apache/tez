@@ -47,6 +47,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.mapred.split.SplitSizeEstimator;
 import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.MockDNSToSwitchMapping;
@@ -545,6 +546,74 @@ public class TestGroupedSplits {
     Assert.assertEquals(numSplits, split.wrappedSplits.size());
     ByteArrayOutputStream bOut = new ByteArrayOutputStream();
     split.write(new DataOutputStream(bOut));
+  }
+
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @Test(timeout=10000)
+  public void testGroupedSplitWithEstimator() throws IOException {
+    JobConf job = new JobConf(defaultConf);
+
+    job = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(job)
+        .setGroupingSplitSize(12*1000*1000l, 25*1000*1000l)
+        .build();
+
+    InputFormat mockWrappedFormat = mock(InputFormat.class);
+    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+        new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
+    format.setInputFormat(mockWrappedFormat);
+
+    final InputSplit mockSplit1 = mock(InputSplit.class);
+    final InputSplit mockSplit2 = mock(InputSplit.class);
+    final InputSplit mockSplit3 = mock(InputSplit.class);
+
+    final String[] locations = new String[] { "common", "common", "common" };
+
+    final SplitSizeEstimator estimator = new SplitSizeEstimator() {
+
+      @Override
+      public long getEstimatedSize(InputSplit split) throws IOException {
+        LOG.info("Estimating 10x of " + split.getLength());
+        // 10x compression
+        return 10 * split.getLength();
+      }
+    };
+
+    when(mockSplit1.getLength()).thenReturn(1000 * 1000l);
+    when(mockSplit1.getLocations()).thenReturn(locations);
+
+    when(mockSplit2.getLength()).thenReturn(1000 * 1000l);
+    when(mockSplit2.getLocations()).thenReturn(locations);
+
+    when(mockSplit3.getLength()).thenReturn(2 * 1000 * 1000l + 1);
+    when(mockSplit3.getLocations()).thenReturn(locations);
+
+    // put multiple splits which should be grouped (1,1,2) Mb, but estimated to be 10x
+    // 10,10,20Mb - grouped with min=12Mb, max=25Mb
+    // should be grouped as (1,1),(2)
+    InputSplit[] mockSplits = new InputSplit[] { mockSplit1, mockSplit2,
+        mockSplit3 };
+
+    when(mockWrappedFormat.getSplits((JobConf) anyObject(), anyInt()))
+        .thenReturn(mockSplits);
+
+    format.setDesiredNumberOfSplits(1);
+    format.setSplitSizeEstimator(estimator);
+
+    InputSplit[] splits = format.getSplits(job, 1);
+    // due to the min = 12Mb
+    Assert.assertEquals(2, splits.length);
+
+    for (InputSplit group : splits) {
+      TezGroupedSplit split = (TezGroupedSplit) group;
+      if (split.wrappedSplits.size() == 2) {
+        // split1+split2
+        Assert.assertEquals(split.getLength(), 2 * 1000 * 1000l);
+      } else {
+        // split3
+        Assert.assertEquals(split.getLength(), 2 * 1000 * 1000l + 1);
+      }
+    }
   }
 
 }
