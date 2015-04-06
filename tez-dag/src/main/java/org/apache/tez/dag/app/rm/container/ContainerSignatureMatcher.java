@@ -45,4 +45,16 @@ public interface ContainerSignatureMatcher {
    */
   public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
       Map<String, LocalResource> lr2);
+
+
+  /**
+   * Do a union of 2 signatures
+   * Pre-condition. This function should only be invoked iff cs1 is compatible with cs2.
+   * i.e. isSuperSet should not return false.
+   * @param cs1 Signature 1 Original signature
+   * @param cs2 Signature 2 New signature
+   * @return Union of 2 signatures
+   */
+  public Object union(Object cs1, Object cs2);
+
 }

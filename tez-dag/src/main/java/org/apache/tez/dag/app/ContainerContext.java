@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
+
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.Credentials;
@@ -142,6 +145,11 @@ public class ContainerContext {
     for (Entry<String, LocalResource> additionalLREntry : reqLRsCopy.entrySet()) {
       LocalResource lr = additionalLREntry.getValue();
       if (EnumSet.of(LocalResourceType.ARCHIVE, LocalResourceType.PATTERN).contains(lr.getType())) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot match container: Additional local resource needed is not of type FILE"
+              + ", resourceName: " + additionalLREntry.getKey()
+              + ", resourceDetails: " + additionalLREntry);
+        }
         return false;
       }
     }
@@ -177,4 +185,69 @@ public class ContainerContext {
     }
     return true;
   }
+
+  /**
+   * Create a new ContainerContext to account for container re-use. On re-use, there is
+   * re-localization of additional LocalResources. Also, a task from a different vertex could be
+   * run on the given container.
+   *
+   * Only a merge of local resources is needed as:
+   *
+   * credentials are modified at run-time based on the task spec.
+   * the environment for a container cannot be changed. A re-used container is always
+   * expected to have a super-set.
+   * javaOpts have to be identical for re-use.
+   *
+   * Vertex should be overridden to account for the new task being scheduled to run on this
+   * container context.
+   *
+   * @param c1 ContainerContext 1 Original task's context
+   * @param c2 ContainerContext 2 Newly assigned task's context
+   * @return Merged ContainerContext
+   */
+  public static ContainerContext union(ContainerContext c1, ContainerContext c2) {
+    HashMap<String, LocalResource> mergedLR = new HashMap<String, LocalResource>();
+    mergedLR.putAll(c1.getLocalResources());
+    mergedLR.putAll(c2.getLocalResources());
+    ContainerContext union = new ContainerContext(mergedLR, c1.credentials, c1.environment,
+        c1.javaOpts, c2.vertex);
+    return union;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("LocalResources: [");
+    if (localResources != null) {
+      for (Map.Entry<String, LocalResource> lr : localResources.entrySet()) {
+        sb.append("[ name=")
+            .append(lr.getKey())
+            .append(", value=")
+            .append(lr.getValue())
+            .append("],");
+      }
+    }
+    sb.append("], environment: [");
+    if (environment != null) {
+      for (Map.Entry<String, String> entry : environment.entrySet()) {
+        sb.append("[ ").append(entry.getKey()).append("=").append(entry.getValue())
+            .append(" ],");
+      }
+    }
+    sb.append("], credentials(token kinds): [");
+    if (credentials != null) {
+      for (Token<? extends TokenIdentifier> t : credentials.getAllTokens()) {
+        sb.append(t.getKind().toString())
+            .append(",");
+      }
+    }
+    sb.append("], javaOpts: ")
+      .append(javaOpts)
+      .append(", vertex: ")
+      .append(( vertex == null ? "null" : vertex.getLogIdentifier()));
+
+    return sb.toString();
+  }
+
 }

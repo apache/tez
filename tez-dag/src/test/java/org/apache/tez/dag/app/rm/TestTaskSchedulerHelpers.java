@@ -342,6 +342,11 @@ class TestTaskSchedulerHelpers {
         Map<String, LocalResource> lr2) {
       return Maps.newHashMap();
     }
+
+    @Override
+    public Object union(Object cs1, Object cs2) {
+      return cs1;
+    }
   }
   
   static class PreemptionMatcher implements ContainerSignatureMatcher {
@@ -364,6 +369,11 @@ class TestTaskSchedulerHelpers {
     public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
         Map<String, LocalResource> lr2) {
       return Maps.newHashMap();
+    }
+
+    @Override
+    public Object union(Object cs1, Object cs2) {
+      return cs1;
     }
   }
   

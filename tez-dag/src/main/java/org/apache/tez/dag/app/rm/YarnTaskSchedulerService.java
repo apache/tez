@@ -1386,7 +1386,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             + " containerId=" + heldContainer.container.getId());
       }
       if (containerSignatureMatcher.isSuperSet(heldContainer
-          .getFirstContainerSignature(), cookieContainerRequest.getCookie()
+          .getLastAssignedContainerSignature(), cookieContainerRequest.getCookie()
           .getContainerSignature())) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Matched delayed container to task"
@@ -1441,7 +1441,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     HeldContainer heldContainer = heldContainers.get(container.getId()); 
     if (!shouldReuseContainers && heldContainer == null) {
       heldContainers.put(container.getId(), new HeldContainer(container,
-        -1, -1, assigned));
+        -1, -1, assigned, this.containerSignatureMatcher));
       Resources.addTo(allocatedResources, container.getResource());
     } else {
       if (heldContainer.isNew()) {
@@ -1451,7 +1451,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         // think about preferring within vertex matching etc.
         heldContainers.put(container.getId(),
             new HeldContainer(container, heldContainer.getNextScheduleTime(),
-                heldContainer.getContainerExpiryTime(), assigned));
+                heldContainer.getContainerExpiryTime(), assigned, this.containerSignatureMatcher));
       }
       heldContainer.setLastTaskInfo(assigned);
     }
@@ -1463,7 +1463,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     synchronized (delayedContainerManager) {
       for (Container container : containers) {
         if (heldContainers.put(container.getId(), new HeldContainer(container,
-            -1, expireTime, null)) != null) {
+            -1, expireTime, null, this.containerSignatureMatcher)) != null) {
           throw new TezUncheckedException("New container " + container.getId()
               + " is already held.");
         }
@@ -2116,33 +2116,36 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       NON_LOCAL
     }
 
-    Container container;
-    private String rack;
+    final Container container;
+    final private String rack;
     private long nextScheduleTime;
-    private Object firstContainerSignature;
     private LocalityMatchLevel localityMatchLevel;
     private long containerExpiryTime;
     private CookieContainerRequest lastTaskInfo;
     private int numAssignmentAttempts = 0;
+    private Object lastAssignedContainerSignature;
+    final ContainerSignatureMatcher signatureMatcher;
     
     HeldContainer(Container container,
         long nextScheduleTime,
         long containerExpiryTime,
-        CookieContainerRequest firstTaskInfo) {
+        CookieContainerRequest firstTaskInfo,
+        ContainerSignatureMatcher signatureMatcher) {
       this.container = container;
       this.nextScheduleTime = nextScheduleTime;
       if (firstTaskInfo != null) {
         this.lastTaskInfo = firstTaskInfo;
-        this.firstContainerSignature = firstTaskInfo.getCookie().getContainerSignature();
+        this.lastAssignedContainerSignature = firstTaskInfo.getCookie().getContainerSignature();
       }
       this.localityMatchLevel = LocalityMatchLevel.NODE;
       this.containerExpiryTime = containerExpiryTime;
       this.rack = RackResolver.resolve(container.getNodeId().getHost())
           .getNetworkLocation();
+      this.signatureMatcher = signatureMatcher;
     }
     
     boolean isNew() {
-      return firstContainerSignature == null;
+      return lastTaskInfo == null;
     }
     
     String getRack() {
@@ -2181,15 +2184,24 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       this.containerExpiryTime = containerExpiryTime;
     }
 
-    public Object getFirstContainerSignature() {
-      return this.firstContainerSignature;
+    public Object getLastAssignedContainerSignature() {
+      return this.lastAssignedContainerSignature;
     }
-    
+
     public CookieContainerRequest getLastTaskInfo() {
       return this.lastTaskInfo;
     }
     
     public void setLastTaskInfo(CookieContainerRequest taskInfo) {
+      // Merge the container signatures to account for any changes to the container
+      // footprint. For example, re-localization of additional resources will
+      // cause the held container's signature to change.
+      lastAssignedContainerSignature = taskInfo.getCookie().getContainerSignature();
+      if (lastTaskInfo != null && lastTaskInfo.getCookie().getContainerSignature() != null) {
+        lastAssignedContainerSignature = signatureMatcher.union(
+            lastTaskInfo.getCookie().getContainerSignature(),
+            taskInfo.getCookie().getContainerSignature());
+      }
       lastTaskInfo = taskInfo;
     }
 
@@ -2220,7 +2232,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           + ", nextScheduleTime: " + nextScheduleTime
           + ", localityMatchLevel=" + localityMatchLevel
           + ", signature: "
-          + (firstContainerSignature != null? firstContainerSignature.toString():"null");
+          + (lastAssignedContainerSignature != null? lastAssignedContainerSignature.toString()
+            : "null");
     }
   }
 }
