@@ -21,16 +21,19 @@ Install/Deploy Instructions for Tez
 ---------------------------------------------------------------------------
 Replace x.y.z with the tez release number that you are using. E.g. 0.5.0
 
-1.  Deploy Apache Hadoop using either the 2.2.0 release or a compatible
-    2.x version.
-    -   One thing to note though when compiling Tez is that you will
-        need to change the value of the hadoop.version property in the
-        top-level pom.xml to match the version of the hadoop branch being
-        used.
+1.  Deploy Apache Hadoop using either the 2.2.0 release or a compatible 2.x version.
+    -   You need to change the value of the hadoop.version property in the
+        top-level pom.xml to match the version of the hadoop branch being used.
+        ```
+        $ hadoop version
+        ```
 2.  Build tez using `mvn clean package -DskipTests=true -Dmaven.javadoc.skip=true`
-    -   This assumes that you have already installed JDK6 or later,
-        Maven 3 or later and Protocol Buffers (protoc compiler) 2.5 or
-        later
+    -   This assumes that you have already installed JDK6 or later and Maven 3 or later.
+    -   Tez also requires Protocol Buffers 2.5.0, including the protoc-compiler.
+        *   This can be downloaded from https://github.com/google/protobuf/tags/.
+        *   On Mac OS X with the homebrew package manager `brew install protobuf250`
+        *   For rpm-based linux systems, the yum repos may not have the 2.5.0 version.
+            `rpm.pbone.net` has the protobuf-2.5.0 and protobuf-compiler-2.5.0 packages.
     -   If you prefer to run the unit tests, remove skipTests from the
         command above.
     -   If you use Eclipse IDE, you can import the projects using
@@ -76,7 +79,7 @@ Replace x.y.z with the tez release number that you are using. E.g. 0.5.0
         ```
     -   set TEZ_CONF_DIR to the location of tez-site.xml
     -   Add $TEZ_CONF_DIR, ${TEZ_JARS}/* and ${TEZ_JARS}/lib/* to the application classpath.
-        For example, doing it via the standard Hadoop tool chain would use the following command 
+        For example, doing it via the standard Hadoop tool chain would use the following command
 	to set up the application classpath:
         ```
         export HADOOP_CLASSPATH=${TEZ_CONF_DIR}:${TEZ_JARS}/*:${TEZ_JARS}/lib/*
@@ -119,12 +122,12 @@ Replace x.y.z with the tez release number that you are using. E.g. 0.5.0
     ```
 
     This will use the TEZ DAG ApplicationMaster to run the MR job. This
-    can be verified by looking at the AM’s logs from the YARN ResourceManager UI. 
+    can be verified by looking at the AM’s logs from the YARN ResourceManager UI.
     This needs mapred-site.xml to have "mapreduce.framework.name" set to "yarn-tez"
 
 Hadoop Installation dependent Install/Deploy Instructions
 ---------------------------------------------------------
-The above install instructions use Tez with pre-packaged Hadoop libraries included in the package and is the 
+The above install instructions use Tez with pre-packaged Hadoop libraries included in the package and is the
 recommended method for installation. If its needed to make Tez use the existing cluster Hadoop libraries then
 follow this alternate machanism to setup Tez to use Hadoop libraries from the cluster.
 Step 3 above changes as follows. Also subsequent steps would use tez-dist/target/tez-x.y.z-minimal.tar.gz instead of tez-dist/target/tez-x.y.z.tar.gz
