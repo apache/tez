@@ -374,16 +374,16 @@ public class TaskReporter {
     }
   }
 
-  public boolean taskSucceeded(TezTaskAttemptID taskAttemptID) throws IOException, TezException {
+  public synchronized boolean taskSucceeded(TezTaskAttemptID taskAttemptID) throws IOException, TezException {
     return currentCallable.taskSucceeded(taskAttemptID);
   }
 
-  public boolean taskFailed(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
+  public synchronized boolean taskFailed(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
       EventMetaData srcMeta) throws IOException, TezException {
     return currentCallable.taskFailed(taskAttemptID, t, diagnostics, srcMeta);
   }
 
-  public void addEvents(TezTaskAttemptID taskAttemptID, Collection<TezEvent> events) {
+  public synchronized void addEvents(TezTaskAttemptID taskAttemptID, Collection<TezEvent> events) {
     currentCallable.addEvents(taskAttemptID, events);
   }
 
