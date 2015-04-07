@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2223. TestMockDAGAppMaster fails due to TEZ-2210 on mac.
   TEZ-2236. Tez UI: Support loading of all tasks in the dag tasks page
   TEZ-2159. Tez UI: download timeline data for offline use.
   TEZ-2269. DAGAppMaster becomes unresponsive (post TEZ-2149).

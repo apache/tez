@@ -24,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -297,7 +298,12 @@ public class TestMockDAGAppMaster {
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     TezCounters counters = dagImpl.getAllCounters();
-    Assert.assertTrue(counters.findCounter(DAGCounter.AM_CPU_MILLISECONDS).getValue() > 0);
+
+    String osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
+    if (!osName.contains("mac")) {
+      Assert.assertTrue(counters.findCounter(DAGCounter.AM_CPU_MILLISECONDS).getValue() > 0);
+    }
+
     // verify processor counters
     Assert.assertEquals(10, counters.findCounter(vAName, procCounterName).getValue());
     Assert.assertEquals(1, counters.findCounter(vBName, procCounterName).getValue());
