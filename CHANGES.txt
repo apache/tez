@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
 
 
 ALL CHANGES:
+  TEZ-2269. DAGAppMaster becomes unresponsive (post TEZ-2149).
   TEZ-2243. documentation should explicitly specify protobuf 2.5.0.
   TEZ-2232. Allow setParallelism to be called multiple times before tasks get
   scheduled
