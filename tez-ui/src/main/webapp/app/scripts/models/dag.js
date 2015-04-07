@@ -333,6 +333,10 @@ App.Task = App.AbstractEntity.extend({
 
   endTime: DS.attr('number'),
 
+  duration: function () {
+    return App.Helpers.date.duration(this.get('startTime'), this.get('endTime'))
+  }.property('startTime', 'endTime'),
+
   diagnostics: DS.attr('string'),
 
   numAttempts: DS.attr('number'),

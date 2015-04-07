@@ -115,10 +115,7 @@ App.Helpers.misc = {
       configuration.headerCellName = configuration.counterName || configuration.counterId;
       configuration.id = '%@/%@'.fmt(configuration.counterGroupName || configuration.groupId,
           configuration.counterName || configuration.counterId),
-
-      configuration.getSortValue = App.Helpers.misc.getCounterCellContent;
-      configuration.getCellContent =
-          configuration.getSearchValue = App.Helpers.misc.getCounterCellContentFormatted;
+      configuration.getCellContent = App.Helpers.misc.getCounterCellContent;
       return configuration;
     });
   },
@@ -141,12 +138,6 @@ App.Helpers.misc = {
     });
   },
 
-  createColumnDescription: function (columnConfigs) {
-    return columnConfigs.map(function (column) {
-      return App.BasicTableComponent.ColumnDefinition.create(column);
-    });
-  },
-
   /*
    * Returns a counter value from for a row
    * @param row
@@ -154,26 +145,19 @@ App.Helpers.misc = {
    */
   getCounterCellContent: function (row) {
     var contentPath = this.id.split('/'),
-        value = null;
+        group = contentPath[0],
+        counter = contentPath[1],
+        id = row.get('id'),
+        value = 'Not Available';
 
     try{
       value = row.get('counterGroups').
-          findBy('counterGroupName', contentPath[0])
-          ['counters'].
-          findBy('counterName', contentPath[1])
-          ['counterValue'];
+          findBy('id', '%@/%@'.fmt(id, group)).
+          get('counters').
+          findBy('id', '%@/%@/%@'.fmt(id, group, counter)).
+          get('value');
     }catch(e){}
 
-    return value;
-  },
-
-  /*
-   * Returns a counter value from for a row
-   * @param row
-   * @return value
-   */
-  getCounterCellContentFormatted: function (row) {
-    var value = App.Helpers.misc.getCounterCellContent.call(this, row);
     return App.Helpers.number.formatNumThousands(value);
   },
 
@@ -408,32 +392,6 @@ App.Helpers.misc = {
       }
     }
   },
-
-  timelinePathForType: (function () {
-    var typeToPathMap = {
-      dag: 'TEZ_DAG_ID',
-      vertex: 'TEZ_VERTEX_ID',
-      task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
-      tezApp: 'TEZ_APPLICATION'
-    };
-    return function (type) {
-      return typeToPathMap[type];
-    };
-  })(),
-
-  getTimelineFilterForType: (function () {
-    var typeToPathMap = {
-      dag: 'TEZ_DAG_ID',
-      vertex: 'TEZ_VERTEX_ID',
-      task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
-      tezApp: 'applicationId'
-    };
-    return function (type) {
-      return typeToPathMap[type];
-    };
-  })(),
 
   dagStatusUIOptions: [
     { label: 'All', id: null },

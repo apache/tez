@@ -16,27 +16,31 @@
  * limitations under the License.
  */
 
-// Colors
-@logo-orange: #D27A22;
+App.BasicTableComponent.ColumnDefinition = (function () {
+  function getContentAtPath(row) {
+    var contentPath = this.get('contentPath');
 
-@bg-lite: #f5f5f5;
-@bg-liter: #f5f5f5;
-@bg-red-light: #FFE6E6;
+    if(contentPath) {
+      return row.get(contentPath);
+    }
+    else {
+      throw new Error("contentPath not set!");
+    }
+  }
 
-@bg-grey: #f0f0f0;
+  return Em.Object.extend({
+    contentPath: null,
+    headerCellName: "Not Available!",
 
-@border-lite: #e5e5e5;
-@border-color: #dcdcdc;
+    width: "",
 
-@white: #fff;
+    customStyle: function () {
+      return 'width:%@'.fmt(this.get('width'));
+    }.property('width'),
 
-@text-color: #666666;
-@text-red: red;
+    getSearchValue: getContentAtPath,
+    getSortValue: getContentAtPath,
+    getCellContent: getContentAtPath
+  });
+})();
 
-@top-nav-bg-color-from: #d5d5d5;
-@top-nav-bg-color-to: #f0f0f0;
-
-@success-color: limegreen;
-@error-color: crimson;
-@warning-color: orange;
-@unknown-color: crimson;

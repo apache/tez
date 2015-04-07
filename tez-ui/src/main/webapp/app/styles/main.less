@@ -30,6 +30,9 @@ body, html, body > .ember-view {
   height: 100%;
   overflow: visible;
 }
+body, html {
+  min-width: 1024px;
+}
 
 // Styles used in both standalone and wrapped modes
 .standalone, .wrapped {
@@ -96,8 +99,13 @@ body, html, body > .ember-view {
 .standalone {
   height: 100%;
 
-  a {
+  a, .pagination > li > a, .btn-default, .clickable {
     color: @logo-orange;
+  }
+
+  .is-current {
+    color: white;
+    background-color: @logo-orange;
   }
 
   #top-nav {
@@ -158,6 +166,11 @@ body, html, body > .ember-view {
 .wrapped {
   #top-nav, .footer, .push {
     display: none;
+  }
+
+  .is-current {
+    color: white;
+    background-color: @brand-primary;
   }
 }
 
@@ -519,6 +532,199 @@ div.indent {
 }
 
 .table-container {
+  .use-gpu;
+
+  margin: 10px 0px;
+
+  .table-header {
+    padding: 5px;
+
+    button:hover {
+      background-color: @bg-grey;
+    }
+
+    .table-message {
+      .inline-block;
+      font-size: 18px;
+      margin-top: 10px;
+      margin-left: 5px;
+      vertical-align: super;
+
+      overflow: hidden;
+      transform: translateZ(0);
+    }
+
+    .horizontal-half {
+      height: 33px;
+      white-space: nowrap;
+    }
+
+    .extra-table-buttons {
+      .inline-block;
+
+      .load-all {
+        .inline-block;
+        .left-divider;
+
+        margin-left: 5px;
+        text-align: center;
+
+        :first-child {
+          margin-bottom: -3px;
+          font-size: .85em;
+          color: red;
+        }
+      }
+
+      .column-selector-button {
+        .fa-action;
+        .fa-icon(cog);
+        .left-divider;
+        .inline-block;
+
+        padding-top: 5px;
+        height: 36px;
+      }
+    }
+  }
+
+  .waiting {
+    .fa;
+    .fa-icon(spinner);
+    .fa-spin;
+    .fa-fw;
+  }
+
+  .pagination-view {
+    .inline-block;
+
+    .page-list {
+      .inline-block;
+      .align-top;
+
+      border: 1px solid @border-color;
+      border-radius: 5px;
+
+      padding: 0px;
+
+      font-size: 0px;
+
+      li {
+        .inline-block;
+
+        padding: 6px 10px;
+        font-size: 14px;
+
+        border-left: 1px solid @border-color;
+
+        pointer-events: none;
+
+        &.clickable {
+          pointer-events: auto;
+          &:hover {
+            background-color: @bg-grey;
+            cursor: pointer;
+          }
+        }
+      }
+
+      .total-page-count {
+        font-size: .8em;
+      }
+
+      :first-child {
+        border-left: none;
+      }
+    }
+
+    .row-select {
+      margin-left: 5px;
+
+      display: inline-block;
+      text-align: center;
+
+      :first-child {
+        margin-bottom: -3px;
+        font-size: .85em;
+      }
+    }
+  }
+
+  .table-body-container{
+    border: 1px solid @border-color;
+    border-radius: 5px;
+
+    margin: 5px 0px;
+
+    overflow: auto;
+
+    .table-body {
+      .noise-background;
+      white-space: nowrap;
+      font-size: 0;
+
+      .table-column {
+        background-color: white;
+        display: inline-block;
+        min-width: 150px;
+        border-left: 1px solid @border-color;
+
+        &.first-item {
+          border-left: none;
+        }
+
+        .table-header-cell, .table-cell {
+          font-size: 13px;
+          padding: 5px;
+          position: relative;
+
+          .cell-content {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            height: 18px;
+          }
+
+          .resize-column {
+            .fa;
+            .fa-icon(ellipsis-v);
+
+            cursor: col-resize;
+            position: absolute;
+            right: 2px;
+            top: 10px;
+
+            opacity: .2;
+          }
+        }
+
+        .table-header-cell {
+          font-weight: bold;
+
+          padding-right: 15px;
+
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+
+          background-color: @bg-grey;
+          border-bottom: 1px solid @border-color;
+        }
+
+        .table-cell {
+          border-top: 1px dotted @border-color;
+
+          &.first-item {
+            border-top: none;
+          }
+        }
+      }
+    }
+  }
+}
+
+.ember-table-container {
   min-height: 20px;
   width: 100%;
   overflow: auto;
@@ -529,6 +735,23 @@ div.indent {
   }
   .ember-table-scroll-container {
     display: none;
+  }
+}
+
+.filter-cell, {
+  left: 0px;
+  top: 0px;
+  .sort, .filter {
+    position: absolute;
+  }
+  .filter {
+    left: 5px;
+    right: 20px;
+  }
+  .sort {
+    cursor: pointer;
+    top: 7px;
+    right: 5px;
   }
 }
 

@@ -1,0 +1,58 @@
+{{!
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+}}
+
+<div class='table-container'>
+  {{#if _showHeader}}
+    <div class='table-header'>
+      <div class="horizontal-half align-top">
+      </div><div class="horizontal-half align-top align-children-right">
+        {{#if enablePagination}}
+          {{view App.BasicTableComponent.PaginationView pageNum=pageNum totalPages=totalPages}}
+        {{/if}}
+        {{#if extraHeaderItem}}
+          {{view extraHeaderItem}}
+        {{/if}}
+      </div>
+    </div>
+  {{/if}}
+  <div class='table-body-container'>
+    <div class='table-body'>
+      {{#each column in _columns}}
+        <div {{bind-attr
+            style=column.customStyle
+            class=":table-column _view.contentIndex::first-item"
+        }}>
+          {{view column.headerCellView}}
+          {{#each row in _rows}}
+            <div class='table-cell {{unbound firstItemCSS _view}}'>
+              {{view column.cellView row=row}}
+            </div>
+          {{/each}}
+        </div>
+      {{/each}}
+    </div>
+  </div>
+  <div class='table-footer'>
+    <div class="horizontal-half align-top">
+    </div><div class="horizontal-half align-top align-children-right">
+      {{#if hasPageNavOnFooter}}
+        {{view App.BasicTableComponent.PaginationView pageNum=pageNum totalPages=totalPages}}
+      {{/if}}
+    </div>
+  </div>
+</div>

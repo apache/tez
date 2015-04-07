@@ -183,8 +183,9 @@ require('scripts/router');
 require('scripts/views/**/*');
 require('scripts/models/**/*');
 
+require('scripts/controllers/table-page-controller');
 require('scripts/controllers/**/*');
 
-require('scripts/components/*');
-require('scripts/components/dag-view/*');
+require('scripts/components/basic-table/basic-table-component');
+require('scripts/components/**/*');
 require('scripts/adapters/*');

@@ -16,27 +16,24 @@
  * limitations under the License.
  */
 
-// Colors
-@logo-orange: #D27A22;
+App.TablePageController = Em.ObjectController.extend(
+    App.DataArrayLoaderMixin,
+    App.ColumnSelectorMixin, {
+      queryParams: ['pageNum', 'rowCount'],
 
-@bg-lite: #f5f5f5;
-@bg-liter: #f5f5f5;
-@bg-red-light: #FFE6E6;
+      pageNum: 1,
+      rowCount: 25,
 
-@bg-grey: #f0f0f0;
+      isRefreshable: true,
 
-@border-lite: #e5e5e5;
-@border-color: #dcdcdc;
+      statusMessage: function () {
+        return this.get('loading') ? "Loading all records..." : null;
+      }.property('loading'),
 
-@white: #fff;
-
-@text-color: #666666;
-@text-red: red;
-
-@top-nav-bg-color-from: #d5d5d5;
-@top-nav-bg-color-to: #f0f0f0;
-
-@success-color: limegreen;
-@error-color: crimson;
-@warning-color: orange;
-@unknown-color: crimson;
+      actions: {
+        refresh: function () {
+          this.loadData(true);
+        }
+      }
+    }
+);

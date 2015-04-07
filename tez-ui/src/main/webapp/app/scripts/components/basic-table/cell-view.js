@@ -16,27 +16,28 @@
  * limitations under the License.
  */
 
-// Colors
-@logo-orange: #D27A22;
+var ObjectPromiseController = Ember.ObjectController.extend(Ember.PromiseProxyMixin),
+    naCellContent = {
+      toString: function (){
+        return 'Not available!';
+      },
+      _notAvailable: true
+    };
 
-@bg-lite: #f5f5f5;
-@bg-liter: #f5f5f5;
-@bg-red-light: #FFE6E6;
+App.BasicTableComponent.CellView = Ember.View.extend({
+  templateName: 'components/basic-table/basic-cell',
 
-@bg-grey: #f0f0f0;
+  classNames: ['cell-content'],
 
-@border-lite: #e5e5e5;
-@border-color: #dcdcdc;
+  cellContent: function () {
+    var cellContent = this.get('column').getCellContent(this.get('row'));
 
-@white: #fff;
+    if(cellContent && $.isFunction(cellContent.then)) {
+      cellContent = ObjectPromiseController.create({
+        promise: cellContent
+      });
+    }
 
-@text-color: #666666;
-@text-red: red;
-
-@top-nav-bg-color-from: #d5d5d5;
-@top-nav-bg-color-to: #f0f0f0;
-
-@success-color: limegreen;
-@error-color: crimson;
-@warning-color: orange;
-@unknown-color: crimson;
+    return cellContent || naCellContent;
+  }.property('row', 'column')
+});

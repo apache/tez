@@ -16,27 +16,8 @@
  * limitations under the License.
  */
 
-// Colors
-@logo-orange: #D27A22;
+App.ExtraTableButtonsView = Ember.View.extend({
+  templateName: 'views/extra-table-buttons',
 
-@bg-lite: #f5f5f5;
-@bg-liter: #f5f5f5;
-@bg-red-light: #FFE6E6;
-
-@bg-grey: #f0f0f0;
-
-@border-lite: #e5e5e5;
-@border-color: #dcdcdc;
-
-@white: #fff;
-
-@text-color: #666666;
-@text-red: red;
-
-@top-nav-bg-color-from: #d5d5d5;
-@top-nav-bg-color-to: #f0f0f0;
-
-@success-color: limegreen;
-@error-color: crimson;
-@warning-color: orange;
-@unknown-color: crimson;
+  classNames: ['extra-table-buttons']
+});

@@ -285,8 +285,19 @@ App.TezAppConfigsRoute = Em.Route.extend({
 
 /* --- Shared routes --- */
 
-App.DagTasksRoute =
-    App.DagVerticesRoute =
+App.DagTasksRoute = Em.Route.extend({
+  renderTemplate: function () {
+    this.render('common/table');
+  },
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    if(controller.loadData) {
+      controller.loadData();
+    }
+  }
+});
+
+App.DagVerticesRoute =
     App.DagTaskAttemptsRoute =
     App.VertexTasksRoute =
     App.VertexTaskAttemptsRoute =

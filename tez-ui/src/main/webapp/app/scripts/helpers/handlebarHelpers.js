@@ -72,3 +72,11 @@ Em.Handlebars.helper('formatDiagnostics', function(diagnostics) {
   x = replaceAll(x, ']', '</div>');
   return new Handlebars.SafeString(x);
 });
+
+/**
+ * Returns first-item class if called from inside a loop/each.
+ * @param view Will be _view in hbs
+ */
+Em.Handlebars.helper('firstItemCSS', function(view) {
+  return view && view.contentIndex == 0 ? 'first-item' : '';
+});
