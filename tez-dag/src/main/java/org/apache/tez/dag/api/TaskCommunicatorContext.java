@@ -43,6 +43,10 @@ public interface TaskCommunicatorContext {
 
   boolean isKnownContainer(ContainerId containerId);
 
+  void taskAlive(TezTaskAttemptID taskAttemptId);
+
+  void containerAlive(ContainerId containerId);
+
   // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
   void taskStartedRemotely(TezTaskAttemptID taskAttemptID, ContainerId containerId);
 

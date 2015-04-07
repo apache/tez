@@ -65,17 +65,19 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       null, true, null, null, false);
 
   private final TaskCommunicatorContext taskCommunicatorContext;
+  private final TezTaskUmbilicalProtocol taskUmbilical;
 
-  private final ConcurrentMap<ContainerId, ContainerInfo> registeredContainers =
+  protected final ConcurrentMap<ContainerId, ContainerInfo> registeredContainers =
       new ConcurrentHashMap<ContainerId, ContainerInfo>();
-  private final ConcurrentMap<TaskAttempt, ContainerId> attemptToContainerMap =
+  protected final ConcurrentMap<TaskAttempt, ContainerId> attemptToContainerMap =
       new ConcurrentHashMap<TaskAttempt, ContainerId>();
 
-  private final TezTaskUmbilicalProtocol taskUmbilical;
-  private final String tokenIdentifier;
-  private final Token<JobTokenIdentifier> sessionToken;
+
+  protected final String tokenIdentifier;
+  protected final Token<JobTokenIdentifier> sessionToken;
   protected InetSocketAddress address;
-  private Server server;
+
+  protected volatile Server server;
 
   public static final class ContainerInfo {
 
@@ -440,7 +442,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
 
   // Holder for Task information, which eventually will likely be VertexImplm taskIndex, attemptIndex
-  private static class TaskAttempt {
+  protected static class TaskAttempt {
     // TODO TEZ-2003 Change this to work with VertexName, int id, int version
     // TODO TEZ-2003 Avoid constructing this unit all over the place
     private TezTaskAttemptID taskAttemptId;

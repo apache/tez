@@ -258,6 +258,16 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
+  public void taskAlive(TezTaskAttemptID taskAttemptId) {
+    taskHeartbeatHandler.pinged(taskAttemptId);
+  }
+
+  @Override
+  public void containerAlive(ContainerId containerId) {
+    pingContainerHeartbeatHandler(containerId);
+  }
+
+  @Override
   public void taskStartedRemotely(TezTaskAttemptID taskAttemptID, ContainerId containerId) {
     context.getEventHandler()
         .handle(new TaskAttemptEventStartedRemotely(taskAttemptID, containerId, null));
