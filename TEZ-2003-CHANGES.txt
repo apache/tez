@@ -12,5 +12,6 @@ ALL CHANGES:
   TEZ-2175. Task priority should be available to the TaskCommunicator plugin.
   TEZ-2187. Allow TaskCommunicators to report failed / killed attempts.
   TEZ-2241. Miscellaneous fixes after last reabse.
+  TEZ-2283. Fixes after rebase 04/07.
 
 INCOMPATIBLE CHANGES:
