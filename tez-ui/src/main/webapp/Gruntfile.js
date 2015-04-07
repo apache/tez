@@ -281,6 +281,17 @@ module.exports = function (grunt) {
           {
             expand: true,
             flatten: true,
+            cwd: '<%= yeoman.app %>',
+            dest: '<%= yeoman.dist %>/scripts/zip.js',
+            src: [
+              'bower_components/zip.js/WebContent/z-worker.js',
+              'bower_components/zip.js/WebContent/inflate.js',
+              'bower_components/zip.js/WebContent/deflate.js',
+            ]
+          },
+          {
+            expand: true,
+            flatten: true,
             src: '<%= yeoman.app %>/bower_components/jquery-ui/themes/smoothness/images/*',
             dest: '<%= yeoman.dist %>/styles/images/'
           },
@@ -323,6 +334,17 @@ module.exports = function (grunt) {
             flatten: true,
             src: '<%= yeoman.app %>/bower_components/font-awesome/fonts/*',
             dest: '.tmp/fonts/'
+          },
+          {
+            expand: true,
+            flatten: true,
+            cwd: '<%= yeoman.app %>',
+            dest: '.tmp/scripts/zip.js',
+            src: [
+              'bower_components/zip.js/WebContent/z-worker.js',
+              'bower_components/zip.js/WebContent/inflate.js',
+              'bower_components/zip.js/WebContent/deflate.js',
+            ]
           },
           {
             expand: true,

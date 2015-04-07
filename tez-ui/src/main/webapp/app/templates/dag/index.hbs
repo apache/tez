@@ -33,6 +33,11 @@
       </thead>
       <tbody>
         <tr>
+          <td colspan="2">
+            {{bs-button icon="fa fa-download" title="Download data" type="info" clicked="downloadDagJson"}}
+          </td>
+        </tr>
+        <tr>
           <td>{{t 'common.applicationId'}}</td>
           <td>
             {{#if controllers.dag.enableAppIdLink}}

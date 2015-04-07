@@ -270,6 +270,129 @@ App.Helpers.misc = {
     }
   },
 
+  downloadDAG: function(dagID, options) {
+    var opts = options || {},
+        batchSize = opts.batchSize || 1000,
+        baseurl = '%@/%@'.fmt(App.env.timelineBaseUrl, App.Configs.restNamespace.timeline),
+        itemsToDownload = [
+          {
+            url: getUrl('TEZ_DAG_ID', dagID),
+            context: { name: 'dag', type: 'TEZ_DAG_ID' },
+            onItemFetched: processSingleItem
+          },
+          {
+            url: getUrl('TEZ_VERTEX_ID', dagID),
+            context: { name: 'vertices', type: 'TEZ_VERTEX_ID', part: 0 },
+            onItemFetched: processMultipleItems
+          },
+          {
+            url: getUrl('TEZ_TASK_ID', dagID),
+            context: { name: 'tasks', type: 'TEZ_TASK_ID', part: 0 },
+            onItemFetched: processMultipleItems
+          },
+          {
+            url: getUrl('TEZ_TASK_ATTEMPT_ID', dagID),
+            context: { name: 'task_attempts', type: 'TEZ_TASK_ATTEMPT_ID', part: 0 },
+            onItemFetched: processMultipleItems
+          }
+        ],
+        numItemTypesToDownload = itemsToDownload.length,
+        downloader = App.Helpers.io.fileDownloader(),
+        zipHelper = App.Helpers.io.zipHelper({
+          onProgress: function(filename, current, total) {
+            Em.Logger.debug('%@: %@ of %@'.fmt(filename, current, total));
+          },
+          onAdd: function(filename) {
+            Em.Logger.debug('adding %@ to Zip'.fmt(filename));
+          }
+        });
+
+    function getUrl(type, dagID, fromID) {
+      var url;
+      if (type == 'TEZ_DAG_ID') {
+        url = '%@/%@/%@'.fmt(baseurl, type, dagID);
+      } else {
+        url = '%@/%@?primaryFilter=TEZ_DAG_ID:%@&limit=%@'.fmt(baseurl, type, dagID, batchSize + 1);
+        if (!!fromID) {
+          url = '%@&fromId=%@'.fmt(url, fromID);
+        }
+      }
+      return url;
+    }
+
+    function checkIfAllDownloaded() {
+      numItemTypesToDownload--;
+      if (numItemTypesToDownload == 0) {
+        downloader.finish();
+      }
+    }
+
+    function processSingleItem(data, context) {
+      var obj = {};
+      obj[context.name] = data;
+
+      zipHelper.addFile({name: '%@.json'.fmt(context.name), data: JSON.stringify(obj, null, 2)});
+      checkIfAllDownloaded();
+    }
+
+    function processMultipleItems(data, context) {
+      var obj = {};
+      var nextBatchStart = undefined;
+
+      if (!$.isArray(data.entities)) {
+        throw "invalid data";
+      }
+
+      // need to handle no more entries , zero entries
+      if (data.entities.length > batchSize) {
+        nextBatchStart = data.entities.pop().entity;
+      }
+      obj[context.name] = data.entities;
+
+      zipHelper.addFile({name: '%@_part_%@.json'.fmt(context.name, context.part), data: JSON.stringify(obj, null, 2)});
+
+      if (!!nextBatchStart) {
+        context.part++;
+        downloader.queueItem({
+          url: getUrl(context.type, dagID, nextBatchStart),
+          context: context,
+          onItemFetched: processMultipleItems
+        });
+      } else {
+        checkIfAllDownloaded();
+      }
+    }
+
+    downloader.queueItems(itemsToDownload);
+
+    downloader.then(function() {
+      Em.Logger.info('Finished download');
+      zipHelper.close();
+    }).catch(function() {
+      Em.Logger.error('Failed to download');
+      zipHelper.abort();
+    });
+
+    var that = this;
+    zipHelper.then(function(zippedBlob) {
+      saveAs(zippedBlob, '%@.zip'.fmt(dagID));
+      if ($.isFunction(opts.onSuccess)) {
+        opts.onSuccess();
+      }
+    }).catch(function() {
+      Em.Logger.error('zip Failed');
+      if ($.isFunction(opts.onFailure)) {
+        opts.onFailure();
+      }
+    });
+
+    return {
+      cancel: function() {
+        downloader.cancel();
+      }
+    }
+  },
+
   dagStatusUIOptions: [
     { label: 'All', id: null },
     { label: 'Submitted', id: 'SUBMITTED' },

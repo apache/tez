@@ -22,6 +22,43 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   needs: 'dag',
 
+  actions: {
+    downloadDagJson: function() {
+      var dagID = this.get('id');
+      var downloader = App.Helpers.misc.downloadDAG(this.get('id'), {
+        batchSize: 500,
+        onSuccess: function() {
+          Bootstrap.ModalManager.close('downloadModal');
+        },
+        onFailure: function() {
+          $('#modalMessage').html('<i class="fa fa-lg fa-exclamation-circle margin-small-horizontal" ' +
+          'style="color:red"></i>&nbsp;Error downloading data');
+        }
+      });
+      this.set('tmpDownloader', downloader);
+      var modalDialogView = Ember.View.extend({
+        template: Em.Handlebars.compile(
+          '<p id="modalMessage"><i class="fa fa-lg fa-spinner fa-spin margin-small-horizontal" ' + 
+          'style="color:green"></i>Downloading data for dag %@</p>'.fmt(dagID)
+        )
+      });
+      var buttons = [
+        Ember.Object.create({title: 'Cancel', dismiss: 'modal', clicked: 'cancelDownload'})
+      ];
+      Bootstrap.ModalManager.open('downloadModal', 'Download data',
+        modalDialogView, buttons, this);
+    },
+
+    cancelDownload: function() {
+      var currentDownloader = this.get('tmpDownloader');
+      if (!!currentDownloader) {
+        currentDownloader.cancel();
+      }
+      this.set('tmpDownloader', undefined);
+    }
+
+  },
+
   load: function () {
     var dag = this.get('controllers.dag.model'),
         controller = this.get('controllers.dag'),

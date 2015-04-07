@@ -8,8 +8,8 @@ INCOMPATIBLE CHANGES
   TEZ-2176. Move all logging to slf4j. (commons-logging jar no longer part of Tez tar)
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
-
 ALL CHANGES:
+  TEZ-2159. Tez UI: download timeline data for offline use.
   TEZ-2269. DAGAppMaster becomes unresponsive (post TEZ-2149).
   TEZ-2243. documentation should explicitly specify protobuf 2.5.0.
   TEZ-2232. Allow setParallelism to be called multiple times before tasks get
