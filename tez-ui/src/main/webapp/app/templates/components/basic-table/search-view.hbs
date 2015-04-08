@@ -16,14 +16,17 @@
 * limitations under the License.
 }}
 
-<div class='ember-table-container'>
-  {{extended-table-component
-    hasFooter=false
-    enableContentSelection=true
-    columnsBinding="columns"
-    contentBinding="sortedContent"
-    forceFillColumns=true
-    hasFilter=true
-    onFilterUpdated='filterUpdated'
+<div {{bind-attr class=":input-group view._validRegEx::has-error"}}>
+  {{input
+    class="form-control"
+    placeholder="RegEx or Column1, Column2... :RegEx"
+    action="search"
+    value=view._boundText
+    targetObject=view
   }}
+  <span class="input-group-btn">
+    <button class="btn btn-default" type="button" {{action "search" target='view'}}>
+      Search
+    </button>
+  </span>
 </div>

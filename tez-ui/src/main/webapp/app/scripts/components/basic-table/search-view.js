@@ -16,32 +16,33 @@
  * limitations under the License.
  */
 
-App.BasicTableComponent.ColumnDefinition = (function () {
-  function getContentAtPath(row) {
-    var contentPath = this.get('contentPath');
+App.BasicTableComponent.SearchView = Ember.View.extend({
+  templateName: 'components/basic-table/search-view',
 
-    if(contentPath) {
-      return row.get(contentPath);
+  classNames: ['search-view'],
+
+  text: '',
+  _boundText: function () {
+    return this.get('text');
+  }.property(),
+
+  _validRegEx: function () {
+    var regExText = this.get('_boundText');
+    regExText = regExText.substr(regExText.indexOf(':') + 1);
+    try {
+      new RegExp(regExText, 'im');
     }
-    else {
-      throw new Error("contentPath not set!");
+    catch(e) {
+      return false;
+    }
+    return true;
+  }.property('_boundText'),
+
+  actions: {
+    search: function () {
+      if(this.get('_validRegEx')) {
+        this.get('parentView').send('search', this.get('_boundText'));
+      }
     }
   }
-
-  return Em.Object.extend({
-    contentPath: null,
-    headerCellName: "Not Available!",
-    searchAndSortable: true,
-
-    width: "",
-
-    customStyle: function () {
-      return 'width:%@'.fmt(this.get('width'));
-    }.property('width'),
-
-    getSearchValue: getContentAtPath,
-    getSortValue: getContentAtPath,
-    getCellContent: getContentAtPath
-  });
-})();
-
+});

@@ -559,6 +559,12 @@ div.indent {
       white-space: nowrap;
     }
 
+    .search-view {
+      .inline-block;
+      .align-top;
+      width: 70%;
+    }
+
     .extra-table-buttons {
       .inline-block;
 
@@ -685,6 +691,27 @@ div.indent {
             height: 18px;
           }
 
+          .sort-icon {
+            .fa;
+            cursor: pointer;
+            position: absolute;
+            right: 8px;
+            top: 9px;
+
+            opacity: .5;
+            .fa-icon(sort);
+
+            &.asc {
+              opacity: 1;
+              top: 12px;
+              .fa-icon(sort-asc);
+            }
+            &.desc {
+              opacity: 1;
+              top: 6px;
+              .fa-icon(sort-desc);
+            }
+          }
           .resize-column {
             .fa;
             .fa-icon(ellipsis-v);

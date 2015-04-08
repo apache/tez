@@ -20,5 +20,8 @@
   <div class='cell-content'>
     {{unbound column.headerCellName}}
   </div>
+  {{#if enableSort}}
+    <i {{bind-attr class=view.sortIconCSS}} {{action 'sort' target='view'}}></i>
+  {{/if}}
   <i class="resize-column" {{action 'startColResize' on=mouseDown target='view'}} ></i>
 </div>

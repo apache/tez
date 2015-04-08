@@ -20,6 +20,15 @@
   {{#if _showHeader}}
     <div class='table-header'>
       <div class="horizontal-half align-top">
+        {{#if enableSearch}}
+          {{view App.BasicTableComponent.SearchView text=searchText}}
+        {{/if}}
+        <div class="table-message">
+          {{#if _statusMessage}}
+            <i class="waiting"></i>
+            {{_statusMessage}}
+          {{/if}}
+        </div>
       </div><div class="horizontal-half align-top align-children-right">
         {{#if enablePagination}}
           {{view App.BasicTableComponent.PaginationView pageNum=pageNum totalPages=totalPages}}

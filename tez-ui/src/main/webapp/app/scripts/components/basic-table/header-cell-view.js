@@ -19,6 +19,18 @@
 App.BasicTableComponent.HeaderCellView = Ember.View.extend({
   templateName: 'components/basic-table/header-cell',
 
+  sortIconCSS: function () {
+    var css = 'sort-icon ';
+    if(this.get('column.searchAndSortable') == false) {
+      css = 'no-display';
+    }
+    else if(this.get('parentView.sortColumnId') == this.get('column.id')) {
+      css += this.get('parentView.sortOrder');
+    }
+
+    return css;
+  }.property('parentView.sortOrder', 'parentView.sortColumnId', 'column.searchAndSortable'),
+
   _onColResize: function (event) {
     var data = event.data;
 
@@ -39,6 +51,9 @@ App.BasicTableComponent.HeaderCellView = Ember.View.extend({
   },
 
   actions: {
+    sort: function () {
+      this.get('parentView').send('sort', this.get('column.id'));
+    },
     startColResize: function () {
       var mouseTracker = {
         thisHeader: this,

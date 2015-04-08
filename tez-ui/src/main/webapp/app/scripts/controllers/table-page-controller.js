@@ -19,10 +19,15 @@
 App.TablePageController = Em.ObjectController.extend(
     App.DataArrayLoaderMixin,
     App.ColumnSelectorMixin, {
-      queryParams: ['pageNum', 'rowCount'],
+      queryParams: ['pageNum', 'rowCount', 'searchText', 'sortColumnId', 'sortOrder'],
+
+      sortColumnId: '',
+      sortOrder: '',
 
       pageNum: 1,
       rowCount: 25,
+
+      searchText: '',
 
       isRefreshable: true,
 

@@ -104,6 +104,11 @@ App.DagTasksController = App.TablePageController.extend({
             displayText: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
           };
         },
+        getSearchValue: function (row) {
+          var id = row.get('id'),
+              idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
+          return id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id;
+        }
       },
       {
         id: 'vertexName',
@@ -113,6 +118,14 @@ App.DagTasksController = App.TablePageController.extend({
           var vertexId = row.get('vertexID');
           return vertexIdToNameMap[vertexId] || vertexId;
         },
+        getSearchValue: function(row) {
+          var vertexId = row.get('vertexID');
+          return vertexIdToNameMap[vertexId] || vertexId;
+        },
+        getSortValue: function(row) {
+          var vertexId = row.get('vertexID');
+          return vertexIdToNameMap[vertexId] || vertexId;
+        }
       },
       {
         id: 'startTime',
@@ -121,6 +134,9 @@ App.DagTasksController = App.TablePageController.extend({
         getCellContent: function(row) {
           return App.Helpers.date.dateFormat(row.get('startTime'));
         },
+        getSearchValue: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        }
       },
       {
         id: 'endTime',
@@ -129,12 +145,18 @@ App.DagTasksController = App.TablePageController.extend({
         getCellContent: function(row) {
           return App.Helpers.date.dateFormat(row.get('endTime'));
         },
+        getSearchValue: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        },
       },
       {
         id: 'duration',
         headerCellName: 'Duration',
         contentPath: 'duration',
         getCellContent: function(row) {
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
+        getSearchValue: function(row) {
           return App.Helpers.date.timingFormat(row.get('duration'), 1);
         },
       },
@@ -156,11 +178,13 @@ App.DagTasksController = App.TablePageController.extend({
         headerCellName: 'Actions',
         templateName: 'components/basic-table/task-actions-cell',
         contentPath: 'id',
+        searchAndSortable: false
       },
       {
         id: 'logs',
         headerCellName: 'Logs',
         templateName: 'components/basic-table/logs-cell',
+        searchAndSortable: false,
         getCellContent: function(row) {
           var taskAttemptId = row.get('successfulAttemptId') || row.get('attempts.lastObject'),
               store = that.get('store');
