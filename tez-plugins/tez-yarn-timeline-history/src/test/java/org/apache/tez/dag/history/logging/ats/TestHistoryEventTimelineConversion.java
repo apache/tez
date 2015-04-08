@@ -34,6 +34,12 @@ import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -799,9 +805,12 @@ public class TestHistoryEventTimelineConversion {
   @Test(timeout = 5000)
   public void testConvertVertexParallelismUpdatedEvent() {
     TezVertexID vId = tezVertexID;
-    Map<String, EdgeManagerPluginDescriptor> edgeMgrs =
-        new HashMap<String, EdgeManagerPluginDescriptor>();
-    edgeMgrs.put("a", EdgeManagerPluginDescriptor.create("a.class").setHistoryText("text"));
+    Map<String, EdgeProperty> edgeMgrs =
+        new HashMap<String, EdgeProperty>();
+    
+    edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
+        .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("Out"), InputDescriptor.create("In")));
     VertexParallelismUpdatedEvent event = new VertexParallelismUpdatedEvent(vId, 1, null,
         edgeMgrs, null, 10);
 
@@ -829,6 +838,9 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertTrue(updatedEdgeMgrs.containsKey("a"));
     Map<String, Object> updatedEdgeMgr = (Map<String, Object>) updatedEdgeMgrs.get("a");
 
+    Assert.assertEquals(DataMovementType.CUSTOM.name(),
+        updatedEdgeMgr.get(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
+    Assert.assertEquals("In", updatedEdgeMgr.get(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
     Assert.assertEquals("a.class", updatedEdgeMgr.get(DAGUtils.EDGE_MANAGER_CLASS_KEY));
 
     Assert.assertEquals(1, timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS));

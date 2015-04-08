@@ -29,6 +29,12 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -195,9 +201,12 @@ public class TestHistoryEventJsonConversion {
     TezVertexID vId = TezVertexID.getInstance(
         TezDAGID.getInstance(
             ApplicationId.newInstance(1l, 1), 1), 1);
-    Map<String, EdgeManagerPluginDescriptor> edgeMgrs =
-        new HashMap<String, EdgeManagerPluginDescriptor>();
-    edgeMgrs.put("a", EdgeManagerPluginDescriptor.create("a.class").setHistoryText("text"));
+    Map<String, EdgeProperty> edgeMgrs =
+        new HashMap<String, EdgeProperty>();
+    
+    edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
+        .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("Out"), InputDescriptor.create("In")));
     VertexParallelismUpdatedEvent event = new VertexParallelismUpdatedEvent(vId, 1, null,
         edgeMgrs, null, 10);
 
@@ -223,6 +232,9 @@ public class TestHistoryEventJsonConversion {
     Assert.assertNotNull(updatedEdgeMgrs.getJSONObject("a"));
     JSONObject updatedEdgeMgr = updatedEdgeMgrs.getJSONObject("a");
 
+    Assert.assertEquals(DataMovementType.CUSTOM.name(),
+        updatedEdgeMgr.getString(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
+    Assert.assertEquals("In", updatedEdgeMgr.getString(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
     Assert.assertEquals("a.class", updatedEdgeMgr.getString(DAGUtils.EDGE_MANAGER_CLASS_KEY));
 
     JSONObject otherInfo = jsonObject.getJSONObject(ATSConstants.OTHER_INFO);

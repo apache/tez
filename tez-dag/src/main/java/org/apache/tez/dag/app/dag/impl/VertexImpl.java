@@ -63,6 +63,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
@@ -707,7 +708,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @VisibleForTesting
   boolean hasCommitter = false;
   private boolean vertexCompleteSeen = false;
-  private Map<String,EdgeManagerPluginDescriptor> recoveredSourceEdgeManagers = null;
+  private Map<String,EdgeProperty> recoveredSourceEdgeProperties = null;
   private Map<String, InputSpecUpdate> recoveredRootInputSpecUpdates = null;
 
   // Recovery related flags
@@ -1117,7 +1118,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   }
 
   private void handleParallelismUpdate(int newParallelism,
-      Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+      Map<String, EdgeProperty> sourceEdgeProperties,
       Map<String, InputSpecUpdate> rootInputSpecUpdates, int oldParallelism) {
     // initial parallelism must have been set by this time
     // parallelism update is recorded in history only for change from an initialized value
@@ -1128,7 +1129,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       removeTasks(newParallelism);
     }
     Preconditions.checkState(this.numTasks == newParallelism, getLogIdentifier());
-    this.recoveredSourceEdgeManagers = sourceEdgeManagers;
+    this.recoveredSourceEdgeProperties = sourceEdgeProperties;
     this.recoveredRootInputSpecUpdates = rootInputSpecUpdates;
   }
 
@@ -1167,7 +1168,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             (VertexParallelismUpdatedEvent) historyEvent;
         int oldNumTasks = numTasks;
         int newNumTasks = updatedEvent.getNumTasks();
-        handleParallelismUpdate(newNumTasks, updatedEvent.getSourceEdgeManagers(),
+        handleParallelismUpdate(newNumTasks, updatedEvent.getSourceEdgeProperties(),
           updatedEvent.getRootInputSpecUpdates(), oldNumTasks);
         Preconditions.checkState(this.numTasks == newNumTasks, getLogIdentifier());
         if (updatedEvent.getVertexLocationHint() != null) {
@@ -1300,32 +1301,59 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       writeLock.unlock();
     }
   }
+  
+  @Override
+  public void reconfigureVertex(int parallelism,
+      @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, EdgeProperty> sourceEdgeProperties) throws AMUserCodeException {
+    setParallelism(parallelism, locationHint, sourceEdgeProperties, null, false, true);
+  }
 
   @Override
   public void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates, boolean fromVertexManager)
-      throws AMUserCodeException {
-    setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
+      Map<String, InputSpecUpdate> rootInputSpecUpdates, boolean fromVertexManager) 
+          throws AMUserCodeException {
+    // temporarily support conversion of edge manager to edge property
+    Map<String, EdgeProperty> sourceEdgeProperties = Maps.newHashMap();
+    readLock.lock();
+    try {
+      if (sourceEdgeManagers != null && !sourceEdgeManagers.isEmpty()) {
+        for (Edge e : sourceVertices.values()) {
+          EdgeManagerPluginDescriptor newEdge = sourceEdgeManagers.get(e.getSourceVertexName());
+          EdgeProperty oldEdge = e.getEdgeProperty();
+          if (newEdge != null) {
+            sourceEdgeProperties.put(
+                e.getSourceVertexName(),
+                EdgeProperty.create(newEdge, oldEdge.getDataSourceType(),
+                    oldEdge.getSchedulingType(), oldEdge.getEdgeSource(),
+                    oldEdge.getEdgeDestination()));
+          }
+        }
+      }
+    } finally {
+      readLock.unlock();
+    }
+    setParallelism(parallelism, vertexLocationHint, sourceEdgeProperties, rootInputSpecUpdates,
         false, fromVertexManager);
   }
 
   private void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+      Map<String, EdgeProperty> sourceEdgeProperties,
       Map<String, InputSpecUpdate> rootInputSpecUpdates,
       boolean recovering, boolean fromVertexManager) throws AMUserCodeException {
     if (recovering) {
       writeLock.lock();
       try {
-        if (sourceEdgeManagers != null) {
-          for(Map.Entry<String, EdgeManagerPluginDescriptor> entry :
-              sourceEdgeManagers.entrySet()) {
+        if (sourceEdgeProperties != null) {
+          for(Map.Entry<String, EdgeProperty> entry :
+            sourceEdgeProperties.entrySet()) {
             LOG.info("Recovering edge manager for source:"
                 + entry.getKey() + " destination: " + getLogIdentifier());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
-              edge.setCustomEdgeManager(entry.getValue());
+              edge.setEdgeProperty(entry.getValue());
             } catch (Exception e) {
               throw new TezUncheckedException("Fail to setCustomEdgeManage for Edge,"
                   + "sourceVertex:" + edge.getSourceVertexName()
@@ -1378,16 +1406,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   + " for vertex: " + logIdentifier);
         }
 
-        if(sourceEdgeManagers != null) {
-          for(Map.Entry<String, EdgeManagerPluginDescriptor> entry : sourceEdgeManagers.entrySet()) {
+        if(sourceEdgeProperties != null) {
+          for(Map.Entry<String, EdgeProperty> entry : sourceEdgeProperties.entrySet()) {
             LOG.info("Replacing edge manager for source:"
                 + entry.getKey() + " destination: " + getLogIdentifier());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
-              edge.setCustomEdgeManager(entry.getValue());
+              edge.setEdgeProperty(entry.getValue());
             } catch (Exception e) {
-              throw new TezUncheckedException("Fail to setCustomEdgeManage for Edge,"
+              throw new TezUncheckedException("Fail to update EdgeProperty for Edge,"
                   + "sourceVertex:" + edge.getSourceVertexName()
                   + "destinationVertex:" + edge.getDestinationVertexName(), e);
             }
@@ -1438,7 +1466,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (parallelism == numTasks) {
           LOG.info("setParallelism same as current value: " + parallelism +
               " for vertex: " + logIdentifier);
-          Preconditions.checkArgument(sourceEdgeManagers != null,
+          Preconditions.checkArgument(sourceEdgeProperties != null,
               "Source edge managers or RootInputSpecs must be set when not changing parallelism");
         } else {
           LOG.info("Resetting vertex location hints due to change in parallelism for vertex: "
@@ -1465,14 +1493,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         assert tasks.size() == numTasks;
 
         // set new edge managers
-        if(sourceEdgeManagers != null) {
-          for(Map.Entry<String, EdgeManagerPluginDescriptor> entry : sourceEdgeManagers.entrySet()) {
+        if(sourceEdgeProperties != null) {
+          for(Map.Entry<String, EdgeProperty> entry : sourceEdgeProperties.entrySet()) {
             LOG.info("Replacing edge manager for source:"
                 + entry.getKey() + " destination: " + getLogIdentifier());
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
-              edge.setCustomEdgeManager(entry.getValue());
+              edge.setEdgeProperty(entry.getValue());
             } catch (Exception e) {
               throw new TezUncheckedException(e);
             }
@@ -1481,7 +1509,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
         // update history
         VertexParallelismUpdatedEvent parallelismUpdatedEvent = new VertexParallelismUpdatedEvent(
-            vertexId, numTasks, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates,
+            vertexId, numTasks, vertexLocationHint, sourceEdgeProperties, rootInputSpecUpdates,
             oldNumTasks);
         appContext.getHistoryHandler().handle(
             new DAGHistoryEvent(getDAGId(), parallelismUpdatedEvent));
@@ -2739,7 +2767,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           try {
             // recovering only edge manager
             vertex.setParallelism(0,
-              null, vertex.recoveredSourceEdgeManagers, vertex.recoveredRootInputSpecUpdates, true, false);
+              null, vertex.recoveredSourceEdgeProperties, vertex.recoveredRootInputSpecUpdates, true, false);
             successSetParallelism = true;
           } catch (Exception e) {
             successSetParallelism = false;
@@ -2796,7 +2824,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
             break;
           }
           try {
-            vertex.setParallelism(0, null, vertex.recoveredSourceEdgeManagers,
+            vertex.setParallelism(vertex.numTasks, null, vertex.recoveredSourceEdgeProperties,
               vertex.recoveredRootInputSpecUpdates, true, false);
             successSetParallelism = true;
           } catch (Exception e) {

@@ -20,7 +20,6 @@ package org.apache.tez.dag.api;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,6 +58,7 @@ import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataSourceType;
+import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeProperty;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
@@ -159,6 +159,7 @@ public class DagTypeConverters {
       case ONE_TO_ONE : return DataMovementType.ONE_TO_ONE;
       case BROADCAST : return DataMovementType.BROADCAST;
       case SCATTER_GATHER : return DataMovementType.SCATTER_GATHER;
+      case CUSTOM : return DataMovementType.CUSTOM;
       default : throw new IllegalArgumentException("unknown 'dataMovementType': " + type);
     }
   }
@@ -262,6 +263,34 @@ public class DagTypeConverters {
       edgePlanMap.put(edgePlanItem.getId(), edgePlanItem);
     }
     return edgePlanMap;
+  }
+  
+  public static PlanEdgeProperty convertToProto(EdgeProperty prop) {
+    PlanEdgeProperty.Builder edgePropBuilder = PlanEdgeProperty.newBuilder();
+    edgePropBuilder.setDataMovementType(convertToDAGPlan(prop.getDataMovementType()));
+    edgePropBuilder.setDataSourceType(convertToDAGPlan(prop.getDataSourceType()));
+    edgePropBuilder.setSchedulingType(convertToDAGPlan(prop.getSchedulingType()));
+    edgePropBuilder.setEdgeSource(DagTypeConverters.convertToDAGPlan(prop.getEdgeSource()));
+    edgePropBuilder
+        .setEdgeDestination(DagTypeConverters.convertToDAGPlan(prop.getEdgeDestination()));
+    if (prop.getEdgeManagerDescriptor() != null) {
+      edgePropBuilder.setEdgeManager(DagTypeConverters.convertToDAGPlan(prop
+          .getEdgeManagerDescriptor()));
+    }
+    
+    return edgePropBuilder.build();
+  }
+  
+  public static EdgeProperty convertFromProto(PlanEdgeProperty edge) {
+      return EdgeProperty.create(
+          (edge.hasEdgeManager() ?
+              convertEdgeManagerPluginDescriptorFromDAGPlan(edge.getEdgeManager()) : null),
+          convertFromDAGPlan(edge.getDataMovementType()),
+          convertFromDAGPlan(edge.getDataSourceType()),
+          convertFromDAGPlan(edge.getSchedulingType()),
+          convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
+          convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
+      );
   }
 
   public static EdgeProperty createEdgePropertyMapFromDAGPlan(EdgePlan edge) {

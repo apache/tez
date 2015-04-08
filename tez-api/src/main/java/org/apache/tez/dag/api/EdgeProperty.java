@@ -155,20 +155,22 @@ public class EdgeProperty {
         edgeDestination);
   }
 
+  @Private
+  public static EdgeProperty create(EdgeManagerPluginDescriptor edgeManagerDescriptor,
+      DataMovementType dataMovementType, DataSourceType dataSourceType,
+      SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
+    return new EdgeProperty(edgeManagerDescriptor, dataMovementType, dataSourceType,
+        schedulingType, edgeSource, edgeDestination);
+  }
 
   private EdgeProperty(DataMovementType dataMovementType,
                        DataSourceType dataSourceType,
                        SchedulingType schedulingType,
                        OutputDescriptor edgeSource,
                        InputDescriptor edgeDestination) {
+    this(null, dataMovementType, dataSourceType, schedulingType, edgeSource, edgeDestination);
     Preconditions.checkArgument(dataMovementType != DataMovementType.CUSTOM,
         DataMovementType.CUSTOM + " cannot be used with this constructor");
-    this.dataMovementType = dataMovementType;
-    this.dataSourceType = dataSourceType;
-    this.schedulingType = schedulingType;
-    this.outputDescriptor = edgeSource;
-    this.inputDescriptor = edgeDestination;
-    this.edgeManagerDescriptor = null;
   }
   
 
@@ -177,7 +179,14 @@ public class EdgeProperty {
                        SchedulingType schedulingType,
                        OutputDescriptor edgeSource,
                        InputDescriptor edgeDestination) {
-    this.dataMovementType = DataMovementType.CUSTOM;
+    this(edgeManagerDescriptor, DataMovementType.CUSTOM, dataSourceType, schedulingType,
+        edgeSource, edgeDestination);
+  }
+  
+  private EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
+      DataMovementType dataMovementType, DataSourceType dataSourceType,
+      SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
+    this.dataMovementType = dataMovementType;
     this.edgeManagerDescriptor = edgeManagerDescriptor;
     this.dataSourceType = dataSourceType;
     this.schedulingType = schedulingType;

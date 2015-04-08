@@ -52,6 +52,7 @@ import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
@@ -162,7 +163,22 @@ public class Edge {
         null);
   }
 
-  public synchronized void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor)
+  public synchronized void setEdgeProperty(EdgeProperty newEdgeProperty) throws AMUserCodeException {
+    this.edgeProperty = newEdgeProperty;
+    boolean wasUnInitialized = (edgeManager == null);
+    createEdgeManager();
+    initialize();
+    if (wasUnInitialized) {
+      sendEvent(new VertexEventNullEdgeInitialized(sourceVertex.getVertexId(), this,
+          destinationVertex));
+      sendEvent(new VertexEventNullEdgeInitialized(destinationVertex.getVertexId(), this,
+          sourceVertex));
+    }
+  }
+  
+  // Test only method for creating specific scenarios
+  @VisibleForTesting
+  synchronized void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor)
       throws AMUserCodeException {
     EdgeProperty modifiedEdgeProperty =
         EdgeProperty.create(descriptor,
@@ -170,17 +186,10 @@ public class Edge {
             edgeProperty.getSchedulingType(),
             edgeProperty.getEdgeSource(),
             edgeProperty.getEdgeDestination());
-    this.edgeProperty = modifiedEdgeProperty;
-    boolean wasUnInitialized = (edgeManager == null);
-    createEdgeManager();
-    initialize();
-    if (wasUnInitialized) {
-      sendEvent(new VertexEventNullEdgeInitialized(sourceVertex.getVertexId(), this, destinationVertex));
-      sendEvent(new VertexEventNullEdgeInitialized(destinationVertex.getVertexId(), this, sourceVertex));
-    }
+    setEdgeProperty(modifiedEdgeProperty);
   }
 
-  public EdgeProperty getEdgeProperty() {
+  public synchronized EdgeProperty getEdgeProperty() {
     return this.edgeProperty;
   }
   

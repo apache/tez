@@ -129,7 +129,33 @@ public interface VertexManagerPluginContext {
       @Nullable VertexLocationHint locationHint,
       @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate);
+
   
+  /**
+   * API to reconfigure a {@link Vertex} by changing its task parallelism. Task
+   * parallelism is often accompanied by changing the {@link EdgeProperty} of
+   * the source {@link Edge} because event routing between source and
+   * destination tasks may need to be updated to account for the new task
+   * parallelism. This method can be called to update the parallelism multiple
+   * times until any of the tasks of the vertex have been scheduled (by invoking
+   * {@link #scheduleVertexTasks(List)}. If needed, the original source edge
+   * properties may be obtained via {@link #getInputVertexEdgeProperties()}
+   * 
+   * @param parallelism
+   *          New number of tasks in the vertex
+   * @param locationHint
+   *          the placement policy for tasks specified at
+   *          {@link VertexLocationHint}s
+   * @param sourceEdgeProperties
+   *          Map with Key=name of {@link Edge} to be updated and Value=
+   *          {@link EdgeProperty}. The name of the Edge will be the 
+   *          corresponding source vertex name.
+   * @throws TezException Exception to indicate errors
+   */
+  public void reconfigureVertex(int parallelism,
+      @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, EdgeProperty> sourceEdgeProperties) throws TezException;
+
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs
    * 
@@ -189,8 +215,7 @@ public interface VertexManagerPluginContext {
    * reconfiguration. If the vertex is already fully defined, but the
    * {@link VertexManagerPlugin} wants to reconfigure the vertex, then it must
    * use this API to inform Tez about its intention. Without invoking this
-   * method, it is invalid to re-configure the vertex, e.g. via the
-   * {@link #setVertexParallelism(int, VertexLocationHint, Map, Map)} method if
+   * method, it is invalid to re-configure the vertex if
    * the vertex is already fully defined. This can be invoked at any time until
    * {@link VertexManagerPlugin#initialize()} has completed. Its invalid to
    * invoke this method after {@link VertexManagerPlugin#initialize()} has

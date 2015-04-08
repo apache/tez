@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2233. Allow EdgeProperty of an edge to be changed by VertexManager
   TEZ-2293. When running in "mr" mode, always use MR config settings.
   TEZ-2273. Tez UI: Support client side searching & sorting for dag tasks page
   TEZ-1909. Remove need to copy over all events from attempt 1 to attempt 2 dir

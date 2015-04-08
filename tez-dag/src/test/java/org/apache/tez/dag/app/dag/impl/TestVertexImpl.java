@@ -2441,7 +2441,7 @@ public class TestVertexImpl {
     startVertex(v1);
     try {
       // cannot reconfigure a fully configured vertex without first notifying
-      v3.setParallelism(1, null, null, null, true);
+      v3.reconfigureVertex(1, null, null);
       Assert.fail();
     } catch (IllegalStateException e) {
       Assert.assertTrue(e.getMessage().contains("context.vertexReconfigurationPlanned() before re-configuring"));
@@ -2496,10 +2496,13 @@ public class TestVertexImpl {
     EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
         EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
 
-    Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
+    EdgeProperty edgeProp = EdgeProperty.create(mockEdgeManagerDescriptor, 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, OutputDescriptor.create("Out"), 
+        InputDescriptor.create("In"));
+    Map<String, EdgeProperty> edgeManagerDescriptors =
         Collections.singletonMap(
-       v1.getName(), mockEdgeManagerDescriptor);
-    v3.setParallelism(1, null, edgeManagerDescriptors, null, true);
+       v1.getName(), edgeProp);
+    v3.reconfigureVertex(1, null, edgeManagerDescriptors);
     v3.doneReconfiguringVertex();
     assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
         EdgeManagerForTest);
@@ -2520,11 +2523,13 @@ public class TestVertexImpl {
 
     EdgeManagerPluginDescriptor mockEdgeManagerDescriptor =
         EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
-
-    Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
+    EdgeProperty edgeProp = EdgeProperty.create(mockEdgeManagerDescriptor, 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, OutputDescriptor.create("Out"), 
+        InputDescriptor.create("In"));
+    Map<String, EdgeProperty> edgeManagerDescriptors =
         Collections.singletonMap(
-       v1.getName(), mockEdgeManagerDescriptor);
-    v3.setParallelism(10, null, edgeManagerDescriptors, null, true);
+       v1.getName(), edgeProp);
+    v3.reconfigureVertex(10, null, edgeManagerDescriptors);
     v3.doneReconfiguringVertex();
     assertTrue(v3.sourceVertices.get(v1).getEdgeManager() instanceof
         EdgeManagerForTest);
@@ -2543,10 +2548,10 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    v3.setParallelism(10, null, null, null, true);
+    v3.reconfigureVertex(10, null, null);
     checkTasks(v3, 10);
     
-    v3.setParallelism(5, null, null, null, true);
+    v3.reconfigureVertex(5, null, null);
     checkTasks(v3, 5);
     v3.doneReconfiguringVertex();
   }
@@ -2563,12 +2568,12 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    v3.setParallelism(10, null, null, null, true);
+    v3.reconfigureVertex(10, null, null);
     checkTasks(v3, 10);
     v3.doneReconfiguringVertex();
 
     try {
-      v3.setParallelism(5, null, null, null, true);
+      v3.reconfigureVertex(5, null, null);
       Assert.fail();
     } catch (IllegalStateException e) {
       Assert.assertTrue(e.getMessage().contains("Vertex is fully configured but still"));
@@ -2587,11 +2592,11 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    v3.setParallelism(10, null, null, null, true);
+    v3.reconfigureVertex(10, null, null);
     checkTasks(v3, 10);
     v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     try {
-      v3.setParallelism(5, null, null, null, true);
+      v3.reconfigureVertex(5, null, null);
       Assert.fail();
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("setParallelism cannot be called after scheduling"));
@@ -2612,7 +2617,7 @@ public class TestVertexImpl {
     startVertex(v1);
     v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
     try {
-      v3.setParallelism(5, null, null, null, true);
+      v3.reconfigureVertex(5, null, null);
       Assert.fail();
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("setParallelism cannot be called after scheduling"));
@@ -2671,12 +2676,15 @@ public class TestVertexImpl {
     EdgeManagerPluginDescriptor edgeManagerDescriptor =
         EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
     edgeManagerDescriptor.setUserPayload(userPayload);
+    EdgeProperty edgeProp = EdgeProperty.create(edgeManagerDescriptor, 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, OutputDescriptor.create("Out"), 
+        InputDescriptor.create("In"));
 
     Vertex v3 = vertices.get("vertex3");
 
-    Map<String, EdgeManagerPluginDescriptor> edgeManagerDescriptors =
-        Collections.singletonMap(v3.getName(), edgeManagerDescriptor);
-    v5.setParallelism(v5.getTotalTasks() - 1, null, edgeManagerDescriptors, null, true); // Must decrease.
+    Map<String, EdgeProperty> edgeManagerDescriptors =
+        Collections.singletonMap(v3.getName(), edgeProp);
+    v5.reconfigureVertex(v5.getTotalTasks() - 1, null, edgeManagerDescriptors);
     v5.doneReconfiguringVertex();
 
     VertexImpl v5Impl = (VertexImpl) v5;
@@ -3411,8 +3419,8 @@ public class TestVertexImpl {
     Assert.assertEquals(-1, v1.getTotalTasks());
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     // set the parallelism
-    v1.setParallelism(numTasks, null, null, null, true);
-    v2.setParallelism(numTasks, null, null, null, true);
+    v1.reconfigureVertex(numTasks, null, null);
+    v2.reconfigureVertex(numTasks, null, null);
     dispatcher.await();
     // parallelism set and vertex starts with pending start event
     Assert.assertEquals(numTasks, v1.getTotalTasks());
@@ -3427,7 +3435,7 @@ public class TestVertexImpl {
     // v3 still initializing with source vertex started. So should start running
     // once num tasks is defined
     Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
-    v3.setParallelism(numTasks, null, null, null, false);
+    v3.reconfigureVertex(numTasks, null, null);
     dispatcher.await();
     Assert.assertEquals(numTasks, v3.getTotalTasks());
     Assert.assertEquals(VertexState.RUNNING, v3.getState());
@@ -3550,7 +3558,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
     // change parallelism
     int newNumTasks = 3;
-    v1.setParallelism(newNumTasks, null, null, null, true);
+    v1.reconfigureVertex(newNumTasks, null, null);
     v1.doneReconfiguringVertex();
     dispatcher.await();
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
@@ -3584,7 +3592,7 @@ public class TestVertexImpl {
     Assert.assertEquals(numTasks, vertices.get("vertex4").getTotalTasks());
     // change parallelism
     int newNumTasks = 3;
-    v1.setParallelism(newNumTasks, null, null, null, true);
+    v1.reconfigureVertex(newNumTasks, null, null);
     v1.doneReconfiguringVertex();
     dispatcher.await();
     Assert.assertEquals(newNumTasks, vertices.get("vertex2").getTotalTasks());
@@ -5039,9 +5047,12 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITIALIZING, vB.getState());
     Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
     
-    Map<String, EdgeManagerPluginDescriptor> edges = Maps.newHashMap();
-    edges.put("B", mockEdgeManagerDescriptor);
-    vC.setParallelism(2, vertexLocationHint, edges, null, true);
+    EdgeProperty edgeProp = EdgeProperty.create(mockEdgeManagerDescriptor, 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, OutputDescriptor.create("Out"), 
+        InputDescriptor.create("In"));
+    Map<String, EdgeProperty> edges = Maps.newHashMap();
+    edges.put("B", edgeProp);
+    vC.reconfigureVertex(2, vertexLocationHint, edges);
 
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, vA.getState());
@@ -5105,9 +5116,12 @@ public class TestVertexImpl {
     Assert.assertEquals(0, listener.events.size());
     
     // complete configuration and verify getting configured signal from vB
-    Map<String, EdgeManagerPluginDescriptor> edges = Maps.newHashMap();
-    edges.put("B", mockEdgeManagerDescriptor);
-    vC.setParallelism(2, vertexLocationHint, edges, null, true);
+    EdgeProperty edgeProp = EdgeProperty.create(mockEdgeManagerDescriptor, 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, OutputDescriptor.create("Out"), 
+        InputDescriptor.create("In"));
+    Map<String, EdgeProperty> edges = Maps.newHashMap();
+    edges.put("B", edgeProp);
+    vC.reconfigureVertex(2, vertexLocationHint, edges);
 
     dispatcher.await();
     Assert.assertEquals(1, listener.events.size());

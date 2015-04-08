@@ -27,7 +27,7 @@ import java.util.TreeMap;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.tez.common.ATSConstants;
-import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -603,12 +603,12 @@ public class HistoryEventTimelineConversion {
     updateEvt.setTimestamp(event.getUpdateTime());
 
     Map<String,Object> eventInfo = new HashMap<String, Object>();
-    if (event.getSourceEdgeManagers() != null && !event.getSourceEdgeManagers().isEmpty()) {
+    if (event.getSourceEdgeProperties() != null && !event.getSourceEdgeProperties().isEmpty()) {
       Map<String, Object> updatedEdgeManagers = new HashMap<String, Object>();
-      for (Entry<String, EdgeManagerPluginDescriptor> entry :
-          event.getSourceEdgeManagers().entrySet()) {
+      for (Entry<String, EdgeProperty> entry :
+          event.getSourceEdgeProperties().entrySet()) {
         updatedEdgeManagers.put(entry.getKey(),
-            DAGUtils.convertEdgeManagerPluginDescriptor(entry.getValue()));
+            DAGUtils.convertEdgeProperty(entry.getValue()));
       }
       eventInfo.put(ATSConstants.UPDATED_EDGE_MANAGERS, updatedEdgeManagers);
     }

@@ -141,6 +141,15 @@ message VertexPlan {
   optional ConfigurationProto vertexConf = 11;
 }
 
+message PlanEdgeProperty {
+  required PlanEdgeDataMovementType dataMovementType = 1;
+  required PlanEdgeDataSourceType dataSourceType = 2;
+  required PlanEdgeSchedulingType schedulingType = 3;
+  optional TezEntityDescriptorProto edge_source = 4;
+  optional TezEntityDescriptorProto edge_destination = 5;
+  optional TezEntityDescriptorProto edge_manager = 6;
+}
+
 message EdgePlan {
   required string id = 1;
   required string inputVertexName = 2;

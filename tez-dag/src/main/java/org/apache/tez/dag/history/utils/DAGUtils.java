@@ -36,14 +36,13 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
-import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -234,7 +233,7 @@ public class DAGUtils {
         edgeMap.put(INPUT_USER_PAYLOAD_AS_TEXT,
             DagTypeConverters.getHistoryTextFromProto(
                 edgePlan.getEdgeDestination()));
-      }
+      } // TEZ-2286 this is missing edgemanager descriptor for custom edge
       edgesList.add(edgeMap);
     }
     putInto(dagMap, EDGES_KEY, edgesList);
@@ -352,6 +351,36 @@ public class DAGUtils {
     return vertexStatsMap;
   }
 
+  public static Map<String,Object> convertEdgeProperty(
+      EdgeProperty edge) {
+    Map<String, Object> jsonDescriptor = new HashMap<String, Object>();
+    
+    jsonDescriptor.put(DATA_MOVEMENT_TYPE_KEY,
+        edge.getDataMovementType().name());
+    jsonDescriptor.put(DATA_SOURCE_TYPE_KEY, edge.getDataSourceType().name());
+    jsonDescriptor.put(SCHEDULING_TYPE_KEY, edge.getSchedulingType().name());
+    jsonDescriptor.put(EDGE_SOURCE_CLASS_KEY,
+        edge.getEdgeSource().getClassName());
+    jsonDescriptor.put(EDGE_DESTINATION_CLASS_KEY,
+        edge.getEdgeDestination().getClassName());
+    String history = edge.getEdgeSource().getHistoryText();
+    if (history != null) {
+      jsonDescriptor.put(OUTPUT_USER_PAYLOAD_AS_TEXT, history);
+    }
+    history = edge.getEdgeDestination().getHistoryText();
+    if (history != null) {
+      jsonDescriptor.put(INPUT_USER_PAYLOAD_AS_TEXT, history);
+    }
+    EdgeManagerPluginDescriptor descriptor = edge.getEdgeManagerDescriptor();
+    if (descriptor != null) {
+      jsonDescriptor.put(EDGE_MANAGER_CLASS_KEY, descriptor.getClassName());
+      if (descriptor.getHistoryText() != null && !descriptor.getHistoryText().isEmpty()) {
+        jsonDescriptor.put(USER_PAYLOAD_AS_TEXT, descriptor.getHistoryText());
+      }
+    }
+    return jsonDescriptor;
+  }
+  
   public static Map<String,Object> convertEdgeManagerPluginDescriptor(
       EdgeManagerPluginDescriptor descriptor) {
     Map<String, Object> jsonDescriptor = new HashMap<String, Object>();

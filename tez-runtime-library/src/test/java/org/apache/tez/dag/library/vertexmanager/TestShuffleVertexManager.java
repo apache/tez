@@ -30,6 +30,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -170,11 +171,11 @@ public class TestShuffleVertexManager {
       public Object answer(InvocationOnMock invocation) throws Exception {
           when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(2);
           newEdgeManagers.clear();
-          for (Entry<String, EdgeManagerPluginDescriptor> entry :
-              ((Map<String, EdgeManagerPluginDescriptor>)invocation.getArguments()[2]).entrySet()) {
+          for (Entry<String, EdgeProperty> entry :
+              ((Map<String, EdgeProperty>)invocation.getArguments()[2]).entrySet()) {
 
-
-            final UserPayload userPayload = entry.getValue().getUserPayload();
+            EdgeManagerPluginDescriptor pluginDesc = entry.getValue().getEdgeManagerDescriptor();
+            final UserPayload userPayload = pluginDesc.getUserPayload();
             EdgeManagerPluginContext emContext = new EdgeManagerPluginContext() {
               @Override
               public UserPayload getUserPayload() {
@@ -202,13 +203,13 @@ public class TestShuffleVertexManager {
               }
             };
             EdgeManagerPlugin edgeManager = ReflectionUtils
-                .createClazzInstance(entry.getValue().getClassName(),
+                .createClazzInstance(pluginDesc.getClassName(),
                     new Class[]{EdgeManagerPluginContext.class}, new Object[]{emContext});
             edgeManager.initialize();
             newEdgeManagers.put(entry.getKey(), edgeManager);
           }
           return null;
-      }}).when(mockContext).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap(), anyMap());
+      }}).when(mockContext).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
     
     // check initialization
     manager = createManager(conf, mockContext, 0.1f, 0.1f); // Tez notified of reconfig
@@ -264,11 +265,11 @@ public class TestShuffleVertexManager {
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(0));
-    verify(mockContext, times(0)).setVertexParallelism(anyInt(), any(VertexLocationHint.class), anyMap(), anyMap());
+    verify(mockContext, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
     verify(mockContext, times(2)).doneReconfiguringVertex();
     // trigger scheduling
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-    verify(mockContext, times(0)).setVertexParallelism(anyInt(), any(VertexLocationHint.class), anyMap(), anyMap());
+    verify(mockContext, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
     verify(mockContext, times(3)).doneReconfiguringVertex(); // reconfig done
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(4, scheduledTasks.size());
@@ -320,9 +321,7 @@ public class TestShuffleVertexManager {
     vmEvent = VertexManagerEvent.create("Vertex", payload);
     manager.onVertexManagerEventReceived(vmEvent);
     Assert.assertTrue(manager.determineParallelismAndApply()); //ensure parallelism is determined
-    verify(mockContext, times(1)).setVertexParallelism(eq(2), any(VertexLocationHint.class),
-        anyMap(),
-        anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
@@ -357,17 +356,13 @@ public class TestShuffleVertexManager {
       manager.onVertexManagerEventReceived(vmEvent); //small payload
       manager.onSourceTaskCompleted(mockSrcVertexId1, new Integer(i));
       //should not change parallelism
-      verify(mockContext, times(0)).setVertexParallelism(eq(4), any(VertexLocationHint.class),
-          anyMap(),
-          anyMap());
+      verify(mockContext, times(0)).reconfigureVertex(eq(4), any(VertexLocationHint.class), anyMap());
     }
     //send 8th event with payload size as 100
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId2, new Integer(8));
     //Since max threshold (40 * 0.2 = 8) is met, vertex manager should determine parallelism
-    verify(mockContext, times(1)).setVertexParallelism(eq(4), any(VertexLocationHint.class),
-        anyMap(),
-        anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(4), any(VertexLocationHint.class), anyMap());
 
     //reset context for next test
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
@@ -409,9 +404,7 @@ public class TestShuffleVertexManager {
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(mockSrcVertexId2, new Integer(1));
     // managedVertex tasks reduced
-    verify(mockContext, times(2)).setVertexParallelism(eq(2), any(VertexLocationHint.class),
-        anyMap(),
-        anyMap());
+    verify(mockContext, times(2)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     // TODO improve tests for parallelism
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
@@ -424,9 +417,7 @@ public class TestShuffleVertexManager {
     
     // more completions dont cause recalculation of parallelism
     manager.onSourceTaskCompleted(mockSrcVertexId2, new Integer(0));
-    verify(mockContext, times(2)).setVertexParallelism(eq(2), any(VertexLocationHint.class),
-        anyMap(),
-        anyMap());
+    verify(mockContext, times(2)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     
     EdgeManagerPlugin edgeManager = newEdgeManagers.values().iterator().next();
@@ -742,52 +733,6 @@ public class TestShuffleVertexManager {
     when(mockContext_R2.getVertexNumTasks(m2)).thenReturn(3);
     when(mockContext_R2.getVertexNumTasks(m3)).thenReturn(3);
 
-    final Map<String, EdgeManagerPlugin> edgeManagerR2 =
-        new HashMap<String, EdgeManagerPlugin>();
-    doAnswer(new Answer() {
-      public Object answer(InvocationOnMock invocation) throws Exception {
-        when(mockContext_R2.getVertexNumTasks(mockManagedVertexId_R2)).thenReturn(2);
-        edgeManagerR2.clear();
-        for (Entry<String, EdgeManagerPluginDescriptor> entry :
-            ((Map<String, EdgeManagerPluginDescriptor>)invocation.getArguments()[2]).entrySet()) {
-
-
-          final UserPayload userPayload = entry.getValue().getUserPayload();
-          EdgeManagerPluginContext emContext = new EdgeManagerPluginContext() {
-            @Override
-            public UserPayload getUserPayload() {
-              return userPayload == null ? null : userPayload;
-            }
-
-            @Override
-            public String getSourceVertexName() {
-              return null;
-            }
-
-            @Override
-            public String getDestinationVertexName() {
-              return null;
-            }
-
-            @Override
-            public int getSourceVertexNumTasks() {
-              return 2;
-            }
-
-            @Override
-            public int getDestinationVertexNumTasks() {
-              return 2;
-            }
-          };
-          EdgeManagerPlugin edgeManager = ReflectionUtils
-              .createClazzInstance(entry.getValue().getClassName(),
-                  new Class[]{EdgeManagerPluginContext.class}, new Object[]{emContext});
-          edgeManager.initialize();
-          edgeManagerR2.put(entry.getKey(), edgeManager);
-        }
-        return null;
-      }}).when(mockContext_R2).setVertexParallelism(eq(2), any(VertexLocationHint.class), anyMap(), anyMap());
-
     ByteBuffer payload =
         VertexManagerEventPayloadProto.newBuilder().setOutputSize(50L).build().toByteString().asReadOnlyByteBuffer();
     VertexManagerEvent vmEvent = VertexManagerEvent.create("Vertex", payload);
@@ -834,15 +779,18 @@ public class TestShuffleVertexManager {
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 9);
 
     //Ensure that setVertexParallelism is not called for R2.
-    verify(mockContext_R2, times(0)).setVertexParallelism(anyInt(), any(VertexLocationHint.class),
-        anyMap(),
-        anyMap());
+    try {
+      verify(mockContext_R2, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class),
+          anyMap());
+      // complete configuration of r1 triggers the scheduling
+      manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
+      verify(mockContext_R2, times(1)).reconfigureVertex(eq(1), any(VertexLocationHint.class),
+          anyMap());
+    } catch (TezException e) {
+      e.printStackTrace();
+      Assert.fail(); // should not happen
+    }
 
-    // complete configuration of r1 triggers the scheduling
-    manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
-    verify(mockContext_R2, times(1)).setVertexParallelism(eq(1), any(VertexLocationHint.class),
-        anyMap(),
-        anyMap());
     Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
     Assert.assertTrue(scheduledTasks.size() == 3);
 

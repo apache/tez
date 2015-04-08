@@ -30,6 +30,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -123,7 +124,12 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
         // must change parallelism to make them the same
         LOG.info("Update parallelism of vertex: " + getContext().getVertexName() + 
             " to " + oneToOneSrcTaskCount + " to match source 1-1 vertices.");
-        getContext().setVertexParallelism(oneToOneSrcTaskCount, null, null, null);
+        try {
+          getContext().reconfigureVertex(oneToOneSrcTaskCount, null, null);
+        } catch (TezException e) {
+          // TODO fail vertex - TEZ-2292
+          LOG.warn("Failed to change parallelism in: " + getContext().getVertexName(), e);
+        }
       }
       oneToOneSrcTasksDoneCount = new int[oneToOneSrcTaskCount];
       oneToOneLocationHints = new TaskLocationHint[oneToOneSrcTaskCount];

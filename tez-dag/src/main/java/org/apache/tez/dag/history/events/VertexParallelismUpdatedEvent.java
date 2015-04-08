@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -44,7 +44,7 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
   private int numTasks;
   private int oldNumTasks;
   private VertexLocationHint vertexLocationHint;
-  private Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers;
+  private Map<String, EdgeProperty> sourceEdgeProperties;
   private Map<String, InputSpecUpdate> rootInputSpecUpdates;
   private long updateTime;
 
@@ -53,12 +53,12 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
 
   public VertexParallelismUpdatedEvent(TezVertexID vertexID,
       int numTasks, VertexLocationHint vertexLocationHint,
-      Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+      Map<String, EdgeProperty> sourceEdgeProperties,
       Map<String, InputSpecUpdate> rootInputSpecUpdates, int oldNumTasks) {
     this.vertexID = vertexID;
     this.numTasks = numTasks;
     this.vertexLocationHint = vertexLocationHint;
-    this.sourceEdgeManagers = sourceEdgeManagers;
+    this.sourceEdgeProperties = sourceEdgeProperties;
     this.rootInputSpecUpdates = rootInputSpecUpdates;
     this.updateTime = System.currentTimeMillis();
     this.oldNumTasks = oldNumTasks;
@@ -88,14 +88,13 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
       builder.setVertexLocationHint(DagTypeConverters.convertVertexLocationHintToProto(
             this.vertexLocationHint));
     }
-    if (sourceEdgeManagers != null) {
-      for (Entry<String, EdgeManagerPluginDescriptor> entry :
-          sourceEdgeManagers.entrySet()) {
+    if (sourceEdgeProperties != null) {
+      for (Entry<String, EdgeProperty> entry :
+        sourceEdgeProperties.entrySet()) {
         EdgeManagerDescriptorProto.Builder edgeMgrBuilder =
             EdgeManagerDescriptorProto.newBuilder();
         edgeMgrBuilder.setEdgeName(entry.getKey());
-        edgeMgrBuilder.setEntityDescriptor(
-            DagTypeConverters.convertToDAGPlan(entry.getValue()));
+        edgeMgrBuilder.setEdgeProperty(DagTypeConverters.convertToProto(entry.getValue()));
         builder.addEdgeManagerDescriptors(edgeMgrBuilder.build());
       }
     }
@@ -121,15 +120,15 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
           proto.getVertexLocationHint());
     }
     if (proto.getEdgeManagerDescriptorsCount() > 0) {
-      this.sourceEdgeManagers = new HashMap<String, EdgeManagerPluginDescriptor>(
+      this.sourceEdgeProperties = new HashMap<String, EdgeProperty>(
           proto.getEdgeManagerDescriptorsCount());
       for (EdgeManagerDescriptorProto edgeManagerProto :
         proto.getEdgeManagerDescriptorsList()) {
-        EdgeManagerPluginDescriptor edgeManagerDescriptor =
-            DagTypeConverters.convertEdgeManagerPluginDescriptorFromDAGPlan(
-                edgeManagerProto.getEntityDescriptor());
-        sourceEdgeManagers.put(edgeManagerProto.getEdgeName(),
-            edgeManagerDescriptor);
+        EdgeProperty edgeProperty =
+            DagTypeConverters.convertFromProto(
+                edgeManagerProto.getEdgeProperty());
+        sourceEdgeProperties.put(edgeManagerProto.getEdgeName(),
+            edgeProperty);
       }
     }
     if (proto.getRootInputSpecUpdatesCount() > 0) {
@@ -169,7 +168,7 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
         + ", vertexLocationHint=" +
         (vertexLocationHint == null? "null" : vertexLocationHint)
         + ", edgeManagersCount=" +
-        (sourceEdgeManagers == null? "null" : sourceEdgeManagers.size()
+        (sourceEdgeProperties == null? "null" : sourceEdgeProperties.size()
         + ", rootInputSpecUpdateCount="
         + (rootInputSpecUpdates == null ? "null" : rootInputSpecUpdates.size()));
   }
@@ -186,8 +185,8 @@ public class VertexParallelismUpdatedEvent implements HistoryEvent {
     return vertexLocationHint;
   }
 
-  public Map<String, EdgeManagerPluginDescriptor> getSourceEdgeManagers() {
-    return sourceEdgeManagers;
+  public Map<String, EdgeProperty> getSourceEdgeProperties() {
+    return sourceEdgeProperties;
   }
   
   public Map<String, InputSpecUpdate> getRootInputSpecUpdates() {

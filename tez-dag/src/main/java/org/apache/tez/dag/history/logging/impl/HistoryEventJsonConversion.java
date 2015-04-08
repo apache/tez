@@ -20,11 +20,10 @@ package org.apache.tez.dag.history.logging.impl;
 
 import java.util.Map;
 import java.util.Map.Entry;
-
 import java.util.TreeMap;
 
 import org.apache.tez.common.ATSConstants;
-import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -722,12 +721,12 @@ public class HistoryEventJsonConversion {
     JSONObject eventInfo = new JSONObject();
     eventInfo.put(ATSConstants.OLD_NUM_TASKS, event.getOldNumTasks());
     eventInfo.put(ATSConstants.NUM_TASKS, event.getNumTasks());
-    if (event.getSourceEdgeManagers() != null && !event.getSourceEdgeManagers().isEmpty()) {
+    if (event.getSourceEdgeProperties() != null && !event.getSourceEdgeProperties().isEmpty()) {
       JSONObject updatedEdgeManagers = new JSONObject();
-      for (Entry<String, EdgeManagerPluginDescriptor> entry :
-          event.getSourceEdgeManagers().entrySet()) {
+      for (Entry<String, EdgeProperty> entry :
+          event.getSourceEdgeProperties().entrySet()) {
         updatedEdgeManagers.put(entry.getKey(),
-            new JSONObject(DAGUtils.convertEdgeManagerPluginDescriptor(entry.getValue())));
+            new JSONObject(DAGUtils.convertEdgeProperty(entry.getValue())));
       }
       eventInfo.put(ATSConstants.UPDATED_EDGE_MANAGERS, updatedEdgeManagers);
     }

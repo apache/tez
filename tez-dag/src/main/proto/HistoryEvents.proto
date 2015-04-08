@@ -95,7 +95,7 @@ message VertexStartedProto {
 
 message EdgeManagerDescriptorProto {
   optional string edge_name = 1;
-  optional TezEntityDescriptorProto entity_descriptor = 2;
+  optional PlanEdgeProperty edge_property = 2;
 }
 
 message RootInputSpecUpdateProto {

@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -510,11 +511,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
           
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
-      Map<String, EdgeManagerPluginDescriptor> edgeManagers =
-          new HashMap<String, EdgeManagerPluginDescriptor>(bipartiteSources);
+      Map<String, EdgeProperty> edgeProperties =
+          new HashMap<String, EdgeProperty>(bipartiteSources);
       Iterable<Map.Entry<String, SourceVertexInfo>> bipartiteItr = getBipartiteInfo();
       for(Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
         String vertex = entry.getKey();
+        EdgeProperty oldEdgeProp = entry.getValue().edgeProperty;
         // use currentParallelism for numSourceTasks to maintain original state
         // for the source tasks
         CustomShuffleEdgeManagerConfig edgeManagerConfig =
@@ -525,10 +527,18 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         EdgeManagerPluginDescriptor edgeManagerDescriptor =
             EdgeManagerPluginDescriptor.create(CustomShuffleEdgeManager.class.getName());
         edgeManagerDescriptor.setUserPayload(edgeManagerConfig.toUserPayload());
-        edgeManagers.put(vertex, edgeManagerDescriptor);
+        EdgeProperty newEdgeProp = EdgeProperty.create(edgeManagerDescriptor,
+            oldEdgeProp.getDataSourceType(), oldEdgeProp.getSchedulingType(), 
+            oldEdgeProp.getEdgeSource(), oldEdgeProp.getEdgeDestination());
+        edgeProperties.put(vertex, newEdgeProp);
       }
       
-      getContext().setVertexParallelism(finalTaskParallelism, null, edgeManagers, null);
+      try {
+        getContext().reconfigureVertex(finalTaskParallelism, null, edgeProperties);
+      } catch (TezException e) {
+        // TODO fail vertex - TEZ-2292
+        LOG.warn("Failed to change parallelism in: " + getContext().getVertexName(), e);
+      }
       updatePendingTasks();
     }
     return true;
