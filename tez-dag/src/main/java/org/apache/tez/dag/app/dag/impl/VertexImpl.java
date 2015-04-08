@@ -814,7 +814,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     
     isSpeculationEnabled = vertexConf.getBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED,
         TezConfiguration.TEZ_AM_SPECULATION_ENABLED_DEFAULT);
-    LOG.info("isSpeculationEnabled:" + isSpeculationEnabled);
     if (isSpeculationEnabled()) {
       speculator = new LegacySpeculator(vertexConf, getAppContext(), this);
     }

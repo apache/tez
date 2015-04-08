@@ -474,13 +474,20 @@ public class TestAMRecovery {
     Path recoveryDataDir =
         TezCommonUtils.getRecoveryPath(tezSystemStagingDir, tezConf);
     FileSystem fs = tezSystemStagingDir.getFileSystem(tezConf);
-    Path currentAttemptRecoveryDataDir =
-        TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, attemptNum);
-    Path recoveryFilePath =
-        new Path(currentAttemptRecoveryDataDir, appId.toString().replace(
-            "application", "dag")
-            + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
-    return RecoveryParser.parseDAGRecoveryFile(fs.open(recoveryFilePath));
+    List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
+    for (int i=1; i <= attemptNum; ++i) {
+      Path currentAttemptRecoveryDataDir =
+          TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, i);
+      Path recoveryFilePath =
+          new Path(currentAttemptRecoveryDataDir, appId.toString().replace(
+              "application", "dag")
+              + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+      if (fs.exists(recoveryFilePath)) {
+        LOG.info("read recovery file:" + recoveryFilePath);
+        historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(fs.open(recoveryFilePath)));
+      }
+    }
+    return historyEvents;
   }
 
   private void printHistoryEvents(List<HistoryEvent> historyEvents, int attemptId) {

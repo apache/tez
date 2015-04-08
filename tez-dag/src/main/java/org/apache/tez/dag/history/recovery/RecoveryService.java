@@ -81,10 +81,12 @@ public class RecoveryService extends AbstractService {
   private final Object lock = new Object();
   private FileSystem recoveryDirFS; // FS where staging dir exists
   Path recoveryPath;
-  Map<TezDAGID, FSDataOutputStream> outputStreamMap = new
+  @VisibleForTesting
+  public Map<TezDAGID, FSDataOutputStream> outputStreamMap = new
       HashMap<TezDAGID, FSDataOutputStream>();
   private int bufferSize;
-  private FSDataOutputStream summaryStream;
+  @VisibleForTesting
+  public FSDataOutputStream summaryStream;
   private int unflushedEventsCount = 0;
   private long lastFlushTime = -1;
   private int maxUnflushedEvents;
