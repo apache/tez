@@ -429,7 +429,7 @@ public class MRRSleepJob extends Configured implements Tool {
           NullOutputFormat.class.getName());
     }
 
-    MRHelpers.translateMRConfToTez(mapStageConf);
+    MRHelpers.translateMRConfToTez(mapStageConf, false);
 
     Configuration[] intermediateReduceStageConfs = null;
     if (iReduceStagesCount > 0
@@ -450,7 +450,7 @@ public class MRRSleepJob extends Configured implements Tool {
             MRRSleepJobPartitioner.class.getName());
 
 
-        MRHelpers.translateMRConfToTez(iReduceStageConf);
+        MRHelpers.translateMRConfToTez(iReduceStageConf, false);
         intermediateReduceStageConfs[i-1] = iReduceStageConf;
       }
     }
@@ -469,7 +469,7 @@ public class MRRSleepJob extends Configured implements Tool {
       finalReduceConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR,
           NullOutputFormat.class.getName());
 
-      MRHelpers.translateMRConfToTez(finalReduceConf);
+      MRHelpers.translateMRConfToTez(finalReduceConf, false);
     }
 
     MRHelpers.configureMRApiUsage(mapStageConf);
@@ -573,16 +573,18 @@ public class MRRSleepJob extends Configured implements Tool {
     }
 
 
-    Map<String, String> partitionerConf = Maps.newHashMap();
-    partitionerConf.put(MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
-    OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
-        .newBuilder(IntWritable.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
-        .done().build();
-
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
+        Map<String, String> partitionerConf = Maps.newHashMap();
+        partitionerConf.put(
+            MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
+        Configuration edgeConfiguration = ((i+1) == vertices.size()) ?
+            finalReduceConf : intermediateReduceStageConfs[i];
+        OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
+            .newBuilder(IntWritable.class.getName(), IntWritable.class.getName(),
+                HashPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
+            .done().setFromConfiguration(edgeConfiguration).build();
         dag.addEdge(
             Edge.create(vertices.get(i - 1), vertices.get(i), edgeConf.createDefaultEdgeProperty()));
       }

@@ -573,7 +573,7 @@ public class YARNRunner implements ClientProtocol {
 
     // Transform all confs to use Tez keys
     for (int i = 0; i < stageConfs.length; i++) {
-      MRHelpers.translateMRConfToTez(stageConfs[i]);
+      MRHelpers.translateMRConfToTez(stageConfs[i], false);
     }
 
     // create inputs to tezClient.submit()

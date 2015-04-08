@@ -59,8 +59,22 @@ public class MRHelpers {
    * @param conf mr based configuration to be translated to tez
    */
   public static void translateMRConfToTez(Configuration conf) {
-    convertVertexConfToTez(conf);
+    translateMRConfToTez(conf, true);
   }
+
+  /**
+   * Translate MapReduce configuration keys to the equivalent Tez keys in the provided
+   * configuration. The translation is done in place. </p>
+   * This method is meant to be used by frameworks which rely upon existing MapReduce configuration
+   * instead of setting up their own.
+   *
+   * @param conf mr based configuration to be translated to tez
+   * @param preferTez If the tez setting already exists and is set, use the Tez setting
+   */
+  public static void translateMRConfToTez(Configuration conf, boolean preferTez) {
+    convertVertexConfToTez(conf, preferTez);
+  }
+
 
   /**
    * Update the provided configuration to use the new API (mapreduce) or the old API (mapred) based
@@ -90,9 +104,9 @@ public class MRHelpers {
     }
   }
 
-  private static void convertVertexConfToTez(Configuration vertexConf) {
+  private static void convertVertexConfToTez(Configuration vertexConf, boolean preferTez) {
     setStageKeysFromBaseConf(vertexConf, vertexConf, "unknown");
-    processDirectConversion(vertexConf);
+    processDirectConversion(vertexConf, preferTez);
     setupMRComponents(vertexConf);
   }
 
@@ -162,7 +176,7 @@ public class MRHelpers {
     }
   }
 
-  private static void processDirectConversion(Configuration conf) {
+  private static void processDirectConversion(Configuration conf, boolean preferTez) {
     for (Map.Entry<String, String> dep : DeprecatedKeys.getMRToTezRuntimeParamMap().entrySet()) {
       if (conf.get(dep.getKey()) != null) {
         // TODO Deprecation reason does not seem to reflect in the config ?
@@ -173,10 +187,14 @@ public class MRHelpers {
         conf.unset(dep.getKey());
         if (tezValue == null) {
           conf.set(dep.getValue(), mrValue, "TRANSLATED_TO_TEZ");
+        } else if (!preferTez) {
+          conf.set(dep.getValue(), mrValue, "TRANSLATED_TO_TEZ_AND_MR_OVERRIDE");
         }
         if (LOG.isDebugEnabled()) {
           LOG.debug("Config: mr(unset):" + dep.getKey() + ", mr initial value="
-              + mrValue + ", tez:" + dep.getValue() + "=" + conf.get(dep.getValue()));
+              + mrValue
+              + ", tez(original):" + dep.getValue() + "=" + tezValue
+              + ", tez(final):" + dep.getValue() + "=" + conf.get(dep.getValue()));
         }
       }
     }

@@ -29,6 +29,7 @@ import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -189,4 +190,27 @@ public class TestMRHelpers {
     Assert.assertEquals("foo2", env.get("user"));
     Assert.assertEquals(("bar" + File.pathSeparator + "bar2"), env.get("foo"));
   }
+
+  @Test(timeout = 5000)
+  public void testTranslateMRConfToTez() {
+    Configuration conf = new Configuration(false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1000);
+    conf.setLong(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB, 500);
+
+    Configuration conf1 = new Configuration(conf);
+    MRHelpers.translateMRConfToTez(conf1);
+    Assert.assertNull(conf1.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
+    Assert.assertEquals(1000, conf1.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+
+    Configuration conf2 = new Configuration(conf);
+    MRHelpers.translateMRConfToTez(conf2, true);
+    Assert.assertNull(conf2.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
+    Assert.assertEquals(1000, conf2.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+
+    Configuration conf3 = new Configuration(conf);
+    MRHelpers.translateMRConfToTez(conf3, false);
+    Assert.assertNull(conf3.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
+    Assert.assertEquals(500, conf3.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
+  }
+
 }
