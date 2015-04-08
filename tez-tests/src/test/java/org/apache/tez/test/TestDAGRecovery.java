@@ -57,6 +57,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -181,12 +182,19 @@ public class TestDAGRecovery {
     Path recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, tezConf);
 
     FileSystem fs = tezSystemStagingDir.getFileSystem(tezConf);
-    for (int i=1; i<=3; ++i) {
-      Path currentAttemptRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,i);
-      Path recoveryFilePath = new Path(currentAttemptRecoveryDataDir,
-      appId.toString().replace("application", "dag") + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
-      List<HistoryEvent> historyEvents = RecoveryParser.parseDAGRecoveryFile(
-          fs.open(recoveryFilePath));
+    // verify recovery logs in each attempt
+    for (int attemptNum=1; attemptNum<=3; ++attemptNum) {
+      List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
+      // read the recovery logs for current attempt
+      // since dag recovery logs is dispersed in each attempt's recovery directory,
+      // so need to read recovery logs from the first attempt to current attempt
+      for (int i=1 ;i<=attemptNum;++i) {
+        Path currentAttemptRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,i);
+        Path recoveryFilePath = new Path(currentAttemptRecoveryDataDir,
+        appId.toString().replace("application", "dag") + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
+        historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(
+            fs.open(recoveryFilePath)));
+      }
 
       int inputInfoEventIndex = -1;
       int vertexInitedEventIndex = -1;
