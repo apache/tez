@@ -332,8 +332,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
           if (err.getErrorCode() != 0) {
             LOG.warn("Could not post history event to ATS"
                 + ", atsPutError=" + err.getErrorCode()
-                + ", entityId=" + entities[i].getEntityId()
-                + ", eventType=" + events.get(i).getHistoryEvent().getEventType());
+                + ", entityId=" + err.getEntityId());
           }
         }
       }
