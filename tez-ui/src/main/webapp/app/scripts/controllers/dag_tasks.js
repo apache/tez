@@ -53,14 +53,6 @@ App.DagTasksController = App.TablePageController.extend({
     return this._super();
   },
 
-  columns: function() {
-    var visibleColumnConfigs = this.get('columnConfigs').filter(function (column) {
-      return this.visibleColumnIds[column.id];
-    }, this);
-
-    return App.Helpers.misc.createColumnDescription(visibleColumnConfigs);
-  }.property('visibleColumnIds'),
-
   defaultColumnConfigs: function() {
     var that = this,
         vertexIdToNameMap = this.get('controllers.dag.vertexIdToNameMap') || {};

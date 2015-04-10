@@ -37,6 +37,7 @@ App.ColumnSelectorMixin = Em.Mixin.create({
 
   _storeKey: '',
   visibleColumnIds: {},
+  columnConfigs: [],
 
   columnSelectorTitle: 'Column Selector',
 
@@ -65,7 +66,7 @@ App.ColumnSelectorMixin = Em.Mixin.create({
       return this.visibleColumnIds[column.id];
     }, this);
 
-    return App.Helpers.misc.createColumnsFromConfigs(visibleColumnConfigs);
+    return App.Helpers.misc.createColumnDescription(visibleColumnConfigs);
   }.property('visibleColumnIds'),
 
   actions: {

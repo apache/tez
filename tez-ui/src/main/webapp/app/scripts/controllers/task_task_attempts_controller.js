@@ -16,85 +16,43 @@
  * limitations under the License.
  */
 
-App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
-  // required by the PaginatedContentMixin
-  childEntityType: 'task_attempt',
+App.TaskAttemptsController = App.TablePageController.extend({
 
   controllerName: 'TaskAttemptsController',
+  needs: "task",
 
-  needs: 'task',
+  entityType: 'taskAttempt',
+  filterEntityType: 'task',
+  filterEntityId: Ember.computed.alias('controllers.task.id'),
 
-  queryParams: {
-    status_filter: 'status'
-  },
-  status_filter: null,
-
-  loadData: function() {
-    var filters = {
-      primary: {
-        TEZ_TASK_ID: this.get('controllers.task.id')
-      },
-      secondary: {
-        status: this.status_filter
-      }
-    }
-    this.setFiltersAndLoadEntities(filters);
-  },
-
-  loadEntities: function () {
-    var that = this;
-    var childEntityType = this.get('childEntityType');
-    var defaultErrMsg = 'Error while loading %@.'
-      .fmt(childEntityType);
-
-    that.set('loading', true);
-    this.get('store').unloadAll(childEntityType);
-    this.get('store').findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      var loaders = [];
-      try {
-        var loader = Em.tryInvoke(that, 'loadAdditional');
-        if (!!loader) {
-          loaders.push(loader);
-        }
-      } catch(error) {
-        Em.Logger.error("Exception invoking additional load", error);
-      }
-
-      App.Helpers.misc.removeRecord(that.store, 'dag', that.get('controllers.task.dagID'));
-      var appDetailFetcher = that.store.find('dag', that.get('controllers.task.dagID')).
-        then(function (dag) {
-          App.Helpers.misc.removeRecord(that.store, 'appDetail', dag.get('applicationId'));
-          return that.store.find('appDetail', dag.get('applicationId'));
-        }).
-        then(function(appDetail) {
-          var appState = appDetail.get('appState');
-          if (appState) {
-            that.set('yarnAppState', appState);
-          }
-        });
-      loaders.push(appDetailFetcher);
-      Em.RSVP.allSettled(loaders).then(function(){
-        that.set('entities', entities);
-        that.set('loading', false);
-      });
-    }).catch(function(error){
-      Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
-      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
-      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+  beforeLoad: function () {
+    var taskController = this.get('controllers.task'),
+        model = taskController.get('model');
+    return model.reload().then(function () {
+      return taskController.loadAdditional(model);
     });
   },
 
-  actions : {
-    filterUpdated: function(filterID, value) {
-      // any validations required goes here.
-      if (!!value) {
-        this.set(filterID, value);
-      } else {
-        this.set(filterID, null);
-      }
-      this.loadData();
-    }
+  afterLoad: function () {
+    var loaders = [],
+        that = this;
+
+    App.Helpers.misc.removeRecord(that.store, 'dag', that.get('controllers.task.dagID'));
+
+    var appDetailFetcher = that.store.find('dag', that.get('controllers.task.dagID')).
+      then(function (dag) {
+        App.Helpers.misc.removeRecord(that.store, 'appDetail', dag.get('applicationId'));
+        return that.store.find('appDetail', dag.get('applicationId'));
+      }).
+      then(function(appDetail) {
+        var appState = appDetail.get('appState');
+        if (appState) {
+          that.set('yarnAppState', appState);
+        }
+      });
+    loaders.push(appDetailFetcher);
+
+    return Em.RSVP.allSettled(loaders);
   },
 
   defaultColumnConfigs: function() {
@@ -103,72 +61,74 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
       {
         id: 'id',
         headerCellName: 'Attempt Index',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'taskAttempt' view.cellContent.id class='ember-table-content'}}{{view.cellContent.displayId}}{{/link-to}}")
-        }),
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'id',
         getCellContent: function (row) {
           var id = row.get('id'),
               idPrefix = 'attempt_%@_'.fmt(row.get('dagID').substr(4));
           return {
-            id: id,
-            displayId: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
+            linkTo: 'taskAttempt',
+            entityId: id,
+            displayText: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
           };
         }
       },
       {
         id: 'attemptNo',
         headerCellName: 'Attempt No',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'taskAttempt' view.cellContent.attemptID class='ember-table-content'}}{{view.cellContent.attemptNo}}{{/link-to}}")
-        }),
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'id',
         getCellContent: function(row) {
-          var attemptID = row.get('id') || '',
-              attemptNo = attemptID.split(/[_]+/).pop();
+          var attemptID = row.get('id') || '';
           return {
-            attemptNo: attemptNo,
-            attemptID: attemptID
+            linkTo: 'taskAttempt',
+            displayText: attemptID.split(/[_]+/).pop(),
+            entityId: attemptID
           };
+        },
+        getSearchValue: function (row) {
+          var attemptID = row.get('id') || '';
+          return attemptID.split(/[_]+/).pop();
         }
       },
       {
         id: 'startTime',
         headerCellName: 'Start Time',
+        contentPath: 'startTime',
         getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        },
+        getSearchValue: function(row) {
           return App.Helpers.date.dateFormat(row.get('startTime'));
         }
       },
       {
         id: 'endTime',
         headerCellName: 'End Time',
+        contentPath: 'endTime',
         getCellContent: function(row) {
           return App.Helpers.date.dateFormat(row.get('endTime'));
-        }
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        },
       },
       {
         id: 'duration',
         headerCellName: 'Duration',
+        contentPath: 'duration',
         getCellContent: function(row) {
-          var st = row.get('startTime');
-          var et = row.get('endTime');
-          if (st && et) {
-            return App.Helpers.date.durationSummary(st, et);
-          }
-        }
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
       },
       {
         id: 'status',
         headerCellName: 'Status',
-        filterID: 'status_filter',
-        filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.taskAttemptStatusUIOptions,
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">&nbsp;\
-            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-        }),
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
         getCellContent: function(row) {
           var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
           return {
@@ -190,34 +150,23 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
       {
         id: 'actions',
         headerCellName: 'Actions',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">\
-            {{#link-to "taskAttempt.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
-            </span>'
-            )
-        }),
-        contentPath: 'id'
+        templateName: 'components/basic-table/linked-cell',
+        searchAndSortable: false,
+        contentPath: 'id',
+        getCellContent: function(row) {
+          var attemptID = row.get('id') || '';
+          return {
+            linkTo: 'taskAttempt.counters',
+            displayText: 'counters',
+            entityId: attemptID
+          };
+        }
       },
       {
         id: 'logs',
         headerCellName: 'Logs',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">\
-              {{#unless view.cellContent.notAvailable}}\
-                Not Available\
-              {{else}}\
-                {{#if view.cellContent.viewUrl}}\
-                  <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>\
-                  &nbsp;\
-                {{/if}}\
-                {{#if view.cellContent.downloadUrl}}\
-                  <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>\
-                {{/if}}\
-              {{/unless}}\
-            </span>')
-        }),
+        templateName: 'components/basic-table/logs-cell',
+        searchAndSortable: false,
         getCellContent: function(row) {
           var yarnAppState = that.get('yarnAppState'),
               suffix = "/syslog_" + row.get('id'),

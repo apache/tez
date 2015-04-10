@@ -35,71 +35,70 @@ App.VertexAdditionalsController = Em.ObjectController.extend({
   },
 
   inputColumns: function() {
-    return App.Helpers.misc.createColumnsFromConfigs([
+    return App.Helpers.misc.createColumnDescription([
       {
         id: 'inputId',
         headerCellName: 'Name',
         contentPath: 'inputName',
+        searchAndSortable: false,
       },
       {
         id: 'inputClass',
         headerCellName: 'Class',
         contentPath: 'inputClass',
+        searchAndSortable: false,
       },
       {
         id: 'inputInitializer',
         headerCellName: 'Initializer',
         contentPath: 'inputInitializer',
+        searchAndSortable: false,
       },
       {
         id: 'configurations',
         headerCellName: 'Configurations',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#if view.cellContent.count}}\
-              {{#link-to 'input.configs' view.cellContent.id class='ember-table-content'}}View Configurations{{/link-to}}\
-            {{else}}\
-              <span class='ember-table-content'>Not Available</span>\
-            {{/if}}")
-        }),
+        searchAndSortable: false,
+        templateName: 'components/basic-table/linked-cell',
         getCellContent: function(row) {
-          return {
-            count: row.get('configs.content.length'),
-            id: row.get('id')
-          };
+          if(row.get('configs.content.length')) {
+            return {
+              linkTo: 'input.configs',
+              displayText: 'View Configurations',
+              entityId: row.get('id')
+            };
+          }
         }
       }
     ]);
   }.property(),
 
   outputColumns: function() {
-    return App.Helpers.misc.createColumnsFromConfigs([
+    return App.Helpers.misc.createColumnDescription([
       {
         id: 'outputId',
         headerCellName: 'Name',
         contentPath: 'outputName',
+        searchAndSortable: false,
       },
       {
         id: 'outputClass',
         headerCellName: 'Class',
         contentPath: 'outputClass',
+        searchAndSortable: false,
       },
       {
         id: 'configurations',
         headerCellName: 'Configurations',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#if view.cellContent.count}}\
-              {{#link-to 'output.configs' view.cellContent.id class='ember-table-content'}}View Configurations{{/link-to}}\
-            {{else}}\
-              <span class='ember-table-content'>Not Available</span>\
-            {{/if}}")
-        }),
+        searchAndSortable: false,
+        templateName: 'components/basic-table/linked-cell',
         getCellContent: function(row) {
-          return {
-            count: row.get('configs.content.length'),
-            id: row.get('id')
-          };
+          if(row.get('configs.content.length')) {
+            return {
+              linkTo: 'output.configs',
+              displayText: 'View Configurations',
+              entityId: row.get('id')
+            };
+          }
         }
       }
     ]);

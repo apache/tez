@@ -16,82 +16,41 @@
  * limitations under the License.
  */
 
-App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
-  // Required by the PaginatedContentMixin
-  childEntityType: 'taskAttempt',
+App.VertexTaskAttemptsController = App.TablePageController.extend({
 
   controllerName: 'VertexTaskAttemptsController',
+  needs: "vertex",
 
-  needs: 'vertex',
+  entityType: 'taskAttempt',
+  filterEntityType: 'vertex',
+  filterEntityId: Ember.computed.alias('controllers.vertex.id'),
 
-  queryParams: {
-    status_filter: 'status',
-  },
-  status_filter: null,
-
-  loadData: function() {
-    var filters = {
-      primary: {
-        TEZ_VERTEX_ID: this.get('controllers.vertex.id')
-      },
-      secondary: {
-        status: this.status_filter
-      }
-    }
-    this.setFiltersAndLoadEntities(filters);
-  },
-
-  load: function () {
-    var vertex = this.get('controllers.vertex.model'),
-        controller = this.get('controllers.vertex'),
-        t = this;
-    vertex.reload().then(function () {
-      return controller.loadAdditional(vertex);
-    }).then(function () {
-      t.resetNavigation();
-      t.loadEntities();
-    }).catch(function(error){
-      Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
-      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
-      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
-    });
-  }.observes('count'),
-
-  actions : {
-    filterUpdated: function(filterID, value) {
-      // any validations required goes here.
-      if (!!value) {
-        this.set(filterID, value);
-      } else {
-        this.set(filterID, null);
-      }
-      this.loadData();
-    }
-  },
-
-  updateLoading: function () {
+  beforeLoad: function () {
     var controller = this.get('controllers.vertex'),
-        model = this.get('controllers.vertex.model'),
-        that = this,
-        vertexStatus = that.get('controllers.vertex.status');
-
-    controller.loadAdditional(model).then(function () {
-      that.get('entities').forEach(function (attempt) {
-
-        var attemptStatus = App.Helpers.misc
-          .getFixedupDisplayStatus(attempt.get('status'));
-        if (attemptStatus == 'RUNNING' &&
-          App.Helpers.misc.isStatusInUnsuccessful(vertexStatus)) {
-          attemptStatus = 'KILLED'
-        }
-        if (attemptStatus != attempt.get('status')) {
-          attempt.set('status', attemptStatus);
-        }
-      });
-
-      that.set('loading', false);
+        model = controller.get('model');
+    return model.reload().then(function () {
+      return controller.loadAdditional(model);
     });
+  },
+
+  afterLoading: function () {
+    var data = this.get('data'),
+        isUnsuccessfulVertex = App.Helpers.misc.isStatusInUnsuccessful(
+          that.get('controllers.vertex.status')
+        );
+
+    data.forEach(function (attempt) {
+      var attemptStatus = App.Helpers.misc
+        .getFixedupDisplayStatus(attempt.get('status'));
+      if (attemptStatus == 'RUNNING' && isUnsuccessfulVertex) {
+        attemptStatus = 'KILLED'
+      }
+      if (attemptStatus != attempt.get('status')) {
+        attempt.set('status', attemptStatus);
+      }
+    });
+
+    return this._super();
   },
 
   defaultColumnConfigs: function() {
@@ -100,74 +59,81 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
       {
         id: 'taskId',
         headerCellName: 'Task Index',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'task' view.cellContent.taskId class='ember-table-content'}}{{view.cellContent.displayId}}{{/link-to}}")
-        }),
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'taskID',
         getCellContent: function (row) {
           var taskId = row.get('taskID'),
               idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
           return {
-            taskId: taskId,
-            displayId: taskId.indexOf(idPrefix) == 0 ? taskId.substr(idPrefix.length) : taskId
+            linkTo: 'task',
+            entityId: taskId,
+            displayText: taskId.indexOf(idPrefix) == 0 ? taskId.substr(idPrefix.length) : taskId
           };
+        },
+        getSearchValue: function (row) {
+          var id = row.get('taskID'),
+              idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
+          return id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id;
         }
       },
       {
         id: 'attemptNo',
         headerCellName: 'Attempt No',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'taskAttempt' view.cellContent.attemptID class='ember-table-content'}}{{view.cellContent.attemptNo}}{{/link-to}}")
-        }),
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'id',
         getCellContent: function(row) {
-          var attemptID = row.get('id') || '',
-              attemptNo = attemptID.split(/[_]+/).pop();
+          var attemptID = row.get('id') || '';
           return {
-            attemptNo: attemptNo,
-            attemptID: attemptID
+            linkTo: 'taskAttempt',
+            displayText: attemptID.split(/[_]+/).pop(),
+            entityId: attemptID
           };
+        },
+        getSearchValue: function (row) {
+          var attemptID = row.get('id') || '';
+          return attemptID.split(/[_]+/).pop();
         }
       },
       {
         id: 'startTime',
         headerCellName: 'Start Time',
+        contentPath: 'startTime',
         getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        },
+        getSearchValue: function(row) {
           return App.Helpers.date.dateFormat(row.get('startTime'));
         }
       },
       {
         id: 'endTime',
         headerCellName: 'End Time',
+        contentPath: 'endTime',
         getCellContent: function(row) {
           return App.Helpers.date.dateFormat(row.get('endTime'));
-        }
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        },
       },
       {
         id: 'duration',
         headerCellName: 'Duration',
+        contentPath: 'duration',
         getCellContent: function(row) {
-          var st = row.get('startTime');
-          var et = row.get('endTime');
-          if (st && et) {
-            return App.Helpers.date.durationSummary(st, et);
-          }
-        }
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
       },
       {
         id: 'status',
         headerCellName: 'Status',
-        filterID: 'status_filter',
-        filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.taskAttemptStatusUIOptions,
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">&nbsp;\
-            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-        }),
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
         getCellContent: function(row) {
-          var status = row.get('status');
+          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
           return {
             status: status,
             statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
@@ -187,34 +153,23 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
       {
         id: 'actions',
         headerCellName: 'Actions',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">\
-            {{#link-to "taskAttempt.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
-            </span>'
-            )
-        }),
-        contentPath: 'id'
+        templateName: 'components/basic-table/linked-cell',
+        searchAndSortable: false,
+        contentPath: 'id',
+        getCellContent: function(row) {
+          var attemptID = row.get('id') || '';
+          return {
+            linkTo: 'taskAttempt.counters',
+            displayText: 'counters',
+            entityId: attemptID
+          };
+        }
       },
       {
         id: 'logs',
         headerCellName: 'Logs',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">\
-              {{#unless view.cellContent.notAvailable}}\
-                Not Available\
-              {{else}}\
-                {{#if view.cellContent.viewUrl}}\
-                  <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>\
-                  &nbsp;\
-                {{/if}}\
-                {{#if view.cellContent.downloadUrl}}\
-                  <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>\
-                {{/if}}\
-              {{/unless}}\
-            </span>')
-        }),
+        templateName: 'components/basic-table/logs-cell',
+        searchAndSortable: false,
         getCellContent: function(row) {
           var yarnAppState = that.get('controllers.vertex.yarnAppState'),
               suffix = "/syslog_" + row.get('id'),

@@ -74,6 +74,10 @@ function renderConfigs() {
   this.render('common/configs');
 }
 
+function renderTable() {
+  this.render('common/table');
+}
+
 /*
  * Creates a setupController function
  * @param format Unformatted title string.
@@ -175,12 +179,6 @@ App.TaskRoute = Em.Route.extend({
 });
 
 App.TasksRoute = Em.Route.extend({
-  queryParams: {
-    count: App.Helpers.misc.defaultQueryParamsConfig,
-    status: App.Helpers.misc.defaultQueryParamsConfig,
-    parentType: App.Helpers.misc.defaultQueryParamsConfig,
-    parentID: App.Helpers.misc.defaultQueryParamsConfig
-  },
   setupController: setupControllerFactory()
 });
 
@@ -243,11 +241,7 @@ App.TaskAttemptRoute = Em.Route.extend({
 });
 
 App.TaskAttemptsRoute = Em.Route.extend({
-  renderTemplate: renderTableWithSpinner,
-  queryParams: {
-    count: App.Helpers.misc.defaultQueryParamsConfig,
-    status: App.Helpers.misc.defaultQueryParamsConfig 
-  },
+  renderTemplate: renderTable,
   setupController: setupControllerFactory('Task Attempt: %@', 'id')
 });
 
@@ -268,14 +262,7 @@ App.TezAppRoute = Em.Route.extend({
 });
 
 App.TezAppDagsRoute = Em.Route.extend({
-  renderTemplate: renderTableWithSpinner,
-  queryParams:  {
-    dagName: App.Helpers.misc.defaultQueryParamsConfig,
-    count: App.Helpers.misc.defaultQueryParamsConfig,
-    fromID: App.Helpers.misc.defaultQueryParamsConfig,
-    user: App.Helpers.misc.defaultQueryParamsConfig,
-    status: App.Helpers.misc.defaultQueryParamsConfig
-  },
+  renderTemplate: renderTable,
   setupController: setupControllerFactory()
 });
 
@@ -285,28 +272,13 @@ App.TezAppConfigsRoute = Em.Route.extend({
 
 /* --- Shared routes --- */
 
-App.DagTasksRoute = Em.Route.extend({
-  renderTemplate: function () {
-    this.render('common/table');
-  },
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    if(controller.loadData) {
-      controller.loadData();
-    }
-  }
-});
-
-App.DagVerticesRoute =
+App.DagTasksRoute =
+    App.DagVerticesRoute =
     App.DagTaskAttemptsRoute =
     App.VertexTasksRoute =
     App.VertexTaskAttemptsRoute =
     Em.Route.extend({
-      renderTemplate: renderTableWithSpinner,
-      queryParams: {
-        count: App.Helpers.misc.defaultQueryParamsConfig,
-        status: App.Helpers.misc.defaultQueryParamsConfig
-      },
+      renderTemplate: renderTable,
       setupController: setupControllerFactory()
     });
 

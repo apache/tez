@@ -16,161 +16,129 @@
  * limitations under the License.
  */
 
-App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
-  // Required by the PaginatedContentMixin
-  childEntityType: 'task',
+App.VertexTasksController = App.TablePageController.extend({
 
   controllerName: 'VertexTasksController',
+  needs: "vertex",
 
-  needs: 'vertex',
+  entityType: 'task',
+  filterEntityType: 'vertex',
+  filterEntityId: Ember.computed.alias('controllers.vertex.id'),
 
-  queryParams: {
-    status_filter: 'status',
-  },
-  status_filter: null,
-
-  loadData: function() {
-    var filters = {
-      primary: {
-        TEZ_VERTEX_ID: this.get('controllers.vertex.id')
-      },
-      secondary: {
-        status: this.status_filter
-      }
-    }
-    this.setFiltersAndLoadEntities(filters);
-  },
-
-  load: function () {
-    var vertex = this.get('controllers.vertex.model'),
-        controller = this.get('controllers.vertex'),
-        t = this;
-    vertex.reload().then(function () {
-      return controller.loadAdditional(vertex);
-    }).then(function () {
-      t.resetNavigation();
-      t.loadEntities();
-    }).catch(function(error){
-      Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
-      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
-      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
-    });
-  }.observes('count'),
-
-  loadEntities: function() {
-    var that = this,
-    store = this.get('store'),
-    fetcher;
-    childEntityType = this.get('childEntityType');
-    var defaultErrMsg = 'Error while loading tasks.';
-
-    that.set('loading', true);
-    store.unloadAll(childEntityType);
-    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      var pivotLoaders = [],
-          vertexStatus = that.get('controllers.vertex.status');
-      entities.forEach(function (task) {
-        var taskStatus = App.Helpers.misc
-          .getFixedupDisplayStatus(task.get('status'));
-        if (taskStatus == 'RUNNING' &&
-          App.Helpers.misc.isStatusInUnsuccessful(vertexStatus)) {
-          taskStatus = 'KILLED';
-        }
-        if (taskStatus != task.get('status')) {
-          task.set('status', taskStatus);
-        }
-        var taskAttemptId = task.get('successfulAttemptId') || task.get('attempts.lastObject');
-        if (!!taskAttemptId) {
-          // Pivot attempt selection logic
-          App.Helpers.misc.removeRecord(store, 'taskAttempt', taskAttemptId);
-          fetcher = store.find('taskAttempt', taskAttemptId);
-          fetcher.then(function (attempt) {
-            task.set('pivotAttempt', attempt);
-          });
-          pivotLoaders.push(fetcher);
-        }
-      });
-      Em.RSVP.allSettled(pivotLoaders).then(function(){
-        that.set('entities', entities);
-        that.set('loading', false);
-      });
-    }).catch(function(jqXHR){
-      Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
-      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
-      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+  beforeLoad: function () {
+    var controller = this.get('controllers.vertex'),
+        model = controller.get('model');
+    return model.reload().then(function () {
+      return controller.loadAdditional(model);
     });
   },
 
-  actions : {
-    filterUpdated: function(filterID, value) {
-      // any validations required goes here.
-      if (!!value) {
-        this.set(filterID, value);
-      } else {
-        this.set(filterID, null);
+  afterLoad: function () {
+    var data = this.get('data'),
+        isUnsuccessfulVertex = App.Helpers.misc.isStatusInUnsuccessful(
+          this.get('controllers.vertex.status')
+        );
+
+    data.forEach(function (task) {
+      var taskStatus = App.Helpers.misc.getFixedupDisplayStatus(task.get('status'));
+
+      if (taskStatus == 'RUNNING' && isUnsuccessfulVertex) {
+        taskStatus = 'KILLED'
       }
-      this.loadData();
-    }
+      if (taskStatus != task.get('status')) {
+        task.set('status', taskStatus);
+      }
+    });
+
+    return this._super();
   },
 
   defaultColumnConfigs: function() {
     var that = this;
+
+    function getLogContent(attempt) {
+      var yarnAppState = that.get('controllers.vertex.yarnAppState'),
+          suffix,
+          link,
+          cellContent = {};
+
+      if(attempt) {
+        suffix = "/syslog_" + attempt.get('id'),
+        link = attempt.get('inProgressLog') || attempt.get('completedLog');
+
+        if(link) {
+          cellContent.viewUrl = link + suffix;
+        }
+        link = attempt.get('completedLog');
+        if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
+          cellContent.downloadUrl = link + suffix;
+        }
+      }
+
+      cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
+
+      return cellContent;
+    }
+
     return [
       {
         id: 'id',
         headerCellName: 'Task Index',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'task' view.cellContent.id class='ember-table-content'}}{{view.cellContent.displayId}}{{/link-to}}")
-        }),
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'id',
         getCellContent: function (row) {
           var id = row.get('id'),
               idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
           return {
-            id: id,
-            displayId: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
+            linkTo: 'task',
+            entityId: id,
+            displayText: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
           };
+        },
+        getSearchValue: function (row) {
+          var id = row.get('id'),
+              idPrefix = 'task_%@_'.fmt(row.get('dagID').substr(4));
+          return id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id;
         }
       },
       {
         id: 'startTime',
         headerCellName: 'Start Time',
+        contentPath: 'startTime',
         getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        },
+        getSearchValue: function(row) {
           return App.Helpers.date.dateFormat(row.get('startTime'));
         }
       },
       {
         id: 'endTime',
         headerCellName: 'End Time',
+        contentPath: 'endTime',
         getCellContent: function(row) {
           return App.Helpers.date.dateFormat(row.get('endTime'));
-        }
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        },
       },
       {
         id: 'duration',
         headerCellName: 'Duration',
+        contentPath: 'duration',
         getCellContent: function(row) {
-          var st = row.get('startTime');
-          var et = row.get('endTime');
-          if (st && et) {
-            return App.Helpers.date.durationSummary(st, et);
-          }
-        }
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
       },
       {
         id: 'status',
         headerCellName: 'Status',
-        filterID: 'status_filter',
-        filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.taskStatusUIOptions,
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">&nbsp;\
-            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}</span>')
-        }),
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
         getCellContent: function(row) {
           var status = row.get('status');
           return {
@@ -182,62 +150,25 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
       {
         id: 'actions',
         headerCellName: 'Actions',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">\
-            {{#link-to "task.counters" view.cellContent}}counters{{/link-to}}&nbsp;\
-            {{#link-to "task.attempts" view.cellContent}}attempts{{/link-to}}\
-            </span>'
-            )
-        }),
-        contentPath: 'id'
+        templateName: 'components/basic-table/task-actions-cell',
+        contentPath: 'id',
+        searchAndSortable: false
       },
       {
         id: 'logs',
         headerCellName: 'Logs',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">\
-              {{#unless view.cellContent.notAvailable}}\
-                Not Available\
-              {{else}}\
-                {{#if view.cellContent.viewUrl}}\
-                  <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>\
-                  &nbsp;\
-                {{/if}}\
-                {{#if view.cellContent.downloadUrl}}\
-                  <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>\
-                {{/if}}\
-              {{/unless}}\
-            </span>')
-        }),
+        templateName: 'components/basic-table/logs-cell',
+        searchAndSortable: false,
         getCellContent: function(row) {
-          var yarnAppState = that.get('controllers.vertex.yarnAppState'),
-              attempt = row.get('pivotAttempt'),
-              suffix,
-              link,
-              cellContent = {};
+          var taskAttemptId = row.get('successfulAttemptId') || row.get('attempts.lastObject'),
+              store = that.get('store');
 
-          if(attempt) {
-            suffix = "/syslog_" + attempt.get('id'),
-            link = attempt.get('inProgressLog') || attempt.get('completedLog');
-
-            if(link) {
-              cellContent.viewUrl = link + suffix;
-            }
-            link = attempt.get('completedLog');
-            if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
-              cellContent.downloadUrl = link + suffix;
-            }
+          if (taskAttemptId) {
+            return store.find('taskAttempt', taskAttemptId).then(getLogContent);
           }
-
-          cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
-
-          return cellContent;
         }
       }
     ];
-
   }.property(),
 
   columnConfigs: function() {

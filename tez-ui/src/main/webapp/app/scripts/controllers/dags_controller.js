@@ -262,4 +262,12 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     );
   }.property(),
 
+  columns: function() {
+    var visibleColumnConfigs = this.get('columnConfigs').filter(function (column) {
+      return this.visibleColumnIds[column.id];
+    }, this);
+
+    return App.Helpers.misc.createColumnsFromConfigs(visibleColumnConfigs);
+  }.property('visibleColumnIds'),
+
 });

@@ -16,129 +16,62 @@
  * limitations under the License.
  */
 
-App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.ColumnSelectorMixin, {
-  needs: "tezApp",
+App.TezAppDagsController = App.TablePageController.extend({
 
   controllerName: 'TezAppDagsController',
+  needs: "tezApp",
 
-  // required by the PaginatedContentMixin
-  childEntityType: 'dag',
+  entityType: 'dag',
+  filterEntityType: 'tezApp',
+  filterEntityId: Ember.computed.alias('appId'),
 
-  queryParams: {
-    dagName_filter: 'dagName',
-    status_filter: 'status',
-    user_filter: 'user'
-  },
-  dagName_filter: null,
-  status_filter: null,
-  user_filter: null,
+  afterLoad: function () {
+    var data = this.get('data'),
+        loaders = [],
+        store = this.get('store'),
+        record,
+        fetcher;
 
-  loadData: function() {
-    var filters = {
-      primary: {
-        applicationId: this.get('appId'),
-      },
-      secondary: {
-        user: this.user_filter,
-        status: this.status_filter,
-        dagName: this.dagName_filter
-      }
-    };
-    this.setFiltersAndLoadEntities(filters);
-  },
+    data.forEach(function (dag) {
 
-  loadEntities: function() {
-    var that = this,
-    store = this.get('store'),
-    childEntityType = this.get('childEntityType'),
-    fetcher,
-    record;
-    var defaultErrMsg = 'Error while loading dag info.';
-
-    that.set('loading', true);
-    store.unloadAll(childEntityType);
-    store.unloadAll('dagProgress');
-
-    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
-      var loaders = [];
-      entities.forEach(function (dag) {
-        var appId = dag.get('applicationId');
-        if(appId) {
-          // Pivot attempt selection logic
-          record = store.getById('appDetail', appId);
-          if(record && !App.Helpers.misc.isStatusInUnsuccessful(record.get('appState'))) {
-            store.unloadRecord(record);
-          }
-          fetcher = store.find('appDetail', appId).then(function (app) {
-            dag.set('appDetail', app);
-            if (dag.get('status') === 'RUNNING') {
-              dag.set('status', App.Helpers.misc.getRealStatus(
-                dag.get('status'),
-                app.get('appState'),
-                app.get('finalAppStatus')
-              ));
-              App.Helpers.misc.removeRecord(store, 'tezApp', 'tez_' + appId);
-            }
-            return store.find('tezApp', 'tez_' + appId).then(function (app) {
-              dag.set('tezApp', app);
-            });
+      var appId = dag.get('applicationId');
+      if(appId) {
+        //Load tezApp details
+        if (dag.get('status') === 'RUNNING') {
+          App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
+          fetcher = store.find('dagProgress', dag.get('id'), {
+            appId: dag.get('applicationId'),
+            dagIdx: dag.get('idx')
+          })
+          .then(function(dagProgressInfo) {
+            dag.set('progress', dagProgressInfo.get('progress'));
+          })
+          .catch(function(error) {
+            Em.Logger.error('Failed to fetch dagProgress' + error);
           });
           loaders.push(fetcher);
-          //Load tezApp details
-          if (dag.get('status') === 'RUNNING') {
-            App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
-            amInfoFetcher = store.find('dagProgress', dag.get('id'), {
-              appId: dag.get('applicationId'),
-              dagIdx: dag.get('idx')
-            })
-            .then(function(dagProgressInfo) {
-              dag.set('progress', dagProgressInfo.get('progress'));
-            })
-            .catch(function(error) {
-              Em.Logger.error('Failed to fetch dagProgress' + error);
-            });
-            loaders.push(amInfoFetcher);
-          }
         }
-      });
-      Em.RSVP.allSettled(loaders).then(function(){
-        that.set('entities', entities);
-        that.set('loading', false);
-      });
-    }).catch(function(error){
-      Em.Logger.error(error);
-      var err = App.Helpers.misc.formatError(error, defaultErrMsg);
-      var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
-      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
-    });
-  },
-
-  actions : {
-    filterUpdated: function(filterID, value) {
-      // any validations required goes here.
-      if (!!value) {
-        this.set(filterID, value);
-      } else {
-        this.set(filterID, null);
       }
-      this.loadData();
-    }
+
+    });
+
+    return Em.RSVP.allSettled(loaders);
   },
 
   defaultColumnConfigs: function() {
+    var store = this.get('store');
     return [
       {
         id: 'dagName',
         headerCellName: 'Dag Name',
         filterID: 'dagName_filter',
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            "{{#link-to 'dag' view.cellContent.id class='ember-table-content'}}{{view.cellContent.name}}{{/link-to}}")
-        }),
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'name',
         getCellContent: function(row) {
           return {
-            id: row.get('id'),
-            name: row.get('name')
+            linkTo: 'dag',
+            entityId: row.get('id'),
+            displayText: row.get('name')
           };
         }
       },
@@ -150,59 +83,70 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
       {
         id: 'user',
         headerCellName: 'Submitter',
-        filterID: 'user_filter',
         contentPath: 'user'
       },
       {
         id: 'status',
         headerCellName: 'Status',
-        filterID: 'status_filter',
-        filterType: 'dropdown',
-        dropdownValues: App.Helpers.misc.dagStatusUIOptions,
-        tableCellViewClass: Em.Table.TableCell.extend({
-          template: Em.Handlebars.compile(
-            '<span class="ember-table-content">&nbsp;\
-            <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>\
-            &nbsp;&nbsp;{{view.cellContent.status}}\
-            {{#if view.cellContent.progress}} {{bs-badge content=view.cellContent.progress}}{{/if}}</span>')
-        }),
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
         getCellContent: function(row) {
-          var pct;
-          if (Ember.typeOf(row.get('progress')) === 'number') {
-            pct = App.Helpers.number.fractionToPercentage(row.get('progress'));
+          var status = row.get('status'),
+              content = Ember.Object.create({
+                status: status,
+                statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+              });
+
+          if(status == 'RUNNING') {
+            App.Helpers.misc.removeRecord(store, 'dagProgress', row.get('id'));
+
+            store.find('dagProgress', row.get('id'), {
+              appId: row.get('applicationId'),
+              dagIdx: row.get('idx')
+            })
+            .then(function(dagProgressInfo) {
+              content.set('progress', dagProgressInfo.get('progress'));
+            })
+            .catch(function(error) {
+              Em.Logger.error('Failed to fetch dagProgress' + error);
+            });
           }
-          var dagStatus = row.get('status');
-          return {
-            status: dagStatus,
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(dagStatus),
-            progress: pct
-          };
+
+          return content;
         }
       },
       {
         id: 'startTime',
         headerCellName: 'Start Time',
+        contentPath: 'startTime',
         getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('startTime'));
+        },
+        getSearchValue: function(row) {
           return App.Helpers.date.dateFormat(row.get('startTime'));
         }
       },
       {
         id: 'endTime',
         headerCellName: 'End Time',
+        contentPath: 'endTime',
         getCellContent: function(row) {
+          return App.Helpers.date.dateFormat(row.get('endTime'));
+        },
+        getSearchValue: function(row) {
           return App.Helpers.date.dateFormat(row.get('endTime'));
         }
       },
       {
         id: 'duration',
         headerCellName: 'Duration',
+        contentPath: 'duration',
         getCellContent: function(row) {
-          var st = row.get('startTime');
-          var et = row.get('endTime');
-          if (st && et) {
-            return App.Helpers.date.durationSummary(st, et);
-          }
-        }
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
+        getSearchValue: function(row) {
+          return App.Helpers.date.timingFormat(row.get('duration'), 1);
+        },
       }
     ];
   }.property(),
