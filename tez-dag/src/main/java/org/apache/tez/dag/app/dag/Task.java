@@ -41,7 +41,6 @@ public interface Task {
   Map<TezTaskAttemptID, TaskAttempt> getAttempts();
   TaskAttempt getAttempt(TezTaskAttemptID attemptID);
   TaskAttempt getSuccessfulAttempt();
-
   /** Has Task reached the final state or not.
    */
   boolean isFinished();

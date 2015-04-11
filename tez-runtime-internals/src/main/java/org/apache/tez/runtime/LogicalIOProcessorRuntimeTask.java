@@ -27,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -45,7 +44,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.RunnableWithNdc;
-import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -75,6 +73,7 @@ import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezInputContextImpl;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
@@ -86,7 +85,6 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -119,6 +117,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   /** Maps which will be provided to the processor run method */
   private final LinkedHashMap<String, LogicalInput> runInputMap;
   private final LinkedHashMap<String, LogicalOutput> runOutputMap;
+  
+  private final TaskStatistics statistics;
 
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final Map<String, String> envMap;
@@ -182,6 +182,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.objectRegistry = objectRegistry;
     this.ExecutionContext = ExecutionContext;
     this.memAvailable = memAvailable;
+    this.statistics = new TaskStatistics();
   }
 
   /**
@@ -323,6 +324,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     // initialize.
 
     startRouterThread();
+  }
+  
+  public TaskStatistics getTaskStatistics() {
+    return statistics;
   }
 
   public void run() throws Exception {

@@ -25,18 +25,21 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 
 public class TaskStatusUpdateEvent extends Event implements Writable {
 
   private TezCounters tezCounters;
   private float progress;
+  private TaskStatistics statistics;
 
   public TaskStatusUpdateEvent() {
   }
 
-  public TaskStatusUpdateEvent(TezCounters tezCounters, float progress) {
+  public TaskStatusUpdateEvent(TezCounters tezCounters, float progress, TaskStatistics statistics) {
     this.tezCounters = tezCounters;
     this.progress = progress;
+    this.statistics = statistics;
   }
 
   public TezCounters getCounters() {
@@ -45,6 +48,10 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
 
   public float getProgress() {
     return progress;
+  }
+  
+  public TaskStatistics getStatistics() {
+    return statistics;
   }
 
   @Override
@@ -56,6 +63,10 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
     } else {
       out.writeBoolean(false);
     }
+    if (statistics != null) {
+      out.writeBoolean(true);
+      statistics.write(out);
+    }
   }
 
   @Override
@@ -64,6 +75,10 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
     if (in.readBoolean()) {
       tezCounters = new TezCounters();
       tezCounters.readFields(in);
+    }
+    if (in.readBoolean()) {
+      statistics = new TaskStatistics();
+      statistics.readFields(in);
     }
   }
 

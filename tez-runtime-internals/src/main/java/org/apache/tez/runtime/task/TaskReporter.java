@@ -223,7 +223,7 @@ public class TaskReporter {
       eventsToSend.drainTo(events);
 
       if (!task.isTaskDone() && !task.hadFatalError()) {
-        TezCounters counters = null;
+        boolean sendCounters = false;
         /**
          * Increasing the heartbeat interval can delay the delivery of events. Sending just updated
          * records would save CPU in DAG AM, but certain counters are updated very frequently. Until
@@ -231,11 +231,10 @@ public class TaskReporter {
          */
         // Not completely accurate, since OOB heartbeats could go out.
         if ((nonOobHeartbeatCounter.get() - prevCounterSendHeartbeatNum) * pollInterval >= sendCounterInterval) {
-          counters = task.getCounters();
+          sendCounters = true;
           prevCounterSendHeartbeatNum = nonOobHeartbeatCounter.get();
         }
-        updateEvent = new TezEvent(new TaskStatusUpdateEvent(counters, task.getProgress()),
-            updateEventMetadata);
+        updateEvent = new TezEvent(getStatusUpdateEvent(sendCounters), updateEventMetadata);
         events.add(updateEvent);
       }
 
@@ -313,11 +312,15 @@ public class TaskReporter {
      *           indicates an exception somewhere in the AM.
      */
     private boolean taskSucceeded(TezTaskAttemptID taskAttemptID) throws IOException, TezException {
-      TezEvent statusUpdateEvent = new TezEvent(new TaskStatusUpdateEvent(task.getCounters(),
-          task.getProgress()), updateEventMetadata);
+      TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
       TezEvent taskCompletedEvent = new TezEvent(new TaskAttemptCompletedEvent(),
           updateEventMetadata);
       return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskCompletedEvent)).shouldDie;
+    }
+    
+    private TaskStatusUpdateEvent getStatusUpdateEvent(boolean sendCounters) {
+      return new TaskStatusUpdateEvent((sendCounters ? task.getCounters() : null),
+          task.getProgress(), task.getTaskStatistics());
     }
 
     /**
@@ -334,8 +337,7 @@ public class TaskReporter {
      */
     private boolean taskFailed(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
         EventMetaData srcMeta) throws IOException, TezException {
-      TezEvent statusUpdateEvent = new TezEvent(new TaskStatusUpdateEvent(task.getCounters(),
-          task.getProgress()), updateEventMetadata);
+      TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
       if (diagnostics == null) {
         diagnostics = ExceptionUtils.getStackTrace(t);
       } else {

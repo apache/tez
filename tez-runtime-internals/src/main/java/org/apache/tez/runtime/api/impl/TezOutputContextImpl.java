@@ -36,11 +36,12 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
@@ -51,6 +52,18 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
   private final int outputIndex;
+  private final OutputStatisticsReporterImpl statsReporter;
+  
+  class OutputStatisticsReporterImpl implements OutputStatisticsReporter {
+
+    @Override
+    public synchronized void reportDataSize(long size) {
+      // this is a concurrent map. Plus we are not adding/deleting entries
+      runtimeTask.getTaskStatistics().getIOStatistics().get(destinationVertexName)
+      .setDataSize(size);
+    }
+    
+  }
 
   @Private
   public TezOutputContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
@@ -59,7 +72,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       String destinationVertexName,
       int vertexParallelism,
       TezTaskAttemptID taskAttemptID, int outputIndex,
-      @Nullable UserPayload userPayload, RuntimeTask runtimeTask,
+      @Nullable UserPayload userPayload, LogicalIOProcessorRuntimeTask runtimeTask,
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry,
@@ -76,9 +89,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     this.destinationVertexName = destinationVertexName;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.OUTPUT,
         taskVertexName, destinationVertexName, taskAttemptID);
+    runtimeTask.getTaskStatistics().addIO(destinationVertexName);
+    statsReporter = new OutputStatisticsReporterImpl();
   }
 
-  private static TezCounters wrapCounters(RuntimeTask runtimeTask, String taskVertexName,
+  private static TezCounters wrapCounters(LogicalIOProcessorRuntimeTask runtimeTask, String taskVertexName,
       String edgeVertexName, Configuration conf) {
     TezCounters tezCounters = runtimeTask.addAndGetTezCounter(edgeVertexName);
     if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
@@ -118,5 +133,10 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   @Override
   public int getOutputIndex() {
     return outputIndex;
+  }
+
+  @Override
+  public OutputStatisticsReporter getStatisticsReporter() {
+    return statsReporter;
   }
 }

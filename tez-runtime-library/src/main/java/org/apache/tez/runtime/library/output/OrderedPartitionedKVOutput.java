@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -33,6 +34,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
@@ -159,16 +161,22 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   @Override
   public synchronized List<Event> close() throws IOException {
+    List<Event> returnEvents = null;
     if (sorter != null) {
       sorter.flush();
       sorter.close();
       this.endTime = System.nanoTime();
-      return generateEvents();
+      returnEvents = generateEvents();
     } else {
       LOG.warn("Attempting to close output " + getContext().getDestinationVertexName()
           + " before it was started");
-      return Collections.emptyList();
+      returnEvents = Collections.emptyList();
     }
+    
+    long outputSize = getContext().getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
+    getContext().getStatisticsReporter().reportDataSize(outputSize);
+    
+    return returnEvents;
   }
 
   private List<Event> generateEvents() throws IOException {

@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.output;
 
 import com.google.protobuf.ByteString;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -32,6 +33,7 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -56,6 +58,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -82,6 +85,8 @@ public class TestOnFileSortedOutput {
   private int partitions;
   //For sorter (pipelined / Default)
   private int sorterThreads;
+  
+  final AtomicLong outputSize = new AtomicLong();
 
   private KeyValuesWriter writer;
   private OrderedPartitionedKVOutput sortedOutput;
@@ -123,6 +128,7 @@ public class TestOnFileSortedOutput {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
         sendEmptyPartitionViaEvent);
 
+    outputSize.set(0);
     fs.mkdirs(workingDir);
     this.partitions = Math.max(1, rnd.nextInt(10));
   }
@@ -335,7 +341,15 @@ public class TestOnFileSortedOutput {
     serviceProviderMetaData.writeInt(PORT);
 
     TezCounters counters = new TezCounters();
-
+    
+    OutputStatisticsReporter reporter = mock(OutputStatisticsReporter.class);
+    doAnswer(new Answer() {
+      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+        outputSize.set((Long) invocation.getArguments()[0]);
+        return null;
+      }
+    }).when(reporter).reportDataSize(anyLong());
+    
     OutputContext context = mock(OutputContext.class);
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
@@ -357,6 +371,7 @@ public class TestOnFileSortedOutput {
     }).when(context).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
     ExecutionContext ExecutionContext = mock(ExecutionContext.class);
     doReturn(HOST).when(ExecutionContext).getHostName();
+    doReturn(reporter).when(context).getStatisticsReporter();
     doReturn(ExecutionContext).when(context).getExecutionContext();
     return context;
   }

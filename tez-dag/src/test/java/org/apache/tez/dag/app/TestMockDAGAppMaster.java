@@ -43,10 +43,12 @@ import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -59,7 +61,9 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.MockDAGAppMaster.CountersDelegate;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher.ContainerData;
+import org.apache.tez.dag.app.MockDAGAppMaster.StatisticsDelegate;
 import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
@@ -68,10 +72,13 @@ import org.apache.tez.dag.app.dag.impl.VertexImpl;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.impl.IOStatistics;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -332,6 +339,91 @@ public class TestMockDAGAppMaster {
     tezClient.stop();
   }
   
+  @Test (timeout = 10000)
+  public void testBasicStatistics() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
+        null, false, false);
+    tezClient.start();
+
+    final String vAName = "A";
+    final String vBName = "B";
+    final String sourceName = "In";
+    final String sinkName = "Out";
+    DAG dag = DAG.create("testBasisStatistics");
+    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 3);
+    Vertex vB = Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 2);
+    vA.addDataSource(sourceName,
+        DataSourceDescriptor.create(InputDescriptor.create("In"), null, null));
+    vB.addDataSink(sinkName, DataSinkDescriptor.create(OutputDescriptor.create("Out"), null, null));
+    dag.addVertex(vA)
+        .addVertex(vB)
+        .addEdge(
+            Edge.create(vA, vB, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
+    IOStatistics ioStats = new IOStatistics();
+    ioStats.setDataSize(1);
+    TaskStatistics vAStats = new TaskStatistics();
+    vAStats.addIO(vBName, ioStats);
+    vAStats.addIO(sourceName, ioStats);
+    TaskStatistics vBStats = new TaskStatistics();
+    vBStats.addIO(vAName, ioStats);
+    vBStats.addIO(sinkName, ioStats);
+    ByteArrayOutputStream bosA = new ByteArrayOutputStream();
+    DataOutput outA = new DataOutputStream(bosA);
+    vAStats.write(outA);
+    final byte[] payloadA = bosA.toByteArray();
+    ByteArrayOutputStream bosB = new ByteArrayOutputStream();
+    DataOutput outB = new DataOutputStream(bosB);
+    vBStats.write(outB);
+    final byte[] payloadB = bosB.toByteArray();
+    
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+    mockApp.statsDelegate = new StatisticsDelegate() {
+      @Override
+      public TaskStatistics getStatistics(TaskSpec taskSpec) {
+        byte[] payload = payloadA;
+        TaskStatistics stats = new TaskStatistics();
+        if (taskSpec.getVertexName().equals(vBName)) {
+          payload = payloadB;
+        }
+        final DataInputByteBuffer in = new DataInputByteBuffer();
+        in.reset(ByteBuffer.wrap(payload));
+        try {
+          // this ensures that the serde code path is covered.
+          stats.readFields(in);
+        } catch (IOException e) {
+          Assert.fail(e.getMessage());
+        }
+        return stats;
+      }
+    };
+    mockApp.doSleep = false;
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    mockLauncher.startScheduling(true);
+    DAGStatus status = dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    
+    // verify that the values have been correct aggregated
+    for (org.apache.tez.dag.app.dag.Vertex v : dagImpl.getVertices().values()) {
+      VertexStatistics vStats = v.getStatistics();
+      if (v.getName().equals(vAName)) {
+        Assert.assertEquals(3, vStats.getOutputStatistics(vBName).getDataSize());
+        Assert.assertEquals(3, vStats.getInputStatistics(sourceName).getDataSize());        
+      } else {
+        Assert.assertEquals(2, vStats.getInputStatistics(vAName).getDataSize());
+        Assert.assertEquals(2, vStats.getOutputStatistics(sinkName).getDataSize());        
+      }
+    }
+    
+    tezClient.stop();
+  }
+  
   private void checkMemory(String name, MockDAGAppMaster mockApp) {                
     long mb = 1024*1024;                                                           
                                                                                    
@@ -398,6 +490,70 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     TezCounters counters = dagImpl.getAllCounters();
     Assert.assertNotNull(counters);
+    checkMemory(dag.getName(), mockApp);
+    tezClient.stop();
+  }
+
+  @Ignore
+  @Test (timeout = 60000)
+  public void testBasicStatisticsMemory() throws Exception {
+    Logger.getRootLogger().setLevel(Level.WARN);
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
+        null, false, false);
+    tezClient.start();
+
+    final String vAName = "abcdefghijklmnopqrstuvwxyz";
+    int numTasks = 10000;
+    int numSources = 10;
+
+    IOStatistics ioStats = new IOStatistics();
+    ioStats.setDataSize(1);
+    TaskStatistics vAStats = new TaskStatistics();
+
+    DAG dag = DAG.create("testBasisStatistics");
+    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), numTasks);
+    for (int i=0; i<numSources; ++i) {
+      final String sourceName = i + vAName;
+      vA.addDataSource(sourceName,
+          DataSourceDescriptor.create(InputDescriptor.create(sourceName), null, null));
+      vAStats.addIO(sourceName, ioStats);
+    }
+    dag.addVertex(vA);
+
+    ByteArrayOutputStream bosA = new ByteArrayOutputStream();
+    DataOutput outA = new DataOutputStream(bosA);
+    vAStats.write(outA);
+    final byte[] payloadA = bosA.toByteArray();
+    
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+    mockApp.statsDelegate = new StatisticsDelegate() {
+      @Override
+      public TaskStatistics getStatistics(TaskSpec taskSpec) {
+        byte[] payload = payloadA;
+        TaskStatistics stats = new TaskStatistics();
+        final DataInputByteBuffer in = new DataInputByteBuffer();
+        in.reset(ByteBuffer.wrap(payload));
+        try {
+          // this ensures that the serde code path is covered.
+          stats.readFields(in);
+        } catch (IOException e) {
+          Assert.fail(e.getMessage());
+        }
+        return stats;
+      }
+    };
+    mockApp.doSleep = false;
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    mockLauncher.startScheduling(true);
+    DAGStatus status = dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    Assert.assertEquals(numTasks,
+        dagImpl.getVertex(vAName).getStatistics().getInputStatistics(0+vAName).getDataSize());
     checkMemory(dag.getName(), mockApp);
     tezClient.stop();
   }

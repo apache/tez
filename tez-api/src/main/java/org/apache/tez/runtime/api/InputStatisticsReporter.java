@@ -19,33 +19,19 @@
 package org.apache.tez.runtime.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 /**
- * Context handle for the Output to initialize itself.
- * This interface is not supposed to be implemented by users
+ * Report statistics about the {@link Input}
  */
 @Public
-public interface OutputContext extends TaskContext {
+@Evolving
+public interface InputStatisticsReporter {
 
   /**
-   * Get the Vertex Name of the Destination that is the recipient of this
-   * Output's data
-   * @return Name of the Destination Vertex
+   * Report the size of the logical data read
+   * @param size of data in bytes
    */
-  public String getDestinationVertexName();
-  
-  /**
-   * Get the index of the output in the set of all outputs for the task. The 
-   * index will be consistent and valid only among the tasks of this vertex.
-   * @return index
-   */
-  public int getOutputIndex();
-  
-  /**
-   * Get an {@link OutputStatisticsReporter} for this {@link Output} that can
-   * be used to report statistics like data size
-   * @return {@link OutputStatisticsReporter}
-   */
-  public OutputStatisticsReporter getStatisticsReporter();
+  public void reportDataSize(long size);
 
 }

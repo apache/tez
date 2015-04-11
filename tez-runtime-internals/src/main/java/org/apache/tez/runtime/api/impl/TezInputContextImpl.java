@@ -37,9 +37,10 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
-import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.InputStatisticsReporter;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
@@ -55,6 +56,18 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final int inputIndex;
   private final Map<String, LogicalInput> inputs;
   private final InputReadyTracker inputReadyTracker;
+  private final InputStatisticsReporterImpl statsReporter;
+  
+  class InputStatisticsReporterImpl implements InputStatisticsReporter {
+
+    @Override
+    public synchronized void reportDataSize(long size) {
+      // this is a concurrent map. Plus we are not adding/deleting entries
+      runtimeTask.getTaskStatistics().getIOStatistics().get(sourceVertexName)
+          .setDataSize(size);
+    }
+    
+  }
 
   @Private
   public TezInputContextImpl(Configuration conf, String[] workDirs,
@@ -63,7 +76,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              String taskVertexName, String sourceVertexName,
                              int vertexParallelism, TezTaskAttemptID taskAttemptID,
                              int inputIndex, @Nullable UserPayload userPayload,
-                             RuntimeTask runtimeTask,
+                             LogicalIOProcessorRuntimeTask runtimeTask,
                              Map<String, ByteBuffer> serviceConsumerMetadata,
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
                              InputDescriptor inputDescriptor, Map<String, LogicalInput> inputs,
@@ -86,9 +99,11 @@ public class TezInputContextImpl extends TezTaskContextImpl
         taskAttemptID);
     this.inputs = inputs;
     this.inputReadyTracker = inputReadyTracker;
+    runtimeTask.getTaskStatistics().addIO(sourceVertexName);
+    statsReporter = new InputStatisticsReporterImpl();
   }
 
-  private static TezCounters wrapCounters(RuntimeTask task, String taskVertexName,
+  private static TezCounters wrapCounters(LogicalIOProcessorRuntimeTask task, String taskVertexName,
       String edgeVertexName, Configuration conf) {
     TezCounters tezCounters = task.addAndGetTezCounter(edgeVertexName);
     if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
@@ -133,5 +148,10 @@ public class TezInputContextImpl extends TezTaskContextImpl
   @Override
   public void inputIsReady() {
     inputReadyTracker.setInputIsReady(inputs.get(sourceVertexName));
+  }
+
+  @Override
+  public InputStatisticsReporter getStatisticsReporter() {
+    return statsReporter;
   }
 }

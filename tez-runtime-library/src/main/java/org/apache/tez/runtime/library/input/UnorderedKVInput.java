@@ -208,6 +208,11 @@ public class UnorderedKVInput extends AbstractLogicalInput {
     if (this.shuffleManager != null) {
       this.shuffleManager.shutdown();
     }
+    
+    long outputSize = getContext().getCounters()
+        .findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED).getValue();
+    getContext().getStatisticsReporter().reportDataSize(outputSize);
+    
     return null;
   }
 

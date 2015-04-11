@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +53,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -66,6 +68,7 @@ public interface Vertex extends Comparable<Vertex> {
   public VertexPlan getVertexPlan();
 
   int getDistanceFromRoot();
+  LinkedHashMap<String, Integer> getIOIndices();
   String getName();
   VertexState getState();
 
@@ -107,6 +110,8 @@ public interface Vertex extends Comparable<Vertex> {
   void setInputVertices(Map<Vertex, Edge> inVertices);
   void setOutputVertices(Map<Vertex, Edge> outVertices);
 
+  VertexStatistics getStatistics();
+  
   Map<Vertex, Edge> getInputVertices();
   Map<Vertex, Edge> getOutputVertices();
   

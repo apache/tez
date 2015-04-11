@@ -150,9 +150,12 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
+import org.apache.tez.runtime.api.InputStatistics;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.OutputStatistics;
+import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
@@ -166,6 +169,7 @@ import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -660,6 +664,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   Map<Vertex, Edge> sourceVertices;
   private Map<Vertex, Edge> targetVertices;
   Set<Edge> uninitializedEdges = Sets.newHashSet();
+  // using a linked hash map to conveniently map edge names to a contiguous index
+  LinkedHashMap<String, Integer> ioIndices = Maps.newLinkedHashMap();
 
   private Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
     rootInputDescriptors;
@@ -718,6 +724,62 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private final TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOpts;
 
+  private VertexStatisticsImpl finalStatistics;
+
+  
+  static class IOStatisticsImpl extends org.apache.tez.runtime.api.impl.IOStatistics 
+    implements InputStatistics, OutputStatistics {
+    
+    @Override
+    public long getDataSize() {
+      return super.getDataSize();
+    }
+    
+    void mergeFrom(org.apache.tez.runtime.api.impl.IOStatistics other) {
+      this.setDataSize(this.getDataSize() + other.getDataSize());
+    }
+    
+  }
+
+  class VertexStatisticsImpl implements VertexStatistics {
+    final Map<String, IOStatisticsImpl> ioStats;
+    
+    public VertexStatisticsImpl() {
+      ioStats = Maps.newHashMapWithExpectedSize(ioIndices.size());
+      for (String name : ioIndices.keySet()) {
+        ioStats.put(name, new IOStatisticsImpl());
+      }
+    }
+    
+    public IOStatisticsImpl getIOStatistics(String ioName) {
+      return ioStats.get(ioName);
+    }
+    
+    void mergeFrom(TaskStatistics taskStats) {
+      if (taskStats == null) {
+        return;
+      }
+      
+      for (Map.Entry<String, org.apache.tez.runtime.api.impl.IOStatistics> entry : taskStats.getIOStatistics().entrySet()) {
+        String edgeName = entry.getKey();
+        IOStatisticsImpl myEdgeStat = ioStats.get(edgeName);
+        Preconditions.checkState(myEdgeStat != null, "Unexpected IO name: " + edgeName
+            + " for vertex:" + getLogIdentifier());
+        myEdgeStat.mergeFrom(entry.getValue());
+      }
+    }
+
+    @Override
+    public InputStatistics getInputStatistics(String inputName) {
+      return getIOStatistics(inputName);
+    }
+
+    @Override
+    public OutputStatistics getOutputStatistics(String outputName) {
+      return getIOStatistics(outputName);
+    }
+  }
+  
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration dagConf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Clock clock,
@@ -855,6 +917,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public int getDistanceFromRoot() {
     return distanceFromRoot;
   }
+  
+  @Override
+  public LinkedHashMap<String, Integer> getIOIndices() {
+    return ioIndices;
+  }
 
   @Override
   public String getName() {
@@ -931,9 +998,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     readLock.lock();
 
     try {
-      VertexState state = getInternalState();
-      if (state == VertexState.ERROR || state == VertexState.FAILED
-          || state == VertexState.KILLED || state == VertexState.SUCCEEDED) {
+      if (inTerminalState()) {
         this.mayBeConstructFinalFullCounters();
         return fullCounters;
       }
@@ -950,9 +1015,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     readLock.lock();
     try {
-      VertexState state = getInternalState();
-      if (state == VertexState.ERROR || state == VertexState.FAILED
-          || state == VertexState.KILLED || state == VertexState.SUCCEEDED) {
+      if (inTerminalState()) {
         this.mayBeConstructFinalFullCounters();
         return this.vertexStats;
       }
@@ -965,6 +1028,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  boolean inTerminalState() {
+    VertexState state = getInternalState();
+    if (state == VertexState.ERROR || state == VertexState.FAILED
+        || state == VertexState.KILLED || state == VertexState.SUCCEEDED) {
+      return true;
+    }
+    return false;
+  }
 
   public static TezCounters incrTaskCounters(
       TezCounters counters, Collection<Task> tasks) {
@@ -1705,6 +1776,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
 
     if (vertex.completedTaskCount == vertex.tasks.size()) {
+      // finished - gather stats
+      vertex.finalStatistics = vertex.constructStatistics();
+      
       //Only succeed if tasks complete successfully and no terminationCause is registered.
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
         LOG.info("Vertex succeeded: " + vertex.logIdentifier);
@@ -2221,7 +2295,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         return VertexState.FAILED;
       }
     }
-
+    
     checkTaskLimits();
     return VertexState.INITED;
   }
@@ -3403,12 +3477,23 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private void mayBeConstructFinalFullCounters() {
     // Calculating full-counters. This should happen only once for the vertex.
     synchronized (this.fullCountersLock) {
+      // TODO this is broken after rerun
       if (this.fullCounters != null) {
         // Already constructed. Just return.
         return;
       }
       this.constructFinalFullcounters();
     }
+  }
+  
+  private VertexStatisticsImpl constructStatistics() {
+    VertexStatisticsImpl stats = new VertexStatisticsImpl();
+    for (Task t : this.tasks.values()) {
+      TaskStatistics  taskStats = ((TaskImpl)t).getStatistics();
+      stats.mergeFrom(taskStats);
+    }
+    
+    return stats;
   }
 
   @Private
@@ -3710,6 +3795,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         (new TaskRescheduledTransition()).transition(vertex, event);
         // inform the DAG that we are re-running
         vertex.eventHandler.handle(new DAGEventVertexReRunning(vertex.getVertexId()));
+        // back to running. so reset final cached stats
+        vertex.finalStatistics = null;
         return VertexState.RUNNING;
       }
 
@@ -4049,18 +4136,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   @Override
   public void setInputVertices(Map<Vertex, Edge> inVertices) {
     this.sourceVertices = inVertices;
+    for (Vertex vertex : sourceVertices.keySet()) {
+      addIO(vertex.getName());
+    }
   }
 
   @Override
   public void setOutputVertices(Map<Vertex, Edge> outVertices) {
     this.targetVertices = outVertices;
+    for (Vertex vertex : targetVertices.keySet()) {
+      addIO(vertex.getName());
+    }
   }
 
   @Override
   public void setAdditionalInputs(List<RootInputLeafOutputProto> inputs) {
     this.rootInputDescriptors = Maps.newHashMapWithExpectedSize(inputs.size());
     for (RootInputLeafOutputProto input : inputs) {
-
+      addIO(input.getName());
       InputDescriptor id = DagTypeConverters
           .convertInputDescriptorFromDAGPlan(input.getIODescriptor());
 
@@ -4106,6 +4199,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     this.additionalOutputs = Maps.newHashMapWithExpectedSize(outputs.size());
     this.outputCommitters = Maps.newHashMapWithExpectedSize(outputs.size());
     for (RootInputLeafOutputProto output : outputs) {
+      addIO(output.getName());
       OutputDescriptor od = DagTypeConverters
           .convertOutputDescriptorFromDAGPlan(output.getIODescriptor());
 
@@ -4181,6 +4275,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   public Map<Vertex, Edge> getOutputVertices() {
     return Collections.unmodifiableMap(this.targetVertices);
   }
+  
+  @Override
+  public VertexStatistics getStatistics() {
+    readLock.lock();
+    try {
+      if (inTerminalState()) {
+        Preconditions.checkState(this.finalStatistics != null);
+        return this.finalStatistics;
+      }
+      return constructStatistics();
+    } finally {
+      readLock.unlock();
+    }
+  }
 
   @Override
   public int getInputVerticesCount() {
@@ -4213,6 +4321,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     } finally {
       readLock.unlock();
     }
+  }
+  
+  void addIO(String name) {
+    ioIndices.put(StringInterner.weakIntern(name), ioIndices.size());
   }
 
   @VisibleForTesting

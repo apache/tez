@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
@@ -53,7 +54,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
   private final TezCounters counters;
   private String[] workDirs;
   private String uniqueIdentifier;
-  protected final RuntimeTask runtimeTask;
+  protected final LogicalIOProcessorRuntimeTask runtimeTask;
   protected final TezUmbilical tezUmbilical;
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final int appAttemptNumber;
@@ -69,7 +70,7 @@ public abstract class TezTaskContextImpl implements TaskContext {
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
       String dagName, String taskVertexName, int vertexParallelism, 
-      TezTaskAttemptID taskAttemptID, TezCounters counters, RuntimeTask runtimeTask,
+      TezTaskAttemptID taskAttemptID, TezCounters counters, LogicalIOProcessorRuntimeTask runtimeTask,
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,

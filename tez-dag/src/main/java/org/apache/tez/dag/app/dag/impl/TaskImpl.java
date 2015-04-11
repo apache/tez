@@ -92,6 +92,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -140,7 +141,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private boolean historyTaskStartGenerated = false;
 
-  private static final SingleArcTransition<TaskImpl, TaskEvent>
+  private static final SingleArcTransition<TaskImpl , TaskEvent>
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
   private static final SingleArcTransition<TaskImpl, TaskEvent>
      KILL_TRANSITION = new KillTransition();
@@ -149,7 +150,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   boolean recoveryStartEventSeen = false;
 
   private static final TaskStateChangedCallback STATE_CHANGED_CALLBACK = new TaskStateChangedCallback();
-
+  
   private static final StateMachineFactory
                <TaskImpl, TaskStateInternal, TaskEventType, TaskEvent>
             stateMachineFactory
@@ -349,7 +350,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         stateMachineFactory.make(this), this);
     augmentStateMachine();
   }
-
+  
   @Override
   public Map<TezTaskAttemptID, TaskAttempt> getAttempts() {
     readLock.lock();
@@ -429,6 +430,20 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         counters.incrAllCounters(bestAttempt.getCounters());
       }
       return counters;
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  TaskStatistics getStatistics() {
+    // simply return the stats from the best attempt
+    readLock.lock();
+    try {
+      TaskAttemptImpl bestAttempt = (TaskAttemptImpl) selectBestAttempt();
+      if (bestAttempt == null) {
+        return null;
+      }
+      return bestAttempt.getStatistics();
     } finally {
       readLock.unlock();
     }

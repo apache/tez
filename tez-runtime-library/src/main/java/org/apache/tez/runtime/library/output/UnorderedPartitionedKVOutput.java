@@ -33,6 +33,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
@@ -97,11 +98,17 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   @Override
   public synchronized List<Event> close() throws Exception {
+    List<Event> returnEvents = null;
     if (isStarted.get()) {
-      return kvWriter.close();
+      returnEvents = kvWriter.close();
     } else {
-      return Collections.emptyList();
+      returnEvents = Collections.emptyList();
     }
+
+    long outputSize = getContext().getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
+    getContext().getStatisticsReporter().reportDataSize(outputSize);
+    
+    return returnEvents;
   }
 
   private static final Set<String> confKeys = new HashSet<String>();

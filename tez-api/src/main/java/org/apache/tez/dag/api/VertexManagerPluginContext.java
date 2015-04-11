@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.common.base.Preconditions;
@@ -60,6 +61,7 @@ public interface VertexManagerPluginContext {
       return locationHint;
     }
   }
+  
   /**
    * Get the edge properties on the input edges of this vertex. The input edge 
    * is represented by the source vertex name
@@ -67,6 +69,25 @@ public interface VertexManagerPluginContext {
    */
   public Map<String, EdgeProperty> getInputVertexEdgeProperties();
   
+  /**
+   * Get the edge properties on the output edges of this vertex. The output edge 
+   * is represented by the destination vertex name
+   * @return Map of destination vertex name and edge property
+   */
+  public Map<String, EdgeProperty> getOutputVertexEdgeProperties();
+  
+  /**
+   * Get a {@link VertexStatistics} object to find out execution statistics
+   * about the given {@link Vertex}.
+   * <br>This only provides point in time values for the statistics and must be
+   * called again to get updated values.
+   * 
+   * @param vertexName
+   *          Name of the {@link Vertex}
+   * @return {@link VertexStatistics} for the given vertex
+   */
+  public VertexStatistics getVertexStatistics(String vertexName);
+
   /**
    * Get the name of the vertex
    * @return Vertex name

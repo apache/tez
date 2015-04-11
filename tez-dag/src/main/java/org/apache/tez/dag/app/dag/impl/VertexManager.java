@@ -67,6 +67,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -122,7 +123,6 @@ public class VertexManager {
     @Override
     public synchronized Map<String, EdgeProperty> getInputVertexEdgeProperties() {
       checkAndThrowIfDone();
-      // TODO Something similar for Initial Inputs - payload etc visible
       Map<Vertex, Edge> inputs = managedVertex.getInputVertices();
       Map<String, EdgeProperty> vertexEdgeMap =
                           Maps.newHashMapWithExpectedSize(inputs.size());
@@ -130,6 +130,24 @@ public class VertexManager {
         vertexEdgeMap.put(entry.getKey().getName(), entry.getValue().getEdgeProperty());
       }
       return vertexEdgeMap;
+    }
+
+    @Override
+    public synchronized Map<String, EdgeProperty> getOutputVertexEdgeProperties() {
+      checkAndThrowIfDone();
+      Map<Vertex, Edge> outputs = managedVertex.getOutputVertices();
+      Map<String, EdgeProperty> vertexEdgeMap =
+                          Maps.newHashMapWithExpectedSize(outputs.size());
+      for (Map.Entry<Vertex, Edge> entry : outputs.entrySet()) {
+        vertexEdgeMap.put(entry.getKey().getName(), entry.getValue().getEdgeProperty());
+      }
+      return vertexEdgeMap;
+    }
+    
+    @Override
+    public synchronized VertexStatistics getVertexStatistics(String vertexName) {
+      checkAndThrowIfDone();
+      return appContext.getCurrentDAG().getVertex(vertexName).getStatistics();      
     }
 
     @Override

@@ -9,6 +9,8 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2234. Add API for statistics information - allow vertex managers to get
+  output size per source vertex
   TEZ-2274. Tez UI: full data loading, client side search and sort for other pages
   TEZ-2301. Switch Tez Pre-commit builds to use tezqa user.
   TEZ-2299. Invalid dag creation in MRRSleepJob post TEZ-2293.

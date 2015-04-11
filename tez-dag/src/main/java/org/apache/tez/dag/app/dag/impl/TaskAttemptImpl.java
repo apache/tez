@@ -103,6 +103,7 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
@@ -147,6 +148,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   @VisibleForTesting
   TaskAttemptStatus reportedStatus;
   private DAGCounter localityCounter;
+  
+  org.apache.tez.runtime.api.impl.TaskStatistics statistics;
 
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
@@ -516,6 +519,10 @@ public class TaskAttemptImpl implements TaskAttempt,
     } finally {
       readLock.unlock();
     }
+  }
+  
+  TaskStatistics getStatistics() {
+    return this.statistics;
   }
 
   @Override
@@ -1259,6 +1266,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.reportedStatus.state = ta.getState();
       ta.reportedStatus.progress = statusEvent.getProgress();
       ta.reportedStatus.counters = statusEvent.getCounters();
+      ta.statistics = statusEvent.getStatistics();
 
       ta.updateProgressSplits();
 

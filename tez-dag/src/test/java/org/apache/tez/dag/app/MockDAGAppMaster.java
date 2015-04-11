@@ -67,6 +67,7 @@ import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
@@ -91,6 +92,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   boolean startFailFlag;
   boolean sendDMEvents;
   CountersDelegate countersDelegate;
+  StatisticsDelegate statsDelegate;
   long launcherSleepTime = 1;
   boolean doSleep = true;
   int handlerConcurrency = 1;
@@ -101,6 +103,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
   AtomicLong heartbeatTime = new AtomicLong(0);
   AtomicLong numHearbeats = new AtomicLong(0);
   
+  public static interface StatisticsDelegate {
+    public TaskStatistics getStatistics(TaskSpec taskSpec);
+  }
   public static interface CountersDelegate {
     public TezCounters getCounters(TaskSpec taskSpec);
   }
@@ -402,10 +407,14 @@ public class MockDAGAppMaster extends DAGAppMaster {
               if (countersDelegate != null) {
                  counters = countersDelegate.getCounters(cData.taskSpec);
               }
+              TaskStatistics stats = null;
+              if (statsDelegate != null) {
+                stats = statsDelegate.getStatistics(cData.taskSpec);
+              }
               cData.numUpdates++;
               float maxUpdates = (updatesToMake != null) ? updatesToMake.intValue() : 1;
               float progress = updateProgress ? cData.numUpdates/maxUpdates : 0f;
-              events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress), new EventMetaData(
+              events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)));
               TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
                   cData.cIdStr, cData.taId, cData.nextFromEventId, 10000);

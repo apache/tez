@@ -185,6 +185,11 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     if (shuffle != null) {
       shuffle.shutdown();
     }
+    
+    long outputSize = getContext().getCounters()
+        .findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED).getValue();
+    getContext().getStatisticsReporter().reportDataSize(outputSize);
+    
     return Collections.emptyList();
   }
 
