@@ -30,14 +30,14 @@ App.CounterTableComponent = Em.Component.extend({
 
     rawData.forEach(function(cg) {
       var tmpcg = {
-        name: cg.get('name'),
-        displayName: cg.get('displayName'),
+        counterGroupName: cg['counterGroupName'],
+        counterGroupDisplayName: cg['counterGroupDisplayName'],
         counters: []
       };
 
-      var counters = cg.get('counters') || [];
+      var counters = cg['counters'] || [];
       counters.forEach(function(counter) {
-        if (filterStringRegex.test(counter.get('displayName'))) {
+        if (filterStringRegex.test(counter['counterDisplayName'])) {
           tmpcg.counters.push(counter);
         }
       });

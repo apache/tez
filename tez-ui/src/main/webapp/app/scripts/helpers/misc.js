@@ -412,9 +412,19 @@ App.Helpers.misc = {
   timelinePathForType: (function () {
     var typeToPathMap = {
       dag: 'TEZ_DAG_ID',
+
       vertex: 'TEZ_VERTEX_ID',
+      dagVertex: 'TEZ_VERTEX_ID',
+
       task: 'TEZ_TASK_ID',
+      dagTask: 'TEZ_TASK_ID',
+      vertexTask: 'TEZ_TASK_ID',
+
       taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      dagTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      vertexTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      taskTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+
       tezApp: 'TEZ_APPLICATION'
     };
     return function (type) {
@@ -425,9 +435,19 @@ App.Helpers.misc = {
   getTimelineFilterForType: (function () {
     var typeToPathMap = {
       dag: 'TEZ_DAG_ID',
+
       vertex: 'TEZ_VERTEX_ID',
+      dagVertex: 'TEZ_VERTEX_ID',
+
       task: 'TEZ_TASK_ID',
+      dagTask: 'TEZ_TASK_ID',
+      vertexTask: 'TEZ_TASK_ID',
+
       taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      dagTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      vertexTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      taskTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+
       tezApp: 'applicationId'
     };
     return function (type) {

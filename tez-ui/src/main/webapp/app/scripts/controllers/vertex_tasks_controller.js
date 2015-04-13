@@ -21,9 +21,11 @@ App.VertexTasksController = App.TablePageController.extend({
   controllerName: 'VertexTasksController',
   needs: "vertex",
 
-  entityType: 'task',
+  entityType: 'vertexTask',
   filterEntityType: 'vertex',
   filterEntityId: Ember.computed.alias('controllers.vertex.id'),
+
+  cacheDomain: Ember.computed.alias('controllers.vertex.dagID'),
 
   beforeLoad: function () {
     var controller = this.get('controllers.vertex'),

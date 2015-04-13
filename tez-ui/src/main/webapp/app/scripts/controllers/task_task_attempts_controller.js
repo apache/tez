@@ -21,9 +21,11 @@ App.TaskAttemptsController = App.TablePageController.extend({
   controllerName: 'TaskAttemptsController',
   needs: "task",
 
-  entityType: 'taskAttempt',
+  entityType: 'taskTaskAttempt',
   filterEntityType: 'task',
   filterEntityId: Ember.computed.alias('controllers.task.id'),
+
+  cacheDomain: Ember.computed.alias('controllers.task.dagID'),
 
   beforeLoad: function () {
     var taskController = this.get('controllers.task'),

@@ -26,6 +26,9 @@ App.DataArrayLoaderMixin = Em.Mixin.create({
   filterEntityType: null,
   filterEntityId: null,
 
+  // At a time for an entity type, records under one single domain value will only be cached.
+  cacheDomain: undefined,
+
   isRefreshable: true,
 
   _cacheKey: function () {
@@ -86,9 +89,14 @@ App.DataArrayLoaderMixin = Em.Mixin.create({
   load: function (filter) {
     var entityType = this.get('entityType'),
         store = this.get('store'),
-        data = dataCache[this.get('_cacheKey')];
+        data = dataCache[this.get('_cacheKey')],
+        domainKey = entityType + ":Domain";
 
-    if(data) {
+    if(this.get('cacheDomain') != dataCache[domainKey]) {
+      store.unloadAll(entityType);
+      dataCache[domainKey] = this.get('cacheDomain');
+    }
+    else if(data) {
       data.toArray().forEach(function (record) {
         record.unloadRecord();
       });

@@ -26,11 +26,10 @@
 {{#unless loading}}
   <h3>Sources</h3>
   {{#if inputsAvailable}}
-    {{extended-table-component
-      hasFooter=false
-      columnsBinding="inputColumns"
-      contentBinding="inputContent"
-      forceFillColumns=true
+    {{basic-table-component
+      columns=inputColumns
+      rows=inputContent
+      enableSort=true
     }}
   {{else}}
     <h4>Not available!</h4>
@@ -38,11 +37,10 @@
 
   <h3>Sinks</h3>
   {{#if outputsAvailable}}
-    {{extended-table-component
-      hasFooter=false
-      columnsBinding="outputColumns"
-      contentBinding="outputContent"
-      forceFillColumns=true
+    {{basic-table-component
+      columns=outputColumns
+      rows=outputContent
+      enableSort=true
     }}
   {{else}}
     <h4>Not available!</h4>

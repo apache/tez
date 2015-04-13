@@ -29,6 +29,10 @@ App.Dag = App.AbstractEntity.extend({
   // end time of the entity
   endTime: DS.attr('number'),
 
+  duration: function () {
+    return App.Helpers.date.duration(this.get('startTime'), this.get('endTime'))
+  }.property('startTime', 'endTime'),
+
 	// set type to DAG
 	entityType: App.EntityType.DAG,
 
@@ -58,7 +62,7 @@ App.Dag = App.AbstractEntity.extend({
   vertexGroups: DS.attr('array'),
   vertexIdToNameMap: DS.attr('array'),
 
-  counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
+  counterGroups: DS.attr('array'),
 });
 
 App.CounterGroup = DS.Model.extend({
@@ -194,7 +198,7 @@ App.Vertex = App.AbstractEntity.extend({
 
   diagnostics: DS.attr('string'),
 
-  counterGroups: DS.hasMany('counterGroup'),
+  counterGroups: DS.attr('array'),
 
   tasksNumber: function () {
     return this.getWithDefault('tasksCount', 0);
@@ -257,6 +261,7 @@ App.Vertex = App.AbstractEntity.extend({
     return App.Helpers.date.timingFormat(this.get('duration'), true);
   }.property('duration')
 });
+App.DagVertex = App.Vertex.extend({});
 
 App.Input = App.AbstractEntity.extend({
   entity: DS.attr('string'),
@@ -343,8 +348,10 @@ App.Task = App.AbstractEntity.extend({
 
   pivotAttempt: DS.belongsTo('taskAttempt'),
 
-  counterGroups: DS.hasMany('counterGroup', { inverse: 'parent' })
+  counterGroups: DS.attr('array'), // Serialize when required
 });
+App.DagTask = App.Task.extend({});
+App.VertexTask = App.Task.extend({});
 
 App.DagProgress = DS.Model.extend({
   progress: DS.attr('number'),

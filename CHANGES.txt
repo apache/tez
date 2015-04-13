@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2275. Tez UI: enable faster loading and caching of data in tables
   TEZ-2234. Add API for statistics information - allow vertex managers to get
   output size per source vertex
   TEZ-2274. Tez UI: full data loading, client side search and sort for other pages

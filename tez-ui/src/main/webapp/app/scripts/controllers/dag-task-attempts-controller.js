@@ -21,9 +21,11 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
   controllerName: 'DagTaskAttemptsController',
   needs: "dag",
 
-  entityType: 'taskAttempt',
+  entityType: 'dagTaskAttempt',
   filterEntityType: 'dag',
   filterEntityId: Ember.computed.alias('controllers.dag.id'),
+
+  cacheDomain: Ember.computed.alias('controllers.dag.id'),
 
   beforeLoad: function () {
     var dagController = this.get('controllers.dag'),
