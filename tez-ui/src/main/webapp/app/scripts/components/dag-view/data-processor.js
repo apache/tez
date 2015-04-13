@@ -167,6 +167,33 @@ App.DagViewComponent.dataProcessor = (function (){
   };
 
   /**
+   * Iterates the array in a symmetric order, from middle to outwards
+   * @param array {Array} Array to be iterated
+   * @param callback {Function} Function to be called for each item
+   * @return A new array created with value returned by callback
+   */
+  function centericMap(array, callback) {
+    var retArray = [],
+        length,
+        left, right;
+
+    if(array) {
+      length = array.length - 1,
+      left = length >> 1;
+
+      while(left >= 0) {
+        retArray[left] = callback(array[left]);
+        right = length - left;
+        if(right != left) {
+          retArray[right] = callback(array[right]);
+        }
+        left--;
+      }
+    }
+    return retArray;
+  }
+
+  /**
    * Abstract class for all types of data nodes
    */
   var DataNode = Em.Object.extend({
@@ -425,13 +452,12 @@ App.DagViewComponent.dataProcessor = (function (){
    * @param vertex {VertexDataNode}
    */
   function _treefyData(vertex, depth) {
-    var children = [],
-        parentChildren,
-        inputDepth;
+    var children,
+        parentChildren;
 
     depth++;
 
-    vertex.ifForEach('inEdgeIds', function (edgeId) {
+    children = centericMap(vertex.get('inEdgeIds'), function (edgeId) {
       var child = _data.vertices.get(_data.edges.get(edgeId).get('inputVertexName'));
       if(!child.isSelfOrAncestor(vertex)) {
         if(child.depth) {
@@ -446,8 +472,13 @@ App.DagViewComponent.dataProcessor = (function (){
           }
         }
         child.setParent(vertex);
-        children.push(_treefyData(child, depth));
+        return _treefyData(child, depth);
       }
+    });
+
+    // Remove undefined entries
+    children = children.filter(function (child) {
+      return child;
     });
 
     vertex.setDepth(depth);
@@ -481,7 +512,7 @@ App.DagViewComponent.dataProcessor = (function (){
 
     // For a symmetric display of output nodes
     if(childVertices && childVertices.length) {
-      midIndex = Math.ceil(childVertices.length / 2);
+      midIndex = Math.floor(childVertices.length / 2);
       if(childVertices.length % 2 == 0) {
         midIndex--;
       }
@@ -676,7 +707,7 @@ App.DagViewComponent.dataProcessor = (function (){
         return "Sink vertex not found!";
       }
 
-      dummy._setChildren(_data.rootVertices.map(function (vertex) {
+      dummy._setChildren(centericMap(_data.rootVertices, function (vertex) {
         return _treefyData(vertex, 2);
       }));
 

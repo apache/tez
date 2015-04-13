@@ -329,13 +329,13 @@ App.DagViewComponent.graphView = (function (){
     if(rootChildCount % 2 == 0) {
       dummyIndex = rootChildren.indexOf(_treeData.get('dummy'));
       if(dummyIndex >= rootChildCount / 2) {
-        for(var i = dummyIndex - 1; i >= 0; i--) {
+        for(var i = 0; i < dummyIndex; i++) {
           rootChildren[i].x = rootChildren[i + 1].x,
           rootChildren[i].y = rootChildren[i + 1].y;
         }
       }
       else {
-        for(var i = dummyIndex + 1; i < rootChildCount; i++) {
+        for(var i = rootChildCount - 1; i > dummyIndex; i--) {
           rootChildren[i].x = rootChildren[i - 1].x,
           rootChildren[i].y = rootChildren[i - 1].y;
         }

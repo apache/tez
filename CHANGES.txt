@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2252. Tez UI: in graphical view some of the sinks are hidden as they overlap
   TEZ-2275. Tez UI: enable faster loading and caching of data in tables
   TEZ-2234. Add API for statistics information - allow vertex managers to get
   output size per source vertex
