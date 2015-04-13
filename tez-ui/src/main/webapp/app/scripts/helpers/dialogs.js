@@ -35,7 +35,7 @@ App.Dialogs = Em.Namespace.create({
     }
 
     var container = $( "<div/>" ),
-        listHTML = "";
+        listHTML = "<input type='hidden' autofocus='autofocus'/>";
 
     listItems.forEach(function (item) {
       var id = getProperty(item, 'id'),

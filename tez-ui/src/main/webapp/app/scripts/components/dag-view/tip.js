@@ -51,7 +51,7 @@ App.DagViewComponent.tip = (function () {
           "<tr><td>",
           property,
           "</td><td>",
-          App.Helpers.number.formatNumThousands(value),
+          value,
           "</td></tr>"
         );
       });

@@ -40,6 +40,16 @@
     overflow:hidden;
     height: 100%;
 
+    cursor: -moz-grab;
+    cursor: -webkit-grab;
+    cursor: grab;
+
+    &.panning {
+      cursor: -moz-grabbing;
+      cursor: -webkit-grabbing;
+      cursor: grabbing;
+    }
+
     svg {
       width: 100%;
       height: 100%;
@@ -156,7 +166,7 @@
     .no-select;
 
     pointer-events: none;
-    font: 12px sans-serif;
+    font: 11px sans-serif;
     text-anchor: middle;
 
     -webkit-transform: translate(0px, 4px); // For safari
@@ -216,13 +226,21 @@
 
         .task-status {
           -webkit-animation: none !important;
-          font-size: 12px;
+          font-size: 11px;
           margin-top: 3px;
           background-color: rgba(255, 255, 255, 0.8);
           border-radius: 6px;
+          vertical-align: -1px;
 
-          width: 10px;
-          height: 8px;
+          width: 8px;
+          height: 7px;
+
+          &.running {
+            font-size: 11px;
+
+            width: 9px;
+            height: 7px
+          }
         }
       }
     }
@@ -242,6 +260,8 @@
   fill: none;
   stroke: #ccc;
   stroke-width: 3px;
+
+  cursor: default;
 
   &.broadcast {
     stroke: #ccbb8f;
@@ -278,6 +298,9 @@
       font-size: 1.1em;
     }
     .tip-text {
+      border-top: 1px solid rgba(255, 255, 255, 0.4);
+      text-align: center;
+      margin-bottom: -1px;
     }
     .tip-list {
       table {
@@ -288,6 +311,7 @@
         td {
           overflow: hidden;
           white-space: nowrap;
+          text-overflow: ellipsis;
           max-width: 400px;
         }
         td:nth-child(1) {

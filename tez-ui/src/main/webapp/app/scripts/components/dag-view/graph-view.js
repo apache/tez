@@ -132,6 +132,8 @@ App.DagViewComponent.graphView = (function (){
       _scheduledClickId = 0, // Id of scheduled click, used for double click.
 
       _tip,     // Instance of tip.js
+
+      _panZoomValues, // Temporary storage of pan zoom values for fit toggle
       _panZoom; // A closure returned by _attachPanZoom to reset/modify pan and zoom values
 
   function _getName(d) {
@@ -250,7 +252,7 @@ App.DagViewComponent.graphView = (function (){
     node.append('use').attr('xlink:href', '#%@-bg'.fmt(className));
     node.append('text')
         .attr('class', 'title')
-        .text(_trimText(d.get(titleProperty || 'name'), maxTitleLength || 3));
+        .text(_trimText(d.get(titleProperty || 'name'), maxTitleLength || 12));
   }
   /**
    * Populates the calling node with the required content.
@@ -261,7 +263,7 @@ App.DagViewComponent.graphView = (function (){
 
     switch(d.type) {
       case 'vertex':
-        _addBasicContents(node, d, 'vertexName', 15);
+        _addBasicContents(node, d, 'vertexName');
         _addStatusBar(node, d);
         _addTaskBubble(node, d);
         _addIOBubble(node, d);
@@ -376,6 +378,8 @@ App.DagViewComponent.graphView = (function (){
             value = property.getCellContent(d.get('data'));
           }
 
+          value = App.Helpers.number.formatNumThousands(value);
+
           if(typeof value != 'object') {
             list[property.get('headerCellName')] = value;
           }
@@ -390,7 +394,7 @@ App.DagViewComponent.graphView = (function (){
         var list = {
           "Class": App.Helpers.misc.getClassName(d.get("class")),
           "Initializer": App.Helpers.misc.getClassName(d.get("initializer")),
-          "Configurations": d.get("configs.length")
+          "Configurations": App.Helpers.number.formatNumThousands(d.get("configs.length"))
         };
         tooltipData = {
           title: d.get("name"),
@@ -400,7 +404,7 @@ App.DagViewComponent.graphView = (function (){
       case "output":
         var list = {
           "Class": App.Helpers.misc.getClassName(d.get("class")),
-          "Configurations": d.get("configs.length")
+          "Configurations": App.Helpers.number.formatNumThousands(d.get("configs.length"))
         };
         tooltipData = {
           title: d.get("name"),
@@ -446,8 +450,8 @@ App.DagViewComponent.graphView = (function (){
             "Data Movement Type": d.get("dataMovementType"),
             "Data Source Type": d.get("dataSourceType"),
             "Scheduling Type": d.get("schedulingType"),
-            "Edge Destination Class": App.Helpers.misc.getClassName(d.get("edgeDestinationClass")),
-            "Edge Source Class": App.Helpers.misc.getClassName(d.get("edgeSourceClass"))
+            "Edge Source Class": App.Helpers.misc.getClassName(d.get("edgeSourceClass")),
+            "Edge Destination Class": App.Helpers.misc.getClassName(d.get("edgeDestinationClass"))
           };
         }
         else {
@@ -713,7 +717,9 @@ App.DagViewComponent.graphView = (function (){
 
         panX = PADDING,
         panY = PADDING,
-        scale = 1;
+        scale = 1,
+
+        scheduleId = 0;
 
     /**
      * Transform g to current panX, panY and scale.
@@ -722,6 +728,33 @@ App.DagViewComponent.graphView = (function (){
     function transform(animate) {
       var base = animate ? g.transition().duration(DURATION) : g;
       base.attr('transform', 'translate(%@, %@) scale(%@)'.fmt(panX, panY, scale));
+    }
+
+    /**
+     * Check if the item have moved out of the visible area, and reset if required
+     */
+    function visibilityCheck() {
+      var graphBound = g.node().getBoundingClientRect(),
+          containerBound = container[0].getBoundingClientRect();
+
+      if(graphBound.right < containerBound.left ||
+        graphBound.bottom < containerBound.top ||
+        graphBound.left > containerBound.right ||
+        graphBound.top > containerBound.bottom) {
+          panX = PADDING, panY = PADDING, scale = 1;
+          transform(true);
+      }
+    }
+
+    /**
+     * Schedule a visibility check and reset if required
+     */
+    function scheduleVisibilityCheck() {
+      if(scheduleId) {
+        clearTimeout(scheduleId);
+        scheduleId = 0;
+      }
+      scheduleId = setTimeout(visibilityCheck, 100);
     }
 
     /**
@@ -760,6 +793,7 @@ App.DagViewComponent.graphView = (function (){
       panY += (mouseY - panY) * factor;
 
       transform();
+      scheduleVisibilityCheck();
 
       _tip.reposition();
       event.preventDefault();
@@ -772,9 +806,13 @@ App.DagViewComponent.graphView = (function (){
       prevY = event.pageY;
 
       container.on('mousemove', onMouseMove);
+      container.parent().addClass('panning');
     })
     .mouseup(function (event){
       container.off('mousemove', onMouseMove);
+      container.parent().removeClass('panning');
+
+      scheduleVisibilityCheck();
     })
 
     /**
@@ -783,12 +821,20 @@ App.DagViewComponent.graphView = (function (){
      * @param newPanY {Number}
      * @param newScale {Number}
      */
-    return function (newPanX, newPanY, newScale) {
-      panX = newPanX,
-      panY = newPanY,
-      scale = newScale;
+    return function(newPanX, newPanY, newScale) {
+      var values = {
+        panX: panX,
+        panY: panY,
+        scale: scale
+      };
+
+      panX = newPanX == undefined ? panX : newPanX,
+      panY = newPanY == undefined ? panY : newPanY,
+      scale = newScale == undefined ? scale : newScale;
 
       transform(true);
+
+      return values;
     }
   }
 
@@ -851,8 +897,22 @@ App.DagViewComponent.graphView = (function (){
       var scale = Math.min(
         (_svg.width() - PADDING * 2) / _width,
         (_svg.height() - PADDING * 2) / _height
-      );
-      _panZoom(PADDING, PADDING, scale);
+      ),
+      panZoomValues = _panZoom();
+
+      if(
+        panZoomValues.panX != PADDING ||
+        panZoomValues.panY != PADDING ||
+        panZoomValues.scale != scale
+      ) {
+        _panZoomValues = _panZoom(PADDING, PADDING, scale);
+      }
+      else {
+        _panZoomValues = _panZoom(
+          _panZoomValues.panX,
+          _panZoomValues.panY,
+          _panZoomValues.scale);
+      }
     },
 
     /**
