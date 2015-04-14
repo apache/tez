@@ -118,6 +118,7 @@ public interface VertexManagerPluginContext {
    * @return YARN container for the successful task. Maybe null if there is no
    * successful task.
    */
+  @Deprecated
   public Container getTaskContainer(String vertexName, Integer taskIndex);
   
   /**
