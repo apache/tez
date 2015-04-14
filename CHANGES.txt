@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2318. Tez UI: source and sink page is broken as they are not populated.
   TEZ-2016. Tez UI: Dag View Fit and Finish
   TEZ-2252. Tez UI: in graphical view some of the sinks are hidden as they overlap
   TEZ-2275. Tez UI: enable faster loading and caching of data in tables

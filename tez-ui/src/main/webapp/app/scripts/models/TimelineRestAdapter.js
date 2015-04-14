@@ -245,12 +245,13 @@ App.VertexSerializer = App.TimelineSerializer.extend({
 
   normalizePayload: function(rawPayload, property) {
     var pluralizedPoperty,
+        normalizedPayload,
         n;
 
     property = property || 'vertex',
     pluralizedPoperty = property.pluralize();;
     if (!!rawPayload[pluralizedPoperty]) {
-      var normalizedPayload = {
+      normalizedPayload = {
         inputs: [],
         outputs: [],
       };
@@ -268,9 +269,14 @@ App.VertexSerializer = App.TimelineSerializer.extend({
 
       return normalizedPayload;
     } else {
-      n = {};
-      n[property] = this._normalizeSingleVertexPayload(rawPayload[property]).vertex;
-      return n;
+      n = this._normalizeSingleVertexPayload(rawPayload[property]);
+      normalizedPayload = {
+        inputs : n.inputs,
+        outputs: n.outputs
+      };
+      normalizedPayload[property] = n.vertex;
+
+      return normalizedPayload;
     }
   },
 
