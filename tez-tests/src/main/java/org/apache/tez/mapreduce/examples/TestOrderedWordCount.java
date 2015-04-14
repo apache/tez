@@ -162,8 +162,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
         TokenizerMapper.class.getName());
-
-    MRHelpers.translateMRConfToTez(mapStageConf);
+    MRHelpers.translateMRConfToTez(mapStageConf, !useMRSettings);
 
     Configuration iReduceStageConf = new JobConf(conf);
     // TODO replace with auto-reduce parallelism
@@ -174,7 +173,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     iReduceStageConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS,
         IntWritable.class.getName());
     iReduceStageConf.setBoolean("mapred.mapper.new-api", true);
-    MRHelpers.translateMRConfToTez(iReduceStageConf);
+    MRHelpers.translateMRConfToTez(iReduceStageConf, !useMRSettings);
 
     Configuration finalReduceConf = new JobConf(conf);
     finalReduceConf.setInt(MRJobConfig.NUM_REDUCES, 1);
@@ -182,7 +181,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         MyOrderByNoOpReducer.class.getName());
     finalReduceConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
     finalReduceConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
-    MRHelpers.translateMRConfToTez(finalReduceConf);
+    MRHelpers.translateMRConfToTez(finalReduceConf, !useMRSettings);
 
     MRHelpers.configureMRApiUsage(mapStageConf);
     MRHelpers.configureMRApiUsage(iReduceStageConf);
@@ -190,19 +189,22 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
-    mapStageConf.writeXml(outputStream);
-    String mapStageHistoryText = new String(outputStream.toByteArray(), "UTF-8");
+    String mapStageHistoryText = TezUtils.convertToHistoryText("Initial Tokenizer Vertex",
+        mapStageConf);
     DataSourceDescriptor dsd;
     if (generateSplitsInClient) {
       mapStageConf.set(MRJobConfig.INPUT_FORMAT_CLASS_ATTR,
           TextInputFormat.class.getName());
       mapStageConf.set(FileInputFormat.INPUT_DIR, inputPath);
       mapStageConf.setBoolean("mapred.mapper.new-api", true);
-      dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(mapStageConf, stagingDir, true);
+      dsd = MRInputHelpers.configureMRInputWithLegacySplitGeneration(mapStageConf, stagingDir,
+          true);
     } else {
-      dsd = MRInputLegacy.createConfigBuilder(mapStageConf, TextInputFormat.class, inputPath).build();
+      dsd = MRInputLegacy.createConfigBuilder(mapStageConf, TextInputFormat.class,
+          inputPath).build();
     }
+    dsd.getInputDescriptor().setHistoryText(TezUtils.convertToHistoryText(
+        "HDFS Input " + inputPath, mapStageConf));
 
     Map<String, String> mapEnv = Maps.newHashMap();
     MRHelpers.updateEnvBasedOnMRTaskEnv(mapStageConf, mapEnv, true);
@@ -227,10 +229,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
         .addDataSource("MRInput", dsd);
     vertices.add(mapVertex);
 
-    ByteArrayOutputStream iROutputStream = new ByteArrayOutputStream(4096);
-    iReduceStageConf.writeXml(iROutputStream);
-    String iReduceStageHistoryText = new String(iROutputStream.toByteArray(), "UTF-8");
-
+    String iReduceStageHistoryText = TezUtils.convertToHistoryText("Intermediate Summation Vertex",
+        iReduceStageConf);
     ProcessorDescriptor iReduceProcessorDescriptor = ProcessorDescriptor.create(
         ReduceProcessor.class.getName())
         .setUserPayload(TezUtils.createUserPayloadFromConf(iReduceStageConf))
@@ -249,9 +249,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
     intermediateVertex.addTaskLocalFiles(commonLocalResources);
     vertices.add(intermediateVertex);
 
-    ByteArrayOutputStream finalReduceOutputStream = new ByteArrayOutputStream(4096);
-    finalReduceConf.writeXml(finalReduceOutputStream);
-    String finalReduceStageHistoryText = new String(finalReduceOutputStream.toByteArray(), "UTF-8");
+    String finalReduceStageHistoryText = TezUtils.convertToHistoryText("Final Sorter Vertex",
+        finalReduceConf);
     UserPayload finalReducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
     Vertex finalReduceVertex;
 
@@ -272,6 +271,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
     finalReduceVertex.addDataSink("MROutput",
         MROutputLegacy.createConfigBuilder(finalReduceConf, TextOutputFormat.class, outputPath)
             .build());
+    finalReduceVertex.getDataSinks().get(0).getOutputDescriptor().setHistoryText(
+        TezUtils.convertToHistoryText("HDFS Output " + outputPath, finalReduceConf));
     vertices.add(finalReduceVertex);
 
     DAG dag = DAG.create("OrderedWordCount" + dagIndex);
@@ -546,7 +547,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new TestOrderedWordCount(), args);
+    int res = ToolRunner.run(new TezConfiguration(), new TestOrderedWordCount(), args);
     System.exit(res);
   }
 }
