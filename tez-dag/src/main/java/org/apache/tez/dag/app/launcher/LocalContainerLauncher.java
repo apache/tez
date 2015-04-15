@@ -90,6 +90,7 @@ public class LocalContainerLauncher extends AbstractService implements
   private final String workingDirectory;
   private final Map<String, String> localEnv = new HashMap<String, String>();
   private final ExecutionContext executionContext;
+  private int numExecutors;
 
   private final ConcurrentHashMap<ContainerId, ListenableFuture<TezChild.ContainerExecutionResult>>
       runningContainers =
@@ -122,7 +123,7 @@ public class LocalContainerLauncher extends AbstractService implements
 
   @Override
   public synchronized void serviceInit(Configuration conf) {
-    int numExecutors = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
+    numExecutors = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
         TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
     Preconditions.checkState(numExecutors >=1, "Must have at least 1 executor");
     ExecutorService rawExecutor = Executors.newFixedThreadPool(numExecutors,
@@ -328,11 +329,14 @@ public class LocalContainerLauncher extends AbstractService implements
     containerEnv.putAll(localEnv);
     containerEnv.put(Environment.USER.name(), context.getUser());
 
-    // TODO TEZ-1482. Control the memory available based on number of executors
+    long memAvailable;
+    synchronized (this) { // needed to fix findbugs Inconsistent synchronization warning
+      memAvailable = Runtime.getRuntime().maxMemory() / numExecutors;
+    }
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
             attemptNumber, localDirs, workingDirectory, containerEnv, "", executionContext, credentials,
-            Runtime.getRuntime().maxMemory(), context.getUser());
+            memAvailable, context.getUser());
     tezChild.setUmbilical(tezTaskUmbilicalProtocol);
     return tezChild;
   }

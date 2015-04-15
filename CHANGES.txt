@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-1482. Fix memory issues for Local Mode running concurrent tasks
   TEZ-2033. Update TestOrderedWordCount to add processor configs as history text
   and use MR configs correctly
   TEZ-2318. Tez UI: source and sink page is broken as they are not populated.
