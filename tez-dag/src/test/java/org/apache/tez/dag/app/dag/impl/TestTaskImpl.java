@@ -467,6 +467,28 @@ public class TestTaskImpl {
 
     assertTaskSucceededState();
   }
+  
+
+  @Test(timeout = 5000)
+  public void testEventBacklogDuringTaskAttemptCommit() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    assertEquals(TaskState.SCHEDULED, mockTask.getState());
+    // simulate
+    // task in scheduled state due to event backlog - real task done and calling canCommit
+    assertFalse("Commit should return false to make running task wait",
+        mockTask.canCommit(mockTask.getLastAttempt().getID()));
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+    assertTrue("Task state in AM is running now. Can commit.",
+        mockTask.canCommit(mockTask.getLastAttempt().getID()));
+
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.SUCCEEDED);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
+
+    assertTaskSucceededState();
+  }
 
 
   @Test(timeout = 5000)

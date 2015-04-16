@@ -288,6 +288,8 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2317. Event processing backlog can result in task failures for short
+  tasks
   TEZ-2289. ATSHistoryLoggingService can generate ArrayOutOfBoundsException.
   TEZ-2257. Fix potential NPEs in TaskReporter.
   TEZ-2192. Relocalization does not check for source.

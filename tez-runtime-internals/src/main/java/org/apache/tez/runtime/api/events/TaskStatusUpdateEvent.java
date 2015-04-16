@@ -66,6 +66,8 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
     if (statistics != null) {
       out.writeBoolean(true);
       statistics.write(out);
+    } else {
+      out.writeBoolean(false);
     }
   }
 

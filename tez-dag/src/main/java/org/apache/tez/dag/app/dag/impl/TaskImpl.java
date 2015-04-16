@@ -715,7 +715,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   public boolean canCommit(TezTaskAttemptID taskAttemptID) {
     writeLock.lock();
     try {
-      if (getState() != TaskState.RUNNING) {
+      TaskState state = getState();
+      if (state == TaskState.SCHEDULED) {
+        // the actual running task ran and is done and asking for commit. we are still stuck 
+        // in the scheduled state which indicates a backlog in event processing. lets wait for the
+        // backlog to clear. returning false will make the attempt come back to us.
+        LOG.debug("Event processing delay. "
+            + "Attempt committing before state machine transitioned to running : Task {}", taskId);
+        return false;
+      }
+      // at this point the attempt is no longer in scheduled state or else we would still 
+      // have been in scheduled state in task impl.
+      if (state != TaskState.RUNNING) {
         LOG.info("Task not running. Issuing kill to bad commit attempt " + taskAttemptID);
         eventHandler.handle(new TaskAttemptEventKillRequest(taskAttemptID
             , "Task not running. Bad attempt.", TaskAttemptTerminationCause.TERMINATED_ORPHANED));
@@ -758,7 +769,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       writeLock.unlock();
     }
   }
-
+  
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
