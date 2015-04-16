@@ -74,6 +74,7 @@ public class DAGStatus {
     case DAG_INITING:
     case DAG_TERMINATING:
     case DAG_RUNNING:
+    case DAG_COMMITTING:
       return DAGStatus.State.RUNNING;
     case DAG_SUCCEEDED:
       return DAGStatus.State.SUCCEEDED;

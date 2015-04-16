@@ -82,6 +82,8 @@ public class ExampleDriver {
           "Filters lines by the specified word using broadcast edge");
       pgd.addClass("filterLinesByWordOneToOne", FilterLinesByWordOneToOne.class,
           "Filters lines by the specified word using OneToOne edge");
+      pgd.addClass("multiplecommitsExample", MultipleCommitsExample.class,
+          "Job with multiple commits in both vertex group and vertex");
       exitCode = pgd.run(argv);
     }
     catch(Throwable e){

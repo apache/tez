@@ -28,6 +28,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -49,21 +52,26 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.OutputCommitterDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.MockDAGAppMaster.CountersDelegate;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher.ContainerData;
 import org.apache.tez.dag.app.MockDAGAppMaster.StatisticsDelegate;
 import org.apache.tez.dag.app.dag.DAGState;
-import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
@@ -73,6 +81,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.VertexStatistics;
+import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.IOStatistics;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -85,8 +95,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 
 public class TestMockDAGAppMaster {
+  private static final Log LOG = LogFactory.getLog(TestMockDAGAppMaster.class);
   static Configuration defaultConf;
   static FileSystem localFs;
   
@@ -172,7 +184,7 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(TaskAttemptState.KILLED, killedTa.getState());
     tezClient.stop();
   }
-  
+
   @Test (timeout = 5000)
   public void testBasicEvents() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
@@ -645,6 +657,226 @@ public class TestMockDAGAppMaster {
       MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
       // will timeout if DAGAppMasterShutdownHook is not invoked
       mockApp.waitForServiceToStop(Integer.MAX_VALUE);
+    }
+  }
+
+
+  private OutputCommitterDescriptor createOutputCommitterDesc(boolean failOnCommit) {
+    OutputCommitterDescriptor outputCommitterDesc =
+        OutputCommitterDescriptor.create(FailingOutputCommitter.class.getName());
+    UserPayload payload = UserPayload.create(
+        ByteBuffer.wrap(new FailingOutputCommitter.FailingOutputCommitterConfig(failOnCommit).toUserPayload()));
+    outputCommitterDesc.setUserPayload(payload);
+    return outputCommitterDesc;
+  }
+
+  private DAG createDAG(String dagName, boolean uv12CommitFail, boolean v3CommitFail) {
+    DAG dag = DAG.create(dagName);
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Proc"), 1);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Proc"), 1);
+    Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Proc"), 1);
+    VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
+    DataSinkDescriptor uv12DataSink = DataSinkDescriptor.create(
+        OutputDescriptor.create("dummy output"), createOutputCommitterDesc(uv12CommitFail), null);
+    uv12.addDataSink("uv12Out", uv12DataSink);
+    DataSinkDescriptor v3DataSink = DataSinkDescriptor.create(
+        OutputDescriptor.create("dummy output"), createOutputCommitterDesc(v3CommitFail), null);
+    v3.addDataSink("v3Out", v3DataSink);
+
+    GroupInputEdge e1 = GroupInputEdge.create(uv12, v3, EdgeProperty.create(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("dummy output class"),
+        InputDescriptor.create("dummy input class")), InputDescriptor
+        .create("merge.class"));
+    dag.addVertex(v1)
+      .addVertex(v2)
+      .addVertex(v3)
+      .addEdge(e1);
+    return dag;
+  }
+
+  @Test (timeout = 60000)
+  public void testCommitOutputOnDAGSuccess() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
+    tezClient.start();
+
+    // both committers succeed
+    DAG dag1 = createDAG("testDAGBothCommitsSucceed", false, false);
+    DAGClient dagClient = tezClient.submitDAG(dag1);
+    dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    
+    // vertexGroupCommiter fail (uv12)
+    DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
+    dagClient = tezClient.submitDAG(dag2);
+    dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
+    Assert.assertTrue(StringUtils.join(dagClient.getDAGStatus(null).getDiagnostics(),",")
+        .contains("fail output committer:uv12Out"));
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v1", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v2", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v3", null).getState());
+
+    // vertex commit fail (v3)
+    DAG dag3 = createDAG("testDAGVertexCommitFail", false, true);
+    dagClient = tezClient.submitDAG(dag3);
+    dagClient.waitForCompletion();
+    LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    Assert.assertTrue(StringUtils.join(dagClient.getDAGStatus(null).getDiagnostics(),",")
+        .contains("fail output committer:v3Out"));
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v1", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v2", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v3", null).getState());
+
+    // both committers fail
+    DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
+    dagClient = tezClient.submitDAG(dag4);
+    dagClient.waitForCompletion();
+    LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    String diag = StringUtils.join(dagClient.getDAGStatus(null).getDiagnostics(),",");
+    Assert.assertTrue(diag.contains("fail output committer:uv12Out") ||
+        diag.contains("fail output committer:v3Out"));
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v1", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v2", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v3", null).getState());
+
+    tezClient.stop();
+  }
+
+  @Test (timeout = 60000)
+  public void testCommitOutputOnVertexSuccess() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    tezconf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
+    tezClient.start();
+
+    // both committers succeed
+    DAG dag1 = createDAG("testDAGBothCommitsSucceed", false, false);
+    DAGClient dagClient = tezClient.submitDAG(dag1);
+    dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    
+    // vertexGroupCommiter fail (uv12)
+    DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
+    dagClient = tezClient.submitDAG(dag2);
+    dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
+    Assert.assertTrue(StringUtils.join(dagClient.getDAGStatus(null).getDiagnostics(),",")
+        .contains("fail output committer:uv12Out"));
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v1", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v2", null).getState());
+    VertexStatus.State v3State = dagClient.getVertexStatus("v3", null).getState();
+    // v3 either succeeded (commit completed before uv12 commit fails)
+    // or killed ( uv12 commit fail when v3 is in running/committing)
+    if (v3State.equals(VertexStatus.State.SUCCEEDED)) {
+      LOG.info("v3 is succeeded");
+    } else {
+      Assert.assertEquals(VertexStatus.State.KILLED, v3State);
+    }
+
+    // vertex commit fail (v3)
+    DAG dag3 = createDAG("testDAGVertexCommitFail", false, true);
+    dagClient = tezClient.submitDAG(dag3);
+    dagClient.waitForCompletion();
+    LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    Assert.assertTrue(StringUtils.join(dagClient.getDAGStatus(null).getDiagnostics(),",")
+        .contains("Commit failed"));
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v1", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v2", null).getState());
+    Assert.assertEquals(VertexStatus.State.FAILED, dagClient.getVertexStatus("v3", null).getState());
+    Assert.assertTrue(StringUtils.join(dagClient.getVertexStatus("v3", null).getDiagnostics(),",")
+        .contains("fail output committer:v3Out"));
+    
+    // both committers fail
+    DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
+    dagClient = tezClient.submitDAG(dag4);
+    dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
+    Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
+    String diag = StringUtils.join(dagClient.getDAGStatus(null).getDiagnostics(),",");
+    Assert.assertTrue(diag.contains("fail output committer:uv12Out") ||
+        diag.contains("fail output committer:v3Out"));
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v1", null).getState());
+    Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v2", null).getState());
+    v3State = dagClient.getVertexStatus("v3", null).getState();
+    // v3 either failed (commit of v3 fail before uv12 commit)
+    // or killed ( uv12 commit fail before commit of v3)
+    if (v3State.equals(VertexStatus.State.FAILED)) {
+      LOG.info("v3 is failed");
+      Assert.assertTrue(StringUtils.join(dagClient.getVertexStatus("v3", null).getDiagnostics(),",")
+          .contains("fail output committer:v3Out"));
+    } else {
+      Assert.assertEquals(VertexStatus.State.KILLED, v3State);
+    }
+
+    tezClient.stop();
+  }
+  
+  public static class FailingOutputCommitter extends OutputCommitter {
+
+    boolean failOnCommit = false;
+
+    public FailingOutputCommitter(OutputCommitterContext committerContext) {
+      super(committerContext);
+    }
+
+    @Override
+    public void initialize() throws Exception {
+      FailingOutputCommitterConfig config = new
+          FailingOutputCommitterConfig();
+      config.fromUserPayload(
+          getContext().getUserPayload().deepCopyAsArray());
+      failOnCommit = config.failOnCommit;
+    }
+
+    @Override
+    public void setupOutput() throws Exception {
+
+    }
+
+    @Override
+    public void commitOutput() throws Exception {
+      if (failOnCommit) {
+        throw new Exception("fail output committer:" + getContext().getOutputName());
+      }
+    }
+
+    @Override
+    public void abortOutput(State finalState) throws Exception {
+
+    }
+
+    public static class FailingOutputCommitterConfig {
+      boolean failOnCommit;
+
+      public FailingOutputCommitterConfig() {
+        this(false);
+      }
+
+      public FailingOutputCommitterConfig(boolean failOnCommit) {
+        this.failOnCommit = failOnCommit;
+      }
+
+      public byte[] toUserPayload() {
+        return Ints.toByteArray((failOnCommit ? 1 : 0));
+      }
+
+      public void fromUserPayload(byte[] userPayload) {
+        int failInt = Ints.fromByteArray(userPayload);
+        if (failInt == 0) {
+          failOnCommit = false;
+        } else {
+          failOnCommit = true;
+        }
+      }
     }
   }
 }

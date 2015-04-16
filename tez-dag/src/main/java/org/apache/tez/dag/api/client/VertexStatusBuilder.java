@@ -71,6 +71,8 @@ public class VertexStatusBuilder extends VertexStatus {
         return VertexStatusStateProto.VERTEX_INITED;
       case RUNNING:
         return VertexStatusStateProto.VERTEX_RUNNING;
+      case COMMITTING:
+        return VertexStatusStateProto.VERTEX_COMMITTING;
       case SUCCEEDED:
         return VertexStatusStateProto.VERTEX_SUCCEEDED;
       case FAILED:

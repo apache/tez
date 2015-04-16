@@ -19,7 +19,6 @@
 package org.apache.tez.dag.api.client;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -43,6 +42,7 @@ public class VertexStatus {
     INITIALIZING,
     INITED,
     RUNNING,
+    COMMITTING,
     SUCCEEDED,
     FAILED,
     KILLED,
@@ -74,6 +74,8 @@ public class VertexStatus {
         return VertexStatus.State.INITED;
       case VERTEX_RUNNING:
         return VertexStatus.State.RUNNING;
+      case VERTEX_COMMITTING:
+        return VertexStatus.State.COMMITTING;
       case VERTEX_SUCCEEDED:
         return VertexStatus.State.SUCCEEDED;
       case VERTEX_FAILED:

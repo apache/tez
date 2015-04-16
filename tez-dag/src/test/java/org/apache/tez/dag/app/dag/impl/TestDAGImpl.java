@@ -1364,7 +1364,7 @@ public class TestDAGImpl {
       }
     }
     
-    // error on vertex -> dag error -> successful vertex output not aborted
+    // error on vertex -> dag error
     Vertex errorVertex = mrrDag.getVertex("vertex3");
     dispatcher.getEventHandler().handle(new VertexEvent(
         errorVertex.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
@@ -1383,7 +1383,8 @@ public class TestDAGImpl {
           Assert.assertEquals(1, committer.initCounter);
           Assert.assertEquals(1, committer.setupCounter);
         } else {
-          Assert.assertEquals(0, committer.abortCounter);
+          // abort operation should take no side effort on the successful commit
+          Assert.assertEquals(1, committer.abortCounter);
           Assert.assertEquals(1, committer.commitCounter);
           Assert.assertEquals(1, committer.initCounter);
           Assert.assertEquals(1, committer.setupCounter);          

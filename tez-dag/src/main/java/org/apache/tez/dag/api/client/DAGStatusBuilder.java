@@ -72,6 +72,8 @@ public class DAGStatusBuilder extends DAGStatus {
       return DAGStatusStateProto.DAG_INITING;
     case RUNNING:
       return DAGStatusStateProto.DAG_RUNNING;
+    case COMMITTING:
+      return DAGStatusStateProto.DAG_COMMITTING;
     case SUCCEEDED:
       return DAGStatusStateProto.DAG_SUCCEEDED;
     case FAILED:

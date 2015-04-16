@@ -42,6 +42,8 @@ public enum DAGTerminationCause {
   /** In some cases, vertex could not rerun, e.g. its output been committed as a shared output of vertex group */
   VERTEX_RERUN_AFTER_COMMIT,
 
+  VERTEX_RERUN_IN_COMMITTING,
+
   /** DAG failed while trying to write recovery events */
   RECOVERY_FAILURE,
 

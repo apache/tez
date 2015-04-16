@@ -46,11 +46,17 @@ public enum VertexTerminationCause {
   /** In some cases, vertex could not rerun, e.g. its output been committed as a shared output of vertex group */
   VERTEX_RERUN_AFTER_COMMIT,
 
+  /** Rerun vertex while it is in committing, it would cause conflict. */
+  VERTEX_RERUN_IN_COMMITTING,
+
   /** This vertex failed as it had invalid number tasks. */
   INVALID_NUM_OF_TASKS, 
 
   /** This vertex failed during init. */
   INIT_FAILURE,
   
-  INTERNAL_ERROR
+  INTERNAL_ERROR,
+  
+  /** error when writing recovery log */ 
+  RECOVERY_ERROR,
 }

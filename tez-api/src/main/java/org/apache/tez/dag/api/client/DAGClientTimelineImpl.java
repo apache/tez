@@ -479,6 +479,7 @@ public class DAGClientTimelineImpl extends DAGClient {
         put("KILLED", DAGStatusStateProto.DAG_KILLED);
         put("ERROR", DAGStatusStateProto.DAG_ERROR);
         put("TERMINATING", DAGStatusStateProto.DAG_TERMINATING);
+        put("COMMITTING", DAGStatusStateProto.DAG_COMMITTING);
   }});
 
   private static final Map<String, VertexStatusStateProto> vertexStateProtoMap =
@@ -493,6 +494,7 @@ public class DAGClientTimelineImpl extends DAGClient {
         put("KILLED", VertexStatusStateProto.VERTEX_KILLED);
         put("ERROR", VertexStatusStateProto.VERTEX_ERROR);
         put("TERMINATING", VertexStatusStateProto.VERTEX_TERMINATING);
+        put("COMMITTING", VertexStatusStateProto.VERTEX_COMMITTING);
       }});
 
 

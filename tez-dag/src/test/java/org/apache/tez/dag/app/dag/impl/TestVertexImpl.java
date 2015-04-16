@@ -3341,8 +3341,7 @@ public class TestVertexImpl {
 
     Assert.assertEquals(1, committer.commitCounter);
 
-    // FIXME need to verify whether abort needs to be called if commit fails
-    Assert.assertEquals(0, committer.abortCounter);
+    Assert.assertEquals(1, committer.abortCounter);
     Assert.assertEquals(1, committer.initCounter);
     Assert.assertEquals(1, committer.setupCounter);
   }
@@ -3386,8 +3385,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.COMMIT_FAILURE, v.getTerminationCause());
     Assert.assertEquals(1, committer.commitCounter);
 
-    // FIXME need to verify whether abort needs to be called if commit fails
-    Assert.assertEquals(0, committer.abortCounter);
+    Assert.assertEquals(1, committer.abortCounter);
     Assert.assertEquals(1, committer.initCounter);
     Assert.assertEquals(1, committer.setupCounter);
   }

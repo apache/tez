@@ -33,12 +33,14 @@ import java.util.BitSet;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -72,6 +74,7 @@ import org.apache.tez.examples.JoinDataGen;
 import org.apache.tez.examples.HashJoinExample;
 import org.apache.tez.examples.JoinValidate;
 import org.apache.tez.examples.SortMergeJoinExample;
+import org.apache.tez.mapreduce.examples.MultipleCommitsExample;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
@@ -817,6 +820,81 @@ public class TestTezJobs {
       Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     } finally {
       tezClient.stop();
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testMultipleCommits_OnDAGSuccess() throws Exception {
+    Path stagingDirPath = new Path("/tmp/commit-staging-dir");
+    Random rand = new Random();
+    String v1OutputPathPrefix = "/tmp/commit-output-v1";
+    int v1OutputNum = rand.nextInt(10) + 1;
+    String v2OutputPathPrefix = "/tmp/commit-output-v2";
+    int v2OutputNum = rand.nextInt(10) + 1;
+    String uv12OutputPathPrefix = "/tmp/commit-output-uv12";
+    int uv12OutputNum = rand.nextInt(10) + 1;
+    String v3OutputPathPrefix = "/tmp/commit-output-v3";
+    int v3OutputNum = rand.nextInt(10) + 1;
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    TezClient tezSession = null;
+
+    try {
+      MultipleCommitsExample job = new MultipleCommitsExample();
+      Assert.assertTrue("MultipleCommitsExample failed", job.run(tezConf,
+          new String[]{ v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
+          uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + ""}, null)==0);
+      verifyCommits(v1OutputPathPrefix, v1OutputNum);
+      verifyCommits(v2OutputPathPrefix, v2OutputNum);
+      verifyCommits(uv12OutputPathPrefix, uv12OutputNum);
+      verifyCommits(v3OutputPathPrefix, v3OutputNum);
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+  
+  @Test(timeout = 60000)
+  public void testMultipleCommits_OnVertexSuccess() throws Exception {
+    Path stagingDirPath = new Path("/tmp/commit-staging-dir");
+    Random rand = new Random();
+    String v1OutputPathPrefix = "/tmp/commit-output-v1";
+    int v1OutputNum = rand.nextInt(10) + 1;
+    String v2OutputPathPrefix = "/tmp/commit-output-v2";
+    int v2OutputNum = rand.nextInt(10) + 1;
+    String uv12OutputPathPrefix = "/tmp/commit-output-uv12";
+    int uv12OutputNum = rand.nextInt(10) + 1;
+    String v3OutputPathPrefix = "/tmp/commit-output-v3";
+    int v3OutputNum = rand.nextInt(10) + 1;
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    TezClient tezSession = null;
+
+    try {
+      MultipleCommitsExample job = new MultipleCommitsExample();
+      Assert.assertTrue("MultipleCommitsExample failed", job.run(tezConf,
+          new String[]{ v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
+          uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + "",
+          MultipleCommitsExample.CommitOnVertexSuccessOption}, null)==0);
+      verifyCommits(v1OutputPathPrefix, v1OutputNum);
+      verifyCommits(v2OutputPathPrefix, v2OutputNum);
+      verifyCommits(uv12OutputPathPrefix, uv12OutputNum);
+      verifyCommits(v3OutputPathPrefix, v3OutputNum);
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+  
+  private void verifyCommits(String outputPrefix, int outputNum) throws IllegalArgumentException, IOException {
+    for (int i=0; i< outputNum; ++i) {
+      String outputDir = outputPrefix + "_" + i;
+      Assert.assertTrue("Output of " + outputDir + " is not succeeded",
+          remoteFs.exists(new Path( outputDir + "/_SUCCESS")));
     }
   }
 

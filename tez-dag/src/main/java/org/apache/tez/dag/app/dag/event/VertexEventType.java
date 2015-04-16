@@ -62,6 +62,9 @@ public enum VertexEventType {
   V_SOURCE_VERTEX_RECOVERED,
   
   // Producer: Edge
-  V_NULL_EDGE_INITIALIZED
+  V_NULL_EDGE_INITIALIZED,
+
+  // Committer
+  V_COMMIT_COMPLETED,
 
 }

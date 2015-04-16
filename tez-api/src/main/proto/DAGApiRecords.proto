@@ -199,6 +199,7 @@ enum VertexStatusStateProto {
   VERTEX_KILLED = 7;
   VERTEX_ERROR = 8;
   VERTEX_TERMINATING = 9;
+  VERTEX_COMMITTING = 10;
 }
 
 message VertexStatusProto {
@@ -217,6 +218,7 @@ enum DAGStatusStateProto {
   DAG_FAILED = 5;
   DAG_ERROR = 6;
   DAG_TERMINATING = 7;
+  DAG_COMMITTING = 8;
 }
 
 message StringProgressPairProto {

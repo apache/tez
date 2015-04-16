@@ -39,4 +39,6 @@ public enum TaskTerminationCause {
    * throw Exception
    */
   AM_USERCODE_FAILURE,
+  
+  TASK_RESCHEDULE_IN_COMMITTING,
 }

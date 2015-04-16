@@ -15,18 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.dag.app.dag;
+package org.apache.tez.dag.app.dag.event;
 
-public enum VertexState {
-  NEW,
-  INITIALIZING,
-  INITED,
-  RUNNING,
-  SUCCEEDED,
-  FAILED,
-  KILLED,
-  ERROR,
-  TERMINATING,
-  RECOVERING,
-  COMMITTING,
+import org.apache.tez.dag.records.TezVertexID;
+
+public class VertexEventCommitCompleted extends VertexEvent {
+
+  private String outputName;
+  private boolean isSucceeded;
+  private Throwable failException;
+
+  public VertexEventCommitCompleted(TezVertexID vertexId, String outputName,
+      boolean isSucceeded, Throwable failException) {
+    super(vertexId, VertexEventType.V_COMMIT_COMPLETED);
+    this.outputName = outputName;
+    this.isSucceeded = isSucceeded;
+    this.failException = failException;
+  }
+
+  public String getOutputName() {
+    return outputName;
+  }
+
+  public boolean isSucceeded() {
+    return isSucceeded;
+  }
+
+  public Throwable getException() {
+    return failException;
+  }
 }

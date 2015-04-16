@@ -44,5 +44,7 @@ public enum DAGEventType {
 
   // Event to trigger recovery
   // Producer:AM
-  DAG_RECOVER
+  DAG_RECOVER,
+
+  DAG_COMMIT_COMPLETED,
 }

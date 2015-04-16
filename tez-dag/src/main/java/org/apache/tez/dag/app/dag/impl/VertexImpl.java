@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -94,6 +96,7 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
@@ -102,6 +105,7 @@ import org.apache.tez.dag.app.dag.TaskTerminationCause;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
+import org.apache.tez.dag.app.dag.event.CallableEvent;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
@@ -117,6 +121,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
+import org.apache.tez.dag.app.dag.event.VertexEventCommitCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventInputDataInformation;
 import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventNullEdgeInitialized;
@@ -179,6 +184,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
@@ -255,6 +263,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private static final SourceTaskAttemptCompletedEventTransition
       SOURCE_TASK_ATTEMPT_COMPLETED_EVENT_TRANSITION =
           new SourceTaskAttemptCompletedEventTransition();
+  private static final CommitCompletedTransition
+      COMMIT_COMPLETED_TRANSITION =
+          new CommitCompletedTransition();
   private static final VertexStateChangedCallback STATE_CHANGED_CALLBACK =
       new VertexStateChangedCallback();
 
@@ -267,6 +278,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   final List<TezEvent> pendingInitializerEvents = new LinkedList<TezEvent>();
   
   LegacySpeculator speculator;
+
+  @VisibleForTesting
+  Map<String, ListenableFuture<Void>> commitFutures = new ConcurrentHashMap<String, ListenableFuture<Void>>();
 
   protected static final
     StateMachineFactory<VertexImpl, VertexState, VertexEventType, VertexEvent>
@@ -445,6 +459,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           .addTransition
               (VertexState.RUNNING,
               EnumSet.of(VertexState.RUNNING,
+                  VertexState.COMMITTING,
                   VertexState.SUCCEEDED, VertexState.TERMINATING, VertexState.FAILED,
                   VertexState.ERROR),
               VertexEventType.V_TASK_COMPLETED,
@@ -473,6 +488,38 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexEventType.V_ROUTE_EVENT,
               ROUTE_EVENT_TRANSITION)
 
+          // Transitions from COMMITTING state.
+          .addTransition(
+              VertexState.COMMITTING,
+              EnumSet.of(VertexState.COMMITTING, VertexState.TERMINATING,
+                  VertexState.SUCCEEDED, VertexState.FAILED),
+              VertexEventType.V_COMMIT_COMPLETED,
+              COMMIT_COMPLETED_TRANSITION)
+          .addTransition(
+              VertexState.COMMITTING,
+              VertexState.TERMINATING,
+              VertexEventType.V_TERMINATE,
+              new VertexKilledWhileCommittingTransition()) 
+          .addTransition(
+              VertexState.COMMITTING,
+              VertexState.ERROR,
+              VertexEventType.V_INTERNAL_ERROR,
+              INTERNAL_ERROR_TRANSITION)
+          .addTransition(
+              VertexState.COMMITTING,
+              EnumSet.of(VertexState.COMMITTING, VertexState.TERMINATING),
+              VertexEventType.V_ROUTE_EVENT,
+              ROUTE_EVENT_TRANSITION)
+          .addTransition(
+              VertexState.COMMITTING,
+              VertexState.TERMINATING,
+              VertexEventType.V_TASK_RESCHEDULED,
+              new TaskRescheduledWhileCommittingTransition())
+          .addTransition(VertexState.COMMITTING,
+              EnumSet.of(VertexState.TERMINATING),
+              VertexEventType.V_MANAGER_USER_CODE_ERROR,
+              new VertexManagerUserCodeErrorTransition())
+   
           // Transitions from TERMINATING state.
           .addTransition
               (VertexState.TERMINATING,
@@ -483,6 +530,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               VertexState.TERMINATING,
               VertexState.ERROR, VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          .addTransition(
+              VertexState.TERMINATING,
+              EnumSet.of(VertexState.TERMINATING, VertexState.FAILED, VertexState.KILLED, VertexState.ERROR),
+              VertexEventType.V_COMMIT_COMPLETED,
+              COMMIT_COMPLETED_TRANSITION)
           // Ignore-able events
           .addTransition(VertexState.TERMINATING, VertexState.TERMINATING,
               EnumSet.of(VertexEventType.V_TERMINATE,
@@ -694,6 +746,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   private AtomicBoolean committed = new AtomicBoolean(false);
   private AtomicBoolean aborted = new AtomicBoolean(false);
+  private AtomicBoolean commitCanceled = new AtomicBoolean(false);
   private boolean commitVertexOutputs = false;
 
   private Map<String, VertexGroupInfo> dagVertexGroups;
@@ -1750,18 +1803,77 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
-  static VertexState checkVertexForCompletion(final VertexImpl vertex) {
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Checking for vertex completion for "
-          + vertex.logIdentifier
-          + ", numTasks=" + vertex.numTasks
-          + ", failedTaskCount=" + vertex.failedTaskCount
-          + ", killedTaskCount=" + vertex.killedTaskCount
-          + ", successfulTaskCount=" + vertex.succeededTaskCount
-          + ", completedTaskCount=" + vertex.completedTaskCount
-          + ", terminationCause=" + vertex.terminationCause);
+  private static VertexState commitOrFinish(final VertexImpl vertex) {
+    // commit only once. Dont commit shared outputs
+    if (vertex.outputCommitters != null
+        && !vertex.outputCommitters.isEmpty()) {
+      boolean firstCommit = true;
+      for (Entry<String, OutputCommitter> entry : vertex.outputCommitters.entrySet()) {
+        final OutputCommitter committer = entry.getValue();
+        final String outputName = entry.getKey();
+        if (vertex.sharedOutputs.contains(outputName)) {
+          // dont commit shared committers. Will be committed by the DAG
+          continue;
+        }
+        if (firstCommit) {
+          LOG.info("Invoking committer commit for vertex, vertexId="
+              + vertex.logIdentifier);
+          // Log commit start event on first actual commit
+          try {
+            vertex.appContext.getHistoryHandler().handleCriticalEvent(
+                new DAGHistoryEvent(vertex.getDAGId(),
+                    new VertexCommitStartedEvent(vertex.vertexId,
+                        vertex.clock.getTime())));
+          } catch (IOException e) {
+            LOG.error("Failed to persist commit start event to recovery, vertex="
+                + vertex.logIdentifier, e);
+            vertex.trySetTerminationCause(VertexTerminationCause.RECOVERY_ERROR);
+            return vertex.finished(VertexState.FAILED);
+          }
+        } else {
+          firstCommit = false;
+        }
+        VertexCommitCallback commitCallback = new VertexCommitCallback(vertex, outputName);
+        CallableEvent commitCallableEvent = new CallableEvent(commitCallback) {
+          @Override
+          public Void call() throws Exception {
+            vertex.dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
+              @Override
+              public Void run() throws Exception {
+                  LOG.info("Invoking committer commit for output=" + outputName
+                      + ", vertexId=" + vertex.logIdentifier);
+                  committer.commitOutput();
+                return null;
+              }
+            });
+            return null;
+          }
+        };
+        ListenableFuture<Void> commitFuture = 
+            vertex.getAppContext().getExecService().submit(commitCallableEvent);
+        Futures.addCallback(commitFuture, commitCallableEvent.getCallback());
+        vertex.commitFutures.put(outputName, commitFuture);
+      }
     }
+    if (vertex.commitFutures.isEmpty()) {
+      return vertex.finished(VertexState.SUCCEEDED);
+    } else {
+      return VertexState.COMMITTING;
+    }
+  }
+
+  // triggered by task_complete
+  static VertexState checkTasksForCompletion(final VertexImpl vertex) {
+
+    LOG.info("Checking tasks for vertex completion for "
+        + vertex.logIdentifier
+        + ", numTasks=" + vertex.numTasks
+        + ", failedTaskCount=" + vertex.failedTaskCount
+        + ", killedTaskCount=" + vertex.killedTaskCount
+        + ", successfulTaskCount=" + vertex.succeededTaskCount
+        + ", completedTaskCount=" + vertex.completedTaskCount
+        + ", commitInProgress=" + vertex.commitFutures.size()
+        + ", terminationCause=" + vertex.terminationCause);
 
     //check for vertex failure first
     if (vertex.completedTaskCount > vertex.tasks.size()) {
@@ -1781,159 +1893,169 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       
       //Only succeed if tasks complete successfully and no terminationCause is registered.
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
-        LOG.info("Vertex succeeded: " + vertex.logIdentifier);
-        try {
-          if (vertex.commitVertexOutputs && !vertex.committed.getAndSet(true)) {
-            // commit only once. Dont commit shared outputs
-            LOG.info("Invoking committer commit for vertex, vertexId="
-                + vertex.logIdentifier);
-            if (vertex.outputCommitters != null
-                && !vertex.outputCommitters.isEmpty()) {
-              boolean firstCommit = true;
-              for (Entry<String, OutputCommitter> entry : vertex.outputCommitters.entrySet()) {
-                final OutputCommitter committer = entry.getValue();
-                final String outputName = entry.getKey();
-                if (vertex.sharedOutputs.contains(outputName)) {
-                  // dont commit shared committers. Will be committed by the DAG
-                  continue;
-                }
-                if (firstCommit) {
-                  // Log commit start event on first actual commit
-                  try {
-                    vertex.appContext.getHistoryHandler().handleCriticalEvent(
-                        new DAGHistoryEvent(vertex.getDAGId(),
-                            new VertexCommitStartedEvent(vertex.vertexId,
-                                vertex.clock.getTime())));
-                  } catch (IOException e) {
-                    LOG.error("Failed to persist commit start event to recovery, vertex="
-                        + vertex.logIdentifier, e);
-                    vertex.trySetTerminationCause(VertexTerminationCause.INTERNAL_ERROR);
-                    return vertex.finished(VertexState.FAILED);
-                  }
-                } else {
-                  firstCommit = false;
-                }
-                vertex.dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
-                  @Override
-                  public Void run() throws Exception {
-                      LOG.info("Invoking committer commit for output=" + outputName
-                          + ", vertexId=" + vertex.logIdentifier);
-                      committer.commitOutput();
-                    return null;
-                  }
-                });
-              }
-            }
-          }
-        } catch (Exception e) {
-          LOG.error("Failed to do commit on vertex, vertexId="
-              + vertex.logIdentifier, e);
-          vertex.trySetTerminationCause(VertexTerminationCause.COMMIT_FAILURE);
-          return vertex.finished(VertexState.FAILED);
+        LOG.info("All tasks are succeeded, vertex:" + vertex.logIdentifier);
+        if (vertex.commitVertexOutputs && !vertex.committed.getAndSet(true)) {
+          // start commit if there're commits or just finish if no commits
+          return commitOrFinish(vertex);
+        } else {
+          // just finish because no vertex committing needed
+          return vertex.finished(VertexState.SUCCEEDED);
         }
-        return vertex.finished(VertexState.SUCCEEDED);
       }
-      else if(vertex.terminationCause == VertexTerminationCause.DAG_KILL ){
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex killed due to user-initiated job kill. "
-            + "failedTasks:"
-            + vertex.failedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.addDiagnostic(diagnosticMsg);
-        vertex.abortVertex(VertexStatus.State.KILLED);
-        return vertex.finished(VertexState.KILLED);
-      }
-      else if(vertex.terminationCause == VertexTerminationCause.OTHER_VERTEX_FAILURE ){
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex killed as other vertex failed. "
-            + "failedTasks:"
-            + vertex.failedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.addDiagnostic(diagnosticMsg);
-        vertex.abortVertex(VertexStatus.State.KILLED);
-        return vertex.finished(VertexState.KILLED);
-      }
-      else if(vertex.terminationCause == VertexTerminationCause.OWN_TASK_FAILURE ){
-        if(vertex.failedTaskCount == 0){
-          LOG.error("task failure accounting error.  terminationCause=TASK_FAILURE but vertex.failedTaskCount == 0");
-        }
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed as one or more tasks failed. "
-            + "failedTasks:"
-            + vertex.failedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.addDiagnostic(diagnosticMsg);
-        vertex.abortVertex(VertexStatus.State.FAILED);
-        return vertex.finished(VertexState.FAILED);
-      }
-      else if (vertex.terminationCause == VertexTerminationCause.INTERNAL_ERROR) {
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed/killed due to internal error. "
-            + "failedTasks:"
-            + vertex.failedTaskCount
-            + " killedTasks:"
-            + vertex.killedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.abortVertex(State.FAILED);
-        return vertex.finished(VertexState.FAILED);
-      }
-      else if (vertex.terminationCause == VertexTerminationCause.AM_USERCODE_FAILURE) {
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed/killed due to VertexManagerPlugin/EdgeManagerPlugin failed. "
-            + "failedTasks:"
-            + vertex.failedTaskCount
-            + " killedTasks:"
-            + vertex.killedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.abortVertex(State.FAILED);
-        return vertex.finished(VertexState.FAILED);
-      }
-      else if (vertex.terminationCause == VertexTerminationCause.ROOT_INPUT_INIT_FAILURE) {
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed/killed due to ROOT_INPUT_INIT_FAILURE failed. "
-            + "failedTasks:"
-            + vertex.failedTaskCount
-            + " killedTasks:"
-            + vertex.killedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.abortVertex(State.FAILED);
-        return vertex.finished(VertexState.FAILED);
-      }
-      else if (vertex.terminationCause == VertexTerminationCause.COMMIT_FAILURE) {
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed/killed due to COMMIT_FAILURE failed. "
-            + "failedTasks:"
-            + vertex.failedTaskCount
-            + " killedTasks:"
-            + vertex.killedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.abortVertex(State.FAILED);
-        return vertex.finished(VertexState.FAILED);
-      }
-      else if (vertex.terminationCause == VertexTerminationCause.VERTEX_RERUN_AFTER_COMMIT) {
-        vertex.setFinishTime();
-        String diagnosticMsg = "Vertex failed/killed due to invalid rerun failed. "
-            + "failedTasks:"
-            + vertex.failedTaskCount
-            + " killedTasks:"
-            + vertex.killedTaskCount;
-        LOG.info(diagnosticMsg);
-        vertex.abortVertex(State.FAILED);
-        return vertex.finished(VertexState.FAILED);
-      }
-      else {
-        //should never occur
-        throw new TezUncheckedException("All tasks complete, but cannot determine final state of vertex:" + vertex.logIdentifier
-            + ", failedTaskCount=" + vertex.failedTaskCount
-            + ", killedTaskCount=" + vertex.killedTaskCount
-            + ", successfulTaskCount=" + vertex.succeededTaskCount
-            + ", completedTaskCount=" + vertex.completedTaskCount
-            + ", terminationCause=" + vertex.terminationCause);
-      }
+      return finishWithTerminationCause(vertex);
     }
 
     //return the current state, Vertex not finished yet
     return vertex.getInternalState();
+  }
+
+  //triggered by commit_complete
+  static VertexState checkCommitsForCompletion(final VertexImpl vertex) {
+    LOG.info("Checking commits for vertex completion for "
+        + vertex.logIdentifier
+        + ", numTasks=" + vertex.numTasks
+        + ", failedTaskCount=" + vertex.failedTaskCount
+        + ", killedTaskCount=" + vertex.killedTaskCount
+        + ", successfulTaskCount=" + vertex.succeededTaskCount
+        + ", completedTaskCount=" + vertex.completedTaskCount
+        + ", commitInProgress=" + vertex.commitFutures.size()
+        + ", terminationCause=" + vertex.terminationCause);
+
+    // terminationCause is null mean commit is succeeded, otherwise terminationCause will be set.
+    if (vertex.terminationCause == null) {
+      Preconditions.checkState(vertex.getState() == VertexState.COMMITTING,
+          "Vertex should be in COMMITTING state, but in " + vertex.getState()
+          + ", vertex:" + vertex.getLogIdentifier());
+      if (vertex.commitFutures.isEmpty()) {
+        // move from COMMITTING to SUCCEEDED
+        return vertex.finished(VertexState.SUCCEEDED);
+      } else {
+        return VertexState.COMMITTING;
+      }
+    } else {
+      if (!vertex.commitFutures.isEmpty()) {
+        // pending commits are running
+        return VertexState.TERMINATING;
+      } else {
+        // all the commits are completed successfully
+        return finishWithTerminationCause(vertex);
+      }
+    }
+  }
+
+  // TODO TEZ-2248
+  private static VertexState finishWithTerminationCause(VertexImpl vertex) {
+    if(vertex.terminationCause == VertexTerminationCause.DAG_KILL ){
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex killed due to user-initiated job kill. "
+          + "failedTasks:"
+          + vertex.failedTaskCount;
+      LOG.info(diagnosticMsg);
+      vertex.addDiagnostic(diagnosticMsg);
+      return vertex.finished(VertexState.KILLED);
+    }
+    else if(vertex.terminationCause == VertexTerminationCause.OTHER_VERTEX_FAILURE ){
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex killed as other vertex failed. "
+          + "failedTasks:"
+          + vertex.failedTaskCount;
+      LOG.info(diagnosticMsg);
+      vertex.addDiagnostic(diagnosticMsg);
+      return vertex.finished(VertexState.KILLED);
+    }
+    else if(vertex.terminationCause == VertexTerminationCause.OWN_TASK_FAILURE ){
+      if(vertex.failedTaskCount == 0){
+        LOG.error("task failure accounting error.  terminationCause=TASK_FAILURE but vertex.failedTaskCount == 0");
+      }
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed as one or more tasks failed. "
+          + "failedTasks:"
+          + vertex.failedTaskCount;
+      LOG.info(diagnosticMsg);
+      vertex.addDiagnostic(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.INTERNAL_ERROR) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to internal error. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.AM_USERCODE_FAILURE) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to VertexManagerPlugin/EdgeManagerPlugin failed. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.ROOT_INPUT_INIT_FAILURE) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to ROOT_INPUT_INIT_FAILURE failed. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.COMMIT_FAILURE) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to COMMIT_FAILURE failed. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.VERTEX_RERUN_AFTER_COMMIT) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to vertex-rerun after commit. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to vertex-rerun in commiting. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else if (vertex.terminationCause == VertexTerminationCause.RECOVERY_ERROR) {
+      vertex.setFinishTime();
+      String diagnosticMsg = "Vertex failed/killed due to recovery error. "
+          + "failedTasks:"
+          + vertex.failedTaskCount
+          + " killedTasks:"
+          + vertex.killedTaskCount;
+      LOG.info(diagnosticMsg);
+      return vertex.finished(VertexState.FAILED);
+    }
+    else {
+      //should never occur
+      throw new TezUncheckedException("All tasks & commits complete, but cannot determine final state of vertex:"
+          + vertex.logIdentifier
+          + ", failedTaskCount=" + vertex.failedTaskCount
+          + ", killedTaskCount=" + vertex.killedTaskCount
+          + ", successfulTaskCount=" + vertex.succeededTaskCount
+          + ", completedTaskCount=" + vertex.completedTaskCount
+          + ", commitInProgress=" + vertex.commitFutures.size()
+          + ", terminationCause=" + vertex.terminationCause);
+    }
   }
 
   /**
@@ -1974,6 +2096,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (!StringUtils.isEmpty(diag)) {
           addDiagnostic(diag);
         }
+        abortVertex(VertexStatus.State.valueOf(finalState.name()));
         eventHandler.handle(new DAGEvent(getDAGId(),
             DAGEventType.INTERNAL_ERROR));
         try {
@@ -1988,6 +2111,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         if (!StringUtils.isEmpty(diag)) {
           addDiagnostic(diag);
         }
+        abortVertex(VertexStatus.State.valueOf(finalState.name()));
         eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
             finalState, terminationCause));
         try {
@@ -2074,7 +2198,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       addDiagnostic("Vertex init failed : "
           + ExceptionUtils.getStackTrace(e));
       trySetTerminationCause(VertexTerminationCause.INIT_FAILURE);
-      abortVertex(VertexStatus.State.FAILED);
       finished(VertexState.FAILED);
       return false;
     }
@@ -2289,7 +2412,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           + ", numTasks=" + numTasks);
       trySetTerminationCause(VertexTerminationCause.INVALID_NUM_OF_TASKS);
       if (event != null) {
-        abortVertex(VertexStatus.State.FAILED);
         return finished(VertexState.FAILED);
       } else {
         return VertexState.FAILED;
@@ -3441,13 +3563,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     return VertexState.RUNNING;
   }
 
-  private void abortVertex(final VertexStatus.State finalState) {
+  void abortVertex(final VertexStatus.State finalState) {
     if (this.aborted.getAndSet(true)) {
       LOG.info("Ignoring multiple aborts for vertex: " + logIdentifier);
       return;
     }
-    LOG.info("Invoking committer abort for vertex, vertexId=" + logIdentifier);
+
     if (outputCommitters != null) {
+      LOG.info("Invoking committer abort for vertex, vertexId=" + logIdentifier);
       try {
         dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
           @Override
@@ -3552,7 +3675,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public void transition(VertexImpl vertex, VertexEvent event) {
       VertexEventTermination vet = (VertexEventTermination) event;
       vertex.trySetTerminationCause(vet.getTerminationCause());
-      vertex.abortVertex(VertexStatus.State.KILLED);
       vertex.addDiagnostic("Vertex received Kill in INITED state.");
       vertex.finished(VertexState.KILLED);
     }
@@ -3592,6 +3714,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
+  private static class VertexKilledWhileCommittingTransition
+    implements SingleArcTransition<VertexImpl, VertexEvent> {
+
+    @Override
+    public void transition(VertexImpl vertex, VertexEvent event) {
+
+
+      VertexEventTermination vet = (VertexEventTermination) event;
+      VertexTerminationCause trigger = vet.getTerminationCause();
+      String msg = "Vertex received Kill while in COMMITTING state, terminationCause="
+          + trigger +", vertex=" + vertex.logIdentifier;
+      LOG.info(msg);
+      vertex.addDiagnostic(msg);
+      vertex.trySetTerminationCause(trigger);
+      vertex.cancelCommits();
+    }
+  }
+
   private static class VertexManagerUserCodeErrorTransition implements
     MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
     @Override
@@ -3608,10 +3748,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         vertex.terminationCause = VertexTerminationCause.AM_USERCODE_FAILURE;
         vertex.recoveredState = VertexState.FAILED;
         return VertexState.RECOVERING;
-      } else if (vertex.getState() == VertexState.RUNNING) {
+      } else if (vertex.getState() == VertexState.RUNNING || vertex.getState() == VertexState.COMMITTING) {
         vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
         vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE,
             TaskTerminationCause.AM_USERCODE_FAILURE);
+        vertex.cancelCommits();
         return VertexState.TERMINATING;
       } else {
         vertex.finished(VertexState.FAILED,
@@ -3707,7 +3848,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         taskKilled(vertex, task);
       }
 
-      VertexState state = VertexImpl.checkVertexForCompletion(vertex);
+      VertexState state = VertexImpl.checkTasksForCompletion(vertex);
       if(state == VertexState.RUNNING && forceTransitionToKillWait){
         return VertexState.TERMINATING;
       }
@@ -3752,7 +3893,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
-      return VertexImpl.checkVertexForCompletion(vertex);
+      return VertexImpl.checkTasksForCompletion(vertex);
     }
   }
 
@@ -3762,23 +3903,35 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       VertexEventTaskCompleted vEvent = (VertexEventTaskCompleted) event;
       VertexState finalState;
-      VertexStatus.State finalStatus;
       String diagnosticMsg;
       if (vEvent.getState() == TaskState.FAILED) {
         finalState = VertexState.FAILED;
-        finalStatus = VertexStatus.State.FAILED;
         diagnosticMsg = "Vertex " + vertex.logIdentifier +" failed as task " + vEvent.getTaskID() +
           " failed after vertex succeeded.";
       } else {
         finalState = VertexState.ERROR;
-        finalStatus = VertexStatus.State.ERROR;
         diagnosticMsg = "Vertex " + vertex.logIdentifier + " error as task " + vEvent.getTaskID() +
             " completed with state " + vEvent.getState() + " after vertex succeeded.";
       }
       LOG.info(diagnosticMsg);
-      vertex.abortVertex(finalStatus);
       vertex.finished(finalState, VertexTerminationCause.OWN_TASK_FAILURE, diagnosticMsg);
       return finalState;
+    }
+  }
+
+  private static class TaskRescheduledWhileCommittingTransition implements 
+    SingleArcTransition<VertexImpl, VertexEvent> {
+
+    @Override
+    public void transition(VertexImpl vertex, VertexEvent event) {
+      // terminate any running tasks
+      String diagnosticMsg = vertex.getLogIdentifier() + " failed due to in-committing rescheduling of "
+          + ((VertexEventTaskReschedule)event).getTaskID();
+      LOG.info(diagnosticMsg);
+      vertex.addDiagnostic(diagnosticMsg);
+      vertex.tryEnactKill(VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING,
+          TaskTerminationCause.TASK_RESCHEDULE_IN_COMMITTING);
+      vertex.cancelCommits();
     }
   }
 
@@ -3806,9 +3959,44 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       LOG.info(diagnosticMsg);
       vertex.tryEnactKill(VertexTerminationCause.OWN_TASK_FAILURE,
           TaskTerminationCause.OWN_TASK_FAILURE);
-      vertex.abortVertex(VertexStatus.State.FAILED);
       vertex.finished(VertexState.FAILED, VertexTerminationCause.OWN_TASK_FAILURE, diagnosticMsg);
       return VertexState.FAILED;
+    }
+  }
+
+  private void commitCompleted(VertexEventCommitCompleted commitCompletedEvent) {
+    Preconditions.checkState(commitFutures.remove(commitCompletedEvent.getOutputName()) != null,
+        "Unknown commit:" + commitCompletedEvent.getOutputName() + ", vertex=" + logIdentifier);
+    if (commitCompletedEvent.isSucceeded()) {
+      LOG.info("Commit succeeded for output:" + commitCompletedEvent.getOutputName()
+          + ", vertexId=" + logIdentifier);
+    } else {
+      String diag = "Commit failed for output:" + commitCompletedEvent.getOutputName()
+          + ", vertexId=" + logIdentifier + ", "
+          + ExceptionUtils.getStackTrace(commitCompletedEvent.getException());;
+      LOG.info(diag);
+      addDiagnostic(diag);
+      trySetTerminationCause(VertexTerminationCause.COMMIT_FAILURE);
+      cancelCommits();
+    }
+  }
+
+  private static class CommitCompletedTransition implements
+    MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
+
+    @Override
+    public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      vertex.commitCompleted((VertexEventCommitCompleted)event);
+      return checkCommitsForCompletion(vertex);
+    }
+  }
+
+  private void cancelCommits() {
+    if (!this.commitCanceled.getAndSet(true)) {
+      for (Map.Entry<String, ListenableFuture<Void>> entry : commitFutures.entrySet()) {
+        LOG.info("Canceling commit of output:" + entry.getKey() + ", vertexId=" + logIdentifier);
+        entry.getValue().cancel(true);
+      }
     }
   }
 
@@ -3853,9 +4041,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       } catch (AMUserCodeException e) {
         String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
         LOG.error(msg, e);
-        if (vertex.getState() == VertexState.RUNNING) {
+        if (vertex.getState() == VertexState.RUNNING || vertex.getState() == VertexState.COMMITTING) {
           vertex.addDiagnostic(msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
           vertex.tryEnactKill(VertexTerminationCause.AM_USERCODE_FAILURE, TaskTerminationCause.AM_USERCODE_FAILURE);
+          vertex.cancelCommits();
           return VertexState.TERMINATING;
         } else {
           vertex.finished(VertexState.FAILED, VertexTerminationCause.AM_USERCODE_FAILURE,
@@ -4073,6 +4262,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           vertex.getDAGId(), "Invalid event " + event.getType()
           + " on Vertex " + vertex.getLogIdentifier()));
       vertex.setFinishTime();
+      vertex.trySetTerminationCause(VertexTerminationCause.INTERNAL_ERROR);
+      vertex.cancelCommits();
       vertex.finished(VertexState.ERROR);
     }
   }
@@ -4131,6 +4322,30 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
               "Not expecting state updates for state: " + vertexState + ", VertexID: " + vertexId);
       }
     }
+  }
+
+  private static class VertexCommitCallback implements FutureCallback<Void>{
+
+    private String outputName;
+    private VertexImpl vertex;
+
+    public VertexCommitCallback(VertexImpl vertex, String outputName) {
+      this.vertex = vertex;
+      this.outputName = outputName;
+    }
+
+    @Override
+    public void onSuccess(Void result) {
+      vertex.getEventHandler().handle(
+          new VertexEventCommitCompleted(vertex.vertexId, outputName, true, null));
+    }
+
+    @Override
+    public void onFailure(Throwable t) {
+      vertex.getEventHandler().handle(
+          new VertexEventCommitCompleted(vertex.vertexId, outputName, false, t));
+    }
+
   }
 
   @Override
