@@ -283,7 +283,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     OrderedPartitionedKVEdgeConfig edgeConf1 = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
-            HashPartitioner.class.getName()).setFromConfiguration(conf)
+            HashPartitioner.class.getName()).setFromConfiguration(iReduceStageConf)
 	    .configureInput().useLegacyInput().done().build();
     dag.addEdge(
         Edge.create(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
@@ -291,7 +291,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     OrderedPartitionedKVEdgeConfig edgeConf2 = OrderedPartitionedKVEdgeConfig
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
-            HashPartitioner.class.getName()).setFromConfiguration(conf)
+            HashPartitioner.class.getName()).setFromConfiguration(finalReduceConf)
             .configureInput().useLegacyInput().done().build();
     dag.addEdge(
         Edge.create(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
@@ -443,7 +443,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
         Map<String, LocalResource> localResources =
           new TreeMap<String, LocalResource>();
         
-        DAG dag = instance.createDAG(fs, conf, localResources,
+        DAG dag = instance.createDAG(fs, tezConf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient, useMRSettings, intermediateNumReduceTasks);
 

@@ -140,7 +140,8 @@ public class TestSecureShuffle {
     TestOrderedWordCount wordCount = new TestOrderedWordCount();
     wordCount.setConf(new Configuration(miniTezCluster.getConfig()));
 
-    String[] args = new String[] { inputLoc.toString(), outputLoc.toString() };
+    String[] args = new String[] { "-DUSE_MR_CONFIGS=false",
+        inputLoc.toString(), outputLoc.toString() };
     assertEquals(expectedResult, wordCount.run(args));
   }
 
