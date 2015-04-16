@@ -90,6 +90,10 @@ App.Helpers.misc = {
       'KILLED', 'FAILED', 'ERROR']) != -1;
   },
 
+  isFinalDagStatus: function(status) {
+    return $.inArray(status, ['SUCCEEDED', 'KILLED', 'FAILED', 'ERROR']) != -1;
+  },
+
   isValidTaskStatus: function(status) {
     return $.inArray(status, ['RUNNING', 'SUCCEEDED', 'FAILED', 'KILLED']) != -1;
   },
