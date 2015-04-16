@@ -55,8 +55,12 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         user: this.user_filter
       },
       secondary: {
-        status: this.status_filter
       }
+    }
+    if (App.Helpers.misc.isFinalDagStatus(this.status_filter)) {
+      filters.primary['status'] = this.status_filter;
+    } else {
+      filters.secondary['status'] = this.status_filter;
     }
     this.setFiltersAndLoadEntities(filters);
   },
