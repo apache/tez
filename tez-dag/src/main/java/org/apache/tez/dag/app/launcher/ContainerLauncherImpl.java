@@ -259,8 +259,9 @@ public class ContainerLauncherImpl extends AbstractService implements
 
   @Override
   public void serviceStart() {
+    // pass a copy of config to ContainerManagementProtocolProxy until YARN-3497 is fixed
     cmProxy =
-        new ContainerManagementProtocolProxy(getConfig());
+        new ContainerManagementProtocolProxy(new Configuration(getConfig()));
 
     ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat(
         "ContainerLauncher #%d").setDaemon(true).build();
