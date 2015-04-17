@@ -180,7 +180,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final AppContext appContext;
   private final UserGroupInformation dagUGI;
   private final ACLManager aclManager;
-  private final StateChangeNotifier entityUpdateTracker;
+  @VisibleForTesting
+  StateChangeNotifier entityUpdateTracker;
 
   volatile Map<TezVertexID, Vertex> vertices = new HashMap<TezVertexID, Vertex>();
   @VisibleForTesting
@@ -586,7 +587,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return jobPlan;
   }
 
-  EventHandler getEventHandler() {
+  @Override
+  public EventHandler getEventHandler() {
     return this.eventHandler;
   }
 

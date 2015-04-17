@@ -22,19 +22,27 @@ package org.apache.tez.dag.app.dag;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracks status updates from various components, and informs registered components about updates.
@@ -42,18 +50,88 @@ import org.apache.tez.dag.records.TezVertexID;
 @InterfaceAudience.Private
 public class StateChangeNotifier {
 
+  private static final Logger LOG = LoggerFactory.getLogger(StateChangeNotifier.class);
+  
   private final DAG dag;
   private final SetMultimap<TezVertexID, ListenerContainer> vertexListeners;
   private final ListMultimap<TezVertexID, VertexStateUpdate> lastKnowStatesMap;
   private final ReentrantReadWriteLock listenersLock = new ReentrantReadWriteLock();
-  private final ReentrantReadWriteLock.ReadLock readLock = listenersLock.readLock();
   private final ReentrantReadWriteLock.WriteLock writeLock = listenersLock.writeLock();
+
+  BlockingQueue<NotificationEvent> eventQueue = new LinkedBlockingQueue<NotificationEvent>();
+  private Thread eventHandlingThread;
+  private volatile boolean stopEventHandling = false;
+  
+  private static class NotificationEvent {
+    final VertexStateUpdate update;
+    final VertexStateUpdateListener listener;
+    
+    public NotificationEvent(VertexStateUpdate update, VertexStateUpdateListener listener) {
+      this.update = update;
+      this.listener = listener;
+    }
+    
+    void sentUpdate() {
+      listener.onStateUpdated(update);
+    }
+    
+    @Override
+    public String toString() {
+      return "[ VertexState:(" + update + ") Listener:" + listener + " ]";
+    }
+  }
 
   public StateChangeNotifier(DAG dag) {
     this.dag = dag;
     this.vertexListeners = Multimaps.synchronizedSetMultimap(
         HashMultimap.<TezVertexID, ListenerContainer>create());
     this.lastKnowStatesMap = LinkedListMultimap.create();
+    startThread();
+  }
+  
+  private void startThread() {
+    this.eventHandlingThread = new Thread("State Change Notifier DAG: " + dag.getID()) {
+      @SuppressWarnings("unchecked")
+      @Override
+      public void run() {
+        while (!stopEventHandling && !Thread.currentThread().isInterrupted()) {
+          NotificationEvent event;
+          try {
+            event = eventQueue.take();
+          } catch (InterruptedException e) {
+            if(!stopEventHandling) {
+              LOG.warn("Continuing after interrupt : ", e);
+            }
+            continue;
+          }
+          try {
+            event.sentUpdate();
+            processedEventFromQueue();
+          } catch (Exception e) {
+            // TODO send user code exception - TEZ-2332
+            LOG.error("Error in state update notification for " + event, e);
+            dag.getEventHandler().handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
+            return;
+          }
+        }
+      }
+    };
+    this.eventHandlingThread.setDaemon(true); // dont block exit on this
+    this.eventHandlingThread.start();
+  }
+  
+  @VisibleForTesting
+  protected void processedEventFromQueue() {
+  }
+  
+  @VisibleForTesting
+  protected void addedEventToQueue() {
+  }
+  
+  public void stop() {
+    this.stopEventHandling = true;
+    if (eventHandlingThread != null)
+      eventHandlingThread.interrupt();
   }
 
   // -------------- VERTEX STATE CHANGE SECTION ---------------
@@ -99,14 +177,14 @@ public class StateChangeNotifier {
   }
 
   public void stateChanged(TezVertexID vertexId, VertexStateUpdate vertexStateUpdate) {
-    readLock.lock();
+    writeLock.lock();
     try {
       lastKnowStatesMap.put(vertexId, vertexStateUpdate);
       if (vertexListeners.containsKey(vertexId)) {
         sendStateUpdate(vertexId, vertexStateUpdate);
       }
     } finally {
-      readLock.unlock();
+      writeLock.unlock();
     }
   }
 
@@ -115,11 +193,18 @@ public class StateChangeNotifier {
     for (ListenerContainer listenerContainer : vertexListeners.get(vertexId)) {
       listenerContainer.sendStateUpdate(event);
     }
-
   }
 
-
-  private static final class ListenerContainer {
+  private void enqueueNotification(NotificationEvent event) {
+    try {
+      eventQueue.put(event);
+      addedEventToQueue();
+    } catch (InterruptedException e) {
+      LOG.error("Failed to put event", e);
+    }
+  }
+  
+  private final class ListenerContainer {
     final VertexStateUpdateListener listener;
     final Set<org.apache.tez.dag.api.event.VertexState> states;
 
@@ -135,7 +220,7 @@ public class StateChangeNotifier {
 
     private void sendStateUpdate(VertexStateUpdate stateUpdate) {
       if (states.contains(stateUpdate.getVertexState())) {
-        listener.onStateUpdated(stateUpdate);
+        enqueueNotification(new NotificationEvent(stateUpdate, listener));
       }
     }
 

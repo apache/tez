@@ -26,6 +26,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
@@ -55,6 +56,9 @@ public interface DAG {
    * @return job-counters and aggregate task-counters
    */
   TezCounters getAllCounters();
+  
+  @SuppressWarnings("rawtypes")
+  EventHandler getEventHandler();
 
   /**
    * Get Vertex by vertex name

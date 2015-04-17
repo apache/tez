@@ -114,6 +114,7 @@ import org.apache.tez.dag.app.dag.RootInputInitializerManager;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.TestStateChangeNotifier.StateChangeNotifierForTest;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
@@ -221,7 +222,7 @@ public class TestVertexImpl {
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
   private HistoryEventHandler historyEventHandler;
-  private StateChangeNotifier updateTracker;
+  private StateChangeNotifierForTest updateTracker;
   private static TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
 
   public static class CountingOutputCommitter extends OutputCommitter {
@@ -2174,7 +2175,7 @@ public class TestVertexImpl {
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
       vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));
     }
-    updateTracker = new StateChangeNotifier(appContext.getCurrentDAG());
+    updateTracker = new StateChangeNotifierForTest(appContext.getCurrentDAG());
     setupVertices();
     when(dag.getVertex(any(TezVertexID.class))).thenAnswer(new Answer<Vertex>() {
       @Override
@@ -2243,6 +2244,7 @@ public class TestVertexImpl {
 
   @After
   public void teardown() {
+    updateTracker.stop();
     if (dispatcher.isInState(STATE.STARTED)) {
       dispatcher.await();
       dispatcher.stop();
@@ -3734,7 +3736,6 @@ public class TestVertexImpl {
       v1.handle(new VertexEventTaskCompleted(taskId, TaskState.SUCCEEDED));
     }
     dispatcher.await();
-
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
 
     // At this point, 3 events should have been received - since the dispatcher is complete.
@@ -4108,7 +4109,6 @@ public class TestVertexImpl {
     while (v3.getState()  != VertexState.RUNNING) {
       Thread.sleep(10);
     }
-
     Assert.assertEquals(VertexState.RUNNING, v3.getState());
     // Events should have been cleared from the vertex.
     Assert.assertEquals(0, v3.pendingInitializerEvents.size());

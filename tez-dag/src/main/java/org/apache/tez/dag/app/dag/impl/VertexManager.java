@@ -340,7 +340,9 @@ public class VertexManager {
     }
 
     @Override
-    public synchronized void onStateUpdated(VertexStateUpdate event) {
+    public void onStateUpdated(VertexStateUpdate event) {
+      // this is not called by the vertex manager plugin. 
+      // no need to synchronize this. similar to other external notification methods
       enqueueAndScheduleNextEvent(new VertexManagerEventOnVertexStateUpdate(event));
     }
 

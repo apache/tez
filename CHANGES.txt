@@ -9,6 +9,8 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2310. Deadlock caused by StateChangeNotifier sending notifications on
+  thread holding locks
   TEZ-1969. Stop the DAGAppMaster when a local mode client is stopped
   TEZ-714. OutputCommitters should not run in the main AM dispatcher thread
   TEZ-2323. Fix TestOrderedWordcount to use MR memory configs.
