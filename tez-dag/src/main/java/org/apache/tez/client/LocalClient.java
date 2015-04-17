@@ -106,6 +106,14 @@ public class LocalClient extends FrameworkClient {
   public void close() throws IOException {
     // LocalClients are shared between TezClient and DAGClients, which can cause stop / start / close
     // to be invoked multiple times. If modifying these methods - this should be factored in.
+
+    // Multiple DAGClient's can reuse the LocalClient (for ex session). However there is only a
+    // single instance of LocalClient for a TezClient, and dagAppMaster can be cleaned up when
+    // the TezClient is stopped, in order not to leak.
+    if (dagAppMaster != null) {
+      dagAppMaster.stop();
+      dagAppMaster = null;
+    }
   }
 
   @Override
@@ -302,8 +310,12 @@ public class LocalClient extends FrameworkClient {
           clientHandler = new DAGClientHandler(dagAppMaster);
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, currentUser.getShortUserName());
 
-          } catch (Throwable t) {
+        } catch (Throwable t) {
           LOG.fatal("Error starting DAGAppMaster", t);
+          if (dagAppMaster != null) {
+            dagAppMaster.stop();
+            dagAppMaster = null;
+          }
           System.exit(1);
         }
       }
