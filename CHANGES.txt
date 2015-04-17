@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-1969. Stop the DAGAppMaster when a local mode client is stopped
   TEZ-714. OutputCommitters should not run in the main AM dispatcher thread
   TEZ-2323. Fix TestOrderedWordcount to use MR memory configs.
   TEZ-1482. Fix memory issues for Local Mode running concurrent tasks
