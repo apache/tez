@@ -95,6 +95,7 @@ public class TestSecureShuffle {
         new MiniDFSCluster.Builder(conf).numDataNodes(1).format(true).build();
     fs = miniDFSCluster.getFileSystem();
     conf.set("fs.defaultFS", fs.getUri().toString());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
   }
 
   @AfterClass

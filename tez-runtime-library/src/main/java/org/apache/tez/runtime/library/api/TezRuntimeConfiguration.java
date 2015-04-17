@@ -262,11 +262,7 @@ public class TezRuntimeConfiguration {
    * If the shuffle input is on the local host bypass the http fetch and access the files directly
    */
   public static final String TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH = TEZ_RUNTIME_PREFIX + "optimize.local.fetch";
-
-  /**
-   * local mode bypassing the http fetch is not enabled by default till we have unit tests in.
-   */
-  public static final boolean TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT = false;
+  public static final boolean TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT = true;
 
   /**
    * Expert level setting. Enable pipelined shuffle in ordered outputs and in unordered
