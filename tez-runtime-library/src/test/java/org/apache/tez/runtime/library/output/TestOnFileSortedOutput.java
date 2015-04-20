@@ -39,10 +39,12 @@ import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,6 +86,7 @@ public class TestOnFileSortedOutput {
   //no of outputs
   private int partitions;
   //For sorter (pipelined / Default)
+  private SorterImpl sorterImpl;
   private int sorterThreads;
   
   final AtomicLong outputSize = new AtomicLong();
@@ -98,14 +101,16 @@ public class TestOnFileSortedOutput {
    * Constructor
    *
    * @param sendEmptyPartitionViaEvent
-   * @param threads number of threads needed for sorter (pipelinedsorter or default sorter)
+   * @param sorterImpl Which sorter impl ( pipeline/legacy )
+   * @param sorterThreads number of threads needed for sorter (required only for pipelined sorter)
    * @param emptyPartitionIdx for which data should not be generated
    */
-  public TestOnFileSortedOutput(boolean sendEmptyPartitionViaEvent, int threads,
-      int emptyPartitionIdx) throws IOException {
+  public TestOnFileSortedOutput(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl,
+      int sorterThreads, int emptyPartitionIdx) throws IOException {
     this.sendEmptyPartitionViaEvent = sendEmptyPartitionViaEvent;
     this.emptyPartitionIdx = emptyPartitionIdx;
-    this.sorterThreads = threads;
+    this.sorterImpl = sorterImpl;
+    this.sorterThreads = sorterThreads;
 
     conf = new Configuration();
 
@@ -117,7 +122,8 @@ public class TestOnFileSortedOutput {
 
   @Before
   public void setup() throws Exception {
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, sorterThreads);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, sorterImpl.name());
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS, sorterThreads);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
 
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
@@ -138,20 +144,20 @@ public class TestOnFileSortedOutput {
     fs.delete(workingDir, true);
   }
 
-  @Parameterized.Parameters(name = "test[{0}, {1}, {2}]")
+  @Parameterized.Parameters(name = "test[{0}, {1}, {2}, {3}]")
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
     //empty_partition_via_events_enabled, noOfSortThreads, partitionToBeEmpty
-    parameters.add(new Object[] { false, 1, -1 });
-    parameters.add(new Object[] { false, 1, 0 });
-    parameters.add(new Object[] { true, 1, -1 });
-    parameters.add(new Object[] { true, 1, 0 });
+    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, -1 });
+    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, 0 });
+    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, -1 });
+    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0 });
 
     //Pipelined sorter
-    parameters.add(new Object[] { false, 2, -1 });
-    parameters.add(new Object[] { false, 2, 0 });
-    parameters.add(new Object[] { true, 2, -1 });
-    parameters.add(new Object[] { true, 2, 0 });
+    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, -1 });
+    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, 0 });
+    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, -1 });
+    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0 });
 
     return parameters;
   }
@@ -167,11 +173,10 @@ public class TestOnFileSortedOutput {
     writer = sortedOutput.getWriter();
   }
 
-  @Test (timeout = 5000)
-  public void testPipelinedShuffle() throws Exception {
+  private void _testPipelinedShuffle(String sorterName) throws Exception {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
 
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 2);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, sorterName);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
     OutputContext context = createTezOutputContext();
@@ -184,14 +189,18 @@ public class TestOnFileSortedOutput {
 
     assertFalse(sortedOutput.finalMergeEnabled);
     assertTrue(sortedOutput.pipelinedShuffle);
+  }
 
+  @Test (timeout = 5000)
+  public void testPipelinedShuffle() throws Exception {
+    _testPipelinedShuffle(SorterImpl.PIPELINED.name());
   }
 
   @Test (timeout = 5000)
   public void testPipelinedShuffleWithFinalMerge() throws Exception {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.PIPELINED.name());
 
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 2);
     //wrong setting for final merge enable in output
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
@@ -209,8 +218,8 @@ public class TestOnFileSortedOutput {
   @Test
   public void testPipelinedSettingsWithDefaultSorter() throws Exception {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
-    //negative. with sort threads-1
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 1);
+    //negative. with default sorter
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.LEGACY.name());
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
 
@@ -375,5 +384,21 @@ public class TestOnFileSortedOutput {
     doReturn(ExecutionContext).when(context).getExecutionContext();
     return context;
   }
+
+  @Test(timeout=5000)
+  public void testInvalidSorter() throws Exception {
+    try {
+      _testPipelinedShuffle("Foo");
+      Assert.fail("Expected start to fail due to invalid sorter");
+    } catch (IllegalArgumentException e) {
+      // Expected
+    }
+  }
+
+  @Test(timeout=5000)
+  public void testLowerCaseNamedSorter() throws Exception {
+    _testPipelinedShuffle("Pipelined");
+  }
+
 
 }

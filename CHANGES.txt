@@ -9,6 +9,8 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2328. Add tez.runtime.sorter.class & rename tez.runtime.sort.threads
+  to tez.runtime.pipelined.sorter.sort.threads.
   TEZ-2333. Enable local fetch optimization by default.
   TEZ-2310. Deadlock caused by StateChangeNotifier sending notifications on
   thread holding locks

@@ -18,15 +18,18 @@
 package org.apache.tez.runtime.library.output;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -102,8 +105,17 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
   public synchronized void start() throws Exception {
     if (!isStarted.get()) {
       memoryUpdateCallbackHandler.validateUpdateReceived();
-      int sortThreads = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS,
-          TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS_DEFAULT);
+      String sorterClass = conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS,
+          TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS_DEFAULT).toUpperCase(Locale.ENGLISH);
+      SorterImpl sorterImpl = null;
+      try {
+        sorterImpl = SorterImpl.valueOf(sorterClass);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid sorter class specified in config"
+            + ", propertyName=" + TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS
+            + ", value=" + sorterClass
+            + ", validValues=" + Arrays.asList(SorterImpl.values()));
+      }
 
       finalMergeEnabled = conf.getBoolean(
           TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT,
@@ -121,17 +133,22 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
           conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
         }
 
-        //TODO: Enable it for pipelinedsorter only and not for DefaultSorter
-        Preconditions.checkArgument((sortThreads > 1), TezRuntimeConfiguration
-            .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " works with PipelinedSorter.");
+        Preconditions.checkArgument(sorterImpl.equals(SorterImpl.PIPELINED),
+            TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED
+              + "only works with PipelinedSorter.");
       }
 
-      if (sortThreads > 1) {
+      if (sorterImpl.equals(SorterImpl.PIPELINED)) {
         sorter = new PipelinedSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
-      } else {
+      } else if (sorterImpl.equals(SorterImpl.LEGACY)) {
         sorter = new DefaultSorter(getContext(), conf, getNumPhysicalOutputs(),
             memoryUpdateCallbackHandler.getMemoryAssigned());
+      } else {
+        throw new UnsupportedOperationException("Unsupported sorter class specified in config"
+            + ", propertyName=" + TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS
+            + ", value=" + sorterClass
+            + ", validValues=" + Arrays.asList(SorterImpl.values()));
       }
 
       isStarted.set(true);
@@ -202,7 +219,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS);
-    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS);
     confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
@@ -219,6 +236,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
     confKeys.add(TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH);
     confKeys.add(TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH);
     confKeys.add(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS);
+    confKeys.add(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS);
   }
 
   // TODO Maybe add helper methods to extract keys

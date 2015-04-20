@@ -103,7 +103,6 @@ public class TestShuffleUtils {
   public void setup() throws Exception {
     outputContext = createTezOutputContext();
     conf = new Configuration();
-    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 1); // DefaultSorter
     conf.set("fs.defaultFS", "file:///");
     localFs = FileSystem.getLocal(conf);
 

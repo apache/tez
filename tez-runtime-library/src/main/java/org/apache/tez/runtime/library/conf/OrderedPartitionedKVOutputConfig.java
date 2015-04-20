@@ -51,6 +51,19 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 public class OrderedPartitionedKVOutputConfig {
 
   /**
+   * Currently supported sorter implementations
+   */
+  public enum SorterImpl {
+    /** Legacy sorter implementation based on Hadoop MapReduce shuffle impl.
+     * Restricted to 2 GB memory limits.
+     */
+    LEGACY,
+    /** Pipeline sorter - a more efficient sorter that supports > 2 GB sort buffers */
+    PIPELINED
+  }
+
+
+  /**
    * Configure parameters which are specific to the Output.
    */
   @InterfaceAudience.Private
@@ -85,8 +98,6 @@ public class OrderedPartitionedKVOutputConfig {
      */
     public T setCombiner(String combinerClassName, @Nullable Map<String, String> combinerConf);
 
-
-
     /**
      * Configure the number of threads to be used by the sorter
      *
@@ -94,6 +105,15 @@ public class OrderedPartitionedKVOutputConfig {
      * @return instance of the current builder
      */
     public T setSorterNumThreads(int numThreads);
+
+    /**
+     * Configure which sorter implementation to be used
+     *
+     * @param sorterImpl Use an in-built sorter implementations.
+     * @return instance of the current builder
+     */
+    public T setSorter(SorterImpl sorterImpl);
+
   }
 
   @SuppressWarnings("rawtypes")
@@ -131,6 +151,13 @@ public class OrderedPartitionedKVOutputConfig {
       builder.setSorterNumThreads(numThreads);
       return this;
     }
+
+    @Override
+    public SpecificBuilder setSorter(SorterImpl sorterImpl) {
+      builder.setSorter(sorterImpl);
+      return this;
+    }
+
 
     @Override
     public SpecificBuilder<E> setAdditionalConfiguration(String key, String value) {
@@ -294,9 +321,18 @@ public class OrderedPartitionedKVOutputConfig {
 
     @Override
     public Builder setSorterNumThreads(int numThreads) {
-      this.conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, numThreads);
+      this.conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS, numThreads);
       return this;
     }
+
+    @Override
+    public Builder setSorter(SorterImpl sorterImpl) {
+      Preconditions.checkNotNull(sorterImpl, "Sorter cannot be null");
+      this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS,
+          sorterImpl.name());
+      return this;
+    }
+
 
     @Override
     public Builder setAdditionalConfiguration(String key, String value) {

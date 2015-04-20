@@ -17,8 +17,6 @@
  */
 package org.apache.tez.runtime.library.api;
 
-
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +30,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 
 /**
  * Meant for user configurable job properties.
@@ -61,6 +60,11 @@ public class TezRuntimeConfiguration {
   private static final List<String> allowedPrefixes = new ArrayList<String>();
   private static List<String> unmodifiableAllowedPrefixes;
 
+
+  static {
+    Configuration.addDeprecation("tez.runtime.sort.threads",
+        TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
+  }
 
   /**
    * Configuration key to enable/disable IFile readahead.
@@ -113,9 +117,21 @@ public class TezRuntimeConfiguration {
   public static final int TEZ_RUNTIME_COMBINE_MIN_SPILLS_DEFAULT = 3;
 
 
-  public static final String TEZ_RUNTIME_SORT_THREADS = TEZ_RUNTIME_PREFIX +
-      "sort.threads";
-  public static final int TEZ_RUNTIME_SORT_THREADS_DEFAULT = 2;
+  /**
+   * String value.
+   * Which sorter implementation to use.
+   * Valid values:
+   *    - LEGACY
+   *    - PIPELINED ( default )
+   *    {@link org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl}
+   */
+  public static final String TEZ_RUNTIME_SORTER_CLASS = TEZ_RUNTIME_PREFIX +
+      "sorter.class";
+  public static final String TEZ_RUNTIME_SORTER_CLASS_DEFAULT = SorterImpl.PIPELINED.name();
+
+  public static final String TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS = TEZ_RUNTIME_PREFIX +
+      "pipelined.sorter.sort.threads";
+  public static final int TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS_DEFAULT = 2;
 
   /**
    * Size of the buffer to use if not writing directly to disk.
@@ -321,7 +337,7 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_IO_SORT_MB);
     tezRuntimeKeys.add(TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     tezRuntimeKeys.add(TEZ_RUNTIME_COMBINE_MIN_SPILLS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SORT_THREADS);
+    tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
     tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB);
     tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
     tezRuntimeKeys.add(TEZ_RUNTIME_PARTITIONER_CLASS);
@@ -357,6 +373,7 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH);
     tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH);
     tezRuntimeKeys.add(TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SORTER_CLASS);
 
     defaultConf.addResource("core-default.xml");
     defaultConf.addResource("core-site.xml");

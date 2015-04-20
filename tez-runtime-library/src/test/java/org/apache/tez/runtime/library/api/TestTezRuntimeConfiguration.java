@@ -27,8 +27,8 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.Test;
+
 
 public class TestTezRuntimeConfiguration {
 

@@ -177,8 +177,8 @@ public class PipelinedSorter extends ExternalSorter {
     merger = new SpanMerger(); // SpanIterators are comparable
     final int sortThreads = 
             this.conf.getInt(
-                TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS, 
-                TezRuntimeConfiguration.TEZ_RUNTIME_SORT_THREADS_DEFAULT);
+                TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS,
+                TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS_DEFAULT);
     sortmaster = Executors.newFixedThreadPool(sortThreads,
         new ThreadFactoryBuilder().setDaemon(true)
         .setNameFormat("Sorter [" + TezUtilsInternal
