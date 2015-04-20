@@ -18,7 +18,9 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Set;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -31,6 +33,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
@@ -111,6 +114,53 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     context.getCurrentDAG().getStateChangeNotifier().registerForVertexUpdates(vertexName, stateSet, this);
   }
 
+  @Override
+  public String getCurretnDagName() {
+    return context.getCurrentDAG().getName();
+  }
+
+  @Override
+  public Iterable<String> getInputVertexNames(String vertexName) {
+    Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
+    Vertex vertex = context.getCurrentDAG().getVertex(vertexName);
+    Set<Vertex> sources = vertex.getInputVertices().keySet();
+    return Iterables.transform(sources, new Function<Vertex, String>() {
+      @Override
+      public String apply(@Nullable Vertex input) {
+        return input.getName();
+      }
+    });
+  }
+
+  @Override
+  public int getVertexTotalTaskCount(String vertexName) {
+    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    return context.getCurrentDAG().getVertex(vertexName).getTotalTasks();
+  }
+
+  @Override
+  public int getVertexCompletedTaskCount(String vertexName) {
+    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    return context.getCurrentDAG().getVertex(vertexName).getCompletedTasks();
+  }
+
+  @Override
+  public int getVertexRunningTaskCount(String vertexName) {
+    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    return context.getCurrentDAG().getVertex(vertexName).getRunningTasks();
+  }
+
+  @Override
+  public long getFirstAttemptStartTime(String vertexName, int taskIndex) {
+    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    Preconditions.checkArgument(taskIndex >=0, "TaskIndex must be > 0");
+    return context.getCurrentDAG().getVertex(vertexName).getTask(taskIndex).getFirstAttemptStartTime();
+  }
+
+  @Override
+  public long getDagStartTime() {
+    return context.getCurrentDAG().getStartTime();
+  }
 
   @Override
   public void onStateUpdated(VertexStateUpdate event) {

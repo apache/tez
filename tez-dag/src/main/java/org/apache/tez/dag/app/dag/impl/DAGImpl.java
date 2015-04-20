@@ -702,6 +702,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   @Override
+  public long getStartTime() {
+    readLock.lock();
+    try {
+      return this.startTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
   public StateChangeNotifier getStateChangeNotifier() {
     return entityUpdateTracker;
   }

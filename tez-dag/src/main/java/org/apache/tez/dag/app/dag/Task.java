@@ -72,4 +72,6 @@ public interface Task {
   public TaskSpec getBaseTaskSpec();
   
   public TaskLocationHint getTaskLocationHint();
+
+  long getFirstAttemptStartTime();
 }

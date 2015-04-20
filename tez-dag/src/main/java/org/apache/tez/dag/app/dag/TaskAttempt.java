@@ -125,6 +125,12 @@ public interface TaskAttempt {
    */
   long getLaunchTime();
 
+  /**
+   * Get the time at which this attempt was scheduled
+   * @return the time at which this attempt was scheduled, 0 if it hasn't been scheduled yet
+   */
+  long getScheduleTime();
+
   /** 
    * @return attempt's finish time. If attempt is not finished
    *  yet, returns 0.
