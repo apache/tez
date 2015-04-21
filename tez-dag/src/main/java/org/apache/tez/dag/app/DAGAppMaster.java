@@ -57,6 +57,9 @@ import java.util.regex.Pattern;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -661,7 +664,19 @@ public class DAGAppMaster extends AbstractService {
         }
         if (!state.equals(DAGAppMasterState.ERROR)) {
           if (!sessionStopped.get()) {
+            LOG.info("Central Dispatcher queue size after DAG completion, before cleanup: " +
+                dispatcher.getQueueSize());
             LOG.info("Waiting for next DAG to be submitted.");
+
+            // Sending this via the event queue, in case there are pending events which need to be
+            // processed. TaskKilled for example, or ContainerCompletions.
+            // The DAG needs to be part of the event, since the dag can get reset when the next
+            // dag is submitted. The next DAG, however, will not start executing till the cleanup
+            // is complete, since execution start is on the same dispatcher.
+            sendEvent(new DAGAppMasterEventDagCleanup(context.getCurrentDAG()));
+
+            // Leaving the taskSchedulerEventHandler here for now. Doesn't generate new events.
+            // However, eventually it needs to be moved out.
             this.taskSchedulerEventHandler.dagCompleted();
             state = DAGAppMasterState.IDLE;
           } else {
@@ -688,6 +703,27 @@ public class DAGAppMaster extends AbstractService {
       LOG.info("Received an AM_REBOOT signal");
       this.state = DAGAppMasterState.KILLED;
       shutdownHandler.shutdown(true);
+      break;
+    case DAG_CLEANUP:
+      DAGAppMasterEventDagCleanup cleanupEvent = (DAGAppMasterEventDagCleanup) event;
+      LOG.info("Cleaning up DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
+          cleanupEvent.getDag().getID());
+      containerLauncher.dagComplete(cleanupEvent.getDag());
+      taskAttemptListener.dagComplete(cleanupEvent.getDag());
+      nodes.dagComplete(cleanupEvent.getDag());
+      containers.dagComplete(cleanupEvent.getDag());
+      TezTaskAttemptID.clearCache();
+      TezTaskID.clearCache();
+      TezVertexID.clearCache();
+      TezDAGID.clearCache();
+      LOG.info("Completed cleanup for DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
+          cleanupEvent.getDag().getID());
+      break;
+    case NEW_DAG_SUBMITTED:
+      // Inform sub-components that a new DAG has been submitted.
+      taskSchedulerEventHandler.dagSubmitted();
+      containerLauncher.dagSubmitted();
+      taskAttemptListener.dagSubmitted();
       break;
     default:
       throw new TezUncheckedException(
@@ -2081,6 +2117,9 @@ public class DAGAppMaster extends AbstractService {
     // End of creating the job.
     ((RunningAppContext) context).setDAG(currentDAG);
 
+    // Send out an event to inform components that a new DAG has been submitted.
+    // Information about this DAG is available via the context.
+    sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.NEW_DAG_SUBMITTED));
     // create a job event for job initialization
     DAGEvent initDagEvent = new DAGEvent(currentDAG.getID(), DAGEventType.DAG_INIT);
     // Send init to the job (this does NOT trigger job execution)

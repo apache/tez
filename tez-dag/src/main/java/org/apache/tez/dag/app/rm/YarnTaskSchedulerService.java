@@ -838,7 +838,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   }
 
   @Override
-  public synchronized void resetMatchLocalityForAllHeldContainers() {
+  public synchronized void dagComplete() {
     for (HeldContainer heldContainer : heldContainers.values()) {
       heldContainer.resetLocalityMatchLevel();
     }

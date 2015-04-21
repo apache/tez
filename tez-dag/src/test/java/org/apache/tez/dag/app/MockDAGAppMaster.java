@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -127,7 +128,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     AtomicBoolean startScheduling = new AtomicBoolean(true);
     AtomicBoolean goFlag;
     boolean updateProgress = true;
-    
+
     LinkedBlockingQueue<ContainerData> containersToProcess = new LinkedBlockingQueue<ContainerData>();
     
     Map<TezTaskID, Integer> preemptedTasks = Maps.newConcurrentMap();
@@ -137,6 +138,14 @@ public class MockDAGAppMaster extends DAGAppMaster {
     public MockContainerLauncher(AtomicBoolean goFlag) {
       super("MockContainerLauncher");
       this.goFlag = goFlag;
+    }
+
+    @Override
+    public void dagComplete(DAG dag) {
+    }
+
+    @Override
+    public void dagSubmitted() {
     }
 
     public class ContainerData {

@@ -282,6 +282,22 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
+  public void dagComplete(DAG dag) {
+    // TODO TEZ-2335. Cleanup TaskHeartbeat handler structures.
+    // TODO TEZ-2345. Also cleanup attemptInfo map, so that any tasks which heartbeat are told to die.
+    // Container structures remain unchanged - since they could be re-used across restarts.
+    // This becomes more relevant when task kills without container kills are allowed.
+
+    // TODO TEZ-2336. Send a signal to containers indicating DAG completion.
+  }
+
+  @Override
+  public void dagSubmitted() {
+    // Nothing to do right now. Indicates that a new DAG has been submitted and
+    // the context has updated information.
+  }
+
+  @Override
   public void registerRunningContainer(ContainerId containerId) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("ContainerId: " + containerId

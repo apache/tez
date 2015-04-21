@@ -21,6 +21,7 @@ package org.apache.tez.dag.app;
 import java.net.InetSocketAddress;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 /**
@@ -37,5 +38,9 @@ public interface TaskAttemptListener {
   void unregisterRunningContainer(ContainerId containerId);
   
   void unregisterTaskAttempt(TezTaskAttemptID attemptID);
+
+  void dagComplete(DAG dag);
+
+  void dagSubmitted();
 
 }

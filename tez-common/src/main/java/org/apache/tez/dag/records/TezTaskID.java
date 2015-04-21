@@ -81,6 +81,12 @@ public class TezTaskID extends TezID {
     return taskIDCache.getUnchecked(new TezTaskID(vertexID, id));
   }
 
+  @InterfaceAudience.Private
+  public static void clearCache() {
+    taskIDCache.invalidateAll();
+    taskIDCache.cleanUp();
+  }
+
   private TezTaskID(TezVertexID vertexID, int id) {
     super(id);
     Preconditions.checkArgument(vertexID != null, "vertexID cannot be null");

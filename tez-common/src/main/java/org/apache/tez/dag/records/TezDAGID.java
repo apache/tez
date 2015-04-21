@@ -23,6 +23,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.text.NumberFormat;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 import com.google.common.base.Preconditions;
@@ -65,6 +66,12 @@ public class TezDAGID extends TezID {
     // Alternately the cache can be keyed by the hash of the incoming paramters.
     Preconditions.checkArgument(applicationId != null, "ApplicationID cannot be null");
     return dagIdCache.getUnchecked(new TezDAGID(applicationId, id));
+  }
+
+  @InterfaceAudience.Private
+  public static void clearCache() {
+    dagIdCache.invalidateAll();
+    dagIdCache.cleanUp();
   }
   
   /**

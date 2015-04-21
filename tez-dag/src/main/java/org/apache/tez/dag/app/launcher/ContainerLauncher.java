@@ -20,8 +20,13 @@ package org.apache.tez.dag.app.launcher;
 
 
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
 
 public interface ContainerLauncher 
     extends EventHandler<NMCommunicatorEvent> {
+
+    void dagComplete(DAG dag);
+
+    void dagSubmitted();
 }

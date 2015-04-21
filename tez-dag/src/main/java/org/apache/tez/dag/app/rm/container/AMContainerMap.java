@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.rm.container;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.service.AbstractService;
@@ -74,4 +75,9 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   public Collection<AMContainer> values() {
     return containerMap.values();
   }
+
+  public void dagComplete(DAG dag){
+    AMContainerHelpers.dagComplete(dag.getID());
+  }
+
 }

@@ -83,6 +83,12 @@ public class TezVertexID extends TezID {
     return vertexIDCache.getUnchecked(new TezVertexID(dagId, id));
   }
 
+  @InterfaceAudience.Private
+  public static void clearCache() {
+    vertexIDCache.invalidateAll();
+    vertexIDCache.cleanUp();
+  }
+
   private TezVertexID(TezDAGID dagId, int id) {
     super(id);
     this.dagId = dagId;

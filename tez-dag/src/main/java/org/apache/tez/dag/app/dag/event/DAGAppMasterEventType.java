@@ -22,5 +22,7 @@ public enum DAGAppMasterEventType {
   INTERNAL_ERROR,
   AM_REBOOT,
   DAG_FINISHED,
-  SCHEDULING_SERVICE_ERROR
+  SCHEDULING_SERVICE_ERROR,
+  NEW_DAG_SUBMITTED, // Indicates a new dag being submitted, to notify sub-components
+  DAG_CLEANUP
 }

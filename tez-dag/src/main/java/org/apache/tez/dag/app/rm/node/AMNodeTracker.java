@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -205,4 +206,9 @@ public class AMNodeTracker extends AbstractService implements
   public boolean isBlacklistingIgnored() {
     return this.ignoreBlacklisting;
   }
+
+  public void dagComplete(DAG dag) {
+    // TODO TEZ-2337 Maybe reset failures from previous DAGs
+  }
+
 }

@@ -326,4 +326,9 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
       }
     };
   }
+
+  @Private
+  public int getQueueSize() {
+    return eventQueue.size();
+  }
 }

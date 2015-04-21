@@ -563,7 +563,12 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   public void dagCompleted() {
-    taskScheduler.resetMatchLocalityForAllHeldContainers();
+    taskScheduler.dagComplete();
+  }
+
+  public void dagSubmitted() {
+    // Nothing to do right now. Indicates that a new DAG has been submitted and
+    // the context has updated information.
   }
 
   @Override

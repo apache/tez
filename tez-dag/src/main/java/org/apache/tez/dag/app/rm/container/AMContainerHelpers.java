@@ -65,6 +65,11 @@ public class AMContainerHelpers {
   private static Map<TezDAGID, ContainerLaunchContext> commonContainerSpecs =
       new HashMap<TezDAGID, ContainerLaunchContext>();
 
+  public static void dagComplete(TezDAGID dagId) {
+    synchronized (commonContainerSpecLock) {
+      commonContainerSpecs.remove(dagId);
+    }
+  }
 
   /**
    * Create a {@link LocalResource} record with all the given parameters.

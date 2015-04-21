@@ -43,7 +43,7 @@ public abstract class TaskSchedulerService extends AbstractService{
 
   public abstract int getClusterNodeCount();
 
-  public abstract void resetMatchLocalityForAllHeldContainers();
+  public abstract void dagComplete();
 
   public abstract Resource getTotalResources();
 

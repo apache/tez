@@ -74,6 +74,12 @@ public class TezTaskAttemptID extends TezID {
     return taskAttemptIDCache.getUnchecked(new TezTaskAttemptID(taskID, id));
   }
 
+  @InterfaceAudience.Private
+  public static void clearCache() {
+    taskAttemptIDCache.invalidateAll();
+    taskAttemptIDCache.cleanUp();
+  }
+
   private TezTaskAttemptID(TezTaskID taskId, int id) {
     super(id);
     if(taskId == null) {
