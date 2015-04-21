@@ -16,25 +16,12 @@
 * limitations under the License.
 }}
 
-<ul class="page-list">
-  <li {{bind-attr class="view.atFirst::clickable"}} {{action 'changePage' 1}}>
-    First
-  </li>
-  {{#each page in view._possiblePages}}
-    <li {{bind-attr class="page.isCurrent:is-current:clickable"}} {{action 'changePage' page.pageNum}}>
-      {{page.pageNum}}
-    </li>
-  {{/each}}
-  {{#unless view.hideLast}}
-    <li {{bind-attr class="view.atLast::clickable"}} {{action 'changePage' view.totalPages}}>
-      Last - {{view.totalPages}}
-    </li>
-  {{/unless}}
-</ul>
-<div class='row-select'>
-  <div>Rows</div>
-  {{view Ember.Select
-    content=rowCountOptions
-    value=rowCount
-  }}
-</div>
+{{#if view.cellContent.isPending}}
+  <i class="waiting"></i>&nbsp;
+{{else}}
+  {{#if view.cellContent.displayText}}
+    {{view.cellContent.displayText}}
+  {{else}}
+    <span class="message">Not Available!</span>
+  {{/if}}
+{{/if}}

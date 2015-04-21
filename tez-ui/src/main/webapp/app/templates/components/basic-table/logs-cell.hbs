@@ -16,20 +16,16 @@
 * limitations under the License.
 }}
 
-<span class="ember-table-content">
-  {{#if view.cellContent.isPending}}
-    <i class="waiting absolute"></i>&nbsp;
-  {{else}}
-    {{#if view.cellContent._notAvailable}}
-      {{view.cellContent}}
-    {{else}}
-      {{#if view.cellContent.viewUrl}}
-        <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>
-        &nbsp;
-      {{/if}}
-      {{#if view.cellContent.downloadUrl}}
-        <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>
-      {{/if}}
-    {{/if}}
+{{#if view.cellContent.isPending}}
+  <i class="waiting"></i>&nbsp;
+{{else}}
+  {{#if view.cellContent.viewUrl}}
+    <a target="_blank" href="//{{unbound view.cellContent.viewUrl}}">View</a>
+    &nbsp;
   {{/if}}
-</span>
+  {{#if view.cellContent.downloadUrl}}
+    <a target="_blank" href="{{unbound view.cellContent.downloadUrl}}?start=0" download type="application/octet-stream">Download</a>
+  {{else}}{{#unless view.cellContent.viewUrl}}
+    <span class="message">Not Available!</span>
+  {{/unless}}{{/if}}
+{{/if}}

@@ -16,16 +16,16 @@
 * limitations under the License.
 }}
 
-{{#if view.cellContent._notAvailable}}
-  {{view.cellContent}}
+{{#if view.cellContent.isPending}}
+  <i class="waiting"></i>&nbsp;
 {{else}}
   {{#if view.cellContent.linkToAdditionals}}
-      {{#link-to 'vertex.additionals' view.cellContent.vertexId class='ember-table-content'}}View sources & sinks{{/link-to}}
+    {{#link-to 'vertex.additionals' view.cellContent.vertexId}}View sources & sinks{{/link-to}}
   {{else}}{{#if view.cellContent.inputId}}
-    {{#link-to 'input.configs' view.cellContent.vertexId view.cellContent.inputId class='ember-table-content'}}View source configs{{/link-to}}
+    {{#link-to 'input.configs' view.cellContent.vertexId view.cellContent.inputId}}View source configs{{/link-to}}
   {{else}}{{#if view.cellContent.outputId}}
-    {{#link-to 'output.configs' view.cellContent.vertexId view.cellContent.outputId class='ember-table-content'}}View sink configs{{/link-to}}
+    {{#link-to 'output.configs' view.cellContent.vertexId view.cellContent.outputId}}View sink configs{{/link-to}}
   {{else}}
-    <span class='ember-table-content'>No source or sink</span>
+    <span class="message">Not Available!</span>
   {{/if}}{{/if}}{{/if}}
 {{/if}}

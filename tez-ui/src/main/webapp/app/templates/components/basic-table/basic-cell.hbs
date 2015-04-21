@@ -16,4 +16,8 @@
 * limitations under the License.
 }}
 
-{{unbound view.cellContent}}
+{{#unbound unless view.cellContent.displayText}}
+  <span class="message">Not Available!</span>
+{{else}}
+  {{unbound view.cellContent.displayText}}
+{{/unbound}}

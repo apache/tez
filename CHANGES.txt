@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2344. Tez UI: Equip basic-ember-table's cell level loading for all use cases in all DAGs table
   TEZ-2313. Regression in handling obsolete events in ShuffleScheduler.
   TEZ-2212. Notify components on DAG completion.
   TEZ-2328. Add tez.runtime.sorter.class & rename tez.runtime.sort.threads

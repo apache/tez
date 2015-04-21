@@ -16,28 +16,28 @@
  * limitations under the License.
  */
 
-var ObjectPromiseController = Ember.ObjectController.extend(Ember.PromiseProxyMixin),
-    naCellContent = {
-      toString: function (){
-        return 'Not available!';
-      },
-      _notAvailable: true
-    };
+var ObjectPromiseController = Ember.ObjectController.extend(Ember.PromiseProxyMixin);
 
 App.BasicTableComponent.CellView = Ember.View.extend({
   templateName: 'components/basic-table/basic-cell',
 
   classNames: ['cell-content'],
 
+  _normalizeContent: function (content) {
+    return content && typeof content == 'object' ? content : {
+      displayText: content
+    };
+  },
+
   cellContent: function () {
     var cellContent = this.get('column').getCellContent(this.get('row'));
 
     if(cellContent && $.isFunction(cellContent.then)) {
-      cellContent = ObjectPromiseController.create({
-        promise: cellContent
+      return ObjectPromiseController.create({
+        promise: cellContent.then(this._normalizeContent)
       });
     }
 
-    return cellContent || naCellContent;
+    return this._normalizeContent(cellContent);
   }.property('row', 'column')
 });

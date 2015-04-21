@@ -16,10 +16,16 @@
 * limitations under the License.
 }}
 
-{{#if view.cellContent._notAvailable}}
-  {{view.cellContent}}
+{{#if view.cellContent.isPending}}
+  <i class="waiting"></i>&nbsp;
 {{else}}
-  {{#link-to view.cellContent.linkTo view.cellContent.entityId}}
+  {{#if view.cellContent.linkTo}}
+    {{#link-to view.cellContent.linkTo view.cellContent.entityId}}
+      {{view.cellContent.displayText}}
+    {{/link-to}}
+  {{else}}{{#if view.cellContent.displayText}}
     {{view.cellContent.displayText}}
-  {{/link-to}}
+  {{else}}
+    <span class="message">Not Available!</span>
+  {{/if}}{{/if}}
 {{/if}}

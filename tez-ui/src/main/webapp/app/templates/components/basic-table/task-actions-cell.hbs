@@ -16,11 +16,9 @@
 * limitations under the License.
 }}
 
-{{#if view.cellContent._notAvailable}}
-  {{view.cellContent}}
+{{#if view.cellContent.displayText}}
+  {{#link-to "task.counters" view.cellContent.displayText}}counters{{/link-to}}
+  {{#link-to "task.attempts" view.cellContent.displayText}}attempts{{/link-to}}
 {{else}}
-  <span class="ember-table-content">
-    {{#link-to "task.counters" view.cellContent}}counters{{/link-to}}
-    {{#link-to "task.attempts" view.cellContent}}attempts{{/link-to}}
-  </span>
+  <span class="message">Not Available!</span>
 {{/if}}

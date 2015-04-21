@@ -16,14 +16,16 @@
 * limitations under the License.
 }}
 
-{{#if view.cellContent._notAvailable}}
-  {{view.cellContent}}
+{{#if view.cellContent.isPending}}
+  <i class="waiting"></i>&nbsp;
 {{else}}
-  <span class="ember-table-content">
+  {{#if view.cellContent.status}}
     <i {{bind-attr class=":task-status view.cellContent.statusIcon"}}></i>
-    &nbsp;&nbsp;{{view.cellContent.status}}
-    {{#if view.cellContent.progress}}
-      {{bs-badge content=view.cellContent.progress}}
-    {{/if}}
-  </span>
+    <span class="status-msg">{{view.cellContent.status}}</span>
+  {{/if}}
+  {{#if view.cellContent.progress}}
+    {{bs-badge content=view.cellContent.progress}}
+  {{else}}{{#unless view.cellContent.status}}
+    <span class="message">Not Available!</span>
+  {{/unless}}{{/if}}
 {{/if}}

@@ -80,6 +80,7 @@ App.ready = function () {
     },
   });
 
+  App.DagVertexAdapter =
   App.VertexAdapter = App.ApplicationAdapter.extend({
     _setInputs: function (store, data) {
       var dagId = Ember.get(data, 'primaryfilters.TEZ_DAG_ID.0'),
