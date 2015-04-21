@@ -30,7 +30,6 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -66,9 +65,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestShuffleVertexManager {
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test(timeout = 5000)
   public void testShuffleVertexManagerAutoParallelism() throws Exception {
     Configuration conf = new Configuration();
@@ -452,7 +451,6 @@ public class TestShuffleVertexManager {
     }
   }
   
-  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test(timeout = 5000)
   public void testShuffleVertexManagerSlowStart() {
     Configuration conf = new Configuration();
@@ -779,18 +777,13 @@ public class TestShuffleVertexManager {
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 9);
 
     //Ensure that setVertexParallelism is not called for R2.
-    try {
-      verify(mockContext_R2, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class),
-          anyMap());
-      // complete configuration of r1 triggers the scheduling
-      manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
-      verify(mockContext_R2, times(1)).reconfigureVertex(eq(1), any(VertexLocationHint.class),
-          anyMap());
-    } catch (TezException e) {
-      e.printStackTrace();
-      Assert.fail(); // should not happen
-    }
-
+    verify(mockContext_R2, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class),
+        anyMap());
+    // complete configuration of r1 triggers the scheduling
+    manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
+    verify(mockContext_R2, times(1)).reconfigureVertex(eq(1), any(VertexLocationHint.class),
+        anyMap());
+  
     Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
     Assert.assertTrue(scheduledTasks.size() == 3);
 

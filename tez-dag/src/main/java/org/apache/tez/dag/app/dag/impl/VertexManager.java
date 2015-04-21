@@ -44,7 +44,6 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -171,7 +170,6 @@ public class VertexManager {
         managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
             rootInputSpecUpdate, true);
       } catch (AMUserCodeException e) {
-        // workaround: convert it to TezUncheckedException which would be caught in VM
         throw new TezUncheckedException(e);
       }
     }
@@ -179,13 +177,12 @@ public class VertexManager {
     @Override
     public synchronized void reconfigureVertex(int parallelism,
         @Nullable VertexLocationHint locationHint,
-        @Nullable Map<String, EdgeProperty> sourceEdgeProperties) throws TezException {
+        @Nullable Map<String, EdgeProperty> sourceEdgeProperties) {
       checkAndThrowIfDone();
       try {
         managedVertex.reconfigureVertex(parallelism, locationHint, sourceEdgeProperties);
       } catch (AMUserCodeException e) {
-        // convert it to TezException which would be caught in VM
-        throw new TezException(e);
+        throw new TezUncheckedException(e);
       }
     }
 

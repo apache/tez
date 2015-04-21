@@ -172,11 +172,10 @@ public interface VertexManagerPluginContext {
    *          Map with Key=name of {@link Edge} to be updated and Value=
    *          {@link EdgeProperty}. The name of the Edge will be the 
    *          corresponding source vertex name.
-   * @throws TezException Exception to indicate errors
    */
   public void reconfigureVertex(int parallelism,
       @Nullable VertexLocationHint locationHint,
-      @Nullable Map<String, EdgeProperty> sourceEdgeProperties) throws TezException;
+      @Nullable Map<String, EdgeProperty> sourceEdgeProperties);
 
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs

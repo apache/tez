@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.tez.dag.api.TezException;
 
 
 /**
@@ -28,7 +29,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
  * <li>InputInitializer</li>
  */
 @Private
-public class AMUserCodeException extends Exception {
+public class AMUserCodeException extends TezException {
 
   private static final long serialVersionUID = -3642816091492797520L;
 

@@ -39,7 +39,6 @@ import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -533,12 +532,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         edgeProperties.put(vertex, newEdgeProp);
       }
       
-      try {
-        getContext().reconfigureVertex(finalTaskParallelism, null, edgeProperties);
-      } catch (TezException e) {
-        // TODO fail vertex - TEZ-2292
-        LOG.warn("Failed to change parallelism in: " + getContext().getVertexName(), e);
-      }
+      getContext().reconfigureVertex(finalTaskParallelism, null, edgeProperties);
+      
       updatePendingTasks();
     }
     return true;

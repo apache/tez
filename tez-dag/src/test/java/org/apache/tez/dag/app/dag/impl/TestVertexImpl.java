@@ -170,6 +170,7 @@ import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.EdgeManagerForTest;
 import org.apache.tez.test.VertexManagerPluginForTest;
+import org.apache.tez.test.VertexManagerPluginForTest.VertexManagerPluginForTestConfig;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
@@ -184,6 +185,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.collections.Sets;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -192,6 +194,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+@SuppressWarnings("unchecked")
 public class TestVertexImpl {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestVertexImpl.class);
@@ -2273,7 +2276,6 @@ public class TestVertexImpl {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private void initVertex(VertexImpl v) {
     Assert.assertEquals(VertexState.NEW, v.getState());
     dispatcher.getEventHandler().handle(new VertexEvent(v.getVertexId(),
@@ -2285,7 +2287,6 @@ public class TestVertexImpl {
     startVertex(v, true);
   }
 
-  @SuppressWarnings("unchecked")
   private void killVertex(VertexImpl v) {
     dispatcher.getEventHandler().handle(
         new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
@@ -2294,7 +2295,6 @@ public class TestVertexImpl {
     Assert.assertEquals(v.getTerminationCause(), VertexTerminationCause.DAG_KILL);
   }
 
-  @SuppressWarnings("unchecked")
   private void startVertex(VertexImpl v,
       boolean checkRunningState) {
     Assert.assertEquals(VertexState.INITED, v.getState());
@@ -2379,7 +2379,6 @@ public class TestVertexImpl {
     updateTracker.unregisterForVertexUpdates("vertex3", listener);
   }
   
-  @SuppressWarnings("unchecked")
   @Test (timeout=5000)
   public void testVertexConfigureEventWithReconfigure() throws Exception {
     useCustomInitializer = true;
@@ -2626,7 +2625,6 @@ public class TestVertexImpl {
     }
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexPendingTaskEvents() {
     initAllVertices(VertexState.INITED);
@@ -2701,7 +2699,6 @@ public class TestVertexImpl {
         ((EdgeManagerForTest) modifiedEdgeManager).getUserPayload().deepCopyAsArray()));
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testBasicVertexCompletion() {
     initAllVertices(VertexState.INITED);
@@ -2725,7 +2722,6 @@ public class TestVertexImpl {
     Assert.assertEquals(2, v.getCompletedTasks());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   @Ignore // FIXME fix verteximpl for this test to work
   public void testDuplicateTaskCompletion() {
@@ -2753,8 +2749,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
   }
 
-
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexFailure() {
     initAllVertices(VertexState.INITED);
@@ -2801,7 +2795,6 @@ public class TestVertexImpl {
         "vertex received kill while in running state"));
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexKillPending() {
     initAllVertices(VertexState.INITED);
@@ -2827,7 +2820,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.KILLED, v.getState());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexKill() {
     initAllVertices(VertexState.INITED);
@@ -2853,7 +2845,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.KILLED, v.getState());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testKilledTasksHandling() {
     initAllVertices(VertexState.INITED);
@@ -2895,7 +2886,6 @@ public class TestVertexImpl {
         instanceof ShuffleVertexManager);
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexTaskFailure() {
     initAllVertices(VertexState.INITED);
@@ -2926,7 +2916,6 @@ public class TestVertexImpl {
     Assert.assertEquals(1, committer.abortCounter);
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexTaskAttemptProcessorFailure() throws Exception {
     initAllVertices(VertexState.INITED);
@@ -2962,7 +2951,6 @@ public class TestVertexImpl {
     Assert.assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, ta.getTerminationCause());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexTaskAttemptInputFailure() throws Exception {
     initAllVertices(VertexState.INITED);
@@ -2999,7 +2987,6 @@ public class TestVertexImpl {
   }
 
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexTaskAttemptOutputFailure() throws Exception {
     initAllVertices(VertexState.INITED);
@@ -3098,7 +3085,6 @@ public class TestVertexImpl {
 
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testDAGEventGeneration() {
     initAllVertices(VertexState.INITED);
@@ -3120,7 +3106,6 @@ public class TestVertexImpl {
             DAGEventType.DAG_VERTEX_COMPLETED).intValue());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testTaskReschedule() {
     // For downstream failures
@@ -3150,8 +3135,7 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
 
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testVertexSuccessToRunningAfterTaskScheduler() {
     // For downstream failures
@@ -3191,8 +3175,7 @@ public class TestVertexImpl {
         dagEventDispatcher.eventCount.get(
             DAGEventType.DAG_VERTEX_COMPLETED).intValue());
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testVertexSuccessToFailedAfterTaskScheduler() throws Exception {
     // For downstream failures
@@ -3240,7 +3223,6 @@ public class TestVertexImpl {
             DAGEventType.DAG_VERTEX_COMPLETED).intValue());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexCommit() {
     initAllVertices(VertexState.INITED);
@@ -3267,7 +3249,6 @@ public class TestVertexImpl {
     Assert.assertEquals(1, committer.setupCounter);
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testTaskFailedAfterVertexSuccess() {
     initAllVertices(VertexState.INITED);
@@ -3303,7 +3284,6 @@ public class TestVertexImpl {
     
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testBadCommitter() throws Exception {
     VertexImpl v = vertices.get("vertex2");
@@ -3348,7 +3328,6 @@ public class TestVertexImpl {
     Assert.assertEquals(1, committer.setupCounter);
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testBadCommitter2() throws Exception {
     VertexImpl v = vertices.get("vertex2");
@@ -3391,8 +3370,7 @@ public class TestVertexImpl {
     Assert.assertEquals(1, committer.initCounter);
     Assert.assertEquals(1, committer.setupCounter);
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testVertexInitWithCustomVertexManager() throws Exception {
     setupPreDagCreation();
@@ -3612,7 +3590,39 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vertices.get("vertex4").getState());
   }
 
-  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testVertexVMErrorReport() throws Exception {
+    int numTasks = 5;
+    // create a diamond shaped dag with 1-1 edges. 
+    setupPreDagCreation();
+    dagPlan = createDAGPlanForOneToOneSplit(null, numTasks, false);
+    setupPostDagCreation();
+    VertexImpl v1 = vertices.get("vertex1");
+    initAllVertices(VertexState.INITED);
+    
+    // fudge vertex manager so that tasks dont start running
+    // it is not calling reconfigurtionPlanned() but will call reconfigureVertex().
+    // the vertex is already fully configured. this causes exception and verify that
+    // its caught and reported.
+    VertexManagerPluginForTestConfig config = new VertexManagerPluginForTestConfig();
+    config.setReconfigureOnStart(true);
+    v1.vertexManager = new VertexManager(VertexManagerPluginDescriptor.create(
+        VertexManagerPluginForTest.class.getName()).setUserPayload(
+        UserPayload.create(config.getPayload())), UserGroupInformation.getCurrentUser(), v1,
+        appContext, mock(StateChangeNotifier.class));
+    v1.vertexManager.initialize();
+
+    startVertex(v1, false);
+    dispatcher.await();
+
+    // failed due to exception
+    Assert.assertEquals(VertexState.FAILED, vertices.get("vertex1").getState());
+    Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, vertices.get("vertex1")
+        .getTerminationCause());
+    Assert.assertTrue(Joiner.on(":").join(vertices.get("vertex1").getDiagnostics()).contains(
+        "context.vertexReconfigurationPlanned() before re-configuring"));
+  }
+
   @Test(timeout = 5000)
   public void testInvalidEvent() {
     VertexImpl v = vertices.get("vertex2");
@@ -3625,7 +3635,6 @@ public class TestVertexImpl {
             DAGEventType.INTERNAL_ERROR).intValue());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexWithInitializerFailure() throws Exception {
     useCustomInitializer = true;
@@ -4125,7 +4134,6 @@ public class TestVertexImpl {
         initializer.stateUpdates.get(2).getVertexState());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 10000)
   public void testInputInitializerEvents() throws Exception {
     useCustomInitializer = true;
@@ -4202,7 +4210,6 @@ public class TestVertexImpl {
     Assert.assertEquals(0, initializerWrapper.getPendingEvents().get(v1.getName()).size());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   /**
    * Ref: TEZ-1494
@@ -4563,7 +4570,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v1.getState());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 500000)
   public void testVertexWithInitializerSuccess() throws Exception {
     useCustomInitializer = true;
@@ -4637,8 +4643,7 @@ public class TestVertexImpl {
       Assert.assertEquals(1, inputSpecs.get(0).getPhysicalEdgeCount());
     }
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testVertexWithInputDistributor() throws Exception {
     useCustomInitializer = true;
@@ -4674,7 +4679,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, v2.getState());
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testVertexRootInputSpecUpdateAll() throws Exception {
     useCustomInitializer = true;
@@ -4704,8 +4708,7 @@ public class TestVertexImpl {
       Assert.assertEquals(4, inputSpecs.get(0).getPhysicalEdgeCount());
     }
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testVertexRootInputSpecUpdatePerTask() throws Exception {
     useCustomInitializer = true;
@@ -4983,7 +4986,6 @@ public class TestVertexImpl {
     }
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout=5000)
   public void testVertexGroupInput() throws AMUserCodeException {
     setupPreDagCreation();
@@ -5010,8 +5012,7 @@ public class TestVertexImpl {
     assertTrue(groupInSpec.get(0).getGroupVertices().contains("B"));
     groupInSpec.get(0).getMergedInputDescriptor().getClassName().equals("Group.class");
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testStartWithUninitializedCustomEdge() throws Exception {
     // Race when a source vertex manages to start before the target vertex has
@@ -5060,8 +5061,7 @@ public class TestVertexImpl {
     Assert.assertNotNull(vB.getTask(0));
     Assert.assertNotNull(vC.getTask(0));
   }
-  
-  @SuppressWarnings("unchecked")
+
   @Test(timeout = 5000)
   public void testVertexConfiguredDoneByVMBeforeEdgeDefined() throws Exception {
     // Race when a source vertex manages to start before the target vertex has
@@ -5136,7 +5136,6 @@ public class TestVertexImpl {
     Assert.assertNotNull(vC.getTask(0));
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testInitStartRace() throws AMUserCodeException {
     // Race when a source vertex manages to start before the target vertex has
@@ -5160,7 +5159,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vC.getState());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testInitStartRace2() throws AMUserCodeException {
     // Race when a source vertex manages to start before the target vertex has
@@ -5188,7 +5186,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vC.getState());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromVM_Initialize() throws AMUserCodeException {
     useCustomInitializer = true;
@@ -5208,7 +5205,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, v1.getTerminationCause());
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromVM_OnRootVertexInitialized() throws Exception {
     useCustomInitializer = true;
@@ -5233,7 +5229,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, v1.getTerminationCause());
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromVM_OnVertexStarted() throws Exception {
     useCustomInitializer = true;
@@ -5261,7 +5256,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, v1.getTerminationCause());
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromVM_OnSourceTaskCompleted() throws Exception {
     useCustomInitializer = true;
@@ -5298,7 +5292,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.AM_USERCODE_FAILURE, v2.getTerminationCause());
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromVM_OnVertexManagerEventReceived() throws Exception {
     useCustomInitializer = true;
@@ -5325,7 +5318,6 @@ public class TestVertexImpl {
     Assert.assertTrue(diagnostics.contains(VMExceptionLocation.OnVertexManagerEventReceived.name()));
   }
   
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromVM_OnVertexManagerVertexStateUpdated() throws Exception {
     useCustomInitializer = true;
@@ -5376,7 +5368,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromII_InitFailedAfterInitialized() throws Exception {
     useCustomInitializer = true;
@@ -5401,7 +5392,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromII_InitFailedAfterRunning() throws Exception {
     useCustomInitializer = true;
@@ -5427,7 +5417,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v1.getTerminationCause());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromII_HandleInputInitializerEvent() throws Exception {
     useCustomInitializer = true;
@@ -5507,7 +5496,6 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v2.getTerminationCause());
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testExceptionFromII_InitSucceededAfterInitFailure() throws AMUserCodeException, InterruptedException {
     useCustomInitializer = true;
