@@ -349,6 +349,10 @@ class ShuffleScheduler {
             + ", newAttemptNum=" + input.getAttemptNumber()));
         return false;
       }
+
+      if (eventInfo == null) {
+        shuffleInfoEventsMap.put(input.getInputIdentifier(), new ShuffleEventInfo(input));
+      }
     }
     return true;
   }
@@ -523,9 +527,6 @@ class ShuffleScheduler {
     if (!validateInputAttemptForPipelinedShuffle(srcAttempt)) {
       return;
     }
-    if (shuffleInfoEventsMap.get(srcAttempt.getInputIdentifier()) == null) {
-      shuffleInfoEventsMap.put(srcAttempt.getInputIdentifier(), new ShuffleEventInfo(srcAttempt));
-    }
 
     host.addKnownMap(srcAttempt);
     pathToIdentifierMap.put(
@@ -542,6 +543,7 @@ class ShuffleScheduler {
     // The incoming srcAttempt does not contain a path component.
     LOG.info("Adding obsolete input: " + srcAttempt);
     if (shuffleInfoEventsMap.containsKey(srcAttempt.getInputIdentifier())) {
+      //Pipelined shuffle case (where shuffleInfoEventsMap gets populated).
       //Fail fast here.
       shuffle.reportException(new IOException(srcAttempt + " is marked as obsoleteInput, but it "
           + "exists in shuffleInfoEventMap. Some data could have been already merged "

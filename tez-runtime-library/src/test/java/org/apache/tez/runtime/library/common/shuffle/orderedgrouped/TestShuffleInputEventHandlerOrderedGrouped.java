@@ -236,6 +236,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
             PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
 
     verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(baseUri), eq(id1));
+    assertTrue("Shuffle info events should not be empty for pipelined shuffle",
+        !scheduler.shuffleInfoEventsMap.isEmpty());
 
     //Attempt #0 comes up. When processing this, it should report exception
     attemptNum = 0;
@@ -263,6 +265,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     int partitionId = srcIdx;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId),
         eq(baseUri), eq(expectedIdentifier));
+    assertTrue("Shuffle info events should be empty for regular shuffle codepath",
+        scheduler.shuffleInfoEventsMap.isEmpty());
   }
 
   @Test(timeout = 5000)
