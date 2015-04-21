@@ -72,7 +72,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-
+@SuppressWarnings({ "rawtypes", "unchecked" })
 @RunWith(Parameterized.class)
 public class TestOnFileSortedOutput {
   private static final Random rnd = new Random();
@@ -90,6 +90,7 @@ public class TestOnFileSortedOutput {
   private int sorterThreads;
   
   final AtomicLong outputSize = new AtomicLong();
+  final AtomicLong numRecords = new AtomicLong();
 
   private KeyValuesWriter writer;
   private OrderedPartitionedKVOutput sortedOutput;
@@ -135,6 +136,7 @@ public class TestOnFileSortedOutput {
         sendEmptyPartitionViaEvent);
 
     outputSize.set(0);
+    numRecords.set(0);
     fs.mkdirs(workingDir);
     this.partitions = Math.max(1, rnd.nextInt(10));
   }
@@ -271,10 +273,12 @@ public class TestOnFileSortedOutput {
     startSortedOutput(partitions);
 
     //Write random set of keys
+    long recordsWritten = numRecords.get();
     for (int i = 0; i < Math.max(1, rnd.nextInt(50)); i++) {
       Text key = new Text(new BigInteger(256, rnd).toString());
       LinkedList values = new LinkedList();
       for (int j = 0; j < Math.max(2, rnd.nextInt(10)); j++) {
+        recordsWritten++;
         values.add(new Text(new BigInteger(256, rnd).toString()));
       }
       writer.write(key, values);
@@ -282,7 +286,7 @@ public class TestOnFileSortedOutput {
 
     List<Event> eventList = sortedOutput.close();
     assertTrue(eventList != null && eventList.size() == 2);
-
+    assertEquals(recordsWritten, numRecords.get());
     ShuffleUserPayloads.DataMovementEventPayloadProto
         payload = ShuffleUserPayloads.DataMovementEventPayloadProto
         .parseFrom(
@@ -358,6 +362,13 @@ public class TestOnFileSortedOutput {
         return null;
       }
     }).when(reporter).reportDataSize(anyLong());
+    doAnswer(new Answer() {
+      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+        numRecords.set((Long) invocation.getArguments()[0]);
+        return null;
+      }
+    }).when(reporter).reportItemsProcessed(anyLong());
+
     
     OutputContext context = mock(OutputContext.class);
     doReturn(counters).when(context).getCounters();

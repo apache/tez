@@ -38,4 +38,13 @@ public interface OutputStatistics {
    * @return Data size in bytes
    */
  public long getDataSize();
+ 
+ /**
+   * Get the numbers of items processed. These could be key-value pairs, table
+   * records etc.
+   * 
+   * @return Number of items processed
+  */
+ public long getItemsProcessed();
+
 }

@@ -44,7 +44,6 @@ import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter;
-import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -131,7 +130,10 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
     
     long outputSize = getContext().getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
     getContext().getStatisticsReporter().reportDataSize(outputSize);
-    
+    long outputRecords = getContext().getCounters()
+        .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
+    getContext().getStatisticsReporter().reportItemsProcessed(outputRecords);
+
     return returnEvents;
   }
 

@@ -507,6 +507,10 @@ public class MROutput extends AbstractLogicalOutput {
   @Override
   public synchronized List<Event> close() throws IOException {
     flush();
+    long outputRecords = getContext().getCounters()
+        .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
+    getContext().getStatisticsReporter().reportItemsProcessed(outputRecords);
+
     return null;
   }
   

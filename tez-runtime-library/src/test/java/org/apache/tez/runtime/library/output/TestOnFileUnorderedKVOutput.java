@@ -81,6 +81,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+@SuppressWarnings("rawtypes")
 public class TestOnFileUnorderedKVOutput {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestOnFileUnorderedKVOutput.class);
@@ -139,6 +140,7 @@ public class TestOnFileUnorderedKVOutput {
 
     events = kvOutput.close();
     assertEquals(45, stats.getIOStatistics().values().iterator().next().getDataSize());
+    assertEquals(5, stats.getIOStatistics().values().iterator().next().getItemsProcessed());
     assertTrue(events != null && events.size() == 1);
     CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(0);
 

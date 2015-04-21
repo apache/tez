@@ -376,6 +376,7 @@ public class TestMockDAGAppMaster {
                 OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
     IOStatistics ioStats = new IOStatistics();
     ioStats.setDataSize(1);
+    ioStats.setItemsProcessed(1);
     TaskStatistics vAStats = new TaskStatistics();
     vAStats.addIO(vBName, ioStats);
     vAStats.addIO(sourceName, ioStats);
@@ -426,10 +427,14 @@ public class TestMockDAGAppMaster {
       VertexStatistics vStats = v.getStatistics();
       if (v.getName().equals(vAName)) {
         Assert.assertEquals(3, vStats.getOutputStatistics(vBName).getDataSize());
-        Assert.assertEquals(3, vStats.getInputStatistics(sourceName).getDataSize());        
+        Assert.assertEquals(3, vStats.getInputStatistics(sourceName).getDataSize());
+        Assert.assertEquals(3, vStats.getOutputStatistics(vBName).getItemsProcessed());
+        Assert.assertEquals(3, vStats.getInputStatistics(sourceName).getItemsProcessed());
       } else {
         Assert.assertEquals(2, vStats.getInputStatistics(vAName).getDataSize());
-        Assert.assertEquals(2, vStats.getOutputStatistics(sinkName).getDataSize());        
+        Assert.assertEquals(2, vStats.getOutputStatistics(sinkName).getDataSize());
+        Assert.assertEquals(2, vStats.getInputStatistics(vAName).getItemsProcessed());
+        Assert.assertEquals(2, vStats.getOutputStatistics(sinkName).getItemsProcessed());
       }
     }
     
@@ -521,6 +526,7 @@ public class TestMockDAGAppMaster {
 
     IOStatistics ioStats = new IOStatistics();
     ioStats.setDataSize(1);
+    ioStats.setItemsProcessed(1);
     TaskStatistics vAStats = new TaskStatistics();
 
     DAG dag = DAG.create("testBasisStatistics");
@@ -566,6 +572,8 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     Assert.assertEquals(numTasks,
         dagImpl.getVertex(vAName).getStatistics().getInputStatistics(0+vAName).getDataSize());
+    Assert.assertEquals(numTasks,
+        dagImpl.getVertex(vAName).getStatistics().getInputStatistics(0+vAName).getItemsProcessed());
     checkMemory(dag.getName(), mockApp);
     tezClient.stop();
   }

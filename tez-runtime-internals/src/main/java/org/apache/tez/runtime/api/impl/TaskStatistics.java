@@ -54,7 +54,7 @@ public class TaskStatistics implements Writable {
     for (Map.Entry<String, IOStatistics> entry : ioStatistics.entrySet()) {
       IOStatistics edgeStats = entry.getValue();
       Text.writeString(out, entry.getKey());
-      out.writeLong(edgeStats.getDataSize());
+      edgeStats.write(out);
     }
   }
 
@@ -64,7 +64,7 @@ public class TaskStatistics implements Writable {
     for (int i=0; i<numEntries; ++i) {
       String edgeName = Text.readString(in);
       IOStatistics edgeStats = new IOStatistics();
-      edgeStats.setDataSize(in.readLong());
+      edgeStats.readFields(in);
       addIO(edgeName, edgeStats);
     }
   }

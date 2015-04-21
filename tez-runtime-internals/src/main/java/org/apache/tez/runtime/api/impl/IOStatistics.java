@@ -17,8 +17,15 @@
 
 package org.apache.tez.runtime.api.impl;
 
-public class IOStatistics {
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+import org.apache.hadoop.io.Writable;
+
+public class IOStatistics implements Writable {
   private long dataSize = 0;
+  private long numItems = 0;
   
   public void setDataSize(long size) {
     this.dataSize = size;
@@ -27,4 +34,30 @@ public class IOStatistics {
   public long getDataSize() {
     return dataSize;
   }
+  
+  public void setItemsProcessed(long items) {
+    this.numItems = items;
+  }
+  
+  public long getItemsProcessed() {
+    return numItems;
+  }
+  
+  public void mergeFrom(org.apache.tez.runtime.api.impl.IOStatistics other) {
+    this.setDataSize(this.getDataSize() + other.getDataSize());
+    this.setItemsProcessed(this.getItemsProcessed() + other.getItemsProcessed());
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    out.writeLong(getDataSize());
+    out.writeLong(getItemsProcessed());
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    setDataSize(in.readLong());
+    setItemsProcessed(in.readLong());
+  }
+
 }

@@ -788,10 +788,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
       return super.getDataSize();
     }
     
-    void mergeFrom(org.apache.tez.runtime.api.impl.IOStatistics other) {
-      this.setDataSize(this.getDataSize() + other.getDataSize());
+    @Override
+    public long getItemsProcessed() {
+      return super.getItemsProcessed();
     }
-    
   }
 
   class VertexStatisticsImpl implements VertexStatistics {
@@ -813,12 +813,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         return;
       }
       
-      for (Map.Entry<String, org.apache.tez.runtime.api.impl.IOStatistics> entry : taskStats.getIOStatistics().entrySet()) {
-        String edgeName = entry.getKey();
-        IOStatisticsImpl myEdgeStat = ioStats.get(edgeName);
-        Preconditions.checkState(myEdgeStat != null, "Unexpected IO name: " + edgeName
+      for (Map.Entry<String, org.apache.tez.runtime.api.impl.IOStatistics> entry : taskStats
+          .getIOStatistics().entrySet()) {
+        String ioName = entry.getKey();
+        IOStatisticsImpl myIOStat = ioStats.get(ioName);
+        Preconditions.checkState(myIOStat != null, "Unexpected IO name: " + ioName
             + " for vertex:" + getLogIdentifier());
-        myEdgeStat.mergeFrom(entry.getValue());
+        myIOStat.mergeFrom(entry.getValue());
       }
     }
 

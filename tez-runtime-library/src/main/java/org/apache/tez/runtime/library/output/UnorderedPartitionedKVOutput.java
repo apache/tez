@@ -107,7 +107,10 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
     long outputSize = getContext().getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
     getContext().getStatisticsReporter().reportDataSize(outputSize);
-    
+    long outputRecords = getContext().getCounters()
+        .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
+    getContext().getStatisticsReporter().reportItemsProcessed(outputRecords);
+
     return returnEvents;
   }
 

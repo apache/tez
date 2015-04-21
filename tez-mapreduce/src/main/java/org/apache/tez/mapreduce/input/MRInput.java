@@ -532,6 +532,10 @@ public class MRInput extends MRInputBase {
   @Override
   public List<Event> close() throws IOException {
     mrReader.close();
+    long inputRecords = getContext().getCounters()
+        .findCounter(TaskCounter.INPUT_RECORDS_PROCESSED).getValue();
+    getContext().getStatisticsReporter().reportItemsProcessed(inputRecords);
+
     return null;
   }
 

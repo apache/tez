@@ -40,6 +40,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.mapreduce.input.base.MRInputBase;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
 import org.apache.tez.mapreduce.lib.MRReader;
@@ -187,6 +188,10 @@ public class MultiMRInput extends MRInputBase {
     for (MRReader reader : readers) {
       reader.close();
     }
+    long inputRecords = getContext().getCounters()
+        .findCounter(TaskCounter.INPUT_RECORDS_PROCESSED).getValue();
+    getContext().getStatisticsReporter().reportItemsProcessed(inputRecords);
+
     return null;
   }
 

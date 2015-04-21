@@ -66,6 +66,13 @@ public class TezInputContextImpl extends TezTaskContextImpl
       runtimeTask.getTaskStatistics().getIOStatistics().get(sourceVertexName)
           .setDataSize(size);
     }
+
+    @Override
+    public void reportItemsProcessed(long items) {
+      // this is a concurrent map. Plus we are not adding/deleting entries
+      runtimeTask.getTaskStatistics().getIOStatistics().get(sourceVertexName)
+          .setItemsProcessed(items);      
+    }
     
   }
 

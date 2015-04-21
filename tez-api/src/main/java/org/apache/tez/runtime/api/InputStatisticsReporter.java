@@ -34,4 +34,14 @@ public interface InputStatisticsReporter {
    */
   public void reportDataSize(long size);
 
+  /**
+   * Report the number of items processed. These could be key-value pairs, table
+   * records etc.
+   * 
+   * @param items
+   *          number of items
+   */
+  public void reportItemsProcessed(long items);
+  
+
 }
