@@ -19,13 +19,13 @@
 App.PaginatedContentMixin = Em.Mixin.create({
   // paging related values. These are bound automatically to the values in url. via the queryParams
   // defined in the route.
-  count: 10,
+  rowCount: 10,
 
   page: 1,
   fromID: null,
 
   // The dropdown contents for number of items to show.
-  countOptions: [5, 10, 25, 50, 100],
+  rowCountOptions: [5, 10, 25, 50, 100],
 
   isRefreshable: true,
 
@@ -33,14 +33,10 @@ App.PaginatedContentMixin = Em.Mixin.create({
    * store the first dag id on a page so that we can navigate back and store the last one 
    * (not shown on page to get the id where next page starts)
    */
-  navIDs: {
-    prevIDs: [],
-    currentID: undefined,
-    nextID: undefined
-  },
+  navIDs: [],
 
   queryParams: {
-    count: true,
+    rowCount: true,
   },
 
   entities: [],
@@ -50,7 +46,11 @@ App.PaginatedContentMixin = Em.Mixin.create({
   load: function() {
     this.resetNavigation();
     this.loadEntities();
-  }.observes('count'),
+  }.observes('rowCount'),
+
+  lastPage: function () {
+    return this.get('navIDs.length') + 1;
+  }.property('navIDs.length'),
 
   sortedContent: function() {
     // convert to a ArrayController. we do not sort at this point as the data is
@@ -59,7 +59,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
       model: this.get('entities')
     });
     this.updatePagination(sorted.toArray());
-    return sorted.slice(0, this.count);
+    return sorted.slice(0, this.rowCount);
   }.property('entities', 'numEntities'),
 
   updateLoading: function () {
@@ -104,65 +104,36 @@ App.PaginatedContentMixin = Em.Mixin.create({
   },
 
   resetNavigation: function() {
-    this.set('navIDs.prevIDs', []);
-    this.set('navIDs.currentID', '');
-    this.set('navIDs.nextID', '');
+    this.set('navIDs', []);
     this.set('fromID', null);
     this.set('page', 1);
   },
 
   updatePagination: function(dataArray) {
-    if (!!dataArray && dataArray.get('length') > 0) {
-      this.set('navIDs.currentID', dataArray.objectAt(0).get('id'));
-      var nextID = undefined;
-      if (dataArray.get('length') > this.count) {
-        // save the last id, so that we can use that as firt id on next page.
-        nextID = dataArray.objectAt(this.count).get('id');
+    var nextFromId = null,
+        navIDs = this.get('navIDs'),
+        rowCount = this.get('rowCount');
+
+    if(dataArray && dataArray.length == rowCount + 1) {
+      nextFromId = dataArray.objectAt(rowCount).get('id');
+      if (navIDs.indexOf(nextFromId) == -1 &&
+          this.get('page') >= navIDs.get('length')) {
+          navIDs.pushObject(nextFromId);
       }
-      this.set('navIDs.nextID', nextID);
     }
   },
 
-  hasPrev: function() {
-    return this.navIDs.prevIDs.length > 0;
-  }.property('navIDs.prevIDs.[]', 'navIDs.prevIDs.length', 'fromID', 'page'),
-
-  hasNext: function() {
-    return !!this.navIDs.nextID;
-  }.property('navIDs.nextID'),
-
   actions:{
-    // go to previous page
-    navigatePrev: function () {
-      var prevPageId = this.navIDs.prevIDs.popObject();
-      this.set('fromID', prevPageId);
-      this.set('loading', true);
-      this.set('page', this.get('page') - 1);
-      this.loadEntities();
-    },
-
     refresh: function () {
       this.load();
     },
 
-    // goto first page.
-    navigateFirst: function() {
-      var firstPageId = this.navIDs.prevIDs[0];
-      this.set('navIDs.prevIDs', []);
-      this.set('fromID', firstPageId);
+    changePage: function (pageNum) {
+      this.set('fromID', this.get('navIDs.' + (pageNum - 2)) || null);
       this.set('loading', true);
-      this.set('page', 1);
+      this.set('page', pageNum);
       this.loadEntities();
-    },
-
-    // go to next page
-    navigateNext: function () {
-      this.navIDs.prevIDs.pushObject(this.navIDs.currentID);
-      this.set('fromID', this.get('navIDs.nextID'));
-      this.set('loading', true);
-      this.set('page', this.get('page') + 1);
-      this.loadEntities();
-    },
+    }
   },
 
   _concatFilters: function(obj) {
@@ -177,7 +148,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
   getFilterProperties: function() {
     var params = {
-      limit: this.count + 1
+      limit: this.rowCount + 1
     };
 
     var f = this._paginationFilters;
@@ -213,8 +184,8 @@ App.PaginatedContentMixin = Em.Mixin.create({
       params['secondaryFilter'] = secondary;
     }
 
-    if (!Em.empty(this.fromID)) {
-      params['fromId'] = this.fromID;
+    if (!Em.empty(this.get('fromID'))) {
+      params['fromId'] = this.get('fromID');
     }
 
     return params;

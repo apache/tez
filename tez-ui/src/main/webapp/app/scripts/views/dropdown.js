@@ -16,28 +16,20 @@
  * limitations under the License.
  */
 
-// Colors
-@logo-orange: #D27A22;
+App.Dropdown = Em.Select.extend({
+  currentValue: null,
+  init: function () {
+    this._super();
+    this.set('currentValue', this.get('value'));
+  },
+  change: function() {
+    var value = this.get('value'),
+        target = this.get('target') || this.get('context');
 
-@bg-lite: #f5f5f5;
-@bg-liter: #f5f5f5;
-@bg-red-light: #FFE6E6;
-
-@bg-grey: #f0f0f0;
-
-@border-lite: #e5e5e5;
-@border-color: #dcdcdc;
-
-@white: #fff;
-
-@text-color: #666666;
-@text-red: red;
-@text-light: #BBBBBB;
-
-@top-nav-bg-color-from: #d5d5d5;
-@top-nav-bg-color-to: #f0f0f0;
-
-@success-color: limegreen;
-@error-color: crimson;
-@warning-color: orange;
-@unknown-color: crimson;
+    if(target && value != this.get('currentValue')) {
+      Em.run.later(target.send.bind(target, this.get('action'), value), 100);
+      this.set('currentValue', value);
+    }
+    return true;
+  }
+});

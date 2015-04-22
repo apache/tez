@@ -21,5 +21,82 @@
 </ul>
 
 <div class='margin-small-vertical'>
-  {{partial 'common/table-with-spinner'}}
+  {{#unless loading}}
+    {{load-time-component
+      isRefreshable=isRefreshable
+      time=sortedContent.0.timeStamp
+      refresh='refresh'
+    }}
+    <div class='dag-header'>
+      <div class="align-children-left">
+        {{#if visibleFilters.dagName}}
+          <div class='filter-elements'>
+            <div>Dag Name</div>
+            {{input
+              action="filterUpdated"
+              value=boundFilterValues.dagName
+              placeholder="Search..."
+            }}
+          </div>
+        {{/if}}
+        {{#if visibleFilters.user}}
+          <div class='filter-elements'>
+            <div>Submitter</div>
+            {{input
+              action="filterUpdated"
+              value=boundFilterValues.user
+              placeholder="Search..."
+            }}
+          </div>
+        {{/if}}
+        {{#if visibleFilters.status}}
+          <div class='filter-elements'>
+            <div>Status</div>
+            {{view App.Dropdown
+              optionValuePath='content.id'
+              optionLabelPath='content.label'
+              classNames='inline-display'
+              action='filterUpdated'
+              content=App.Helpers.misc.dagStatusUIOptions
+              value=boundFilterValues.status
+            }}
+          </div>
+        {{/if}}
+        {{#if visibleFilters.appId}}
+          <div class='filter-elements'>
+            <div>Application ID</div>
+            {{input
+              action="filterUpdated"
+              value=boundFilterValues.appId
+              placeholder="Search..."
+            }}
+          </div>
+        {{/if}}
+      </div><div class="align-children-right">
+        {{view App.BasicTableComponent.PaginationView
+          pageNum=page
+          totalPages=lastPage
+          hideLast=true
+        }}
+        <i {{bind-attr class=':fa-action :fa-cog :left-divider'}} {{action 'selectColumns'}}></i>
+      </div>
+    </div>
+    {{basic-table-component
+      columns=columns
+      rows=sortedContent
+
+      rowCountBinding='rowCount'
+
+      statusMessage=statusMessage
+    }}
+    {{#unless sortedContent.length}}
+      <h1 class="no-margin">No records available!</h1>
+    {{/unless}}
+  {{else}}
+    {{partial 'partials/loading-spinner'}}
+    <div class="text-align-center">
+      {{statusMessage}}
+    </div>
+  {{/unless}}
+
 </div>

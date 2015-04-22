@@ -56,16 +56,6 @@ body, html {
     }
   }
 
-  .table-control {
-    .align-children-left {
-      vertical-align: top;
-      padding-top: 4px;
-    }
-    .align-children-right {
-      margin-top: -8px;
-    }
-  }
-
   .load-component {
     margin-bottom: 5px;
 
@@ -392,6 +382,9 @@ body, html {
 .task-status {
   .fa;
   .fa-lg;
+  .absolute;
+
+  top: 7px;
 
   &.success {
     .fa-icon(check-circle);
@@ -423,6 +416,9 @@ body, html {
     .fa-icon(exclamation);
     color: @unknown-color;
   }
+}
+.status-msg {
+  margin-left: 20px;
 }
 
 .fa-action {
@@ -531,6 +527,113 @@ div.indent {
   color: black;
 }
 
+.row-select {
+  margin-left: 5px;
+
+  display: inline-block;
+  text-align: center;
+
+  :first-child {
+    margin-bottom: -3px;
+    font-size: .85em;
+  }
+}
+
+.dag-header {
+  .margin-small-horizontal;
+
+  .align-children-left {
+    width: 65%;
+    .inline-block;
+  }
+  .align-children-right {
+    width: 35%;
+    .inline-block;
+  }
+
+  margin-bottom: -5px;
+  margin-top: 10px;
+
+  .pagination-view {
+    .page-list {
+      margin-bottom: 2px;
+    }
+  }
+
+  .filter-elements {
+    .inline-block;
+
+    margin-left: 5px;
+    display: inline-block;
+
+    input[type=text], select {
+      width: 110px;
+    }
+    input, select {
+      height: 20px;
+      border-radius: 5px;
+      border: 1px solid @border-color;
+    }
+
+    .load-counter-check {
+      margin-left: 10px;
+      vertical-align: sub;
+    }
+
+    :first-child {
+      margin-bottom: -3px;
+      font-size: .85em;
+
+      padding: 2px;
+    }
+  }
+}
+
+.pagination-view {
+  .inline-block;
+
+  .page-list {
+    .inline-block;
+    .align-top;
+
+    overflow: hidden;
+
+    border: 1px solid @border-color;
+    border-radius: 5px;
+
+    padding: 0px;
+
+    font-size: 0px;
+
+    li {
+      .inline-block;
+
+      padding: 6px 10px;
+      font-size: 14px;
+
+      border-left: 1px solid @border-color;
+
+      pointer-events: none;
+
+      &.clickable {
+        pointer-events: auto;
+        &:hover {
+          background-color: @bg-grey;
+          cursor: pointer;
+        }
+      }
+    }
+
+    .total-page-count {
+      font-size: .8em;
+    }
+
+    :first-child {
+      border-left: none;
+    }
+  }
+}
+
 .table-container {
   .use-gpu;
 
@@ -599,61 +702,7 @@ div.indent {
     .fa-icon(spinner);
     .fa-spin;
     .fa-fw;
-  }
-
-  .pagination-view {
-    .inline-block;
-
-    .page-list {
-      .inline-block;
-      .align-top;
-
-      border: 1px solid @border-color;
-      border-radius: 5px;
-
-      padding: 0px;
-
-      font-size: 0px;
-
-      li {
-        .inline-block;
-
-        padding: 6px 10px;
-        font-size: 14px;
-
-        border-left: 1px solid @border-color;
-
-        pointer-events: none;
-
-        &.clickable {
-          pointer-events: auto;
-          &:hover {
-            background-color: @bg-grey;
-            cursor: pointer;
-          }
-        }
-      }
-
-      .total-page-count {
-        font-size: .8em;
-      }
-
-      :first-child {
-        border-left: none;
-      }
-    }
-
-    .row-select {
-      margin-left: 5px;
-
-      display: inline-block;
-      text-align: center;
-
-      :first-child {
-        margin-bottom: -3px;
-        font-size: .85em;
-      }
-    }
+    .absolute;
   }
 
   .table-body-container{
@@ -689,6 +738,13 @@ div.indent {
             text-overflow: ellipsis;
             white-space: nowrap;
             height: 18px;
+
+            .message {
+              color: @text-light;
+              .waiting {
+                color: @text-color;
+              }
+            }
           }
 
           .sort-icon {
