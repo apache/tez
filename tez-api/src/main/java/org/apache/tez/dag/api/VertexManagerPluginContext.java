@@ -147,6 +147,7 @@ public interface VertexManagerPluginContext {
    * @param rootInputSpecUpdate Updated Root Input specifications, if any.
    *        If none specified, a default of 1 physical input is used
    */
+  @Deprecated
   public void setVertexParallelism(int parallelism,
       @Nullable VertexLocationHint locationHint,
       @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
@@ -176,6 +177,31 @@ public interface VertexManagerPluginContext {
   public void reconfigureVertex(int parallelism,
       @Nullable VertexLocationHint locationHint,
       @Nullable Map<String, EdgeProperty> sourceEdgeProperties);
+
+  /**
+   * API to reconfigure a {@link Vertex} that is reading root inputs based on
+   * the data read from the root inputs. Root inputs are external data sources
+   * that provide the initial data for the DAG and are added to the
+   * {@link Vertex} using the
+   * {@link Vertex#addDataSource(String, DataSourceDescriptor)} API. Typically,
+   * the parallelism of such vertices is determined at runtime by gathering
+   * information about the data source. This API may be used to set the
+   * parallelism of the vertex at runtime based on the data sources, as well as
+   * changing the specification for those inputs.
+   * @param rootInputSpecUpdate
+   *          The key of the map is the name of the data source and the value is
+   *          the updated {@link InputSpecUpdate} for that data source. If none
+   *          specified, a default value is used. See {@link InputSpecUpdate}
+   *          for details.
+   * @param locationHint
+   *          the placement policy for tasks specified at
+   *          {@link VertexLocationHint}s
+   * @param parallelism
+   *          New number of tasks in the vertex
+   */
+  public void reconfigureVertex(@Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate,
+      @Nullable VertexLocationHint locationHint,
+      int parallelism);
 
   /**
    * Allows a VertexManagerPlugin to assign Events for Root Inputs

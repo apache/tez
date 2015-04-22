@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2330. Create reconfigureVertex() API for input based initialization
   TEZ-2292. Add e2e test for error reporting when vertex manager invokes
   plugin APIs
   TEZ-2308. Add set/get of record counts in task/vertex statistics

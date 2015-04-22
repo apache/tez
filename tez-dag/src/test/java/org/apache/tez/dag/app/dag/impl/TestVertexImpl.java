@@ -5566,7 +5566,7 @@ public class TestVertexImpl {
         }
         map.put("input4", InputSpecUpdate.createPerTaskInputSpecUpdate(pInputList));
       }
-      getContext().setVertexParallelism(NUM_TASKS, null, null, map);
+      getContext().reconfigureVertex(map, null, NUM_TASKS);
     }
   }
 

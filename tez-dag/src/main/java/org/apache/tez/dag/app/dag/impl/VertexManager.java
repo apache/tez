@@ -185,6 +185,18 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
+    
+    @Override
+    public void reconfigureVertex(@Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate,
+        @Nullable VertexLocationHint locationHint,
+        int parallelism) {
+      checkAndThrowIfDone();
+      try {
+        managedVertex.reconfigureVertex(rootInputSpecUpdate, parallelism, locationHint);
+      } catch (AMUserCodeException e) {
+        throw new TezUncheckedException(e);
+      }
+    }
 
     @Override
     public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {

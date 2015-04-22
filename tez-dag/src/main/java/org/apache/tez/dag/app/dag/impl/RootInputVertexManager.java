@@ -30,12 +30,17 @@ import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public class RootInputVertexManager extends ImmediateStartVertexManager {
 
+  private static final Logger LOG = 
+      LoggerFactory.getLogger(RootInputVertexManager.class);
+  
   private String configuredInputName;
 
   public RootInputVertexManager(VertexManagerPluginContext context) {
@@ -66,8 +71,8 @@ public class RootInputVertexManager extends ImmediateStartVertexManager {
             inputName,
             cEvent.getInputSpecUpdate() == null ? InputSpecUpdate
                 .getDefaultSinglePhysicalInputSpecUpdate() : cEvent.getInputSpecUpdate());
-        getContext().setVertexParallelism(cEvent.getNumTasks(),
-            cEvent.getLocationHint(), null, rootInputSpecUpdate);
+        getContext().reconfigureVertex(rootInputSpecUpdate, cEvent.getLocationHint(),
+              cEvent.getNumTasks());
       }
       if (event instanceof InputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
