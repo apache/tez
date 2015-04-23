@@ -73,7 +73,6 @@ import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
-import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezInputContextImpl;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
@@ -118,8 +117,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final LinkedHashMap<String, LogicalInput> runInputMap;
   private final LinkedHashMap<String, LogicalOutput> runOutputMap;
   
-  private final TaskStatistics statistics;
-
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final Map<String, String> envMap;
 
@@ -182,7 +179,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.objectRegistry = objectRegistry;
     this.ExecutionContext = ExecutionContext;
     this.memAvailable = memAvailable;
-    this.statistics = new TaskStatistics();
   }
 
   /**
@@ -324,10 +320,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     // initialize.
 
     startRouterThread();
-  }
-  
-  public TaskStatistics getTaskStatistics() {
-    return statistics;
   }
 
   public void run() throws Exception {

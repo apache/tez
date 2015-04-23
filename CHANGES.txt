@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2352. Move getTaskStatistics into the RuntimeTask class.
   TEZ-2357. Tez UI: misc.js.orig is committed by accident
   TEZ-2261. Should add diagnostics in DAGAppMaster when recovery error happens
   TEZ-2340. TestRecoveryParser fails

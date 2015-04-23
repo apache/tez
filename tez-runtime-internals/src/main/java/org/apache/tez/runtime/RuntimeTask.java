@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.metrics.TaskCounterUpdater;
@@ -49,6 +50,7 @@ public abstract class RuntimeTask {
   protected final AtomicInteger eventCounter;
   private final AtomicBoolean taskDone;
   private final TaskCounterUpdater counterUpdater;
+  private final TaskStatistics statistics;
 
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
       TezUmbilical tezUmbilical, String pid) {
@@ -59,6 +61,7 @@ public abstract class RuntimeTask {
     this.eventCounter = new AtomicInteger(0);
     this.progress = 0.0f;
     this.taskDone = new AtomicBoolean(false);
+    this.statistics = new TaskStatistics();
     this.counterUpdater = new TaskCounterUpdater(tezCounters, tezConf, pid);
   }
 
@@ -107,6 +110,10 @@ public abstract class RuntimeTask {
       fullCounters.incrAllCounters(counter);
     }
     return fullCounters;
+  }
+
+  public TaskStatistics getTaskStatistics() {
+    return statistics;
   }
 
   public TezTaskAttemptID getTaskAttemptID() {

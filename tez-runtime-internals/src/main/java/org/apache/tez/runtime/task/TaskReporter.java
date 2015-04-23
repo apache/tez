@@ -34,10 +34,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
-import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.RuntimeTask;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -96,7 +95,7 @@ public class TaskReporter {
   /**
    * Register a task to be tracked. Heartbeats will be sent out for this task to fetch events, etc.
    */
-  public synchronized void registerTask(LogicalIOProcessorRuntimeTask task,
+  public synchronized void registerTask(RuntimeTask task,
       ErrorReporter errorReporter) {
     currentCallable = new HeartbeatCallable(task, umbilical, pollInterval, sendCounterInterval,
         maxEventsToGet, requestCounter, containerIdStr);
@@ -123,7 +122,7 @@ public class TaskReporter {
     private static final int LOG_COUNTER_START_INTERVAL = 5000; // 5 seconds
     private static final float LOG_COUNTER_BACKOFF = 1.3f;
 
-    private final LogicalIOProcessorRuntimeTask task;
+    private final RuntimeTask task;
     private EventMetaData updateEventMetadata;
 
     private final TezTaskUmbilicalProtocol umbilical;
@@ -151,7 +150,7 @@ public class TaskReporter {
      */
     private int prevCounterSendHeartbeatNum = 0;
 
-    public HeartbeatCallable(LogicalIOProcessorRuntimeTask task,
+    public HeartbeatCallable(RuntimeTask task,
         TezTaskUmbilicalProtocol umbilical, long amPollInterval, long sendCounterInterval,
         int maxEventsToGet, AtomicLong requestCounter, String containerIdStr) {
 
