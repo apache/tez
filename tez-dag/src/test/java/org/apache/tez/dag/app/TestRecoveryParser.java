@@ -54,6 +54,7 @@ public class TestRecoveryParser {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestRecoveryParser.class.getName() + "-tmpDir";
 
+  private ApplicationId appId;
   private RecoveryParser parser;
   private FileSystem localFS;
   private Configuration conf;
@@ -65,7 +66,8 @@ public class TestRecoveryParser {
   public void setUp() throws IllegalArgumentException, IOException {
     this.conf = new Configuration();
     this.localFS = FileSystem.getLocal(conf);
-    this.recoveryPath = new Path(TEST_ROOT_DIR + "/recovery");
+    this.appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+    this.recoveryPath = new Path(TEST_ROOT_DIR + "/" + appId + "/recovery");
     this.localFS.delete(new Path(TEST_ROOT_DIR), true);
     mockAppMaster = mock(DAGAppMaster.class);
     mockAppMaster.dagNames = new HashSet<String>();
@@ -167,7 +169,7 @@ public class TestRecoveryParser {
   // skipAllOtherEvents due to dag finished
   @Test (timeout = 5000)
   public void testSkipAllOtherEvents_2() throws IOException {
-    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
@@ -205,7 +207,8 @@ public class TestRecoveryParser {
     assertEquals(true, dagData.isCompleted);
     // DAGSubmittedEvent, DAGInitializedEvent and DAGFinishedEvent is handled
     verify(mockAppMaster).createDAG(any(DAGPlan.class),any(TezDAGID.class));
-    verify(dagData.recoveredDAG).restoreFromEvent(isA(DAGInitializedEvent.class));
+    // DAGInitializedEvent may not been handled before DAGFinishedEvent,
+    // because DAGFinishedEvent's writeToRecoveryImmediately is true
     verify(dagData.recoveredDAG).restoreFromEvent(isA(DAGFinishedEvent.class));
     // DAGStartedEvent is skipped due to it is after DAGFinishedEvent
     verify(dagData.recoveredDAG, never()).restoreFromEvent(isA(DAGStartedEvent.class));
