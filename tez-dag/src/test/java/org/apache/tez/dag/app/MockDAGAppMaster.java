@@ -59,6 +59,7 @@ import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
+import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
@@ -92,6 +93,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   boolean initFailFlag;
   boolean startFailFlag;
   boolean sendDMEvents;
+  boolean recoveryFatalError = false;
   CountersDelegate countersDelegate;
   StatisticsDelegate statsDelegate;
   long launcherSleepTime = 1;
@@ -453,6 +455,17 @@ public class MockDAGAppMaster extends DAGAppMaster {
     }
   }
   
+  public class MockHistoryEventHandler extends HistoryEventHandler {
+
+    public MockHistoryEventHandler(AppContext context) {
+      super(context);
+    }
+
+    @Override
+    public boolean hasRecoveryFailed() {
+      return recoveryFatalError;
+    }
+  }
 
   public class MockDAGAppMasterShutdownHandler extends DAGAppMasterShutdownHandler {
     public AtomicInteger shutdownInvoked = new AtomicInteger(0);
@@ -498,7 +511,12 @@ public class MockDAGAppMaster extends DAGAppMaster {
       throws UnknownHostException {
     return containerLauncher;
   }
-  
+
+  @Override
+  protected HistoryEventHandler createHistoryEventHandler(AppContext appContext) {
+    return new MockHistoryEventHandler(appContext);
+  }
+
   public MockContainerLauncher getContainerLauncher() {
     return containerLauncher;
   }

@@ -236,6 +236,7 @@ public class DAGAppMaster extends AbstractService {
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
   private final int maxAppAttempts;
+  private final List<String> diagnostics = new ArrayList<String>();
 
   private boolean isLocal = false; //Local mode flag
 
@@ -383,6 +384,7 @@ public class DAGAppMaster extends AbstractService {
       versionMismatchDiagnostics = "Incompatible versions found"
           + ", clientVersion=" + clientVersion
           + ", AMVersion=" + dagVersionInfo.getVersion();
+      addDiagnostic(versionMismatchDiagnostics);
       if (disableVersionCheck) {
         LOG.warn("Ignoring client-AM version mismatch as check disabled. "
             + versionMismatchDiagnostics);
@@ -491,7 +493,7 @@ public class DAGAppMaster extends AbstractService {
     addIfService(containerLauncher, true);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncher);
 
-    historyEventHandler = new HistoryEventHandler(context);
+    historyEventHandler = createHistoryEventHandler(context);
     addIfService(historyEventHandler, true);
 
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
@@ -563,6 +565,11 @@ public class DAGAppMaster extends AbstractService {
     return new AsyncDispatcher("Central");
   }
 
+  @VisibleForTesting
+  protected HistoryEventHandler createHistoryEventHandler(AppContext appContext) {
+    return new HistoryEventHandler(appContext);
+  }
+
   /**
    * Exit call. Just in a function call to enable testing.
    */
@@ -624,8 +631,10 @@ public class DAGAppMaster extends AbstractService {
         lastDAGCompletionTime = clock.getTime();
         _updateLoggers(currentDAG, "_post");
         if (this.historyEventHandler.hasRecoveryFailed()) {
-          LOG.warn("Recovery had a fatal error, shutting down session after" +
-              " DAG completion");
+          String recoveryErrorMsg = "Recovery had a fatal error, shutting down session after" +
+              " DAG completion";
+          LOG.warn(recoveryErrorMsg);
+          addDiagnostic(recoveryErrorMsg);
           sessionStopped.set(true);
         }
         switch(finishEvt.getDAGState()) {
@@ -1071,22 +1080,32 @@ public class DAGAppMaster extends AbstractService {
     return state;
   }
 
-  public List<String> getDiagnostics() {
-    if (versionMismatch) {
-      return Collections.singletonList(versionMismatchDiagnostics);
+  private void addDiagnostic(String diag) {
+    synchronized (diagnostics) {
+      diagnostics.add(diag);
     }
+  }
+
+  public List<String> getDiagnostics() {
+    // always create new diagnostics to return
+    // This is to avoid the case that this method is called multiple times and diagnostics is accumulated.
+    List<String> diagResult = new ArrayList<String>();
+    synchronized (diagnostics) {
+      diagResult.addAll(this.diagnostics);
+    }
+
     if (!isSession) {
       if(currentDAG != null) {
-        return currentDAG.getDiagnostics();
+        diagResult.addAll(currentDAG.getDiagnostics());
       }
     } else {
-      return Collections.singletonList("Session stats:"
+      diagResult.add("Session stats:"
           + "submittedDAGs=" + submittedDAGs.get()
           + ", successfulDAGs=" + successfulDAGs.get()
           + ", failedDAGs=" + failedDAGs.get()
           + ", killedDAGs=" + killedDAGs.get());
     }
-    return null;
+    return diagResult;
   }
 
   public float getProgress() {

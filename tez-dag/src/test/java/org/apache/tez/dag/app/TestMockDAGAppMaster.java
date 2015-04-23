@@ -887,4 +887,32 @@ public class TestMockDAGAppMaster {
       }
     }
   }
+
+  @Test(timeout = 5000)
+  public void testDAGFinishedRecoveryError() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
+    tezClient.start();
+
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    mockApp.recoveryFatalError = true;
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(true);
+
+    DAG dag = DAG.create("test");
+    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
+    dag.addVertex(vA);
+
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    dagClient.waitForCompletion();
+    while(!mockApp.getShutdownHandler().wasShutdownInvoked()) {
+      Thread.sleep(100);
+    }
+    Assert.assertEquals(DAGState.SUCCEEDED, mockApp.getContext().getCurrentDAG().getState());
+    Assert.assertEquals(DAGAppMasterState.FAILED, mockApp.getState());
+    Assert.assertTrue(StringUtils.join(mockApp.getDiagnostics(),",")
+        .contains("Recovery had a fatal error, shutting down session after" +
+              " DAG completion"));
+  }
 }

@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2261. Should add diagnostics in DAGAppMaster when recovery error happens
   TEZ-2340. TestRecoveryParser fails
   TEZ-2345. Tez UI: Enable cell level loading in all DAGs table
   TEZ-2330. Create reconfigureVertex() API for input based initialization
