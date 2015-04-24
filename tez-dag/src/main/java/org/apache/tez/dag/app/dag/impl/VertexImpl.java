@@ -1948,119 +1948,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     }
   }
 
-  // TODO TEZ-2248
   private static VertexState finishWithTerminationCause(VertexImpl vertex) {
-    if(vertex.terminationCause == VertexTerminationCause.DAG_KILL ){
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex killed due to user-initiated job kill. "
-          + "failedTasks:"
-          + vertex.failedTaskCount;
-      LOG.info(diagnosticMsg);
-      vertex.addDiagnostic(diagnosticMsg);
-      return vertex.finished(VertexState.KILLED);
-    }
-    else if(vertex.terminationCause == VertexTerminationCause.OTHER_VERTEX_FAILURE ){
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex killed as other vertex failed. "
-          + "failedTasks:"
-          + vertex.failedTaskCount;
-      LOG.info(diagnosticMsg);
-      vertex.addDiagnostic(diagnosticMsg);
-      return vertex.finished(VertexState.KILLED);
-    }
-    else if(vertex.terminationCause == VertexTerminationCause.OWN_TASK_FAILURE ){
-      if(vertex.failedTaskCount == 0){
-        LOG.error("task failure accounting error.  terminationCause=TASK_FAILURE but vertex.failedTaskCount == 0");
-      }
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed as one or more tasks failed. "
-          + "failedTasks:"
-          + vertex.failedTaskCount;
-      LOG.info(diagnosticMsg);
-      vertex.addDiagnostic(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.INTERNAL_ERROR) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to internal error. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.AM_USERCODE_FAILURE) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to VertexManagerPlugin/EdgeManagerPlugin failed. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.ROOT_INPUT_INIT_FAILURE) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to ROOT_INPUT_INIT_FAILURE failed. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.COMMIT_FAILURE) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to COMMIT_FAILURE failed. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.VERTEX_RERUN_AFTER_COMMIT) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to vertex-rerun after commit. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to vertex-rerun in commiting. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else if (vertex.terminationCause == VertexTerminationCause.RECOVERY_ERROR) {
-      vertex.setFinishTime();
-      String diagnosticMsg = "Vertex failed/killed due to recovery error. "
-          + "failedTasks:"
-          + vertex.failedTaskCount
-          + " killedTasks:"
-          + vertex.killedTaskCount;
-      LOG.info(diagnosticMsg);
-      return vertex.finished(VertexState.FAILED);
-    }
-    else {
-      //should never occur
-      throw new TezUncheckedException("All tasks & commits complete, but cannot determine final state of vertex:"
-          + vertex.logIdentifier
-          + ", failedTaskCount=" + vertex.failedTaskCount
-          + ", killedTaskCount=" + vertex.killedTaskCount
-          + ", successfulTaskCount=" + vertex.succeededTaskCount
-          + ", completedTaskCount=" + vertex.completedTaskCount
-          + ", commitInProgress=" + vertex.commitFutures.size()
-          + ", terminationCause=" + vertex.terminationCause);
-    }
+    Preconditions.checkArgument(vertex.getTerminationCause()!= null, "TerminationCause is not set");
+    String diagnosticMsg = "Vertex did not succeed due to " + vertex.getTerminationCause()
+        + ", failedTasks:" + vertex.failedTaskCount
+        + " killedTasks:" + vertex.killedTaskCount;
+    LOG.info(diagnosticMsg);
+    vertex.addDiagnostic(diagnosticMsg);
+    return vertex.finished(vertex.getTerminationCause().getFinishedState());
   }
 
   /**
@@ -2133,7 +2028,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         } catch (IOException e) {
           LOG.error("Failed to send vertex finished event to recovery", e);
           finalState = VertexState.FAILED;
-          this.terminationCause = VertexTerminationCause.INTERNAL_ERROR;
+          trySetTerminationCause(VertexTerminationCause.INTERNAL_ERROR);
           eventHandler.handle(new DAGEventVertexCompleted(getVertexId(),
               finalState));
         }
@@ -3750,7 +3645,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         LOG.info("Received a user code error during recovering, setting recovered"
             + " state to FAILED");
         vertex.addDiagnostic(msg + "," + ExceptionUtils.getStackTrace(e.getCause()));
-        vertex.terminationCause = VertexTerminationCause.AM_USERCODE_FAILURE;
+        vertex.trySetTerminationCause(VertexTerminationCause.AM_USERCODE_FAILURE);
         vertex.recoveredState = VertexState.FAILED;
         return VertexState.RECOVERING;
       } else if (vertex.getState() == VertexState.RUNNING || vertex.getState() == VertexState.COMMITTING) {

@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2248. VertexImpl/DAGImpl.checkForCompletion have too many termination cause checks
   TEZ-2341. TestMockDAGAppMaster.testBasicCounters fails on windows
   TEZ-2352. Move getTaskStatistics into the RuntimeTask class.
   TEZ-2357. Tez UI: misc.js.orig is committed by accident

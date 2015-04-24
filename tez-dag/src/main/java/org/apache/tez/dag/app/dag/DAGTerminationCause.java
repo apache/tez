@@ -25,27 +25,37 @@ package org.apache.tez.dag.app.dag;
 public enum DAGTerminationCause {
 
   /** DAG was directly killed.   */
-  DAG_KILL, 
+  DAG_KILL(DAGState.KILLED),
   
   /** A vertex failed. */ 
-  VERTEX_FAILURE, 
+  VERTEX_FAILURE(DAGState.FAILED),
   
   /** DAG failed due as it had zero vertices. */
-  ZERO_VERTICES, 
+  ZERO_VERTICES(DAGState.FAILED),
   
   /** DAG failed during init. */
-  INIT_FAILURE,
+  INIT_FAILURE(DAGState.FAILED),
   
   /** DAG failed during output commit. */
-  COMMIT_FAILURE,
+  COMMIT_FAILURE(DAGState.FAILED),
 
   /** In some cases, vertex could not rerun, e.g. its output been committed as a shared output of vertex group */
-  VERTEX_RERUN_AFTER_COMMIT,
+  VERTEX_RERUN_AFTER_COMMIT(DAGState.FAILED),
 
-  VERTEX_RERUN_IN_COMMITTING,
+  VERTEX_RERUN_IN_COMMITTING(DAGState.FAILED),
 
   /** DAG failed while trying to write recovery events */
-  RECOVERY_FAILURE,
+  RECOVERY_FAILURE(DAGState.FAILED),
 
-  INTERNAL_ERROR
+  INTERNAL_ERROR(DAGState.ERROR);
+
+  private DAGState finishedState;
+
+  DAGTerminationCause(DAGState finishedState) {
+    this.finishedState = finishedState;
+  }
+
+  public DAGState getFinishedState() {
+    return finishedState;
+  }
 }

@@ -1234,67 +1234,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static DAGState finishWithTerminationCause(DAGImpl dag) {
-    if(dag.terminationCause == DAGTerminationCause.DAG_KILL ){
-      String diagnosticMsg = "DAG killed due to user-initiated kill." +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      return dag.finished(DAGState.KILLED);
-    }
-    if(dag.terminationCause == DAGTerminationCause.VERTEX_FAILURE ){
-      String diagnosticMsg = "DAG failed due to vertex failure." +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      return dag.finished(DAGState.FAILED);
-    }
-    if(dag.terminationCause == DAGTerminationCause.COMMIT_FAILURE ){
-      String diagnosticMsg = "DAG failed due to commit failure." +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      return dag.finished(DAGState.FAILED);
-    }
-    if(dag.terminationCause == DAGTerminationCause.VERTEX_RERUN_AFTER_COMMIT ){
-      String diagnosticMsg = "DAG failed due to vertex rerun after commit." +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      return dag.finished(DAGState.FAILED);
-    }
-    if(dag.terminationCause == DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING ){
-      String diagnosticMsg = "DAG failed due to vertex rerun in commit." +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      return dag.finished(DAGState.FAILED);
-    }
-    if(dag.terminationCause == DAGTerminationCause.RECOVERY_FAILURE ){
-      String diagnosticMsg = "DAG failed due to failure in recovery handling." +
-          " failedVertices:" + dag.numFailedVertices +
-          " killedVertices:" + dag.numKilledVertices;
-      LOG.info(diagnosticMsg);
-      dag.addDiagnostic(diagnosticMsg);
-      return dag.finished(DAGState.FAILED);
-    }
-
-    // catch all
-    String diagnosticMsg = "All vertices complete, but cannot determine final state of DAG"
-        + ", numCompletedVertices=" + dag.numCompletedVertices
-        + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
-        + ", numFailedVertices=" + dag.numFailedVertices
-        + ", numKilledVertices=" + dag.numKilledVertices
-        + ", numVertices=" + dag.numVertices
-        + ", commitInProgress=" + dag.commitFutures.size() 
-        + ", terminationCause=" + dag.terminationCause;
-    LOG.error(diagnosticMsg);
+    Preconditions.checkArgument(dag.getTerminationCause() != null, "TerminationCause is not set.");
+    String diagnosticMsg =  "DAG did not succeed due to " + dag.terminationCause
+        + ". failedVertices:" + dag.numFailedVertices
+        + " killedVertices:" + dag.numKilledVertices;
+    LOG.info(diagnosticMsg);
     dag.addDiagnostic(diagnosticMsg);
-    return dag.finished(DAGState.ERROR);
+    return dag.finished(dag.getTerminationCause().getFinishedState());
   }
 
   private void updateCpuCounters() {
