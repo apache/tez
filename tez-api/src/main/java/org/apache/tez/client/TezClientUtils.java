@@ -743,7 +743,7 @@ public class TezClientUtils {
     for (Entry<String, String> entry : amConf) {
       PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
       kvp.setKey(entry.getKey());
-      kvp.setValue(entry.getValue());
+      kvp.setValue(amConf.get(entry.getKey()));
       builder.addConfKeyValues(kvp);
     }
     if (additionalConfigs != null && !additionalConfigs.isEmpty()) {

@@ -46,7 +46,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.DataInputByteBuffer;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -68,7 +67,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -283,7 +283,8 @@ public class TestTezClientUtils {
   public void testAMLoggingOptsPerLogger() throws IOException, YarnException {
 
     TezConfiguration tezConf = new TezConfiguration();
-    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "WARN;org.apache.hadoop.ipc=DEBUG;org.apache.hadoop.security=DEBUG");
+    tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL,
+        "WARN;org.apache.hadoop.ipc=DEBUG;org.apache.hadoop.security=DEBUG");
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
@@ -301,7 +302,8 @@ public class TestTezClientUtils {
 
     List<String> expectedCommands = new LinkedList<String>();
     expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
-    expectedCommands.add("-Dlog4j.configuration=" + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
+    expectedCommands.add(
+        "-Dlog4j.configuration=" + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
     expectedCommands.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "=" +
         ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "WARN" + "," +
@@ -465,6 +467,28 @@ public class TestTezClientUtils {
         && javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
   }
 
+  @Test (timeout = 5000)
+  public void testConfSerializationForAm() {
+    Configuration conf =new Configuration(false);
+    String val1 = "fixedProperty";
+    String val2 = "parametrizedProperty/${user.name}";
+    String expVal2 = "parametrizedProperty/" + System.getProperty("user.name");
+    conf.set("property1", val1);
+    conf.set("property2", val2);
+
+    Map<String, String> expected = new HashMap<String, String>();
+    expected.put("property1", val1);
+    expected.put("property2", expVal2);
+
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null);
+
+    for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
+      String v = expected.remove(kvPair.getKey());
+      assertEquals(v, kvPair.getValue());
+    }
+    assertTrue(expected.isEmpty());
+  }
+
   // To run this test case see TestTezCommonUtils::testLocalResourceVisibility
   // We do not have much control over the directory structure, cannot mock as the functions are
   // static and do not want to spin up a minitez cluster just for this.
@@ -560,9 +584,9 @@ public class TestTezClientUtils {
       srcConf.set(entry.getKey(), entry.getValue());
     }
 
-    DAGProtos.ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(srcConf);
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(srcConf);
 
-    for (DAGProtos.PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
+    for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
       String val = confMap.remove(kvPair.getKey());
       assertNotNull(val);
       assertEquals(val, kvPair.getValue());

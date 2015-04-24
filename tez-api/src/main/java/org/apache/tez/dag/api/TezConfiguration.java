@@ -133,7 +133,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_STAGING_DIR = TEZ_PREFIX + "staging-dir";
   public static final String TEZ_AM_STAGING_DIR_DEFAULT = "/tmp/"
       + System.getProperty("user.name") + "/tez/staging";
-  
+
   /**
    * String value that is a file path.
    * Path to a credentials file (with serialized credentials) located on the local file system.
