@@ -14,7 +14,6 @@
 
 package org.apache.tez.dag.api;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
@@ -74,4 +73,15 @@ public abstract class TaskCommunicator extends AbstractService {
    * @throws Exception
    */
   public abstract void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception;
+
+  /**
+   * Indicates the current running dag is complete. The TaskCommunicatorContext can be used to
+   * query information about the current dag during the duration of the dagComplete invocation.
+   *
+   * After this, the contents returned from querying the context may change at any point - due to
+   * the next dag being submitted.
+   */
+  // TODO TEZ-2003 This is extremely difficult to use. Add the dagStarted notification, and potentially
+  // throw exceptions between a dagComplete and dagStart invocation.
+  public abstract void dagComplete(String dagName);
 }

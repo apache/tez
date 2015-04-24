@@ -44,7 +44,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -168,14 +167,6 @@ public class LocalContainerLauncher extends AbstractService implements
       taskExecutorService.shutdownNow();
     }
     callbackExecutor.shutdownNow();
-  }
-
-  @Override
-  public void dagComplete(DAG dag) {
-  }
-
-  @Override
-  public void dagSubmitted() {
   }
 
   // Thread to monitor the queue of incoming NMCommunicator events

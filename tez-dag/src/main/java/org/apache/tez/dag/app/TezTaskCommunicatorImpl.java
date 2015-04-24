@@ -260,6 +260,11 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     // Empty. Not registering, or expecting any updates.
   }
 
+  @Override
+  public void dagComplete(String dagName) {
+    // Nothing to do at the moment. Some of the TODOs from TaskAttemptListener apply here.
+  }
+
   protected String getTokenIdentifier() {
     return tokenIdentifier;
   }

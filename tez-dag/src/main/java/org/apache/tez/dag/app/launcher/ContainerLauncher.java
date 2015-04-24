@@ -26,7 +26,4 @@ import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
 public interface ContainerLauncher
     extends EventHandler<NMCommunicatorEvent> {
 
-    void dagComplete(DAG dag);
-
-    void dagSubmitted();
 }

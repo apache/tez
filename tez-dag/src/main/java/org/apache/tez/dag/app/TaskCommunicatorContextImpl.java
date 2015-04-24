@@ -17,6 +17,11 @@ package org.apache.tez.dag.app;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -33,6 +38,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -44,6 +50,10 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   private final AppContext context;
   private final TaskAttemptListenerImpTezDag taskAttemptListener;
   private final int taskCommunicatorIndex;
+  private final ReentrantReadWriteLock.ReadLock dagChangedReadLock;
+  private final ReentrantReadWriteLock.WriteLock dagChangedWriteLock;
+
+  private DAG dag;
 
   public TaskCommunicatorContextImpl(AppContext appContext,
                                      TaskAttemptListenerImpTezDag taskAttemptListener,
@@ -51,6 +61,10 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     this.context = appContext;
     this.taskAttemptListener = taskAttemptListener;
     this.taskCommunicatorIndex = taskCommunicatorIndex;
+
+    ReentrantReadWriteLock dagChangedLock = new ReentrantReadWriteLock();
+    dagChangedReadLock = dagChangedLock.readLock();
+    dagChangedWriteLock = dagChangedLock.writeLock();
   }
 
   @Override
@@ -111,18 +125,19 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   public void registerForVertexStateUpdates(String vertexName,
                                             @Nullable Set<VertexState> stateSet) {
     Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
-    context.getCurrentDAG().getStateChangeNotifier().registerForVertexUpdates(vertexName, stateSet, this);
+    getDag().getStateChangeNotifier().registerForVertexUpdates(vertexName, stateSet,
+        this);
   }
 
   @Override
   public String getCurretnDagName() {
-    return context.getCurrentDAG().getName();
+    return getDag().getName();
   }
 
   @Override
   public Iterable<String> getInputVertexNames(String vertexName) {
     Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
-    Vertex vertex = context.getCurrentDAG().getVertex(vertexName);
+    Vertex vertex = getDag().getVertex(vertexName);
     Set<Vertex> sources = vertex.getInputVertices().keySet();
     return Iterables.transform(sources, new Function<Vertex, String>() {
       @Override
@@ -135,31 +150,32 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   @Override
   public int getVertexTotalTaskCount(String vertexName) {
     Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
-    return context.getCurrentDAG().getVertex(vertexName).getTotalTasks();
+    return getDag().getVertex(vertexName).getTotalTasks();
   }
 
   @Override
   public int getVertexCompletedTaskCount(String vertexName) {
     Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
-    return context.getCurrentDAG().getVertex(vertexName).getCompletedTasks();
+    return getDag().getVertex(vertexName).getCompletedTasks();
   }
 
   @Override
   public int getVertexRunningTaskCount(String vertexName) {
     Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
-    return context.getCurrentDAG().getVertex(vertexName).getRunningTasks();
+    return getDag().getVertex(vertexName).getRunningTasks();
   }
 
   @Override
   public long getFirstAttemptStartTime(String vertexName, int taskIndex) {
     Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
     Preconditions.checkArgument(taskIndex >=0, "TaskIndex must be > 0");
-    return context.getCurrentDAG().getVertex(vertexName).getTask(taskIndex).getFirstAttemptStartTime();
+    return getDag().getVertex(vertexName).getTask(
+        taskIndex).getFirstAttemptStartTime();
   }
 
   @Override
   public long getDagStartTime() {
-    return context.getCurrentDAG().getStartTime();
+    return getDag().getStartTime();
   }
 
   @Override
@@ -169,6 +185,38 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     } catch (Exception e) {
       // TODO TEZ-2003 This needs to be propagated to the DAG as a user error.
       throw new TezUncheckedException(e);
+    }
+  }
+
+  private DAG getDag() {
+    dagChangedReadLock.lock();
+    try {
+      if (dag != null) {
+        return dag;
+      } else {
+        return context.getCurrentDAG();
+      }
+    } finally {
+      dagChangedReadLock.unlock();
+    }
+  }
+
+  @InterfaceAudience.Private
+  public void dagCompleteStart(DAG dag) {
+    dagChangedWriteLock.lock();
+    try {
+      this.dag = dag;
+    } finally {
+      dagChangedWriteLock.unlock();
+    }
+  }
+
+  public void dagCompleteEnd() {
+    dagChangedWriteLock.lock();
+    try {
+      this.dag = null;
+    } finally {
+      dagChangedWriteLock.unlock();
     }
   }
 }
