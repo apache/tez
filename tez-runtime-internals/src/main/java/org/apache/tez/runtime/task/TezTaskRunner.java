@@ -209,7 +209,10 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
                   // Ignored since another cause is already known
                   LOG.info(
                       "Ignoring the following exception since a previous exception is already registered",
-                      ignored);
+                      ignored.getClass().getName());
+                  if (LOG.isTraceEnabled()) {
+                    LOG.trace("Ignored exception is", ignored);
+                  }
                 }
                 throw (FSError) cause;
               } else if (cause instanceof Error) {
@@ -229,7 +232,10 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
                   // Ignored since another cause is already known
                   LOG.info(
                       "Ignoring the following exception since a previous exception is already registered",
-                      ignored);
+                      ignored.getClass().getName());
+                  if (LOG.isTraceEnabled()) {
+                    LOG.trace("Ignored exception is", ignored);
+                  }
                 }
                 if (cause instanceof IOException) {
                   throw (IOException) cause;
