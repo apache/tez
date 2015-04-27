@@ -145,6 +145,11 @@ public abstract class TezTaskContextImpl implements TaskContext {
   }
 
   @Override
+  public int getDagIdentifier() {
+    return taskAttemptID.getTaskID().getVertexID().getDAGId().getId();
+  }
+
+  @Override
   public TezCounters getCounters() {
     return counters;
   }

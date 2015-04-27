@@ -78,6 +78,14 @@ public interface TaskContext {
    */
   public int getTaskVertexIndex();
 
+  /**
+   * Get a numeric identifier for the dag to which the task belongs. This will be unique within the
+   * running application.
+   *
+   * @return the dag identifier
+   */
+  public int getDagIdentifier();
+
   public TezCounters getCounters();
 
   /**
