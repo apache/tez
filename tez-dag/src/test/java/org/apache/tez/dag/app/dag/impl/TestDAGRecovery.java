@@ -144,7 +144,7 @@ public class TestDAGRecovery {
   private void restoreFromDAGFinishedEvent(DAGState finalState) {
     DAGState recoveredState =
         dag.restoreFromEvent(new DAGFinishedEvent(dagId, startTime, finishTime,
-            finalState, "", tezCounters, user, dagName, null));
+            finalState, "", tezCounters, user, dagName, null, null));
     assertEquals(finishTime, dag.finishTime);
     assertFalse(dag.recoveryCommitInProgress);
     assertEquals(finalState, recoveredState);

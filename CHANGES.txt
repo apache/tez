@@ -146,6 +146,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2259. Push additional data to Timeline for Recovery for better consumption in UI.
   TEZ-2365. Update tez-ui war's license/notice to reflect OFL license correctly.
   TEZ-2329. UI Query on final dag status performance improvement
   TEZ-2287. Deprecate VertexManagerPluginContext.getTaskContainer().

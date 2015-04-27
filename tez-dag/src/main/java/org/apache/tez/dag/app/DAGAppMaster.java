@@ -58,10 +58,9 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
+import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -162,6 +161,8 @@ import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.codehaus.jettison.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -1736,18 +1737,35 @@ public class DAGAppMaster extends AbstractService {
           DAGEventRecoverEvent recoverDAGEvent =
               new DAGEventRecoverEvent(recoveredDAGData.recoveredDAG.getID(),
                   DAGState.FAILED, classpathUrls);
+          DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
+              recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
+              recoveredDAGData.recoveredDAG.getUserName(),
+              this.clock.getTime(), DAGState.FAILED, recoveredDAGData.reason);
+          this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
+              dagRecoveredEvent));
           dagEventDispatcher.handle(recoverDAGEvent);
           this.state = DAGAppMasterState.RUNNING;
         } else {
           DAGEventRecoverEvent recoverDAGEvent =
               new DAGEventRecoverEvent(recoveredDAGData.recoveredDAG.getID(),
                   recoveredDAGData.dagState, classpathUrls);
+          DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
+              recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
+              recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime(),
+              recoveredDAGData.dagState, null);
+          this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
+              dagRecoveredEvent));
           dagEventDispatcher.handle(recoverDAGEvent);
           this.state = DAGAppMasterState.RUNNING;
         }
       } else {
         LOG.info("Found DAG to recover, dagId=" + recoveredDAGData.recoveredDAG.getID());
         _updateLoggers(recoveredDAGData.recoveredDAG, "");
+        DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
+            recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
+            recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime());
+        this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
+            dagRecoveredEvent));
         DAGEventRecoverEvent recoverDAGEvent = new DAGEventRecoverEvent(
             recoveredDAGData.recoveredDAG.getID(), classpathUrls);
         dagEventDispatcher.handle(recoverDAGEvent);

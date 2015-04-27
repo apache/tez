@@ -33,6 +33,7 @@ import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -110,6 +111,9 @@ public class HistoryEventJsonConversion {
       case VERTEX_PARALLELISM_UPDATED:
         jsonObject = convertVertexParallelismUpdatedEvent((VertexParallelismUpdatedEvent) historyEvent);
         break;
+      case DAG_RECOVERED:
+        jsonObject = convertDAGRecoveredEvent((DAGRecoveredEvent) historyEvent);
+        break;
       case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
       case VERTEX_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_STARTED:
@@ -121,6 +125,42 @@ public class HistoryEventJsonConversion {
         throw new UnsupportedOperationException("Unhandled Event"
             + ", eventType=" + historyEvent.getEventType());
     }
+    return jsonObject;
+  }
+
+  private static JSONObject convertDAGRecoveredEvent(DAGRecoveredEvent event)
+      throws JSONException {
+    JSONObject jsonObject = new JSONObject();
+    jsonObject.put(ATSConstants.ENTITY,
+        event.getDagID().toString());
+    jsonObject.put(ATSConstants.ENTITY_TYPE,
+        EntityTypes.TEZ_DAG_ID.name());
+
+    // Related Entities not needed as should have been done in
+    // dag submission event
+
+    JSONArray events = new JSONArray();
+    JSONObject recoverEvent = new JSONObject();
+    recoverEvent.put(ATSConstants.TIMESTAMP, event.getRecoveredTime());
+    recoverEvent.put(ATSConstants.EVENT_TYPE,
+        HistoryEventType.DAG_RECOVERED.name());
+
+    JSONObject recoverEventInfo = new JSONObject();
+    recoverEventInfo.put(ATSConstants.APPLICATION_ATTEMPT_ID,
+        event.getApplicationAttemptId().toString());
+    if (event.getRecoveredDagState() != null) {
+      recoverEventInfo.put(ATSConstants.DAG_STATE, event.getRecoveredDagState().name());
+    }
+    if (event.getRecoveryFailureReason() != null) {
+      recoverEventInfo.put(ATSConstants.RECOVERY_FAILURE_REASON,
+          event.getRecoveryFailureReason());
+    }
+
+    recoverEvent.put(ATSConstants.EVENT_INFO, recoverEventInfo);
+    events.put(recoverEvent);
+
+    jsonObject.put(ATSConstants.EVENTS, events);
+
     return jsonObject;
   }
 
@@ -327,6 +367,8 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getTezCounters()));
+    otherInfo.put(ATSConstants.COMPLETION_APPLICATION_ATTEMPT_ID,
+        event.getApplicationAttemptId().toString());
 
     final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
     if (dagTaskStats != null) {

@@ -35,12 +35,12 @@ public class ATSConstants {
   public static final String EVENT_INFO = "eventinfo";
   public static final String RELATED_ENTITIES = "relatedEntities";
   public static final String PRIMARY_FILTERS = "primaryfilters";
-  public static final String SECONDARY_FILTERS = "secondaryfilters";
   public static final String OTHER_INFO = "otherinfo";
 
   /* Section for related entities */
   public static final String APPLICATION_ID = "applicationId";
   public static final String APPLICATION_ATTEMPT_ID = "applicationAttemptId";
+  public static final String COMPLETION_APPLICATION_ATTEMPT_ID = "completionApplicationAttemptId";
   public static final String CONTAINER_ID = "containerId";
   public static final String NODE_ID = "nodeId";
   public static final String NODE_HTTP_ADDRESS = "nodeHttpAddress";
@@ -52,6 +52,8 @@ public class ATSConstants {
   /* Tez-specific info */
   public static final String DAG_PLAN = "dagPlan";
   public static final String DAG_NAME = "dagName";
+  public static final String DAG_STATE = "dagState";
+  public static final String RECOVERY_FAILURE_REASON = "recoveryFailureReason";
   public static final String VERTEX_NAME = "vertexName";
   public static final String VERTEX_NAME_ID_MAPPING = "vertexNameIdMapping";
   public static final String SCHEDULED_TIME = "scheduledTime";

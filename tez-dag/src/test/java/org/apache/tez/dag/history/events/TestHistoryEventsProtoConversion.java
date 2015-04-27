@@ -217,7 +217,7 @@ public class TestHistoryEventsProtoConversion {
     {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
-          DAGState.FAILED, null, null, "user", "dagName", null);
+          DAGState.FAILED, null, null, "user", "dagName", null, null);
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
@@ -238,7 +238,7 @@ public class TestHistoryEventsProtoConversion {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
           DAGState.FAILED, "bad diagnostics", tezCounters,
-          "user", "dagName", null);
+          "user", "dagName", null, null);
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
@@ -717,10 +717,29 @@ public class TestHistoryEventsProtoConversion {
         case VERTEX_GROUP_COMMIT_FINISHED:
           testVertexGroupCommitFinishedEvent();
           break;
+        case DAG_RECOVERED:
+          testDAGRecoveredEvent();
+          break;
         default:
           throw new Exception("Unhandled Event type in Unit tests: " + eventType);
         }
       }
     }
+
+  private void testDAGRecoveredEvent() {
+    DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(
+        ApplicationAttemptId.newInstance(ApplicationId.newInstance(0, 1), 1),
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
+        "mockDagname", "mockuser", 100334l);
+    try {
+      testProtoConversion(dagRecoveredEvent);
+      Assert.fail("Proto conversion should have failed");
+    } catch (UnsupportedOperationException e) {
+      // Expected
+    } catch (IOException e) {
+      Assert.fail("Proto conversion should have failed with Unsupported Exception");
+    }
+
+  }
 
 }

@@ -50,6 +50,7 @@ import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -132,7 +133,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case DAG_FINISHED:
           event = new DAGFinishedEvent(tezDAGID, random.nextInt(), random.nextInt(), DAGState.ERROR,
-              null, null, user, dagPlan.getName(), null);
+              null, null, user, dagPlan.getName(), null, applicationAttemptId);
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
@@ -185,6 +186,10 @@ public class TestHistoryEventJsonConversion {
           break;
         case VERTEX_GROUP_COMMIT_FINISHED:
           event = new VertexGroupCommitFinishedEvent();
+          break;
+        case DAG_RECOVERED:
+          event = new DAGRecoveredEvent(applicationAttemptId, tezDAGID, dagPlan.getName(), user,
+              1l);
           break;
         default:
           Assert.fail("Unhandled event type " + eventType);

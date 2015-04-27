@@ -169,6 +169,7 @@ public class TestRecoveryParser {
   // skipAllOtherEvents due to dag finished
   @Test (timeout = 5000)
   public void testSkipAllOtherEvents_2() throws IOException {
+    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
@@ -188,7 +189,8 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new DAGFinishedEvent(dagID, 1L, 2L, DAGState.FAILED, "diag", null, "user", "dag1", null)));
+        new DAGFinishedEvent(dagID, 1L, 2L, DAGState.FAILED, "diag", null, "user", "dag1", null,
+            appAttemptId)));
     rService.handle(new DAGHistoryEvent(dagID, new DAGStartedEvent(dagID, 1L, "user", "dag1")));
     rService.stop();
 
