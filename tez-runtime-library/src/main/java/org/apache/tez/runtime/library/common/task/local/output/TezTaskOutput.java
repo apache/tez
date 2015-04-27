@@ -122,18 +122,20 @@ public abstract class TezTaskOutput {
    * Create a local input file name.
    *
    * @param srcIdentifier The identifier for the source
-   * @param size the size of the file
-   * @return path the path to the input file.
+   * @param spillNum
+   * @param size the size of the file  @return path the path to the input file.
    * @throws IOException
    */
-  public abstract Path getInputFileForWrite(
-      int srcIdentifier, long size) throws IOException;
+  public abstract Path getInputFileForWrite(int srcIdentifier,
+      int spillNum, long size) throws IOException;
 
   /**
    * Construct a spill file name, given a spill number
+   *
+   * @param srcId
    * @param spillNum
    * @return a spill file name independent of the unique identifier and local directories
    */
-  public abstract String getSpillFileName(int spillNum);
+  public abstract String getSpillFileName(int srcId, int spillNum);
 
 }

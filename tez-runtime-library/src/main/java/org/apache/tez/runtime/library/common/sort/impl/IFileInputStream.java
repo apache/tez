@@ -264,6 +264,7 @@ public class IFileInputStream extends InputStream {
     }
     
     if (currentOffset == dataLength) {
+      //TODO: add checksumSize to currentOffset.
       // The last four bytes are checksum. Strip them and verify
       sum.update(buffer, 0, offset);
       csum = new byte[checksumSize];

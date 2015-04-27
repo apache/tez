@@ -49,7 +49,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
 
   private static final String SPILL_FILE_DIR_PATTERN = "%s_%d";
 
-  private static final String SPILL_FILE_PATTERN = "%s_spill_%d.out";
+  private static final String SPILL_FILE_PATTERN = "%s_src_%d_spill_%d.out";
 
   /*
   Under YARN, this defaults to one or more of the local directories, along with the appId in the path.
@@ -233,35 +233,36 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   /**
    * Create a local input file name.
    *
-   * ${appDir}/${uniqueId}_spill_${spillNumber}.out
-   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10004_spill_0.out
+   * ${appDir}/${uniqueId}_src_{$srcId}_spill_${spillNumber}.out
+   * e.g. application_1418684642047_0006/attempt_1418684642047_0006_1_00_000000_0_10004_src_10_spill_0.out
    *
-   * This is currently equivalent to getSpillFileForWrite. Files are not clobbered due to the uniqueId
-   * being different for Outputs / Inputs within the same task (and across tasks)
+   * Files are not clobbered due to the uniqueId along with spillId being different for Outputs /
+   * Inputs within the same task (and across tasks)
    *
    * @param srcIdentifier The identifier for the source
-   * @param size the size of the file
-   * @return path the path to the input file.
+   * @param spillNum
+   * @param size the size of the file  @return path the path to the input file.
    * @throws IOException
    */
   @Override
   public Path getInputFileForWrite(int srcIdentifier,
-      long size) throws IOException {
-    return lDirAlloc.getLocalPathForWrite(getSpillFileName(srcIdentifier),
-        size, conf);
+      int spillNum, long size) throws IOException {
+    return lDirAlloc.getLocalPathForWrite(getSpillFileName(srcIdentifier, spillNum), size, conf);
   }
 
   /**
-   * Construct a spill file name, given a spill number
+   * Construct a spill file name, given a spill number and src id
    *
-   * ${uniqueId}_spill_${spillNumber}.out
-   * e.g. attempt_1418684642047_0006_1_00_000000_0_10004_spill_0.out
+   * ${uniqueId}_src_${srcId}_spill_${spillNumber}.out
+   * e.g. attempt_1418684642047_0006_1_00_000000_0_10004_src_10_spill_0.out
    *
+   *
+   * @param srcId
    * @param spillNum
    * @return a spill file name independent of the unique identifier and local directories
    */
   @Override
-  public String getSpillFileName(int spillNum) {
-    return String.format(SPILL_FILE_PATTERN, uniqueId, spillNum);
+  public String getSpillFileName(int srcId, int spillNum) {
+    return String.format(SPILL_FILE_PATTERN, uniqueId, srcId, spillNum);
   }
 }

@@ -27,6 +27,8 @@ import java.util.TreeSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.common.base.Preconditions;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -436,7 +438,8 @@ public class MergeManager {
     inMemoryMapOutputs.add(mapOutput);
     LOG.info("closeInMemoryFile -> map-output of size: " + mapOutput.getSize()
         + ", inMemoryMapOutputs.size() -> " + inMemoryMapOutputs.size()
-        + ", commitMemory -> " + commitMemory + ", usedMemory ->" + usedMemory);
+        + ", commitMemory -> " + commitMemory + ", usedMemory ->" + usedMemory + ", mapOutput=" +
+        mapOutput);
 
     commitMemory+= mapOutput.getSize();
 
@@ -476,7 +479,21 @@ public class MergeManager {
   }
   
   public synchronized void closeOnDiskFile(FileChunk file) {
+    //including only path & offset for valdiations.
+    for (FileChunk fileChunk : onDiskMapOutputs) {
+      if (fileChunk.getPath().equals(file.getPath())) {
+        //ensure offsets are not the same.
+        Preconditions.checkArgument(fileChunk.getOffset() != file.getOffset(),
+            "Can't have a file with same path and offset."
+            + "OldFilePath=" + fileChunk.getPath() + ", OldFileOffset=" + fileChunk.getOffset() +
+            ", newFilePath=" + file.getPath() + ", newFileOffset=" + file.getOffset());
+      }
+    }
+
     onDiskMapOutputs.add(file);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("close onDiskFile=" + file.getPath() + ", len=" + file.getLength());
+    }
 
     synchronized (onDiskMerger) {
       if (!onDiskMerger.isInProgress() &&
@@ -623,8 +640,9 @@ public class MergeManager {
       // All disk writes done by this merge are overhead - due to the lac of
       // adequate memory to keep all segments in memory.
       Path outputPath = mapOutputFile.getInputFileForWrite(
-          srcTaskIdentifier.getInputIdentifier().getInputIndex(),
+          srcTaskIdentifier.getInputIdentifier().getInputIndex(), srcTaskIdentifier.getSpillEventId(),
           mergeOutputSize).suffix(Constants.MERGED_OUTPUT_PREFIX);
+      LOG.info("Patch..InMemoryMerger outputPath: " + outputPath);
 
       Writer writer = null;
       long outFileLen = 0;
@@ -720,6 +738,11 @@ public class MergeManager {
         final long offset = fileChunk.getOffset();
         final long size = fileChunk.getLength();
         final boolean preserve = fileChunk.isLocalFile();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("InputAttemptIdentifier=" + fileChunk.getInputAttemptIdentifier()
+              + ", len=" + fileChunk.getLength() + ", offset=" + fileChunk.getOffset()
+              + ", path=" + fileChunk.getPath());
+        }
         final Path file = fileChunk.getPath();
         approxOutputSize += size;
         Segment segment = new Segment(rfs, file, offset, size, codec, ifileReadAhead,
@@ -737,8 +760,8 @@ public class MergeManager {
       if (file0.isLocalFile()) {
         // This is setup the same way a type DISK MapOutput is setup when fetching.
         namePart = mapOutputFile.getSpillFileName(
-            file0.getInputAttemptIdentifier().getInputIdentifier().getInputIndex());
-
+            file0.getInputAttemptIdentifier().getInputIdentifier().getInputIndex(),
+            file0.getInputAttemptIdentifier().getSpillEventId());
       } else {
         namePart = file0.getPath().getName().toString();
       }
@@ -859,8 +882,18 @@ public class MergeManager {
     LOG.info("finalMerge called with " + 
              inMemoryMapOutputs.size() + " in-memory map-outputs and " + 
              onDiskMapOutputs.size() + " on-disk map-outputs");
-    
-    
+
+    if (LOG.isDebugEnabled()) {
+      for (MapOutput inMemoryMapOutput : inMemoryMapOutputs) {
+        LOG.debug("inMemoryOutput=" + inMemoryMapOutput + ", size=" + inMemoryMapOutput
+            .getSize());
+      }
+
+      for (FileChunk onDiskMapOutput : onDiskMapOutputs) {
+        LOG.debug("onDiskMapOutput=" + onDiskMapOutput.getPath() + ", size=" + onDiskMapOutput
+                .getLength());
+      }
+    }
     
 
     // merge config params
@@ -876,7 +909,7 @@ public class MergeManager {
     boolean mergePhaseFinished = false;
     if (inMemoryMapOutputs.size() > 0) {
       int srcTaskId = inMemoryMapOutputs.get(0).getAttemptIdentifier().getInputIdentifier().getInputIndex();
-      inMemToDiskBytes = createInMemorySegments(inMemoryMapOutputs, 
+      inMemToDiskBytes = createInMemorySegments(inMemoryMapOutputs,
                                                 memDiskSegments,
                                                 this.postMergeMemLimit);
       final int numMemDiskSegments = memDiskSegments.size();
@@ -892,10 +925,11 @@ public class MergeManager {
         
         mergePhaseFinished = true;
         // must spill to disk, but can't retain in-mem for intermediate merge
+        // Can not use spill id in final merge as it would clobber with other files, hence using
+        // Integer.MAX_VALUE
         final Path outputPath = 
-          mapOutputFile.getInputFileForWrite(srcTaskId,
-                                             inMemToDiskBytes).suffix(
-                                                 Constants.MERGED_OUTPUT_PREFIX);
+          mapOutputFile.getInputFileForWrite(srcTaskId, Integer.MAX_VALUE,
+              inMemToDiskBytes).suffix(Constants.MERGED_OUTPUT_PREFIX);
         final TezRawKeyValueIterator rIter = TezMerger.merge(job, fs, keyClass, valueClass,
             memDiskSegments, numMemDiskSegments, tmpDir, comparator, nullProgressable,
             spilledRecordsCounter, null, additionalBytesRead, null);
@@ -925,12 +959,12 @@ public class MergeManager {
 
         LOG.info("Merged " + numMemDiskSegments + " segments, " +
                  inMemToDiskBytes + " bytes to disk to satisfy " +
-                 "reduce memory limit");
+                 "reduce memory limit. outputPath=" + outputPath);
         inMemToDiskBytes = 0;
         memDiskSegments.clear();
       } else if (inMemToDiskBytes != 0) {
         LOG.info("Keeping " + numMemDiskSegments + " segments, " +
-                 inMemToDiskBytes + " bytes in memory for " +
+            inMemToDiskBytes + " bytes in memory for " +
                  "intermediate, on-disk merge");
       }
     }
@@ -942,7 +976,8 @@ public class MergeManager {
     for (FileChunk fileChunk : onDisk) {
       final long fileLength = fileChunk.getLength();
       onDiskBytes += fileLength;
-      LOG.debug("Disk file: " + fileChunk.getPath() + " Length is " + fileLength);
+      LOG.info("Disk file=" + fileChunk.getPath() + ", len=" + fileLength + ", isLocal=" +
+          fileChunk.isLocalFile());
 
       final Path file = fileChunk.getPath();
       TezCounter counter =
