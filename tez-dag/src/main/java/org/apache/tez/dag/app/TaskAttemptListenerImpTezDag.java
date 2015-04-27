@@ -22,12 +22,20 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.commons.collections4.ListUtils;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -413,10 +421,22 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           LOG.debug("Ping from " + taskAttemptID.toString() +
               " events: " + (inEvents != null? inEvents.size() : -1));
         }
-        if(inEvents!=null && !inEvents.isEmpty()) {
+
+        List<TezEvent> otherEvents = new ArrayList<TezEvent>();
+        for (TezEvent tezEvent : ListUtils.emptyIfNull(inEvents)) {
+          final EventType eventType = tezEvent.getEventType();
+          if (eventType == EventType.TASK_STATUS_UPDATE_EVENT ||
+              eventType == EventType.TASK_ATTEMPT_COMPLETED_EVENT) {
+            context.getEventHandler()
+                .handle(getTaskAttemptEventFromTezEvent(taskAttemptID, tezEvent));
+          } else {
+            otherEvents.add(tezEvent);
+          }
+        }
+        if(!otherEvents.isEmpty()) {
           TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
           context.getEventHandler().handle(
-              new VertexEventRouteEvent(vertexId, inEvents));
+              new VertexEventRouteEvent(vertexId, Collections.unmodifiableList(otherEvents)));
         }
         taskHeartbeatHandler.pinged(taskAttemptID);
         List<TezEvent> outEvents = context
@@ -431,6 +451,28 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       containerInfo.lastReponse = response;
       return response;
     }
+  }
+
+  private TaskAttemptEvent getTaskAttemptEventFromTezEvent(TezTaskAttemptID taskAttemptID,
+                                                           TezEvent tezEvent) {
+    final EventType eventType = tezEvent.getEventType();
+    TaskAttemptEvent taskAttemptEvent;
+    switch (eventType) {
+      case TASK_STATUS_UPDATE_EVENT:
+        {
+          taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
+              (TaskStatusUpdateEvent) tezEvent.getEvent());
+        }
+        break;
+      case TASK_ATTEMPT_COMPLETED_EVENT:
+        {
+          taskAttemptEvent = new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE);
+        }
+        break;
+      default:
+        throw new TezUncheckedException("unknown event type " + eventType);
+    }
+    return taskAttemptEvent;
   }
 
   private Map<String, TezLocalResource> convertLocalResourceMap(Map<String, LocalResource> ylrs)

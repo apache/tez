@@ -4096,24 +4096,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           srcEdge.sendTezEventToSourceTasks(tezEvent);
         }
         break;
-      case TASK_STATUS_UPDATE_EVENT:
-        {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          TaskStatusUpdateEvent sEvent =
-              (TaskStatusUpdateEvent) tezEvent.getEvent();
-          vertex.getEventHandler().handle(
-              new TaskAttemptEventStatusUpdate(sourceMeta.getTaskAttemptID(),
-                  sEvent));
-        }
-        break;
-      case TASK_ATTEMPT_COMPLETED_EVENT:
-        {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          vertex.getEventHandler().handle(
-              new TaskAttemptEvent(sourceMeta.getTaskAttemptID(),
-                  TaskAttemptEventType.TA_DONE));
-        }
-        break;
       case TASK_ATTEMPT_FAILED_EVENT:
         {
           checkEventSourceMetadata(vertex, sourceMeta);
