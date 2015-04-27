@@ -145,6 +145,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2365. Update tez-ui war's license/notice to reflect OFL license correctly.
   TEZ-2329. UI Query on final dag status performance improvement
   TEZ-2287. Deprecate VertexManagerPluginContext.getTaskContainer().
   TEZ-1909. Remove need to copy over all events from attempt 1 to attempt 2 dir
