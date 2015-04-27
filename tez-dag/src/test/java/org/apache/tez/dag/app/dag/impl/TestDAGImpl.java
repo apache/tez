@@ -841,7 +841,22 @@ public class TestDAGImpl {
     dispatcher.stop();
     execService.shutdownNow();
     dagPlan = null;
+    if (dag != null) {
+      dag.entityUpdateTracker.stop();
+    }
+    if (mrrDag != null) {
+      mrrDag.entityUpdateTracker.stop();
+    }
+    if (groupDag != null) {
+      groupDag.entityUpdateTracker.stop();
+    }
+    if (dagWithCustomEdge != null) {
+      dagWithCustomEdge.entityUpdateTracker.stop();
+    }
     dag = null;
+    mrrDag = null;
+    groupDag = null;
+    dagWithCustomEdge = null;
   }
 
   private class AMSchedulerEventHandler implements EventHandler<AMSchedulerEvent> {

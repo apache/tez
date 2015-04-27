@@ -9,6 +9,8 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2362. State Change Notifier Thread should be stopped when dag is
+  completed
   TEZ-2364. Resolve config parameter replacement on the client, before sending them to the AM.
   TEZ-2298. Avoid logging full exception trace in TaskRunner when it's not the main error reason and is ignored.
   TEZ-2248. VertexImpl/DAGImpl.checkForCompletion have too many termination cause checks
