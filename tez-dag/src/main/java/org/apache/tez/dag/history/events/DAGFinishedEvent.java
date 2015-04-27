@@ -23,8 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.app.dag.DAGState;
@@ -41,8 +40,6 @@ import com.google.protobuf.ByteString;
 
 public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
-  private static final Log LOG = LogFactory.getLog(DAGFinishedEvent.class);
-
   private TezDAGID dagID;
   private long startTime;
   private long finishTime;
@@ -54,13 +51,16 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
   Map<String, Integer> dagTaskStats;
 
+  private ApplicationAttemptId applicationAttemptId;
+
   public DAGFinishedEvent() {
   }
 
   public DAGFinishedEvent(TezDAGID dagId, long startTime,
       long finishTime, DAGState state,
       String diagnostics, TezCounters counters,
-      String user, String dagName, Map<String, Integer> dagTaskStats) {
+      String user, String dagName, Map<String, Integer> dagTaskStats,
+      ApplicationAttemptId applicationAttemptId) {
     this.dagID = dagId;
     this.startTime = startTime;
     this.finishTime = finishTime;
@@ -70,6 +70,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
     this.user = user;
     this.dagName = dagName;
     this.dagTaskStats = dagTaskStats;
+    this.applicationAttemptId = applicationAttemptId;
   }
 
   @Override
@@ -201,6 +202,10 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
   public Map<String, Integer> getDagTaskStats() {
     return dagTaskStats;
+  }
+
+  public ApplicationAttemptId getApplicationAttemptId() {
+    return applicationAttemptId;
   }
 
 }

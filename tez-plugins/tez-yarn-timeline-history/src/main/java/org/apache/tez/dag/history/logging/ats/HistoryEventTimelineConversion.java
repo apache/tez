@@ -40,6 +40,7 @@ import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -115,6 +116,10 @@ public class HistoryEventTimelineConversion {
         timelineEntity = convertVertexParallelismUpdatedEvent(
             (VertexParallelismUpdatedEvent) historyEvent);
         break;
+      case DAG_RECOVERED:
+        timelineEntity = convertDAGRecoveredEvent(
+            (DAGRecoveredEvent) historyEvent);
+        break;
       case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
       case VERTEX_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_STARTED:
@@ -127,6 +132,34 @@ public class HistoryEventTimelineConversion {
             + ", eventType=" + historyEvent.getEventType());
     }
     return timelineEntity;
+  }
+
+  private static TimelineEntity convertDAGRecoveredEvent(DAGRecoveredEvent event) {
+    TimelineEntity atsEntity = new TimelineEntity();
+    atsEntity.setEntityId(event.getDagID().toString());
+    atsEntity.setEntityType(EntityTypes.TEZ_DAG_ID.name());
+
+    TimelineEvent recoverEvt = new TimelineEvent();
+    recoverEvt.setEventType(HistoryEventType.DAG_RECOVERED.name());
+    recoverEvt.setTimestamp(event.getRecoveredTime());
+    recoverEvt.addEventInfo(ATSConstants.APPLICATION_ATTEMPT_ID,
+        event.getApplicationAttemptId().toString());
+    if (event.getRecoveredDagState() != null) {
+      recoverEvt.addEventInfo(ATSConstants.DAG_STATE, event.getRecoveredDagState().name());
+    }
+    if (event.getRecoveryFailureReason() != null) {
+      recoverEvt.addEventInfo(ATSConstants.RECOVERY_FAILURE_REASON,
+          event.getRecoveryFailureReason());
+    }
+
+    atsEntity.addEvent(recoverEvt);
+
+    atsEntity.addPrimaryFilter(ATSConstants.USER, event.getUser());
+    atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
+        event.getApplicationAttemptId().getApplicationId().toString());
+    atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
+
+    return atsEntity;
   }
 
   private static TimelineEntity convertAppLaunchedEvent(AppLaunchedEvent event) {
@@ -270,6 +303,8 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     atsEntity.addOtherInfo(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToATSMap(event.getTezCounters()));
+    atsEntity.addOtherInfo(ATSConstants.COMPLETION_APPLICATION_ATTEMPT_ID,
+        event.getApplicationAttemptId().toString());
 
     final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
     if (dagTaskStats != null) {

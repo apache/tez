@@ -168,6 +168,7 @@ public class TestRecoveryParser {
   @Test (timeout = 5000)
   public void testSkipAllOtherEvents_2() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
@@ -186,7 +187,8 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new DAGFinishedEvent(dagID, 1L, 2L, DAGState.FAILED, "diag", null, "user", "dag1", null)));
+        new DAGFinishedEvent(dagID, 1L, 2L, DAGState.FAILED, "diag", null, "user", "dag1", null,
+            appAttemptId)));
     rService.handle(new DAGHistoryEvent(dagID, new DAGStartedEvent(dagID, 1L, "user", "dag1")));
     rService.stop();
 
@@ -204,7 +206,7 @@ public class TestRecoveryParser {
     assertEquals(DAGState.FAILED, dagData.dagState);
     assertEquals(true, dagData.isCompleted);
     // DAGSubmittedEvent, DAGInitializedEvent and DAGFinishedEvent is handled
-    verify(mockAppMaster).createDAG(any(DAGPlan.class),any(TezDAGID.class));
+    verify(mockAppMaster).createDAG(any(DAGPlan.class), any(TezDAGID.class));
     verify(dagData.recoveredDAG).restoreFromEvent(isA(DAGInitializedEvent.class));
     verify(dagData.recoveredDAG).restoreFromEvent(isA(DAGFinishedEvent.class));
     // DAGStartedEvent is skipped due to it is after DAGFinishedEvent
