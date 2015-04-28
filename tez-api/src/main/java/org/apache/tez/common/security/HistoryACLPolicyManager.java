@@ -26,6 +26,7 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.security.HistoryACLPolicyException;
 
 /**
  * ACL Policy Manager
@@ -43,7 +44,7 @@ public interface HistoryACLPolicyManager extends Configurable {
    * @throws Exception
    */
   public Map<String, String> setupSessionACLs(Configuration conf, ApplicationId applicationId)
-      throws IOException;
+      throws IOException, HistoryACLPolicyException;
 
   /**
    * Take any necessary steps for setting up ACLs for an AM which is running in non-session mode
@@ -53,7 +54,7 @@ public interface HistoryACLPolicyManager extends Configurable {
    * @throws Exception
    */
   public Map<String, String> setupNonSessionACLs(Configuration conf, ApplicationId applicationId,
-      DAGAccessControls dagAccessControls) throws IOException;
+      DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException;
 
   /**
    * Take any necessary steps for setting up ACLs for a DAG that is submitted to a Session
@@ -63,7 +64,7 @@ public interface HistoryACLPolicyManager extends Configurable {
    * @throws Exception
    */
   public Map<String, String> setupSessionDAGACLs(Configuration conf, ApplicationId applicationId,
-      String dagName, DAGAccessControls dagAccessControls) throws IOException;
+      String dagName, DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException;
 
 
   public void updateTimelineEntityDomain(Object timelineEntity, String domainId);

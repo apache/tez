@@ -38,6 +38,7 @@ import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.ACLType;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
+import org.apache.tez.common.security.HistoryACLPolicyException;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -115,7 +116,7 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
   }
 
   private void createTimelineDomain(String domainId, Configuration tezConf,
-      DAGAccessControls dagAccessControls) throws IOException {
+      DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException {
     TimelineDomain timelineDomain = new TimelineDomain();
     timelineDomain.setId(domainId);
 
@@ -129,13 +130,15 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
       }
     } catch (Exception e) {
       LOG.warn("Could not post timeline domain", e);
+      throw new
+        HistoryACLPolicyException("Fail to create ACL-related domain in Timeline", e);
     }
   }
 
 
   private Map<String, String> createSessionDomain(Configuration tezConf,
       ApplicationId applicationId, DAGAccessControls dagAccessControls)
-      throws IOException {
+      throws IOException, HistoryACLPolicyException {
     String domainId =
         tezConf.get(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID);
     if (!tezConf.getBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED,
@@ -169,7 +172,7 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
 
   private Map<String, String> createDAGDomain(Configuration tezConf,
       ApplicationId applicationId, String dagName, DAGAccessControls dagAccessControls)
-      throws IOException {
+      throws IOException, HistoryACLPolicyException {
     if (dagAccessControls == null) {
       // No DAG specific ACLs
       return null;
@@ -221,19 +224,19 @@ public class ATSHistoryACLPolicyManager implements HistoryACLPolicyManager {
 
   @Override
   public Map<String, String> setupSessionACLs(Configuration conf, ApplicationId applicationId)
-      throws IOException {
+      throws IOException, HistoryACLPolicyException {
     return createSessionDomain(conf, applicationId, null);
   }
 
   @Override
   public Map<String, String> setupNonSessionACLs(Configuration conf, ApplicationId applicationId,
-      DAGAccessControls dagAccessControls) throws IOException {
+      DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException {
     return createSessionDomain(conf, applicationId, dagAccessControls);
   }
 
   @Override
   public Map<String, String> setupSessionDAGACLs(Configuration conf, ApplicationId applicationId,
-      String dagName, DAGAccessControls dagAccessControls) throws IOException {
+      String dagName, DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException {
     return createDAGDomain(conf, applicationId, dagName, dagAccessControls);
   }
 

@@ -61,6 +61,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequest
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
 import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.common.security.HistoryACLPolicyException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -286,6 +287,12 @@ public class TezClient {
     amConfig.setCredentials(credentials);
   }
   
+  @Private
+  @VisibleForTesting
+  public synchronized void setUpHistoryAclManager(HistoryACLPolicyManager myAclPolicyManager) {
+    historyACLPolicyManager =  myAclPolicyManager;
+  }
+
   /**
    * Start the client. This establishes a connection to the YARN cluster.
    * In session mode, this start the App Master thats runs all the DAGs in the
@@ -300,9 +307,11 @@ public class TezClient {
     frameworkClient.init(amConfig.getTezConfiguration(), amConfig.getYarnConfiguration());
     frameworkClient.start();
 
+    ///need additional check for historyACLPolicyManager because tests could stub historyACLPolicyManager
+    ///before tezclient start. If there is already a stubbed historyACLPolicyManager, we don't overwrite it
     if (this.amConfig.getTezConfiguration().get(
         TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
-        .equals(atsHistoryLoggingServiceClassName)) {
+        .equals(atsHistoryLoggingServiceClassName) && (historyACLPolicyManager == null)) {
       LOG.info("Using " + atsHistoryACLManagerClassName + " to manage Timeline ACLs");
       try {
         historyACLPolicyManager = ReflectionUtils.createClazzInstance(
@@ -406,9 +415,21 @@ public class TezClient {
     }
 
     Map<String, String> aclConfigs = null;
-    if (historyACLPolicyManager != null) {
-      aclConfigs = historyACLPolicyManager.setupSessionDAGACLs(
-          amConfig.getTezConfiguration(), sessionAppId, dag.getName(), dag.getDagAccessControls());
+    // TEZ_AM_HISTORY_LOGGING_ENABLED is a config setting enable/disable logging of all dags within a session
+    boolean sessionHistoryLoggingEnabled = amConfig.getTezConfiguration().getBoolean(
+        TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
+        TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
+    if (historyACLPolicyManager != null && sessionHistoryLoggingEnabled) {
+      try {
+        aclConfigs = historyACLPolicyManager.setupSessionDAGACLs(
+            amConfig.getTezConfiguration(), sessionAppId, dag.getName(), dag.getDagAccessControls());
+      } catch (HistoryACLPolicyException e) {
+        LOG.warn("Disabling history logging for dag " +
+          dag.getName() + " due to error in setting up history acls " + e);
+        dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
+      }
+    } else if (!sessionHistoryLoggingEnabled) {
+      dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
     }
 
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);

@@ -321,6 +321,12 @@ public class DAG {
   }
   
   @Private
+  @VisibleForTesting
+  public Map<String,String> getDagConf() {
+    return dagConf;
+  }
+
+  @Private
   public Map<String, LocalResource> getTaskLocalFiles() {
     return commonTaskLocalFiles;
   }
