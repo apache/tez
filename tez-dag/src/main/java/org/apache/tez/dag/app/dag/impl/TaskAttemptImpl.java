@@ -734,39 +734,44 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   @Override
   public TaskAttemptState restoreFromEvent(HistoryEvent historyEvent) {
-    switch (historyEvent.getEventType()) {
-      case TASK_ATTEMPT_STARTED:
-      {
-        TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
-        this.launchTime = tEvent.getStartTime();
-        recoveryStartEventSeen = true;
-        recoveredState = TaskAttemptState.RUNNING;
-        this.containerId = tEvent.getContainerId();
-        sendEvent(createDAGCounterUpdateEventTALaunched(this));
-        return recoveredState;
-      }
-      case TASK_ATTEMPT_FINISHED:
-      {
-        if (!recoveryStartEventSeen) {
-          throw new RuntimeException("Finished Event seen but"
-              + " no Started Event was encountered earlier");
+    writeLock.lock();
+    try {
+      switch (historyEvent.getEventType()) {
+        case TASK_ATTEMPT_STARTED:
+        {
+          TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
+          this.launchTime = tEvent.getStartTime();
+          recoveryStartEventSeen = true;
+          recoveredState = TaskAttemptState.RUNNING;
+          this.containerId = tEvent.getContainerId();
+          sendEvent(createDAGCounterUpdateEventTALaunched(this));
+          return recoveredState;
         }
-        TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) historyEvent;
-        this.finishTime = tEvent.getFinishTime();
-        this.reportedStatus.counters = tEvent.getCounters();
-        this.reportedStatus.progress = 1f;
-        this.reportedStatus.state = tEvent.getState();
-        this.terminationCause = tEvent.getTaskAttemptError() != null ? tEvent.getTaskAttemptError()
-            : TaskAttemptTerminationCause.UNKNOWN_ERROR;
-        this.diagnostics.add(tEvent.getDiagnostics());
-        this.recoveredState = tEvent.getState();
-        sendEvent(createDAGCounterUpdateEventTAFinished(this, tEvent.getState()));
-        return recoveredState;
+        case TASK_ATTEMPT_FINISHED:
+        {
+          if (!recoveryStartEventSeen) {
+            throw new RuntimeException("Finished Event seen but"
+                + " no Started Event was encountered earlier");
+          }
+          TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) historyEvent;
+          this.finishTime = tEvent.getFinishTime();
+          this.reportedStatus.counters = tEvent.getCounters();
+          this.reportedStatus.progress = 1f;
+          this.reportedStatus.state = tEvent.getState();
+          this.terminationCause = tEvent.getTaskAttemptError() != null ? tEvent.getTaskAttemptError()
+              : TaskAttemptTerminationCause.UNKNOWN_ERROR;
+          this.diagnostics.add(tEvent.getDiagnostics());
+          this.recoveredState = tEvent.getState();
+          sendEvent(createDAGCounterUpdateEventTAFinished(this, tEvent.getState()));
+          return recoveredState;
+        }
+        default:
+          throw new RuntimeException("Unexpected event received for restoring"
+              + " state, eventType=" + historyEvent.getEventType());
+  
       }
-      default:
-        throw new RuntimeException("Unexpected event received for restoring"
-            + " state, eventType=" + historyEvent.getEventType());
-
+    } finally {
+      writeLock.unlock();
     }
   }
 
