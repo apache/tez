@@ -245,9 +245,9 @@ public class TestTaskAttemptListenerImplTezDag {
   }
 
 
-  private ContainerId createContainerId(ApplicationId applicationId, long containerIdx) {
+  private ContainerId createContainerId(ApplicationId applicationId, int containerIdx) {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
-    return ContainerId.newContainerId(appAttemptId, containerIdx);
+    return ContainerId.newInstance(appAttemptId, containerIdx);
   }
 
   private static class TaskAttemptListenerImplForTest extends TaskAttemptListenerImpTezDag {
