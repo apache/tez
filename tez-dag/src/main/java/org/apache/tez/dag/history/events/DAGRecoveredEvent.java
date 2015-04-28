@@ -38,6 +38,8 @@ public class DAGRecoveredEvent implements HistoryEvent {
   private final String dagName;
   private final String user;
 
+  private boolean historyLoggingEnabled = true;
+
   public DAGRecoveredEvent(ApplicationAttemptId applicationAttemptId,
       TezDAGID dagId, String dagName, String user,
       long recoveredTime, DAGState recoveredState,
@@ -109,6 +111,14 @@ public class DAGRecoveredEvent implements HistoryEvent {
 
   public String getUser() {
     return user;
+  }
+
+  public boolean isHistoryLoggingEnabled() {
+    return historyLoggingEnabled;
+  }
+
+  public void setHistoryLoggingEnabled(boolean historyLoggingEnabled) {
+    this.historyLoggingEnabled = historyLoggingEnabled;
   }
 
   @Override

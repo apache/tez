@@ -1741,6 +1741,10 @@ public class DAGAppMaster extends AbstractService {
               recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
               recoveredDAGData.recoveredDAG.getUserName(),
               this.clock.getTime(), DAGState.FAILED, recoveredDAGData.reason);
+          dagRecoveredEvent.setHistoryLoggingEnabled(
+              recoveredDAGData.recoveredDAG.getConf().getBoolean(
+                  TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
+                  TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT));
           this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
               dagRecoveredEvent));
           dagEventDispatcher.handle(recoverDAGEvent);
@@ -2122,6 +2126,10 @@ public class DAGAppMaster extends AbstractService {
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
         newDAG.getUserName(), newDAG.getConf());
+    boolean dagLoggingEnabled = newDAG.getConf().getBoolean(
+        TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
+        TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT);
+    submittedEvent.setHistoryLoggingEnabled(dagLoggingEnabled);
     try {
       historyEventHandler.handleCriticalEvent(
           new DAGHistoryEvent(newDAG.getID(), submittedEvent));

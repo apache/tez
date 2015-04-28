@@ -82,6 +82,7 @@ import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
+import org.apache.tez.common.security.HistoryACLPolicyException;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
@@ -520,14 +521,30 @@ public class TezClientUtils {
     Map<String, String> aclConfigs = null;
     if (historyACLPolicyManager != null) {
       if (dag == null) {
-        aclConfigs = historyACLPolicyManager.setupSessionACLs(amConfig.getTezConfiguration(),
-            appId);
+        try{
+          aclConfigs = historyACLPolicyManager.setupSessionACLs(amConfig.getTezConfiguration(),
+              appId);
+        } catch (HistoryACLPolicyException e) {
+          LOG.warn("Disabling history logging for session " + strAppId +
+                   " due to error in setting up history acls " + e);
+          amConfig.getTezConfiguration().setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
+              false);
+        }
       } else {
-        // Non-session mode
-        // As only a single DAG is support, we should combine AM and DAG ACLs under the same
-        // acl management layer
-        aclConfigs = historyACLPolicyManager.setupNonSessionACLs(amConfig.getTezConfiguration(),
-            appId, dag.getDagAccessControls());
+        try{
+          // Non-session mode
+          // As only a single DAG is support, we should combine AM and DAG ACLs under the same
+          // acl management layer
+          aclConfigs = historyACLPolicyManager.setupNonSessionACLs(amConfig.getTezConfiguration(),
+              appId, dag.getDagAccessControls());
+        } catch (HistoryACLPolicyException e) {
+          LOG.warn("Disabling history logging for dag " +
+              dag.getName() + " due to error in setting up history acls " + e);
+          dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
+          // This is non-session mode so disable logging for whole AM
+          amConfig.getTezConfiguration().setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
+              false);
+        }
       }
     }
 

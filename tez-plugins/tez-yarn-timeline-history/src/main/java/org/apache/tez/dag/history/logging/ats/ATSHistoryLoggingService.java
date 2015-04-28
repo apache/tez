@@ -27,6 +27,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -60,6 +61,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
   private int eventCounter = 0;
   private int eventsProcessed = 0;
   private final Object lock = new Object();
+  private boolean historyLoggingEnabled = true;
 
   @VisibleForTesting
   TimelineClient timelineClient;
@@ -85,7 +87,15 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   @Override
   public void serviceInit(Configuration conf) throws Exception {
+    historyLoggingEnabled = conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
+        TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
+    if (!historyLoggingEnabled) {
+      LOG.info("ATSService: History Logging disabled. "
+          + TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED + " set to false");
+      return;
+    }
     LOG.info("Initializing ATSService");
+
     if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
       YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
       timelineClient = TimelineClient.createTimelineClient();
@@ -132,7 +142,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   @Override
   public void serviceStart() {
-    if (timelineClient == null) {
+    if (!historyLoggingEnabled || timelineClient == null) {
       return;
     }
     LOG.info("Starting ATSService");
@@ -186,7 +196,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   @Override
   public void serviceStop() {
-    if (timelineClient == null) {
+    if (!historyLoggingEnabled || timelineClient == null) {
       return;
     }
     LOG.info("Stopping ATSService"
@@ -253,7 +263,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
 
   public void handle(DAGHistoryEvent event) {
-    if (timelineClient != null) {
+    if (historyLoggingEnabled && timelineClient != null) {
       eventQueue.add(event);
     }
   }
@@ -266,9 +276,9 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       DAGSubmittedEvent dagSubmittedEvent =
           (DAGSubmittedEvent) event.getHistoryEvent();
       String dagName = dagSubmittedEvent.getDAGName();
-      if (dagName != null
-          && dagName.startsWith(
-          TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+      if ((dagName != null
+          && dagName.startsWith(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX))
+          || (!dagSubmittedEvent.isHistoryLoggingEnabled())) {
         // Skip recording pre-warm DAG events
         skippedDAGs.add(dagId);
         return false;
@@ -279,6 +289,13 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
         if (dagDomainId != null) {
           dagDomainIdMap.put(dagId, dagDomainId);
         }
+      }
+    }
+    if (eventType.equals(HistoryEventType.DAG_RECOVERED)) {
+      DAGRecoveredEvent dagRecoveredEvent = (DAGRecoveredEvent) event.getHistoryEvent();
+      if (!dagRecoveredEvent.isHistoryLoggingEnabled()) {
+        skippedDAGs.add(dagRecoveredEvent.getDagID());
+        return false;
       }
     }
     if (eventType.equals(HistoryEventType.DAG_FINISHED)) {

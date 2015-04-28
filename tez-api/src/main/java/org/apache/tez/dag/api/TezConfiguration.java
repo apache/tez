@@ -207,6 +207,15 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
 
   /**
+   * Boolean value. Determine whether to log history events per dag
+   */
+  @ConfigurationScope(Scope.DAG)
+  @Private
+  public static final String TEZ_DAG_HISTORY_LOGGING_ENABLED =
+      TEZ_PREFIX + "dag.history.logging.enabled";
+  public static final boolean TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT = true;
+
+  /**
    * String value. Command line options which will be prepended to {@link #TEZ_AM_LAUNCH_CMD_OPTS}
    * during the launch of the AppMaster process. This property will typically be configured to
    * include default options meant to be used by all jobs in a cluster. If required, the values can
@@ -711,7 +720,16 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_SESSION_MIN_HELD_CONTAINERS = 
       TEZ_AM_PREFIX + "session.min.held-containers";
   public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
-  
+
+  /**
+   * Boolean value. Allow/disable logging for all dags in a session   
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_HISTORY_LOGGING_ENABLED =
+      TEZ_AM_PREFIX + "history.logging.enabled";
+  public static final boolean TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT = true;
+
   /**
    * Int value. Specifies the percentage of tasks eligible to be preempted that
    * will actually be preempted in a given round of Tez internal preemption.

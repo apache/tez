@@ -36,7 +36,6 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGSubmittedProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.utils.ProtoUtils;
@@ -55,6 +54,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   private ApplicationAttemptId applicationAttemptId;
   private String user;
   private Map<String, LocalResource> cumulativeAdditionalLocalResources;
+  private boolean historyLoggingEnabled = true;
 
   private Configuration conf;
 
@@ -191,4 +191,11 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     return conf;
   }
 
+  public void setHistoryLoggingEnabled(boolean loggingEnabled) {
+    historyLoggingEnabled = loggingEnabled;
+  }
+
+  public boolean isHistoryLoggingEnabled() {
+    return historyLoggingEnabled;
+  }
 }
