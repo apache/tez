@@ -24,8 +24,8 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 
 public class IOStatistics implements Writable {
-  private long dataSize = 0;
-  private long numItems = 0;
+  private volatile long dataSize = 0;
+  private volatile long numItems = 0;
   
   public void setDataSize(long size) {
     this.dataSize = size;

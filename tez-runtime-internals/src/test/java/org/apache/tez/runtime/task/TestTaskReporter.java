@@ -32,17 +32,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Lists;
+
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+@SuppressWarnings("rawtypes")
 public class TestTaskReporter {
 
   @Test(timeout = 10000)
@@ -101,6 +107,62 @@ public class TestTaskReporter {
     } finally {
       executor.shutdownNow();
     }
+
+  }
+  
+  @Test (timeout=5000)
+  public void testStatusUpdateAfterInitializationAndCounterFlag() {
+    TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
+    LogicalIOProcessorRuntimeTask mockTask = mock(LogicalIOProcessorRuntimeTask.class);
+    doReturn("vertexName").when(mockTask).getVertexName();
+    doReturn(mockTaskAttemptId).when(mockTask).getTaskAttemptID();
+    TezTaskUmbilicalProtocol mockUmbilical = mock(TezTaskUmbilicalProtocol.class);
+    
+    float progress = 0.5f;
+    TaskStatistics stats = new TaskStatistics();
+    TezCounters counters = new TezCounters();
+    doReturn(progress).when(mockTask).getProgress();
+    doReturn(stats).when(mockTask).getTaskStatistics();
+    doReturn(counters).when(mockTask).getCounters();
+    
+    // Setup the sleep time to be way higher than the test timeout
+    TaskReporter.HeartbeatCallable heartbeatCallable =
+        new TaskReporter.HeartbeatCallable(mockTask, mockUmbilical, 100000, 100000, 5,
+            new AtomicLong(0),
+            "containerIdStr");
+    
+    // task not initialized - nothing obtained from task
+    doReturn(false).when(mockTask).hasInitialized();
+    TaskStatusUpdateEvent event = heartbeatCallable.getStatusUpdateEvent(true);
+    verify(mockTask, times(1)).hasInitialized();
+    verify(mockTask, times(0)).getProgress();
+    verify(mockTask, times(0)).getTaskStatistics();
+    verify(mockTask, times(0)).getCounters();
+    Assert.assertEquals(0, event.getProgress(), 0);
+    Assert.assertNull(event.getCounters());
+    Assert.assertNull(event.getStatistics());
+
+    // task is initialized - progress obtained but not counters since flag is false
+    doReturn(true).when(mockTask).hasInitialized();
+    event = heartbeatCallable.getStatusUpdateEvent(false);
+    verify(mockTask, times(2)).hasInitialized();
+    verify(mockTask, times(1)).getProgress();
+    verify(mockTask, times(0)).getTaskStatistics();
+    verify(mockTask, times(0)).getCounters();
+    Assert.assertEquals(progress, event.getProgress(), 0);
+    Assert.assertNull(event.getCounters());
+    Assert.assertNull(event.getStatistics());
+
+    // task is initialized - progress obtained and also counters since flag is true
+    doReturn(true).when(mockTask).hasInitialized();
+    event = heartbeatCallable.getStatusUpdateEvent(true);
+    verify(mockTask, times(3)).hasInitialized();
+    verify(mockTask, times(2)).getProgress();
+    verify(mockTask, times(1)).getTaskStatistics();
+    verify(mockTask, times(1)).getCounters();
+    Assert.assertEquals(progress, event.getProgress(), 0);
+    Assert.assertEquals(counters, event.getCounters());
+    Assert.assertEquals(stats, event.getStatistics());
 
   }
 

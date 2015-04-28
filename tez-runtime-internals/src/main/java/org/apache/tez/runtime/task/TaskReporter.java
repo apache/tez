@@ -34,6 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
@@ -41,6 +42,7 @@ import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
@@ -317,9 +319,20 @@ public class TaskReporter {
       return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskCompletedEvent)).shouldDie;
     }
     
-    private TaskStatusUpdateEvent getStatusUpdateEvent(boolean sendCounters) {
-      return new TaskStatusUpdateEvent((sendCounters ? task.getCounters() : null),
-          task.getProgress(), task.getTaskStatistics());
+    @VisibleForTesting
+    TaskStatusUpdateEvent getStatusUpdateEvent(boolean sendCounters) {
+      TezCounters counters = null;
+      TaskStatistics stats = null;
+      float progress = 0;
+      if (task.hasInitialized()) {
+        progress = task.getProgress();
+        if (sendCounters) {
+          // send these potentially large objects at longer intervals to avoid overloading the AM
+          counters = task.getCounters();
+          stats = task.getTaskStatistics();
+        }
+      }
+      return new TaskStatusUpdateEvent(counters, progress, stats);
     }
 
     /**

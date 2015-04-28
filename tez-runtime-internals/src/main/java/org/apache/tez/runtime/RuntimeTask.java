@@ -19,6 +19,7 @@
 package org.apache.tez.runtime;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,6 +76,10 @@ public abstract class RuntimeTask {
     TezCounters counter = new TezCounters();
     counterMap.put(name, counter);
     return counter;
+  }
+  
+  public boolean hasInitialized() {
+    return EnumSet.of(State.RUNNING, State.CLOSED).contains(state.get());
   }
   
   public String getVertexName() {
