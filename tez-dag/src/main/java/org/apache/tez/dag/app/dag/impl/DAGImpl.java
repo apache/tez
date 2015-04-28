@@ -511,45 +511,50 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   @Override
   public DAGState restoreFromEvent(HistoryEvent historyEvent) {
-    switch (historyEvent.getEventType()) {
-      case DAG_INITIALIZED:
-        recoveredState = initializeDAG((DAGInitializedEvent) historyEvent);
-        recoveryInitEventSeen = true;
-        return recoveredState;
-      case DAG_STARTED:
-        if (!recoveryInitEventSeen) {
-          throw new RuntimeException("Started Event seen but"
-              + " no Init Event was encountered earlier");
-        }
-        recoveryStartEventSeen = true;
-        this.startTime = ((DAGStartedEvent) historyEvent).getStartTime();
-        recoveredState = DAGState.RUNNING;
-        return recoveredState;
-      case DAG_COMMIT_STARTED:
-        recoveryCommitInProgress = true;
-        return recoveredState;
-      case VERTEX_GROUP_COMMIT_STARTED:
-        VertexGroupCommitStartedEvent vertexGroupCommitStartedEvent =
-            (VertexGroupCommitStartedEvent) historyEvent;
-        recoveredGroupCommits.put(
-            vertexGroupCommitStartedEvent.getVertexGroupName(), false);
-        return recoveredState;
-      case VERTEX_GROUP_COMMIT_FINISHED:
-        VertexGroupCommitFinishedEvent vertexGroupCommitFinishedEvent =
-            (VertexGroupCommitFinishedEvent) historyEvent;
-        recoveredGroupCommits.put(
-            vertexGroupCommitFinishedEvent.getVertexGroupName(), true);
-        return recoveredState;
-      case DAG_FINISHED:
-        recoveryCommitInProgress = false;
-        DAGFinishedEvent finishedEvent = (DAGFinishedEvent) historyEvent;
-        this.finishTime = finishedEvent.getFinishTime();
-        recoveredState = finishedEvent.getState();
-        this.fullCounters = finishedEvent.getTezCounters();
-        return recoveredState;
-      default:
-        throw new RuntimeException("Unexpected event received for restoring"
-            + " state, eventType=" + historyEvent.getEventType());
+    writeLock.lock();
+    try {
+      switch (historyEvent.getEventType()) {
+        case DAG_INITIALIZED:
+          recoveredState = initializeDAG((DAGInitializedEvent) historyEvent);
+          recoveryInitEventSeen = true;
+          return recoveredState;
+        case DAG_STARTED:
+          if (!recoveryInitEventSeen) {
+            throw new RuntimeException("Started Event seen but"
+                + " no Init Event was encountered earlier");
+          }
+          recoveryStartEventSeen = true;
+          this.startTime = ((DAGStartedEvent) historyEvent).getStartTime();
+          recoveredState = DAGState.RUNNING;
+          return recoveredState;
+        case DAG_COMMIT_STARTED:
+          recoveryCommitInProgress = true;
+          return recoveredState;
+        case VERTEX_GROUP_COMMIT_STARTED:
+          VertexGroupCommitStartedEvent vertexGroupCommitStartedEvent =
+              (VertexGroupCommitStartedEvent) historyEvent;
+          recoveredGroupCommits.put(
+              vertexGroupCommitStartedEvent.getVertexGroupName(), false);
+          return recoveredState;
+        case VERTEX_GROUP_COMMIT_FINISHED:
+          VertexGroupCommitFinishedEvent vertexGroupCommitFinishedEvent =
+              (VertexGroupCommitFinishedEvent) historyEvent;
+          recoveredGroupCommits.put(
+              vertexGroupCommitFinishedEvent.getVertexGroupName(), true);
+          return recoveredState;
+        case DAG_FINISHED:
+          recoveryCommitInProgress = false;
+          DAGFinishedEvent finishedEvent = (DAGFinishedEvent) historyEvent;
+          this.finishTime = finishedEvent.getFinishTime();
+          recoveredState = finishedEvent.getState();
+          this.fullCounters = finishedEvent.getTezCounters();
+          return recoveredState;
+        default:
+          throw new RuntimeException("Unexpected event received for restoring"
+              + " state, eventType=" + historyEvent.getEventType());
+      }
+    } finally {
+      writeLock.unlock();
     }
   }
 
