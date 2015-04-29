@@ -263,6 +263,94 @@ public class TestVertexRecovery {
     return dag;
   }
 
+  /*
+   * v1
+   *  |
+   * v2
+   */
+  private DAGPlan createDAGPlanMR() {
+    DAGPlan dag =
+        DAGPlan
+            .newBuilder()
+            .setName("testverteximpl")
+            .addVertex(
+                VertexPlan
+                    .newBuilder()
+                    .setName("vertex1")
+                    .setType(PlanVertexType.NORMAL)
+                    .addTaskLocationHint(
+                        PlanTaskLocationHint.newBuilder().addHost("host1")
+                            .addRack("rack1").build())
+                    .setTaskConfig(
+                        PlanTaskConfiguration.newBuilder().setNumTasks(1)
+                            .setVirtualCores(4).setMemoryMb(1024)
+                            .setJavaOpts("").setTaskModule("x1.y1").build())
+                    .addOutEdgeId("e1")
+                    .addOutputs(
+                        DAGProtos.RootInputLeafOutputProto
+                            .newBuilder()
+                            .setIODescriptor(
+                                TezEntityDescriptorProto.newBuilder()
+                                    .setClassName("output").build())
+                            .setName("outputx")
+                            .setControllerDescriptor(
+                                TezEntityDescriptorProto
+                                    .newBuilder()
+                                    .setClassName(
+                                        CountingOutputCommitter.class.getName())))
+                    .build())
+            .addVertex(
+                VertexPlan
+                    .newBuilder()
+                    .setName("vertex2")
+                    .setType(PlanVertexType.NORMAL)
+                    .setProcessorDescriptor(
+                        TezEntityDescriptorProto.newBuilder().setClassName(
+                            "x2.y2"))
+                    .addTaskLocationHint(
+                        PlanTaskLocationHint.newBuilder().addHost("host2")
+                            .addRack("rack2").build())
+                    .setTaskConfig(
+                        PlanTaskConfiguration.newBuilder().setNumTasks(2)
+                            .setVirtualCores(4).setMemoryMb(1024)
+                            .setJavaOpts("foo").setTaskModule("x2.y2").build())
+                    .addInEdgeId("e1")
+                    .addOutputs(
+                        DAGProtos.RootInputLeafOutputProto
+                            .newBuilder()
+                            .setIODescriptor(
+                                TezEntityDescriptorProto.newBuilder()
+                                    .setClassName("output").build())
+                            .setName("outputx")
+                            .setControllerDescriptor(
+                                TezEntityDescriptorProto
+                                    .newBuilder()
+                                    .setClassName(
+                                        CountingOutputCommitter.class.getName())))
+                    .build()
+
+            )
+            .addEdge(
+                EdgePlan
+                    .newBuilder()
+                    .setEdgeDestination(
+                        TezEntityDescriptorProto.newBuilder().setClassName(
+                            "i2_v1"))
+                    .setInputVertexName("vertex1")
+                    .setEdgeSource(
+                        TezEntityDescriptorProto.newBuilder()
+                            .setClassName("o1"))
+                    .setOutputVertexName("vertex2")
+                    .setDataMovementType(
+                        PlanEdgeDataMovementType.SCATTER_GATHER).setId("e1")
+                    .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                    .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                    .build())
+            .build();
+
+    return dag;
+  }
+
   class VertexEventHanlder implements EventHandler<VertexEvent> {
 
     private List<VertexEvent> events = new ArrayList<VertexEvent>();
@@ -754,7 +842,8 @@ public class TestVertexRecovery {
 
   /**
    * vertex1 (New) -> StartRecoveryTransition <br>
-   * vertex2 (New) -> StartRecoveryTransition vertex3 (New) -> RecoverTransition
+   * vertex2 (New) -> StartRecoveryTransition <br>
+   * vertex3 (New) -> RecoverTransition
    */
   @Test(timeout = 5000)
   public void testRecovery_RecoveringFromNew() {
@@ -803,7 +892,38 @@ public class TestVertexRecovery {
 
   }
   
-  
+  /**
+   * vertex1 (New) -> StartRecoveryTransition <br>
+   * vertex2 (New) -> RecoveryTransition <br>
+   */
+  @Test
+  public void testMRDAG() {
+    DAGPlan dagPlan = createDAGPlanMR();
+    dag =
+        new DAGImpl(dagId, new Configuration(), dagPlan,
+            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            new Credentials(), new SystemClock(), user,
+            mock(TaskHeartbeatHandler.class), mockAppContext);
+    when(mockAppContext.getCurrentDAG()).thenReturn(dag);
+    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_INIT));
+
+    VertexImpl vertex1 = (VertexImpl)dag.getVertex("vertex1");
+    VertexImpl vertex2 = (VertexImpl)dag.getVertex("vertex2");
+    assertEquals(VertexState.NEW, vertex1.getState());
+    assertEquals(VertexState.NEW, vertex1.getState());
+
+    // vertex1 handle RecoveryEvent at the state of NEW
+    // vertex 2 handle SourceVertexRecoveryEvent at the state of NEW
+    vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
+        VertexState.RUNNING));
+    dispatcher.await();
+    assertEquals(VertexState.RUNNING, vertex1.getState());
+    assertEquals(1, vertex1.getTasks().size());
+    // verify OutputCommitter is initialized
+    assertOutputCommitters(vertex1);
+    assertEquals(VertexState.RUNNING, vertex2.getState());
+  }
+
   @Test(timeout = 5000)
   public void testRecovery_VertexManagerErrorOnRecovery() {
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");

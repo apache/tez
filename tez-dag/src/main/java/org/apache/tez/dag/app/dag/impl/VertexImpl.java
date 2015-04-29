@@ -315,7 +315,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
                   new StartRecoverTransition())
           .addTransition
               (VertexState.NEW,
-                  EnumSet.of(VertexState.INITED,
+                  EnumSet.of(VertexState.NEW, VertexState.INITED,
                       VertexState.INITIALIZING, VertexState.RUNNING,
                       VertexState.SUCCEEDED, VertexState.FAILED,
                       VertexState.KILLED, VertexState.ERROR,
