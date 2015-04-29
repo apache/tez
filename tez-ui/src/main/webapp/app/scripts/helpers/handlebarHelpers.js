@@ -67,9 +67,11 @@ function replaceAll(str, str1, str2, ignore)
 
 //TODO: needs better indendation.
 Em.Handlebars.helper('formatDiagnostics', function(diagnostics) {
-  var x = replaceAll(diagnostics, '[', '<div class="indent"><i>&nbsp;</i>');
-  x = replaceAll(x, '],', '</div><i>&nbsp;</i>');
+  var x = replaceAll(diagnostics, '[', '<div class="log-indent"><i>&nbsp;</i>');
+  x = replaceAll(x, '],', '</div>');
   x = replaceAll(x, ']', '</div>');
+  x = replaceAll(x, '\n', '<br />');
+  x = replaceAll(x, '\t', '<span class="log-indent" /></span>');
   return new Handlebars.SafeString(x);
 });
 

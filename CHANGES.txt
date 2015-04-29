@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2084. Tez UI: Stacktrace format info is lost in diagnostics
   TEZ-2374. Fix build break against hadoop-2.2 due to TEZ-2325.
   TEZ-2314. Tez task attempt failures due to bad event serialization
   TEZ-2368. Make a dag identifier available in Context classes.
