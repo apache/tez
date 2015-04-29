@@ -87,7 +87,11 @@ public class DAGClientImpl extends DAGClient {
       this.frameworkClient.start();
     }
     isATSEnabled = conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
-            .equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService");
+            .equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService") &&
+            conf.getBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
+                 TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT) &&
+            conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
+                 TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
 
     if (UserGroupInformation.isSecurityEnabled()){
       //TODO: enable ATS integration in kerberos secured cluster - see TEZ-1529

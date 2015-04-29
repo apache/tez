@@ -152,6 +152,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2380. Disable fall back to reading from timeline if timeline disabled.
   TEZ-2226. Disable writing history to timeline if domain creation fails.
   TEZ-2259. Push additional data to Timeline for Recovery for better consumption in UI.
   TEZ-2365. Update tez-ui war's license/notice to reflect OFL license correctly.
