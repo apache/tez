@@ -414,6 +414,7 @@ public class TezClient {
       }
     }
 
+    TezConfiguration dagClientConf = new TezConfiguration(amConfig.getTezConfiguration());
     Map<String, String> aclConfigs = null;
     // TEZ_AM_HISTORY_LOGGING_ENABLED is a config setting enable/disable logging of all dags within a session
     boolean sessionHistoryLoggingEnabled = amConfig.getTezConfiguration().getBoolean(
@@ -427,9 +428,11 @@ public class TezClient {
         LOG.warn("Disabling history logging for dag " +
           dag.getName() + " due to error in setting up history acls " + e);
         dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
+        dagClientConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, false);
       }
     } else if (!sessionHistoryLoggingEnabled) {
       dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
+      dagClientConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, false);
     }
 
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
@@ -477,7 +480,7 @@ public class TezClient {
         + ", applicationId=" + sessionAppId
         + ", dagName=" + dag.getName());
     return new DAGClientImpl(sessionAppId, dagId,
-        amConfig.getTezConfiguration(), frameworkClient);
+        dagClientConf, frameworkClient);
   }
 
   /**
