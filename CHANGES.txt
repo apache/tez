@@ -321,6 +321,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2305. MR compatibility sleep job fails with IOException: Undefined job output-path
   TEZ-2303. ConcurrentModificationException while processing recovery.
   TEZ-2334. ContainerManagementProtocolProxy modifies IPC timeout conf without making a copy.
   TEZ-2317. Event processing backlog can result in task failures for short

@@ -111,7 +111,11 @@ public class MROutput extends AbstractLogicalOutput {
         }
       } else {
         outputFormatProvided = false;
-        useNewApi = conf.getBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, true);
+        if (conf.get(MRJobConfig.NEW_API_REDUCER_CONFIG) == null) {
+          useNewApi = conf.getBoolean(MRJobConfig.NEW_API_MAPPER_CONFIG, true);
+        } else {
+          useNewApi = conf.getBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, true);
+        }
         try {
           if (useNewApi) {
             String outputClass = conf.get(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR);
@@ -236,8 +240,10 @@ public class MROutput extends AbstractLogicalOutput {
      * Creates the user payload to be set on the OutputDescriptor for MROutput
      */
     private UserPayload createUserPayload() {
+      // set which api is being used always
+      conf.setBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, useNewApi);
+      conf.setBoolean(MRJobConfig.NEW_API_MAPPER_CONFIG, useNewApi);
       if (outputFormatProvided) {
-        conf.setBoolean(MRJobConfig.NEW_API_REDUCER_CONFIG, useNewApi);
         if (useNewApi) {
           conf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormat.getName());
         } else {
@@ -347,9 +353,13 @@ public class MROutput extends AbstractLogicalOutput {
     this.jobConf = new JobConf(conf);
     // Add tokens to the jobConf - in case they are accessed within the RW / OF
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
-    this.useNewApi = this.jobConf.getUseNewReducer();
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,
         false);
+    if (this.isMapperOutput) {
+      this.useNewApi = this.jobConf.getUseNewMapper();
+    } else {
+      this.useNewApi = this.jobConf.getUseNewReducer();
+    }
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
     TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
