@@ -170,7 +170,6 @@ public class TezConfiguration extends Configuration {
   /**
    * Boolean value. Determine whether to log history events per dag
    */
-  @ConfigurationScope(Scope.DAG)
   @Private
   public static final String TEZ_DAG_HISTORY_LOGGING_ENABLED =
       TEZ_PREFIX + "dag.history.logging.enabled";
@@ -631,7 +630,6 @@ public class TezConfiguration extends Configuration {
    * Boolean value. Allow/disable logging for all dags in a session   
    */
   @Private
-  @ConfigurationScope(Scope.AM)
   public static final String TEZ_AM_HISTORY_LOGGING_ENABLED =
       TEZ_AM_PREFIX + "history.logging.enabled";
   public static final boolean TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT = true;
