@@ -70,6 +70,8 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   // TODO Remove this once per I/O counters are separated properly. Relying on
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
+
+  private boolean completedProcessing;
   
   public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
@@ -124,7 +126,16 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
         nextInputExists = moveToNextInput();
       }
       LOG.info("Num Records read: " + numRecordsRead);
+      completedProcessing = true;
       return false;
+    }
+  }
+
+  private void hasCompletedProcessing() throws IOException {
+    if (completedProcessing) {
+      throw new IOException("Reader has already processed all the inputs. Please check if you are"
+          + " invoking next() even after it returned false. For usage, please refer to "
+          + "KeyValueReader javadocs");
     }
   }
 
@@ -170,6 +181,11 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   private boolean moveToNextInput() throws IOException {
     if (currentReader != null) { // Close the current reader.
       currentReader.close();
+      /**
+       * clear reader explicitly. Otherwise this could point to stale reference when next() is
+       * called and end up throwing EOF exception from IFIle. Ref: TEZ-2348
+       */
+      currentReader = null;
       currentFetchedInput.free();
     }
     try {
@@ -179,6 +195,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       throw new IOException(e);
     }
     if (currentFetchedInput == null) {
+      hasCompletedProcessing();
       return false; // No more inputs
     } else {
       currentReader = openIFileReader(currentFetchedInput);
