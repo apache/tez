@@ -199,7 +199,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     // Wrap to 4 byte (Int) boundary for metaData
     int mod = currentBuffer.nextPosition % INT_SIZE;
     int metaSkip = mod == 0 ? 0 : (INT_SIZE - mod);
-    if (currentBuffer.availableSize < (META_SIZE + metaSkip)) {
+    if ((currentBuffer.availableSize < (META_SIZE + metaSkip)) || (currentBuffer.full)) {
       // Move over to the next buffer.
       metaSkip = 0;
       setupNextBuffer();
@@ -208,9 +208,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     int metaStart = currentBuffer.nextPosition;
     currentBuffer.availableSize -= (META_SIZE + metaSkip);
     currentBuffer.nextPosition += META_SIZE;
-    try {
-      keySerializer.serialize(key);
-    } catch (BufferTooSmallException e) {
+    
+    keySerializer.serialize(key);
+
+    if (currentBuffer.full) {
       if (metaStart == 0) { // Started writing at the start of the buffer. Write Key to disk.
         // Key too large for any buffer. Write entire record to disk.
         currentBuffer.reset();
@@ -224,10 +225,12 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         return;
       }
     }
+
+
     int valStart = currentBuffer.nextPosition;
-    try {
-      valSerializer.serialize(value);
-    } catch (BufferTooSmallException e) {
+    valSerializer.serialize(value);
+      
+    if (currentBuffer.full) {
       // Value too large for current buffer, or K-V too large for entire buffer.
       if (metaStart == 0) {
         // Key + Value too large for a single buffer.
@@ -647,8 +650,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
-      if (len > currentBuffer.availableSize) {
-        throw new BufferTooSmallException();
+      if (currentBuffer.full) {
+          /* no longer do anything until reset */
+      } else if (len > currentBuffer.availableSize) {
+        currentBuffer.full = true; /* stop working & signal we hit the end */
       } else {
         System.arraycopy(b, off, currentBuffer.buffer, currentBuffer.nextPosition, len);
         currentBuffer.nextPosition += len;
@@ -674,6 +679,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     private int nextPosition = 0;
     private int availableSize;
+    private boolean full = false;
 
     WrappedBuffer(int numPartitions, int size) {
       this.partitionPositions = new int[numPartitions];
@@ -699,16 +705,13 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       nextPosition = 0;
       skipSize = 0;
       availableSize = size;
+      full = false;
     }
 
     void cleanup() {
       buffer = null;
       metaBuffer = null;
     }
-  }
-
-  private static class BufferTooSmallException extends IOException {
-    private static final long serialVersionUID = 1L;
   }
 
   private class SpillCallback implements FutureCallback<SpillResult> {
