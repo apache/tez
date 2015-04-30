@@ -155,6 +155,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2390. tez-tools swimlane tool fails to parse large jobs >8K containers
   TEZ-2256. Avoid use of BufferTooSmallException to signal end of buffer in UnorderedPartitionedKVWriter
   TEZ-2380. Disable fall back to reading from timeline if timeline disabled.
   TEZ-2226. Disable writing history to timeline if domain creation fails.
