@@ -17,10 +17,9 @@
 # under the License.
 #
 
-import os,sys,re,math,os.path
+import sys,math,os.path
 import StringIO
 from amlogparser import AMLog
-import random
 from getopt import getopt
 
 class ColourManager(object):
@@ -133,7 +132,7 @@ def main(argv):
 	svg = SVGHelper(x+2*marginRight+256, y+2*marginTop)
 	a = marginTop
 	svg.text(x/2, 32, log.name, style="font-size: 32px; text-anchor: middle")	
-	containerMap = dict(zip(list(lanes), xrange(8192)))
+	containerMap = dict(zip(list(lanes), xrange(len(lanes))))
 	svg.text(marginRight - 16, marginTop - 32, "Container ID", "text-anchor:end; font-size: 16px;")
 	# draw a grid
 	for l in lanes:
@@ -193,7 +192,6 @@ def main(argv):
 			percentX = finishes[int(len(finishes)*fraction)]
 			svg.line(marginRight+xdomain(percentX), marginTop, marginRight+xdomain(percentX), y+marginTop, style="stroke: red")
 			svg.text(marginRight+xdomain(percentX), y+marginTop+12, "%d%% (%0.1fs)" % (int(fraction*100), (percentX - dag.start)/1000.0), style="font-size:12px; text-anchor: middle")
-	prefix = lambda a: (a.find(".") == -1 and a) or (a[:a.find(".")])
 	out.write(svg.flush())
 	out.close()
 

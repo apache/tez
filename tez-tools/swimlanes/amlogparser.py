@@ -17,8 +17,7 @@
 # under the License.
 #
 
-import os,sys,re,math,os.path
-from collections import defaultdict
+import sys,re
 from itertools import groupby
 from bz2 import BZ2File
 from gzip import GzipFile as GZFile
@@ -142,10 +141,15 @@ class Attempt(object):
 	def __init__(self, pair):
 		start = first(filter(lambda a: a.event == "TASK_ATTEMPT_STARTED", pair))
 		finish = first(filter(lambda a: a.event == "TASK_ATTEMPT_FINISHED", pair))
+		if start is None or finish is None:
+			print [start, finish];
 		self.raw = finish
-		self.dag = finish.dag
 		self.kvs = csv_kv(start.args)
-		self.kvs.update(csv_kv(finish.args))
+		if finish is not None:
+			self.dag = finish.dag
+			self.kvs.update(csv_kv(finish.args))
+			self.finish = (int)(self.kvs["finishTime"])
+			self.duration = (int)(self.kvs["timeTaken"])
 		self.name = self.kvs["taskAttemptId"]
 		self.task = self.name[:self.name.rfind("_")].replace("attempt","task")
 		(_, _, amid, dagid, vertexid, taskid, attemptid) = self.name.split("_")
@@ -153,8 +157,6 @@ class Attempt(object):
 		self.attemptnum = int(attemptid)
 		self.vertex = self.kvs["vertexName"]
 		self.start = (int)(self.kvs["startTime"])
-		self.finish = (int)(self.kvs["finishTime"])
-		self.duration = (int)(self.kvs["timeTaken"])
 		self.container = self.kvs["containerId"]
 		self.node = self.kvs["nodeId"]
 	def __repr__(self):
@@ -243,6 +245,7 @@ class AMLog(object):
 	def parse(self, l):		
 		if(l.find("[HISTORY]") != -1):
 			m = self.MAIN_RE.match(l)
+			print(m);
 			ts = m.group("ts")
 			dag = m.group("dag")
 			event = m.group("event")
@@ -250,14 +253,11 @@ class AMLog(object):
 			return AMRawEvent(ts, dag, event, args)
 
 def main(argv):
-	f = argv[0]
 	tree = AMLog(argv[0]).structure()
 	# AM -> dag -> vertex -> task -> attempt
 	# AM -> container
-	containers = set(tree.containers.keys())
-	timeto = lambda a: (a - tree.zero)
 	for d in tree.dags:
-		for a in d.attempts():			
+		for a in d.attempts():
 			print [a.vertex, a.name, a.container, a.start, a.finish]
 
 if __name__ == "__main__":
