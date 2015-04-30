@@ -108,7 +108,7 @@ public class VertexGroup {
   
   @Override
   public String toString() {
-    return "[ VertexGroup: " + groupInfo.getGroupName() + "]";
+    return "[ VertexGroup: " + groupInfo.getGroupName() + "]" + ", members=" + groupInfo.members;
   }
 
   GroupInfo getGroupInfo() {
@@ -129,8 +129,6 @@ public class VertexGroup {
     int result = 1;
     result = prime * result
         + ((groupInfo.groupName == null) ? 0 : groupInfo.groupName.hashCode());
-    result = prime * result
-        + ((groupInfo.members == null) ? 0 : groupInfo.members.hashCode());
     return result;
   }
 
@@ -148,11 +146,7 @@ public class VertexGroup {
         return false;
     } else if (!groupInfo.groupName.equals(other.groupInfo.groupName))
       return false;
-    if (groupInfo.members == null) {
-      if (other.groupInfo.members != null)
-        return false;
-    } else if (!groupInfo.members.equals(other.groupInfo.members))
-      return false;
+
     return true;
   }
 }

@@ -325,6 +325,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2221. VertexGroup name should be unqiue
   TEZ-1521. VertexDataMovementEventsGeneratedEvent may be logged twice in recovery log
   TEZ-2348. EOF exception during UnorderedKVReader.next().
   TEZ-1560. Invalid state machine handling for V_SOURCE_VERTEX_RECOVERED in recovery.

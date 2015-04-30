@@ -60,7 +60,9 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -83,6 +85,9 @@ public class DAG {
   final Collection<URI> urisForCredentials = new HashSet<URI>();
   Credentials credentials = new Credentials();
   Set<VertexGroup> vertexGroups = Sets.newHashSet();
+  // to verify the vertex Group memberSet should be unique
+  private Set<Set<String>> vertexGroupMemberSets = Sets.newHashSet();
+
   Set<GroupInputEdge> groupInputEdges = Sets.newHashSet();
 
   private DAGAccessControls dagAccessControls;
@@ -176,11 +181,26 @@ public class DAG {
    * @return {@link DAG}
    */
   public synchronized VertexGroup createVertexGroup(String name, Vertex... members) {
+    // vertex group member set should be unique
+    Collection<String> memberNames =
+        Collections2.transform(Lists.newArrayList(members), new Function<Vertex, String>() {
+      @Override
+      public String apply(Vertex v) {
+        return v.getName();
+      }
+    });
+    if (!vertexGroupMemberSets.add(Sets.newHashSet(memberNames))){
+      throw new IllegalStateException(
+          "VertexGroup " + memberNames + " already defined as another group!");
+    }
+
+    // vertex group name should be unique.
     VertexGroup uv = new VertexGroup(name, members);
-    if (!vertexGroups.add(uv)){
+    if (!vertexGroups.add(uv)) {
       throw new IllegalStateException(
           "VertexGroup " + name + " already defined!");
     }
+
     return uv;
   }
 

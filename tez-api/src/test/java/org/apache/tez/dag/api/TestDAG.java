@@ -82,6 +82,8 @@ public class TestDAG {
         dummyTaskCount, dummyTaskResource);
     Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
+    Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Processor"),
+        dummyTaskCount, dummyTaskResource);
 
     DAG dag = DAG.create("testDAG");
     dag.createVertexGroup("group_1", v1,v2);
@@ -90,7 +92,21 @@ public class TestDAG {
       Assert.fail("should fail it due to duplicated VertexGroups");
     } catch (Exception e) {
       e.printStackTrace();
+      Assert.assertEquals("VertexGroup [v1, v2] already defined as another group!", e.getMessage());
+    }
+    try {
+      dag.createVertexGroup("group_1", v2, v3);
+      Assert.fail("should fail it due to duplicated VertexGroups");
+    } catch (Exception e) {
+      e.printStackTrace();
       Assert.assertEquals("VertexGroup group_1 already defined!", e.getMessage());
+    }
+    try {
+      dag.createVertexGroup("group_2", v1, v2);
+      Assert.fail("should fail it due to duplicated VertexGroups");
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assert.assertEquals("VertexGroup [v1, v2] already defined as another group!", e.getMessage());
     }
   }
 
