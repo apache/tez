@@ -108,7 +108,7 @@ public class VertexGroup {
   
   @Override
   public String toString() {
-    return "[ VertexGroup: " + groupInfo.getGroupName() + "]";
+    return "[ VertexGroup: " + groupInfo.getGroupName() + "]" + ", members=" + groupInfo.members;
   }
 
   GroupInfo getGroupInfo() {
@@ -122,5 +122,31 @@ public class VertexGroup {
   void addOutputVertex(Vertex outputVertex, GroupInputEdge edge) {
     this.groupInfo.edgeMergedInputs.put(outputVertex.getName(), edge.getMergedInput());
   }
-  
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + ((groupInfo.groupName == null) ? 0 : groupInfo.groupName.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    VertexGroup other = (VertexGroup) obj;
+    if (groupInfo.groupName == null) {
+      if (other.groupInfo.groupName != null)
+        return false;
+    } else if (!groupInfo.groupName.equals(other.groupInfo.groupName))
+      return false;
+
+    return true;
+  }
 }
