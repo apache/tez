@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,16 +45,20 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezOutputContextImpl extends TezTaskContextImpl
     implements OutputContext {
 
-  private final UserPayload userPayload;
+  private static final Logger LOG = LoggerFactory.getLogger(TezOutputContextImpl.class);
+
+  private UserPayload userPayload;
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
   private final int outputIndex;
   private final OutputStatisticsReporterImpl statsReporter;
-  
+
   class OutputStatisticsReporterImpl implements OutputStatisticsReporter {
 
     @Override
@@ -145,5 +150,12 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   @Override
   public OutputStatisticsReporter getStatisticsReporter() {
     return statsReporter;
+  }
+
+  @Override
+  public void close() throws IOException {
+    super.close();
+    this.userPayload = null;
+    LOG.info("Cleared TezOutputContextImpl related information");
   }
 }

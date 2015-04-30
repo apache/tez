@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,16 +47,20 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezInputContextImpl extends TezTaskContextImpl
     implements InputContext {
 
-  private final UserPayload userPayload;
+  private static final Logger LOG = LoggerFactory.getLogger(TezInputContextImpl.class);
+
+  private UserPayload userPayload;
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
   private final int inputIndex;
   private final Map<String, LogicalInput> inputs;
-  private final InputReadyTracker inputReadyTracker;
+  private InputReadyTracker inputReadyTracker;
   private final InputStatisticsReporterImpl statsReporter;
   
   class InputStatisticsReporterImpl implements InputStatisticsReporter {
@@ -160,5 +165,14 @@ public class TezInputContextImpl extends TezTaskContextImpl
   @Override
   public InputStatisticsReporter getStatisticsReporter() {
     return statsReporter;
+  }
+
+  @Override
+  public void close() throws IOException {
+    super.close();
+    this.userPayload = null;
+    this.inputReadyTracker = null;
+    inputs.clear();
+    LOG.info("Cleared TezInputContextImpl related information");
   }
 }

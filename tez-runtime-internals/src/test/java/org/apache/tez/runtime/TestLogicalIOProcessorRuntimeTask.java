@@ -19,9 +19,12 @@
 package org.apache.tez.runtime;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,7 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
@@ -80,38 +84,78 @@ public class TestLogicalIOProcessorRuntimeTask {
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
 
-    lio1.initialize();
-    lio1.run();
-    lio1.close();
+    try {
+      lio1.initialize();
+      lio1.run();
+      lio1.close();
 
-    // Input should've been started, Output should not have been started
-    assertEquals(1, TestProcessor.runCount);
-    assertEquals(1, TestInput.startCount);
-    assertEquals(0, TestOutput.startCount);
-    assertEquals(30, TestInput.vertexParallelism);
-    assertEquals(0, TestOutput.vertexParallelism);
-    assertEquals(30, lio1.getProcessorContext().getVertexParallelism());
-    assertEquals(30, lio1.getInputContexts().iterator().next().getVertexParallelism());
-    assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
+      // Input should've been started, Output should not have been started
+      assertEquals(1, TestProcessor.runCount);
+      assertEquals(1, TestInput.startCount);
+      assertEquals(0, TestOutput.startCount);
+      assertEquals(30, TestInput.vertexParallelism);
+      assertEquals(0, TestOutput.vertexParallelism);
+      assertEquals(30, lio1.getProcessorContext().getVertexParallelism());
+      assertEquals(30, lio1.getInputContexts().iterator().next().getVertexParallelism());
+      assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
+    } catch(Exception e) {
+      fail();
+    } finally {
+      cleanupAndTest(lio1);
+    }
+
+
+
 
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
-    lio2.initialize();
-    lio2.run();
-    lio2.close();
+    try {
+      lio2.initialize();
+      lio2.run();
+      lio2.close();
 
-    // Input should not have been started again, Output should not have been started
-    assertEquals(2, TestProcessor.runCount);
-    assertEquals(1, TestInput.startCount);
-    assertEquals(0, TestOutput.startCount);
-    assertEquals(30, TestInput.vertexParallelism);
-    assertEquals(0, TestOutput.vertexParallelism);
-    //Check if parallelism is available in processor/ i/p / o/p contexts
-    assertEquals(10, lio2.getProcessorContext().getVertexParallelism());
-    assertEquals(10, lio2.getInputContexts().iterator().next().getVertexParallelism());
-    assertEquals(10, lio2.getOutputContexts().iterator().next().getVertexParallelism());
+      // Input should not have been started again, Output should not have been started
+      assertEquals(2, TestProcessor.runCount);
+      assertEquals(1, TestInput.startCount);
+      assertEquals(0, TestOutput.startCount);
+      assertEquals(30, TestInput.vertexParallelism);
+      assertEquals(0, TestOutput.vertexParallelism);
+      //Check if parallelism is available in processor/ i/p / o/p contexts
+      assertEquals(10, lio2.getProcessorContext().getVertexParallelism());
+      assertEquals(10, lio2.getInputContexts().iterator().next().getVertexParallelism());
+      assertEquals(10, lio2.getOutputContexts().iterator().next().getVertexParallelism());
+    } catch(Exception e) {
+      fail();
+    } finally {
+      cleanupAndTest(lio2);
+    }
 
+  }
+
+  private void cleanupAndTest(LogicalIOProcessorRuntimeTask lio) {
+
+    lio.cleanup();
+
+    assertTrue(lio.getProcessorContext().getUserPayload() == null);
+    assertTrue(lio.getProcessorContext().getObjectRegistry() == null);
+
+    try {
+      lio.getProcessorContext().waitForAnyInputReady(Collections.<Input>emptyList());
+      fail("Processor context should have been already cleanup");
+    } catch (Throwable t) {
+      assertTrue(t instanceof NullPointerException);
+    }
+
+    try {
+      lio.getProcessorContext().requestInitialMemory(0, null);
+      fail("Processor context should have been already cleanup");
+    } catch (Throwable t) {
+      assertTrue(t instanceof NullPointerException);
+    }
+
+    assertTrue(lio.getInputContexts().size() == 0);
+    assertTrue(lio.getOutputContexts().size() == 0);
   }
 
   private TaskSpec createTaskSpec(TezTaskAttemptID taskAttemptID,

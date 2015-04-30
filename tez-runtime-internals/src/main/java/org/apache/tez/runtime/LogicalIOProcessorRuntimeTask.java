@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -37,6 +38,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.runtime.api.TaskContext;
+import org.apache.tez.runtime.api.impl.TezProcessorContextImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -77,7 +80,6 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezInputContextImpl;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
-import org.apache.tez.runtime.api.impl.TezProcessorContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
@@ -97,12 +99,12 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final String[] localDirs;
   /** Responsible for maintaining order of Inputs */
   private final List<InputSpec> inputSpecs;
-  private final ConcurrentHashMap<String, LogicalInput> inputsMap;
-  private final ConcurrentHashMap<String, InputContext> inputContextMap;
+  private final Map<String, LogicalInput> inputsMap;
+  private final Map<String, InputContext> inputContextMap;
   /** Responsible for maintaining order of Outputs */
   private final List<OutputSpec> outputSpecs;
-  private final ConcurrentHashMap<String, LogicalOutput> outputsMap;
-  private final ConcurrentHashMap<String, OutputContext> outputContextMap;
+  private final Map<String, LogicalOutput> outputsMap;
+  private final Map<String, OutputContext> outputContextMap;
 
   private final List<GroupInputSpec> groupInputSpecs;
   private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
@@ -692,7 +694,45 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     eventRouterThread.start();
   }
 
+  private void cleanupInputOutputs() {
+    if (groupInputsMap != null) {
+      groupInputsMap.clear();
+    }
+    inputsMap.clear();
+    outputsMap.clear();
+  }
+
+  private void closeContexts() throws IOException {
+    closeContext(inputContextMap);
+    closeContext(outputContextMap);
+    closeContext(processorContext);
+  }
+
+  private void closeContext(Map<String, ? extends TaskContext> contextMap) throws IOException {
+    if (contextMap == null) {
+      return;
+    }
+
+    for(TaskContext context : contextMap.values()) {
+      closeContext(context);
+    }
+    contextMap.clear();
+  }
+
+  private void closeContext(TaskContext context) throws IOException {
+    if (context != null && (context instanceof Closeable)) {
+      ((Closeable) context).close();
+    }
+  }
+
   public synchronized void cleanup() {
+    try {
+      cleanupInputOutputs();
+      closeContexts();
+    } catch (IOException e) {
+      LOG.info("Error while cleaning up contexts ", e);
+    }
+
     LOG.info("Final Counters : " + getCounters().toShortString());
     setTaskDone();
     if (eventRouterThread != null) {

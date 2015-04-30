@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -45,12 +46,16 @@ import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TezProcessorContextImpl extends TezTaskContextImpl implements ProcessorContext {
 
-  private final UserPayload userPayload;
+  private static final Logger LOG = LoggerFactory.getLogger(TezProcessorContextImpl.class);
+
+  private UserPayload userPayload;
+  private InputReadyTracker inputReadyTracker;
   private final EventMetaData sourceInfo;
-  private final InputReadyTracker inputReadyTracker;
 
   public TezProcessorContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
       TezUmbilical tezUmbilical, String dagName, String vertexName,
@@ -110,4 +115,13 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
     inputReadyTracker.waitForAllInputsReady(inputs);
   }
+
+  @Override
+  public void close() throws IOException {
+    super.close();
+    this.userPayload = null;
+    this.inputReadyTracker = null;
+    LOG.info("Cleared TezProcessorContextImpl related information");
+  }
+
 }
