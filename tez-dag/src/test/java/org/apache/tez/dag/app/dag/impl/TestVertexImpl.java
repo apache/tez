@@ -145,7 +145,10 @@ import org.apache.tez.dag.app.dag.impl.TestVertexImpl.VertexManagerWithException
 import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
+import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
+import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
@@ -182,6 +185,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 import org.mockito.internal.util.collections.Sets;
 
@@ -5526,6 +5532,50 @@ public class TestVertexImpl {
     String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
     assertTrue(diagnostics.contains(IIExceptionLocation.OnVertexStateUpdated.name()));
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v2.getTerminationCause());
+  }
+
+  @Test (timeout = 5000)
+  public void testRouteEvent_RecoveredEvent() throws IOException {
+    doReturn(historyEventHandler).when(appContext).getHistoryHandler();
+    doReturn(true).when(appContext).isRecoveryEnabled();
+
+    initAllVertices(VertexState.INITED);
+    VertexImpl v1 = (VertexImpl)vertices.get("vertex1");
+    VertexImpl v2 = (VertexImpl)vertices.get("vertex2");
+    VertexImpl v3 = (VertexImpl)vertices.get("vertex3");
+    startVertex(v1);
+    startVertex(v2);
+    TezTaskID taskId = TezTaskID.getInstance(v1.getVertexId(), 0);
+    v1.handle(new VertexEventTaskCompleted(taskId, TaskState.SUCCEEDED));
+    DataMovementEvent dmEvent = DataMovementEvent.create(0, ByteBuffer.wrap(new byte[0]));
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(taskId, 0);
+    TezEvent tezEvent1 = new TezEvent(dmEvent, new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", "vertex3", taId));
+    v1.handle(new VertexEventRouteEvent(v1.getVertexId(), Lists.newArrayList(tezEvent1)));
+    dispatcher.await();
+    assertTrue(v3.pendingTaskEvents.size() != 0);
+    ArgumentCaptor<DAGHistoryEvent> argCaptor = ArgumentCaptor.forClass(DAGHistoryEvent.class);
+    verify(historyEventHandler, atLeast(1)).handle(argCaptor.capture());
+    verifyHistoryEvents(argCaptor.getAllValues(), HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED, 1);
+
+    v3.scheduleTasks(Lists.newArrayList(new TaskWithLocationHint(0, null)));
+    dispatcher.await();
+    assertTrue(v3.pendingTaskEvents.size() == 0);
+    // recovery events is not only handled one time
+    argCaptor = ArgumentCaptor.forClass(DAGHistoryEvent.class);
+    verify(historyEventHandler, atLeast(1)).handle(argCaptor.capture());
+    verifyHistoryEvents(argCaptor.getAllValues(), HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED, 1);
+  }
+
+  private void verifyHistoryEvents(List<DAGHistoryEvent> events, HistoryEventType eventType, int expectedTimes) {
+    int actualTimes = 0;
+    LOG.info("");
+    for (DAGHistoryEvent event : events) {
+      LOG.info(event.getHistoryEvent().getEventType() + "");
+      if (event.getHistoryEvent().getEventType() == eventType) {
+        actualTimes ++;
+      }
+    }
+    Assert.assertEquals(actualTimes, expectedTimes);
   }
 
   @InterfaceAudience.Private
