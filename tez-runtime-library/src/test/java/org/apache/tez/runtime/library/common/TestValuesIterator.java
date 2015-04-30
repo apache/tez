@@ -64,6 +64,7 @@ import java.util.TreeMap;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -179,6 +180,32 @@ public class TestValuesIterator {
   }
 
   @Test(timeout = 20000)
+  public void testCountedIteratorWithInmemoryReader() throws IOException {
+    verifyCountedIteratorReader(true);
+  }
+
+  @Test(timeout = 20000)
+  public void testCountedIteratorWithIFileReader() throws IOException {
+    verifyCountedIteratorReader(false);
+  }
+
+  private void verifyCountedIteratorReader(boolean inMemory) throws IOException {
+    TezCounter keyCounter = new GenericCounter("inputKeyCounter", "y3");
+    TezCounter tupleCounter = new GenericCounter("inputValuesCounter", "y4");
+    ValuesIterator iterator = createCountedIterator(inMemory, keyCounter,
+        tupleCounter);
+    List<Integer> sequence = verifyIteratorData(iterator);
+    if (expectedTestResult) {
+      assertEquals((long) sequence.size(), keyCounter.getValue());
+      long rows = 0;
+      for (Integer i : sequence) {
+        rows += i.longValue();
+      }
+      assertEquals(rows, tupleCounter.getValue());
+    }
+  }
+
+  @Test(timeout = 20000)
   public void testIteratorWithIFileReaderEmptyPartitions() throws IOException {
     ValuesIterator iterator = createEmptyIterator(false);
     assert(iterator.moveToNext() == false);
@@ -212,12 +239,18 @@ public class TestValuesIterator {
 
   /**
    * Tests whether data in valuesIterator matches with sorted input data set.
-   *
+   * 
+   * Returns a list of value counts for each key.
+   * 
    * @param valuesIterator
+   * @return List
    * @throws IOException
    */
-  private void verifyIteratorData(ValuesIterator valuesIterator) throws IOException {
+  private List<Integer> verifyIteratorData(
+      ValuesIterator valuesIterator) throws IOException {
     boolean result = true;
+
+    ArrayList<Integer> sequence = new ArrayList<Integer>();
 
     //sort original data based on comparator
     ListMultimap<Writable, Writable> sortedMap =
@@ -240,6 +273,7 @@ public class TestValuesIterator {
         break;
       }
 
+      int valueCount = 0;
       //Verify values
       Iterator<Writable> vItr = valuesIterator.getValues().iterator();
       for (Writable val : sortedMap.get(oriKey)) {
@@ -250,13 +284,19 @@ public class TestValuesIterator {
           result = false;
           break;
         }
+
+        valueCount++;
       }
+      sequence.add(valueCount);
+      assertTrue("At least 1 value per key", valueCount > 0);
     }
     if (expectedTestResult) {
       assertTrue(result);
     } else {
       assertFalse(result);
     }
+
+    return sequence;
   }
 
   /**
@@ -285,6 +325,35 @@ public class TestValuesIterator {
     return new ValuesIterator(rawKeyValueIterator, comparator,
         keyClass, valClass, conf, (TezCounter) new GenericCounter("inputKeyCounter", "y3"),
         (TezCounter) new GenericCounter("inputValueCounter", "y4"));
+  }
+
+  /**
+   * Create sample data (in memory), with an attached counter  and return ValuesIterator
+   *
+   * @param inMemory
+   * @param keyCounter
+   * @param tupleCounter
+   * @return ValuesIterator
+   * @throws IOException
+   */
+  private ValuesIterator createCountedIterator(boolean inMemory, TezCounter keyCounter, TezCounter tupleCounter) throws IOException {
+    if (!inMemory) {
+      streamPaths = createFiles();
+      //Merge all files to get KeyValueIterator
+      rawKeyValueIterator =
+          TezMerger.merge(conf, fs, keyClass, valClass, null,
+              false, -1, 1024, streamPaths, false, mergeFactor, tmpDir, comparator,
+              new ProgressReporter(), null, null, null, null);
+    } else {
+      List<TezMerger.Segment> segments = createInMemStreams();
+      rawKeyValueIterator =
+          TezMerger.merge(conf, fs, keyClass, valClass, segments, mergeFactor, tmpDir,
+              comparator, new ProgressReporter(), new GenericCounter("readsCounter", "y"),
+              new GenericCounter("writesCounter", "y1"),
+              new GenericCounter("bytesReadCounter", "y2"), new Progress());
+    }
+    return new ValuesIterator(rawKeyValueIterator, comparator,
+        keyClass, valClass, conf, keyCounter, tupleCounter);
   }
 
   @Parameterized.Parameters(name = "test[{0}, {1}, {2}, {3} {4} {5} {6}]")

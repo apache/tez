@@ -95,14 +95,13 @@ public class ValuesIterator<KEY,VALUE> {
       readNextKey();
       key = nextKey;
       nextKey = null;
-      hasMoreValues = more;
       isFirstRecord = false;
     } else {
       nextKey();
     }
     return more;
   }
-  
+
   /** The current key. */
   public KEY getKey() { 
     return key; 
@@ -162,11 +161,7 @@ public class ValuesIterator<KEY,VALUE> {
     while (hasMoreValues) { 
       readNextKey();
     }
-    if (more) {
-      inputKeyCounter.increment(1);
-      ++keyCtr;
-    }
-    
+
     // move the next key to the current one
     KEY tmpKey = key;
     key = nextKey;
@@ -185,8 +180,14 @@ public class ValuesIterator<KEY,VALUE> {
         keyIn.reset(nextKeyBytes.getData(), nextKeyBytes.getPosition(),
             nextKeyBytes.getLength() - nextKeyBytes.getPosition());
         nextKey = keyDeserializer.deserialize(nextKey);
-        // TODO Is a counter increment required here ?
-        hasMoreValues = key != null && (comparator.compare(key, nextKey) == 0);
+        // hasMoreValues = is it first key or is key the same?
+        hasMoreValues = (key == null) || (comparator.compare(key, nextKey) == 0);
+        if (key == null || false == hasMoreValues) {
+          // invariant: more=true & there are no more values in an existing key group
+          // so this indicates start of new key group
+          inputKeyCounter.increment(1);
+          ++keyCtr;
+        }
       } else {
         hasMoreValues = in.isSameKey();
       }
