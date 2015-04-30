@@ -95,6 +95,10 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         getSearchValue: function (row) {
           var attemptID = row.get('id') || '';
           return attemptID.split(/[_]+/).pop();
+        },
+        getSortValue: function (row) {
+          var attemptID = row.get('id') || '';
+          return attemptID.split(/[_]+/).pop();
         }
       },
       {

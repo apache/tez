@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2389. Tez UI: Sort by attempt-no is incorrect in attempts pages.
   TEZ-2383. Cleanup input/output/processor contexts in LogicalIOProcessorRuntimeTask.
   TEZ-2084. Tez UI: Stacktrace format info is lost in diagnostics
   TEZ-2374. Fix build break against hadoop-2.2 due to TEZ-2325.
