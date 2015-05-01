@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2395. Tez UI: Minimum/Maximum Duration show a empty bracket next to 0 secs when you purposefully failed a job.
   TEZ-2360. per-io counters flag should generate both overall and per-edge counters
   TEZ-2389. Tez UI: Sort by attempt-no is incorrect in attempts pages.
   TEZ-2383. Cleanup input/output/processor contexts in LogicalIOProcessorRuntimeTask.

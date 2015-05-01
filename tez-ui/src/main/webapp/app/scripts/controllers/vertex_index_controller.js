@@ -38,7 +38,7 @@ App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   //TODO: TEZ-1705 : Create a parent class and move this function there to avoid duplication.
   iconStatus: function() {
     return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
-  }.property('id', 'status', 'counterGroups'),
+  }.property('id', 'model.status'),
 
   progressStr: function() {
     var pct;
@@ -46,25 +46,44 @@ App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
       pct = App.Helpers.number.fractionToPercentage(this.get('progress'));
     }
     return pct;
-  }.property('id', 'status', 'progress'),
+  }.property('id', 'status', 'progress', 'model.status'),
 
   hasFailedTasks: function() {
     return this.get('failedTasks') > 0;
-  }.property('id', 'counterGroups'),
+  }.property('failedTasks'),
   
   failedTasksLink: function() {
     return '#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
-  }.property(),
+  }.property('id'),
 
   hasFirstTaskStarted: function() {
     return !!this.get('firstTaskStartTime') && !!this.get('firstTasksToStart');
-  }.property(),
+  }.property('firstTaskStartTime', 'firstTasksToStart'),
 
   hasLastTaskFinished: function() {
     return !!this.get('lastTaskFinishTime') && !!this.get('lastTasksToFinish');
-  }.property(),
+  }.property('lastTaskFinishTime', 'lastTasksToFinish'),
 
   hasStats: function() {
-    return !!this.get('avgTaskDuration') || !!this.get('minTaskDuration') || !!this.get('maxTaskDuration');
-  }.property()
+    return (this.get('numTasks') || 0) > 0 ||
+           (this.get('sucessfulTasks') || 0) > 0 ||
+           (this.get('failedTasks') || 0 ) > 0 ||
+           (this.get('killedTasks') || 0) > 0 ||
+           this.get('showAvgTaskDuration') ||
+           this.get('showMinTaskDuration') ||
+           this.get('showMaxTaskDuration');
+  }.property('numTasks', 'sucessfulTasks', 'failedTasks', 'killedTasks', 'showAvgTaskDuration',
+    'showMinTaskDuration', 'showMaxTaskDuration'),
+
+  showAvgTaskDuration: function() {
+    return (this.get('avgTaskDuration') || 0) > 0;
+  }.property('avgTaskDuration'),
+
+  showMinTaskDuration: function() {
+    return (this.get('minTaskDuration') || 0) > 0;
+  }.property('minTaskDuration'),
+
+  showMaxTaskDuration: function() {
+    return (this.get('maxTaskDuration') || 0) > 0;
+  }.property('maxTaskDuration'),
 });

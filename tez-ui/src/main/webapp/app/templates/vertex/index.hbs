@@ -130,23 +130,23 @@
             <td>Failed Tasks</td>
             <td>
               {{failedTasks}}
-            </td>
               {{#if hasFailedTasks}}
                 <a href='{{unbound failedTasksLink}}'>FailedTasks</a>
               {{/if}}
+            </td>
           </tr>
           <tr>
             <td>Killed Tasks</td>
             <td>{{killedTasks}}</td>
           </tr>
 
-          {{#if avgTaskDuration}}
+          {{#if showAvgTaskDuration}}
             <tr>
               <td>Average Duration</td>
               <td>{{formatTimeMillis avgTaskDuration}}</td>
             </tr>
           {{/if}}
-          {{#if minTaskDuration}}
+          {{#if showMinTaskDuration}}
             <tr>
               <td>Minimum Duration</td>
               <td>{{formatTimeMillis minTaskDuration}}
@@ -159,7 +159,7 @@
               </td>
             </tr>
           {{/if}}
-          {{#if maxTaskDuration}}
+          {{#if showMaxTaskDuration}}
             <tr>
               <td>Maximum Duration</td>
               <td>{{formatTimeMillis maxTaskDuration}}
