@@ -19,6 +19,7 @@ package org.apache.tez.dag.api;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -212,16 +213,20 @@ public class DagTypeConverters {
     return VertexLocationHint.create(outputList);
   }
   
-  // notes re HDFS URL handling:
-  //   Resource URLs in the protobuf message are strings of the form hdfs://host:port/path
-  //   org.apache.hadoop.fs.Path.Path  is actually a URI type that allows any scheme
-  //   org.apache.hadoop.yarn.api.records.URL is a URL type used by YARN.
-  //   java.net.URL cannot be used out of the box as it rejects unknown schemes such as HDFS.
-
   public static String convertToDAGPlan(URL resource) {
-    // see above notes on HDFS URL handling
-    return resource.getScheme() + "://" + resource.getHost()
-        + ":" + resource.getPort() + resource.getFile();
+    Path p;
+    try {
+      p = ConverterUtils.getPathFromYarnURL(resource);
+    } catch (URISyntaxException e) {
+      throw new TezUncheckedException("Unable to translate resource: " + resource + " to Path");
+    }
+    String urlString = p.toString();
+    return urlString;
+  }
+
+  public static URL convertToYarnURL(String pathString) {
+    Path path = new Path(pathString);
+    return ConverterUtils.getYarnUrlFromPath(path);
   }
 
   public static Map<String, LocalResource> createLocalResourceMapFromDAGPlan(
@@ -235,7 +240,7 @@ public class DagTypeConverters {
       if(res.hasPattern()){
         r.setPattern(res.getPattern());
       }
-      r.setResource(ConverterUtils.getYarnUrlFromPath(new Path(res.getUri())));  // see above notes on HDFS URL handling
+      r.setResource(convertToYarnURL(res.getUri()));
       r.setSize(res.getSize());
       r.setTimestamp(res.getTimeStamp());
       r.setType(DagTypeConverters.convertFromDAGPlan(res.getType()));
