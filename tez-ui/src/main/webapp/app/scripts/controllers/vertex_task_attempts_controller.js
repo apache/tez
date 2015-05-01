@@ -235,7 +235,7 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
         }
       }
     ];
-  }.property(),
+  }.property('controllers.vertex.id', 'entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -246,6 +246,6 @@ App.VertexTaskAttemptsController = Em.ObjectController.extend(App.PaginatedConte
         )
       )
     );
-  }.property(),
+  }.property('controllers.vertex.id', 'entities'),
 
 });

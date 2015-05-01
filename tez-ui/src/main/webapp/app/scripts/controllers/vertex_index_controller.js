@@ -38,7 +38,7 @@ App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   //TODO: TEZ-1705 : Create a parent class and move this function there to avoid duplication.
   iconStatus: function() {
     return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
-  }.property('id', 'status', 'counterGroups'),
+  }.property('id', 'model.status'),
 
   progressStr: function() {
     var pct;
@@ -46,25 +46,25 @@ App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
       pct = App.Helpers.number.fractionToPercentage(this.get('progress'));
     }
     return pct;
-  }.property('id', 'status', 'progress'),
+  }.property('id', 'progress'),
 
   hasFailedTasks: function() {
     return this.get('failedTasks') > 0;
-  }.property('id', 'counterGroups'),
+  }.property('id', 'failedTasks'),
   
   failedTasksLink: function() {
     return '#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
-  }.property(),
+  }.property('id'),
 
   hasFirstTaskStarted: function() {
     return !!this.get('firstTaskStartTime') && !!this.get('firstTasksToStart');
-  }.property(),
+  }.property('firstTaskStartTime', 'firstTasksToStart'),
 
   hasLastTaskFinished: function() {
     return !!this.get('lastTaskFinishTime') && !!this.get('lastTasksToFinish');
-  }.property(),
+  }.property('lastTaskFinishTime', 'lastTasksToFinish'),
 
   hasStats: function() {
     return !!this.get('avgTaskDuration') || !!this.get('minTaskDuration') || !!this.get('maxTaskDuration');
-  }.property()
+  }.property('avgTaskDuration', 'minTaskDuration', 'maxTaskDuration')
 });

@@ -262,7 +262,7 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
         }
       }
     ];
-  }.property(),
+  }.property('controllers.dag.id', 'entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -273,6 +273,6 @@ App.DagTasksController = Em.ObjectController.extend(App.PaginatedContentMixin, A
         )
       )
     );
-  }.property(),
+  }.property('controllers.dag.id', 'entities'),
 
 });

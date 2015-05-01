@@ -6,6 +6,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2399. Tez UI: add proper dependencies for computed properties
   TEZ-1988. Tez UI: does not work when using file:// in a browser
   TEZ-2256. Avoid use of BufferTooSmallException to signal end of buffer in UnorderedPartitionedKVWriter.
   TEZ-2385. branch-0.6 compile failure caused by TEZ-2226.

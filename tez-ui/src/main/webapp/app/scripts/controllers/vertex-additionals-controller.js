@@ -70,7 +70,7 @@ App.VertexAdditionalsController = Em.ObjectController.extend({
         }
       }
     ]);
-  }.property(),
+  }.property('controllers.vertex.id'),
 
   outputColumns: function() {
     return App.Helpers.misc.createColumnsFromConfigs([
@@ -103,6 +103,6 @@ App.VertexAdditionalsController = Em.ObjectController.extend({
         }
       }
     ]);
-  }.property(),
+  }.property('controllers.vertex.id'),
 
 });

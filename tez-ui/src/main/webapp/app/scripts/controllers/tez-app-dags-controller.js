@@ -205,7 +205,7 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
         }
       }
     ];
-  }.property(),
+  }.property('entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -216,6 +216,6 @@ App.TezAppDagsController = Em.ObjectController.extend(App.PaginatedContentMixin,
         )
       )
     );
-  }.property(),
+  }.property('entities'),
 
 });

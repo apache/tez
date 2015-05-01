@@ -253,7 +253,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         }
       }
     ];
-  }.property(),
+  }.property('entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -264,6 +264,6 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         )
       )
     );
-  }.property(),
+  }.property('entities'),
 
 });

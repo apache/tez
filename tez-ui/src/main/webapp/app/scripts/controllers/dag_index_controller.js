@@ -39,7 +39,7 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   taskIconStatus: function() {
     return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
-  }.property('id', 'status', 'counterGroups'),
+  }.property('id', 'model.status'),
 
   progressStr: function() {
     var pct;
@@ -47,7 +47,7 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
       pct = App.Helpers.number.fractionToPercentage(this.get('progress'));
     }
     return pct;
-  }.property('id', 'status', 'progress'),
+  }.property('id', 'progress'),
 
   totalTasks: function() {
     return App.Helpers.misc.getCounterValueForDag(this.get('counterGroups'),
@@ -71,10 +71,10 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   hasFailedTasks: function() {
     return this.get('failedTasks') > 0;
-  }.property('id', 'counterGroups'),
+  }.property('id', 'failedTasks'),
 
   failedTasksLink: function() {
     return '#tasks?status=FAILED&parentType=TEZ_DAG_ID&parentID=' + this.get('id');
-  }.property()
+  }.property('id')
 
 });

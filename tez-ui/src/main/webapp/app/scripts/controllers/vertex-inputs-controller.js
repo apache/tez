@@ -78,7 +78,7 @@ App.VertexInputsController = Em.ObjectController.extend(App.PaginatedContentMixi
     ];
 
     return [nameCol, classCol, initializerCol, configCol];
-  }.property(),
+  }.property('controllers.vertex.id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -89,6 +89,6 @@ App.VertexInputsController = Em.ObjectController.extend(App.PaginatedContentMixi
         )
       )
     );
-  }.property(),
+  }.property('controllers.vertex.id'),
 
 });

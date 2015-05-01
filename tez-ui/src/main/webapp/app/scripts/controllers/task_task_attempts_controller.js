@@ -238,7 +238,7 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         }
       }
     ];
-  }.property(),
+  }.property('entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -249,7 +249,7 @@ App.TaskAttemptsController = Em.ObjectController.extend(App.PaginatedContentMixi
         )
       )
     );
-  }.property(),
+  }.property('entities'),
 
 });
 
@@ -263,6 +263,6 @@ App.TaskAttemptIndexController = Em.ObjectController.extend(App.ModelRefreshMixi
 
   taskAttemptIconStatus: function() {
     return App.Helpers.misc.getStatusClassForEntity(this.get('taskAttemptStatus'));
-  }.property('id', 'status', 'counterGroups'),
+  }.property('id', 'taskAttemptStatus'),
 
 });

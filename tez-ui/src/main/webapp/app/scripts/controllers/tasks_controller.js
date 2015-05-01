@@ -112,7 +112,7 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
       }
     ];
     
-  }.property(),
+  }.property('entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -123,6 +123,6 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
         )
       )
     );
-  }.property(),
+  }.property('entities'),
 
 });

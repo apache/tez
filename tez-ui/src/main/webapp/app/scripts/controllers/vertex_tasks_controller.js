@@ -238,7 +238,7 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
       }
     ];
 
-  }.property(),
+  }.property('controllers.vertex.id', 'entities'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -249,6 +249,6 @@ App.VertexTasksController = Em.ObjectController.extend(App.PaginatedContentMixin
         )
       )
     );
-  }.property(),
+  }.property('controllers.vertex.id', 'entities'),
 
 });

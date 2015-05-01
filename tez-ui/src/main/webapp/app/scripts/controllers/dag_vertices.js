@@ -237,7 +237,7 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
         }
       }
     ];
-  }.property(),
+  }.property('entities', 'controllers.dag.id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -248,6 +248,6 @@ App.DagVerticesController = Em.ObjectController.extend(App.PaginatedContentMixin
         )
       )
     );
-  }.property(),
+  }.property('entities', 'controllers.dag.id'),
 
 });

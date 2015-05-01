@@ -79,7 +79,7 @@ App.DagViewController = Em.ObjectController.extend(App.PaginatedContentMixin, Ap
 
   defaultColumnConfigs: function() {
     return this.get('controllers.dagVertices.defaultColumnConfigs');
-  }.property(),
+  }.property('id', 'controllers.dagVertices.defaultColumnConfigs'),
 
   columnConfigs: function() {
     var configs = this.get('controllers.dagVertices.columnConfigs');
@@ -87,7 +87,7 @@ App.DagViewController = Em.ObjectController.extend(App.PaginatedContentMixin, Ap
       return (config.contentPath) ||
           (config.getCellContent && !config.tableCellViewClass);
     });
-  }.property(),
+  }.property('id', 'controllers.dagVertices.columnConfigs'),
 
   viewData: function () {
     var vertices = this.get('controllers.dag.vertices'),
@@ -113,5 +113,5 @@ App.DagViewController = Em.ObjectController.extend(App.PaginatedContentMixin, Ap
       edges: this.get('controllers.dag.edges'),
       vertexGroups: this.get('controllers.dag.vertexGroups')
     };
-  }.property('entities')
+  }.property('entities', 'controllers.dag.id')
 });
