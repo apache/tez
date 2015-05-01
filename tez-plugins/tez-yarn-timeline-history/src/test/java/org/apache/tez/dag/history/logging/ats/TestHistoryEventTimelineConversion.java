@@ -160,7 +160,7 @@ public class TestHistoryEventTimelineConversion {
           break;
         case TASK_FINISHED:
           event = new TaskFinishedEvent(tezTaskID, "v1", random.nextInt(), random.nextInt(),
-              tezTaskAttemptID, TaskState.FAILED, null, null);
+              tezTaskAttemptID, TaskState.FAILED, null, null, 0);
           break;
         case TASK_ATTEMPT_STARTED:
           event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1", random.nextInt(), containerId,
@@ -778,7 +778,7 @@ public class TestHistoryEventTimelineConversion {
     TezCounters counters = new TezCounters();
 
     TaskFinishedEvent event = new TaskFinishedEvent(tezTaskID, vertexName, startTime, finishTime,
-        tezTaskAttemptID, state, diagnostics, counters);
+        tezTaskAttemptID, state, diagnostics, counters, 3);
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
 
     Assert.assertEquals(tezTaskID.toString(), timelineEntity.getEntityId());
@@ -800,12 +800,13 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(finishTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(6, otherInfo.size());
+    Assert.assertEquals(7, otherInfo.size());
     Assert.assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
     Assert.assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
     Assert.assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
     Assert.assertEquals(tezTaskAttemptID.toString(),
         otherInfo.get(ATSConstants.SUCCESSFUL_ATTEMPT_ID));
+    Assert.assertEquals(3, otherInfo.get(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS));
     Assert.assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
     Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
   }

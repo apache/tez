@@ -63,6 +63,9 @@
             {{#if hasFailedTasks}}
               [ <a href='{{unbound failedTasksLink}}'>Failed Tasks</a> ]
             {{/if}}
+            {{#if hasFailedTaskAttempts}}
+              [ <a href='{{unbound failedTaskAttemptsLink}}'>Failed TaskAttempts</a> ]
+            {{/if}}
           </td>
         </tr>
         <tr>

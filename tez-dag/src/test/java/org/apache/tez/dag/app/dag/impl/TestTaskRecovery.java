@@ -240,7 +240,7 @@ public class TestTaskRecovery {
     try {
       task.restoreFromEvent(new TaskFinishedEvent(task.getTaskId(), vertexName,
           taskStartTime, taskFinishTime, null, TaskState.SUCCEEDED, "",
-          new TezCounters()));
+          new TezCounters(), 0));
       fail("Should fail due to no TaskStartEvent before TaskFinishEvent");
     } catch (Throwable e) {
       assertTrue(e.getMessage().contains(
@@ -413,7 +413,7 @@ public class TestTaskRecovery {
     recoveredState =
         task.restoreFromEvent(new TaskFinishedEvent(task.getTaskId(),
             vertexName, taskStartTime, taskFinishTime, taId,
-            TaskState.SUCCEEDED, "", new TezCounters()));
+            TaskState.SUCCEEDED, "", new TezCounters(), 0));
     assertEquals(TaskState.SUCCEEDED, recoveredState);
     assertEquals(taId, task.successfulAttempt);
 

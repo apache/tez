@@ -50,6 +50,12 @@ App.Dag = App.AbstractEntity.extend({
 
 	// status
 	status: DS.attr('string'),
+  hasFailedTaskAttempts: DS.attr('boolean'),
+  hasFailedTasks: function() {
+    var f = this.get('numFailedTasks');
+    return !!f && f > 0;
+  }.property('numFailedTasks'),
+  numFailedTasks: DS.attr('number'),
 
 	// diagnostics info if any.
 	diagnostics: DS.attr('string'),
@@ -118,6 +124,11 @@ App.Vertex = App.AbstractEntity.extend({
    * App.VertexState.
    */
   status: DS.attr('string'),
+  hasFailedTaskAttempts: DS.attr('boolean'),
+  hasFailedTasks: function() {
+    var f = this.get('failedTasks');
+    return !!f && f > 0;
+  }.property('failedTasks'),
 
   /**
    * Vertex type has to be one of the types defined in 'App.VertexType'
@@ -349,6 +360,11 @@ App.Task = App.AbstractEntity.extend({
   pivotAttempt: DS.belongsTo('taskAttempt'),
 
   counterGroups: DS.attr('array'), // Serialize when required
+  numFailedTaskAttempts: DS.attr('number'),
+  hasFailedTaskAttempts: function() {
+    var numAttempts = this.get('numFailedTaskAttempts') || 0;
+    return numAttempts > 1;
+  }.property('numFailedTaskAttempts')
 });
 App.DagTask = App.Task.extend({});
 App.VertexTask = App.Task.extend({});

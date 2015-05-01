@@ -22,10 +22,11 @@ App.TaskIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   taskStatus: function() {
     return App.Helpers.misc.getFixedupDisplayStatus(this.get('model.status'));
-  }.property('id', 'status'),
+  }.property('id', 'model.status'),
 
   taskIconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('taskStatus'));
-  }.property('id', 'status', 'counterGroups'),
+    return App.Helpers.misc.getStatusClassForEntity(this.get('taskStatus'),
+      this.get('hasFailedTaskAttempts'));
+  }.property('id', 'taskStatus', 'hasFailedTaskAttempts'),
 
 });

@@ -493,6 +493,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());
     atsEntity.addOtherInfo(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
     atsEntity.addOtherInfo(ATSConstants.STATUS, event.getState().name());
+    atsEntity.addOtherInfo(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS, event.getNumFailedAttempts());
     if (event.getSuccessfulAttemptID() != null) {
       atsEntity.addOtherInfo(ATSConstants.SUCCESSFUL_ATTEMPT_ID,
           event.getSuccessfulAttemptID().toString());

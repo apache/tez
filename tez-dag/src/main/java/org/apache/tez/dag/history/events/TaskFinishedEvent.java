@@ -44,11 +44,12 @@ public class TaskFinishedEvent implements HistoryEvent {
   private TezCounters tezCounters;
   private TezTaskAttemptID successfulAttemptID;
   private String diagnostics;
+  private int numFailedAttempts;
 
   public TaskFinishedEvent(TezTaskID taskID,
       String vertexName, long startTime, long finishTime,
       TezTaskAttemptID successfulAttemptID,
-      TaskState state, String diagnostics, TezCounters counters) {
+      TaskState state, String diagnostics, TezCounters counters, int failedAttempts) {
     this.vertexName = vertexName;
     this.taskID = taskID;
     this.startTime = startTime;
@@ -57,6 +58,7 @@ public class TaskFinishedEvent implements HistoryEvent {
     this.diagnostics = diagnostics;
     this.tezCounters = counters;
     this.successfulAttemptID = successfulAttemptID;
+    this.numFailedAttempts = failedAttempts;
   }
 
   public TaskFinishedEvent() {
@@ -160,5 +162,9 @@ public class TaskFinishedEvent implements HistoryEvent {
 
   public String getDiagnostics() {
     return diagnostics;
+  }
+
+  public int getNumFailedAttempts() {
+    return numFailedAttempts;
   }
 }

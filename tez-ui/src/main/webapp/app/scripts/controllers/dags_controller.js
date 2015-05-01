@@ -221,7 +221,8 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
               content = Ember.Object.create({
                 dag: row,
                 status: status,
-                statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+                statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+                  row.get('hasFailedTaskAttempts'))
               });
 
           if(status == 'RUNNING') {
@@ -292,7 +293,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         }
       }
     ];
-  }.property(),
+  }.property('id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(

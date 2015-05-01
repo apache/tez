@@ -175,7 +175,8 @@ App.DagVerticesController = App.TablePageController.extend({
               content = Ember.Object.create({
                 vertex: row,
                 status: status,
-                statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+                statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+                  row.get('hasFailedTaskAttempts'))
               });
 
           if(status == 'RUNNING') {
@@ -203,7 +204,7 @@ App.DagVerticesController = App.TablePageController.extend({
         }
       }
     ];
-  }.property(),
+  }.property('id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(

@@ -75,8 +75,9 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   },
 
   taskIconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
-  }.property('id', 'status', 'counterGroups'),
+    return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'),
+      this.get('hasFailedTaskAttempts'));
+  }.property('id', 'model.status', 'hasFailedTaskAttempts'),
 
   progressStr: function() {
     var pct;
@@ -106,12 +107,12 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
       'org.apache.tez.common.counters.DAGCounter', 'NUM_KILLED_TASKS')
   }.property('id', 'counterGroups'),
 
-  hasFailedTasks: function() {
-    return this.get('failedTasks') > 0;
-  }.property('id', 'counterGroups'),
-
   failedTasksLink: function() {
-    return '#tasks?status=FAILED&parentType=TEZ_DAG_ID&parentID=' + this.get('id');
-  }.property()
+    return '#/dag/%@/tasks?searchText=Status%3AFAILED'.fmt(this.get('id'));
+  }.property('id'),
+
+  failedTaskAttemptsLink: function() {
+    return '#/dag/%@/taskAttempts?searchText=Status%3AFAILED'.fmt(this.get('id'));
+  }.property('id'),
 
 });

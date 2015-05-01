@@ -106,13 +106,14 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
           var taskStatus = row.get('status');
           return {
             status: taskStatus,
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(taskStatus)
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(taskStatus,
+              row.get('hasFailedTaskAttempts'))
           };
         }
       }
     ];
     
-  }.property(),
+  }.property('id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(

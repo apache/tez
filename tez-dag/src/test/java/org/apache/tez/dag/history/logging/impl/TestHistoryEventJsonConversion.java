@@ -155,7 +155,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case TASK_FINISHED:
           event = new TaskFinishedEvent(tezTaskID, "v1", random.nextInt(), random.nextInt(),
-              tezTaskAttemptID, TaskState.FAILED, null, null);
+              tezTaskAttemptID, TaskState.FAILED, null, null, 0);
           break;
         case TASK_ATTEMPT_STARTED:
           event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1", random.nextInt(), containerId,

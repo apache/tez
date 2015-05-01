@@ -948,7 +948,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), getLaunchTime(), clock.getTime(),
         successfulAttempt,
-        TaskState.SUCCEEDED, "", getCounters());
+        TaskState.SUCCEEDED, "", getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
   }
@@ -958,7 +958,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         getVertex().getName(), getLaunchTime(), clock.getTime(), null,
         finalState, 
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
-        getCounters());
+        getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
   }

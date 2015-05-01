@@ -95,6 +95,15 @@ var timelineJsonToDagMap = {
   user: 'primaryfilters.user.0',
   applicationId: 'otherinfo.applicationId',
   status: 'otherinfo.status',
+  hasFailedTaskAttempts: {
+    custom: function(source) {
+      // if no other info is available we say no failed tasks attempts.
+      // since otherinfo is populated only at the end.
+      var numFailedAttempts = Em.get(source, 'otherinfo.numFailedTaskAttempts');
+      return !!numFailedAttempts && numFailedAttempts > 0;
+    }
+  },
+  numFailedTasks: 'otherinfo.numFailedTasks',
   diagnostics: 'otherinfo.diagnostics',
 
   counterGroups: 'otherinfo.counters.counterGroups',
@@ -158,6 +167,7 @@ var timelineJsonToTaskMap = {
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   endTime: 'otherinfo.endTime',
   status: 'otherinfo.status',
+  numFailedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
   diagnostics: 'otherinfo.diagnostics',
   counterGroups: 'otherinfo.counters.counterGroups',
   successfulAttemptId: 'otherinfo.successfulAttemptId',
@@ -187,6 +197,14 @@ var timelineJsonToVertexMap = {
   endTime: 'otherinfo.endTime',
 
   status: 'otherinfo.status',
+  hasFailedTaskAttempts: {
+    custom: function(source) {
+      // if no other info is available we say no failed tasks attempts.
+      // since otherinfo is populated only at the end.
+      var numFailedAttempts = Em.get(source, 'otherinfo.numFailedTaskAttempts');
+      return !!numFailedAttempts && numFailedAttempts > 0;
+    }
+  },
   diagnostics: 'otherinfo.diagnostics',
 
   failedTasks: 'otherinfo.numFailedTasks',

@@ -163,7 +163,8 @@ App.DagTasksController = App.TablePageController.extend({
           var status = row.get('status');
           return {
             status: status,
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+              row.get('hasFailedTaskAttempts'))
           };
         }
       },
@@ -189,7 +190,7 @@ App.DagTasksController = App.TablePageController.extend({
         }
       }
     ];
-  }.property(),
+  }.property('id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(

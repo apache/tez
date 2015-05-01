@@ -94,7 +94,8 @@ App.TezAppDagsController = App.TablePageController.extend({
           var status = row.get('status'),
               content = Ember.Object.create({
                 status: status,
-                statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+                statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+                  row.get('hasFailedTaskAttempts'))
               });
 
           if(status == 'RUNNING') {
@@ -149,7 +150,7 @@ App.TezAppDagsController = App.TablePageController.extend({
         },
       }
     ];
-  }.property(),
+  }.property('id'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(

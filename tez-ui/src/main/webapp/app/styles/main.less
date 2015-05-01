@@ -382,9 +382,6 @@ body, html {
 .task-status {
   .fa;
   .fa-lg;
-  .absolute;
-
-  top: 7px;
 
   &.success {
     .fa-icon(check-circle);
@@ -408,7 +405,7 @@ body, html {
   }
 
   &.warning {
-    .fa-icon(exclamation-triangle);
+    .fa-icon(check-circle);
     color: @warning-color;
   }
 
@@ -636,6 +633,11 @@ body, html {
 
 .table-container {
   .use-gpu;
+
+  .task-status {
+    .absolute;
+    top: 7px;
+  }
 
   margin: 10px 0px;
 

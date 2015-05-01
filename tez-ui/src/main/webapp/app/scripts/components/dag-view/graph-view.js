@@ -223,7 +223,8 @@ App.DagViewComponent.graphView = (function (){
    */
   function _addStatusBar(node, d) {
     var group = node.append('g'),
-        statusIcon = App.Helpers.misc.getStatusClassForEntity(d.get('data.status'));
+        statusIcon = App.Helpers.misc.getStatusClassForEntity(d.get('data.status'),
+          d.get('data.hasFailedTaskAttempts'));
     group.attr('class', 'status-bar');
 
     group.append('foreignObject')

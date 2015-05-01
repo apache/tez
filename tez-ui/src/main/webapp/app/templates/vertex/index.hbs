@@ -65,6 +65,12 @@
             <i {{bind-attr class=':task-status iconStatus'}}></i>
             {{status}}
             {{#if progressStr}} {{bs-badge content=progressStr}}{{/if}}
+            {{#if hasFailedTasks}}
+              [ <a href='{{unbound failedTasksLink}}'>Failed Tasks</a> ]
+            {{/if}}
+            {{#if hasFailedTaskAttempts}}
+              [ <a href='{{unbound failedTaskAttemptsLink}}'>Failed TaskAttempts</a> ]
+            {{/if}}
           </td>
         </tr>
         <tr>

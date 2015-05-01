@@ -37,8 +37,9 @@ App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   //TODO: TEZ-1705 : Create a parent class and move this function there to avoid duplication.
   iconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'));
-  }.property('id', 'model.status'),
+    return App.Helpers.misc.getStatusClassForEntity(this.get('model.status'),
+      this.get('model.hasFailedTaskAttempts'));
+  }.property('id', 'model.status', 'model.hasFailedTaskAttempts'),
 
   progressStr: function() {
     var pct;
