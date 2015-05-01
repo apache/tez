@@ -71,7 +71,7 @@ public class StateChangeNotifier {
       this.listener = listener;
     }
     
-    void sentUpdate() {
+    void sendUpdate() {
       listener.onStateUpdated(update);
     }
     
@@ -105,7 +105,7 @@ public class StateChangeNotifier {
             continue;
           }
           try {
-            event.sentUpdate();
+            event.sendUpdate();
             processedEventFromQueue();
           } catch (Exception e) {
             // TODO send user code exception - TEZ-2332

@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2394. Issues when there is an error in VertexManager callbacks
   TEZ-2386. Tez UI: Inconsistent usage of icon colors
   TEZ-2395. Tez UI: Minimum/Maximum Duration show a empty bracket next to 0 secs when you purposefully failed a job.
   TEZ-2360. per-io counters flag should generate both overall and per-edge counters
