@@ -12,6 +12,7 @@ ALL CHANGES:
   TEZ-2395. Tez UI: Minimum/Maximum Duration show a empty bracket next to 0 secs when you purposefully failed a job.
   TEZ-2360. per-io counters flag should generate both overall and per-edge counters
   TEZ-2389. Tez UI: Sort by attempt-no is incorrect in attempts pages.
+  TEZ-2363: Fix off-by-one error in REDUCE_INPUT_RECORDS counter
   TEZ-2383. Cleanup input/output/processor contexts in LogicalIOProcessorRuntimeTask.
   TEZ-2084. Tez UI: Stacktrace format info is lost in diagnostics
   TEZ-2374. Fix build break against hadoop-2.2 due to TEZ-2325.
