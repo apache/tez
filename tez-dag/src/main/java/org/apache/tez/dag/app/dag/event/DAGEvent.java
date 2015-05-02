@@ -18,14 +18,14 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
+import org.apache.tez.common.TezAbstractEvent;
 import org.apache.tez.dag.records.TezDAGID;
 
 /**
  * This class encapsulates job related events.
  *
  */
-public class DAGEvent extends AbstractEvent<DAGEventType> {
+public class DAGEvent extends TezAbstractEvent<DAGEventType> {
 
   private TezDAGID dagId;
 

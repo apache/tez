@@ -16,25 +16,30 @@
 * limitations under the License.
 */
 
-package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.common.TezAbstractEvent;
-import org.apache.tez.dag.records.TezVertexID;
+package org.apache.tez.common;
 
 /**
- * this class encapsulates vertex related events.
- *
+ * Event that allows running in parallel for different instances
+ * 
+ * @param <TYPE>
+ *          Event type
  */
-public class VertexEvent extends TezAbstractEvent<VertexEventType> {
+public abstract class TezAbstractEvent<TYPE extends Enum<TYPE>> extends
+    org.apache.hadoop.yarn.event.AbstractEvent<TYPE> {
 
-  private TezVertexID vertexId;
-
-  public VertexEvent(TezVertexID vertexId, VertexEventType type) {
+  public TezAbstractEvent(TYPE type) {
     super(type);
-    this.vertexId = vertexId;
   }
 
-  public TezVertexID getVertexId() {
-    return vertexId;
+  /**
+   * Returning a number that is identical for event instances that need to be
+   * serialized while processing.
+   * 
+   * @return Serializing identifier. Not overriding this causes serialization
+   *         for all events instances
+   */
+  public int getSerializingHash() {
+    return 0;
   }
 }

@@ -1261,7 +1261,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     if (finishTime == 0) {
       setFinishTime();
     }
-    
     entityUpdateTracker.stop();
 
     boolean recoveryError = false;

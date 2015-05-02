@@ -128,8 +128,6 @@ public interface TaskAttempt {
    */
   long getFinishTime();
   
-  public Task getTask();
-  
   TaskAttemptState restoreFromEvent(HistoryEvent event);
 
 }

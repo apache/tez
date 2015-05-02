@@ -144,6 +144,9 @@ public class TaskAttemptImpl implements TaskAttempt,
   private NodeId containerNodeId;
   private String nodeHttpAddress;
   private String nodeRackName;
+  
+  private final Task task;
+  private final Vertex vertex;
 
   @VisibleForTesting
   TaskAttemptStatus reportedStatus;
@@ -406,7 +409,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptListener taskAttemptListener, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
-      Resource resource, ContainerContext containerContext, boolean leafVertex) {
+      Resource resource, ContainerContext containerContext, boolean leafVertex,
+      Task task) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -417,6 +421,9 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
+    this.task = task;
+    this.vertex = this.task.getVertex();
+
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
@@ -649,17 +656,9 @@ public class TaskAttemptImpl implements TaskAttempt,
       readLock.unlock();
     }
   }
-
-  @Override
-  public Task getTask() {
-    return appContext.getCurrentDAG()
-        .getVertex(attemptId.getTaskID().getVertexID())
-        .getTask(attemptId.getTaskID());
-  }
-
+  
   Vertex getVertex() {
-    return appContext.getCurrentDAG()
-        .getVertex(attemptId.getTaskID().getVertexID());
+    return vertex;
   }
 
   @SuppressWarnings("unchecked")
@@ -955,7 +954,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
         YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED)
         && conf.get(YarnConfiguration.YARN_LOG_SERVER_URL) != null) {
-      String contextStr = "v_" + getTask().getVertex().getName()
+      String contextStr = "v_" + getVertex().getName()
           + "_" + this.attemptId.toString();
       completedLogsUrl = conf.get(YarnConfiguration.YARN_LOG_SERVER_URL)
           + "/" + containerNodeId.toString()
@@ -964,7 +963,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           + "/" + this.appContext.getUser();
     }
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
-        attemptId, getTask().getVertex().getName(),
+        attemptId, getVertex().getName(),
         launchTime, containerId, containerNodeId,
         inProgressLogsUrl, completedLogsUrl, nodeHttpAddress);
     this.appContext.getHistoryHandler().handle(
@@ -976,7 +975,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     if (getLaunchTime() == 0) return;
 
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
-        attemptId, getTask().getVertex().getName(), getLaunchTime(),
+        attemptId, getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, null,
         "", getCounters());
     // FIXME how do we store information regd completion events
@@ -987,7 +986,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
-        attemptId, getTask().getVertex().getName(), getLaunchTime(),
+        attemptId, getVertex().getName(), getLaunchTime(),
         clock.getTime(), state,
         terminationCause,
         StringUtils.join(

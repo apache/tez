@@ -630,7 +630,7 @@ public class TestTaskImpl {
         ContainerContext containerContext, Vertex vertex) {
       super(vertexId, partition, eventHandler, conf, taskAttemptListener,
           clock, thh, appContext, leafVertex, resource,
-          containerContext, mock(StateChangeNotifier.class));
+          containerContext, mock(StateChangeNotifier.class), vertex);
       this.vertex = vertex;
       this.locationHint = locationHint;
     }
@@ -687,7 +687,7 @@ public class TestTaskImpl {
         TaskLocationHint locationHint, boolean isRescheduled,
         Resource resource, ContainerContext containerContext) {
       super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
-          appContext, isRescheduled, resource, containerContext, false);
+          appContext, isRescheduled, resource, containerContext, false, mock(TaskImpl.class));
       this.locationHint = locationHint;
     }
 

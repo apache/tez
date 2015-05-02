@@ -18,10 +18,10 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
+import org.apache.tez.common.TezAbstractEvent;
 import org.apache.tez.dag.records.TezVertexID;
 
-public class SpeculatorEvent extends AbstractEvent<SpeculatorEventType> {
+public class SpeculatorEvent extends TezAbstractEvent<SpeculatorEventType> {
   private final TezVertexID vertexId;
   
   public SpeculatorEvent(SpeculatorEventType type, TezVertexID vertexId) {

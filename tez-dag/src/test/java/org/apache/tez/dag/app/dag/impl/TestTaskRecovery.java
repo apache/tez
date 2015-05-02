@@ -190,7 +190,7 @@ public class TestTaskRecovery {
             new Configuration(), mock(TaskAttemptListener.class),
             new SystemClock(), mock(TaskHeartbeatHandler.class),
             mockAppContext, false, Resource.newInstance(1, 1),
-            mock(ContainerContext.class), mock(StateChangeNotifier.class));
+            mock(ContainerContext.class), mock(StateChangeNotifier.class), vertex);
 
     Map<String, OutputCommitter> committers =
         new HashMap<String, OutputCommitter>();

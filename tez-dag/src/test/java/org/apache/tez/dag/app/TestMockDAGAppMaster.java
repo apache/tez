@@ -136,7 +136,7 @@ public class TestMockDAGAppMaster {
     lrVertex.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test1"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
 
-    DAG dag = DAG.create("test").addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("testLocalResourceSetup").addTaskLocalFiles(lrDAG);
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5).addTaskLocalFiles(lrVertex);
     dag.addVertex(vA);
 
@@ -166,7 +166,7 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
     // there is only 1 task whose first attempt will be preempted
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("testInternalPreemption");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 1);
     dag.addVertex(vA);
 
@@ -197,7 +197,7 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
     mockApp.sendDMEvents = true;
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("testBasicEvents");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 2);
     Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 2);
     Vertex vC = Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 2);
@@ -230,21 +230,27 @@ public class TestMockDAGAppMaster {
     List<TezEvent> tEvents = tImpl.getTaskEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
-    Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
     Assert.assertEquals(vA.getName(), tEvents.get(1).getDestinationInfo().getEdgeVertexName());
-    Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(1).getEvent()).getTargetIndex());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(1).getEvent()).getSourceIndex());
+    int targetIndex1 = ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex();
+    int targetIndex2 = ((DataMovementEvent)tEvents.get(1).getEvent()).getTargetIndex();
+    // order of vA task completion can change order of events
+    Assert.assertTrue("t1: " + targetIndex1 + " t2: " + targetIndex2,
+        (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
     tEvents = tImpl.getTaskEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
-    Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex());
     Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
     Assert.assertEquals(vA.getName(), tEvents.get(1).getDestinationInfo().getEdgeVertexName());
-    Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(1).getEvent()).getTargetIndex());
     Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(1).getEvent()).getSourceIndex());
+    targetIndex1 = ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex();
+    targetIndex2 = ((DataMovementEvent)tEvents.get(1).getEvent()).getTargetIndex();
+    // order of vA task completion can change order of events
+    Assert.assertTrue("t1: " + targetIndex1 + " t2: " + targetIndex2,
+        (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
     tEvents = tImpl.getTaskEvents();
@@ -478,7 +484,7 @@ public class TestMockDAGAppMaster {
 
     final String vAName = "A";
     
-    DAG dag = DAG.create("testBasicCounters");
+    DAG dag = DAG.create("testBasicCounterMemory");
     Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10000);
     dag.addVertex(vA);
 
@@ -511,6 +517,30 @@ public class TestMockDAGAppMaster {
     checkMemory(dag.getName(), mockApp);
     tezClient.stop();
   }
+  
+  @Ignore
+  @Test (timeout = 60000)
+  public void testTaskEventsProcessingSpeed() throws Exception {
+    Logger.getRootLogger().setLevel(Level.WARN);
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    tezconf.setBoolean(TezConfiguration.TEZ_AM_USE_CONCURRENT_DISPATCHER, true);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
+        null, false, false, 30, 1000);
+    tezClient.start();
+
+    final String vAName = "A";
+    
+    DAG dag = DAG.create("testTaskEventsProcessingSpeed");
+    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 50000);
+    dag.addVertex(vA);
+
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    mockApp.doSleep = false;
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    DAGStatus status = dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    tezClient.stop();
+  }
 
   @Ignore
   @Test (timeout = 60000)
@@ -530,7 +560,7 @@ public class TestMockDAGAppMaster {
     ioStats.setItemsProcessed(1);
     TaskStatistics vAStats = new TaskStatistics();
 
-    DAG dag = DAG.create("testBasisStatistics");
+    DAG dag = DAG.create("testBasicStatisticsMemory");
     Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), numTasks);
     for (int i=0; i<numSources; ++i) {
       final String sourceName = i + vAName;
@@ -623,7 +653,7 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
 
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("testSchedulerErrorHandling");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 

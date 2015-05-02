@@ -119,6 +119,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private Map<TezTaskAttemptID, TaskAttempt> attempts;
   private final int maxFailedAttempts;
   protected final Clock clock;
+  private final Vertex vertex;
   private final Lock readLock;
   private final Lock writeLock;
   private final List<String> diagnostics = new ArrayList<String>();
@@ -326,7 +327,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
       boolean leafVertex, Resource resource,
       ContainerContext containerContext,
-      StateChangeNotifier stateChangeNotifier) {
+      StateChangeNotifier stateChangeNotifier,
+      Vertex vertex) {
     this.conf = conf;
     this.clock = clock;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -342,7 +344,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.eventHandler = eventHandler;
     this.appContext = appContext;
     this.stateChangeNotifier = stateChangeNotifier;
-
+    this.vertex = vertex;
     this.leafVertex = leafVertex;
     this.taskResource = resource;
     this.containerContext = containerContext;
@@ -382,7 +384,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public Vertex getVertex() {
-    return appContext.getCurrentDAG().getVertex(taskId.getVertexID());
+    return vertex;
   }
 
   @Override
@@ -778,7 +780,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   TaskAttemptImpl createAttempt(int attemptNumber) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
-        (failedAttempts > 0), taskResource, containerContext, leafVertex);
+        (failedAttempts > 0), taskResource, containerContext, leafVertex, this);
   }
 
   @Override

@@ -148,7 +148,7 @@ public class TestTaskAttemptRecovery {
             mock(TaskAttemptListener.class), new Configuration(),
             new SystemClock(), mock(TaskHeartbeatHandler.class),
             mockAppContext, false, Resource.newInstance(1, 1),
-            mock(ContainerContext.class), false);
+            mock(ContainerContext.class), false, mockTask);
     taId = ta.getID();
   }
 

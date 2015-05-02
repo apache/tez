@@ -109,9 +109,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexReRunning;
 import org.apache.tez.dag.app.dag.event.SpeculatorEvent;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
@@ -164,7 +162,6 @@ import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
-import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventType;
@@ -194,8 +191,7 @@ import org.slf4j.LoggerFactory;
  * The read and write calls use ReadWriteLock for concurrency.
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
-public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
-  EventHandler<VertexEvent> {
+public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandler<VertexEvent> {
 
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
@@ -216,6 +212,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   // TODO Metrics
   //private final MRAppMetrics metrics;
   private final AppContext appContext;
+  private final DAG dag;
 
   private boolean lazyTasksCopyNeeded = false;
   // must be a linked map for ordering
@@ -867,6 +864,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     setTaskLocationHints(vertexLocationHint);
 
     this.dagUgi = appContext.getCurrentDAG().getDagUGI();
+    this.dag = appContext.getCurrentDAG();
 
     this.taskResource = DagTypeConverters
         .createResourceRequestFromTaskConfig(vertexPlan.getTaskConfig());
@@ -2154,7 +2152,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
           this.targetVertices.isEmpty() : true),
         this.taskResource,
         conContext,
-        this.stateChangeNotifier);
+        this.stateChangeNotifier,
+        this);
   }
   
   private void createTasks() {
@@ -4409,7 +4408,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @Override
   public DAG getDAG() {
-    return appContext.getCurrentDAG();
+    return dag;
   }
 
   private TezDAGID getDAGId() {

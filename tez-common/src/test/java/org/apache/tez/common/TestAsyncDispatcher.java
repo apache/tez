@@ -116,7 +116,7 @@ public class TestAsyncDispatcher {
       central.register(TestEventType1.class, new TestEventHandler1());
       Assert.fail();
     } catch (IllegalStateException e) {
-      Assert.assertTrue(e.getMessage().contains("Cannot register same event on multiple dispatchers"));
+      Assert.assertTrue(e.getMessage().contains("Multiple dispatchers cannot be registered for"));
     } finally {
       central.close();
     }

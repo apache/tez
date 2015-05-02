@@ -81,6 +81,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
+import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.SpeculatorEventTaskAttemptStatusUpdate;
@@ -672,6 +673,35 @@ public class TestTaskAttempt {
   }
   
   @Test(timeout = 5000)
+  public void testEventSerializingHash() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID1 = TezTaskID.getInstance(vertexID, 1);
+    TezTaskID taskID2 = TezTaskID.getInstance(vertexID, 2);
+    TezTaskAttemptID taID11 = TezTaskAttemptID.getInstance(taskID1, 0);
+    TezTaskAttemptID taID12 = TezTaskAttemptID.getInstance(taskID1, 1);
+    TezTaskAttemptID taID21 = TezTaskAttemptID.getInstance(taskID2, 1);
+    
+    TaskAttemptEvent taEventFail11 = new TaskAttemptEvent(taID11, TaskAttemptEventType.TA_FAILED);
+    TaskAttemptEvent taEventKill11 = new TaskAttemptEvent(taID11, TaskAttemptEventType.TA_KILL_REQUEST);
+    TaskAttemptEvent taEventKill12 = new TaskAttemptEvent(taID12, TaskAttemptEventType.TA_KILL_REQUEST);
+    TaskAttemptEvent taEventKill21 = new TaskAttemptEvent(taID21, TaskAttemptEventType.TA_KILL_REQUEST);
+    TaskEvent tEventKill1 = new TaskEvent(taskID1, TaskEventType.T_ATTEMPT_KILLED);
+    TaskEvent tEventFail1 = new TaskEvent(taskID1, TaskEventType.T_ATTEMPT_FAILED);
+    TaskEvent tEventFail2 = new TaskEvent(taskID2, TaskEventType.T_ATTEMPT_FAILED);
+    
+    // all of them should have the same value
+    assertEquals(taEventFail11.getSerializingHash(), taEventKill11.getSerializingHash());
+    assertEquals(taEventKill11.getSerializingHash(), taEventKill12.getSerializingHash());
+    assertEquals(tEventFail1.getSerializingHash(), tEventKill1.getSerializingHash());
+    assertEquals(taEventFail11.getSerializingHash(), tEventKill1.getSerializingHash());
+    assertEquals(taEventKill21.getSerializingHash(), tEventFail2.getSerializingHash());
+    // events from different tasks may not have the same value
+    assertFalse(tEventFail1.getSerializingHash() == tEventFail2.getSerializingHash());
+  }
+  
+  @Test(timeout = 5000)
   public void testSuccess() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
@@ -695,7 +725,7 @@ public class TestTaskAttempt {
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    ContainerId contId = ContainerId.newContainerId(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -786,7 +816,7 @@ public class TestTaskAttempt {
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    ContainerId contId = ContainerId.newContainerId(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -881,7 +911,7 @@ public class TestTaskAttempt {
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    ContainerId contId = ContainerId.newContainerId(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -984,7 +1014,7 @@ public class TestTaskAttempt {
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    ContainerId contId = ContainerId.newContainerId(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -1084,7 +1114,7 @@ public class TestTaskAttempt {
     Resource resource = Resource.newInstance(1024, 1);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
-    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    ContainerId contId = ContainerId.newContainerId(appAttemptId, 3);
     Container container = mock(Container.class);
     when(container.getId()).thenReturn(contId);
     when(container.getNodeId()).thenReturn(nid);
@@ -1211,7 +1241,7 @@ public class TestTaskAttempt {
         Resource resource, ContainerContext containerContext, boolean leafVertex) {
       super(taskId, attemptNumber, eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          isRescheduled, resource, containerContext, leafVertex);
+          isRescheduled, resource, containerContext, leafVertex, mock(TaskImpl.class));
       this.locationHint = locationHint;
     }
     

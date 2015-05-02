@@ -44,6 +44,7 @@ import com.google.common.cache.LoadingCache;
 @InterfaceStability.Stable
 public class TezTaskID extends TezID {
   public static final String TASK = "task";
+  private final int serializingHash;
   
   static final ThreadLocal<NumberFormat> tezTaskIdFormat = new ThreadLocal<NumberFormat>() {
     @Override
@@ -67,10 +68,6 @@ public class TezTaskID extends TezID {
   
   private TezVertexID vertexId;
 
-  // Public for Writable serialization. Verify if this is actually required.
-  public TezTaskID() {
-  }
-
   /**
    * Constructs a TezTaskID object from given {@link TezVertexID}.
    * @param vertexID the vertexID object for this TezTaskID
@@ -91,6 +88,11 @@ public class TezTaskID extends TezID {
     super(id);
     Preconditions.checkArgument(vertexID != null, "vertexID cannot be null");
     this.vertexId = vertexID;
+    this.serializingHash = getHashCode(true);
+  }
+  
+  public int getSerializingHash() {
+    return serializingHash;
   }
 
   /** Returns the {@link TezVertexID} object that this task belongs to */
@@ -135,7 +137,15 @@ public class TezTaskID extends TezID {
 
   @Override
   public int hashCode() {
-    return vertexId.hashCode() * 535013 + id;
+    return getHashCode(false);
+  }
+
+  public int getHashCode(boolean makePositive) {
+    int code = vertexId.hashCode() * 535013 + id;
+    if (makePositive) {
+      code = (code < 0 ? -code : code);
+    }
+    return code;
   }
 
   @Override

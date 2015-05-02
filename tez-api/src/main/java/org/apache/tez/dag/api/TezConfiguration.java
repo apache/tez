@@ -141,6 +141,20 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_CREDENTIALS_PATH = TEZ_PREFIX + "credentials.path";
 
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_USE_CONCURRENT_DISPATCHER = TEZ_AM_PREFIX
+      + "use.concurrent-dispatcher";
+  @Private
+  public static boolean TEZ_AM_USE_CONCURRENT_DISPATCHER_DEFAULT = true;
+  
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY = TEZ_AM_PREFIX
+      + "concurrent-dispatcher.concurrency";
+  @Private
+  public static final int TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY_DEFAULT = 10;
+
   /**
    * Boolean value. Execution mode for the Tez application. True implies session mode. If the client
    * code is written according to best practices then the same code can execute in either mode based

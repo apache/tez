@@ -18,14 +18,14 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
+import org.apache.tez.common.TezAbstractEvent;
 import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * this class encapsulates task related events.
  *
  */
-public class TaskEvent extends AbstractEvent<TaskEventType> {
+public class TaskEvent extends TezAbstractEvent<TaskEventType> {
 
   private TezTaskID taskId;
 
@@ -36,5 +36,10 @@ public class TaskEvent extends AbstractEvent<TaskEventType> {
 
   public TezTaskID getTaskID() {
     return taskId;
+  }
+  
+  @Override
+  public int getSerializingHash() {
+    return taskId.getSerializingHash();
   }
 }

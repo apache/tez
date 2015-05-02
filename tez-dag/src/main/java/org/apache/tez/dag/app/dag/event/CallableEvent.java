@@ -20,11 +20,11 @@ package org.apache.tez.dag.app.dag.event;
 
 import java.util.concurrent.Callable;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
+import org.apache.tez.common.TezAbstractEvent;
 
 import com.google.common.util.concurrent.FutureCallback;
 
-public abstract class CallableEvent extends AbstractEvent<CallableEventType> implements
+public abstract class CallableEvent extends TezAbstractEvent<CallableEventType> implements
     Callable<Void> {
   private final FutureCallback<Void> callback;
 

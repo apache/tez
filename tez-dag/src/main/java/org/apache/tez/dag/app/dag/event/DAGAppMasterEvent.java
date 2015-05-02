@@ -18,9 +18,10 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.hadoop.yarn.event.AbstractEvent;
+import org.apache.tez.common.TezAbstractEvent;
 
-public class DAGAppMasterEvent extends AbstractEvent<DAGAppMasterEventType> {
+
+public class DAGAppMasterEvent extends TezAbstractEvent<DAGAppMasterEventType> {
 
   public DAGAppMasterEvent(DAGAppMasterEventType type) {
     super(type);

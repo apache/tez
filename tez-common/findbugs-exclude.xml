@@ -20,4 +20,9 @@
     <Bug pattern="DM_EXIT"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.common.AsyncDispatcherConcurrent$1"/>
+    <Method name="run" />
+    <Bug pattern="DM_EXIT"/>
+  </Match>
 </FindBugsFilter>
