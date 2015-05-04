@@ -146,7 +146,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_USE_CONCURRENT_DISPATCHER = TEZ_AM_PREFIX
       + "use.concurrent-dispatcher";
   @Private
-  public static boolean TEZ_AM_USE_CONCURRENT_DISPATCHER_DEFAULT = true;
+  public static boolean TEZ_AM_USE_CONCURRENT_DISPATCHER_DEFAULT = false;
   
   @Private
   @ConfigurationScope(Scope.AM)
