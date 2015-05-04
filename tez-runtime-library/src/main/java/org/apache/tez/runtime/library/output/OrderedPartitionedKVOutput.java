@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -147,9 +148,12 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       this.endTime = System.nanoTime();
       return generateEventsOnClose();
     } else {
-      LOG.warn("Attempting to close output " + getContext().getDestinationVertexName()
-          + " before it was started");
-      return Collections.emptyList();
+      LOG.warn(
+          "Attempting to close output " + getContext().getDestinationVertexName() + " of type " +
+              this.getClass().getSimpleName() + " before it was started. Generating empty events");
+
+      List<Event> returnEvents = generateEmptyEvents();
+      return returnEvents;
     }
   }
   
@@ -214,6 +218,11 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
     return events;
   }
 
+  private List<Event> generateEmptyEvents() throws IOException {
+    List<Event> eventList = Lists.newLinkedList();
+    ShuffleUtils.generateEventsForNonStartedOutput(eventList, getNumPhysicalOutputs(), getContext(), true, true);
+    return eventList;
+  }
 
   private static final Set<String> confKeys = new HashSet<String>();
 

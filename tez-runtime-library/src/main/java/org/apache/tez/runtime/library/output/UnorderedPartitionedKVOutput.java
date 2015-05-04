@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.output;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +42,7 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter;
 
 /**
@@ -100,7 +102,14 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
     if (isStarted.get()) {
       return kvWriter.close();
     } else {
-      return Collections.emptyList();
+      LOG.warn(
+          "Attempting to close output " + getContext().getDestinationVertexName() + " of type " +
+              this.getClass().getSimpleName() + " before it was started. Generating empty events");
+      List<Event> returnEvents = new LinkedList<Event>();
+      ShuffleUtils
+          .generateEventsForNonStartedOutput(returnEvents, getNumPhysicalOutputs(), getContext(),
+              false, true);
+      return returnEvents;
     }
   }
 

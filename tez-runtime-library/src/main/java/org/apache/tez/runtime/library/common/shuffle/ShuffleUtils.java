@@ -24,10 +24,12 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import com.google.protobuf.ByteString;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,13 +38,21 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.token.Token;
+import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParamsBuilder;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
 public class ShuffleUtils {
@@ -218,6 +228,60 @@ public class ShuffleUtils {
     builder.setSSL(sslShuffle, conf);
 
     return builder.build();
+  }
+
+  /**
+   * Generate events for outputs which have not been started.
+   * @param eventList
+   * @param numPhysicalOutputs
+   * @param context
+   * @param generateVmEvent whether to generate a vm event or not
+   * @param isCompositeEvent whether to generate a CompositeDataMovementEvent or a DataMovementEvent
+   * @throws IOException
+   */
+  public static void generateEventsForNonStartedOutput(List<Event> eventList,
+                                                       int numPhysicalOutputs,
+                                                       OutputContext context,
+                                                       boolean generateVmEvent,
+                                                       boolean isCompositeEvent) throws
+      IOException {
+    DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
+        .newBuilder();
+
+
+    // Construct the VertexManager event if required.
+    if (generateVmEvent) {
+      ShuffleUserPayloads.VertexManagerEventPayloadProto.Builder vmBuilder =
+          ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder();
+      vmBuilder.setOutputSize(0);
+      VertexManagerEvent vmEvent = VertexManagerEvent.create(
+          context.getDestinationVertexName(),
+          vmBuilder.build().toByteString().asReadOnlyByteBuffer());
+      eventList.add(vmEvent);
+    }
+
+    // Construct the DataMovementEvent
+    // Always set empty partition information since no files were generated.
+    LOG.info("Setting all " + numPhysicalOutputs + " partitions as empty for non-started output: ");
+    BitSet emptyPartitionDetails = new BitSet(numPhysicalOutputs);
+    emptyPartitionDetails.set(0, numPhysicalOutputs, true);
+    ByteString emptyPartitionsBytesString =
+        TezCommonUtils.compressByteArrayToByteString(
+            TezUtilsInternal.toByteArray(emptyPartitionDetails));
+    payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
+    payloadBuilder.setRunDuration(0);
+    DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
+    ByteBuffer dmePayload = payloadProto.toByteString().asReadOnlyByteBuffer();
+
+
+    if (isCompositeEvent) {
+      CompositeDataMovementEvent cdme =
+          CompositeDataMovementEvent.create(0, numPhysicalOutputs, dmePayload);
+      eventList.add(cdme);
+    } else {
+      DataMovementEvent dme = DataMovementEvent.create(0, dmePayload);
+      eventList.add(dme);
+    }
   }
 
   public static String stringify(DataMovementEventPayloadProto dmProto) {
