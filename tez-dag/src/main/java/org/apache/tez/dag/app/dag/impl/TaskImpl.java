@@ -112,7 +112,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   protected final EventHandler eventHandler;
   private final TezTaskID taskId;
   private Map<TezTaskAttemptID, TaskAttempt> attempts;
-  private final int maxFailedAttempts;
+  protected final int maxFailedAttempts;
   protected final Clock clock;
   private final Lock readLock;
   private final Lock writeLock;
@@ -255,13 +255,28 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
         EnumSet.of(
             TaskEventType.T_TERMINATE,
-            TaskEventType.T_ADD_SPEC_ATTEMPT))
+            TaskEventType.T_ADD_SPEC_ATTEMPT,
+            TaskEventType.T_ATTEMPT_KILLED))
 
     // Transitions from KILLED state
+    // Ignorable event: T_ATTEMPT_KILLED
+    // Refer to TEZ-2379
+    // T_ATTEMPT_KILLED can show up in KILLED state as
+    // a SUCCEEDED attempt can still transition to KILLED after receiving
+    // a KILL event.
+    // This could happen when there is a race where the task receives a
+    // kill event, it tries to kill all running attempts and a potential
+    // running attempt succeeds before it receives the kill event.
+    // The task will then receive both a SUCCEEDED and KILLED
+    // event from the same attempt.
+    // Duplicate events from a single attempt in KILL_WAIT are handled
+    // properly. However, the subsequent T_ATTEMPT_KILLED event might
+    // be received after the task reaches its terminal KILLED state.
     .addTransition(TaskStateInternal.KILLED, TaskStateInternal.KILLED,
         EnumSet.of(
             TaskEventType.T_TERMINATE,
-            TaskEventType.T_ADD_SPEC_ATTEMPT))
+            TaskEventType.T_ADD_SPEC_ATTEMPT,
+            TaskEventType.T_ATTEMPT_KILLED))
     .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
         TaskEventType.T_SCHEDULE)
 

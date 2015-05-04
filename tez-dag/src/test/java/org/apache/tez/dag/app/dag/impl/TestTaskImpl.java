@@ -177,6 +177,13 @@ public class TestTaskImpl {
     assertTaskKillWaitState();
   }
 
+  private void failTask(TezTaskID taskId) {
+    mockTask.handle(new TaskEventTermination(taskId,
+        TaskTerminationCause.OWN_TASK_FAILURE));
+    assertTaskKillWaitState();
+  }
+
+
   private void killScheduledTaskAttempt(TezTaskAttemptID attemptId) {
     mockTask.handle(new TaskEventTAUpdate(attemptId,
         TaskEventType.T_ATTEMPT_KILLED));
@@ -289,7 +296,6 @@ public class TestTaskImpl {
     killTask(taskId);
     mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
         TaskEventType.T_ATTEMPT_KILLED));
-
     assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
     verifyOutgoingEvents(eventHandler.events, VertexEventType.V_TASK_COMPLETED);
   }
@@ -377,7 +383,52 @@ public class TestTaskImpl {
     killRunningTaskAttempt(mockTask.getLastAttempt().getID());
   }
 
-  @Test
+  /**
+   * {@link TaskState#KILLED}->{@link TaskState#KILLED}
+   */
+  @Test(timeout = 5000)
+  public void testKilledAttemptAtTaskKilled() {
+    LOG.info("--- START: testKilledAttemptAtTaskKilled ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killTask(taskId);
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_KILLED));
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+
+    // Send duplicate kill for same attempt
+    // This will not happen in practice but this is to simulate handling
+    // of killed attempts in killed state.
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_KILLED));
+    assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
+
+  }
+
+  /**
+   * {@link TaskState#FAILED}->{@link TaskState#FAILED}
+   */
+  @Test(timeout = 5000)
+  public void testKilledAttemptAtTaskFailed() {
+    LOG.info("--- START: testKilledAttemptAtTaskFailed ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    for (int i = 0; i < mockTask.maxFailedAttempts; ++i) {
+      mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+          TaskEventType.T_ATTEMPT_FAILED));
+    }
+    assertEquals(TaskStateInternal.FAILED, mockTask.getInternalState());
+
+    // Send kill for an attempt
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_KILLED));
+    assertEquals(TaskStateInternal.FAILED, mockTask.getInternalState());
+
+  }
+
+
+  @Test(timeout = 5000)
   public void testFetchedEventsModifyUnderlyingList() {
     // Tests to ensure that adding an event to a task, does not affect the
     // result of past getTaskAttemptTezEvents calls.
