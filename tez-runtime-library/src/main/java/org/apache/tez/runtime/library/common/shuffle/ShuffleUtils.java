@@ -33,6 +33,7 @@ import javax.crypto.SecretKey;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -330,6 +331,60 @@ public class ShuffleUtils {
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
     ByteBuffer payload = payloadProto.toByteString().asReadOnlyByteBuffer();
     return payload;
+  }
+
+  /**
+   * Generate events for outputs which have not been started.
+   * @param eventList
+   * @param numPhysicalOutputs
+   * @param context
+   * @param generateVmEvent whether to generate a vm event or not
+   * @param isCompositeEvent whether to generate a CompositeDataMovementEvent or a DataMovementEvent
+   * @throws IOException
+   */
+  public static void generateEventsForNonStartedOutput(List<Event> eventList,
+                                                       int numPhysicalOutputs,
+                                                       OutputContext context,
+                                                       boolean generateVmEvent,
+                                                       boolean isCompositeEvent) throws
+      IOException {
+    DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
+        .newBuilder();
+
+
+    // Construct the VertexManager event if required.
+    if (generateVmEvent) {
+      ShuffleUserPayloads.VertexManagerEventPayloadProto.Builder vmBuilder =
+          ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder();
+      vmBuilder.setOutputSize(0);
+      VertexManagerEvent vmEvent = VertexManagerEvent.create(
+          context.getDestinationVertexName(),
+          vmBuilder.build().toByteString().asReadOnlyByteBuffer());
+      eventList.add(vmEvent);
+    }
+
+    // Construct the DataMovementEvent
+    // Always set empty partition information since no files were generated.
+    LOG.info("Setting all {} partitions as empty for non-started output", numPhysicalOutputs);
+    BitSet emptyPartitionDetails = new BitSet(numPhysicalOutputs);
+    emptyPartitionDetails.set(0, numPhysicalOutputs, true);
+    ByteString emptyPartitionsBytesString =
+        TezCommonUtils.compressByteArrayToByteString(
+            TezUtilsInternal.toByteArray(emptyPartitionDetails));
+    payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
+    payloadBuilder.setRunDuration(0);
+    DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
+    ByteBuffer dmePayload = payloadProto.toByteString().asReadOnlyByteBuffer();
+
+
+    if (isCompositeEvent) {
+      CompositeDataMovementEvent cdme =
+          CompositeDataMovementEvent.create(0, numPhysicalOutputs, dmePayload);
+      eventList.add(cdme);
+    } else {
+      DataMovementEvent dme = DataMovementEvent.create(0, dmePayload);
+      eventList.add(dme);
+    }
   }
 
   /**

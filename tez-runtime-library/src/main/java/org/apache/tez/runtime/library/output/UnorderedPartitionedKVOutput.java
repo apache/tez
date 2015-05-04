@@ -20,12 +20,14 @@ package org.apache.tez.runtime.library.output;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Preconditions;
 
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -102,9 +104,16 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
     if (isStarted.get()) {
       returnEvents = kvWriter.close();
     } else {
-      returnEvents = Collections.emptyList();
+      LOG.warn(
+          "Attempting to close output {} of type {} before it was started. Generating empty events",
+          getContext().getDestinationVertexName(), this.getClass().getSimpleName());
+      returnEvents = new LinkedList<Event>();
+      ShuffleUtils
+          .generateEventsForNonStartedOutput(returnEvents, getNumPhysicalOutputs(), getContext(),
+              false, true);
     }
 
+    // This works for non-started outputs since new counters will be created with an initial value of 0
     long outputSize = getContext().getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
     getContext().getStatisticsReporter().reportDataSize(outputSize);
     long outputRecords = getContext().getCounters()

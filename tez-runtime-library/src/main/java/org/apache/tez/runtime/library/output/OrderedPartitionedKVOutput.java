@@ -185,11 +185,13 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       this.endTime = System.nanoTime();
       returnEvents = generateEvents();
     } else {
-      LOG.warn("Attempting to close output " + getContext().getDestinationVertexName()
-          + " before it was started");
-      returnEvents = Collections.emptyList();
+      LOG.warn(
+          "Attempting to close output {} of type {} before it was started. Generating empty events",
+          getContext().getDestinationVertexName(), this.getClass().getSimpleName());
+      returnEvents = generateEmptyEvents();
     }
-    
+
+    // This works for non-started outputs since new counters will be created with an initial value of 0
     long outputSize = getContext().getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
     getContext().getStatisticsReporter().reportDataSize(outputSize);
     long outputRecords = getContext().getCounters()
@@ -207,6 +209,12 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
           getContext(), 0, new TezSpillRecord(sorter.getFinalIndexFile(), conf),
           getNumPhysicalOutputs(), sendEmptyPartitionDetails, getContext().getUniqueIdentifier());
     }
+    return eventList;
+  }
+
+  private List<Event> generateEmptyEvents() throws IOException {
+    List<Event> eventList = Lists.newLinkedList();
+    ShuffleUtils.generateEventsForNonStartedOutput(eventList, getNumPhysicalOutputs(), getContext(), true, true);
     return eventList;
   }
 
