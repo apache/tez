@@ -749,7 +749,7 @@ public class PipelinedSorter extends ExternalSorter {
         cmp = comparator.compare(buf,
             keystart + off , (valstart - keystart),
             needle.getData(),
-            needle.getPosition(), needle.getLength());
+            needle.getPosition(), (needle.getLength() - needle.getPosition()));
       }
       return cmp;
     }

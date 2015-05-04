@@ -8,6 +8,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -22,6 +23,7 @@ import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,10 +63,10 @@ public class TestPipelinedSorter {
   private static final Configuration conf = new Configuration();
   private static FileSystem localFs = null;
   private static Path workDir = null;
+  private OutputContext outputContext;
 
   private int numOutputs;
   private long initialAvailableMem;
-  private OutputContext outputContext;
 
   //TODO: Need to make it nested structure so that multiple partition cases can be validated
   private static TreeMap<String, String> sortedDataMap = Maps.newTreeMap();
@@ -82,6 +84,11 @@ public class TestPipelinedSorter {
     }
   }
 
+  @AfterClass
+  public static void cleanup() throws IOException {
+    localFs.delete(workDir, true);
+  }
+
   @Before
   public void setup() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
@@ -89,12 +96,14 @@ public class TestPipelinedSorter {
     String uniqueId = UUID.randomUUID().toString();
     this.outputContext = createMockOutputContext(counters, appId, uniqueId);
 
-    //To enable PipelinedSorter, set 2 threads
+    //To enable PipelinedSorter
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.PIPELINED.name());
+
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
-    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
-        HashPartitioner.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, HashPartitioner.class.getName());
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
 
     //Setup localdirs
     String localDirs = workDir.toString();
@@ -102,9 +111,8 @@ public class TestPipelinedSorter {
   }
 
   @After
-  public void cleanup() throws IOException {
-    localFs.delete(workDir, true);
-    sortedDataMap.clear();
+  public void reset() throws IOException {
+    cleanup();
     localFs.mkdirs(workDir);
   }
 
@@ -130,6 +138,13 @@ public class TestPipelinedSorter {
     //meta would be 16 MB
     basicTest(1, 5, (15 << 20), (48 * 1024l * 1024l), 48 << 20);
 
+  }
+
+  @Test
+  public void testWithCustomComparator() throws IOException {
+    //Test with custom comparator
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS, CustomComparator.class.getName());
+    basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
   }
 
   @Test
@@ -251,7 +266,7 @@ public class TestPipelinedSorter {
     Assert.assertTrue(numRecordsRead == sortedDataMap.size());
   }
 
-  private OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
+  private static OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
       String uniqueId) throws IOException {
     OutputContext outputContext = mock(OutputContext.class);
 
@@ -279,5 +294,27 @@ public class TestPipelinedSorter {
     String[] outDirs = new String[] { outDirBase.toString() };
     doReturn(outDirs).when(outputContext).getWorkDirs();
     return outputContext;
+  }
+
+  /**
+   * E.g Hive uses TezBytesComparator which internally makes use of WritableComparator's comparison.
+   * Any length mismatches are handled there.
+   *
+   * However, custom comparators can handle this differently and might throw
+   * IndexOutOfBoundsException in case of invalid lengths.
+   *
+   * This comparator (similar to comparator in BinInterSedes of pig) would thrown exception when
+   * wrong lengths are mentioned.
+   */
+  public static class CustomComparator extends WritableComparator {
+    @Override
+    public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+      //wrapping is done so that it would throw exceptions on wrong lengths
+      ByteBuffer bb1 = ByteBuffer.wrap(b1, s1, l1);
+      ByteBuffer bb2 = ByteBuffer.wrap(b2, s2, l2);
+
+      return bb1.compareTo(bb2);
+    }
+
   }
 }
