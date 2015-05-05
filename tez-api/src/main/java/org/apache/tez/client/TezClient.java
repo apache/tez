@@ -637,6 +637,7 @@ public class TezClient {
     if (!isSession) {
       // do nothing for non session mode. This is there to let the code 
       // work correctly in both modes
+      LOG.warn("preWarm is not supported in non-session mode, please use session-mode of TezClient");
       return;
     }
     
