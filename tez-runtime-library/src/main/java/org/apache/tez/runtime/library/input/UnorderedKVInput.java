@@ -164,6 +164,8 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       return new KeyValueReader() {
         @Override
         public boolean next() throws IOException {
+          hasCompletedProcessing();
+          completedProcessing = true;
           return false;
         }
 

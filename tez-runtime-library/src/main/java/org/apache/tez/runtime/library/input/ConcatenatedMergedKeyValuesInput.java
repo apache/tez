@@ -47,11 +47,13 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
   public class ConcatenatedMergedKeyValuesReader extends KeyValuesReader {
     private int currentReaderIndex = 0;
     private KeyValuesReader currentReader;
-    
+
     @Override
     public boolean next() throws IOException {
       while ((currentReader == null) || !currentReader.next()) {
         if (currentReaderIndex == getInputs().size()) {
+          hasCompletedProcessing();
+          completedProcessing = true;
           return false;
         }
         try {

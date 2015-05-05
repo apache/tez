@@ -44,7 +44,7 @@ public class MRReaderMapReduce extends MRReader {
   @SuppressWarnings("rawtypes")
   private final InputFormat inputFormat;
   @SuppressWarnings("rawtypes")
-  private RecordReader recordReader;
+  protected RecordReader recordReader;
   private InputSplit inputSplit;
 
   private boolean setupComplete = false;
@@ -120,6 +120,9 @@ public class MRReaderMapReduce extends MRReader {
     }
     if (hasNext) {
       inputRecordCounter.increment(1);
+    } else {
+      hasCompletedProcessing();
+      completedProcessing = true;
     }
     return hasNext;
   }

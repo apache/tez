@@ -34,10 +34,14 @@ import org.apache.tez.runtime.api.Reader;
  *   Iterable<Object> values = kvReader.getCurrentValues();
  * </code>
  *
+ * if next() is called after processing everything,
+ * IOException would be thrown
  */
 @Public
 @Evolving
 public abstract class KeyValuesReader extends Reader {
+
+  protected boolean completedProcessing;
 
   /**
    * Moves to the next key/values(s) pair
@@ -60,4 +64,17 @@ public abstract class KeyValuesReader extends Reader {
    * @return an Iterable view of the values associated with the current key
    */
   public abstract Iterable<Object> getCurrentValues() throws IOException;
+
+  /**
+   * Check whether processing has been completed.
+   *
+   * @throws IOException
+   */
+  protected void hasCompletedProcessing() throws IOException {
+    if (completedProcessing) {
+      throw new IOException("Please check if you are"
+          + " invoking next() even after it returned false. For usage, please refer to "
+          + "KeyValuesReader javadocs");
+    }
+  }
 }

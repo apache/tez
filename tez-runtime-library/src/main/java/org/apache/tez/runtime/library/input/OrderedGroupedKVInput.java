@@ -218,6 +218,8 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
         return new KeyValuesReader() {
           @Override
           public boolean next() throws IOException {
+            hasCompletedProcessing();
+            completedProcessing = true;
             return false;
           }
 

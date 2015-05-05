@@ -131,6 +131,12 @@ public class TestMultiMRInput {
         Object val = reader.getCurrentValue();
         assertEquals(val, data1.remove(key));
       }
+      try {
+        boolean hasNext = reader.next(); //should throw exception
+        fail();
+      } catch(IOException e) {
+        assertTrue(e.getMessage().contains("For usage, please refer to"));
+      }
     }
     assertEquals(1, readerCount);
   }
@@ -197,6 +203,13 @@ public class TestMultiMRInput {
         Object key = reader.getCurrentKey();
         Object val = reader.getCurrentValue();
         assertEquals(val, data.remove(key));
+      }
+
+      try {
+        boolean hasNext = reader.next(); //should throw exception
+        fail();
+      } catch(IOException e) {
+        assertTrue(e.getMessage().contains("For usage, please refer to"));
       }
     }
     assertEquals(2, readerCount);

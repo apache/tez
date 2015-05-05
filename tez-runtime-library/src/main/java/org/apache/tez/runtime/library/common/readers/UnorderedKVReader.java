@@ -71,8 +71,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
 
-  private boolean completedProcessing;
-  
+
   public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
       TezCounter inputRecordCounter)
@@ -131,13 +130,6 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
     }
   }
 
-  private void hasCompletedProcessing() throws IOException {
-    if (completedProcessing) {
-      throw new IOException("Reader has already processed all the inputs. Please check if you are"
-          + " invoking next() even after it returned false. For usage, please refer to "
-          + "KeyValueReader javadocs");
-    }
-  }
 
   @Override
   public Object getCurrentKey() throws IOException {

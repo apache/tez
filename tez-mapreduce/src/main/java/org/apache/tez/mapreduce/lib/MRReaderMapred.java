@@ -113,6 +113,9 @@ public class MRReaderMapred extends MRReader {
     boolean hasNext = recordReader.next(key, value);
     if (hasNext) {
       inputRecordCounter.increment(1);
+    } else {
+      hasCompletedProcessing();
+      completedProcessing = true;
     }
     return hasNext;
   }

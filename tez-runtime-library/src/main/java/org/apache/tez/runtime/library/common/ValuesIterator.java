@@ -63,6 +63,8 @@ public class ValuesIterator<KEY,VALUE> {
   private int keyCtr = 0;
   private boolean hasMoreValues; // For the current key.
   private boolean isFirstRecord = true;
+
+  private boolean completedProcessing;
   
   public ValuesIterator (TezRawKeyValueIterator in, 
                          RawComparator<KEY> comparator, 
@@ -98,6 +100,10 @@ public class ValuesIterator<KEY,VALUE> {
       isFirstRecord = false;
     } else {
       nextKey();
+    }
+    if (!more) {
+      hasCompletedProcessing();
+      completedProcessing = true;
     }
     return more;
   }
@@ -205,5 +211,17 @@ public class ValuesIterator<KEY,VALUE> {
     valueIn.reset(nextValueBytes.getData(), nextValueBytes.getPosition(),
         nextValueBytes.getLength() - nextValueBytes.getPosition());
     value = valDeserializer.deserialize(value);
+  }
+
+  /**
+   * Check whether processing has been completed.
+   *
+   * @throws IOException
+   */
+  protected void hasCompletedProcessing() throws IOException {
+    if (completedProcessing) {
+      throw new IOException("Please check if you are invoking moveToNext() even after it returned"
+          + " false.");
+    }
   }
 }

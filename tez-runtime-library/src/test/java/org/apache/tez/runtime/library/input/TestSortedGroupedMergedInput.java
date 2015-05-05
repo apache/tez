@@ -19,7 +19,7 @@
 package org.apache.tez.runtime.library.input;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
@@ -35,7 +35,9 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.MergedInputContext;
+import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.junit.Test;
 
@@ -82,6 +84,18 @@ public class TestSortedGroupedMergedInput {
       }
       assertEquals(6, valCount);
     }
+
+    getNextFromFinishedReader(kvsReader);
+  }
+
+  private void getNextFromFinishedReader(KeyValuesReader kvsReader) {
+    //Try reading again and it should throw IOException
+    try {
+      boolean hasNext = kvsReader.next();
+      fail();
+    } catch(IOException e) {
+      assertTrue(e.getMessage().contains("For usage, please refer to"));
+    }
   }
 
   @Test(timeout = 5000)
@@ -126,6 +140,7 @@ public class TestSortedGroupedMergedInput {
       }
       assertEquals(6, valCount);
     }
+    getNextFromFinishedReader(kvsReader);
   }
 
   @Test(timeout = 5000)
@@ -172,6 +187,7 @@ public class TestSortedGroupedMergedInput {
         assertEquals(6, valCount);
       }
     }
+    getNextFromFinishedReader(kvsReader);
   }
 
   @Test(timeout = 5000)
@@ -223,6 +239,7 @@ public class TestSortedGroupedMergedInput {
         fail("Unexpected key");
       }
     }
+    getNextFromFinishedReader(kvsReader);
   }
 
   @Test(timeout = 5000)
@@ -277,6 +294,7 @@ public class TestSortedGroupedMergedInput {
         fail("Unexpected key");
       }
     }
+    getNextFromFinishedReader(kvsReader);
   }
   
   // Reads all values for a key, but doesn't trigger the last hasNext() call.
@@ -324,6 +342,7 @@ public class TestSortedGroupedMergedInput {
       }
       assertEquals(6, valCount);
     }
+    getNextFromFinishedReader(kvsReader);
   }
 
   @Test(timeout = 5000)
@@ -350,7 +369,84 @@ public class TestSortedGroupedMergedInput {
     OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
-    assertFalse(kvsReader.next());
+    assertTrue(kvsReader.next() == false);
+    getNextFromFinishedReader(kvsReader);
+  }
+
+  @Test(timeout = 5000)
+  public void testSimpleConcatenatedMergedKeyValueInput() throws Exception {
+
+    DummyInput sInput1 = new DummyInput(10);
+    DummyInput sInput2 = new DummyInput(10);
+    DummyInput sInput3 = new DummyInput(10);
+
+    List<Input> sInputs = new LinkedList<Input>();
+    sInputs.add(sInput1);
+    sInputs.add(sInput2);
+    sInputs.add(sInput3);
+    ConcatenatedMergedKeyValueInput input =
+        new ConcatenatedMergedKeyValueInput(createMergedInputContext(), sInputs);
+
+    KeyValueReader kvReader = input.getReader();
+    int keyCount = 0;
+    while (kvReader.next()) {
+      keyCount++;
+      Integer key = (Integer) kvReader.getCurrentKey();
+      Integer value = (Integer) kvReader.getCurrentValue();
+    }
+    assertTrue(keyCount == 30);
+
+    getNextFromFinishedReader(kvReader);
+  }
+
+  @Test(timeout = 5000)
+  public void testSimpleConcatenatedMergedKeyValuesInput() throws Exception {
+    SortedTestKeyValuesReader kvsReader1 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
+        new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
+
+    SortedTestKeyValuesReader kvsReader2 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
+        new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
+
+    SortedTestKeyValuesReader kvsReader3 = new SortedTestKeyValuesReader(new int[] { 1, 2, 3 },
+        new int[][] { { 1, 1 }, { 2, 2 }, { 3, 3 } });
+
+    SortedTestInput sInput1 = new SortedTestInput(kvsReader1);
+    SortedTestInput sInput2 = new SortedTestInput(kvsReader2);
+    SortedTestInput sInput3 = new SortedTestInput(kvsReader3);
+
+    List<Input> sInputs = new LinkedList<Input>();
+    sInputs.add(sInput1);
+    sInputs.add(sInput2);
+    sInputs.add(sInput3);
+    ConcatenatedMergedKeyValuesInput input =
+        new ConcatenatedMergedKeyValuesInput(createMergedInputContext(), sInputs);
+
+    KeyValuesReader kvsReader = input.getReader();
+    int keyCount = 0;
+    while (kvsReader.next()) {
+      keyCount++;
+      Integer key = (Integer) kvsReader.getCurrentKey();
+      Iterator<Object> valuesIter = kvsReader.getCurrentValues().iterator();
+      int valCount = 0;
+      while (valuesIter.hasNext()) {
+        valCount++;
+        Integer val = (Integer) valuesIter.next();
+      }
+      assertEquals(2, valCount);
+    }
+    assertEquals(9, keyCount);
+
+    getNextFromFinishedReader(kvsReader);
+  }
+
+  private void getNextFromFinishedReader(KeyValueReader kvReader) {
+    //Try reading again and it should throw IOException
+    try {
+      boolean hasNext = kvReader.next();
+      fail();
+    } catch(IOException e) {
+      assertTrue(e.getMessage().contains("For usage, please refer to"));
+    }
   }
 
   private static class SortedTestInput extends OrderedGroupedKVInput {
@@ -404,8 +500,10 @@ public class TestSortedGroupedMergedInput {
 
     @Override
     public boolean next() throws IOException {
+      hasCompletedProcessing();
       currentIndex++;
       if (keys == null || currentIndex >= keys.length) {
+        completedProcessing = true;
         return false;
       }
       return true;
@@ -425,6 +523,47 @@ public class TestSortedGroupedMergedInput {
       return ints;
     }
   }
+
+  private static class DummyInput implements Input {
+    DummyKeyValueReader reader;
+
+    public DummyInput(int records) {
+      reader = new DummyKeyValueReader(records);
+    }
+
+    @Override
+    public void start() throws Exception {
+    }
+
+    @Override
+    public Reader getReader() throws Exception {
+      return reader;
+    }
+  }
+
+  private static class DummyKeyValueReader extends KeyValueReader {
+    private int records;
+
+    public DummyKeyValueReader(int records) {
+      this.records = records;
+    }
+
+    @Override
+    public boolean next() throws IOException {
+      return (records-- > 0);
+    }
+
+    @Override
+    public Object getCurrentKey() throws IOException {
+      return records;
+    }
+
+    @Override
+    public Object getCurrentValue() throws IOException {
+      return records;
+    }
+  }
+
 
   private static class RawComparatorForTest implements RawComparator<Integer> {
 

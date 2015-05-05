@@ -493,7 +493,8 @@ public class MRInput extends MRInputBase {
 
   /**
    * Returns a {@link KeyValueReader} that can be used to read 
-   * Map Reduce compatible key value data
+   * Map Reduce compatible key value data. An exception will be thrown if next()
+   * is invoked after false, either from the framework or from the underlying InputFormat
    */
   @Override
   public KeyValueReader getReader() throws IOException {

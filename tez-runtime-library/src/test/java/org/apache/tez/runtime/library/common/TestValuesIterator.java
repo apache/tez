@@ -65,6 +65,7 @@ import java.util.TreeMap;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -208,10 +209,19 @@ public class TestValuesIterator {
   @Test(timeout = 20000)
   public void testIteratorWithIFileReaderEmptyPartitions() throws IOException {
     ValuesIterator iterator = createEmptyIterator(false);
-    assert(iterator.moveToNext() == false);
+    assertTrue(iterator.moveToNext() == false);
 
     iterator = createEmptyIterator(true);
-    assert(iterator.moveToNext() == false);
+    assertTrue(iterator.moveToNext() == false);
+  }
+
+  private void getNextFromFinishedIterator(ValuesIterator iterator) {
+    try {
+      boolean hasNext = iterator.moveToNext();
+      fail();
+    } catch(IOException e) {
+      assertTrue(e.getMessage().contains("Please check if you are invoking moveToNext()"));
+    }
   }
 
   private ValuesIterator createEmptyIterator(boolean inMemory) throws IOException {
@@ -292,7 +302,14 @@ public class TestValuesIterator {
     }
     if (expectedTestResult) {
       assertTrue(result);
+
+      assertFalse(valuesIterator.moveToNext());
+      getNextFromFinishedIterator(valuesIterator);
     } else {
+      while(valuesIterator.moveToNext()) {
+        //iterate through all keys
+      }
+      getNextFromFinishedIterator(valuesIterator);
       assertFalse(result);
     }
 

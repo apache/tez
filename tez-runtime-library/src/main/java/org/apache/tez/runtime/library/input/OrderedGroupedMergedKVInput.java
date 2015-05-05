@@ -126,6 +126,9 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
         currentKey = nextKVReader.getCurrentKey();
         currentValues.moveToNext();
         return true;
+      } else {
+        hasCompletedProcessing();
+        completedProcessing = true;
       }
       return false;
     }
