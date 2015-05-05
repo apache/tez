@@ -18,9 +18,11 @@
 
 package org.apache.tez.runtime.api;
 
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
+
 import java.util.List;
 
-import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * Represents the Tez framework part of an {@link org.apache.tez.runtime.api.Processor}.
@@ -56,4 +58,11 @@ public interface ProcessorFrameworkInterface {
    *           if an error occurs
    */
   public void close() throws Exception;
+
+  /**
+   * Indicates <code>Processor</code> to abort. Cleanup can be done.
+   *
+   */
+  @Unstable
+  public void abort();
 }

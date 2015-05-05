@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -166,9 +167,32 @@ public class TestMergeManager {
     Assert.assertTrue(mergeManager.postMergeMemLimit == initialMemoryAvailable);
   }
 
-  @Test(timeout = 10000)
-  public void testLocalDiskMergeMultipleTasks() throws IOException {
+  class InterruptingThread implements Runnable {
 
+    MergeManager.OnDiskMerger mergeThread;
+
+    public InterruptingThread(MergeManager.OnDiskMerger mergeThread) {
+      this.mergeThread = mergeThread;
+    }
+
+    @Override public void run() {
+        while(this.mergeThread.tmpDir == null) {
+          //this is tight loop
+        }
+
+        this.mergeThread.interrupt();
+    }
+  }
+
+  @Test(timeout = 10000)
+  public void testLocalDiskMergeMultipleTasks() throws IOException, InterruptedException {
+    testLocalDiskMergeMultipleTasks(false);
+    testLocalDiskMergeMultipleTasks(true);
+  }
+
+
+  void testLocalDiskMergeMultipleTasks(boolean interruptInMiddle)
+      throws IOException, InterruptedException {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
@@ -194,6 +218,7 @@ public class TestMergeManager {
         new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
             t0exceptionReporter, 2000000, null, false, -1);
     MergeManager t0mergeManager = spy(t0mergeManagerReal);
+    t0mergeManager.configureAndStart();
 
     MergeManager t1mergeManagerReal =
         new MergeManager(conf, localFs, localDirAllocator, t1inputContext, null, null, null, null,
@@ -249,30 +274,48 @@ public class TestMergeManager {
     List<FileChunk> t0MergeFiles = new LinkedList<FileChunk>();
     t0MergeFiles.addAll(t0mergeManager.onDiskMapOutputs);
     t0mergeManager.onDiskMapOutputs.clear();
-    t0mergeManager.onDiskMerger.merge(t0MergeFiles);
-    Assert.assertEquals(1, t0mergeManager.onDiskMapOutputs.size());
 
+    if (!interruptInMiddle) {
+      t0mergeManager.onDiskMerger.merge(t0MergeFiles);
+      Assert.assertEquals(1, t0mergeManager.onDiskMapOutputs.size());
+    } else {
 
-    t1MapOutput0.commit();
-    t1MapOutput1.commit();
-    verify(t1mergeManager).closeOnDiskFile(t1MapOutput0.getOutputPath());
-    verify(t1mergeManager).closeOnDiskFile(t1MapOutput1.getOutputPath());
-    // Run the OnDiskMerge via MergeManager
-    // Simulate the thread invocation - remove files, and invoke merge
-    List<FileChunk> t1MergeFiles = new LinkedList<FileChunk>();
-    t1MergeFiles.addAll(t1mergeManager.onDiskMapOutputs);
-    t1mergeManager.onDiskMapOutputs.clear();
-    t1mergeManager.onDiskMerger.merge(t1MergeFiles);
-    Assert.assertEquals(1, t1mergeManager.onDiskMapOutputs.size());
+      //Start Interrupting thread
+      Thread interruptingThread = new Thread(new InterruptingThread(t0mergeManager.onDiskMerger));
+      interruptingThread.start();
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
 
-    Assert.assertNotEquals(t0mergeManager.onDiskMapOutputs.iterator().next().getPath(),
-        t1mergeManager.onDiskMapOutputs.iterator().next().getPath());
+      //Will be interrupted in the middle by interruptingThread.
+      t0mergeManager.onDiskMerger.startMerge(Sets.newHashSet(t0MergeFiles));
+      t0mergeManager.onDiskMerger.waitForMerge();
+      Assert.assertNotEquals(1, t0mergeManager.onDiskMapOutputs.size());
+    }
 
-    Assert.assertTrue(t0mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
-        .contains(t0inputContext.getUniqueIdentifier()));
-    Assert.assertTrue(t1mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
-        .contains(t1inputContext.getUniqueIdentifier()));
+    if (!interruptInMiddle) {
+      t1MapOutput0.commit();
+      t1MapOutput1.commit();
+      verify(t1mergeManager).closeOnDiskFile(t1MapOutput0.getOutputPath());
+      verify(t1mergeManager).closeOnDiskFile(t1MapOutput1.getOutputPath());
+      // Run the OnDiskMerge via MergeManager
+      // Simulate the thread invocation - remove files, and invoke merge
+      List<FileChunk> t1MergeFiles = new LinkedList<FileChunk>();
+      t1MergeFiles.addAll(t1mergeManager.onDiskMapOutputs);
+      t1mergeManager.onDiskMapOutputs.clear();
+      t1mergeManager.onDiskMerger.merge(t1MergeFiles);
+      Assert.assertEquals(1, t1mergeManager.onDiskMapOutputs.size());
 
+      Assert.assertNotEquals(t0mergeManager.onDiskMapOutputs.iterator().next().getPath(),
+          t1mergeManager.onDiskMapOutputs.iterator().next().getPath());
+
+      Assert.assertTrue(t0mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
+          .contains(t0inputContext.getUniqueIdentifier()));
+      Assert.assertTrue(t1mergeManager.onDiskMapOutputs.iterator().next().getPath().toString()
+          .contains(t1inputContext.getUniqueIdentifier()));
+    }
   }
 
   private InputContext createMockInputContext(String uniqueId) {

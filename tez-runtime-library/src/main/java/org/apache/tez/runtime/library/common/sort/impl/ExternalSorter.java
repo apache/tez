@@ -115,6 +115,8 @@ public abstract class ExternalSorter {
   protected Path finalIndexFile;
   protected int numSpills;
 
+  protected final boolean cleanup;
+
   // Counters
   // MR compatilbity layer needs to rename counters back to what MR requries.
 
@@ -147,6 +149,9 @@ public abstract class ExternalSorter {
     this.outputContext = outputContext;
     this.conf = conf;
     this.partitions = numOutputs;
+
+    cleanup = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT_DEFAULT);
 
     rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
@@ -261,6 +266,7 @@ public abstract class ExternalSorter {
     try {
       combiner.combine(kvIter, writer);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IOException(e);
     }
   }
@@ -313,5 +319,37 @@ public abstract class ExternalSorter {
 
   public int getNumSpills() {
     return numSpills;
+  }
+
+  protected synchronized void cleanup() throws IOException {
+    if (!cleanup) {
+      return;
+    }
+    cleanup(spillFilePaths);
+    cleanup(spillFileIndexPaths);
+    //TODO: What if when same volume rename happens (have to rely on job completion cleanup)
+    cleanup(finalOutputFile);
+    cleanup(finalIndexFile);
+  }
+
+  protected synchronized void cleanup(Path path) {
+    if (path == null || !cleanup) {
+      return;
+    }
+    try {
+      LOG.info("Deleting " + path);
+      rfs.delete(path, true);
+    } catch(IOException ioe) {
+      LOG.warn("Error in deleting "  + path);
+    }
+  }
+
+  protected synchronized void cleanup(Map<Integer, Path> spillMap) {
+    if (!cleanup) {
+      return;
+    }
+    for(Map.Entry<Integer, Path> entry : spillMap.entrySet()) {
+      cleanup(entry.getValue());
+    }
   }
 }

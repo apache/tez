@@ -193,6 +193,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         spillDone.await();
       }
     } catch (InterruptedException e) {
+      //interrupt spill thread
+      spillThread.interrupt();
+      Thread.currentThread().interrupt();
       throw new IOException("Spill thread failed to initialize", e);
     } finally {
       spillLock.unlock();
@@ -603,6 +606,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                   spillDone.await();
                 }
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                   throw new IOException(
                       "Buffer interrupted while waiting for the writer", e);
               }
@@ -625,9 +629,45 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     }
   }
 
+  void interruptSpillThread() throws IOException {
+    assert !spillLock.isHeldByCurrentThread();
+    // shut down spill thread and wait for it to exit. Since the preceding
+    // ensures that it is finished with its work (and sortAndSpill did not
+    // throw), we elect to use an interrupt instead of setting a flag.
+    // Spilling simultaneously from this thread while the spill thread
+    // finishes its work might be both a useful way to extend this and also
+    // sufficient motivation for the latter approach.
+    try {
+      spillThread.interrupt();
+      spillThread.join();
+    } catch (InterruptedException e) {
+      LOG.info("Spill thread interrupted");
+      //Reset status
+      Thread.currentThread().interrupt();
+      throw new IOException("Spill failed", e);
+    }
+  }
+
   @Override
   public void flush() throws IOException {
     LOG.info("Starting flush of map output");
+    if (Thread.currentThread().isInterrupted()) {
+      /**
+       * Possible that the thread got interrupted when flush was happening or when the flush was
+       * never invoked. As a part of cleanup activity in TezTaskRunner, it would invoke close()
+       * on all I/O. At that time, this is safe to cleanup
+       */
+      if (cleanup) {
+        cleanup();
+      }
+      try {
+        interruptSpillThread();
+      } catch(IOException e) {
+        //safe to ignore
+      }
+      return;
+    }
+
     spillLock.lock();
     try {
       while (spillInProgress) {
@@ -656,28 +696,25 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         sortAndSpill();
       }
     } catch (InterruptedException e) {
+      //Reset status
+      Thread.currentThread().interrupt();
+      interruptSpillThread();
       throw new IOException("Interrupted while waiting for the writer", e);
     } finally {
       spillLock.unlock();
     }
-    assert !spillLock.isHeldByCurrentThread();
-    // shut down spill thread and wait for it to exit. Since the preceding
-    // ensures that it is finished with its work (and sortAndSpill did not
-    // throw), we elect to use an interrupt instead of setting a flag.
-    // Spilling simultaneously from this thread while the spill thread
-    // finishes its work might be both a useful way to extend this and also
-    // sufficient motivation for the latter approach.
-    try {
-      spillThread.interrupt();
-      spillThread.join();
-    } catch (InterruptedException e) {
-      throw new IOException("Spill failed", e);
-    }
-    // release sort buffer before the merge
+
+    interruptSpillThread();
+    // release sort buffer before the mergecl
     //FIXME
     //kvbuffer = null;
 
-    mergeParts();
+    try {
+      mergeParts();
+    } catch (InterruptedException e) {
+      cleanup();
+      Thread.currentThread().interrupt();
+    }
     if (finalMergeEnabled) {
       fileOutputByteCounter.increment(rfs.getFileStatus(finalOutputFile).getLen());
     }
@@ -715,6 +752,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           }
         }
       } catch (InterruptedException e) {
+        LOG.info("Spill thread interrupted");
         Thread.currentThread().interrupt();
       } finally {
         spillLock.unlock();
@@ -1085,7 +1123,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     outputContext.sendEvents(events);
   }
 
-  private void mergeParts() throws IOException {
+  private void mergeParts() throws IOException, InterruptedException {
     // get the approximate size of the final output/index files
     long finalOutFileSize = 0;
     long finalIndexFileSize = 0;

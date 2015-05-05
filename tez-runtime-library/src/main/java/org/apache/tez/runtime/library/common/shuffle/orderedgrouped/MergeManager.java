@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -137,6 +138,8 @@ public class MergeManager {
 
   private AtomicInteger mergeFileSequenceId = new AtomicInteger(0);
 
+  private final boolean cleanup;
+
   /**
    * Construct the MergeManager. Must call start before it becomes usable.
    */
@@ -173,6 +176,9 @@ public class MergeManager {
     this.numMemToDiskMerges = inputContext.getCounters().findCounter(TaskCounter.NUM_MEM_TO_DISK_MERGES);
     this.additionalBytesWritten = inputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
     this.additionalBytesRead = inputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
+
+    this.cleanup = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT_DEFAULT);
 
     this.codec = codec;
     this.ifileReadAhead = ifileReadAheadEnabled;
@@ -514,27 +520,61 @@ public class MergeManager {
   public boolean isMergeComplete() {
     return finalMergeComplete;
   }
-  
+
   public TezRawKeyValueIterator close() throws Throwable {
     // Wait for on-going merges to complete
-    if (memToMemMerger != null) { 
+    if (memToMemMerger != null) {
       memToMemMerger.close();
     }
     inMemoryMerger.close();
     onDiskMerger.close();
-    
-    List<MapOutput> memory = 
+
+    List<MapOutput> memory =
       new ArrayList<MapOutput>(inMemoryMergedMapOutputs);
     inMemoryMergedMapOutputs.clear();
     memory.addAll(inMemoryMapOutputs);
     inMemoryMapOutputs.clear();
     List<FileChunk> disk = new ArrayList<FileChunk>(onDiskMapOutputs);
     onDiskMapOutputs.clear();
-    TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
-    this.finalMergeComplete = true;
-    return kvIter;
+    try {
+      TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
+      this.finalMergeComplete = true;
+      return kvIter;
+    } catch(InterruptedException e) {
+      //Cleanup the disk segments
+      if (cleanup) {
+        cleanup(localFS, disk);
+        cleanup(localFS, onDiskMapOutputs);
+      }
+      Thread.currentThread().interrupt(); //reset interrupt status
+      throw e;
+    }
   }
-   
+
+
+  static void cleanup(FileSystem fs, Collection<FileChunk> fileChunkList) {
+    for (FileChunk fileChunk : fileChunkList) {
+      cleanup(fs, fileChunk.getPath());
+    }
+  }
+
+  static void cleanup(FileSystem fs, Path path) {
+    if (path == null) {
+      return;
+    }
+
+    try {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Deleting " + path);
+      }
+      fs.delete(path, true);
+    } catch (IOException e) {
+      LOG.info("Error in deleting " + path);
+    }
+  }
+
+
+
   void runCombineProcessor(TezRawKeyValueIterator kvIter, Writer writer)
       throws IOException, InterruptedException {
     combiner.combine(kvIter, writer);
@@ -555,7 +595,7 @@ public class MergeManager {
     }
 
     @Override
-    public void merge(List<MapOutput> inputs) throws IOException {
+    public void merge(List<MapOutput> inputs) throws IOException, InterruptedException {
       if (inputs == null || inputs.size() == 0) {
         return;
       }
@@ -597,13 +637,28 @@ public class MergeManager {
       // Note the output of the merge
       closeInMemoryMergedFile(mergedMapOutputs);
     }
+
+    @Override
+    public void cleanup(List<MapOutput> inputs, boolean deleteData) throws IOException,
+        InterruptedException {
+      //No OP
+    }
   }
   
   /**
    * Merges multiple in-memory segment to a disk segment
    */
   private class InMemoryMerger extends MergeThread<MapOutput> {
-    
+
+    @VisibleForTesting
+    volatile InputAttemptIdentifier srcTaskIdentifier;
+
+    @VisibleForTesting
+    volatile Path outputPath;
+
+    @VisibleForTesting
+    volatile Path tmpDir;
+
     public InMemoryMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
       setName("MemtoDiskMerger [" + TezUtilsInternal
@@ -628,7 +683,7 @@ public class MergeManager {
       //in the merge method)
 
       //figure out the mapId 
-      InputAttemptIdentifier srcTaskIdentifier = inputs.get(0).getAttemptIdentifier();
+      srcTaskIdentifier = inputs.get(0).getAttemptIdentifier();
 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
       long mergeOutputSize = 
@@ -639,7 +694,7 @@ public class MergeManager {
       
       // All disk writes done by this merge are overhead - due to the lac of
       // adequate memory to keep all segments in memory.
-      Path outputPath = mapOutputFile.getInputFileForWrite(
+      outputPath = mapOutputFile.getInputFileForWrite(
           srcTaskIdentifier.getInputIdentifier().getInputIndex(), srcTaskIdentifier.getSpillEventId(),
           mergeOutputSize).suffix(Constants.MERGED_OUTPUT_PREFIX);
       LOG.info("Patch..InMemoryMerger outputPath: " + outputPath);
@@ -657,13 +712,13 @@ public class MergeManager {
         LOG.info("Initiating in-memory merge with " + noInMemorySegments + 
             " segments...");
 
+        tmpDir = new Path(inputContext.getUniqueIdentifier());
         // Nothing actually materialized to disk - controlled by setting sort-factor to #segments.
         rIter = TezMerger.merge(conf, rfs,
             (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
             (Class)ConfigUtils.getIntermediateInputValueClass(conf),
             inMemorySegments, inMemorySegments.size(),
-            new Path(inputContext.getUniqueIdentifier()),
-            (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
+            tmpDir, (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
             nullProgressable, spilledRecordsCounter, null, additionalBytesRead, null);
         // spilledRecordsCounter is tracking the number of keys that will be
         // read from each of the segments being merged - which is essentially
@@ -700,6 +755,18 @@ public class MergeManager {
       closeOnDiskFile(new FileChunk(outputPath, 0, outFileLen));
     }
 
+    @Override
+    public void cleanup(List<MapOutput> inputs, boolean deleteData)
+        throws IOException, InterruptedException {
+      if (deleteData) {
+        //Additional check at task level
+        if (cleanup) {
+          LOG.info("Try deleting stale data");
+          MergeManager.cleanup(localFS, outputPath);
+          MergeManager.cleanup(localFS, tmpDir);
+        }
+      }
+    }
   }
 
   /**
@@ -707,6 +774,11 @@ public class MergeManager {
    */
   @VisibleForTesting
   class OnDiskMerger extends MergeThread<FileChunk> {
+
+    @VisibleForTesting
+    volatile Path outputPath;
+    @VisibleForTesting
+    volatile Path tmpDir;
 
     public OnDiskMerger(MergeManager manager) {
       super(manager, ioSortFactor, exceptionReporter);
@@ -716,7 +788,7 @@ public class MergeManager {
     }
     
     @Override
-    public void merge(List<FileChunk> inputs) throws IOException {
+    public void merge(List<FileChunk> inputs) throws IOException, InterruptedException {
       // sanity check
       if (inputs == null || inputs.isEmpty()) {
         LOG.info("No ondisk files to merge...");
@@ -768,7 +840,7 @@ public class MergeManager {
 
       // namePart includes the suffix of the file. We need to remove it.
       namePart = FilenameUtils.removeExtension(namePart);
-      Path outputPath = localDirAllocator.getLocalPathForWrite(namePart, approxOutputSize, conf);
+      outputPath = localDirAllocator.getLocalPathForWrite(namePart, approxOutputSize, conf);
       outputPath = outputPath.suffix(Constants.MERGED_OUTPUT_PREFIX + mergeFileSequenceId.getAndIncrement());
 
       Writer writer =
@@ -776,7 +848,7 @@ public class MergeManager {
                         (Class)ConfigUtils.getIntermediateInputKeyClass(conf), 
                         (Class)ConfigUtils.getIntermediateInputValueClass(conf),
                         codec, null, null);
-      Path tmpDir = new Path(inputContext.getUniqueIdentifier());
+      tmpDir = new Path(inputContext.getUniqueIdentifier());
       try {
         TezRawKeyValueIterator iter = TezMerger.merge(conf, rfs,
             (Class)ConfigUtils.getIntermediateInputKeyClass(conf),
@@ -808,6 +880,20 @@ public class MergeManager {
           " Local output file is " + outputPath + " of size " +
           outputLen);
     }
+
+    @Override
+    public void cleanup(List<FileChunk> inputs, boolean deleteData) throws IOException,
+        InterruptedException {
+      if (deleteData) {
+        //Additional check at task level
+        if (cleanup) {
+          LOG.info("Try deleting stale data");
+          MergeManager.cleanup(localFS, inputs);
+          MergeManager.cleanup(localFS, outputPath);
+          MergeManager.cleanup(localFS, tmpDir);
+        }
+      }
+    }
   }
   
   private long createInMemorySegments(List<MapOutput> inMemoryMapOutputs,
@@ -821,7 +907,7 @@ public class MergeManager {
     for (MapOutput mo : inMemoryMapOutputs) {
       fullSize += mo.getMemory().length;
     }
-    while(fullSize > leaveBytes) {
+    while((fullSize > leaveBytes) && !Thread.currentThread().isInterrupted()) {
       MapOutput mo = inMemoryMapOutputs.remove(0);
       byte[] data = mo.getMemory();
       long size = data.length;
@@ -878,7 +964,7 @@ public class MergeManager {
   private TezRawKeyValueIterator finalMerge(Configuration job, FileSystem fs,
                                        List<MapOutput> inMemoryMapOutputs,
                                        List<FileChunk> onDiskMapOutputs
-                                       ) throws IOException {
+                                       ) throws IOException, InterruptedException {
     LOG.info("finalMerge called with " + 
              inMemoryMapOutputs.size() + " in-memory map-outputs and " + 
              onDiskMapOutputs.size() + " on-disk map-outputs");

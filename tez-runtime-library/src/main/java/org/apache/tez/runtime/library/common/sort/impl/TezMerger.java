@@ -76,7 +76,7 @@ public class TezMerger {
                             TezCounter writesCounter,
                             TezCounter bytesReadCounter,
                             Progress mergePhase)
-  throws IOException {
+      throws IOException, InterruptedException {
     return 
       new MergeQueue(conf, fs, inputs, deleteInputs, codec, ifileReadAhead,
                            ifileReadAheadLength, ifileBufferSize, false, comparator, 
@@ -101,7 +101,7 @@ public class TezMerger {
                             TezCounter mergedMapOutputsCounter,
                             TezCounter bytesReadCounter,
                             Progress mergePhase)
-  throws IOException {
+      throws IOException, InterruptedException {
     return 
       new MergeQueue(conf, fs, inputs, deleteInputs, codec, ifileReadAhead,
                            ifileReadAheadLength, ifileBufferSize, false, comparator, 
@@ -124,7 +124,7 @@ public class TezMerger {
                             TezCounter writesCounter,
                             TezCounter bytesReadCounter,
                             Progress mergePhase)
-      throws IOException {
+      throws IOException, InterruptedException {
     // Get rid of this ?
     return merge(conf, fs, keyClass, valueClass, segments, mergeFactor, tmpDir,
                  comparator, reporter, false, readsCounter, writesCounter, bytesReadCounter,
@@ -142,7 +142,7 @@ public class TezMerger {
                             TezCounter writesCounter,
                             TezCounter bytesReadCounter,
                             Progress mergePhase)
-      throws IOException {
+      throws IOException, InterruptedException {
     return new MergeQueue(conf, fs, segments, comparator, reporter,
                            sortSegments, false).merge(keyClass, valueClass,
                                                mergeFactor, tmpDir,
@@ -163,7 +163,7 @@ public class TezMerger {
                             TezCounter writesCounter,
                             TezCounter bytesReadCounter,
                             Progress mergePhase)
-      throws IOException {
+      throws IOException, InterruptedException {
     return new MergeQueue(conf, fs, segments, comparator, reporter,
                            sortSegments, codec, considerFinalMergeForProgress).
                                          merge(keyClass, valueClass,
@@ -185,7 +185,7 @@ public class TezMerger {
                           TezCounter writesCounter,
                           TezCounter bytesReadCounter,
                           Progress mergePhase)
-    throws IOException {
+      throws IOException, InterruptedException {
   return new MergeQueue(conf, fs, segments, comparator, reporter,
                          sortSegments, codec, false).merge(keyClass, valueClass,
                                              mergeFactor, inMemSegments,
@@ -196,9 +196,9 @@ public class TezMerger {
 }
 
   public static <K extends Object, V extends Object>
-  void writeFile(TezRawKeyValueIterator records, Writer writer, 
-                 Progressable progressable, long recordsBeforeProgress) 
-  throws IOException {
+  void writeFile(TezRawKeyValueIterator records, Writer writer,
+      Progressable progressable, long recordsBeforeProgress)
+      throws IOException, InterruptedException {
     long recordCtr = 0;
     long count = 0;
     while(records.next()) {
@@ -211,6 +211,15 @@ public class TezMerger {
       
       if (((recordCtr++) % recordsBeforeProgress) == 0) {
         progressable.progress();
+        if (Thread.currentThread().isInterrupted()) {
+          /**
+           * Takes care DefaultSorter.mergeParts, MergeManager's merger threads,
+           * PipelinedSorter's flush(). This is not expensive check as it is carried out every
+           * 10000 records or so.
+           */
+          throw new InterruptedException("Current thread=" + Thread.currentThread().getName() + " got "
+              + "interrupted");
+        }
       }
     }
     if ((count > 0) && LOG.isDebugEnabled()) {
@@ -614,7 +623,7 @@ public class TezMerger {
                                      TezCounter writesCounter,
                                      TezCounter bytesReadCounter,
                                      Progress mergePhase)
-        throws IOException {
+        throws IOException, InterruptedException {
       return merge(keyClass, valueClass, factor, 0, tmpDir,
                    readsCounter, writesCounter, bytesReadCounter, mergePhase);
     }
@@ -625,7 +634,7 @@ public class TezMerger {
                                      TezCounter writesCounter,
                                      TezCounter bytesReadCounter,
                                      Progress mergePhase)
-        throws IOException {
+        throws IOException, InterruptedException {
       LOG.info("Merging " + segments.size() + " sorted segments");
       if (segments.size() == 0) {
         LOG.info("Nothing to merge. Returning an empty iterator");

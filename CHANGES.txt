@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-1752. Inputs / Outputs in the Runtime library should be interruptable.
   TEZ-2401. Tez UI: All-dag page has duration keep counting for KILLED dag.
   TEZ-2392. Have all readers throw an Exception on incorrect next() usage.
   TEZ-2408. TestTaskAttempt fails to compile against hadoop-2.4 and hadoop-2.2.

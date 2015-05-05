@@ -46,8 +46,18 @@ abstract class MergeThread<T> extends Thread {
   
   public synchronized void close() throws InterruptedException {
     closed = true;
-    waitForMerge();
-    interrupt();
+    if (!Thread.currentThread().isInterrupted()) {
+      waitForMerge();
+      interrupt();
+    } else {
+      try {
+        interrupt();
+        cleanup(inputs, Thread.currentThread().isInterrupted());
+      } catch (IOException e) {
+        //ignore
+        LOG.warn("Error cleaning up", e);
+      }
+    }
   }
 
   public synchronized boolean isInProgress() {
@@ -89,6 +99,7 @@ abstract class MergeThread<T> extends Thread {
         merge(inputs);
       } catch (InterruptedException ie) {
         // Meant to handle a shutdown of the entire fetch/merge process
+        Thread.currentThread().interrupt();
         return;
       } catch(Throwable t) {
         reporter.reportException(t);
@@ -105,5 +116,8 @@ abstract class MergeThread<T> extends Thread {
   }
 
   public abstract void merge(List<T> inputs) 
+      throws IOException, InterruptedException;
+
+  public abstract void cleanup(List<T> inputs, boolean deleteData)
       throws IOException, InterruptedException;
 }

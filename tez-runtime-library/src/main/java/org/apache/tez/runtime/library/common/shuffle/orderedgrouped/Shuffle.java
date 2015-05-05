@@ -357,6 +357,7 @@ public class Shuffle implements ExceptionReporter {
       shufflePhaseTime.setValue(System.currentTimeMillis() - startTime);
 
       // Stop the map-output fetcher threads
+      LOG.info("Cleaning up fetchers");
       cleanupFetchers(false);
       
       // stop the scheduler
@@ -393,8 +394,7 @@ public class Shuffle implements ExceptionReporter {
         for (FetcherOrderedGrouped fetcher : fetchers) {
           try {
             fetcher.shutDown();
-            LOG.info("Shutdown.." + fetcher.getName() + ", status:" + fetcher.isAlive() + ", "
-                + "isInterrupted:" + fetcher.isInterrupted());
+            LOG.info("Shutdown.." + fetcher.getName());
           } catch (InterruptedException e) {
             if (ignoreErrors) {
               LOG.info("Interrupted while shutting down fetchers. Ignoring.");
@@ -425,6 +425,8 @@ public class Shuffle implements ExceptionReporter {
         scheduler.close();
       } catch (InterruptedException e) {
         if (ignoreErrors) {
+          //Reset the status
+          Thread.currentThread().interrupt();
           LOG.info("Interrupted while attempting to close the scheduler during cleanup. Ignoring");
         } else {
           throw e;
@@ -437,6 +439,14 @@ public class Shuffle implements ExceptionReporter {
     if (!mergerClosed.getAndSet(true)) {
       try {
         merger.close();
+      } catch (InterruptedException e) {
+        if (ignoreErrors) {
+          //Reset the status
+          Thread.currentThread().interrupt();
+          LOG.info("Interrupted while attempting to close the merger during cleanup. Ignoring");
+        } else {
+          throw e;
+        }
       } catch (Throwable e) {
         if (ignoreErrors) {
           LOG.info("Exception while trying to shutdown merger, Ignoring", e);
@@ -493,7 +503,7 @@ public class Shuffle implements ExceptionReporter {
     @Override
     public void onFailure(Throwable t) {
       if (isShutDown.get()) {
-        LOG.info("Already shutdown. Ignoring error: ",  t);
+        LOG.info("Already shutdown. Ignoring error");
       } else {
         LOG.error("ShuffleRunner failed with error", t);
         inputContext.fatalError(t, "Shuffle Runner Failed");

@@ -184,6 +184,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       currentFetchedInput = shuffleManager.getNextInput();
     } catch (InterruptedException e) {
       LOG.warn("Interrupted while waiting for next available input", e);
+      Thread.currentThread().interrupt();
       throw new IOException(e);
     }
     if (currentFetchedInput == null) {

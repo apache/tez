@@ -748,6 +748,11 @@ public class ShuffleManager implements FetcherCallback {
   /////////////////// End of Methods from FetcherCallbackHandler
 
   public void shutdown() throws InterruptedException {
+    if (Thread.currentThread().isInterrupted()) {
+      //TODO: need to cleanup all FetchedInput (DiskFetchedInput, LocalDisFetchedInput), lockFile
+      //As of now relying on job cleanup (when all directories would be cleared)
+      LOG.info("Thread interrupted. Need to cleanup the local dirs");
+    }
     if (!isShutdown.getAndSet(true)) {
       // Shut down any pending fetchers
       LOG.info("Shutting down pending fetchers on source" + srcNameTrimmed + ": "

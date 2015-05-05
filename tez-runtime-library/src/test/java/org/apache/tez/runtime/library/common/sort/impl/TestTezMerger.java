@@ -557,7 +557,8 @@ public class TestTezMerger {
    * @return
    * @throws IOException
    */
-  private TezRawKeyValueIterator merge(List<Path> pathList, RawComparator rc) throws IOException {
+  private TezRawKeyValueIterator merge(List<Path> pathList, RawComparator rc)
+      throws IOException, InterruptedException {
     TezMerger merger = new TezMerger();
     TezRawKeyValueIterator records = merger.merge(defaultConf, localFs, IntWritable.class,
         LongWritable.class, null, false, 0, 1024, pathList.toArray(new Path[pathList.size()]),

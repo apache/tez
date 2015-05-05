@@ -376,6 +376,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       // fall back to HTTP fetch below
       LOG.warn("Double locking detected for " + host);
     } catch (InterruptedException sleepInterrupted) {
+      Thread.currentThread().interrupt();
       // fall back to HTTP fetch below
       LOG.warn("Lock was interrupted for " + host);
     } finally {

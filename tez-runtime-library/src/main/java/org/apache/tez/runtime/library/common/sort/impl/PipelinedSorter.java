@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
@@ -356,6 +355,9 @@ public class PipelinedSorter extends ExternalSorter {
       merger.ready(); // wait for all the future results from sort threads
       LOG.info("Spilling to " + filename.toString());
       for (int i = 0; i < partitions; ++i) {
+        if (isThreadInterrupted()) {
+          return;
+        }
         TezRawKeyValueIterator kvIter = merger.filter(i);
         //write merged output to disk
         long segmentStart = out.getPos();
@@ -391,147 +393,182 @@ public class PipelinedSorter extends ExternalSorter {
       ++numSpills;
     } catch(InterruptedException ie) {
       // TODO:the combiner has been interrupted
+      Thread.currentThread().interrupt();
     } finally {
       out.close();
     }
+  }
+
+
+
+
+
+  private boolean isThreadInterrupted() throws IOException {
+    if (Thread.currentThread().isInterrupted()) {
+      if (cleanup) {
+        cleanup();
+      }
+      sortmaster.shutdownNow();
+      LOG.info("Thread interrupted, cleaned up stale data, sorter threads shutdown=" + sortmaster
+          .isShutdown() + ", terminated=" + sortmaster.isTerminated());
+      return true;
+    }
+    return false;
   }
 
   @Override
   public void flush() throws IOException {
     final String uniqueIdentifier = outputContext.getUniqueIdentifier();
 
-    LOG.info("Starting flush of map output");
-    span.end();
-    merger.add(span.sort(sorter));
-    spill();
-    sortmaster.shutdown();
-
-    //safe to clean up
-    bufferList.clear();
-
-    numAdditionalSpills.increment(numSpills - 1);
-
-    if (!finalMergeEnabled) {
-      //Generate events for all spills
-      List<Event> events = Lists.newLinkedList();
-
-      //For pipelined shuffle, previous events are already sent. Just generate the last event alone
-      int startIndex = (pipelinedShuffle) ? (numSpills - 1) : 0;
-      int endIndex = numSpills;
-
-      for (int i = startIndex; i < endIndex; i++) {
-        boolean isLastEvent = (i == numSpills - 1);
-
-        String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
-        ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, isLastEvent,
-            outputContext, i, indexCacheList.get(i), partitions,
-            sendEmptyPartitionDetails, pathComponent);
-        LOG.info("Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
-      }
-      outputContext.sendEvents(events);
-      //No need to generate final merge
+    /**
+     * Possible that the thread got interrupted when flush was happening or when the flush was
+     * never invoked. As a part of cleanup activity in TezTaskRunner, it would invoke close()
+     * on all I/O. At that time, this is safe to cleanup
+     */
+    if (isThreadInterrupted()) {
       return;
     }
 
-    //In case final merge is required, the following code path is executed.
-    if(numSpills == 1) {
-      // someday be able to pass this directly to shuffle
-      // without writing to disk
-      final Path filename = spillFilePaths.get(0);
-      final Path indexFilename = spillFileIndexPaths.get(0);
-      finalOutputFile = mapOutputFile.getOutputFileForWriteInVolume(filename);
-      finalIndexFile = mapOutputFile.getOutputIndexFileForWriteInVolume(indexFilename);
+    try {
+      LOG.info("Starting flush of map output");
+      span.end();
+      merger.add(span.sort(sorter));
+      spill();
+      sortmaster.shutdown();
 
-      sameVolRename(filename, finalOutputFile);
-      sameVolRename(indexFilename, finalIndexFile);
-      if (LOG.isInfoEnabled()) {
-        LOG.info("numSpills=" + numSpills + ", finalOutputFile=" + finalOutputFile + ", "
-            + "finalIndexFile=" + finalIndexFile + ", filename=" + filename + ", indexFilename=" +
-            indexFilename);
+      //safe to clean up
+      bufferList.clear();
+
+      numAdditionalSpills.increment(numSpills - 1);
+
+      if (!finalMergeEnabled) {
+        //Generate events for all spills
+        List<Event> events = Lists.newLinkedList();
+
+        //For pipelined shuffle, previous events are already sent. Just generate the last event alone
+        int startIndex = (pipelinedShuffle) ? (numSpills - 1) : 0;
+        int endIndex = numSpills;
+
+        for (int i = startIndex; i < endIndex; i++) {
+          boolean isLastEvent = (i == numSpills - 1);
+
+          String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
+          ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, isLastEvent,
+              outputContext, i, indexCacheList.get(i), partitions,
+              sendEmptyPartitionDetails, pathComponent);
+          LOG.info("Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
+        }
+        outputContext.sendEvents(events);
+        //No need to generate final merge
+        return;
       }
-      return;
-    }
 
-    finalOutputFile =
-        mapOutputFile.getOutputFileForWrite(0); //TODO
-    finalIndexFile =
-        mapOutputFile.getOutputIndexFileForWrite(0); //TODO
+      //In case final merge is required, the following code path is executed.
+      if (numSpills == 1) {
+        // someday be able to pass this directly to shuffle
+        // without writing to disk
+        final Path filename = spillFilePaths.get(0);
+        final Path indexFilename = spillFileIndexPaths.get(0);
+        finalOutputFile = mapOutputFile.getOutputFileForWriteInVolume(filename);
+        finalIndexFile = mapOutputFile.getOutputIndexFileForWriteInVolume(indexFilename);
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("numSpills: " + numSpills + ", finalOutputFile:" + finalOutputFile + ", finalIndexFile:"
-              + finalIndexFile);
-    }
+        sameVolRename(filename, finalOutputFile);
+        sameVolRename(indexFilename, finalIndexFile);
+        if (LOG.isInfoEnabled()) {
+          LOG.info("numSpills=" + numSpills + ", finalOutputFile=" + finalOutputFile + ", "
+              + "finalIndexFile=" + finalIndexFile + ", filename=" + filename + ", indexFilename=" +
+              indexFilename);
+        }
+        return;
+      }
 
-    //The output stream for the final single output file
-    FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
+      finalOutputFile =
+          mapOutputFile.getOutputFileForWrite(0); //TODO
+      finalIndexFile =
+          mapOutputFile.getOutputIndexFileForWrite(0); //TODO
 
-    final TezSpillRecord spillRec = new TezSpillRecord(partitions);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "numSpills: " + numSpills + ", finalOutputFile:" + finalOutputFile + ", finalIndexFile:"
+                + finalIndexFile);
+      }
 
+      //The output stream for the final single output file
+      FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
 
-    for (int parts = 0; parts < partitions; parts++) {
-      //create the segments to be merged
-      List<Segment> segmentList =
-          new ArrayList<Segment>(numSpills);
-      for(int i = 0; i < numSpills; i++) {
+      final TezSpillRecord spillRec = new TezSpillRecord(partitions);
+
+      for (int parts = 0; parts < partitions; parts++) {
+        //create the segments to be merged
+        List<Segment> segmentList =
+            new ArrayList<Segment>(numSpills);
+        for (int i = 0; i < numSpills; i++) {
+          Path spillFilename = spillFilePaths.get(i);
+          TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
+
+          Segment s =
+              new Segment(rfs, spillFilename, indexRecord.getStartOffset(),
+                  indexRecord.getPartLength(), codec, ifileReadAhead,
+                  ifileReadAheadLength, ifileBufferSize, true);
+          segmentList.add(i, s);
+        }
+
+        int mergeFactor =
+            this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR,
+                TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT);
+        // sort the segments only if there are intermediate merges
+        boolean sortSegments = segmentList.size() > mergeFactor;
+        //merge
+        TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
+            keyClass, valClass, codec,
+            segmentList, mergeFactor,
+            new Path(uniqueIdentifier),
+            (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf),
+            nullProgressable, sortSegments, true,
+            null, spilledRecordsCounter, null,
+            null); // Not using any Progress in TezMerger. Should just work.
+
+        //write merged output to disk
+        long segmentStart = finalOut.getPos();
+        Writer writer =
+            new Writer(conf, finalOut, keyClass, valClass, codec,
+                spilledRecordsCounter, null, merger.needsRLE());
+        if (combiner == null || numSpills < minSpillsForCombine) {
+          TezMerger.writeFile(kvIter, writer, nullProgressable,
+              TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+        } else {
+          runCombineProcessor(kvIter, writer);
+        }
+
+        //close
+        writer.close();
+
+        // record offsets
+        final TezIndexRecord rec =
+            new TezIndexRecord(
+                segmentStart,
+                writer.getRawLength(),
+                writer.getCompressedLength());
+        spillRec.putIndex(rec, parts);
+      }
+
+      spillRec.writeToFile(finalIndexFile, conf);
+      finalOut.close();
+      for (int i = 0; i < numSpills; i++) {
+        Path indexFilename = spillFileIndexPaths.get(i);
         Path spillFilename = spillFilePaths.get(i);
-        TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
-
-        Segment s =
-            new Segment(rfs, spillFilename, indexRecord.getStartOffset(),
-                             indexRecord.getPartLength(), codec, ifileReadAhead,
-                             ifileReadAheadLength, ifileBufferSize, true);
-        segmentList.add(i, s);
+        rfs.delete(indexFilename, true);
+        rfs.delete(spillFilename, true);
       }
 
-      int mergeFactor = 
-              this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 
-                  TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT);
-      // sort the segments only if there are intermediate merges
-      boolean sortSegments = segmentList.size() > mergeFactor;
-      //merge
-      TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
-                     keyClass, valClass, codec,
-                     segmentList, mergeFactor,
-                     new Path(uniqueIdentifier),
-                     (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf), 
-                     nullProgressable, sortSegments, true,
-                     null, spilledRecordsCounter, null,
-                     null); // Not using any Progress in TezMerger. Should just work.
-
-      //write merged output to disk
-      long segmentStart = finalOut.getPos();
-      Writer writer =
-          new Writer(conf, finalOut, keyClass, valClass, codec,
-                           spilledRecordsCounter, null, merger.needsRLE());
-      if (combiner == null || numSpills < minSpillsForCombine) {
-        TezMerger.writeFile(kvIter, writer, nullProgressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
-      } else {
-        runCombineProcessor(kvIter, writer);
+      spillFileIndexPaths.clear();
+      spillFilePaths.clear();
+    } catch(InterruptedException ie) {
+      if (cleanup) {
+        cleanup();
       }
-
-      //close
-      writer.close();
-
-      // record offsets
-      final TezIndexRecord rec = 
-          new TezIndexRecord(
-              segmentStart, 
-              writer.getRawLength(), 
-              writer.getCompressedLength());
-      spillRec.putIndex(rec, parts);
+      Thread.currentThread().interrupt();
     }
-
-    spillRec.writeToFile(finalIndexFile, conf);
-    finalOut.close();
-    for(int i = 0; i < numSpills; i++) {
-      Path indexFilename = spillFileIndexPaths.get(i);
-      Path spillFilename = spillFilePaths.get(i);
-      rfs.delete(indexFilename,true);
-      rfs.delete(spillFilename,true);
-    }
-
-    spillFileIndexPaths.clear();
-    spillFilePaths.clear();
   }
 
 
