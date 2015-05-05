@@ -48,9 +48,13 @@ Em.Handlebars.helper('formatNumThousands', function (value) {
  * @method formatDuration
  */
 Em.Handlebars.helper('formatDuration', function(startTime, endTime) {
+  if (!endTime || !startTime) {
+    return 'Not Available';
+  }
+
 	// unixtimestamp is in seconds. javascript expects milliseconds.
-	if (endTime < startTime || !!endTime) {
-		end = new Date().getTime();
+	if (endTime < startTime) {
+		endTime = new Date().getTime();
 	}
 
 	return App.Helpers.date.durationSummary(startTime, endTime);

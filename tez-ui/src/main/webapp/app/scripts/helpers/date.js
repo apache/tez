@@ -207,6 +207,7 @@ App.Helpers.date = {
    * @method duration
    */
   duration: function (startTime, endTime) {
+    if (!startTime || !endTime) return undefined;
     var duration = 0;
     if (startTime && startTime > 0) {
       if (!endTime || endTime < 1) {
