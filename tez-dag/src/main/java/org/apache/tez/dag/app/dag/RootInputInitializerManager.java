@@ -425,6 +425,7 @@ public class RootInputInitializerManager {
             if (taskAttemptIndex == successfulAttempt) {
               toForwardEvents.add((InputInitializerEvent) tezEvent.getEvent());
             }
+            // Drop all other events which have the same source task Id.
             eventIterator.remove();
           }
         }
