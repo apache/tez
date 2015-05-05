@@ -17,7 +17,7 @@
          xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
          xmlns:asfext="http://projects.apache.org/ns/asfext#"
          xmlns:foaf="http://xmlns.com/foaf/0.1/">
-  <asfext:PMC rdf:about="tez">
+  <asfext:pmc rdf:about="tez">
     <asfext:name>Apache Tez</asfext:name>
     <foaf:homepage rdf:resource="http://tez.apache.org/"/>
     <asfext:chair>
@@ -26,11 +26,6 @@
       </foaf:Person>
     </asfext:chair>
     <asfext:charter>Apache Tez is an effort to develop a generic application framework which can be used to process arbitrarily complex DAGs of data-processing tasks and also a re-usable set of data-processing primitives which can be used by other projects.</asfext:charter>
-    <asfext:member>
-      <foaf:Person>
-        <foaf:name>Alan Gates</foaf:name>
-      </foaf:Person>
-    </asfext:member>
     <asfext:member>
       <foaf:Person>
         <foaf:name>Arun C. Murthy</foaf:name>
@@ -186,6 +181,6 @@
         <foaf:name>Vinod Kumar Vavilapalli</foaf:name>
       </foaf:Person>
     </asfext:member>
-  </asfext:PMC>
+  </asfext:pmc>
 
 </rdf:RDF>
