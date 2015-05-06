@@ -38,8 +38,10 @@ App.ColumnSelectorMixin = Em.Mixin.create({
   _storeKey: '',
   visibleColumnIds: {},
   columnConfigs: [],
+  selectOptions: [],
 
   columnSelectorTitle: 'Column Selector',
+  columnSelectorMessage: '',
 
   init: function(){
     var visibleColumnIds;
@@ -59,7 +61,7 @@ App.ColumnSelectorMixin = Em.Mixin.create({
 
     this._super();
     this.set('visibleColumnIds', visibleColumnIds);
-  },
+  }.observes('defaultColumnConfigs'), //To reset on entity change
 
   columns: function() {
     var visibleColumnConfigs = this.get('columnConfigs').filter(function (column) {
@@ -67,23 +69,76 @@ App.ColumnSelectorMixin = Em.Mixin.create({
     }, this);
 
     return App.Helpers.misc.createColumnDescription(visibleColumnConfigs);
-  }.property('visibleColumnIds'),
+  }.property('visibleColumnIds', 'columnConfigs'),
+
+  _getSelectOptions: function () {
+    var group = null,
+        highlight = false,
+        visibleColumnIds = this.get('visibleColumnIds');
+
+    return this.get('columnConfigs').map(function (config) {
+      var css = '';
+
+      highlight = highlight ^ (config.counterGroupName != group),
+      group = config.counterGroupName;
+
+      if(highlight) {
+        css += ' highlight';
+      }
+      if(group && App.Helpers.misc.checkIOCounterGroup(group)) {
+        css += ' per-io';
+      }
+
+      return Em.Object.create({
+        id: config.id,
+        displayText: config.headerCellName,
+        css: css,
+        selected: visibleColumnIds[config.id]
+      });
+    });
+  },
 
   actions: {
     selectColumns: function () {
-      var that = this;
+      this.set('selectOptions', this._getSelectOptions());
 
-      App.Dialogs.displayMultiSelect(this.get('columnSelectorTitle'), this.get('columnConfigs'), this.visibleColumnIds, {
-        displayText: 'headerCellName'
-      }).then(function (data) {
-        if(isObjectsDifferent(data, that.visibleColumnIds)) {
-          try {
-            localStorage.setItem(that._storeKey , JSON.stringify(data));
-          }catch(e){}
-          that.set('visibleColumnIds', data);
-        }
-      });
+      Bootstrap.ModalManager.open(
+        'columnSelector',
+        this.get('columnSelectorTitle'),
+        App.MultiSelectView.extend({
+          options: this.get('selectOptions'),
+          message: this.get('columnSelectorMessage')
+        }),
+        [Ember.Object.create({
+          title: 'Ok',
+          dismiss: 'modal',
+          clicked: 'selectionChange'
+        })],
+        this
+      );
+    },
+
+    selectionChange: function () {
+      var visibleColumnIds = this.get('selectOptions').reduce(function (obj, option) {
+            if(option.get('selected')) {
+              obj[option.get('id')] = true;
+            }
+            return obj;
+          }, {}),
+          selectionToSave = this.get('selectOptions').reduce(function (obj, option) {
+            var id = option.id;
+            if(!id.match('_INPUT_') && !id.match('_OUTPUT_') && visibleColumnIds[id]) {
+              obj[id] = true;
+            }
+            return obj;
+          }, {});
+
+      if(isObjectsDifferent(visibleColumnIds, this.get('visibleColumnIds'))) {
+        try {
+          localStorage.setItem(this._storeKey , JSON.stringify(selectionToSave));
+        }catch(e){}
+        this.set('visibleColumnIds', visibleColumnIds);
+      }
     }
   }
-
 });

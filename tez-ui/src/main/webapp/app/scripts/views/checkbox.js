@@ -16,33 +16,14 @@
  * limitations under the License.
  */
 
-App.BasicTableComponent.SearchView = Ember.View.extend({
-  templateName: 'components/basic-table/search-view',
+App.Checkbox = Em.Checkbox.extend({
+  change: function() {
+    var value = this.get('checked'),
+        target = this.get('target') || this.get('context');
 
-  classNames: ['search-view'],
-
-  text: '',
-  _boundText: function () {
-    return this.get('text') || '';
-  }.property(),
-
-  _validRegEx: function () {
-    var regExText = this.get('_boundText');
-    regExText = regExText.substr(regExText.indexOf(':') + 1);
-    try {
-      new RegExp(regExText, 'im');
-    }
-    catch(e) {
-      return false;
+    if(target) {
+      Em.run.later(target.send.bind(target, this.get('action'), value), 100);
     }
     return true;
-  }.property('_boundText'),
-
-  actions: {
-    search: function () {
-      if(this.get('_validRegEx')) {
-        this.get('parentView').send('search', this.get('_boundText'));
-      }
-    }
   }
 });

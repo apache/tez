@@ -19,7 +19,7 @@
 <div {{bind-attr class=":input-group view._validRegEx::has-error"}}>
   {{input
     class="form-control"
-    placeholder="RegEx or Column1, Column2... :RegEx"
+    placeholder=view.placeholder
     action="search"
     value=view._boundText
     targetObject=view

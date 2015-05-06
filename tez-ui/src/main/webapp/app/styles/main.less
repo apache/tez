@@ -657,6 +657,10 @@ body, html {
 
       overflow: hidden;
       transform: translateZ(0);
+
+      i {
+        position: static;
+      }
     }
 
     .horizontal-half {
@@ -714,6 +718,11 @@ body, html {
     margin: 5px 0px;
 
     overflow: auto;
+
+    .data-availability-message {
+      font-size: 24px;
+      text-align: center;
+    }
 
     .table-body {
       .noise-background;
@@ -788,11 +797,6 @@ body, html {
 
           padding-right: 15px;
 
-          -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
-          user-select: none;
-
           background-color: @bg-grey;
           border-bottom: 1px solid @border-color;
         }
@@ -848,4 +852,49 @@ body, html {
 .align-close-button {
   margin-left: -1px;
   margin-top: -1px;
+}
+
+.multi-select {
+  .message {
+    text-align: right;
+    font-size: 10px;
+  }
+
+  .selection-list {
+    border: 1px solid @border-color;
+
+    .highlight {
+      background-color: @bg-lite;
+    }
+    .select-option, .search-option {
+      border-top: 1px dotted @border-color;
+      padding: 5px;
+
+      .checkbox {
+        margin-right: 10px;
+        float: left;
+        vertical-align: middle;
+      }
+    }
+    .search-option {
+      border: none;
+
+      .form-group {
+        .inline-block;
+        .align-top;
+
+        width: 470px;
+        margin: 4px 0px 0px 20px;
+      }
+    }
+  }
+}
+
+.modal-body {
+  max-height:500px;
+  overflow-y: auto;
+}
+
+.per-io {
+  color: @text-green;
 }

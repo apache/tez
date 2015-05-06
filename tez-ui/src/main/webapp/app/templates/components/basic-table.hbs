@@ -21,7 +21,10 @@
     <div class='table-header'>
       <div class="horizontal-half align-top">
         {{#if enableSearch}}
-          {{view App.BasicTableComponent.SearchView text=searchText}}
+          {{view App.BasicTableComponent.SearchView
+            text=searchText
+            placeholder="RegEx or Column1, Column2... :RegEx"
+          }}
         {{/if}}
         <div class="table-message">
           {{#if _statusMessage}}
@@ -40,21 +43,27 @@
     </div>
   {{/if}}
   <div class='table-body-container'>
-    <div class='table-body'>
-      {{#each column in _columns}}
-        <div {{bind-attr
-            style=column.customStyle
-            class=":table-column _view.contentIndex::first-item"
-        }}>
-          {{view column.headerCellView}}
-          {{#each row in _rows}}
-            <div class='table-cell {{unbound firstItemCSS _view}}'>
-              {{view column.cellView row=row}}
-            </div>
-          {{/each}}
-        </div>
-      {{/each}}
-    </div>
+    {{#unless _columns.length}}
+      <div class="data-availability-message">No columns available!</div>
+    {{else}}{{#unless _rows.length}}
+      <div class="data-availability-message">No records available!</div>
+    {{else}}
+      <div class='table-body'>
+        {{#each column in _columns}}
+          <div {{bind-attr
+              style=column.customStyle
+              class=":table-column _view.contentIndex::first-item"
+          }}>
+            {{view column.headerCellView}}
+            {{#each row in _rows}}
+              <div class='table-cell {{unbound firstItemCSS _view}}'>
+                {{view column.cellView row=row}}
+              </div>
+            {{/each}}
+          </div>
+        {{/each}}
+      </div>
+    {{/unless}}{{/unless}}
   </div>
   <div class='table-footer'>
     <div class="horizontal-half align-top">

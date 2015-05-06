@@ -109,6 +109,50 @@ App.Helpers.misc = {
     return classPath.substr(classPath.lastIndexOf('.') + 1);
   },
 
+  /**
+   * Return a normalized group name for a counter name
+   * @param groupName {String}
+   * @return Normlaized name
+   */
+  getCounterGroupDisplayName: function (groupName) {
+    var displayName = App.Helpers.misc.getClassName(groupName), // Remove path
+        ioParts,
+        toText;
+
+    function removeCounterFromEnd(text) {
+      if(text.substr(-7) == 'Counter') {
+        text = text.substr(0, text.length - 7);
+      }
+      return text;
+    }
+
+    displayName = removeCounterFromEnd(displayName);
+
+    // Reformat per-io counters
+    switch(App.Helpers.misc.checkIOCounterGroup(displayName)) {
+      case 'in':
+        ioParts = displayName.split('_INPUT_');
+        toText = 'to %@ Input'.fmt(ioParts[1]);
+      break;
+      case 'out':
+        ioParts = displayName.split('_OUTPUT_');
+        toText = 'to %@ Output'.fmt(ioParts[1]);
+      break;
+    }
+    if(ioParts) {
+      ioParts = ioParts[0].split('_');
+      if(ioParts.length > 1) {
+        displayName = '%@ - %@ %@'.fmt(
+          removeCounterFromEnd(ioParts.shift()),
+          ioParts.join('_'),
+          toText
+        );
+      }
+    }
+
+    return displayName;
+  },
+
   /*
    * Normalizes counter style configurations
    * @param counterConfigs Array
@@ -116,9 +160,14 @@ App.Helpers.misc = {
    */
   normalizeCounterConfigs: function (counterConfigs) {
     return counterConfigs.map(function (configuration) {
-      configuration.headerCellName = configuration.counterName || configuration.counterId;
-      configuration.id = '%@/%@'.fmt(configuration.counterGroupName || configuration.groupId,
-          configuration.counterName || configuration.counterId),
+      var groupName = configuration.counterGroupName || configuration.groupId,
+          counterName = configuration.counterName || configuration.counterId;
+
+      configuration.headerCellName = '%@ - %@'.fmt(
+        App.Helpers.misc.getCounterGroupDisplayName(groupName),
+        counterName
+      );
+      configuration.id = '%@/%@'.fmt(groupName, counterName),
 
       configuration.getSortValue = App.Helpers.misc.getCounterCellContent;
       configuration.getCellContent =
@@ -411,6 +460,45 @@ App.Helpers.misc = {
         downloader.cancel();
       }
     }
+  },
+
+  /**
+   * Returns in/out/empty string based counter group type
+   * @param counterGroupName {String}
+   * @return in/out/empty string
+   */
+  checkIOCounterGroup: function (counterGroupName) {
+    if(counterGroupName == undefined){
+      debugger;
+    }
+    var relationPart = counterGroupName.substr(counterGroupName.indexOf('_') + 1);
+    if(relationPart.match('_INPUT_')) {
+      return 'in';
+    }
+    else if(relationPart.match('_OUTPUT_')) {
+      return 'out';
+    }
+    return '';
+  },
+
+  /**
+   * Return unique values form array based on a property
+   * @param array {Array}
+   * @param property {String}
+   * @return uniqueArray {Array}
+   */
+  getUniqueByProperty: function (array, property) {
+    var propHash = {},
+        uniqueArray = [];
+
+    array.forEach(function (item) {
+      if(item && !propHash[item[property]]) {
+        uniqueArray.push(item);
+        propHash[item[property]] = true;
+      }
+    });
+
+    return uniqueArray;
   },
 
   timelinePathForType: (function () {

@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-App.VertexTasksController = App.TablePageController.extend({
+App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumnMixin, {
 
   controllerName: 'VertexTasksController',
   needs: "vertex",
 
   entityType: 'vertexTask',
+  baseEntityType: 'task',
   filterEntityType: 'vertex',
   filterEntityId: Ember.computed.alias('controllers.vertex.id'),
 
@@ -172,17 +173,6 @@ App.VertexTasksController = App.TablePageController.extend({
         }
       }
     ];
-  }.property('id'),
-
-  columnConfigs: function() {
-    return this.get('defaultColumnConfigs').concat(
-      App.Helpers.misc.normalizeCounterConfigs(
-        App.get('Configs.defaultCounters').concat(
-          App.get('Configs.tables.entity.task') || [],
-          App.get('Configs.tables.sharedColumns') || []
-        )
-      )
-    );
-  }.property(),
+  }.property('filterEntityId')
 
 });
