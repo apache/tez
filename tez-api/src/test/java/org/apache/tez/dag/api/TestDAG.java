@@ -87,13 +87,7 @@ public class TestDAG {
 
     DAG dag = DAG.create("testDAG");
     dag.createVertexGroup("group_1", v1,v2);
-    try {
-      dag.createVertexGroup("group_1", v1,v2);
-      Assert.fail("should fail it due to duplicated VertexGroups");
-    } catch (Exception e) {
-      e.printStackTrace();
-      Assert.assertEquals("VertexGroup [v1, v2] already defined as another group!", e.getMessage());
-    }
+
     try {
       dag.createVertexGroup("group_1", v2, v3);
       Assert.fail("should fail it due to duplicated VertexGroups");
@@ -101,13 +95,9 @@ public class TestDAG {
       e.printStackTrace();
       Assert.assertEquals("VertexGroup group_1 already defined!", e.getMessage());
     }
-    try {
-      dag.createVertexGroup("group_2", v1, v2);
-      Assert.fail("should fail it due to duplicated VertexGroups");
-    } catch (Exception e) {
-      e.printStackTrace();
-      Assert.assertEquals("VertexGroup [v1, v2] already defined as another group!", e.getMessage());
-    }
+    // it is possible to create vertex group with same member but different group name 
+    dag.createVertexGroup("group_2", v1, v2);
+
   }
 
   @Test(timeout = 5000)
