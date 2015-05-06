@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-App.TaskAttemptsController = App.TablePageController.extend({
+App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColumnMixin, {
 
   controllerName: 'TaskAttemptsController',
   needs: "task",
 
   entityType: 'taskTaskAttempt',
+  baseEntityType: 'taskAttempt',
   filterEntityType: 'task',
   filterEntityId: Ember.computed.alias('controllers.task.id'),
 
@@ -193,18 +194,7 @@ App.TaskAttemptsController = App.TablePageController.extend({
         }
       }
     ];
-  }.property(),
-
-  columnConfigs: function() {
-    return this.get('defaultColumnConfigs').concat(
-      App.Helpers.misc.normalizeCounterConfigs(
-        App.get('Configs.defaultCounters').concat(
-          App.get('Configs.tables.entity.taskAttempt') || [],
-          App.get('Configs.tables.sharedColumns') || []
-        )
-      )
-    );
-  }.property(),
+  }.property('filterEntityId'),
 
 });
 

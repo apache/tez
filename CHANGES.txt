@@ -15,6 +15,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2406. Tez UI: Display per-io counter columns in task and attempt pages under vertex
   TEZ-2384. Add warning message in the case of prewarn under non-session mode.
   TEZ-2415. PMC RDF needs to use asfext:pmc, not asfext:PMC.
   TEZ-1752. Inputs / Outputs in the Runtime library should be interruptable.
