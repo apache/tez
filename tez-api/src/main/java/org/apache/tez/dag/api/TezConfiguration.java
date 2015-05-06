@@ -372,7 +372,7 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH =
       TEZ_PREFIX + "counters.group-name.max-length";
-  public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 128;
+  public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 256;
 
   @Unstable
   /**
