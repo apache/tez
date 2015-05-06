@@ -93,7 +93,7 @@ var timelineJsonToDagMap = {
   endTime: 'otherinfo.endTime',
   name: 'primaryfilters.dagName.0',
   user: 'primaryfilters.user.0',
-  applicationId: 'otherinfo.applicationId',
+  applicationId: 'primaryfilters.applicationId.0',
   status: 'otherinfo.status',
   hasFailedTaskAttempts: {
     custom: function(source) {
