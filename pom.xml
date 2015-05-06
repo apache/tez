@@ -39,6 +39,7 @@
     <clover.license>${user.home}/clover.license</clover.license>
     <hadoop.version>2.6.0</hadoop.version>
     <jetty.version>6.1.26</jetty.version>
+    <pig.version>0.13.0</pig.version>
     <distMgmtSnapshotsId>apache.snapshots.https</distMgmtSnapshotsId>
     <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
     <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
@@ -167,6 +168,11 @@
         <artifactId>tez-yarn-timeline-history</artifactId>
         <version>${project.version}</version>
         <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pig</groupId>
+        <artifactId>pig</artifactId>
+        <version>${pig.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -631,6 +637,7 @@
     <module>tez-dag</module>
     <module>tez-ui</module>
     <module>tez-plugins</module>
+    <module>tez-tools</module>
     <module>tez-dist</module>
     <module>docs</module>
   </modules>

@@ -169,6 +169,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2396. pig-tez-tfile-parser pom is hard coded to depend on 0.6.0-SNAPSHOT version.
   TEZ-2237. Valid events should be sent out when an Output is not started.
   TEZ-1988. Tez UI: does not work when using file:// in a browser
   TEZ-2390. tez-tools swimlane tool fails to parse large jobs >8K containers
