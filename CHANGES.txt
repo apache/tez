@@ -2,6 +2,12 @@ Apache Tez Change Log
 =====================
 
 
+Release 0.8.0: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
 Release 0.7.0: Unreleased
 
 INCOMPATIBLE CHANGES
