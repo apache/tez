@@ -138,7 +138,7 @@ public class SortMergeJoinExample extends TezExampleBase {
    * @param inputPath2
    * @param outPath
    * @param numPartitions
-   * @return
+   * @return dag
    * @throws IOException
    */
   private DAG createDag(TezConfiguration tezConf, Path inputPath1,
