@@ -3,7 +3,7 @@ This is a simple Pig loader to parse TFiles and provide line by line format (tup
 
 Build/Install:
 ==============
-1. "mvn clean package" should create "tfile-parser-1.0-SNAPSHOT.jar" would be created in ./target directory
+1. "mvn clean package" should create "tfile-parser-x.y.z-SNAPSHOT.jar" would be created in ./target directory
 
 Running pig with tez:
 ====================
