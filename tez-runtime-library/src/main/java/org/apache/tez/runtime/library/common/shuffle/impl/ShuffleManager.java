@@ -21,6 +21,7 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -161,7 +162,8 @@ public class ShuffleManager implements FetcherCallback {
   private final LocalDirAllocator localDirAllocator;
   private final RawLocalFileSystem localFs;
   private final Path[] localDisks;
-  private final static String localhostName = NetUtils.getHostname();
+  private final String localhostName;
+  private final int shufflePort;
 
   private final TezCounter shufflePhaseTime;
   private final TezCounter firstEventReceived;
@@ -216,7 +218,7 @@ public class ShuffleManager implements FetcherCallback {
 
     int maxConfiguredFetchers = 
         conf.getInt(
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
     
     this.numFetchers = Math.min(maxConfiguredFetchers, numInputs);
@@ -249,6 +251,10 @@ public class ShuffleManager implements FetcherCallback {
 
     this.localDisks = Iterables.toArray(
         localDirAllocator.getAllLocalPathsToRead(".", conf), Path.class);
+    this.localhostName = inputContext.getExecutionContext().getHostName();
+    final ByteBuffer shuffleMetaData =
+        inputContext.getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+    this.shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetaData);
 
     Arrays.sort(this.localDisks);
 
@@ -390,7 +396,7 @@ public class ShuffleManager implements FetcherCallback {
       httpConnectionParams, inputManager, inputContext.getApplicationId(),
         jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
         lockDisk, localDiskFetchEnabled, sharedFetchEnabled,
-        inputContext.getExecutionContext().getHostName());
+        localhostName, shufflePort);
 
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
