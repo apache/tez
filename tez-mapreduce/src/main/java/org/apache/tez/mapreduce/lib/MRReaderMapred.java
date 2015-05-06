@@ -117,6 +117,9 @@ public class MRReaderMapred extends MRReader {
       hasCompletedProcessing();
       completedProcessing = true;
     }
+    // The underlying reader does not throw InterruptedExceptions. Cannot convert to an
+    // IOInterruptedException without checking the interrupt flag on each request, which is also
+    // not guaranteed. Relying on the user to ensure Interrupts are handled correctly.
     return hasNext;
   }
 

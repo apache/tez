@@ -39,6 +39,8 @@ public abstract class KeyValueWriter extends Writer {
    *          the value to write
    * @throws IOException
    *           if an error occurs
+   * @throws {@link IOInterruptedException} if IO was interrupted
+   * @throws {@link IOInterruptedException} if IO was performing a blocking operation and was interrupted
    */
   public abstract void write(Object key, Object value) throws IOException;
 }

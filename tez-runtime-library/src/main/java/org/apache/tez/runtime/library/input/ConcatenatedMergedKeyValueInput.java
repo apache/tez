@@ -64,7 +64,13 @@ public class ConcatenatedMergedKeyValueInput extends MergedLogicalInput {
           currentReader = (KeyValueReader) reader;
           currentReaderIndex++;
         } catch (Exception e) {
-          throw new IOException(e);
+          // An InterruptedException is not expected here since this works off of
+          // underlying readers which take care of throwing IOInterruptedExceptions
+          if (e instanceof IOException) {
+            throw (IOException) e;
+          } else {
+            throw new IOException(e);
+          }
         }
       }
       return true;

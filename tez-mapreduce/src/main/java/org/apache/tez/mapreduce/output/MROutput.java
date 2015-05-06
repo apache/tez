@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -499,7 +500,7 @@ public class MROutput extends AbstractLogicalOutput {
             newRecordWriter.write(key, value);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while writing next key-value",e);
+            throw new IOInterruptedException("Interrupted while writing next key-value",e);
           }
         } else {
           oldRecordWriter.write(key, value);

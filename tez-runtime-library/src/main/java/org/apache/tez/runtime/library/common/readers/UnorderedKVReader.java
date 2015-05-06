@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.common.readers;
 
 import java.io.IOException;
 
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -168,7 +169,6 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
    * 
    * @return true if the next input exists, false otherwise
    * @throws IOException
-   * @throws InterruptedException
    */
   private boolean moveToNextInput() throws IOException {
     if (currentReader != null) { // Close the current reader.
@@ -185,7 +185,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
     } catch (InterruptedException e) {
       LOG.warn("Interrupted while waiting for next available input", e);
       Thread.currentThread().interrupt();
-      throw new IOException(e);
+      throw new IOInterruptedException(e);
     }
     if (currentFetchedInput == null) {
       hasCompletedProcessing();

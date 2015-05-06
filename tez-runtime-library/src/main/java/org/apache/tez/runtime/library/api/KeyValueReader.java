@@ -49,6 +49,7 @@ public abstract class KeyValueReader extends Reader {
    * @return true if another key/value(s) pair exists, false if there are no more.
    * @throws IOException
    *           if an error occurs
+   * @throws {@link IOInterruptedException} if IO was performing a blocking operation and was interrupted
    */
   public abstract boolean next() throws IOException;
 
@@ -63,6 +64,7 @@ public abstract class KeyValueReader extends Reader {
   /**
    * Returns the current value
    * @return the current value
+   *
    * @throws IOException
    */
   public abstract Object getCurrentValue() throws IOException;

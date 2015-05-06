@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
 
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.mapred.JobConf;
@@ -116,7 +117,7 @@ public class MRReaderMapReduce extends MRReader {
       hasNext = recordReader.nextKeyValue();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new IOException("Interrupted while checking for next key-value", e);
+      throw new IOInterruptedException("Interrupted while checking for next key-value", e);
     }
     if (hasNext) {
       inputRecordCounter.increment(1);

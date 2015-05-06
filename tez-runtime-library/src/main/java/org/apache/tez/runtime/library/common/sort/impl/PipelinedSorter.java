@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.PriorityQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -37,6 +38,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -341,7 +343,7 @@ public class PipelinedSorter extends ExternalSorter {
     mapOutputByteCounter.increment(valend - keystart);
   }
 
-  public void spill() throws IOException { 
+  public void spill() throws IOException {
     // create spill file
     final long size = capacity +
         + (partitions * APPROX_HEADER_LENGTH);
@@ -352,7 +354,13 @@ public class PipelinedSorter extends ExternalSorter {
     FSDataOutputStream out = rfs.create(filename, true, 4096);
 
     try {
-      merger.ready(); // wait for all the future results from sort threads
+      try {
+        merger.ready(); // wait for all the future results from sort threads
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        LOG.info("Interrupted while waiting for mergers to complete");
+        throw new IOInterruptedException("Interrupted while waiting for mergers to complete", e);
+      }
       LOG.info("Spilling to " + filename.toString());
       for (int i = 0; i < partitions; ++i) {
         if (isThreadInterrupted()) {
@@ -391,9 +399,6 @@ public class PipelinedSorter extends ExternalSorter {
       //TODO: honor cache limits
       indexCacheList.add(spillRec);
       ++numSpills;
-    } catch(InterruptedException ie) {
-      // TODO:the combiner has been interrupted
-      Thread.currentThread().interrupt();
     } finally {
       out.close();
     }
@@ -568,6 +573,7 @@ public class PipelinedSorter extends ExternalSorter {
         cleanup();
       }
       Thread.currentThread().interrupt();
+      throw new IOInterruptedException("Interrupted while closing Output", ie);
     }
   }
 
@@ -1046,7 +1052,7 @@ public class PipelinedSorter extends ExternalSorter {
           iter = futureIter.get();
           this.add(iter);
         }
-        
+
         StringBuilder sb = new StringBuilder();
         for(SpanIterator sp: heap) {
             sb.append(sp.toString());
@@ -1056,7 +1062,7 @@ public class PipelinedSorter extends ExternalSorter {
         }
         LOG.info("Heap = " + sb.toString());
         return true;
-      } catch(Exception e) {
+      } catch(ExecutionException e) {
         LOG.info(e.toString());
         return false;
       }

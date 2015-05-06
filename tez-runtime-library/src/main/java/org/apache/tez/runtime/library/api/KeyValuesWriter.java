@@ -38,6 +38,8 @@ public abstract class KeyValuesWriter extends KeyValueWriter {
    * @param values
    *          values to write
    * @throws java.io.IOException
+   * @throws {@link IOInterruptedException} if IO was interrupted
+   * @throws {@link IOInterruptedException} if IO was performing a blocking operation and was interrupted
    */
   public abstract void write(Object key, Iterable<Object> values) throws IOException;
 }

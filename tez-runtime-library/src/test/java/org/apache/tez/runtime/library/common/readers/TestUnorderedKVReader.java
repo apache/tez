@@ -26,6 +26,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
@@ -48,6 +49,7 @@ import java.util.LinkedList;
 import static junit.framework.TestCase.fail;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
@@ -162,6 +164,26 @@ public class TestUnorderedKVReader {
       fail();
     } catch(IOException ioe) {
       Assert.assertTrue(ioe.getMessage().contains("For usage, please refer to"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testInterruptOnNext() throws IOException, InterruptedException {
+    ShuffleManager shuffleManager = mock(ShuffleManager.class);
+
+    // Simulate an interrupt while waiting for the next fetched input.
+    doThrow(new InterruptedException()).when(shuffleManager).getNextInput();
+    TezCounters counters = new TezCounters();
+    TezCounter inputRecords = counters.findCounter(TaskCounter.INPUT_RECORDS_PROCESSED);
+    UnorderedKVReader<Text, Text> reader =
+        new UnorderedKVReader<Text, Text>(shuffleManager, defaultConf, null, false, -1, -1,
+            inputRecords);
+
+    try {
+      reader.next();
+      fail("No data available to reader. Should not be able to access any record");
+    } catch (IOInterruptedException e) {
+      // Expected exception. Any other should fail the test.
     }
   }
 

@@ -305,6 +305,7 @@ public class Shuffle implements ExceptionReporter {
       kvIter = runShuffleFuture.get();
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
+      // Processor interrupted while waiting for errors, will see an InterruptedException.
       handleThrowable(cause);
     }
     if (isShutDown.get()) {
@@ -375,7 +376,9 @@ public class Shuffle implements ExceptionReporter {
       try {
         kvIter = merger.close();
       } catch (Throwable e) {
-        throw new ShuffleError("Error while doing final merge " , e);
+        // Set the throwable so that future.get() sees the reported errror.
+        throwable.set(e);
+        throw new ShuffleError("Error while doing final merge ", e);
       }
       mergePhaseTime.setValue(System.currentTimeMillis() - startTime);
 
@@ -513,6 +516,7 @@ public class Shuffle implements ExceptionReporter {
         LOG.info("Already shutdown. Ignoring error");
       } else {
         LOG.error("ShuffleRunner failed with error", t);
+        // In case of an abort / Interrupt - the runtime makes sure that this is ignored.
         inputContext.fatalError(t, "Shuffle Runner Failed");
         cleanupIgnoreErrors();
       }

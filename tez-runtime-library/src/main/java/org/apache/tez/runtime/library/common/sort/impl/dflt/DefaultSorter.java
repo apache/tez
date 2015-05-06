@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -607,7 +608,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                 }
               } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                  throw new IOException(
+                  throw new IOInterruptedException(
                       "Buffer interrupted while waiting for the writer", e);
               }
             }
@@ -644,7 +645,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
       LOG.info("Spill thread interrupted");
       //Reset status
       Thread.currentThread().interrupt();
-      throw new IOException("Spill failed", e);
+      throw new IOInterruptedException("Spill failed", e);
     }
   }
 
@@ -769,7 +770,11 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
             + " failed : " + ExceptionUtils.getStackTrace(lspillException);
         outputContext.fatalError(lspillException, logMsg);
       }
-      throw new IOException("Spill failed", lspillException);
+      if (lspillException instanceof InterruptedException) {
+        throw new IOInterruptedException("Spill failed", lspillException);
+      } else {
+        throw new IOException("Spill failed", lspillException);
+      }
     }
   }
 

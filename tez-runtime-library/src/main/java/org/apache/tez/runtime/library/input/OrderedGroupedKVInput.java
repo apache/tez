@@ -27,6 +27,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -121,7 +123,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     if (!isStarted.get()) {
       memoryUpdateCallbackHandler.validateUpdateReceived();
       // Start the shuffle - copy and merge
-      shuffle = new Shuffle(getContext(), conf, getNumPhysicalInputs(), memoryUpdateCallbackHandler.getMemoryAssigned());
+      shuffle = createShuffle();
       shuffle.run();
       if (LOG.isDebugEnabled()) {
         LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
@@ -135,6 +137,11 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
       }
       isStarted.set(true);
     }
+  }
+
+  @VisibleForTesting
+  Shuffle createShuffle() throws IOException {
+    return new Shuffle(getContext(), conf, getNumPhysicalInputs(), memoryUpdateCallbackHandler.getMemoryAssigned());
   }
 
   /**
@@ -207,6 +214,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
    * previous K-V pair will throw an Exception
    *
    * @return a KVReader over the sorted input.
+   * @throws {@link IOInterruptedException} if IO was performing a blocking operation and was interrupted
    */
   @Override
   public KeyValuesReader getReader() throws IOException, TezException {
@@ -240,7 +248,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
         waitForInputReady();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new IOException("Interrupted while waiting for input ready", e);
+        throw new IOInterruptedException("Interrupted while waiting for input ready", e);
       }
     }
     @SuppressWarnings("rawtypes")
