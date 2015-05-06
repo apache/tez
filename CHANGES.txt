@@ -7,6 +7,7 @@ Release 0.8.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1752. Inputs / Outputs in the Runtime library should be interruptable.
 
 Release 0.7.0: Unreleased
 
@@ -20,7 +21,6 @@ ALL CHANGES:
   TEZ-2406. Tez UI: Display per-io counter columns in task and attempt pages under vertex
   TEZ-2384. Add warning message in the case of prewarn under non-session mode.
   TEZ-2415. PMC RDF needs to use asfext:pmc, not asfext:PMC.
-  TEZ-1752. Inputs / Outputs in the Runtime library should be interruptable.
   TEZ-2401. Tez UI: All-dag page has duration keep counting for KILLED dag.
   TEZ-2392. Have all readers throw an Exception on incorrect next() usage.
   TEZ-2408. TestTaskAttempt fails to compile against hadoop-2.4 and hadoop-2.2.
