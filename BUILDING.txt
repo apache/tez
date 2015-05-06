@@ -157,3 +157,12 @@ For example, to generate the state machine graphviz file for DAGImpl, run:
 To generate the diagram, you can use a Graphviz application or something like:
 
   $ dot -Tpng -o Tez.png Tez.gv'
+
+----------------------------------------------------------------------------------
+Building contrib tools under tez-tools :
+
+Use -Ptools to build various contrib tools present under tez-tools. For example, run:
+
+ $ mvn package -Ptools
+
+----------------------------------------------------------------------------------
