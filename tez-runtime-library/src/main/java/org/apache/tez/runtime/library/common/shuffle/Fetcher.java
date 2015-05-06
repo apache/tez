@@ -33,7 +33,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,7 +47,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.DiskChecker.DiskErrorException;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -75,6 +73,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private static final AtomicInteger fetcherIdGen = new AtomicInteger(0);
   private final Configuration conf;
+  private final int shufflePort;
 
   // Configurable fields.
   private CompressionCodec codec;
@@ -132,7 +131,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       Path lockPath,
       boolean localDiskFetchEnabled,
       boolean sharedFetchEnabled,
-      String localHostname) {
+      String localHostname,
+      int shufflePort) {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.jobTokenSecretMgr = jobTokenSecretManager;
@@ -151,6 +151,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     this.localDirAllocator = localDirAllocator;
     this.lockPath = lockPath;
     this.localHostname = localHostname;
+    this.shufflePort = shufflePort;
 
     try {
       if (this.sharedFetchEnabled) {
@@ -186,7 +187,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     HostFetchResult hostFetchResult;
 
-    if (localDiskFetchEnabled && host.equals(localHostname)) {
+    if (localDiskFetchEnabled && host.equals(localHostname) && port == shufflePort) {
       hostFetchResult = setupLocalDiskFetch();
     } else if (multiplex) {
       hostFetchResult = doSharedFetch();
@@ -902,10 +903,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     public FetcherBuilder(FetcherCallback fetcherCallback,
         HttpConnectionParams params, FetchedInputAllocator inputManager,
         ApplicationId appId, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
-        Configuration conf, boolean localDiskFetchEnabled, String localHostname) {
+        Configuration conf, boolean localDiskFetchEnabled, String localHostname, int shufflePort) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
           jobTokenSecretMgr, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
-          false, localHostname);
+          false, localHostname, shufflePort);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
@@ -914,10 +915,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
         boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
-        String localHostname) {
+        String localHostname, int shufflePort) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId,
           jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
-          lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname);
+          lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort);
     }
 
     public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {

@@ -49,11 +49,13 @@ import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.junit.Test;
 
@@ -156,10 +158,20 @@ public class TestShuffleInputEventHandlerImpl {
   }
 
 
-  private InputContext createInputContext() {
+  private InputContext createInputContext() throws IOException {
+    DataOutputBuffer port_dob = new DataOutputBuffer();
+    port_dob.writeInt(PORT);
+    final ByteBuffer shuffleMetaData = ByteBuffer.wrap(port_dob.getData(), 0, port_dob.getLength());
+
+    ExecutionContext executionContext = mock(ExecutionContext.class);
+    doReturn(HOST).when(executionContext).getHostName();
+
     InputContext inputContext = mock(InputContext.class);
     doReturn(new TezCounters()).when(inputContext).getCounters();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    doReturn(shuffleMetaData).when(inputContext)
+        .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+    doReturn(executionContext).when(inputContext).getExecutionContext();
     return inputContext;
   }
 

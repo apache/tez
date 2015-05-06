@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -95,6 +96,8 @@ public class Shuffle implements ExceptionReporter {
   private final int ifileReadAheadLength;
   private final int numFetchers;
   private final boolean localDiskFetchEnabled;
+  private final String localHostname;
+  private final int shufflePort;
   
   private AtomicReference<Throwable> throwable = new AtomicReference<Throwable>();
   private String throwingThreadName = null;
@@ -157,6 +160,11 @@ public class Shuffle implements ExceptionReporter {
     FileSystem localFS = FileSystem.getLocal(this.conf);
     LocalDirAllocator localDirAllocator = 
         new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+
+    this.localHostname = inputContext.getExecutionContext().getHostName();
+    final ByteBuffer shuffleMetadata =
+        inputContext.getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+    this.shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
 
     // TODO TEZ Get rid of Map / Reduce references.
     TezCounter shuffledInputsCounter = 
@@ -336,8 +344,7 @@ public class Shuffle implements ExceptionReporter {
               FetcherOrderedGrouped
                 fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
                 metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
-                codec, inputContext, conf, localDiskFetchEnabled,
-                inputContext.getExecutionContext().getHostName());
+                codec, inputContext, conf, localDiskFetchEnabled, localHostname, shufflePort);
               fetchers.add(fetcher);
               fetcher.start();
             }

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,9 +40,11 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -68,9 +71,74 @@ public class TestFetcher {
 
   public static final String SHUFFLE_INPUT_FILE_PREFIX = "shuffle_input_file_";
   public static final String HOST = "localhost";
-  public static final int PORT = 0;
+  public static final int PORT = 65;
 
   static final Logger LOG = LoggerFactory.getLogger(TestFetcher.class);
+
+  @Test(timeout = 5000)
+  public void testLocalFetchModeSetting1() throws Exception {
+    Configuration conf = new TezConfiguration();
+    ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
+    MergeManager merger = mock(MergeManager.class);
+    ShuffleClientMetrics metrics = mock(ShuffleClientMetrics.class);
+    Shuffle shuffle = mock(Shuffle.class);
+
+    InputContext inputContext = mock(InputContext.class);
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn("src vertex").when(inputContext).getSourceVertexName();
+
+    final boolean ENABLE_LOCAL_FETCH = true;
+    final boolean DISABLE_LOCAL_FETCH = false;
+    MapHost mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
+    FetcherOrderedGrouped
+        fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
+        false, 0, null, inputContext, conf, ENABLE_LOCAL_FETCH, HOST, PORT);
+
+    // when local mode is enabled and host and port matches use local fetch
+    FetcherOrderedGrouped spyFetcher = spy(fetcher);
+    doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
+    doReturn(mapHost).when(scheduler).getHost();
+
+    spyFetcher.fetchNext();
+
+    verify(spyFetcher, times(1)).setupLocalDiskFetch(mapHost);
+    verify(spyFetcher, never()).copyFromHost(any(MapHost.class));
+
+    // if hostname does not match use http
+    spyFetcher = spy(fetcher);
+    mapHost = new MapHost(0, HOST + "_OTHER" + ":" + PORT, "baseurl");
+    doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
+    doReturn(mapHost).when(scheduler).getHost();
+
+    spyFetcher.fetchNext();
+
+    verify(spyFetcher, never()).setupLocalDiskFetch(any(MapHost.class));
+    verify(spyFetcher, times(1)).copyFromHost(mapHost);
+
+    // if port does not match use http
+    spyFetcher = spy(fetcher);
+    mapHost = new MapHost(0, HOST + ":" + (PORT + 1), "baseurl");
+    doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
+    doReturn(mapHost).when(scheduler).getHost();
+
+    spyFetcher.fetchNext();
+
+    verify(spyFetcher, never()).setupLocalDiskFetch(any(MapHost.class));
+    verify(spyFetcher, times(1)).copyFromHost(mapHost);
+
+    //if local fetch is not enabled
+    mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
+    fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
+        false, 0, null, inputContext, conf, DISABLE_LOCAL_FETCH, HOST, PORT);
+    spyFetcher = spy(fetcher);
+    doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
+    doReturn(mapHost).when(scheduler).getHost();
+
+    spyFetcher.fetchNext();
+
+    verify(spyFetcher, never()).setupLocalDiskFetch(any(MapHost.class));
+    verify(spyFetcher, times(1)).copyFromHost(mapHost);
+  }
 
   @Test(timeout = 5000)
   public void testSetupLocalDiskFetch() throws Exception {
@@ -85,7 +153,7 @@ public class TestFetcher {
 
     FetcherOrderedGrouped
         fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
-        false, 0, null, inputContext, conf, true, HOST);
+        false, 0, null, inputContext, conf, true, HOST, PORT);
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
     MapHost host = new MapHost(1, HOST + ":" + PORT,
@@ -228,7 +296,7 @@ public class TestFetcher {
         ShuffleUtils.constructHttpShuffleConnectionParams(conf);
     FetcherOrderedGrouped mockFetcher =
         new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger, metrics, shuffle, null,
-            false, 0, null, inputContext, conf, false, HOST);
+            false, 0, null, inputContext, conf, false, HOST, PORT);
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
     final MapHost host = new MapHost(1, HOST + ":" + PORT,

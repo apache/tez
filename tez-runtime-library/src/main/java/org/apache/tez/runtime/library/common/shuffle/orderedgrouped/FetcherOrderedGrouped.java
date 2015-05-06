@@ -56,7 +56,7 @@ class FetcherOrderedGrouped extends Thread {
   private final Configuration conf;
   private final boolean localDiskFetchEnabled;
 
-  private static enum ShuffleErrors{IO_ERROR, WRONG_LENGTH, BAD_ID, WRONG_MAP,
+  private enum ShuffleErrors{IO_ERROR, WRONG_LENGTH, BAD_ID, WRONG_MAP,
                                     CONNECTION, WRONG_REDUCE}
   
   private final static String SHUFFLE_ERR_GRP_NAME = "Shuffle Errors";
@@ -72,7 +72,7 @@ class FetcherOrderedGrouped extends Thread {
   private final Shuffle shuffle;
   private final int id;
   private final String logIdentifier;
-  private final String localHostname;
+  private final String localShuffleHostPort;
   private static int nextId = 0;
   private int currentPartition = -1;
 
@@ -104,7 +104,8 @@ class FetcherOrderedGrouped extends Thread {
                                CompressionCodec codec,
                                InputContext inputContext, Configuration conf,
                                boolean localDiskFetchEnabled,
-                               String localHostname) throws IOException {
+                               String localHostname,
+                               int shufflePort) throws IOException {
     setDaemon(true);
     this.scheduler = scheduler;
     this.merger = merger;
@@ -134,7 +135,7 @@ class FetcherOrderedGrouped extends Thread {
       this.codec = null;
     }
     this.conf = conf;
-    this.localHostname = localHostname;
+    this.localShuffleHostPort = localHostname + ":" + String.valueOf(shufflePort);
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
 
@@ -144,37 +145,41 @@ class FetcherOrderedGrouped extends Thread {
     setDaemon(true);
   }  
 
+  @VisibleForTesting
+  protected void fetchNext() throws InterruptedException, IOException {
+    MapHost host = null;
+    try {
+      // If merge is on, block
+      merger.waitForInMemoryMerge();
+
+      // In case usedMemory > memorylimit, wait until some memory is released
+      merger.waitForShuffleToMergeMemory();
+
+      // Get a host to shuffle from
+      host = scheduler.getHost();
+      metrics.threadBusy();
+
+      String hostPort = host.getHostIdentifier();
+      if (localDiskFetchEnabled && hostPort.equals(localShuffleHostPort)) {
+        setupLocalDiskFetch(host);
+      } else {
+        // Shuffle
+        copyFromHost(host);
+      }
+    } finally {
+      cleanupCurrentConnection(false);
+      if (host != null) {
+        scheduler.freeHost(host);
+        metrics.threadFree();
+      }
+    }
+  }
+
   public void run() {
     try {
       while (!stopped && !Thread.currentThread().isInterrupted()) {
         remaining = null; // Safety.
-        MapHost host = null;
-        try {
-          // If merge is on, block
-          merger.waitForInMemoryMerge();
-
-          // In case usedMemory > memorylimit, wait until some memory is released
-          merger.waitForShuffleToMergeMemory();
-
-          // Get a host to shuffle from
-          host = scheduler.getHost();
-          metrics.threadBusy();
-
-          String hostPort = host.getHostIdentifier();
-          String hostname = hostPort.substring(0, hostPort.indexOf(":"));
-          if (localDiskFetchEnabled && hostname.equals(localHostname)) {
-            setupLocalDiskFetch(host);
-          } else {
-            // Shuffle
-            copyFromHost(host);
-          }
-        } finally {
-          cleanupCurrentConnection(false);
-          if (host != null) {
-            scheduler.freeHost(host);
-            metrics.threadFree();
-          }
-        }
+        fetchNext();
       }
     } catch (InterruptedException ie) {
       //TODO: might not be respected when fetcher is in progress / server is busy.  TEZ-711
