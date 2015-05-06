@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-1993. Implement a pluggable InputSizeEstimator for grouping fairly
 
 ALL CHANGES:
+  TEZ-2417. Tez UI: Counters are blank in the Attempts page if all attempts failed
   TEZ-2366. Pig tez MiniTezCluster unit tests fail intermittently after TEZ-2333
   TEZ-2406. Tez UI: Display per-io counter columns in task and attempt pages under vertex
   TEZ-2384. Add warning message in the case of prewarn under non-session mode.

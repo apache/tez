@@ -21,9 +21,15 @@
   time=timeStamp
   refresh='refresh'
 }}
-<div class='table-container margin-small-vertical'>
-  {{counter-table-component
-    data=counterGroups
-    timeStamp=timeStamp
-  }}
-</div>
+{{#if counterGroups.length}}
+  <div class='table-container margin-small-vertical'>
+    {{counter-table-component
+      data=counterGroups
+      timeStamp=timeStamp
+    }}
+  </div>
+{{else}}
+  <h4>Counters not available!</h4>
+{{/if}}
+<h6>{{message}}</h6>
+

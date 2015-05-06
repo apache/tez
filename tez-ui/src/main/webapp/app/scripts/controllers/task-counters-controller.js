@@ -16,8 +16,13 @@
  * limitations under the License.
  */
 
-App.DagCountersController =
-    App.VertexCountersController =
-    App.TaskAttemptCountersController =
-
-    Em.ObjectController.extend(App.ModelRefreshMixin);
+App.TaskCountersController = Em.ObjectController.extend(App.ModelRefreshMixin, {
+  message: function () {
+    var status = this.get('content.status');
+    if(!this.get('content.counterGroups.length')) {
+      if(status == 'KILLED' || status == 'FAILED') {
+        return 'Task %@, please check the counters of individual task attempts.'.fmt(status);
+      }
+    }
+  }.property('content.status', 'content.counterGroups.length')
+});
