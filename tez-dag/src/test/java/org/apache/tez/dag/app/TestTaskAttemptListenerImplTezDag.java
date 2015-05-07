@@ -24,6 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -179,8 +181,9 @@ public class TestTaskAttemptListenerImplTezDag {
   @Test (timeout = 5000)
   public void testTaskEventRouting() throws Exception {
     List<TezEvent> events =  Arrays.asList(
-      new TezEvent(InputInitializerEvent.create("test_vertex", "test_input", null), null),
-      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null), null)
+      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null), null),
+      new TezEvent(DataMovementEvent.create(0, ByteBuffer.wrap(new byte[0])), null),
+      new TezEvent(new TaskAttemptCompletedEvent(), null)
     );
 
     EventHandler eventHandler = generateHeartbeat(events);
@@ -193,13 +196,15 @@ public class TestTaskAttemptListenerImplTezDag {
     assertEquals("First event should be status update", TaskAttemptEventType.TA_STATUS_UPDATE,
         statusUpdateEvent.getType());
 
-
     final Event vertexEvent = argAllValues.get(1);
     final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)vertexEvent;
-    assertEquals("Other events should be routed to vertex", VertexEventType.V_ROUTE_EVENT,
+    assertEquals("First event should be routed to vertex", VertexEventType.V_ROUTE_EVENT,
         vertexEvent.getType());
-    assertEquals(EventType.ROOT_INPUT_INITIALIZER_EVENT,
+    assertEquals(EventType.DATA_MOVEMENT_EVENT,
         vertexRouteEvent.getEvents().get(0).getEventType());
+    assertEquals(EventType.TASK_ATTEMPT_COMPLETED_EVENT,
+        vertexRouteEvent.getEvents().get(1).getEventType());
+
   }
 
   @Test (timeout = 5000)
@@ -213,9 +218,9 @@ public class TestTaskAttemptListenerImplTezDag {
     verify(eventHandler, times(1)).handle(arg.capture());
     final List<Event> argAllValues = arg.getAllValues();
 
-    final Event statusUpdateEvent = argAllValues.get(0);
-    assertEquals("only event should be task done", TaskAttemptEventType.TA_DONE,
-        statusUpdateEvent.getType());
+    final Event event = argAllValues.get(0);
+    assertEquals("only event should be route event", VertexEventType.V_ROUTE_EVENT,
+        event.getType());
   }
 
   private EventHandler generateHeartbeat(List<TezEvent> events) throws IOException, TezException {

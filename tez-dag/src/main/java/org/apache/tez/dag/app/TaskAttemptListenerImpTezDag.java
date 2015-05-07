@@ -423,12 +423,17 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         }
 
         List<TezEvent> otherEvents = new ArrayList<TezEvent>();
+        // route TASK_STATUS_UPDATE_EVENT directly to TaskAttempt and route other events
+        // (DATA_MOVEMENT_EVENT, TASK_ATTEMPT_COMPLETED_EVENT, TASK_ATTEMPT_FAILED_EVENT)
+        // to VertexImpl to ensure the events ordering
+        //  1. DataMovementEvent is logged as RecoveryEvent before TaskAttemptFinishedEvent
+        //  2. TaskStatusEvent is handled before TaskAttemptFinishedEvent
         for (TezEvent tezEvent : ListUtils.emptyIfNull(inEvents)) {
           final EventType eventType = tezEvent.getEventType();
-          if (eventType == EventType.TASK_STATUS_UPDATE_EVENT ||
-              eventType == EventType.TASK_ATTEMPT_COMPLETED_EVENT) {
-            context.getEventHandler()
-                .handle(getTaskAttemptEventFromTezEvent(taskAttemptID, tezEvent));
+          if (eventType == EventType.TASK_STATUS_UPDATE_EVENT) {
+            TaskAttemptEvent taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
+                    (TaskStatusUpdateEvent) tezEvent.getEvent());
+            context.getEventHandler().handle(taskAttemptEvent);
           } else {
             otherEvents.add(tezEvent);
           }
@@ -451,28 +456,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       containerInfo.lastReponse = response;
       return response;
     }
-  }
-
-  private TaskAttemptEvent getTaskAttemptEventFromTezEvent(TezTaskAttemptID taskAttemptID,
-                                                           TezEvent tezEvent) {
-    final EventType eventType = tezEvent.getEventType();
-    TaskAttemptEvent taskAttemptEvent;
-    switch (eventType) {
-      case TASK_STATUS_UPDATE_EVENT:
-        {
-          taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
-              (TaskStatusUpdateEvent) tezEvent.getEvent());
-        }
-        break;
-      case TASK_ATTEMPT_COMPLETED_EVENT:
-        {
-          taskAttemptEvent = new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE);
-        }
-        break;
-      default:
-        throw new TezUncheckedException("unknown event type " + eventType);
-    }
-    return taskAttemptEvent;
   }
 
   private Map<String, TezLocalResource> convertLocalResourceMap(Map<String, LocalResource> ylrs)
