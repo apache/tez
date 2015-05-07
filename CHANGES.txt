@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
     Default max limit increased. Should not affect existing users.
 
 ALL CHANGES:
+  TEZ-2404. Handle DataMovementEvent before its TaskAttemptCompletedEvent
   TEZ-2424. Bump up max counter group name length limit to account for per_io counters.
   TEZ-2417. Tez UI: Counters are blank in the Attempts page if all attempts failed
   TEZ-2366. Pig tez MiniTezCluster unit tests fail intermittently after TEZ-2333

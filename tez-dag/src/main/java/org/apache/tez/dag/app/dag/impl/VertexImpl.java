@@ -132,6 +132,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.app.dag.speculation.legacy.LegacySpeculator;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -4129,6 +4130,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                   "Error: " + taskFailedEvent.getDiagnostics(), 
                   errCause)
               );
+        }
+        break;
+      case TASK_ATTEMPT_COMPLETED_EVENT:
+        {
+          checkEventSourceMetadata(vertex, sourceMeta);
+          vertex.getEventHandler().handle(
+              new TaskAttemptEvent(sourceMeta.getTaskAttemptID(), TaskAttemptEventType.TA_DONE));
         }
         break;
       default:
