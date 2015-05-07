@@ -1493,12 +1493,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
   
-  @Private
-  @VisibleForTesting
-  public List<TezEvent> getTaskEvents() {
-    return tezEventsForTaskAttempts;
-  }
-
   private static class KillTransition
     implements SingleArcTransition<TaskImpl, TaskEvent> {
     @Override

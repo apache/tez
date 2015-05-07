@@ -240,8 +240,9 @@ public class TaskReporter {
       }
 
       long requestId = requestCounter.incrementAndGet();
+      int fromEventId = task.getNextFromEventId();
       TezHeartbeatRequest request = new TezHeartbeatRequest(requestId, events, containerIdStr,
-          task.getTaskAttemptID(), task.getEventCounter(), maxEventsToGet);
+          task.getTaskAttemptID(), fromEventId, maxEventsToGet);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Sending heartbeat to AM, request=" + request);
       }
@@ -271,11 +272,12 @@ public class TaskReporter {
               + " heartbeat response, eventCount=" + response.getEvents().size());
         }
       } else {
+        task.setNextFromEventId(response.getNextFromEventId());
         if (response.getEvents() != null && !response.getEvents().isEmpty()) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Routing events from heartbeat response to task" + ", currentTaskAttemptId="
-                + task.getTaskAttemptID() + ", eventCount=" + response.getEvents().size());
-          }
+          LOG.info("Routing events from heartbeat response to task" + ", currentTaskAttemptId="
+              + task.getTaskAttemptID() + ", eventCount=" + response.getEvents().size()
+              + " fromEventId=" + fromEventId
+              + " nextFromEventId=" + response.getNextFromEventId());
           // This should ideally happen in a separate thread
           numEventsReceived = response.getEvents().size();
           task.handleEvents(response.getEvents());

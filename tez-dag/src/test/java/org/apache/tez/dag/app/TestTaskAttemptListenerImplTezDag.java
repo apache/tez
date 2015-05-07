@@ -42,7 +42,6 @@ import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
@@ -62,6 +61,7 @@ import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
+import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -186,7 +186,7 @@ public class TestTaskAttemptListenerImplTezDag {
       new TezEvent(new TaskAttemptCompletedEvent(), null)
     );
 
-    EventHandler eventHandler = generateHeartbeat(events);
+    generateHeartbeat(events, 0, 1, 0, new ArrayList<TezEvent>());
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(2)).handle(arg.capture());
@@ -212,7 +212,7 @@ public class TestTaskAttemptListenerImplTezDag {
     List<TezEvent> events = Arrays.asList(
       new TezEvent(new TaskAttemptCompletedEvent(), null)
     );
-    final EventHandler eventHandler = generateHeartbeat(events);
+    generateHeartbeat(events, 0, 1, 0, new ArrayList<TezEvent>());
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(1)).handle(arg.capture());
@@ -222,18 +222,29 @@ public class TestTaskAttemptListenerImplTezDag {
     assertEquals("only event should be route event", VertexEventType.V_ROUTE_EVENT,
         event.getType());
   }
+  
+  @Test (timeout = 5000)
+  public void testTaskHeartbeatResponse() throws Exception {
+    List<TezEvent> events = new ArrayList<TezEvent>();
+    List<TezEvent> eventsToSend = new ArrayList<TezEvent>();
+    TezHeartbeatResponse response = generateHeartbeat(events, 0, 1, 2, eventsToSend);
+    
+    assertEquals(2, response.getNextFromEventId());
+    assertEquals(1, response.getLastRequestId());
+    assertEquals(eventsToSend, response.getEvents());
+  }
 
-  private EventHandler generateHeartbeat(List<TezEvent> events) throws IOException, TezException {
+  private TezHeartbeatResponse generateHeartbeat(List<TezEvent> events,
+      int fromEventId, int maxEvents, int nextFromEventId,
+      List<TezEvent> sendEvents) throws IOException, TezException {
     ContainerId containerId = createContainerId(appId, 1);
     long requestId = 0;
     Vertex vertex = mock(Vertex.class);
-    Task task = mock(Task.class);
 
     doReturn(vertex).when(dag).getVertex(vertexID);
     doReturn("test_vertex").when(vertex).getName();
-    doReturn(task).when(vertex).getTask(taskID);
-
-    doReturn(new ArrayList<TezEvent>()).when(task).getTaskAttemptTezEvents(taskAttemptID, 0, 1);
+    TaskAttemptEventInfo eventInfo = new TaskAttemptEventInfo(nextFromEventId, sendEvents);
+    doReturn(eventInfo).when(vertex).getTaskAttemptTezEvents(taskAttemptID, fromEventId, maxEvents);
 
     taskAttemptListener.registerRunningContainer(containerId);
     taskAttemptListener.registerTaskAttempt(amContainerTask, containerId);
@@ -243,10 +254,10 @@ public class TestTaskAttemptListenerImplTezDag {
     doReturn(taskAttemptID).when(request).getCurrentTaskAttemptID();
     doReturn(++requestId).when(request).getRequestId();
     doReturn(events).when(request).getEvents();
+    doReturn(maxEvents).when(request).getMaxEvents();
+    doReturn(fromEventId).when(request).getStartIndex();
 
-    taskAttemptListener.heartbeat(request);
-
-    return eventHandler;
+    return taskAttemptListener.heartbeat(request);
   }
 
 

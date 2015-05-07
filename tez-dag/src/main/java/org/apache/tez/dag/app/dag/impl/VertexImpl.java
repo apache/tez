@@ -91,6 +91,7 @@ import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
+import org.apache.tez.dag.app.TaskAttemptEventInfo;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
@@ -134,6 +135,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
+import org.apache.tez.dag.app.dag.impl.Edge.PendingEventRouteMetadata;
 import org.apache.tez.dag.app.dag.speculation.legacy.LegacySpeculator;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -202,7 +204,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   //final fields
   private final Clock clock;
 
-
   private final Lock readLock;
   private final Lock writeLock;
   private final TaskAttemptListener taskAttemptListener;
@@ -225,6 +226,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private Configuration vertexConf;
   
   private final boolean isSpeculationEnabled;
+  
+  @VisibleForTesting
+  public boolean useOnDemandRouting = true;
 
   //fields initialized in init
 
@@ -726,9 +730,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private Set<String> inputsWithInitializers;
   private int numInitializedInputs;
   private boolean startSignalPending = false;
-  private boolean tasksNotYetScheduled = true;
   // We may always store task events in the vertex for scalability
   List<TezEvent> pendingTaskEvents = Lists.newLinkedList();
+  private boolean tasksNotYetScheduled = true;
+  // must be a random access structure
+  
+  private final List<EventInfo> onDemandRouteEvents = Lists.newArrayListWithCapacity(1000);
+  private final ReadWriteLock onDemandRouteEventsReadWriteLock = new ReentrantReadWriteLock();
+  private final Lock onDemandRouteEventsReadLock = onDemandRouteEventsReadWriteLock.readLock();
+  private final Lock onDemandRouteEventsWriteLock = onDemandRouteEventsReadWriteLock.writeLock();
+  
+  private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
+      new ArrayList(0);
   List<TezEvent> pendingRouteEvents = new LinkedList<TezEvent>();
   List<TezTaskAttemptID> pendingReportedSrcCompletions = Lists.newLinkedList();
 
@@ -771,6 +784,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private VertexStats vertexStats = null;
 
   private final TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOpts;
+  
+  static class EventInfo {
+    final TezEvent tezEvent;
+    final Edge eventEdge;
+    final int eventTaskIndex;
+    EventInfo(TezEvent tezEvent, Edge eventEdge, int eventTaskIndex) {
+      this.tezEvent = tezEvent;
+      this.eventEdge = eventEdge;
+      this.eventTaskIndex = eventTaskIndex;
+    }
+  }
 
   private VertexStatisticsImpl finalStatistics;
 
@@ -1175,6 +1199,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
 
+  @VisibleForTesting
+  List<EventInfo> getOnDemandRouteEvents() {
+    return onDemandRouteEvents;
+  }
+  
   private void computeProgress() {
     this.readLock.lock();
     try {
@@ -1388,24 +1417,51 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
   
-  @Override
-  public void scheduleTasks(List<TaskWithLocationHint> tasksToSchedule) {
-    writeLock.lock();
-    try {
+  void setupEdgeRouting() throws AMUserCodeException {
+    for (Edge e : sourceVertices.values()) {
+      boolean edgeDoingOnDemand = e.routingToBegin();
+      if (useOnDemandRouting && !edgeDoingOnDemand) {
+        useOnDemandRouting = false;
+        LOG.info("Not using ondemand routing because of edge between " + e.getSourceVertexName()
+            + " and " + getLogIdentifier());
+      }
+    }
+  }
+  
+  private void unsetTasksNotYetScheduled() throws AMUserCodeException {
+    if (tasksNotYetScheduled) {
+      setupEdgeRouting();
       tasksNotYetScheduled = false;
+      // only now can we be sure of the edge manager type. so until now
+      // we will accumulate pending tasks in case legacy routing gets used.
+      // this is only needed to support mixed mode routing. Else for
+      // on demand routing events can be directly added to taskEvents when 
+      // they arrive in handleRoutedEvents instead of first caching them in 
+      // pendingTaskEvents. When legacy routing is removed then pendingTaskEvents
+      // can be removed.
       if (!pendingTaskEvents.isEmpty()) {
         LOG.info("Routing pending task events for vertex: " + logIdentifier);
         try {
-          handleRoutedTezEvents(this, pendingTaskEvents, false, true);
+          handleRoutedTezEvents(pendingTaskEvents, false, true);
         } catch (AMUserCodeException e) {
-          String msg = "Exception in " + e.getSource() +", vertex=" + logIdentifier;
+          String msg = "Exception in " + e.getSource() + ", vertex=" + logIdentifier;
           LOG.error(msg, e);
-          addDiagnostic(msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause()));
-          eventHandler.handle(new VertexEventTermination(vertexId, VertexTerminationCause.AM_USERCODE_FAILURE));
+          addDiagnostic(msg + ", " + e.getMessage() + ", "
+              + ExceptionUtils.getStackTrace(e.getCause()));
+          eventHandler.handle(new VertexEventTermination(vertexId,
+              VertexTerminationCause.AM_USERCODE_FAILURE));
           return;
         }
         pendingTaskEvents.clear();
       }
+    }
+  }
+  
+  @Override
+  public void scheduleTasks(List<TaskWithLocationHint> tasksToSchedule) {
+    writeLock.lock();
+    try {
+      unsetTasksNotYetScheduled();
       for (TaskWithLocationHint task : tasksToSchedule) {
         if (numTasks <= task.getTaskIndex().intValue()) {
           throw new TezUncheckedException(
@@ -1422,6 +1478,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             TezTaskID.getInstance(vertexId, task.getTaskIndex().intValue()),
             TaskEventType.T_SCHEDULE));
       }
+    } catch (AMUserCodeException e) {
+      String msg = "Exception in " + e.getSource() + ", vertex=" + getLogIdentifier();
+      LOG.error(msg, e);
+      // send event to fail the vertex
+      eventHandler.handle(new VertexEventManagerUserCodeError(getVertexId(), e));
+      // throw an unchecked exception to stop the vertex manager that invoked this.
+      throw new TezUncheckedException(e);
     } finally {
       writeLock.unlock();
     }
@@ -2497,7 +2560,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           }
           break;
         case RUNNING:
-          vertex.tasksNotYetScheduled = false;
           try {
             vertex.initializeCommitters();
           } catch (Exception e) {
@@ -2530,6 +2592,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             }
             try {
               vertex.recoveryCodeSimulatingStart();
+              vertex.unsetTasksNotYetScheduled();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
               String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
@@ -2560,7 +2623,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                 VertexTerminationCause.COMMIT_FAILURE, msg);
             endState = VertexState.FAILED;
           } else {
-            vertex.tasksNotYetScheduled = false;
             // recover tasks
             if (vertex.tasks != null && vertex.numTasks != 0) {
               TaskState taskState = TaskState.KILLED;
@@ -2578,6 +2640,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
               }
               try {
                 vertex.recoveryCodeSimulatingStart();
+                vertex.unsetTasksNotYetScheduled();
                 endState = VertexState.RUNNING;
               } catch (AMUserCodeException e) {
                 String msg = "Exception in " + e.getSource() +", vertex:" + vertex.getLogIdentifier();
@@ -2901,7 +2964,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           endState = VertexState.INITED;
           break;
         case RUNNING:
-          vertex.tasksNotYetScheduled = false;
           // if commit in progress and desired state is not a succeeded one,
           // move to failed
           if (vertex.recoveryCommitInProgress) {
@@ -2946,6 +3008,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             }
             try {
               vertex.recoveryCodeSimulatingStart();
+              vertex.unsetTasksNotYetScheduled();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
               String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
@@ -2962,7 +3025,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         case SUCCEEDED:
         case FAILED:
         case KILLED:
-          vertex.tasksNotYetScheduled = false;
           // recover tasks
           assert vertex.tasks.size() == vertex.numTasks;
           if (vertex.tasks != null  && vertex.numTasks != 0) {
@@ -2982,6 +3044,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             // Wait for all tasks to recover and report back
             try {
               vertex.recoveryCodeSimulatingStart();
+              vertex.unsetTasksNotYetScheduled();
               endState = VertexState.RUNNING;
             } catch (AMUserCodeException e) {
               String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
@@ -3025,7 +3088,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         vertex.recoveredEvents.clear();
         if (!vertex.pendingRouteEvents.isEmpty()) {
           try {
-            handleRoutedTezEvents(vertex, vertex.pendingRouteEvents, false, true);
+            vertex.handleRoutedTezEvents(vertex.pendingRouteEvents, false, true);
             vertex.pendingRouteEvents.clear();
           } catch (AMUserCodeException e) {
             String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
@@ -3284,7 +3347,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       List<TezEvent> inputInfoEvents = iEvent.getEvents();
       try {
         if (inputInfoEvents != null && !inputInfoEvents.isEmpty()) {
-          VertexImpl.handleRoutedTezEvents(vertex, inputInfoEvents, false, false);
+          vertex.handleRoutedTezEvents(inputInfoEvents, false, false);
         }
       } catch (AMUserCodeException e) {
         String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
@@ -3941,7 +4004,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       boolean recovered = rEvent.isRecovered();
       List<TezEvent> tezEvents = rEvent.getEvents();
       try {
-        VertexImpl.handleRoutedTezEvents(vertex, tezEvents, recovered, false);
+        vertex.handleRoutedTezEvents(tezEvents, recovered, false);
       } catch (AMUserCodeException e) {
         String msg = "Exception in " + e.getSource() + ", vertex=" + vertex.getLogIdentifier();
         LOG.error(msg, e);
@@ -3959,16 +4022,105 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       return vertex.getState();
     }
   }
+  
+  @Override
+  public TaskAttemptEventInfo getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
+      int fromEventId, int maxEvents) {
+    if (!useOnDemandRouting) {
+      List<TezEvent> events = getTask(attemptID.getTaskID()).getTaskAttemptTezEvents(attemptID, fromEventId, maxEvents);
+      return new TaskAttemptEventInfo(fromEventId + events.size(), events);
+    }
 
-  private static void handleRoutedTezEvents(VertexImpl vertex, List<TezEvent> tezEvents, boolean recovered, boolean isPendingEvents) throws AMUserCodeException {
-    if (vertex.getAppContext().isRecoveryEnabled()
+    onDemandRouteEventsReadLock.lock();
+    try {
+      List<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
+      int nextFromEventId = fromEventId;
+      int currEventCount = onDemandRouteEvents.size();
+      try {
+        if (currEventCount > fromEventId) {
+          events = Lists.newArrayListWithCapacity(maxEvents);
+          int taskIndex = attemptID.getTaskID().getId();
+          Preconditions.checkState(taskIndex < tasks.size(), "Invalid task index for TA: " + attemptID
+              + " vertex: " + getLogIdentifier());
+          boolean isFirstEvent = true;
+          for (nextFromEventId = fromEventId; nextFromEventId < currEventCount; ++nextFromEventId) {
+            boolean earlyExit = false;
+            if (events.size() == maxEvents) {
+              break;
+            }
+            EventInfo eventInfo = onDemandRouteEvents.get(nextFromEventId);
+            TezEvent tezEvent = eventInfo.tezEvent;
+            switch(tezEvent.getEventType()) {
+            case INPUT_FAILED_EVENT:
+            case DATA_MOVEMENT_EVENT:
+            case COMPOSITE_DATA_MOVEMENT_EVENT:
+              {
+                int srcTaskIndex = eventInfo.eventTaskIndex;
+                Edge srcEdge = eventInfo.eventEdge;
+                PendingEventRouteMetadata pendingRoute = null;
+                if (isFirstEvent) {
+                  // do this precondition check only for the first event
+                  isFirstEvent = false;
+                  pendingRoute = srcEdge.removePendingEvents(attemptID);
+                  if (pendingRoute != null) {
+                    Preconditions.checkState(tezEvent == pendingRoute.getTezEvent()); // same object
+                  }
+                }
+                if (!srcEdge.maybeAddTezEventForDestinationTask(tezEvent, attemptID, srcTaskIndex,
+                    events, maxEvents, pendingRoute)) {
+                  // not enough space left for this iteration events.
+                  // Exit and start from here next time
+                  earlyExit = true;
+                }
+              }
+              break;
+            case ROOT_INPUT_DATA_INFORMATION_EVENT:
+              {
+                InputDataInformationEvent riEvent = (InputDataInformationEvent) tezEvent.getEvent();
+                if (riEvent.getTargetIndex() == taskIndex) {
+                  events.add(tezEvent);
+                }
+              }
+              break;
+            default:
+              throw new TezUncheckedException("Unexpected event type for task: "
+                  + tezEvent.getEventType());
+            }
+            if (earlyExit) {
+              break;
+            }
+          }
+        }
+      } catch (AMUserCodeException e) {
+        String msg = "Exception in " + e.getSource() + ", vertex=" + getLogIdentifier();
+        LOG.error(msg, e);
+        eventHandler.handle(new VertexEventManagerUserCodeError(getVertexId(), e));
+        nextFromEventId = fromEventId;
+        events.clear();
+      }
+  
+      if (events.size() > 0) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Sending ").append(attemptID).append(" numEvents: ").append(events.size())
+        .append(" from: ").append(fromEventId).append(" to: ").append(nextFromEventId)
+        .append(" out of ").append(currEventCount).append(" events in vertex: ").append(getLogIdentifier());
+        LOG.info(builder.toString());
+      }
+      return new TaskAttemptEventInfo(nextFromEventId, events);
+    } finally {
+      onDemandRouteEventsReadLock.unlock();
+    }
+  }
+
+  private void handleRoutedTezEvents(List<TezEvent> tezEvents, boolean recovered, boolean isPendingEvents) throws AMUserCodeException {
+    if (getAppContext().isRecoveryEnabled()
         && !recovered
         && !isPendingEvents
         && !tezEvents.isEmpty()) {
       List<TezEvent> recoveryEvents =
           Lists.newArrayList();
       for (TezEvent tezEvent : tezEvents) {
-        if (!isEventFromVertex(vertex, tezEvent.getSourceInfo())) {
+        if (!isEventFromVertex(this, tezEvent.getSourceInfo())) {
           continue;
         }
         if  (tezEvent.getEventType().equals(EventType.COMPOSITE_DATA_MOVEMENT_EVENT)
@@ -3980,15 +4132,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
       if (!recoveryEvents.isEmpty()) {
         VertexRecoverableEventsGeneratedEvent historyEvent =
-            new VertexRecoverableEventsGeneratedEvent(vertex.vertexId,
+            new VertexRecoverableEventsGeneratedEvent(vertexId,
                 recoveryEvents);
-        vertex.appContext.getHistoryHandler().handle(
-            new DAGHistoryEvent(vertex.getDAGId(), historyEvent));
+        appContext.getHistoryHandler().handle(
+            new DAGHistoryEvent(getDAGId(), historyEvent));
       }
     }
     for(TezEvent tezEvent : tezEvents) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Vertex: " + vertex.getName() + " routing event: "
+        LOG.debug("Vertex: " + getLogIdentifier() + " routing event: "
             + tezEvent.getEventType()
             + " Recovered:" + recovered);
       }
@@ -3998,7 +4150,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       case DATA_MOVEMENT_EVENT:
       case COMPOSITE_DATA_MOVEMENT_EVENT:
         {
-          if (isEventFromVertex(vertex, sourceMeta)) {
+          if (isEventFromVertex(this, sourceMeta)) {
             // event from this vertex. send to destination vertex
             TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
             if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT) {
@@ -4008,56 +4160,86 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             } else {
               ((InputFailedEvent) tezEvent.getEvent()).setVersion(srcTaId.getId());
             }
-            Vertex destVertex = vertex.getDAG().getVertex(sourceMeta.getEdgeVertexName());
-            Edge destEdge = vertex.targetVertices.get(destVertex);
+            Vertex destVertex = getDAG().getVertex(sourceMeta.getEdgeVertexName());
+            Edge destEdge = targetVertices.get(destVertex);
             if (destEdge == null) {
               throw new TezUncheckedException("Bad destination vertex: " +
                   sourceMeta.getEdgeVertexName() + " for event vertex: " +
-                  vertex.getLogIdentifier());
+                  getLogIdentifier());
             }
-            vertex.eventHandler.handle(new VertexEventRouteEvent(destVertex
+            eventHandler.handle(new VertexEventRouteEvent(destVertex
                 .getVertexId(), Collections.singletonList(tezEvent)));
           } else {
-            // event not from this vertex. must have come from source vertex.
-            // send to tasks
-            if (vertex.tasksNotYetScheduled) {
-              vertex.pendingTaskEvents.add(tezEvent);
+            if (tasksNotYetScheduled) {
+              // this is only needed to support mixed mode routing. Else for
+              // on demand routing events can be directly added to taskEvents
+              // when legacy routing is removed then pending task events can be
+              // removed.
+              pendingTaskEvents.add(tezEvent);
             } else {
-              Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
-                  sourceMeta.getTaskVertexName()));
-              if (srcEdge == null) {
-                throw new TezUncheckedException("Bad source vertex: " +
-                    sourceMeta.getTaskVertexName() + " for destination vertex: " +
-                    vertex.getLogIdentifier());
+              // event not from this vertex. must have come from source vertex.
+              if (useOnDemandRouting) {
+                int srcTaskIndex = sourceMeta.getTaskAttemptID().getTaskID().getId();
+                Vertex edgeVertex = getDAG().getVertex(sourceMeta.getTaskVertexName());
+                Edge srcEdge = sourceVertices.get(edgeVertex);
+                if (srcEdge == null) {
+                  throw new TezUncheckedException("Bad source vertex: " +
+                      sourceMeta.getTaskVertexName() + " for destination vertex: " +
+                      getLogIdentifier());
+                }
+                onDemandRouteEventsWriteLock.lock();
+                try {
+                  onDemandRouteEvents.add(new EventInfo(tezEvent, srcEdge, srcTaskIndex));
+                } finally {
+                  onDemandRouteEventsWriteLock.unlock();
+                }
+              } else {
+                // send to tasks            
+                Edge srcEdge = sourceVertices.get(getDAG().getVertex(
+                    sourceMeta.getTaskVertexName()));
+                if (srcEdge == null) {
+                  throw new TezUncheckedException("Bad source vertex: "
+                      + sourceMeta.getTaskVertexName() + " for destination vertex: "
+                      + getLogIdentifier());
+                }
+                srcEdge.sendTezEventToDestinationTasks(tezEvent);
               }
-              srcEdge.sendTezEventToDestinationTasks(tezEvent);
             }
           }
         }
         break;
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
-        if (vertex.tasksNotYetScheduled) {
-          vertex.pendingTaskEvents.add(tezEvent);
+      {   
+        checkEventSourceMetadata(this, sourceMeta);
+        if (tasksNotYetScheduled) {
+          // this is only needed to support mixed mode routing. Else for
+          // on demand routing events can be directly added to taskEvents
+          // when legacy routing is removed then pending task events can be
+          // removed.
+          pendingTaskEvents.add(tezEvent);          
         } else {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          InputDataInformationEvent riEvent = (InputDataInformationEvent) tezEvent
-              .getEvent();
-          Task targetTask = vertex.getTask(riEvent.getTargetIndex());
-          targetTask.registerTezEvent(tezEvent);
+          if (useOnDemandRouting) {
+            onDemandRouteEvents.add(new EventInfo(tezEvent, null, -1));
+          } else {
+            InputDataInformationEvent riEvent = (InputDataInformationEvent) tezEvent.getEvent();
+            Task targetTask = getTask(riEvent.getTargetIndex());
+            targetTask.registerTezEvent(tezEvent);
+          }
         }
+      }
         break;
       case VERTEX_MANAGER_EVENT:
       {
         // VM events on task success only can be changed as part of TEZ-1532
         VertexManagerEvent vmEvent = (VertexManagerEvent) tezEvent.getEvent();
-        Vertex target = vertex.getDAG().getVertex(vmEvent.getTargetVertexName());
+        Vertex target = getDAG().getVertex(vmEvent.getTargetVertexName());
         Preconditions.checkArgument(target != null,
             "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
-        if (target == vertex) {
-          vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
+        if (target == this) {
+          vertexManager.onVertexManagerEventReceived(vmEvent);
         } else {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          vertex.eventHandler.handle(new VertexEventRouteEvent(target
+          checkEventSourceMetadata(this, sourceMeta);
+          eventHandler.handle(new VertexEventRouteEvent(target
               .getVertexId(), Collections.singletonList(tezEvent)));
         }
       }
@@ -4065,45 +4247,46 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       case ROOT_INPUT_INITIALIZER_EVENT:
       {
         InputInitializerEvent riEvent = (InputInitializerEvent) tezEvent.getEvent();
-        Vertex target = vertex.getDAG().getVertex(riEvent.getTargetVertexName());
+        Vertex target = getDAG().getVertex(riEvent.getTargetVertexName());
         Preconditions.checkArgument(target != null,
             "Event sent to unknown vertex: " + riEvent.getTargetVertexName());
         riEvent.setSourceVertexName(tezEvent.getSourceInfo().getTaskVertexName());
-        if (target == vertex) {
-          if (vertex.rootInputDescriptors == null ||
-              !vertex.rootInputDescriptors.containsKey(riEvent.getTargetInputName())) {
+        if (target == this) {
+          if (rootInputDescriptors == null ||
+              !rootInputDescriptors.containsKey(riEvent.getTargetInputName())) {
             throw new TezUncheckedException(
                 "InputInitializerEvent targeted at unknown initializer on vertex " +
-                    vertex.logIdentifier + ", Event=" + riEvent);
+                    logIdentifier + ", Event=" + riEvent);
           }
-          if (vertex.getState() == VertexState.NEW) {
-            vertex.pendingInitializerEvents.add(tezEvent);
-          } else  if (vertex.getState() == VertexState.INITIALIZING) {
-            vertex.rootInputInitializerManager.handleInitializerEvents(Collections.singletonList(tezEvent));
+          if (getState() == VertexState.NEW) {
+            pendingInitializerEvents.add(tezEvent);
+          } else  if (getState() == VertexState.INITIALIZING) {
+            rootInputInitializerManager.handleInitializerEvents(Collections.singletonList(tezEvent));
           } else {
             // Currently, INITED and subsequent states means Initializer complete / failure
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Dropping event" + tezEvent + " since state is not INITIALIZING in " + vertex.getLogIdentifier() + ", state=" + vertex.getState());
+              LOG.debug("Dropping event" + tezEvent + " since state is not INITIALIZING in "
+                  + getLogIdentifier() + ", state=" + getState());
             }
           }
         } else {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          vertex.eventHandler.handle(new VertexEventRouteEvent(target.getVertexId(),
+          checkEventSourceMetadata(this, sourceMeta);
+          eventHandler.handle(new VertexEventRouteEvent(target.getVertexId(),
               Collections.singletonList(tezEvent)));
         }
       }
         break;
       case INPUT_READ_ERROR_EVENT:
         {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          Edge srcEdge = vertex.sourceVertices.get(vertex.getDAG().getVertex(
+          checkEventSourceMetadata(this, sourceMeta);
+          Edge srcEdge = sourceVertices.get(this.getDAG().getVertex(
               sourceMeta.getEdgeVertexName()));
           srcEdge.sendTezEventToSourceTasks(tezEvent);
         }
         break;
       case TASK_ATTEMPT_FAILED_EVENT:
         {
-          checkEventSourceMetadata(vertex, sourceMeta);
+          checkEventSourceMetadata(this, sourceMeta);
           TaskAttemptTerminationCause errCause = null;
           switch (sourceMeta.getEventGenerator()) {
           case INPUT:
@@ -4124,7 +4307,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           }
           TaskAttemptFailedEvent taskFailedEvent =
               (TaskAttemptFailedEvent) tezEvent.getEvent();
-          vertex.getEventHandler().handle(
+          getEventHandler().handle(
               new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
                   TaskAttemptEventType.TA_FAILED,
                   "Error: " + taskFailedEvent.getDiagnostics(), 
@@ -4134,8 +4317,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         break;
       case TASK_ATTEMPT_COMPLETED_EVENT:
         {
-          checkEventSourceMetadata(vertex, sourceMeta);
-          vertex.getEventHandler().handle(
+          checkEventSourceMetadata(this, sourceMeta);
+          getEventHandler().handle(
               new TaskAttemptEvent(sourceMeta.getTaskAttemptID(), TaskAttemptEventType.TA_DONE));
         }
         break;

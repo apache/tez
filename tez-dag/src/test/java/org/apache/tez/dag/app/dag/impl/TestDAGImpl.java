@@ -51,9 +51,9 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.DataSinkDescriptor;
-import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -1028,6 +1028,8 @@ public class TestDAGImpl {
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
+    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 1000);
+    dispatcher.await();
 
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     Assert.assertEquals(VertexState.KILLED, v1.getState());
@@ -1037,7 +1039,40 @@ public class TestDAGImpl {
   
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testEdgeManager_RouteInputSourceTaskFailedEventToDestination() {
+  public void testEdgeManager_RouteDataMovementEventToDestinationWithLegacyRouting() {
+    // Remove after legacy routing is removed
+    setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination);
+    dispatcher.getEventHandler().handle(
+        new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
+    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(), 
+        null));
+    dispatcher.await();
+    Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
+
+    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    v1.useOnDemandRouting = false;
+    v2.useOnDemandRouting = false;
+    dispatcher.await();
+    Task t1= v2.getTask(0);
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+
+    DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
+    TezEvent tezEvent = new TezEvent(daEvent, 
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
+    dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
+    dispatcher.await();
+
+    Assert.assertEquals(VertexState.FAILED, v2.getState());
+    Assert.assertEquals(VertexState.KILLED, v1.getState());
+    String diag = StringUtils.join(v2.getDiagnostics(), ",");
+    Assert.assertTrue(diag.contains(ExceptionLocation.RouteDataMovementEventToDestination.name()));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testEdgeManager_RouteInputSourceTaskFailedEventToDestinationLegacyRouting() {
+    // Remove after legacy routing is removed
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination);
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
@@ -1048,6 +1083,8 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    v1.useOnDemandRouting = false;
+    v2.useOnDemandRouting = false;
     dispatcher.await();
 
     Task t1= v2.getTask(0);
@@ -1057,13 +1094,15 @@ public class TestDAGImpl {
         new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    // 
+    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 1000);
+    dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
+    
     Assert.assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination.name()));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testEdgeManager_GetNumDestinationConsumerTasks() {
@@ -1773,7 +1812,7 @@ public class TestDAGImpl {
         TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
   }
 
-  public static class CustomizedEdgeManager extends EdgeManagerPlugin {
+  public static class CustomizedEdgeManager extends EdgeManagerPluginOnDemand {
 
     public static enum ExceptionLocation {
       Initialize,
@@ -1860,6 +1899,47 @@ public class TestDAGImpl {
         throw new Exception(exLocation.name());
       }
       return 0;
+    }
+
+    @Override
+    public int routeInputErrorEventToSource(int destinationTaskIndex,
+        int destinationFailedInputIndex) throws Exception {
+      if (exLocation == ExceptionLocation.RouteInputErrorEventToSource) {
+        throw new Exception(exLocation.name());
+      }
+      return 0;
+    }
+
+    @Override
+    public EventRouteMetadata routeDataMovementEventToDestination(int sourceTaskIndex,
+        int sourceOutputIndex, int destinationTaskIndex) throws Exception {
+      if (exLocation == ExceptionLocation.RouteDataMovementEventToDestination) {
+        throw new Exception(exLocation.name());
+      }
+      return null;
+    }
+
+    @Override
+    public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+        int sourceTaskIndex, int destinationTaskIndex)
+        throws Exception {
+      if (exLocation == ExceptionLocation.RouteDataMovementEventToDestination) {
+        throw new Exception(exLocation.name());
+      }
+      return null;
+    }
+
+    @Override
+    public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
+        int sourceTaskIndex, int destinationTaskIndex) throws Exception {
+      if (exLocation == ExceptionLocation.RouteInputSourceTaskFailedEventToDestination) {
+        throw new Exception(exLocation.name());
+      }
+      return null;
+    }
+
+    @Override
+    public void prepareForRouting() throws Exception {
     }
   }
 

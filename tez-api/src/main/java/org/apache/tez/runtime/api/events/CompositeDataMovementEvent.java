@@ -21,6 +21,7 @@ package org.apache.tez.runtime.api.events;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.Event;
 
@@ -64,6 +65,26 @@ public class CompositeDataMovementEvent extends Event {
   public static CompositeDataMovementEvent create(int srcIndexStart, int count,
                                                   ByteBuffer userPayload) {
     return new CompositeDataMovementEvent(srcIndexStart, count, userPayload);
+  }
+  
+  /**
+   * Expand the {@link CompositeDataMovementEvent} into a routable
+   * {@link DataMovementEvent} by providing the source output index and the
+   * target input index.
+   * 
+   * @param sourceIndex
+   *          The index of the physical output represented by the
+   *          {@link DataMovementEvent}
+   * @param targetIndex
+   *          The index of the physical input to which the given
+   *          {@link DataMovementEvent} should be routed.
+   * @return {@link DataMovementEvent} created from the
+   *         {@link CompositeDataMovementEvent} with indices specified by the
+   *         method parameters
+   */
+  @Private
+  public DataMovementEvent expand(int sourceIndex, int targetIndex) {
+    return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
   }
 
   public int getSourceIndexStart() {

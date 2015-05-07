@@ -92,8 +92,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
   MockContainerLauncher containerLauncher;
   boolean initFailFlag;
   boolean startFailFlag;
-  boolean sendDMEvents;
   boolean recoveryFatalError = false;
+  EventsDelegate eventsDelegate;
   CountersDelegate countersDelegate;
   StatisticsDelegate statsDelegate;
   long launcherSleepTime = 1;
@@ -111,6 +111,10 @@ public class MockDAGAppMaster extends DAGAppMaster {
   }
   public static interface CountersDelegate {
     public TezCounters getCounters(TaskSpec taskSpec);
+  }
+  
+  public static interface EventsDelegate {
+    public void getEvents(TaskSpec taskSpec, List<TezEvent> events);
   }
 
   // mock container launcher does not launch real tasks.
@@ -334,7 +338,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       if (response.shouldDie()) {
         cData.remove();
       } else {
-        cData.nextFromEventId += response.getEvents().size();
+        cData.nextFromEventId += response.getNextFromEventId();
         if (!response.getEvents().isEmpty()) {
           long stopTime = System.nanoTime();
           long stopCpuTime = threadMxBean.getCurrentThreadCpuTime();
@@ -400,19 +404,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
                 updatesToMake != null && cData.numUpdates < updatesToMake) {
               List<TezEvent> events = Lists.newArrayListWithCapacity(
                                       cData.taskSpec.getOutputs().size() + 1);
-              if (sendDMEvents) {
-                for (OutputSpec output : cData.taskSpec.getOutputs()) {
-                  if (output.getPhysicalEdgeCount() == 1) {
-                    events.add(new TezEvent(DataMovementEvent.create(0, 0, 0, null), new EventMetaData(
-                        EventProducerConsumerType.OUTPUT, cData.vName, output
-                            .getDestinationVertexName(), cData.taId)));
-                  } else {
-                    events.add(new TezEvent(CompositeDataMovementEvent.create(0,
-                        output.getPhysicalEdgeCount(), null), new EventMetaData(
-                        EventProducerConsumerType.OUTPUT, cData.vName, output
-                            .getDestinationVertexName(), cData.taId)));
-                  }
-                }
+              if (cData.numUpdates == 0 && eventsDelegate != null) {
+                eventsDelegate.getEvents(cData.taskSpec, events);
               }
               TezCounters counters = null;
               if (countersDelegate != null) {
@@ -428,7 +421,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)));
               TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
-                  cData.cIdStr, cData.taId, cData.nextFromEventId, 10000);
+                  cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
               doHeartbeat(request, cData);
             } else if (version != null && cData.taId.getId() <= version.intValue()) {
               preemptContainer(cData);

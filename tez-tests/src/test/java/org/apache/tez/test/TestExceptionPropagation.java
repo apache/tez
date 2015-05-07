@@ -308,7 +308,7 @@ public class TestExceptionPropagation {
     // EdgeManager
     EM_Initialize, EM_GetNumDestinationTaskPhysicalInputs, EM_GetNumSourceTaskPhysicalOutputs,
     EM_RouteDataMovementEventToDestination, EM_GetNumDestinationConsumerTasks,
-    EM_RouteInputErrorEventToSource,
+    EM_RouteInputErrorEventToSource, EM_PrepareForRouting,
     // Not Supported yet
     // EM_RouteInputSourceTaskFailedEventToDestination,
 
@@ -814,6 +814,33 @@ public class TestExceptionPropagation {
       super.routeDataMovementEventToDestination(event, sourceTaskIndex,
           sourceOutputIndex, destinationTaskAndInputIndices);
     }
+    
+    @Override
+    public void prepareForRouting() throws Exception {
+      if (exLocation == ExceptionLocation.EM_PrepareForRouting) {
+        throw new RuntimeException(exLocation.name());
+      }
+      super.prepareForRouting();
+    }
+    
+    @Override
+    public EventRouteMetadata routeDataMovementEventToDestination(
+        int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex) throws Exception {
+      if (exLocation == ExceptionLocation.EM_RouteDataMovementEventToDestination) {
+        throw new RuntimeException(exLocation.name());
+      }
+      return super.routeDataMovementEventToDestination(sourceTaskIndex, sourceOutputIndex, destinationTaskIndex);
+    }
+
+    @Override
+    public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+        int sourceTaskIndex, int destinationTaskIndex)
+        throws Exception {
+      if (exLocation == ExceptionLocation.EM_RouteDataMovementEventToDestination) {
+        throw new RuntimeException(exLocation.name());
+      }
+      return super.routeCompositeDataMovementEventToDestination(sourceTaskIndex, destinationTaskIndex);
+    }
 
     @Override
     public int routeInputErrorEventToSource(InputReadErrorEvent event,
@@ -822,6 +849,16 @@ public class TestExceptionPropagation {
         throw new RuntimeException(exLocation.name());
       }
       return super.routeInputErrorEventToSource(event, destinationTaskIndex,
+          destinationFailedInputIndex);
+    }
+
+    @Override
+    public int routeInputErrorEventToSource(int destinationTaskIndex,
+        int destinationFailedInputIndex) {
+      if (exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource) {
+        throw new RuntimeException(exLocation.name());
+      }
+      return super.routeInputErrorEventToSource(destinationTaskIndex,
           destinationFailedInputIndex);
     }
 

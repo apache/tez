@@ -33,9 +33,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -160,12 +160,15 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     super(context);
   }
 
-  public static class CustomShuffleEdgeManager extends EdgeManagerPlugin {
+  public static class CustomShuffleEdgeManager extends EdgeManagerPluginOnDemand {
     int numSourceTaskOutputs;
     int numDestinationTasks;
     int basePartitionRange;
     int remainderRangeForLastShuffler;
     int numSourceTasks;
+    
+    int[][] sourceIndices;
+    int[][] targetIndices;
 
     public CustomShuffleEdgeManager(EdgeManagerPluginContext context) {
       super(context);
@@ -231,7 +234,105 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
       destinationTaskAndInputIndices.put(destinationTaskIndex, Collections.singletonList(targetIndex));
     }
+
+    @Override
+    public EventRouteMetadata routeDataMovementEventToDestination(
+        int sourceTaskIndex, int sourceOutputIndex, int destTaskIndex) throws Exception {
+      int sourceIndex = sourceOutputIndex;
+      int destinationTaskIndex = sourceIndex/basePartitionRange;
+      if (destinationTaskIndex != destTaskIndex) {
+        return null;
+      }
+      int partitionRange = 1;
+      if(destinationTaskIndex < numDestinationTasks-1) {
+        partitionRange = basePartitionRange;
+      } else {
+        partitionRange = remainderRangeForLastShuffler;
+      }
+      
+      // all inputs from a source task are next to each other in original order
+      int targetIndex = 
+          sourceTaskIndex * partitionRange 
+          + sourceIndex % partitionRange;
+      return EventRouteMetadata.create(1, new int[]{targetIndex});
+    }
     
+    private int[] createIndices(int partitionRange, int taskIndex, int offSetPerTask) {
+      int startIndex = taskIndex * offSetPerTask;
+      int[] indices = new int[partitionRange];
+      for (int currentIndex = 0; currentIndex < partitionRange; ++currentIndex) {
+        indices[currentIndex] = (startIndex + currentIndex);
+      }
+      return indices;      
+    }
+    
+    @Override
+    public void prepareForRouting() throws Exception {
+      // target indices derive from num src tasks
+      int numSourceTasks = getContext().getSourceVertexNumTasks();
+      targetIndices = new int[numSourceTasks][];
+      for (int srcTaskIndex=0; srcTaskIndex<numSourceTasks; ++srcTaskIndex) {
+        targetIndices[srcTaskIndex] = createIndices(basePartitionRange, srcTaskIndex,
+            basePartitionRange);
+      }
+      
+      // source indices derive from num dest tasks (==partitions)
+      int numTargetTasks = getContext().getDestinationVertexNumTasks();
+      sourceIndices = new int[numTargetTasks][];
+      for (int destTaskIndex=0; destTaskIndex<numTargetTasks; ++destTaskIndex) {
+        int partitionRange = basePartitionRange;
+        if (destTaskIndex == (numTargetTasks-1)) {
+          partitionRange = remainderRangeForLastShuffler;
+        }
+        // skip the basePartitionRange per destination task
+        sourceIndices[destTaskIndex] = createIndices(partitionRange, destTaskIndex,
+            basePartitionRange);
+      }
+    }
+
+    private int[] createTargetIndicesForRemainder(int srcTaskIndex) {
+      // for the last task just generate on the fly instead of doubling the memory
+      return createIndices(remainderRangeForLastShuffler, srcTaskIndex,
+          remainderRangeForLastShuffler);
+    }
+    
+    @Override
+    public @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+        int sourceTaskIndex, int destinationTaskIndex)
+        throws Exception {
+      int[] targetIndicesToSend;
+      int partitionRange;
+      if(destinationTaskIndex == (numDestinationTasks-1)) {
+        if (remainderRangeForLastShuffler != basePartitionRange) {
+          targetIndicesToSend = createTargetIndicesForRemainder(sourceTaskIndex);
+        } else {
+          targetIndicesToSend = targetIndices[sourceTaskIndex];
+        }
+        partitionRange = remainderRangeForLastShuffler;
+      } else {
+        targetIndicesToSend = targetIndices[sourceTaskIndex];
+        partitionRange = basePartitionRange;
+      }
+
+      return EventRouteMetadata.create(partitionRange, targetIndicesToSend, 
+          sourceIndices[destinationTaskIndex]);
+    }
+
+    @Override
+    public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
+        int sourceTaskIndex, int destinationTaskIndex) throws Exception {
+      int partitionRange = basePartitionRange;
+      if (destinationTaskIndex == (numDestinationTasks-1)) {
+        partitionRange = remainderRangeForLastShuffler;
+      }
+      int startOffset = sourceTaskIndex * partitionRange;        
+      int[] targetIndices = new int[partitionRange];
+      for (int i=0; i<partitionRange; ++i) {
+        targetIndices[i] = (startOffset + i);
+      }
+      return EventRouteMetadata.create(partitionRange, targetIndices);
+    }
+
     @Override
     public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex, 
         Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
@@ -271,6 +372,18 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     @Override
     public int routeInputErrorEventToSource(InputReadErrorEvent event,
         int destinationTaskIndex, int destinationFailedInputIndex) {
+      int partitionRange = 1;
+      if(destinationTaskIndex < numDestinationTasks-1) {
+        partitionRange = basePartitionRange;
+      } else {
+        partitionRange = remainderRangeForLastShuffler;
+      }
+      return destinationFailedInputIndex/partitionRange;
+    }
+
+    @Override
+    public int routeInputErrorEventToSource(int destinationTaskIndex,
+        int destinationFailedInputIndex) {
       int partitionRange = 1;
       if(destinationTaskIndex < numDestinationTasks-1) {
         partitionRange = basePartitionRange;
