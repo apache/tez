@@ -105,6 +105,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
     Throwable failureCause = null;
     if (!Thread.currentThread().isInterrupted()) {
       taskFuture = executor.submit(callable);
+    } else {
       return isShutdownRequested();
     }
     try {

@@ -21,5 +21,6 @@ ALL CHANGES:
   TEZ-2381. Fixes after rebase 04/28.
   TEZ-2388. Send dag identifier as part of the fetcher request string.
   TEZ-2414. LogicalIOProcessorRuntimeTask, RuntimeTask, TezTaskRunner should handle interrupts & carry out necessary cleanups.
+  TEZ-2420. TaskRunner returning before executing the task.
 
 INCOMPATIBLE CHANGES:
