@@ -20,6 +20,7 @@ INCOMPATIBLE CHANGES
     Default max limit increased. Should not affect existing users.
 
 ALL CHANGES:
+  TEZ-2423. Tez UI: Remove Attempt Index column from task->attempts page
   TEZ-2416. Tez UI: Make tooltips display faster.
   TEZ-2404. Handle DataMovementEvent before its TaskAttemptCompletedEvent
   TEZ-2424. Bump up max counter group name length limit to account for per_io counters.
