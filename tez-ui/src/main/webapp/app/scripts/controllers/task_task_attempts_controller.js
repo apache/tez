@@ -62,21 +62,6 @@ App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColum
     var that = this;
     return [
       {
-        id: 'id',
-        headerCellName: 'Attempt Index',
-        templateName: 'components/basic-table/linked-cell',
-        contentPath: 'id',
-        getCellContent: function (row) {
-          var id = row.get('id'),
-              idPrefix = 'attempt_%@_'.fmt(row.get('dagID').substr(4));
-          return {
-            linkTo: 'taskAttempt',
-            entityId: id,
-            displayText: id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id
-          };
-        }
-      },
-      {
         id: 'attemptNo',
         headerCellName: 'Attempt No',
         templateName: 'components/basic-table/linked-cell',
