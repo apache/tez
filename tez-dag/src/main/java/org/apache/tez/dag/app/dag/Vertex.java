@@ -45,10 +45,12 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.TaskAttemptEventInfo;
 import org.apache.tez.dag.app.dag.event.SpeculatorEvent;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
 import org.apache.tez.dag.app.dag.impl.Edge;
 import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
@@ -143,6 +145,9 @@ public interface Vertex extends Comparable<Vertex> {
   void scheduleTasks(List<TaskWithLocationHint> tasks);
   void scheduleSpeculativeTask(TezTaskID taskId);
   Resource getTaskResource();
+  
+  public TaskAttemptEventInfo getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
+      int fromEventId, int maxEvents);
   
   void handleSpeculatorEvent(SpeculatorEvent event);
 

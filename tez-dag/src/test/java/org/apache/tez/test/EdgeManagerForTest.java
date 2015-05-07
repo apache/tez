@@ -21,13 +21,13 @@ package org.apache.tez.test;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class EdgeManagerForTest extends EdgeManagerPlugin {
+public class EdgeManagerForTest extends EdgeManagerPluginOnDemand {
 
   private UserPayload userPayload;
 
@@ -77,6 +77,35 @@ public class EdgeManagerForTest extends EdgeManagerPlugin {
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) { 
+  }
+
+  @Override
+  public EventRouteMetadata routeDataMovementEventToDestination(int sourceTaskIndex,
+      int sourceOutputIndex, int destinationTaskIndex) throws Exception {
+    return null;
+  }
+
+  @Override
+  public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex)
+      throws Exception {
+    return null;
+  }
+
+  @Override
+  public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex) throws Exception {
+    return null;
+  }
+
+  @Override
+  public void prepareForRouting() throws Exception {
+  }
+
+  @Override
+  public int routeInputErrorEventToSource(int destinationTaskIndex, int destinationFailedInputIndex)
+      throws Exception {
+    return 0;
   }
   
   // End of overridden methods

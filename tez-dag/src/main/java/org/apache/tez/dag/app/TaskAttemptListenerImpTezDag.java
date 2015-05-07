@@ -444,13 +444,13 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
               new VertexEventRouteEvent(vertexId, Collections.unmodifiableList(otherEvents)));
         }
         taskHeartbeatHandler.pinged(taskAttemptID);
-        List<TezEvent> outEvents = context
+        TaskAttemptEventInfo eventInfo = context
             .getCurrentDAG()
             .getVertex(taskAttemptID.getTaskID().getVertexID())
-            .getTask(taskAttemptID.getTaskID())
             .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
                 request.getMaxEvents());
-        response.setEvents(outEvents);
+        response.setEvents(eventInfo.getEvents());
+        response.setNextFromEventId(eventInfo.getNextFromEventId());
       }
       containerInfo.lastRequestId = requestId;
       containerInfo.lastReponse = response;

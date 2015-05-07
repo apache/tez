@@ -85,4 +85,16 @@
     <Bug pattern="SWL_SLEEP_WITH_LOCK_HELD"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.dag.api.EdgeManagerPluginOnDemand$EventRouteMetadata"/>
+    <Method name="getSourceIndices"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.api.EdgeManagerPluginOnDemand$EventRouteMetadata"/>
+    <Method name="getTargetIndices"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
 </FindBugsFilter>

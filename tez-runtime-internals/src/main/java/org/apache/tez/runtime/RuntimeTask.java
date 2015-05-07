@@ -49,6 +49,7 @@ public abstract class RuntimeTask {
   protected final Configuration tezConf;
   protected final TezUmbilical tezUmbilical;
   protected final AtomicInteger eventCounter;
+  protected final AtomicInteger nextFromEventId;
   private final AtomicBoolean taskDone;
   private final TaskCounterUpdater counterUpdater;
   private final TaskStatistics statistics;
@@ -60,6 +61,7 @@ public abstract class RuntimeTask {
     this.tezUmbilical = tezUmbilical;
     this.tezCounters = new TezCounters();
     this.eventCounter = new AtomicInteger(0);
+    this.nextFromEventId = new AtomicInteger(0);
     this.progress = 0.0f;
     this.taskDone = new AtomicBoolean(false);
     this.statistics = new TaskStatistics();
@@ -129,6 +131,14 @@ public abstract class RuntimeTask {
 
   public int getEventCounter() {
     return eventCounter.get();
+  }
+  
+  public int getNextFromEventId() {
+    return nextFromEventId.get();
+  }
+  
+  public void setNextFromEventId(int nextFromEventId) {
+    this.nextFromEventId.set(nextFromEventId);
   }
 
   public boolean isTaskDone() {

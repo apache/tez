@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.Output;
 
 /**
  * Event used by user code to send information between tasks. An output can
@@ -56,14 +57,8 @@ public final class DataMovementEvent extends Event {
   private int version;
 
 
-  private DataMovementEvent(int sourceIndex,
-                            ByteBuffer userPayload) {
-    this.userPayload = userPayload;
-    this.sourceIndex = sourceIndex;
-  }
-
   @Private
-  private DataMovementEvent(int sourceIndex,
+  DataMovementEvent(int sourceIndex,
                             int targetIndex,
                             int version,
                             ByteBuffer userPayload) {
@@ -74,20 +69,21 @@ public final class DataMovementEvent extends Event {
   }
 
   private DataMovementEvent(ByteBuffer userPayload) {
-    this(-1, userPayload);
+    this(-1, -1, -1, userPayload);
   }
 
   /**
-   * User Event constructor
+   * User Event constructor for {@link Output}s
    * @param sourceIndex Index to identify the physical edge of the input/output
    * that generated the event
    * @param userPayload User Payload of the User Event
    */
   public static DataMovementEvent create(int sourceIndex,
                                          ByteBuffer userPayload) {
-    return new DataMovementEvent(sourceIndex, userPayload);
+    return new DataMovementEvent(sourceIndex, -1, -1, userPayload);
   }
-
+  
+  @Private
   /**
    * Constructor for Processor-generated User Events
    * @param userPayload
@@ -101,6 +97,21 @@ public final class DataMovementEvent extends Event {
                                          int targetIndex,
                                          int version,
                                          ByteBuffer userPayload) {
+    return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
+  }
+  
+  /**
+   * Make a routable copy of the {@link DataMovementEvent} by adding a target
+   * input index
+   * 
+   * @param targetIndex
+   *          The index of the physical input to which this
+   *          {@link DataMovementEvent} should be routed
+   * @return Copy of this {@link DataMovementEvent} with the target input index
+   *         added to it
+   */
+  @Private
+  public DataMovementEvent makeCopy(int targetIndex) {
     return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
   }
 

@@ -22,12 +22,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
-public class BroadcastEdgeManager extends EdgeManagerPlugin {
+public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
+
+  EventRouteMetadata[] commonRouteMeta;
 
   public BroadcastEdgeManager(EdgeManagerPluginContext context) {
     super(context);
@@ -60,6 +62,35 @@ public class BroadcastEdgeManager extends EdgeManagerPlugin {
   }
   
   @Override
+  public void prepareForRouting() throws Exception {
+    int numSourceTasks = getContext().getSourceVertexNumTasks();
+    commonRouteMeta = new EventRouteMetadata[numSourceTasks];
+    for (int i=0; i<numSourceTasks; ++i) {
+      commonRouteMeta[i] = EventRouteMetadata.create(1, new int[]{i}, new int[]{0});
+    }
+  }
+  
+  @Override
+  public EventRouteMetadata routeDataMovementEventToDestination(
+      int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex)
+      throws Exception {
+    return commonRouteMeta[sourceTaskIndex];
+  }
+  
+  @Override
+  public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex)
+      throws Exception {
+    return commonRouteMeta[sourceTaskIndex];
+  }
+
+  @Override
+  public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex) throws Exception {
+    return commonRouteMeta[sourceTaskIndex];
+  }
+
+  @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     List<Integer> inputIndices = 
@@ -68,6 +99,12 @@ public class BroadcastEdgeManager extends EdgeManagerPlugin {
     for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, inputIndices);
     }
+  }
+
+  @Override
+  public int routeInputErrorEventToSource(int destinationTaskIndex, int destinationFailedInputIndex)
+      throws Exception {
+    return destinationFailedInputIndex;
   }
 
   @Override

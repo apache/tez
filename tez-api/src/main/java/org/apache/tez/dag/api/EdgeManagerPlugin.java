@@ -101,7 +101,7 @@ public abstract class EdgeManagerPlugin {
   public abstract void routeDataMovementEventToDestination(DataMovementEvent event,
       int sourceTaskIndex, int sourceOutputIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
-  
+
   /**
    * Return the routing information to inform consumers about the failure of a
    * source task whose outputs have been potentially lost. The return map has
@@ -144,7 +144,7 @@ public abstract class EdgeManagerPlugin {
       int destinationTaskIndex, int destinationFailedInputIndex) throws Exception;
 
   /**
-   * Return ahe {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for this specific instance of
+   * Return the {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for this specific instance of
    * the vertex manager.
    *
    * @return the {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for the input

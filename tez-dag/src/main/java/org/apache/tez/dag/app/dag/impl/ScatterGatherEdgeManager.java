@@ -18,18 +18,29 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.tez.dag.api.EdgeManagerPlugin;
+import javax.annotation.Nullable;
+
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
-public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
+public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
+  
+  private AtomicReference<ArrayList<EventRouteMetadata>> commonRouteMeta = 
+      new AtomicReference<ArrayList<EventRouteMetadata>>();
+  private Object commonRouteMetaLock = new Object();
+  private int[][] sourceIndices;
+  private int[][] targetIndices;
 
   public ScatterGatherEdgeManager(EdgeManagerPluginContext context) {
     super(context);
@@ -53,6 +64,69 @@ public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
     return physicalOutputs;
   }
 
+  private ArrayList<EventRouteMetadata> getOrCreateCommonRouteMeta() {
+    ArrayList<EventRouteMetadata> metaData = commonRouteMeta.get();
+    if (metaData == null) {
+      synchronized (commonRouteMetaLock) {
+        metaData = commonRouteMeta.get();
+        if (metaData == null) {
+          int numSourceTasks = getContext().getSourceVertexNumTasks();
+          ArrayList<EventRouteMetadata> localEventMeta = Lists
+              .newArrayListWithCapacity(numSourceTasks);
+          for (int i=0; i<numSourceTasks; ++i) {
+            localEventMeta.add(EventRouteMetadata.create(1, new int[]{i}, new int[]{0}));
+          }
+          Preconditions.checkState(commonRouteMeta.compareAndSet(null, localEventMeta));
+          metaData = commonRouteMeta.get();
+        }
+      }
+    }
+    return metaData;
+  }
+
+  private void createIndices() {
+    // source indices derive from num dest tasks (==partitions)
+    int numTargetTasks = getContext().getDestinationVertexNumTasks();
+    sourceIndices = new int[numTargetTasks][];
+    for (int i=0; i<numTargetTasks; ++i) {
+      sourceIndices[i] = new int[]{i};
+    }
+    // target indices derive from num src tasks
+    int numSourceTasks = getContext().getSourceVertexNumTasks();
+    targetIndices = new int[numSourceTasks][];
+    for (int i=0; i<numSourceTasks; ++i) {
+      targetIndices[i] = new int[]{i};
+    }
+  }
+  
+  @Override
+  public void prepareForRouting() throws Exception {
+    createIndices();    
+  }
+
+  @Override
+  public EventRouteMetadata routeDataMovementEventToDestination(
+      int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex) throws Exception {
+    if (sourceOutputIndex == destinationTaskIndex) {
+      return getOrCreateCommonRouteMeta().get(sourceTaskIndex);
+    }
+    return null;
+  }
+  
+  @Override
+  public @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex)
+      throws Exception {
+    return EventRouteMetadata.create(1, targetIndices[sourceTaskIndex], 
+        sourceIndices[destinationTaskIndex]);
+  }
+
+  @Override
+  public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex) throws Exception {
+    return getOrCreateCommonRouteMeta().get(sourceTaskIndex);
+  }
+
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
       int sourceTaskIndex, int sourceOutputIndex, Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
@@ -72,6 +146,11 @@ public class ScatterGatherEdgeManager extends EdgeManagerPlugin {
   @Override
   public int routeInputErrorEventToSource(InputReadErrorEvent event,
       int destinationTaskIndex, int destinationFailedInputIndex) {
+    return destinationFailedInputIndex;
+  }
+
+  @Override
+  public int routeInputErrorEventToSource(int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationFailedInputIndex;
   }
 

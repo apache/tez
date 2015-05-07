@@ -23,6 +23,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,6 +50,9 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -69,6 +73,7 @@ import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.MockDAGAppMaster.CountersDelegate;
+import org.apache.tez.dag.app.MockDAGAppMaster.EventsDelegate;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher.ContainerData;
 import org.apache.tez.dag.app.MockDAGAppMaster.StatisticsDelegate;
@@ -84,13 +89,17 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.IOStatistics;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -101,8 +110,7 @@ import com.google.common.primitives.Ints;
 public class TestMockDAGAppMaster {
   private static final Log LOG = LogFactory.getLog(TestMockDAGAppMaster.class);
   static Configuration defaultConf;
-  static FileSystem localFs;
-  
+  static FileSystem localFs;  
   static {
     try {
       defaultConf = new Configuration(false);
@@ -114,6 +122,24 @@ public class TestMockDAGAppMaster {
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
+  }
+  
+  static class TestEventsDelegate implements EventsDelegate {
+    @Override
+    public void getEvents(TaskSpec taskSpec, List<TezEvent> events) {
+      for (OutputSpec output : taskSpec.getOutputs()) {
+        if (output.getPhysicalEdgeCount() == 1) {
+          events.add(new TezEvent(DataMovementEvent.create(0, 0, 0, null), new EventMetaData(
+              EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(), output
+                  .getDestinationVertexName(), taskSpec.getTaskAttemptID())));
+        } else {
+          events.add(new TezEvent(CompositeDataMovementEvent.create(0,
+              output.getPhysicalEdgeCount(), null), new EventMetaData(
+              EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(), output
+                  .getDestinationVertexName(), taskSpec.getTaskAttemptID())));
+        }
+      }
+    }    
   }
   
   @Test (timeout = 5000)
@@ -196,7 +222,7 @@ public class TestMockDAGAppMaster {
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
-    mockApp.sendDMEvents = true;
+    mockApp.eventsDelegate = new TestEventsDelegate();
     DAG dag = DAG.create("testBasicEvents");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 2);
     Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 2);
@@ -227,7 +253,8 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vB.getName());
     TaskImpl tImpl = (TaskImpl) vImpl.getTask(1);
-    List<TezEvent> tEvents = tImpl.getTaskEvents();
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 1);
+    List<TezEvent> tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
@@ -240,7 +267,8 @@ public class TestMockDAGAppMaster {
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
-    tEvents = tImpl.getTaskEvents();
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 1);
+    tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
     Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
@@ -253,11 +281,131 @@ public class TestMockDAGAppMaster {
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
-    tEvents = tImpl.getTaskEvents();
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 1);
+    tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 1000).getEvents();
     Assert.assertEquals(1, tEvents.size()); // 1 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
+
+    tezClient.stop();
+  }
+  
+  public static class LegacyEdgeTestEdgeManager extends EdgeManagerPlugin {
+    List<Integer> destinationInputIndices = 
+        Collections.unmodifiableList(Collections.singletonList(0));
+    public LegacyEdgeTestEdgeManager(EdgeManagerPluginContext context) {
+      super(context);
+    }
+
+    @Override
+    public void initialize() throws Exception {
+    }
+
+    @Override
+    public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) throws Exception {
+      return 1;
+    }
+
+    @Override
+    public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) throws Exception {
+      return 1;
+    }
+
+    @Override
+    public void routeDataMovementEventToDestination(DataMovementEvent event,
+        int sourceTaskIndex, int sourceOutputIndex, 
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+      destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
+    }
+
+    @Override
+    public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
+        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+      destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
+    }
+
+    @Override
+    public int routeInputErrorEventToSource(InputReadErrorEvent event,
+        int destinationTaskIndex, int destinationFailedInputIndex) {
+      return destinationTaskIndex;
+    }
+    
+    @Override
+    public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
+      return 1;
+    }
+  }
+  
+  @Test (timeout = 100000)
+  public void testMixedEdgeRouting() throws Exception {
+   TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null, null);
+    tezClient.start();
+    
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+    mockApp.eventsDelegate = new TestEventsDelegate();
+    DAG dag = DAG.create("testMixedEdgeRouting");
+    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 1);
+    Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 1);
+    Vertex vC = Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 1);
+    Vertex vD = Vertex.create("D", ProcessorDescriptor.create("Proc.class"), 1);
+    Vertex vE = Vertex.create("E", ProcessorDescriptor.create("Proc.class"), 1);
+    dag.addVertex(vA)
+        .addVertex(vB)
+        .addVertex(vC)
+        .addVertex(vD)
+        .addVertex(vE)
+        .addEdge(
+            Edge.create(vA, vC, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                OutputDescriptor.create("Out"), InputDescriptor.create("In"))))
+        .addEdge(
+            Edge.create(vB, vC, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                OutputDescriptor.create("Out"), InputDescriptor.create("In"))))
+        .addEdge(
+            Edge.create(vA, vD, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                OutputDescriptor.create("Out"), InputDescriptor.create("In"))))
+        .addEdge(
+            Edge.create(vB, vD, EdgeProperty.create(
+                EdgeManagerPluginDescriptor.create(LegacyEdgeTestEdgeManager.class.getName()),
+                DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                OutputDescriptor.create("Out"), InputDescriptor.create("In"))))
+        .addEdge(
+            Edge.create(vB, vE, EdgeProperty.create(
+              EdgeManagerPluginDescriptor.create(LegacyEdgeTestEdgeManager.class.getName()),
+              DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+              OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
+
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    mockLauncher.startScheduling(true);
+    dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    // vC uses on demand routing and its task does not provide events
+    VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
+    Assert.assertEquals(true, vImpl.useOnDemandRouting);
+    TaskImpl tImpl = (TaskImpl) vImpl.getTask(0);
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    Assert.assertEquals(0, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
+    // vD is mixed more and does not use on demand routing and its task provides events
+    vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
+    Assert.assertEquals(false, vImpl.useOnDemandRouting);
+    tImpl = (TaskImpl) vImpl.getTask(0);
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    Assert.assertEquals(2, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
+    // vE has single legacy edge and does not use on demand routing and its task provides events
+    vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
+    Assert.assertEquals(false, vImpl.useOnDemandRouting);
+    tImpl = (TaskImpl) vImpl.getTask(0);
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    Assert.assertEquals(2, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
 
     tezClient.stop();
   }

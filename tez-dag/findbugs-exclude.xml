@@ -118,7 +118,10 @@
   <!-- TEZ-1952 -->
   <Match>
     <Class name="org.apache.tez.dag.app.dag.impl.Edge"/>
-    <Field name="edgeProperty"/>
+    <Or>
+      <Field name="edgeProperty"/>
+      <Field name="onDemandRouting"/>
+    </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>
 
