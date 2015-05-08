@@ -53,7 +53,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
 
   private static final Logger LOG = LoggerFactory.getLogger(TezOutputContextImpl.class);
 
-  private UserPayload userPayload;
+  private volatile UserPayload userPayload;
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
   private final int outputIndex;

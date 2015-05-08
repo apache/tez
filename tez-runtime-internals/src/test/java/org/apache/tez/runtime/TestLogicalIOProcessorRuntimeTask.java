@@ -19,6 +19,7 @@
 package org.apache.tez.runtime;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.mock;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +35,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -133,29 +136,43 @@ public class TestLogicalIOProcessorRuntimeTask {
 
   }
 
-  private void cleanupAndTest(LogicalIOProcessorRuntimeTask lio) {
+  private void cleanupAndTest(LogicalIOProcessorRuntimeTask lio) throws InterruptedException {
+
+    ProcessorContext procContext = lio.getProcessorContext();
+    List<InputContext> inputContexts = new LinkedList<InputContext>();
+    inputContexts.addAll(lio.getInputContexts());
+    List<OutputContext> outputContexts = new LinkedList<OutputContext>();
+    outputContexts.addAll(lio.getOutputContexts());
 
     lio.cleanup();
 
-    assertTrue(lio.getProcessorContext().getUserPayload() == null);
-    assertTrue(lio.getProcessorContext().getObjectRegistry() == null);
+    assertTrue(procContext.getUserPayload() == null);
+    assertTrue(procContext.getObjectRegistry() == null);
 
-    try {
-      lio.getProcessorContext().waitForAnyInputReady(Collections.<Input>emptyList());
-      fail("Processor context should have been already cleanup");
-    } catch (Throwable t) {
-      assertTrue(t instanceof NullPointerException);
+    for (InputContext inputContext : inputContexts) {
+      assertTrue(inputContext.getUserPayload() == null);
+      assertTrue(inputContext.getObjectRegistry() == null);
     }
 
-    try {
-      lio.getProcessorContext().requestInitialMemory(0, null);
-      fail("Processor context should have been already cleanup");
-    } catch (Throwable t) {
-      assertTrue(t instanceof NullPointerException);
+    for (OutputContext outputContext : outputContexts) {
+      assertTrue(outputContext.getUserPayload() == null);
+      assertTrue(outputContext.getObjectRegistry() == null);
     }
 
-    assertTrue(lio.getInputContexts().size() == 0);
-    assertTrue(lio.getOutputContexts().size() == 0);
+    assertEquals(0, lio.inputSpecs.size());
+    assertEquals(0, lio.inputsMap.size());
+    assertEquals(0, lio.inputContextMap.size());
+    assertEquals(0, lio.outputSpecs.size());
+    assertEquals(0, lio.outputsMap.size());
+    assertEquals(0, lio.outputContextMap.size());
+    assertTrue(lio.groupInputSpecs == null || lio.groupInputSpecs.size() == 0);
+    assertNull(lio.groupInputsMap);
+    assertNull(lio.processor);
+    assertNull(lio.processorContext);
+    assertEquals(0, lio.runInputMap.size());
+    assertEquals(0, lio.runOutputMap.size());
+    assertEquals(0, lio.eventsToBeProcessed.size());
+    assertNull(lio.eventRouterThread);
   }
 
   private TaskSpec createTaskSpec(TezTaskAttemptID taskAttemptID,
@@ -248,7 +265,6 @@ public class TestLogicalIOProcessorRuntimeTask {
     public void start() throws Exception {
       startCount++;
       this.vertexParallelism = getContext().getVertexParallelism();
-      System.err.println("In started");
     }
 
     @Override

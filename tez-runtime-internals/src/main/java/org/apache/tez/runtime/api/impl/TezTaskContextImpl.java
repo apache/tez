@@ -54,15 +54,15 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   private final TezCounters counters;
   private String[] workDirs;
   private String uniqueIdentifier;
-  protected LogicalIOProcessorRuntimeTask runtimeTask;
+  protected final LogicalIOProcessorRuntimeTask runtimeTask;
   protected final TezUmbilical tezUmbilical;
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final int appAttemptNumber;
   private final Map<String, String> auxServiceEnv;
-  protected MemoryDistributor initialMemoryDistributor;
+  protected volatile MemoryDistributor initialMemoryDistributor;
   protected final EntityDescriptor<?> descriptor;
   private final String dagName;
-  private ObjectRegistry objectRegistry;
+  private volatile ObjectRegistry objectRegistry;
   private final int vertexParallelism;
   private final ExecutionContext ExecutionContext;
   private final long memAvailable;
@@ -225,7 +225,8 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
   @Override
   public void close() throws IOException {
-    this.runtimeTask = null;
+    Preconditions.checkState(runtimeTask.isTaskDone(),
+        "Runtime task must be complete before calling cleanup");
     this.objectRegistry = null;
     this.initialMemoryDistributor = null;
   }

@@ -53,8 +53,8 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   private static final Logger LOG = LoggerFactory.getLogger(TezProcessorContextImpl.class);
 
-  private UserPayload userPayload;
-  private InputReadyTracker inputReadyTracker;
+  private volatile UserPayload userPayload;
+  private volatile InputReadyTracker inputReadyTracker;
   private final EventMetaData sourceInfo;
 
   public TezProcessorContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,

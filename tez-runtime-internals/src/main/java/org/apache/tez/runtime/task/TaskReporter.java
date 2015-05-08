@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -112,6 +113,7 @@ public class TaskReporter {
   public synchronized void unregisterTask(TezTaskAttemptID taskAttemptID) {
     currentCallable.markComplete();
     currentCallable = null;
+    // KKK Make sure the callable completes before proceeding
   }
   
   public void shutdown() {
@@ -125,7 +127,7 @@ public class TaskReporter {
     private static final float LOG_COUNTER_BACKOFF = 1.3f;
 
     private final RuntimeTask task;
-    private EventMetaData updateEventMetadata;
+    private final EventMetaData updateEventMetadata;
 
     private final TezTaskUmbilicalProtocol umbilical;
 
@@ -135,6 +137,9 @@ public class TaskReporter {
     private final String containerIdStr;
 
     private final AtomicLong requestCounter;
+
+    private final AtomicBoolean finalEventQueued = new AtomicBoolean(false);
+    private final AtomicBoolean askedToDie = new AtomicBoolean(false);
 
     private LinkedBlockingQueue<TezEvent> eventsToSend = new LinkedBlockingQueue<TezEvent>();
 
@@ -199,6 +204,9 @@ public class TaskReporter {
       }
       int pendingEventCount = eventsToSend.size();
       if (pendingEventCount > 0) {
+        // This is OK because the pending events will be sent via the succeeded/failed messages.
+        // TaskDone is set before taskSucceeded / taskFailed are sent out - which is what causes the
+        // thread to exit.
         LOG.warn("Exiting TaskReporter thread with pending queue size=" + pendingEventCount);
       }
       return true;
@@ -256,6 +264,7 @@ public class TaskReporter {
 
       if (response.shouldDie()) {
         LOG.info("Received should die response from AM");
+        askedToDie.set(true);
         return new ResponseWrapper(true, 1);
       }
       if (response.getLastRequestId() != requestId) {
@@ -268,7 +277,7 @@ public class TaskReporter {
       int numEventsReceived = 0;
       if (task.isTaskDone() || task.hadFatalError()) {
         if (response.getEvents() != null && !response.getEvents().isEmpty()) {
-          LOG.warn("Current task already complete, Ignoring all event in"
+          LOG.info("Current task already complete, Ignoring all event in"
               + " heartbeat response, eventCount=" + response.getEvents().size());
         }
       } else {
@@ -315,10 +324,16 @@ public class TaskReporter {
      *           indicates an exception somewhere in the AM.
      */
     private boolean taskSucceeded(TezTaskAttemptID taskAttemptID) throws IOException, TezException {
-      TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
-      TezEvent taskCompletedEvent = new TezEvent(new TaskAttemptCompletedEvent(),
-          updateEventMetadata);
-      return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskCompletedEvent)).shouldDie;
+      // Ensure only one final event is ever sent.
+      if (!finalEventQueued.getAndSet(true)) {
+        TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
+        TezEvent taskCompletedEvent = new TezEvent(new TaskAttemptCompletedEvent(),
+            updateEventMetadata);
+        return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskCompletedEvent)).shouldDie;
+      } else {
+        LOG.warn("A final task state event has already been sent. Not sending again");
+        return askedToDie.get();
+      }
     }
     
     @VisibleForTesting
@@ -351,15 +366,21 @@ public class TaskReporter {
      */
     private boolean taskFailed(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
         EventMetaData srcMeta) throws IOException, TezException {
-      TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
-      if (diagnostics == null) {
-        diagnostics = ExceptionUtils.getStackTrace(t);
+      // Ensure only one final event is ever sent.
+      if (!finalEventQueued.getAndSet(true)) {
+        TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
+        if (diagnostics == null) {
+          diagnostics = ExceptionUtils.getStackTrace(t);
+        } else {
+          diagnostics = diagnostics + ":" + ExceptionUtils.getStackTrace(t);
+        }
+        TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
+            srcMeta == null ? updateEventMetadata : srcMeta);
+        return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent)).shouldDie;
       } else {
-        diagnostics = diagnostics + ":" + ExceptionUtils.getStackTrace(t);
+        LOG.warn("A final task state event has already been sent. Not sending again");
+        return askedToDie.get();
       }
-      TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
-          srcMeta == null ? updateEventMetadata : srcMeta);
-      return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent)).shouldDie;
     }
 
     private void addEvents(TezTaskAttemptID taskAttemptID, Collection<TezEvent> events) {
