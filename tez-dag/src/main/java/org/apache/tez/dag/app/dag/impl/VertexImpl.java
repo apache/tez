@@ -1901,7 +1901,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             vertex.trySetTerminationCause(VertexTerminationCause.RECOVERY_ERROR);
             return vertex.finished(VertexState.FAILED);
           }
-        } else {
           firstCommit = false;
         }
         VertexCommitCallback commitCallback = new VertexCommitCallback(vertex, outputName);

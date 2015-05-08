@@ -212,7 +212,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @VisibleForTesting
   Map<OutputKey, ListenableFuture<Void>> commitFutures
     = new HashMap<OutputKey, ListenableFuture<Void>>();
-  private Set<OutputKey> succeededCommits = new HashSet<OutputKey>();
 
   private static final DiagnosticsUpdateTransition
       DIAGNOSTIC_UPDATE_TRANSITION = new DiagnosticsUpdateTransition();
@@ -457,7 +456,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     Set<String> outputs;
     Map<String, InputDescriptor> edgeMergedInputs;
     int successfulMembers;
-    boolean committed;
+    int successfulCommits;
+    boolean commitStarted;
+
     VertexGroupInfo(PlanVertexGroupInfo groupInfo) {
       groupName = groupInfo.getGroupName();
       groupMembers = Sets.newHashSet(groupInfo.getGroupMembersList());
@@ -468,9 +469,19 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
       outputs = Sets.newHashSet(groupInfo.getOutputsList());
       successfulMembers = 0;
-      committed = false;
+      successfulCommits = 0;
+      commitStarted = false;
+    }
+
+    public boolean isInCommitting() {
+      return commitStarted && successfulCommits < outputs.size();
+    }
+
+    public boolean isCommitted() {
+      return commitStarted && successfulCommits == outputs.size();
     }
   }
+
 
   public DAGImpl(TezDAGID dagId,
       Configuration amConf,
@@ -962,7 +973,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     // commit all shared outputs
     for (final VertexGroupInfo groupInfo : vertexGroups.values()) {
       if (!groupInfo.outputs.isEmpty()) {
-        groupInfo.committed = true;
+        groupInfo.commitStarted = true;
         final Vertex v = getVertex(groupInfo.groupMembers.iterator().next());
         for (final String outputName : groupInfo.outputs) {
           final OutputKey outputKey = new OutputKey(outputName, groupInfo.groupName, true);
@@ -1920,7 +1931,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                 + " data, groupName=" + groupInfo.groupName);
             continue;
           }
-          groupInfo.committed = true;
+          groupInfo.commitStarted = true;
           final Vertex v = getVertex(groupInfo.groupMembers.iterator().next());
           try {
             appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
@@ -1966,11 +1977,19 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       + ", vertexId=" + vertex.getVertexId());
 
     if (!commitAllOutputsOnSuccess) {
-      // partial output may already have been committed. fail if so
+      // partial output may already have been in committing or committed. fail if so
       List<VertexGroupInfo> groupList = vertexGroupInfo.get(vertex.getName());
       if (groupList != null) {
         for (VertexGroupInfo groupInfo : groupList) {
-          if (groupInfo.committed) {
+          if (groupInfo.isInCommitting()) {
+            String msg = "Aborting job as committing vertex: "
+                + vertex.getLogIdentifier() + " is re-running";
+            LOG.info(msg);
+            addDiagnostic(msg);
+            enactKill(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING,
+                VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING);
+            return true;
+          } else if (groupInfo.isCommitted()) {
             String msg = "Aborting job as committed vertex: "
                 + vertex.getLogIdentifier() + " is re-running";
             LOG.info(msg);
@@ -2091,17 +2110,23 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     boolean recoveryFailed = false;
     if (commitCompletedEvent.isSucceeded()) {
       LOG.info("Commit succeeded for output:" + commitCompletedEvent.getOutputKey());
-      succeededCommits.add(commitCompletedEvent.getOutputKey());
-      if (!commitAllOutputsOnSuccess) {
-        try {
-          appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
-              new VertexGroupCommitFinishedEvent(getID(), commitCompletedEvent.getOutputKey().getEntityName(),
-                  clock.getTime())));
-        } catch (IOException e) {
-          String diag = "Failed to send commit recovery event to handler, " + ExceptionUtils.getStackTrace(e);
-          addDiagnostic(diag);
-          LOG.error(diag);
-          recoveryFailed = true;
+      OutputKey outputKey = commitCompletedEvent.getOutputKey();
+      if (outputKey.isVertexGroupOutput){
+        VertexGroupInfo vertexGroup = vertexGroups.get(outputKey.getEntityName());
+        vertexGroup.successfulCommits++;
+        if (vertexGroup.isCommitted()) {
+          if (!commitAllOutputsOnSuccess) {
+            try {
+              appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
+                  new VertexGroupCommitFinishedEvent(getID(), commitCompletedEvent.getOutputKey().getEntityName(),
+                      clock.getTime())));
+            } catch (IOException e) {
+              String diag = "Failed to send commit recovery event to handler, " + ExceptionUtils.getStackTrace(e);
+              addDiagnostic(diag);
+              LOG.error(diag);
+              recoveryFailed = true;
+            }
+          }
         }
       }
     } else {
