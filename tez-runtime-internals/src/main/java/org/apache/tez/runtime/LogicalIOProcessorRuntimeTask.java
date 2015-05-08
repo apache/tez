@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -96,45 +97,46 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private static final Logger LOG = LoggerFactory
       .getLogger(LogicalIOProcessorRuntimeTask.class);
 
+  @VisibleForTesting // All fields non private for testing.
   private final String[] localDirs;
   /** Responsible for maintaining order of Inputs */
-  private final List<InputSpec> inputSpecs;
-  private final Map<String, LogicalInput> inputsMap;
-  private final Map<String, InputContext> inputContextMap;
+  final List<InputSpec> inputSpecs;
+  final ConcurrentMap<String, LogicalInput> inputsMap;
+  final ConcurrentMap<String, InputContext> inputContextMap;
   /** Responsible for maintaining order of Outputs */
-  private final List<OutputSpec> outputSpecs;
-  private final Map<String, LogicalOutput> outputsMap;
-  private final Map<String, OutputContext> outputContextMap;
+  final List<OutputSpec> outputSpecs;
+  final ConcurrentMap<String, LogicalOutput> outputsMap;
+  final ConcurrentMap<String, OutputContext> outputContextMap;
 
-  private final List<GroupInputSpec> groupInputSpecs;
-  private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
+  final List<GroupInputSpec> groupInputSpecs;
+  ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
 
-  private final ProcessorDescriptor processorDescriptor;
-  private AbstractLogicalIOProcessor processor;
-  private ProcessorContext processorContext;
+  final ProcessorDescriptor processorDescriptor;
+  AbstractLogicalIOProcessor processor;
+  ProcessorContext processorContext;
 
   private final MemoryDistributor initialMemoryDistributor;
 
   /** Maps which will be provided to the processor run method */
-  private final LinkedHashMap<String, LogicalInput> runInputMap;
-  private final LinkedHashMap<String, LogicalOutput> runOutputMap;
+  final LinkedHashMap<String, LogicalInput> runInputMap;
+  final LinkedHashMap<String, LogicalOutput> runOutputMap;
   
   private final Map<String, ByteBuffer> serviceConsumerMetadata;
   private final Map<String, String> envMap;
 
-  private final ExecutorService initializerExecutor;
+  final ExecutorService initializerExecutor;
   private final CompletionService<Void> initializerCompletionService;
 
   private final Multimap<String, String> startedInputsMap;
 
-  private LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
-  private Thread eventRouterThread = null;
+  LinkedBlockingQueue<TezEvent> eventsToBeProcessed;
+  Thread eventRouterThread = null;
 
   private final int appAttemptNumber;
 
-  private final InputReadyTracker inputReadyTracker;
+  private volatile InputReadyTracker inputReadyTracker;
   
-  private final ObjectRegistry objectRegistry;
+  private volatile ObjectRegistry objectRegistry;
   private final ExecutionContext ExecutionContext;
   private final long memAvailable;
 
@@ -143,6 +145,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> envMap,
       Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry,
       String pid, ExecutionContext ExecutionContext, long memAvailable) throws IOException {
+    // Note: If adding any fields here, make sure they're cleaned up in the cleanupContext method.
     // TODO Remove jobToken from here post TEZ-421
     super(taskSpec, tezConf, tezUmbilical, pid);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
@@ -361,6 +364,14 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       setTaskDone();
       if (eventRouterThread != null) {
         eventRouterThread.interrupt();
+        LOG.info("Joining on EventRouter");
+        try {
+          eventRouterThread.join();
+        } catch (InterruptedException e) {
+          LOG.info("Ignoring interrupt while waiting for the router thread to die");
+          Thread.currentThread().interrupt();
+        }
+        eventRouterThread = null;
       }
     }
   }
@@ -694,14 +705,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     eventRouterThread.start();
   }
 
-  private void cleanupInputOutputs() {
-    if (groupInputsMap != null) {
-      groupInputsMap.clear();
-    }
-    inputsMap.clear();
-    outputsMap.clear();
-  }
-
   private void closeContexts() throws IOException {
     closeContext(inputContextMap);
     closeContext(outputContextMap);
@@ -725,19 +728,62 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     }
   }
 
-  public synchronized void cleanup() {
-    try {
-      cleanupInputOutputs();
-      closeContexts();
-    } catch (IOException e) {
-      LOG.info("Error while cleaning up contexts ", e);
-    }
-
+  public void cleanup() throws InterruptedException {
     LOG.info("Final Counters : " + getCounters().toShortString());
     setTaskDone();
     if (eventRouterThread != null) {
       eventRouterThread.interrupt();
+      LOG.info("Joining on EventRouter");
+      try {
+        eventRouterThread.join();
+      } catch (InterruptedException e) {
+        LOG.info("Ignoring interrupt while waiting for the router thread to die");
+        Thread.currentThread().interrupt();
+      }
+      eventRouterThread = null;
     }
+    try {
+      closeContexts();
+      // Cleanup references which may be held by misbehaved tasks.
+      cleanupStructures();
+    } catch (IOException e) {
+      LOG.info("Error while cleaning up contexts ", e);
+    }
+  }
+
+  private void cleanupStructures() {
+    if (initializerExecutor != null && !initializerExecutor.isShutdown()) {
+      initializerExecutor.shutdownNow();
+    }
+    inputsMap.clear();
+    outputsMap.clear();
+
+    inputSpecs.clear();
+    outputSpecs.clear();
+
+    inputsMap.clear();
+    outputsMap.clear();
+
+    inputContextMap.clear();
+    outputContextMap.clear();
+
+    if (groupInputSpecs != null) {
+      groupInputSpecs.clear();
+    }
+    if (groupInputsMap != null) {
+      groupInputsMap.clear();
+      groupInputsMap = null;
+    }
+
+    processor = null;
+    processorContext = null;
+
+    runInputMap.clear();
+    runOutputMap.clear();
+
+    eventsToBeProcessed.clear();
+    inputReadyTracker = null;
+    objectRegistry = null;
   }
   
   @Private

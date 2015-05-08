@@ -55,12 +55,12 @@ public class TezInputContextImpl extends TezTaskContextImpl
 
   private static final Logger LOG = LoggerFactory.getLogger(TezInputContextImpl.class);
 
-  private UserPayload userPayload;
+  private volatile UserPayload userPayload;
   private final String sourceVertexName;
   private final EventMetaData sourceInfo;
   private final int inputIndex;
   private final Map<String, LogicalInput> inputs;
-  private InputReadyTracker inputReadyTracker;
+  private volatile InputReadyTracker inputReadyTracker;
   private final InputStatisticsReporterImpl statsReporter;
   
   class InputStatisticsReporterImpl implements InputStatisticsReporter {
@@ -159,7 +159,11 @@ public class TezInputContextImpl extends TezTaskContextImpl
 
   @Override
   public void inputIsReady() {
-    inputReadyTracker.setInputIsReady(inputs.get(sourceVertexName));
+    if (inputReadyTracker != null) {
+      inputReadyTracker.setInputIsReady(inputs.get(sourceVertexName));
+    } else {
+      LOG.warn("Ignoring Input Ready notification since the Task has already been closed");
+    }
   }
 
   @Override
@@ -172,7 +176,6 @@ public class TezInputContextImpl extends TezTaskContextImpl
     super.close();
     this.userPayload = null;
     this.inputReadyTracker = null;
-    inputs.clear();
     LOG.info("Cleared TezInputContextImpl related information");
   }
 }
