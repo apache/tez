@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
     Default max limit increased. Should not affect existing users.
 
 ALL CHANGES:
+  TEZ-2412. Should kill vertex in DAGImpl#VertexRerunWhileCommitting
   TEZ-2410. VertexGroupCommitFinishedEvent & VertexCommitStartedEvent is not logged correctly
   TEZ-776. Reduce AM mem usage caused by storing TezEvents
   TEZ-2423. Tez UI: Remove Attempt Index column from task->attempts page

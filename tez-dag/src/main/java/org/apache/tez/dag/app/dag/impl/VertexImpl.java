@@ -3669,6 +3669,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         case INIT_FAILURE:
         case INTERNAL_ERROR:
         case AM_USERCODE_FAILURE:
+        case VERTEX_RERUN_IN_COMMITTING:
         case VERTEX_RERUN_AFTER_COMMIT:
         case OTHER_VERTEX_FAILURE: vertex.tryEnactKill(trigger, TaskTerminationCause.OTHER_VERTEX_FAILURE); break;
         default://should not occur
@@ -3685,8 +3686,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-
-
       VertexEventTermination vet = (VertexEventTermination) event;
       VertexTerminationCause trigger = vet.getTerminationCause();
       String msg = "Vertex received Kill while in COMMITTING state, terminationCause="

@@ -1206,6 +1206,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           return dag.finished(DAGState.SUCCEEDED);
         }
       } else {
+        // check commits before move to COMPLETED state.
         if (dag.commitFutures.isEmpty()) {
           return finishWithTerminationCause(dag);
         } else {
@@ -1218,7 +1219,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return dag.getInternalState();
   }
 
-  // triggered by commit_complete
+  // triggered by commit_complete, checkCommitsForCompletion should only been called in COMMITTING/TERMINATING
   static DAGState checkCommitsForCompletion(DAGImpl dag) {
     LOG.info("Checking commits for DAG completion"
         + ", numCompletedVertices=" + dag.numCompletedVertices
@@ -1240,8 +1241,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         return dag.finished(DAGState.SUCCEEDED);
       }
     } else {
-      if (!dag.commitFutures.isEmpty()) {
-        // pending commits are running
+      Preconditions.checkState(dag.getState() == DAGState.TERMINATING
+          || dag.getState() == DAGState.COMMITTING,
+          "DAG should be in COMMITTING/TERMINATING state, but in " + dag.getState());
+      if (!dag.commitFutures.isEmpty() || dag.numCompletedVertices != dag.numVertices) {
+        // pending commits are running or still some vertices are not completed
         return DAGState.TERMINATING;
       } else {
         return finishWithTerminationCause(dag);
@@ -2155,8 +2159,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     @Override
     public void transition(DAGImpl dag, DAGEvent event) {
       LOG.info("Vertex rerun while dag it is COMMITTING");
+      DAGEventVertexReRunning rerunEvent = (DAGEventVertexReRunning)event;
+      Vertex vertex = dag.getVertex(rerunEvent.getVertexId());
+      dag.reRunningVertices.add(vertex.getVertexId());
+      dag.numSuccessfulVertices--;
+      dag.numCompletedVertices--;
+      dag.addDiagnostic("Vertex re-running"
+          + ", vertexName=" + vertex.getName()
+          + ", vertexId=" + vertex.getVertexId());
       dag.cancelCommits();
-      dag.trySetTerminationCause(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING);
+      dag.enactKill(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING, VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING);
     }
 
   }
