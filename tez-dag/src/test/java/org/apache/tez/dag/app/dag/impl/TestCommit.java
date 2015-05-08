@@ -1703,15 +1703,25 @@ public class TestCommit {
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
-    dag.handle(new DAGEventVertexReRunning(v1.getVertexId()));
+    TezTaskID newTaskId = TezTaskID.getInstance(v1.getVertexId(), 1);
+    v1.handle(new VertexEventTaskReschedule(newTaskId));
+    // dag is in TERMINATING, wait for the complete of its rescheduled tasks
+    waitUntil(dag, DAGState.TERMINATING);
+    waitUntil(v1, VertexState.TERMINATING);
+    // reschedueled task is killed
+    v1.handle(new VertexEventTaskCompleted(newTaskId, TaskState.KILLED));
     waitUntil(dag, DAGState.FAILED);
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
+    Assert.assertEquals(DAGState.FAILED, dag.getState());
+    Assert.assertEquals(VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING, v1.getTerminationCause());
 
     Assert.assertEquals(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING, dag.getTerminationCause());
     Assert.assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
-    historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
+    // VertexFinishedEvent is logged twice due to vertex-rerun
+    historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 2);
     historyEventHandler.verifyVertexCommitStartedEvent(v2.getVertexId(), 0);
     historyEventHandler.verifyVertexFinishedEvent(v2.getVertexId(), 1);
     historyEventHandler.verifyVertexCommitStartedEvent(v3.getVertexId(), 0);
