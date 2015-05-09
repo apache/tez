@@ -78,7 +78,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
   protected final ContainerHeartbeatHandler containerHeartbeatHandler;
 
-  private final TaskHeartbeatResponse RESPONSE_SHOULD_DIE = new TaskHeartbeatResponse(true, null);
+  private final TaskHeartbeatResponse RESPONSE_SHOULD_DIE = new TaskHeartbeatResponse(true, null, 0);
 
   private final ConcurrentMap<TezTaskAttemptID, ContainerId> registeredAttempts =
       new ConcurrentHashMap<TezTaskAttemptID, ContainerId>();
@@ -194,7 +194,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     // So - avoiding synchronization.
 
     pingContainerHeartbeatHandler(containerId);
-    List<TezEvent> outEvents = null;
+    TaskAttemptEventInfo eventInfo = new TaskAttemptEventInfo(0, null);
     TezTaskAttemptID taskAttemptID = request.getTaskAttemptId();
     if (taskAttemptID != null) {
       ContainerId containerIdFromMap = registeredAttempts.get(taskAttemptID);
@@ -216,12 +216,17 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       }
 
       List<TezEvent> otherEvents = new ArrayList<TezEvent>();
+      // route TASK_STATUS_UPDATE_EVENT directly to TaskAttempt and route other events
+      // (DATA_MOVEMENT_EVENT, TASK_ATTEMPT_COMPLETED_EVENT, TASK_ATTEMPT_FAILED_EVENT)
+      // to VertexImpl to ensure the events ordering
+      //  1. DataMovementEvent is logged as RecoveryEvent before TaskAttemptFinishedEvent
+      //  2. TaskStatusEvent is handled before TaskAttemptFinishedEvent
       for (TezEvent tezEvent : ListUtils.emptyIfNull(inEvents)) {
         final EventType eventType = tezEvent.getEventType();
-        if (eventType == EventType.TASK_STATUS_UPDATE_EVENT ||
-            eventType == EventType.TASK_ATTEMPT_COMPLETED_EVENT) {
-          context.getEventHandler()
-              .handle(getTaskAttemptEventFromTezEvent(taskAttemptID, tezEvent));
+        if (eventType == EventType.TASK_STATUS_UPDATE_EVENT) {
+          TaskAttemptEvent taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
+              (TaskStatusUpdateEvent) tezEvent.getEvent());
+          context.getEventHandler().handle(taskAttemptEvent);
         } else {
           otherEvents.add(tezEvent);
         }
@@ -232,14 +237,13 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             new VertexEventRouteEvent(vertexId, Collections.unmodifiableList(otherEvents)));
       }
       taskHeartbeatHandler.pinged(taskAttemptID);
-      outEvents = context
+      eventInfo = context
           .getCurrentDAG()
           .getVertex(taskAttemptID.getTaskID().getVertexID())
-          .getTask(taskAttemptID.getTaskID())
           .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
               request.getMaxEvents());
     }
-    return new TaskHeartbeatResponse(false, outEvents);
+    return new TaskHeartbeatResponse(false, eventInfo.getEvents(), eventInfo.getNextFromEventId());
   }
   public void taskAlive(TezTaskAttemptID taskAttemptId) {
     taskHeartbeatHandler.pinged(taskAttemptId);
@@ -434,10 +438,5 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       LOG.warn("Handling communication from attempt: " + taskAttemptId
           + ", ContainerId not known for this attempt");
     }
-  }
-
-
-  public TaskCommunicator getTaskCommunicator() {
-    return taskCommunicators[0];
   }
 }

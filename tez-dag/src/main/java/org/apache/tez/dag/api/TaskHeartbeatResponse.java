@@ -22,11 +22,13 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 public class TaskHeartbeatResponse {
 
   private final boolean shouldDie;
-  private List<TezEvent> events;
+  private final int nextFromEventId;
+  private final List<TezEvent> events;
 
-  public TaskHeartbeatResponse(boolean shouldDie, List<TezEvent> events) {
+  public TaskHeartbeatResponse(boolean shouldDie, List<TezEvent> events, int nextFromEventId) {
     this.shouldDie = shouldDie;
     this.events = events;
+    this.nextFromEventId = nextFromEventId;
   }
 
   public boolean isShouldDie() {
@@ -35,5 +37,9 @@ public class TaskHeartbeatResponse {
 
   public List<TezEvent> getEvents() {
     return events;
+  }
+
+  public int getNextFromEventId() {
+    return nextFromEventId;
   }
 }
