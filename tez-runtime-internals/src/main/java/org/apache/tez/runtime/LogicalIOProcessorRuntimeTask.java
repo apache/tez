@@ -21,7 +21,9 @@ package org.apache.tez.runtime;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -373,6 +375,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         }
         eventRouterThread = null;
       }
+      String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+      System.err.println(timeStamp + " Completed running task attempt: " + taskSpec.getTaskAttemptID().toString());
+      System.out.println(timeStamp + " Completed running task attempt: " + taskSpec.getTaskAttemptID().toString());
     }
   }
 

@@ -30,8 +30,10 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.PrivilegedExceptionAction;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -628,6 +630,9 @@ public class DAGAppMaster extends AbstractService {
     case DAG_FINISHED:
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
+      String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+      System.err.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
+      System.out.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
       if (!isSession) {
         LOG.info("Not a session, AM will unregister as DAG has completed");
         this.taskSchedulerEventHandler.setShouldUnregisterFlag();
@@ -2132,6 +2137,9 @@ public class DAGAppMaster extends AbstractService {
     }
 
     LOG.info("Running DAG: " + dagPlan.getName());
+    String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+    System.err.println(timeStamp + " Running Dag: "+ newDAG.getID());
+    System.out.println(timeStamp + " Running Dag: "+ newDAG.getID());
     // Job name is the same as the app name until we support multiple dags
     // for an app later
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
