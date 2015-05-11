@@ -53,7 +53,7 @@ public class TestATSHttpClient {
   }
 
   @Test(timeout = 5000)
-  public void testGetDagStatusThrowsExceptionOnEmptyJson() throws TezException {
+  public void testGetDagStatusThrowsExceptionOnEmptyJson() throws TezException, IOException {
     ApplicationId mockAppId = mock(ApplicationId.class);
     DAGClientTimelineImpl httpClient = new DAGClientTimelineImpl(mockAppId, "EXAMPLE_DAG_ID",
         new TezConfiguration(), null);
