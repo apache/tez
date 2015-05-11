@@ -6,6 +6,7 @@ Release 0.6.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2396. pig-tez-tfile-parser pom is hard coded to depend on 0.6.0-SNAPSHOT version.
   TEZ-2237. Valid events should be sent out when an Output is not started.
   TEZ-2399. Tez UI: add proper dependencies for computed properties
@@ -189,6 +190,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2369. Add a few unit tests for RootInputInitializerManager. Backport a findbugs warning fix from master.
   TEZ-2379. org.apache.hadoop.yarn.state.InvalidStateTransitonException:
     Invalid event: T_ATTEMPT_KILLED at KILLED.
