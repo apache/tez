@@ -37,7 +37,6 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -49,6 +48,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -73,6 +73,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
+import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -92,6 +93,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.OutputCommitter;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
@@ -128,6 +130,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   //private final MRAppMetrics metrics;
   protected final AppContext appContext;
   private final Resource taskResource;
+  private TaskSpec baseTaskSpec;
+  private TaskLocationHint locationHint;
   private final ContainerContext containerContext;
   @VisibleForTesting
   long scheduledTime;
@@ -512,6 +516,26 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // route the events.
       }
       return events;
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  @Override
+  public TaskSpec getBaseTaskSpec() {
+    readLock.lock();
+    try {
+      return baseTaskSpec;
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  @Override
+  public TaskLocationHint getTaskLocationHint() {
+    readLock.lock();
+    try {
+      return locationHint;
     } finally {
       readLock.unlock();
     }
@@ -1021,6 +1045,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
+      TaskEventScheduleTask scheduleEvent = (TaskEventScheduleTask) event;
+      task.locationHint = scheduleEvent.getTaskLocationHint();
+      task.baseTaskSpec = scheduleEvent.getBaseTaskSpec();
       task.addAndScheduleAttempt();
       task.scheduledTime = task.clock.getTime();
       task.logJobHistoryTaskStartedEvent();

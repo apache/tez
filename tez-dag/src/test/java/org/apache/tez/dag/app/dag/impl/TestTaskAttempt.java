@@ -65,6 +65,7 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -100,6 +101,7 @@ import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -113,10 +115,18 @@ public class TestTaskAttempt {
       return new FileStatus(1, false, 1, 1, 1, f);
     }
   }
+  
+  Task mockTask;
+  TaskLocationHint locationHint;
 
   @BeforeClass
   public static void setup() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
+  }
+  
+  @Before
+  public void setupTest() {
+    mockTask = mock(Task.class);
   }
 
   @Test(timeout = 5000)
@@ -129,14 +139,14 @@ public class TestTaskAttempt {
     hosts.add("host1");
     hosts.add("host2");
     hosts.add("host3");
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(hosts, null);
+    locationHint = TaskLocationHint.createTaskLocationHint(hosts, null);
 
     TezTaskID taskID = TezTaskID.getInstance(
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        locationHint, false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+        false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     TaskAttemptEventSchedule sEvent = mock(TaskAttemptEventSchedule.class);
 
@@ -148,6 +158,8 @@ public class TestTaskAttempt {
       fail("Second event not of type "
           + AMSchedulerEventTALaunchRequest.class.getName());
     }
+    
+    verify(mockTask, times(1)).getTaskLocationHint();
     // TODO Move the Rack request check to the client after TEZ-125 is fixed.
     Set<String> requestedRacks = taImpl.taskRacks;
     assertEquals(1, requestedRacks.size());
@@ -169,12 +181,12 @@ public class TestTaskAttempt {
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        null, false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+        false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     TaskAttemptImpl taImplReScheduled = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
-        null, true, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+        true, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
 
@@ -224,7 +236,7 @@ public class TestTaskAttempt {
     String hosts[] = new String[] { "127.0.0.1", "host2", "host3" };
     Set<String> resolved = new TreeSet<String>(
         Arrays.asList(new String[]{ "host1", "host2", "host3" }));
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new TreeSet<String>(Arrays.asList(hosts)), null);
 
     TezTaskID taskID = TezTaskID.getInstance(
@@ -232,7 +244,7 @@ public class TestTaskAttempt {
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskAttemptListener.class), new Configuration(),
         new SystemClock(), mock(TaskHeartbeatHandler.class),
-        mock(AppContext.class), locationHint, false, Resource.newInstance(1024,
+        mock(AppContext.class), false, Resource.newInstance(1024,
             1), createFakeContainerContext(), false);
 
     TaskAttemptImpl spyTa = spy(taImpl);
@@ -280,7 +292,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -289,7 +301,7 @@ public class TestTaskAttempt {
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mock(TaskHeartbeatHandler.class), mockAppContext, locationHint, false,
+        mock(TaskHeartbeatHandler.class), mockAppContext, false,
         resource, createFakeContainerContext(), false);
 
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
@@ -330,7 +342,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -353,7 +365,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -431,7 +443,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -454,7 +466,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
@@ -496,7 +508,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -519,7 +531,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -589,7 +601,7 @@ public class TestTaskAttempt {
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
     taskConf.setBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -612,7 +624,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -720,7 +732,7 @@ public class TestTaskAttempt {
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
     taskConf.setBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -743,7 +755,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -811,7 +823,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -834,7 +846,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
 
@@ -906,7 +918,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -929,7 +941,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     MockTaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
 
@@ -1009,7 +1021,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -1032,7 +1044,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), true);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
 
@@ -1109,7 +1121,7 @@ public class TestTaskAttempt {
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
     taskConf.setBoolean("fs.file.impl.disable.cache", true);
 
-    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(
+    locationHint = TaskLocationHint.createTaskLocationHint(
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
@@ -1132,7 +1144,7 @@ public class TestTaskAttempt {
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     MockTaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
-        mockHeartbeatHandler, appCtx, locationHint, false,
+        mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
 
@@ -1231,27 +1243,22 @@ public class TestTaskAttempt {
   };
 
   private class MockTaskAttemptImpl extends TaskAttemptImpl {
-    TaskLocationHint locationHint;
-
+    
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal,
         Configuration conf, Clock clock,
         TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
-        TaskLocationHint locationHint,  boolean isRescheduled,
+        boolean isRescheduled,
         Resource resource, ContainerContext containerContext, boolean leafVertex) {
       super(taskId, attemptNumber, eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          isRescheduled, resource, containerContext, leafVertex, mock(TaskImpl.class));
-      this.locationHint = locationHint;
+          isRescheduled, resource, containerContext, leafVertex, mockTask);
+      when(mockTask.getTaskLocationHint()).thenReturn(locationHint);
     }
+
     
     Vertex mockVertex = mock(Vertex.class);
     boolean inputFailedReported = false;
-    
-    @Override
-    public TaskLocationHint getTaskLocationHint() {
-      return locationHint;
-    }
     
     @Override
     protected Vertex getVertex() {

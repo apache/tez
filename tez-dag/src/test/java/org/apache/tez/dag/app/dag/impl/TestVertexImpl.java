@@ -131,6 +131,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
@@ -352,9 +353,11 @@ public class TestVertexImpl {
   }
 
   private class TaskEventDispatcher implements EventHandler<TaskEvent> {
+    List<TaskEvent> events = Lists.newArrayList();
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
+      events.add(event);
       VertexImpl vertex = vertexIdMap.get(event.getTaskID().getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       if (task != null) {
@@ -2703,6 +2706,30 @@ public class TestVertexImpl {
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("setParallelism cannot be called after scheduling"));
     }
+  }
+  
+  @Test(timeout = 5000)
+  public void testVertexScheduleSendEvent() throws Exception {
+    VertexImpl v3 = vertices.get("vertex3");
+    v3.vertexReconfigurationPlanned();
+    initAllVertices(VertexState.INITED);
+    Assert.assertEquals(2, v3.getTotalTasks());
+    Map<TezTaskID, Task> tasks = v3.getTasks();
+    Assert.assertEquals(2, tasks.size());
+
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(vertices.get("vertex2"));
+    startVertex(v1);
+    v3.reconfigureVertex(10, null, null);
+    checkTasks(v3, 10);
+    taskEventDispatcher.events.clear();
+    TaskLocationHint mockLocation = mock(TaskLocationHint.class);
+    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), mockLocation)));
+    dispatcher.await();
+    Assert.assertEquals(1, taskEventDispatcher.events.size());
+    TaskEventScheduleTask event = (TaskEventScheduleTask) taskEventDispatcher.events.get(0);
+    Assert.assertEquals(mockLocation, event.getTaskLocationHint());
+    Assert.assertNotNull(event.getBaseTaskSpec());
   }
   
   @Test(timeout = 5000)
