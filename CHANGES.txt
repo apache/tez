@@ -190,7 +190,6 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
-  TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2369. Add a few unit tests for RootInputInitializerManager. Backport a findbugs warning fix from master.
   TEZ-2379. org.apache.hadoop.yarn.state.InvalidStateTransitonException:
     Invalid event: T_ATTEMPT_KILLED at KILLED.
