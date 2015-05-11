@@ -22,11 +22,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
@@ -65,5 +67,8 @@ public interface Task {
   TaskState restoreFromEvent(HistoryEvent historyEvent);
 
   public void registerTezEvent(TezEvent tezEvent);
-
+  
+  public TaskSpec getBaseTaskSpec();
+  
+  public TaskLocationHint getTaskLocationHint();
 }

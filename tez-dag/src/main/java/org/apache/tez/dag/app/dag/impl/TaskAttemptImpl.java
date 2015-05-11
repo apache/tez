@@ -53,7 +53,6 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -456,14 +455,19 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
-    Vertex vertex = getVertex();
-    ProcessorDescriptor procDesc = vertex.getProcessorDescriptor();
-    int taskId = getTaskID().getId();
+    TaskSpec baseTaskSpec = task.getBaseTaskSpec();
+    if (baseTaskSpec == null) {
+      // since recovery does not follow normal transitions, TaskEventScheduleTask
+      // is not being honored by the recovery code path. Using this to workaround 
+      // until recovery is fixed. Calling the non-locking internal method of the vertex
+      // to get the taskSpec directly. Since everything happens on the central dispatcher 
+      // during recovery this is deadlock free for now. TEZ-1019 should remove the need for this.
+      baseTaskSpec = ((VertexImpl) vertex).createRemoteTaskSpec(getID().getTaskID().getId());
+    }
     return new TaskSpec(getID(),
-        vertex.getDAG().getName(),
-        vertex.getName(), vertex.getTotalTasks(), procDesc,
-        vertex.getInputSpecList(taskId), vertex.getOutputSpecList(taskId), 
-        vertex.getGroupInputSpecList(taskId));
+        baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
+        baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
+        baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs());
   }
 
   @Override
@@ -935,9 +939,8 @@ public class TaskAttemptImpl implements TaskAttempt,
 //    sendEvent(new TaskCleanupEvent(this.attemptId, this.committer, taContext));
   }
   
-  @VisibleForTesting
-  protected TaskLocationHint getTaskLocationHint() {
-    return getVertex().getTaskLocationHint(getTaskID());
+  private TaskLocationHint getTaskLocationHint() {
+    return task.getTaskLocationHint();
   }
 
   protected String[] resolveHosts(String[] src) {

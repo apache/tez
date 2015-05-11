@@ -56,7 +56,7 @@ import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
-import org.apache.tez.dag.app.dag.event.TaskEvent;
+import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -70,6 +70,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Before;
@@ -105,6 +106,7 @@ public class TestTaskImpl {
   private NodeId mockNodeId;
 
   private MockTaskImpl mockTask;
+  private TaskSpec mockTaskSpec;
   
   @SuppressWarnings("rawtypes")
   class TestEventHandler implements EventHandler<Event> {
@@ -149,8 +151,9 @@ public class TestTaskImpl {
     
     mockTask = new MockTaskImpl(vertexId, partition,
         eventHandler, conf, taskAttemptListener, clock,
-        taskHeartbeatHandler, appContext, leafVertex, locationHint,
+        taskHeartbeatHandler, appContext, leafVertex,
         taskResource, containerContext, vertex);
+    mockTaskSpec = mock(TaskSpec.class);
   }
 
   private TezTaskID getNewTaskID() {
@@ -159,8 +162,10 @@ public class TestTaskImpl {
   }
 
   private void scheduleTaskAttempt(TezTaskID taskId) {
-    mockTask.handle(new TaskEvent(taskId, TaskEventType.T_SCHEDULE));
+    mockTask.handle(new TaskEventScheduleTask(taskId, mockTaskSpec, locationHint));
     assertTaskScheduledState();
+    assertEquals(mockTaskSpec, mockTask.getBaseTaskSpec());
+    assertEquals(locationHint, mockTask.getTaskLocationHint());
   }
 
   private void sendTezEventsToTask(TezTaskID taskId, int numTezEvents) {
@@ -671,19 +676,17 @@ public class TestTaskImpl {
 
     private List<MockTaskAttemptImpl> taskAttempts = new LinkedList<MockTaskAttemptImpl>();
     private Vertex vertex;
-    TaskLocationHint locationHint;
 
     public MockTaskImpl(TezVertexID vertexId, int partition,
         EventHandler eventHandler, Configuration conf,
         TaskAttemptListener taskAttemptListener, Clock clock,
         TaskHeartbeatHandler thh, AppContext appContext, boolean leafVertex,
-        TaskLocationHint locationHint, Resource resource,
+        Resource resource,
         ContainerContext containerContext, Vertex vertex) {
       super(vertexId, partition, eventHandler, conf, taskAttemptListener,
           clock, thh, appContext, leafVertex, resource,
           containerContext, mock(StateChangeNotifier.class), vertex);
       this.vertex = vertex;
-      this.locationHint = locationHint;
     }
 
     @Override
@@ -691,7 +694,7 @@ public class TestTaskImpl {
       MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getTaskId(),
           attemptNumber, eventHandler, taskAttemptListener,
           conf, clock, taskHeartbeatHandler, appContext,
-          locationHint, true, taskResource, containerContext);
+          true, taskResource, containerContext);
       taskAttempts.add(attempt);
       return attempt;
     }
@@ -730,21 +733,14 @@ public class TestTaskImpl {
 
     private float progress = 0;
     private TaskAttemptState state = TaskAttemptState.NEW;
-    TaskLocationHint locationHint;
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
         EventHandler eventHandler, TaskAttemptListener tal, Configuration conf,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-        TaskLocationHint locationHint, boolean isRescheduled,
+        boolean isRescheduled,
         Resource resource, ContainerContext containerContext) {
       super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
           appContext, isRescheduled, resource, containerContext, false, mock(TaskImpl.class));
-      this.locationHint = locationHint;
-    }
-
-    @Override 
-    public TaskLocationHint getTaskLocationHint() {
-      return locationHint;
     }
     
     @Override

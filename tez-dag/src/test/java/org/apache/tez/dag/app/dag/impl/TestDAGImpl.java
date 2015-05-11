@@ -93,7 +93,6 @@ import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.DAGTerminationCause;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TestStateChangeNotifier.StateChangeNotifierForTest;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
@@ -975,12 +974,7 @@ public class TestDAGImpl {
     dispatcher.await();
 
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    LOG.info(String.valueOf(v2.getTasks().size()));
-    Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
-
-    Assert.assertEquals(TaskAttemptStateInternal.FAILED, ta1.getInternalState());
-    String diag = StringUtils.join(ta1.getDiagnostics(), ",");
+    String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.GetNumDestinationTaskPhysicalInputs.name()));
   }
 
@@ -998,11 +992,7 @@ public class TestDAGImpl {
     Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
-    Task t1= v1.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
-
-    Assert.assertEquals(TaskAttemptStateInternal.FAILED, ta1.getInternalState());
-    String diag = StringUtils.join(ta1.getDiagnostics(), ",");
+    String diag = StringUtils.join(v1.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.GetNumSourceTaskPhysicalOutputs.name()));
   }
   

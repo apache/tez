@@ -114,6 +114,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
+import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
@@ -171,6 +172,7 @@ import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
@@ -1417,66 +1419,96 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
   
-  void setupEdgeRouting() throws AMUserCodeException {
+  boolean setupEdgeRouting() throws AMUserCodeException {
+    boolean doOnDemand = useOnDemandRouting;
     for (Edge e : sourceVertices.values()) {
       boolean edgeDoingOnDemand = e.routingToBegin();
-      if (useOnDemandRouting && !edgeDoingOnDemand) {
-        useOnDemandRouting = false;
+      if (doOnDemand && !edgeDoingOnDemand) {
+        doOnDemand = false;
         LOG.info("Not using ondemand routing because of edge between " + e.getSourceVertexName()
             + " and " + getLogIdentifier());
       }
     }
+    return doOnDemand;
   }
   
   private void unsetTasksNotYetScheduled() throws AMUserCodeException {
     if (tasksNotYetScheduled) {
-      setupEdgeRouting();
-      tasksNotYetScheduled = false;
-      // only now can we be sure of the edge manager type. so until now
-      // we will accumulate pending tasks in case legacy routing gets used.
-      // this is only needed to support mixed mode routing. Else for
-      // on demand routing events can be directly added to taskEvents when 
-      // they arrive in handleRoutedEvents instead of first caching them in 
-      // pendingTaskEvents. When legacy routing is removed then pendingTaskEvents
-      // can be removed.
-      if (!pendingTaskEvents.isEmpty()) {
-        LOG.info("Routing pending task events for vertex: " + logIdentifier);
-        try {
-          handleRoutedTezEvents(pendingTaskEvents, false, true);
-        } catch (AMUserCodeException e) {
-          String msg = "Exception in " + e.getSource() + ", vertex=" + logIdentifier;
-          LOG.error(msg, e);
-          addDiagnostic(msg + ", " + e.getMessage() + ", "
-              + ExceptionUtils.getStackTrace(e.getCause()));
-          eventHandler.handle(new VertexEventTermination(vertexId,
-              VertexTerminationCause.AM_USERCODE_FAILURE));
-          return;
+      boolean doOnDemand = setupEdgeRouting();
+      // change state under lock
+      writeLock.lock();
+      try {
+        useOnDemandRouting = doOnDemand;
+        tasksNotYetScheduled = false;
+        // only now can we be sure of the edge manager type. so until now
+        // we will accumulate pending tasks in case legacy routing gets used.
+        // this is only needed to support mixed mode routing. Else for
+        // on demand routing events can be directly added to taskEvents when 
+        // they arrive in handleRoutedEvents instead of first caching them in 
+        // pendingTaskEvents. When legacy routing is removed then pendingTaskEvents
+        // can be removed.
+        if (!pendingTaskEvents.isEmpty()) {
+          LOG.info("Routing pending task events for vertex: " + logIdentifier);
+          try {
+            handleRoutedTezEvents(pendingTaskEvents, false, true);
+          } catch (AMUserCodeException e) {
+            String msg = "Exception in " + e.getSource() + ", vertex=" + logIdentifier;
+            LOG.error(msg, e);
+            addDiagnostic(msg + ", " + e.getMessage() + ", "
+                + ExceptionUtils.getStackTrace(e.getCause()));
+            eventHandler.handle(new VertexEventTermination(vertexId,
+                VertexTerminationCause.AM_USERCODE_FAILURE));
+            return;
+          }
+          pendingTaskEvents.clear();
         }
-        pendingTaskEvents.clear();
+      } finally {
+        writeLock.unlock();
       }
     }
   }
   
+  TaskSpec createRemoteTaskSpec(int taskIndex) throws AMUserCodeException {
+    return TaskSpec.createBaseTaskSpec(getDAG().getName(),
+        getName(), getTotalTasks(), getProcessorDescriptor(),
+        getInputSpecList(taskIndex), getOutputSpecList(taskIndex), 
+        getGroupInputSpecList(taskIndex));
+  }
+  
   @Override
   public void scheduleTasks(List<TaskWithLocationHint> tasksToSchedule) {
-    writeLock.lock();
     try {
       unsetTasksNotYetScheduled();
-      for (TaskWithLocationHint task : tasksToSchedule) {
-        if (numTasks <= task.getTaskIndex().intValue()) {
-          throw new TezUncheckedException(
-              "Invalid taskId: " + task.getTaskIndex() + " for vertex: " + logIdentifier);
-        }
-        TaskLocationHint locationHint = task.getTaskLocationHint();
-        if (locationHint != null) {
-          if (taskLocationHints == null) {
-            taskLocationHints = new TaskLocationHint[numTasks];
+      // update state under write lock
+      writeLock.lock();
+      try {
+        for (TaskWithLocationHint task : tasksToSchedule) {
+          if (numTasks <= task.getTaskIndex().intValue()) {
+            throw new TezUncheckedException(
+                "Invalid taskId: " + task.getTaskIndex() + " for vertex: " + logIdentifier);
           }
-          taskLocationHints[task.getTaskIndex().intValue()] = locationHint;
+          TaskLocationHint locationHint = task.getTaskLocationHint();
+          if (locationHint != null) {
+            if (taskLocationHints == null) {
+              taskLocationHints = new TaskLocationHint[numTasks];
+            }
+            taskLocationHints[task.getTaskIndex().intValue()] = locationHint;
+          }
         }
-        eventHandler.handle(new TaskEvent(
-            TezTaskID.getInstance(vertexId, task.getTaskIndex().intValue()),
-            TaskEventType.T_SCHEDULE));
+      } finally {
+        writeLock.unlock();
+      }
+      
+      readLock.lock();
+      try {
+        for (TaskWithLocationHint task : tasksToSchedule) {
+          TezTaskID taskId = TezTaskID.getInstance(vertexId, task.getTaskIndex().intValue());
+          TaskSpec baseTaskSpec = createRemoteTaskSpec(taskId.getId());
+          eventHandler.handle(new TaskEventScheduleTask(taskId, baseTaskSpec,
+              getTaskLocationHint(taskId)));
+        }
+      } finally {
+        readLock.unlock();
       }
     } catch (AMUserCodeException e) {
       String msg = "Exception in " + e.getSource() + ", vertex=" + getLogIdentifier();
@@ -1485,8 +1517,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       eventHandler.handle(new VertexEventManagerUserCodeError(getVertexId(), e));
       // throw an unchecked exception to stop the vertex manager that invoked this.
       throw new TezUncheckedException(e);
-    } finally {
-      writeLock.unlock();
     }
   }
   
@@ -4632,50 +4662,58 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return taskLocationHints;
   }
 
-  // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException {
-    List<InputSpec> inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
-        + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
-    if (rootInputDescriptors != null) {
-      for (Entry<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
-           rootInputDescriptorEntry : rootInputDescriptors.entrySet()) {
-        inputSpecList.add(new InputSpec(rootInputDescriptorEntry.getKey(),
-            rootInputDescriptorEntry.getValue().getIODescriptor(), rootInputSpecs.get(
-                rootInputDescriptorEntry.getKey()).getNumPhysicalInputsForWorkUnit(taskIndex)));
+  public List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException {
+    readLock.lock();
+    try {
+      List<InputSpec> inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
+          + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
+      if (rootInputDescriptors != null) {
+        for (Entry<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
+             rootInputDescriptorEntry : rootInputDescriptors.entrySet()) {
+          inputSpecList.add(new InputSpec(rootInputDescriptorEntry.getKey(),
+              rootInputDescriptorEntry.getValue().getIODescriptor(), rootInputSpecs.get(
+                  rootInputDescriptorEntry.getKey()).getNumPhysicalInputsForWorkUnit(taskIndex)));
+        }
       }
+      for(Vertex vertex : getInputVertices().keySet()) {
+        /**
+         * It is possible that setParallelism is in the middle of processing in target vertex with
+         * its write lock. So we need to get inputspec by acquiring read lock in target vertex to
+         * get consistent view.
+         * Refer TEZ-2251
+         */
+        InputSpec inputSpec = ((VertexImpl) vertex).getDestinationSpecFor(this, taskIndex);
+        // TODO DAGAM This should be based on the edge type.
+        inputSpecList.add(inputSpec);
+      }
+      return inputSpecList;
+    } finally {
+      readLock.unlock();
     }
-    for(Vertex vertex : getInputVertices().keySet()) {
-      /**
-       * It is possible that setParallelism is in the middle of processing in target vertex with
-       * its write lock. So we need to get inputspec by acquiring read lock in target vertex to
-       * get consistent view.
-       * Refer TEZ-2251
-       */
-      InputSpec inputSpec = ((VertexImpl) vertex).getDestinationSpecFor(this, taskIndex);
-      // TODO DAGAM This should be based on the edge type.
-      inputSpecList.add(inputSpec);
-    }
-    return inputSpecList;
   }
 
-  // TODO Eventually remove synchronization.
   @Override
-  public synchronized List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException {
-    List<OutputSpec> outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
-        + this.additionalOutputSpecs.size());
-    outputSpecList.addAll(additionalOutputSpecs);
-    for(Vertex vertex : targetVertices.keySet()) {
-      /**
-       * It is possible that setParallelism (which could change numTasks) is in the middle of
-       * processing in target vertex with its write lock. So we need to get outputspec by
-       * acquiring read lock in target vertex to get consistent view.
-       * Refer TEZ-2251
-       */
-      OutputSpec outputSpec = ((VertexImpl) vertex).getSourceSpecFor(this, taskIndex);
-      outputSpecList.add(outputSpec);
+  public List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException {
+    readLock.lock();
+    try {
+      List<OutputSpec> outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
+          + this.additionalOutputSpecs.size());
+      outputSpecList.addAll(additionalOutputSpecs);
+      for(Vertex vertex : targetVertices.keySet()) {
+        /**
+         * It is possible that setParallelism (which could change numTasks) is in the middle of
+         * processing in target vertex with its write lock. So we need to get outputspec by
+         * acquiring read lock in target vertex to get consistent view.
+         * Refer TEZ-2251
+         */
+        OutputSpec outputSpec = ((VertexImpl) vertex).getSourceSpecFor(this, taskIndex);
+        outputSpecList.add(outputSpec);
+      }
+      return outputSpecList;
+    } finally {
+      readLock.unlock();
     }
-    return outputSpecList;
   }
 
   private OutputSpec getSourceSpecFor(VertexImpl vertex, int taskIndex) throws
@@ -4703,10 +4741,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
 
 
-  //TODO Eventually remove synchronization.
   @Override
-  public synchronized List<GroupInputSpec> getGroupInputSpecList(int taskIndex) {
-    return groupInputSpecList;
+  public List<GroupInputSpec> getGroupInputSpecList(int taskIndex) {
+    readLock.lock();
+    try {
+      return groupInputSpecList;
+    } finally {
+      readLock.unlock();
+    }
   }
 
   @Override

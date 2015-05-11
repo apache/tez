@@ -45,6 +45,35 @@ public class TaskSpec implements Writable {
 
   public TaskSpec() {
   }
+  
+  public static TaskSpec createBaseTaskSpec(String dagName, String vertexName,
+      int vertexParallelism, ProcessorDescriptor processorDescriptor,
+      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
+      @Nullable List<GroupInputSpec> groupInputSpecList) {
+    return new TaskSpec(dagName, vertexName, vertexParallelism, processorDescriptor, inputSpecList,
+        outputSpecList, groupInputSpecList);
+  }
+
+  public TaskSpec(
+      String dagName, String vertexName,
+      int vertexParallelism,
+      ProcessorDescriptor processorDescriptor,
+      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
+      @Nullable List<GroupInputSpec> groupInputSpecList) {
+    checkNotNull(dagName, "dagName is null");
+    checkNotNull(vertexName, "vertexName is null");
+    checkNotNull(processorDescriptor, "processorDescriptor is null");
+    checkNotNull(inputSpecList, "inputSpecList is null");
+    checkNotNull(outputSpecList, "outputSpecList is null");
+    this.taskAttemptId = null;
+    this.dagName = StringInterner.weakIntern(dagName);
+    this.vertexName = StringInterner.weakIntern(vertexName);
+    this.processorDescriptor = processorDescriptor;
+    this.inputSpecList = inputSpecList;
+    this.outputSpecList = outputSpecList;
+    this.groupInputSpecList = groupInputSpecList;
+    this.vertexParallelism = vertexParallelism;
+  }
 
   public TaskSpec(TezTaskAttemptID taskAttemptID,
       String dagName, String vertexName,
