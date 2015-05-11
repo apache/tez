@@ -24,6 +24,8 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -226,6 +228,11 @@ public class TezChild {
       } else {
         String loggerAddend = containerTask.getTaskSpec().getTaskAttemptID().toString();
         taskCount++;
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+        System.err.println(timeStamp + " Starting to run new task attempt: " +
+            containerTask.getTaskSpec().getTaskAttemptID().toString());
+        System.out.println(timeStamp + " Starting to run new task attempt: " +
+            containerTask.getTaskSpec().getTaskAttemptID().toString());
         TezUtilsInternal.updateLoggers(loggerAddend);
         FileSystem.clearStatistics();
 
