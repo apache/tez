@@ -24,5 +24,6 @@ ALL CHANGES:
   TEZ-2420. TaskRunner returning before executing the task.
   TEZ-2433. Fixes after rebase 05/08
   TEZ-2438. tez-tools version in the branch is incorrect.
+  TEZ-2434. Allow tasks to be killed in the Runtime.
 
 INCOMPATIBLE CHANGES:

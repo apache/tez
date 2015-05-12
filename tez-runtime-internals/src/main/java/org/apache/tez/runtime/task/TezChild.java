@@ -248,27 +248,27 @@ public class TezChild {
         cleanupOnTaskChanged(containerTask);
 
         // Execute the Actual Task
-        TezTaskRunner taskRunner = new TezTaskRunner(defaultConf, childUGI,
+        TezTaskRunner2 taskRunner = new TezTaskRunner2(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
             executor, objectRegistry, pid, executionContext, memAvailable);
         boolean shouldDie;
         try {
-          shouldDie = !taskRunner.run();
+          TaskRunner2Result result = taskRunner.run();
+          shouldDie = result.isContainerShutdownRequested();
           if (shouldDie) {
             LOG.info("Got a shouldDie notification via heartbeats for container {}. Shutting down", containerIdString);
             shutdown();
             return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
                 "Asked to die by the AM");
           }
-        } catch (IOException e) {
-          handleError(e);
-          return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
-              e, "TaskExecutionFailure: " + e.getMessage());
-        } catch (TezException e) {
-          handleError(e);
-          return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
-              e, "TaskExecutionFailure: " + e.getMessage());
+          if (result.getError() != null) {
+            Throwable e = result.getError();
+            handleError(result.getError());
+            return new ContainerExecutionResult(
+                ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
+                e, "TaskExecutionFailure: " + e.getMessage());
+          }
         } finally {
           FileSystem.closeAllForUGI(childUGI);
         }
