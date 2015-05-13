@@ -53,6 +53,7 @@ import org.apache.tez.common.RunnableWithNdc;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
@@ -763,8 +764,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     inputsMap.clear();
     outputsMap.clear();
 
-    inputSpecs.clear();
-    outputSpecs.clear();
+
 
     inputsMap.clear();
     outputsMap.clear();
@@ -772,8 +772,15 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     inputContextMap.clear();
     outputContextMap.clear();
 
-    if (groupInputSpecs != null) {
-      groupInputSpecs.clear();
+    // only clean up objects in non-local mode, because local mode share the same 
+    // taskSpec in AM rather than getting it through RPC in non-local mode
+    /** Put other objects here when they are shared between AM & TezChild in local mode **/
+    if (!tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT)) {
+      inputSpecs.clear();
+      outputSpecs.clear();
+      if (groupInputSpecs != null) {
+        groupInputSpecs.clear();
+      }
     }
     if (groupInputsMap != null) {
       groupInputsMap.clear();
