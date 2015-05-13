@@ -113,6 +113,9 @@ App.ColumnSelectorMixin = Em.Mixin.create({
           title: 'Ok',
           dismiss: 'modal',
           clicked: 'selectionChange'
+        }), Ember.Object.create({
+          title: 'Cancel',
+          dismiss: 'modal',
         })],
         this
       );

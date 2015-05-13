@@ -21,21 +21,21 @@
 </div>
 <div class="selection-list">
   <div class="search-option highlight">
-    <div class="inline-block">
-      Select All<br/>
-      {{view App.Checkbox
-        classNames='inline-display checkbox'
-        checked=view.selectAll
-        action='selectAll'
-        target=view
-      }}
-    </div>
     <div {{bind-attr class=":form-group view._validRegEx::has-error"}}>
       {{input
         class="form-control"
         placeholder="Filter options"
         value=view.searchRegex
       }}
+    </div>
+    <div class="select-all">
+      {{view App.Checkbox
+        classNames='inline-display checkbox'
+        checked=view.selectAll
+        action='selectAll'
+        target=view
+      }}
+      Select All
     </div>
   </div>
   {{#if view.visibleOptions.length}}
