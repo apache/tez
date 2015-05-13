@@ -46,8 +46,10 @@ public class ExampleDriver {
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {
-      pgd.addClass("broadcastloadgen", BroadcastLoadGen.class, "Run a DAG to generate load for Broadcast Shuffle");
-      pgd.addClass("rpcloadgen", RPCLoadGen.class, "Run a DAG to generate load for the task to AM RPC");
+      pgd.addClass("broadcastloadgen", BroadcastLoadGen.class,
+          "Run a DAG to generate load for Broadcast Shuffle");
+      pgd.addClass("rpcloadgen", RPCLoadGen.class,
+          "Run a DAG to generate load for the task to AM RPC");
       pgd.addClass("wordcount", MapredWordCount.class,
           "A map/reduce program that counts the words in the input files.");
       pgd.addClass("mapredwordcount", MapredWordCount.class,
@@ -65,11 +67,6 @@ public class ExampleDriver {
       pgd.addClass("join", Join.class,
           "A job that effects a join over sorted, equally partitioned"
           + " datasets");
-      pgd.addClass("groupbyorderbymrrtest", GroupByOrderByMRRTest.class,
-          "A map-reduce-reduce program that does groupby-order by. Takes input"
-          + " containing employee_name department name per line of input"
-          + " and generates count of employees per department and"
-          + " sorted on employee count");
       pgd.addClass("mrrsleep", MRRSleepJob.class,
           "MRR Sleep Job");
       pgd.addClass("testorderedwordcount", TestOrderedWordCount.class,
