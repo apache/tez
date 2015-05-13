@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
     Default max limit increased. Should not affect existing users.
 
 ALL CHANGES:
+  TEZ-2445. Disable the object cleanup in local mode in LogicalIOProcessorRuntimeTask.
   TEZ-2057. tez-dag/pom.xml contains versions for dependencies.
   TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2435. Add public key to KEYS

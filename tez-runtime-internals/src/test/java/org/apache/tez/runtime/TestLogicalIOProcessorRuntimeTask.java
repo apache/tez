@@ -109,7 +109,8 @@ public class TestLogicalIOProcessorRuntimeTask {
 
 
 
-
+    // local mode 
+    tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
@@ -158,14 +159,22 @@ public class TestLogicalIOProcessorRuntimeTask {
       assertTrue(outputContext.getUserPayload() == null);
       assertTrue(outputContext.getObjectRegistry() == null);
     }
-
-    assertEquals(0, lio.inputSpecs.size());
+    boolean localMode = lio.tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
+        TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+    if (localMode) {
+      assertEquals(1, lio.inputSpecs.size());
+      assertEquals(1, lio.outputSpecs.size());
+      assertTrue(lio.groupInputSpecs == null || lio.groupInputSpecs.size() == 0);
+    } else {
+      assertEquals(0, lio.inputSpecs.size());
+      assertEquals(0, lio.outputSpecs.size());
+      assertTrue(lio.groupInputSpecs == null || lio.groupInputSpecs.size() == 0);
+    }
+    
     assertEquals(0, lio.inputsMap.size());
     assertEquals(0, lio.inputContextMap.size());
-    assertEquals(0, lio.outputSpecs.size());
     assertEquals(0, lio.outputsMap.size());
     assertEquals(0, lio.outputContextMap.size());
-    assertTrue(lio.groupInputSpecs == null || lio.groupInputSpecs.size() == 0);
     assertNull(lio.groupInputsMap);
     assertNull(lio.processor);
     assertNull(lio.processorContext);
