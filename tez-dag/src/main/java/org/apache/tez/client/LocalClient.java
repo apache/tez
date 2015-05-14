@@ -112,7 +112,6 @@ public class LocalClient extends FrameworkClient {
     // the TezClient is stopped, in order not to leak.
     if (dagAppMaster != null) {
       dagAppMaster.stop();
-      dagAppMaster = null;
     }
   }
 
