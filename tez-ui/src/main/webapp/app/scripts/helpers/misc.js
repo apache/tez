@@ -326,6 +326,15 @@ App.Helpers.misc = {
     return vertexId;
   },
 
+  /* Gets the application id from dagid
+   * @param dagId {String}
+   * @return application id for the dagid {String}
+   */
+  getAppIdFromDagId: function(dagId) {
+    var dagIdRegex = /dag_(\d+)_(\d+)_\d/;
+    return dagId.replace(dagIdRegex, 'application_$1_$2');
+  },
+
   /**
    * Remove the specific record from store
    * @param store {DS.Store}
@@ -344,6 +353,11 @@ App.Helpers.misc = {
         batchSize = opts.batchSize || 1000,
         baseurl = '%@/%@'.fmt(App.env.timelineBaseUrl, App.Configs.restNamespace.timeline),
         itemsToDownload = [
+          {
+            url: getUrl('TEZ_APPLICATION', 'tez_' + this.getAppIdFromDagId(dagID)),
+            context: { name: 'application', type: 'TEZ_APPLICATION' },
+            onItemFetched: processSingleItem
+          },
           {
             url: getUrl('TEZ_DAG_ID', dagID),
             context: { name: 'dag', type: 'TEZ_DAG_ID' },
@@ -378,7 +392,7 @@ App.Helpers.misc = {
 
     function getUrl(type, dagID, fromID) {
       var url;
-      if (type == 'TEZ_DAG_ID') {
+      if (type == 'TEZ_DAG_ID' || type == 'TEZ_APPLICATION') {
         url = '%@/%@/%@'.fmt(baseurl, type, dagID);
       } else {
         url = '%@/%@?primaryFilter=TEZ_DAG_ID:%@&limit=%@'.fmt(baseurl, type, dagID, batchSize + 1);
