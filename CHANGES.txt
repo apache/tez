@@ -22,6 +22,7 @@ INCOMPATIBLE CHANGES
     Default max limit increased. Should not affect existing users.
 
 ALL CHANGES:
+  TEZ-2437. FilterLinesByWord NPEs when run in Localmode
   TEZ-2432. Syntax error in DOAP file release section
   TEZ-2445. Disable the object cleanup in local mode in LogicalIOProcessorRuntimeTask.
   TEZ-2057. tez-dag/pom.xml contains versions for dependencies.
