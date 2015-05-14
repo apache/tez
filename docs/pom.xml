@@ -382,6 +382,15 @@
           <role>Committer</role>
         </roles>
       </developer>
+      <developer>
+        <id>sree</id>
+        <name>Sreenath Somarajapuram</name>
+        <email>sree@apache.org</email>
+        <timezone>+5.5</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+      </developer>
     </developers>
 
     <organization>
