@@ -176,7 +176,7 @@ App.Helpers.io = {
         inProgress = false,
         hasFailed = false;
 
-    zip.createWriter(new zip.BlobWriter(), function(writer) {
+    zip.createWriter(new zip.BlobWriter("application/zip"), function(writer) {
       zipWriter = writer;
       checkForCompletion();
       nextFile();

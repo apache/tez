@@ -13,6 +13,13 @@ ALL CHANGES:
   TEZ-1752. Inputs / Outputs in the Runtime library should be interruptable.
   TEZ-1970. Fix javadoc warnings in SortMergeJoinExample.
 
+Release 0.7.1: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-2447. Tez UI: Generic changes based on feedbacks.
+
 Release 0.7.0: Unreleased
 
 INCOMPATIBLE CHANGES
