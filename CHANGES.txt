@@ -2,6 +2,13 @@ Apache Tez Change Log
 =====================
 
 
+Release 0.7.1: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-2447. Tez UI: Generic changes based on feedbacks.
+
 Release 0.7.0: Unreleased
 
 INCOMPATIBLE CHANGES

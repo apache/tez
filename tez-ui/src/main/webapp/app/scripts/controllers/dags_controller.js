@@ -183,7 +183,12 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     }
 
     function onStatusChange() {
-      this.set('status', this.get('dag.status'));
+      var status = this.get('dag.status');
+      this.setProperties({
+        status: status,
+        statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+          this.get('dag.hasFailedTaskAttempts'))
+      });
     }
 
     return [

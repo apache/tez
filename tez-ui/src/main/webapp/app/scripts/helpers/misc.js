@@ -567,7 +567,6 @@ App.Helpers.misc = {
     { label: 'Running', id: 'RUNNING' },
     { label: 'Succeeded', id: 'SUCCEEDED' },
     { label: 'Failed', id: 'FAILED' },
-    { label: 'Killed', id: 'KILLED' },
     { label: 'Error', id: 'ERROR' },
   ],
 
