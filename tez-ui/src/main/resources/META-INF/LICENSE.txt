@@ -227,6 +227,7 @@ The Apache TEZ tez-ui bundles the following files under the MIT License:
  - jquery-ui v1.11 (http://jqueryui.com/) - Copyright 2014 jQuery Foundation and other contributors
  - moment v2.8.4 (http://momentjs.com/) - authors : Tim Wood, Iskren Chernev, Moment.js contributors
  - FileSaver.js master branch #24b303f49213b905ec9062b708f7cd43d56a5dde (https://github.com/eligrey/FileSaver.js) authors : Eli Grey.
+ - CodeMirror 5.2.0 (https://codemirror.net/) authors: Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
 
 All rights reserved.
 

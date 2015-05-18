@@ -115,4 +115,52 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
     return '#/dag/%@/taskAttempts?searchText=Status%3AFAILED'.fmt(this.get('id'));
   }.property('id'),
 
+  dagPlanContextInfoJson: function() {
+    var dagInfo = {
+          context: null,
+          description: ''
+        },
+        dagInfoStr = this.get('dagPlanContextInfo');
+
+    try {
+      var tmpInfo = $.parseJSON(dagInfoStr);
+      dagInfo.context = tmpInfo['context'];
+      dagInfo.description = tmpInfo['description'];
+    } catch (err) {
+      Em.Logger.debug("error parsing daginfo " + err);
+      dagInfo.description = dagInfoStr;     
+    }
+
+    return dagInfo;
+  }.property('dagPlanContextInfo'),
+
+  hasDagInfoContext: function() {
+    var x = this.get('dagPlanContextInfoJson');
+    return !!this.get('dagPlanContextInfoJson').description;
+  }.property('dagPlanContextInfoJson'),
+
+  additionalInfoHeading: function() {
+    var contextName = this.get('dagPlanContextInfoJson').context;
+    var heading = "Additional Info"
+    if (!!contextName) {
+      heading += " from " + contextName;
+    }
+    return heading;
+  }.property('dagPlanContextInfoJson'),
+
+  dagInfoContextType: function() {
+    switch (this.get('dagPlanContextInfoJson').context) {
+      case 'Hive':
+        return 'text/x-hive';
+      case 'Pig':
+        return 'text/x-pig';
+      default:
+        return 'text/x-sql';
+    }
+  }.property('dagPlanContextInfoJson'),
+
+  dagInfoContextDesc: function() {
+    return this.get('dagPlanContextInfoJson').description || 'N/A'
+  }.property('dagPlanContextInfoJson'),
+
 });

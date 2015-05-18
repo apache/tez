@@ -63,6 +63,7 @@ App.Dag = App.AbstractEntity.extend({
   // Dag plan reated data
   planName: DS.attr('string'),
   planVersion: DS.attr('number'),
+  dagPlanContextInfo: DS.attr('string'),
   vertices: DS.attr('array'), // Serialize when required
   edges: DS.attr('array'), // Serialize when required
   vertexGroups: DS.attr('array'),
