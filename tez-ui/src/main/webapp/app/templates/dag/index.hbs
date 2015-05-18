@@ -92,3 +92,11 @@
     {{/bs-panel}}
   </div>
 {{/if}}
+
+{{#if hasDagInfoContext}}
+  <div class='margin-small-vertical'>
+    {{#bs-panel heading=additionalInfoHeading collapsible=false dismiss=false type='info'}}
+      {{code-mirror value=dagInfoContextDesc mode=dagInfoContextType classNames='additional-dag-info'}}
+    {{/bs-panel}}
+  </div>
+{{/if}}
