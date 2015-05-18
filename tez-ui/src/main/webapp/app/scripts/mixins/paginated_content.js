@@ -26,6 +26,9 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
   // The dropdown contents for number of items to show.
   rowCountOptions: [5, 10, 25, 50, 100],
+  maxRowCount: function () {
+    return Math.max.apply(null, this.get('rowCountOptions'));
+  }.property('rowCountOptions'),
 
   isRefreshable: true,
 
@@ -148,7 +151,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
   getFilterProperties: function() {
     var params = {
-      limit: this.rowCount + 1
+      limit: Math.min(this.rowCount, this.get('maxRowCount')) + 1
     };
 
     var f = this._paginationFilters;

@@ -78,6 +78,7 @@ App.DagViewComponent.tip = (function () {
   function _setData(data) {
     _element.find('.tip-title').html(data.title || "");
     _element.find('.tip-text').html(data.text || "");
+    _element.find('.tip-text')[data.text ? 'show' : 'hide']();
     _element.find('.tip-list').html(_createList(data.kvList) || "");
   }
 

@@ -17,6 +17,8 @@
 
 App.Helpers.number = {
 
+  MAX_SAFE_INTEGER: 9007199254740991,
+
   /**
    * Convert byte size to other metrics.
    * 

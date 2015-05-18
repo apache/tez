@@ -482,6 +482,15 @@ App.DagViewComponent.dataProcessor = (function (){
     });
 
     vertex.setDepth(depth);
+
+    // Adds a dummy child to intermediate inputs so that they
+    // gets equal relevance as adjacent nodes on plotting the tree!
+    if(children.length) {
+      vertex.ifForEach('inputs', function (input) {
+        input._setChildren([DataNode.create()]);
+      });
+    }
+
     children.push.apply(children, vertex.get('inputs'));
 
     vertex._setChildren(children);

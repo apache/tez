@@ -344,6 +344,17 @@ App.DagViewComponent.graphView = (function (){
         }
       }
     }
+
+    // Put all single vertex outputs in-line with the vertex node
+    // So that they are directly below the respective vertex in vertical layout
+    nodes.forEach(function (node) {
+      if(node.type == App.DagViewComponent.dataProcessor.types.OUTPUT &&
+          node.get('vertex.outputs.length') == 1 &&
+          node.get('treeParent.x') != node.get('x')
+      ) {
+        node.x = node.get('vertex.x');
+      }
+    });
   }
 
   function _getType(node) {

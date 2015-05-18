@@ -41,7 +41,7 @@ App.DataArrayLoaderMixin = Em.Mixin.create({
 
   getFilter: function (limit) {
     return {
-      limit: limit || Number.MAX_SAFE_INTEGER - 1,
+      limit: limit || App.Helpers.number.MAX_SAFE_INTEGER,
       primaryFilter: '%@:%@'.fmt(
         App.Helpers.misc.getTimelineFilterForType(this.get('filterEntityType')),
         this.get('filterEntityId')
