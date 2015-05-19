@@ -247,7 +247,11 @@ public class TezTaskRunner2 {
     }
   }
 
-  public void killTask() {
+  /**
+   * Attempt to kill the running task, if it hasn't already completed for some other reason.
+   * @return true if the task kill was honored, false otherwise
+   */
+  public boolean killTask() {
     synchronized (this) {
       if (isRunningState()) {
         if (trySettingEndReason(EndReason.KILL_REQUESTED)) {
@@ -256,9 +260,11 @@ public class TezTaskRunner2 {
             taskKillStartTime = System.currentTimeMillis();
             taskRunnerCallable.interruptTask();
           }
+          return true;
         }
       }
     }
+    return false;
   }
 
 

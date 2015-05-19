@@ -26,5 +26,6 @@ ALL CHANGES:
   TEZ-2438. tez-tools version in the branch is incorrect.
   TEZ-2434. Allow tasks to be killed in the Runtime.
   TEZ-2443. TaskRunner2 should call abort, NPEs while cleaning up tasks.
+  TEZ-2465. Retrun the status of a kill request in TaskRunner2.
 
 INCOMPATIBLE CHANGES:
