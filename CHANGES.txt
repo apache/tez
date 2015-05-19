@@ -7,6 +7,8 @@ Release 0.8.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2461. tez-history-parser compile fails with hadoop-2.4.
+  TEZ-2076. Tez framework to extract/analyze data stored in ATS for specific dag.
   TEZ-2436. Tez UI: Add cancel button in column selector.
   TEZ-2351. Remove GroupByOrderbyMRRTest example from tez-tests.
   TEZ-2419. Inputs/Outputs should inform the Processor about Interrupts when interrupted during a blocking Op.

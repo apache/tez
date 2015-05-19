@@ -18,17 +18,17 @@
 
 package org.apache.tez.history.parser.utils;
 
-import org.apache.directory.api.util.Strings;
+import com.google.common.base.Strings;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.tez.history.parser.datamodel.Constants;
-import org.apache.tez.history.parser.datamodel.Event;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.history.parser.datamodel.Constants;
+import org.apache.tez.history.parser.datamodel.Event;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -110,7 +110,7 @@ public class Utils {
   }
 
   public static void setupRootLogger() {
-    if (Strings.isEmpty(System.getProperty(LOG4J_CONFIGURATION))) {
+    if (Strings.isNullOrEmpty(System.getProperty(LOG4J_CONFIGURATION))) {
       //By default print to console with INFO level
       Logger.getRootLogger().
           addAppender(new ConsoleAppender(new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));

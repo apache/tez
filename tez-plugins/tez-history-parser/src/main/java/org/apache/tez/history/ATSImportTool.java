@@ -21,6 +21,7 @@ package org.apache.tez.history;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
@@ -41,7 +42,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.http.HttpConfig;
@@ -127,7 +127,7 @@ public class ATSImportTool extends Configured implements Tool {
 
   public ATSImportTool(String baseUri, String dagId, File baseDownloadDir, int batchSize)
       throws TezException {
-    Preconditions.checkArgument(!Strings.isEmpty(dagId), "dagId can not be null or empty");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(dagId), "dagId can not be null or empty");
     Preconditions.checkArgument(baseDownloadDir != null, "downloadDir can not be null");
     Preconditions.checkArgument(TezDAGID.fromString(dagId) != null, "Not a valid DAG ID " + dagId);
 
@@ -404,11 +404,11 @@ public class ATSImportTool extends Configured implements Tool {
       } else {
         yarnTimelineAddress = conf.get(Constants.TIMELINE_SERVICE_WEBAPP_HTTP_ADDRESS_CONF_NAME);
       }
-      Preconditions.checkArgument(!Strings.isEmpty(yarnTimelineAddress), "Yarn timeline address can"
+      Preconditions.checkArgument(!Strings.isNullOrEmpty(yarnTimelineAddress), "Yarn timeline address can"
           + " not be empty. Please check configurations.");
     } else {
       yarnTimelineAddress = yarnTimelineAddress.trim();
-      Preconditions.checkArgument(!Strings.isEmpty(yarnTimelineAddress), "Yarn timeline address can"
+      Preconditions.checkArgument(!Strings.isNullOrEmpty(yarnTimelineAddress), "Yarn timeline address can"
           + " not be empty. Please provide valid url with --" +
           YARN_TIMELINE_SERVICE_ADDRESS + " option");
     }
