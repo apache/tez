@@ -26,6 +26,10 @@
   <artifactId>tez-plugins</artifactId>
   <packaging>pom</packaging>
 
+  <modules>
+    <module>tez-history-parser</module>
+  </modules>
+
   <profiles>
     <profile>
       <id>hadoop24</id>
