@@ -1,18 +1,21 @@
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
-import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
@@ -20,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -27,7 +31,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -62,12 +66,20 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
   private ShuffleScheduler realScheduler;
   private MergeManager mergeManager;
 
-  private InputContext createTezInputContext() {
+  private InputContext createTezInputContext() throws IOException {
     ApplicationId applicationId = ApplicationId.newInstance(1, 1);
     InputContext inputContext = mock(InputContext.class);
     doReturn(applicationId).when(inputContext).getApplicationId();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
     when(inputContext.getCounters()).thenReturn(new TezCounters());
+    ExecutionContext executionContext = new ExecutionContextImpl("localhost");
+    doReturn(executionContext).when(inputContext).getExecutionContext();
+    ByteBuffer shuffleBuffer = ByteBuffer.allocate(4).putInt(0, 4);
+    doReturn(shuffleBuffer).when(inputContext).getServiceProviderMetaData(anyString());
+    Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(new JobTokenIdentifier(new Text("text")),
+        new JobTokenSecretManager());
+    ByteBuffer tokenBuffer = TezCommonUtils.serializeServiceData(sessionToken);
+    doReturn(tokenBuffer).when(inputContext).getServiceConsumerMetaData(anyString());
     return inputContext;
   }
 
@@ -129,33 +141,18 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
   private void setupScheduler(int numInputs) throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration config = new Configuration();
-    TezCounter shuffledInputsCounter =
-        inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
-    TezCounter reduceShuffleBytes =
-        inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
-    TezCounter reduceDataSizeDecompressed = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_DECOMPRESSED);
-    TezCounter failedShuffleCounter =
-        inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
-    TezCounter bytesShuffedToDisk = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_TO_DISK);
-    TezCounter bytesShuffedToDiskDirect = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_DISK_DIRECT);
-    TezCounter bytesShuffedToMem = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_TO_MEM);
     realScheduler = new ShuffleScheduler(
         inputContext,
         config,
         numInputs,
         mock(Shuffle.class),
-        shuffledInputsCounter,
-        reduceShuffleBytes,
-        reduceDataSizeDecompressed,
-        failedShuffleCounter,
-        bytesShuffedToDisk,
-        bytesShuffedToDiskDirect,
-        bytesShuffedToMem,
-        System.currentTimeMillis());
+        mock(MergeManager.class),
+        mock(MergeManager.class),
+        System.currentTimeMillis(),
+        null,
+        false,
+        0,
+        "src vertex");
     scheduler = spy(realScheduler);
     handler = new ShuffleInputEventHandlerOrderedGrouped(inputContext, scheduler, false);
     mergeManager = mock(MergeManager.class);

@@ -74,7 +74,7 @@ import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 @SuppressWarnings(value={"rawtypes"})
-public class MergeManager {
+public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   
   private static final Logger LOG = LoggerFactory.getLogger(MergeManager.class);
 
@@ -373,6 +373,7 @@ public class MergeManager {
 
   final private MapOutput stallShuffle = MapOutput.createWaitMapOutput(null);
 
+  @Override
   public synchronized MapOutput reserve(InputAttemptIdentifier srcAttemptIdentifier, 
                                              long requestedSize,
                                              long compressedLength,
@@ -429,8 +430,9 @@ public class MergeManager {
     return MapOutput.createMemoryMapOutput(srcAttemptIdentifier, this, (int)requestedSize,
         primaryMapOutput);
   }
-  
-  synchronized void unreserve(long size) {
+
+  @Override
+  public synchronized void unreserve(long size) {
     commitMemory -= size;
     usedMemory -= size;
     if (LOG.isDebugEnabled()) {
@@ -440,6 +442,7 @@ public class MergeManager {
     notifyAll();
   }
 
+  @Override
   public synchronized void closeInMemoryFile(MapOutput mapOutput) { 
     inMemoryMapOutputs.add(mapOutput);
     LOG.info("closeInMemoryFile -> map-output of size: " + mapOutput.getSize()
@@ -483,7 +486,8 @@ public class MergeManager {
              ", inMemoryMergedMapOutputs.size() -> " + 
              inMemoryMergedMapOutputs.size());
   }
-  
+
+  @Override
   public synchronized void closeOnDiskFile(FileChunk file) {
     //including only path & offset for valdiations.
     for (FileChunk fileChunk : onDiskMapOutputs) {

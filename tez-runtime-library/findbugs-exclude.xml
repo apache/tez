@@ -104,5 +104,10 @@
     <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleScheduler"/>
+    <Method name="close" params="" returns="void"/>
+    <Bug pattern="NN_NAKED_NOTIFY"/>
+  </Match>
 
 </FindBugsFilter>

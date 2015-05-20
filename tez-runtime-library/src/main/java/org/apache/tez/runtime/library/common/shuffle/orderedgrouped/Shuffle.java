@@ -19,7 +19,6 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -27,7 +26,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.crypto.SecretKey;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,15 +37,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
@@ -57,11 +52,8 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.exceptions.InputAlreadyClosedException;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParams;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -83,22 +75,14 @@ public class Shuffle implements ExceptionReporter {
   private final Configuration conf;
   private final InputContext inputContext;
   
-  private final ShuffleClientMetrics metrics;
-
   private final ShuffleInputEventHandlerOrderedGrouped eventHandler;
   private final ShuffleScheduler scheduler;
   private final MergeManager merger;
 
-  private final SecretKey jobTokenSecret;
-  private final JobTokenSecretManager jobTokenSecretMgr;
   private final CompressionCodec codec;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
-  private final int numFetchers;
-  private final boolean localDiskFetchEnabled;
-  private final String localHostname;
-  private final int shufflePort;
-  
+
   private AtomicReference<Throwable> throwable = new AtomicReference<Throwable>();
   private String throwingThreadName = null;
 
@@ -107,9 +91,6 @@ public class Shuffle implements ExceptionReporter {
   private final ListeningExecutorService executor;
   
   private final String srcNameTrimmed;
-  
-  private final List<FetcherOrderedGrouped> fetchers;
-  private final HttpConnectionParams httpConnectionParams;
   
   private AtomicBoolean isShutDown = new AtomicBoolean(false);
   private AtomicBoolean fetchersClosed = new AtomicBoolean(false);
@@ -124,19 +105,10 @@ public class Shuffle implements ExceptionReporter {
       long initialMemoryAvailable) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
-    this.httpConnectionParams =
-        ShuffleUtils.constructHttpShuffleConnectionParams(conf);
-    this.metrics = new ShuffleClientMetrics(inputContext.getDAGName(),
-        inputContext.getTaskVertexName(), inputContext.getTaskIndex(),
-        this.conf, UserGroupInformation.getCurrentUser().getShortUserName());
-    
+
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
     
-    this.jobTokenSecret = ShuffleUtils
-        .getJobTokenSecretFromTokenBytes(inputContext
-            .getServiceConsumerMetaData(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID));
-    this.jobTokenSecretMgr = new JobTokenSecretManager(jobTokenSecret);
-    
+
     if (ConfigUtils.isIntermediateInputCompressed(conf)) {
       Class<? extends CompressionCodec> codecClass =
           ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
@@ -161,33 +133,14 @@ public class Shuffle implements ExceptionReporter {
     LocalDirAllocator localDirAllocator = 
         new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
-    this.localHostname = inputContext.getExecutionContext().getHostName();
-    final ByteBuffer shuffleMetadata =
-        inputContext.getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
-    this.shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
-
     // TODO TEZ Get rid of Map / Reduce references.
-    TezCounter shuffledInputsCounter = 
-        inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
-    TezCounter reduceShuffleBytes =
-        inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
-    TezCounter reduceDataSizeDecompressed = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_DECOMPRESSED);
-    TezCounter failedShuffleCounter =
-        inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
-    TezCounter spilledRecordsCounter = 
+    TezCounter spilledRecordsCounter =
         inputContext.getCounters().findCounter(TaskCounter.SPILLED_RECORDS);
     TezCounter reduceCombineInputCounter =
         inputContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS);
     TezCounter mergedMapOutputsCounter =
         inputContext.getCounters().findCounter(TaskCounter.MERGED_MAP_OUTPUTS);
-    TezCounter bytesShuffedToDisk = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_TO_DISK);
-    TezCounter bytesShuffedToDiskDirect = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_DISK_DIRECT);
-    TezCounter bytesShuffedToMem = inputContext.getCounters().findCounter(
-        TaskCounter.SHUFFLE_BYTES_TO_MEM);
-    
+
     LOG.info("Shuffle assigned with " + numInputs + " inputs" + ", codec: "
         + (codec == null ? "None" : codec.getClass().getName()) + 
         "ifileReadAhead: " + ifileReadAhead);
@@ -195,36 +148,38 @@ public class Shuffle implements ExceptionReporter {
     boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
       TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
     startTime = System.currentTimeMillis();
+    merger = new MergeManager(
+        this.conf,
+        localFS,
+        localDirAllocator,
+        inputContext,
+        combiner,
+        spilledRecordsCounter,
+        reduceCombineInputCounter,
+        mergedMapOutputsCounter,
+        this,
+        initialMemoryAvailable,
+        codec,
+        ifileReadAhead,
+        ifileReadAheadLength);
+
     scheduler = new ShuffleScheduler(
           this.inputContext,
           this.conf,
           numInputs,
           this,
-          shuffledInputsCounter,
-          reduceShuffleBytes,
-          reduceDataSizeDecompressed,
-          failedShuffleCounter,
-          bytesShuffedToDisk,
-          bytesShuffedToDiskDirect,
-          bytesShuffedToMem,
-          startTime);
+          merger,
+          merger,
+          startTime,
+          codec,
+          ifileReadAhead,
+          ifileReadAheadLength,
+          srcNameTrimmed);
+
     this.mergePhaseTime = inputContext.getCounters().findCounter(TaskCounter.MERGE_PHASE_TIME);
     this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
 
-    merger = new MergeManager(
-          this.conf,
-          localFS,
-          localDirAllocator,
-          inputContext,
-          combiner,
-          spilledRecordsCounter,
-          reduceCombineInputCounter,
-          mergedMapOutputsCounter,
-          this,
-          initialMemoryAvailable,
-          codec,
-          ifileReadAhead,
-          ifileReadAheadLength);
+
 
     eventHandler= new ShuffleInputEventHandlerOrderedGrouped(
         inputContext,
@@ -234,16 +189,6 @@ public class Shuffle implements ExceptionReporter {
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleAndMergeRunner [" + srcNameTrimmed + "]").build());
 
-    int configuredNumFetchers = 
-        conf.getInt(
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
-    numFetchers = Math.min(configuredNumFetchers, numInputs);
-    LOG.info("Num fetchers being started: " + numFetchers);
-    fetchers = Lists.newArrayListWithCapacity(numFetchers);
-    localDiskFetchEnabled = conf.getBoolean(
-        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH,
-        TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH_DEFAULT);
 
     executor = MoreExecutors.listeningDecorator(rawExecutor);
     runShuffleCallable = new RunShuffleCallable();
@@ -338,36 +283,16 @@ public class Shuffle implements ExceptionReporter {
     @Override
     protected TezRawKeyValueIterator callInternal() throws IOException, InterruptedException {
 
-      synchronized (this) {
-        synchronized (fetchers) {
-          for (int i = 0; i < numFetchers; ++i) {
-            if (!isShutDown.get()) {
-              FetcherOrderedGrouped
-                fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
-                metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
-                codec, inputContext, conf, localDiskFetchEnabled, localHostname, shufflePort);
-              fetchers.add(fetcher);
-              fetcher.start();
-            }
-          }
+      if (!isShutDown.get()) {
+        try {
+          scheduler.start();
+        } catch (Throwable e) {
+          throw new ShuffleError("Error during shuffle", e);
         }
       }
 
-      
-      while (!scheduler.waitUntilDone(PROGRESS_FREQUENCY)) {
-        synchronized (Shuffle.this) {
-          if (throwable.get() != null) {
-            throw new ShuffleError("error in shuffle in " + throwingThreadName,
-                                   throwable.get());
-          }
-        }
-      }
       shufflePhaseTime.setValue(System.currentTimeMillis() - startTime);
 
-      // Stop the map-output fetcher threads
-      LOG.info("Cleaning up fetchers");
-      cleanupFetchers(false);
-      
       // stop the scheduler
       cleanupShuffleScheduler(false);
 
@@ -393,38 +318,6 @@ public class Shuffle implements ExceptionReporter {
       inputContext.inputIsReady();
       LOG.info("merge complete for input vertex : " + inputContext.getSourceVertexName());
       return kvIter;
-    }
-  }
-  
-  private synchronized void cleanupFetchers(boolean ignoreErrors) throws InterruptedException {
-    // Stop the fetcher threads
-    InterruptedException ie = null;
-    if (!fetchersClosed.getAndSet(true)) {
-      synchronized (fetchers) {
-        for (FetcherOrderedGrouped fetcher : fetchers) {
-          try {
-            fetcher.shutDown();
-            LOG.info("Shutdown.." + fetcher.getName());
-          } catch (InterruptedException e) {
-            if (ignoreErrors) {
-              LOG.info("Interrupted while shutting down fetchers. Ignoring.");
-            } else {
-              if (ie != null) {
-                ie = e;
-              } else {
-                LOG.warn(
-                    "Ignoring exception while shutting down fetcher since a previous one was seen and will be thrown "
-                        + e);
-              }
-            }
-          }
-        }
-        fetchers.clear();
-      }
-      // throw only the first exception while attempting to shutdown.
-      if (ie != null) {
-        throw ie;
-      }
     }
   }
 
@@ -469,7 +362,6 @@ public class Shuffle implements ExceptionReporter {
 
   private void cleanupIgnoreErrors() {
     try {
-      cleanupFetchers(true);
       cleanupShuffleScheduler(true);
       cleanupMerger(true);
     } catch (Throwable t) {

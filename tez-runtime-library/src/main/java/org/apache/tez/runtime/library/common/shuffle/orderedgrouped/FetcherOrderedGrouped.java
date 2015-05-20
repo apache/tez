@@ -19,25 +19,24 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tez.common.CallableWithNdc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
@@ -50,81 +49,87 @@ import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 
-class FetcherOrderedGrouped extends Thread {
+class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   
   private static final Logger LOG = LoggerFactory.getLogger(FetcherOrderedGrouped.class);
+
+  private static final AtomicInteger nextId = new AtomicInteger(0);
+
   private final Configuration conf;
   private final boolean localDiskFetchEnabled;
 
-  private enum ShuffleErrors{IO_ERROR, WRONG_LENGTH, BAD_ID, WRONG_MAP,
-                                    CONNECTION, WRONG_REDUCE}
-  
-  private final static String SHUFFLE_ERR_GRP_NAME = "Shuffle Errors";
   private final TezCounter connectionErrs;
   private final TezCounter ioErrs;
   private final TezCounter wrongLengthErrs;
   private final TezCounter badIdErrs;
   private final TezCounter wrongMapErrs;
   private final TezCounter wrongReduceErrs;
-  private final MergeManager merger;
+  private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleScheduler scheduler;
   private final ShuffleClientMetrics metrics;
   private final Shuffle shuffle;
   private final int id;
   private final String logIdentifier;
   private final String localShuffleHostPort;
-  private static int nextId = 0;
-  private int currentPartition = -1;
+  private final MapHost mapHost;
+
+  private final int currentPartition;
 
   // Decompression of map-outputs
   private final CompressionCodec codec;
   private final JobTokenSecretManager jobTokenSecretManager;
 
+  final HttpConnectionParams httpConnectionParams;
+
   @VisibleForTesting
   volatile boolean stopped = false;
-  
+
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private LinkedList<InputAttemptIdentifier> remaining;
 
-  volatile HttpURLConnection connection;
   volatile DataInputStream input;
 
-  HttpConnection httpConnection;
-  HttpConnectionParams httpConnectionParams;
+  volatile HttpConnection httpConnection;
+
 
   // Initiative value is 0, which means it hasn't retried yet.
   private long retryStartTime = 0;
-  
+
   public FetcherOrderedGrouped(HttpConnectionParams httpConnectionParams,
-                               ShuffleScheduler scheduler, MergeManager merger,
+                               ShuffleScheduler scheduler,
+                               FetchedInputAllocatorOrderedGrouped allocator,
                                ShuffleClientMetrics metrics,
                                Shuffle shuffle, JobTokenSecretManager jobTokenSecretMgr,
                                boolean ifileReadAhead, int ifileReadAheadLength,
                                CompressionCodec codec,
-                               InputContext inputContext, Configuration conf,
+                               Configuration conf,
                                boolean localDiskFetchEnabled,
                                String localHostname,
-                               int shufflePort) throws IOException {
-    setDaemon(true);
+                               int shufflePort,
+                               String srcNameTrimmed,
+                               MapHost mapHost,
+                               TezCounter ioErrsCounter,
+                               TezCounter wrongLengthErrsCounter,
+                               TezCounter badIdErrsCounter,
+                               TezCounter wrongMapErrsCounter,
+                               TezCounter connectionErrsCounter,
+                               TezCounter wrongReduceErrsCounter) {
     this.scheduler = scheduler;
-    this.merger = merger;
+    this.allocator = allocator;
     this.metrics = metrics;
     this.shuffle = shuffle;
-    this.id = ++nextId;
+    this.mapHost = mapHost;
+    this.currentPartition = this.mapHost.getPartitionId();
+    this.id = nextId.incrementAndGet();
     this.jobTokenSecretManager = jobTokenSecretMgr;
-    ioErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
-        ShuffleErrors.IO_ERROR.toString());
-    wrongLengthErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
-        ShuffleErrors.WRONG_LENGTH.toString());
-    badIdErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
-        ShuffleErrors.BAD_ID.toString());
-    wrongMapErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
-        ShuffleErrors.WRONG_MAP.toString());
-    connectionErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
-        ShuffleErrors.CONNECTION.toString());
-    wrongReduceErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
-        ShuffleErrors.WRONG_REDUCE.toString());
+
+    this.ioErrs = ioErrsCounter;
+    this.wrongLengthErrs = wrongLengthErrsCounter;
+    this.badIdErrs = badIdErrsCounter;
+    this.wrongMapErrs = wrongMapErrsCounter;
+    this.connectionErrs = connectionErrsCounter;
+    this.wrongReduceErrs = wrongReduceErrsCounter;
 
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -139,73 +144,54 @@ class FetcherOrderedGrouped extends Thread {
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
 
-    this.logIdentifier = "fetcher [" + TezUtilsInternal
-        .cleanVertexName(inputContext.getSourceVertexName()) + "] #" + id;
-    setName(logIdentifier);
-    setDaemon(true);
-  }  
+    this.logIdentifier = "fetcher [" + srcNameTrimmed + "] #" + id;
+  }
 
   @VisibleForTesting
   protected void fetchNext() throws InterruptedException, IOException {
-    MapHost host = null;
     try {
-      // If merge is on, block
-      merger.waitForInMemoryMerge();
-
-      // In case usedMemory > memorylimit, wait until some memory is released
-      merger.waitForShuffleToMergeMemory();
-
-      // Get a host to shuffle from
-      host = scheduler.getHost();
       metrics.threadBusy();
 
-      String hostPort = host.getHostIdentifier();
+      String hostPort = mapHost.getHostIdentifier();
       if (localDiskFetchEnabled && hostPort.equals(localShuffleHostPort)) {
-        setupLocalDiskFetch(host);
+        setupLocalDiskFetch(mapHost);
       } else {
         // Shuffle
-        copyFromHost(host);
+        copyFromHost(mapHost);
       }
     } finally {
       cleanupCurrentConnection(false);
-      if (host != null) {
-        scheduler.freeHost(host);
-        metrics.threadFree();
-      }
+      scheduler.freeHost(mapHost);
+      metrics.threadFree();
     }
   }
 
-  public void run() {
+  @Override
+  public Void callInternal() {
     try {
-      while (!stopped && !Thread.currentThread().isInterrupted()) {
-        remaining = null; // Safety.
-        fetchNext();
-      }
+      remaining = null; // Safety.
+      fetchNext();
     } catch (InterruptedException ie) {
       //TODO: might not be respected when fetcher is in progress / server is busy.  TEZ-711
       //Set the status back
       Thread.currentThread().interrupt();
-      return;
+      return null;
     } catch (Throwable t) {
       shuffle.reportException(t);
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
     }
+    return null;
   }
 
-  public void shutDown() throws InterruptedException {
-    this.stopped = true;
-    interrupt();
-    cleanupCurrentConnection(true);
-    try {
-      join(5000);
-    } catch (InterruptedException ie) {
-      //Reset the status
-      Thread.currentThread().interrupt();
-      LOG.warn("Got interrupt while joining " + getName());
+  public void shutDown() {
+    if (!stopped) {
+      stopped = true;
+      // An interrupt will come in while shutting down the thread.
+      cleanupCurrentConnection(false);
     }
   }
 
-  private Object cleanupLock = new Object();
+  private final Object cleanupLock = new Object();
   private void cleanupCurrentConnection(boolean disconnect) {
     // Synchronizing on cleanupLock to ensure we don't run into a parallel close
     // Can't synchronize on the main class itself since that would cause the
@@ -214,6 +200,7 @@ class FetcherOrderedGrouped extends Thread {
       try {
         if (httpConnection != null) {
           httpConnection.cleanup(disconnect);
+          httpConnection = null;
         }
       } catch (IOException e) {
         if (LOG.isDebugEnabled()) {
@@ -237,8 +224,7 @@ class FetcherOrderedGrouped extends Thread {
     retryStartTime = 0;
     // Get completed maps on 'host'
     List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
-    currentPartition = host.getPartitionId();
-    
+
     // Sanity check to catch hosts with only 'OBSOLETE' maps, 
     // especially at the tail of large jobs
     if (srcAttempts.size() == 0) {
@@ -254,18 +240,16 @@ class FetcherOrderedGrouped extends Thread {
     remaining = new LinkedList<InputAttemptIdentifier>(srcAttempts);
     
     // Construct the url and connect
-    if (!setupConnection(host, srcAttempts)) {
-      if (stopped) {
-        cleanupCurrentConnection(true);
-      }
-      // Add back all remaining maps - which at this point is ALL MAPS the
-      // Fetcher was started with. The Scheduler takes care of retries,
-      // reporting too many failures etc.
-      putBackRemainingMapOutputs(host);
-      return;
-    }
 
     try {
+      if (!setupConnection(host, srcAttempts)) {
+        if (stopped) {
+          cleanupCurrentConnection(true);
+        }
+        // Maps will be added back in the finally block in case of failure.
+        return;
+      }
+
       // Loop through available map-outputs and fetch them
       // On any error, faildTasks is not null and we exit
       // after putting back the remaining maps to the 
@@ -453,7 +437,7 @@ class FetcherOrderedGrouped extends Thread {
 
       // Get the location for the map output - either in-memory or on-disk
       try {
-        mapOutput = merger.reserve(srcAttemptId, decompressedLength, compressedLength, id);
+        mapOutput = allocator.reserve(srcAttemptId, decompressedLength, compressedLength, id);
       } catch (IOException e) {
         if (!stopped) {
           // Kill the reduce attempt
@@ -493,7 +477,7 @@ class FetcherOrderedGrouped extends Thread {
       // Reset retryStartTime as map task make progress if retried before.
       retryStartTime = 0;
 
-      scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength, 
+      scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength,
                               endTime - startTime, mapOutput);
       // Note successful shuffle
       remaining.remove(srcAttemptId);
@@ -584,7 +568,7 @@ class FetcherOrderedGrouped extends Thread {
       int forReduce, List<InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
-      LOG.warn(getName() + " invalid lengths in map output header: id: " +
+      LOG.warn(logIdentifier + " invalid lengths in map output header: id: " +
           srcAttemptId + " len: " + compressedLength + ", decomp len: " + 
                decompressedLength);
       return false;
@@ -594,7 +578,7 @@ class FetcherOrderedGrouped extends Thread {
     // URI
     if (forReduce != currentPartition) {
       wrongReduceErrs.increment(1);
-      LOG.warn(getName() + " data for the wrong partition map: " + srcAttemptId + " len: "
+      LOG.warn(logIdentifier + " data for the wrong partition map: " + srcAttemptId + " len: "
           + compressedLength + " decomp len: " + decompressedLength + " for partition " + forReduce
           + ", expected partition: " + currentPartition);
       return false;
@@ -622,7 +606,6 @@ class FetcherOrderedGrouped extends Thread {
   protected void setupLocalDiskFetch(MapHost host) throws InterruptedException {
     // Get completed maps on 'host'
     List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
-    currentPartition = host.getPartitionId();
 
     // Sanity check to catch hosts with only 'OBSOLETE' maps,
     // especially at the tail of large jobs
@@ -708,7 +691,7 @@ class FetcherOrderedGrouped extends Thread {
   protected MapOutput getMapOutputForDirectDiskFetch(InputAttemptIdentifier srcAttemptId,
                                                      Path filename, TezIndexRecord indexRecord)
       throws IOException {
-    return MapOutput.createLocalDiskMapOutput(srcAttemptId, merger, filename,
+    return MapOutput.createLocalDiskMapOutput(srcAttemptId, allocator, filename,
         indexRecord.getStartOffset(), indexRecord.getPartLength(), true);
   }
 }

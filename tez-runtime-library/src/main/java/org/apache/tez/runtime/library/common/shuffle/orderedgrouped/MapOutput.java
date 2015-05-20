@@ -50,7 +50,7 @@ class MapOutput {
   private final long size;
 
   private final boolean primaryMapOutput;
-  private final MergeManager merger;
+  private final FetchedInputAllocatorOrderedGrouped callback;
 
   // MEMORY
   private final byte[] memory;
@@ -62,13 +62,13 @@ class MapOutput {
   private final FileChunk outputPath;
   private OutputStream disk;
 
-  private MapOutput(Type type, InputAttemptIdentifier attemptIdentifier, MergeManager merger,
+  private MapOutput(Type type, InputAttemptIdentifier attemptIdentifier, FetchedInputAllocatorOrderedGrouped callback,
                     long size, Path outputPath, long offset, boolean primaryMapOutput,
                     FileSystem fs, Path tmpOutputPath) {
     this.id = ID.incrementAndGet();
     this.type = type;
     this.attemptIdentifier = attemptIdentifier;
-    this.merger = merger;
+    this.callback = callback;
     this.primaryMapOutput = primaryMapOutput;
 
     this.localFS = fs;
@@ -101,7 +101,7 @@ class MapOutput {
   }
 
   public static MapOutput createDiskMapOutput(InputAttemptIdentifier attemptIdentifier,
-                                              MergeManager merger, long size, Configuration conf,
+                                              FetchedInputAllocatorOrderedGrouped callback, long size, Configuration conf,
                                               int fetcher, boolean primaryMapOutput,
                                               TezTaskOutputFiles mapOutputFile) throws
       IOException {
@@ -113,7 +113,7 @@ class MapOutput {
     Path tmpOuputPath = outputpath.suffix(String.valueOf(fetcher));
     long offset = 0;
 
-    MapOutput mapOutput = new MapOutput(Type.DISK, attemptIdentifier, merger, size, outputpath, offset,
+    MapOutput mapOutput = new MapOutput(Type.DISK, attemptIdentifier, callback, size, outputpath, offset,
         primaryMapOutput, fs, tmpOuputPath);
     mapOutput.disk = mapOutput.localFS.create(tmpOuputPath);
 
@@ -121,16 +121,16 @@ class MapOutput {
   }
 
   public static MapOutput createLocalDiskMapOutput(InputAttemptIdentifier attemptIdentifier,
-                                                   MergeManager merger, Path path,  long offset,
+                                                   FetchedInputAllocatorOrderedGrouped callback, Path path,  long offset,
                                                    long size, boolean primaryMapOutput)  {
-    return new MapOutput(Type.DISK_DIRECT, attemptIdentifier, merger, size, path, offset,
+    return new MapOutput(Type.DISK_DIRECT, attemptIdentifier, callback, size, path, offset,
         primaryMapOutput, null, null);
   }
 
   public static MapOutput createMemoryMapOutput(InputAttemptIdentifier attemptIdentifier,
-                                                MergeManager merger, int size,
+                                                FetchedInputAllocatorOrderedGrouped callback, int size,
                                                 boolean primaryMapOutput)  {
-    return new MapOutput(Type.MEMORY, attemptIdentifier, merger, size, null, -1, primaryMapOutput,
+    return new MapOutput(Type.MEMORY, attemptIdentifier, callback, size, null, -1, primaryMapOutput,
         null, null);
   }
 
@@ -185,12 +185,12 @@ class MapOutput {
 
   public void commit() throws IOException {
     if (type == Type.MEMORY) {
-      merger.closeInMemoryFile(this);
+      callback.closeInMemoryFile(this);
     } else if (type == Type.DISK) {
       localFS.rename(tmpOutputPath, outputPath.getPath());
-      merger.closeOnDiskFile(outputPath);
+      callback.closeOnDiskFile(outputPath);
     } else if (type == Type.DISK_DIRECT) {
-      merger.closeOnDiskFile(outputPath);
+      callback.closeOnDiskFile(outputPath);
     } else {
       throw new IOException("Cannot commit MapOutput of type WAIT!");
     }
@@ -198,7 +198,7 @@ class MapOutput {
   
   public void abort() {
     if (type == Type.MEMORY) {
-      merger.unreserve(memory.length);
+      callback.unreserve(memory.length);
     } else if (type == Type.DISK) {
       try {
         localFS.delete(tmpOutputPath, false);

@@ -321,6 +321,7 @@ public class ShuffleManager implements FetcherCallback {
               } catch (InterruptedException e) {
                 if (isShutdown.get()) {
                   LOG.info("Interrupted and hasBeenShutdown, Breaking out of ShuffleScheduler Loop");
+                  Thread.currentThread().interrupt();
                   break;
                 } else {
                   throw e;
@@ -335,6 +336,7 @@ public class ShuffleManager implements FetcherCallback {
                 runningFetchers.add(fetcher);
                 if (isShutdown.get()) {
                   LOG.info("hasBeenShutdown, Breaking out of ShuffleScheduler Loop");
+                  break;
                 }
                 ListenableFuture<FetchResult> future = fetcherExecutor
                     .submit(fetcher);

@@ -59,10 +59,10 @@ public class HttpConnection {
   private static SSLFactory sslFactory;
 
   @VisibleForTesting
-  protected HttpURLConnection connection;
-  private DataInputStream input;
+  protected volatile HttpURLConnection connection;
+  private volatile DataInputStream input;
 
-  private boolean connectionSucceeed;
+  private volatile boolean connectionSucceeed;
   private volatile boolean cleanup;
 
   private final JobTokenSecretManager jobTokenSecretMgr;
@@ -276,6 +276,7 @@ public class HttpConnection {
       if (input != null) {
         LOG.info("Closing input on " + logIdentifier);
         input.close();
+        input = null;
       }
       if (httpConnParams.keepAlive && connectionSucceeed) {
         // Refer:
@@ -287,6 +288,7 @@ public class HttpConnection {
           LOG.debug("Closing connection on " + logIdentifier);
         }
         connection.disconnect();
+        connection = null;
       }
     } catch (IOException e) {
       if (LOG.isDebugEnabled()) {
