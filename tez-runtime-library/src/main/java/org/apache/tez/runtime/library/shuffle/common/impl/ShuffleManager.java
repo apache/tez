@@ -316,6 +316,7 @@ public class ShuffleManager implements FetcherCallback {
       // Avoid adding attempts which have already completed.
       if (completedInputSet.contains(input.getInputIdentifier())) {
         inputIter.remove();
+        continue;
       }
       // Avoid adding attempts which have been marked as OBSOLETE 
       if (obsoletedInputs.contains(input)) {
