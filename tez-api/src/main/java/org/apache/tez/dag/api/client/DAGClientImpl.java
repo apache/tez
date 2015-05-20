@@ -36,6 +36,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -72,6 +73,7 @@ public class DAGClientImpl extends DAGClient {
       VertexStatus.State.SUCCEEDED, VertexStatus.State.FAILED, VertexStatus.State.KILLED,
       VertexStatus.State.ERROR);
   private long statusPollInterval;
+  private long diagnoticsWaitTimeout;
 
   public DAGClientImpl(ApplicationId appId, String dagId, TezConfiguration conf,
                        @Nullable FrameworkClient frameworkClient) {
@@ -106,6 +108,9 @@ public class DAGClientImpl extends DAGClient {
       LOG.error("DAG Status poll interval cannot be negative and setting to default value.");
       statusPollInterval = TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT;
     }
+    this.diagnoticsWaitTimeout = conf.getLong(
+        TezConfiguration.TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS,
+        TezConfiguration.TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS_DEFAULT);
   }
 
   @Override
@@ -445,10 +450,25 @@ public class DAGClientImpl extends DAGClient {
     }
 
     builder.setState(dagState);
-    if(appReport.getDiagnostics() != null) {
-      builder.addAllDiagnostics(Collections.singleton(appReport.getDiagnostics()));
+    // workaround before YARN-2560 is fixed
+    if (appReport.getFinalApplicationStatus() == FinalApplicationStatus.FAILED
+        || appReport.getFinalApplicationStatus() == FinalApplicationStatus.KILLED) {
+      long startTime = System.currentTimeMillis();
+      while((appReport.getDiagnostics() == null
+          || appReport.getDiagnostics().isEmpty())
+          && (System.currentTimeMillis() - startTime) < diagnoticsWaitTimeout) {
+        try {
+          Thread.sleep(100);
+          appReport = frameworkClient.getApplicationReport(appId);
+        } catch (YarnException e) {
+          throw new TezException(e);
+        } catch (InterruptedException e) {
+          throw new TezException(e);
+        }
+      }
     }
 
+    builder.addAllDiagnostics(Collections.singleton(appReport.getDiagnostics()));
     return dagStatus;
   }
 
