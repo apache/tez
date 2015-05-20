@@ -1206,4 +1206,15 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "test.minicluster.app.wait.on.shutdown.secs";
   public static final long TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS_DEFAULT = 30;
 
+  /**
+   * Long value
+   * Time to wait (in milliseconds) for yarn app's diagnotics is available
+   * Workaround for YARN-2560
+   */
+  @Private
+  @ConfigurationScope(Scope.CLIENT)
+  public static final String TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS =
+      TEZ_PREFIX + "client.diagnostics.wait.timeout-ms";
+  @Private
+  public static final long TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS_DEFAULT = 3*1000;
 }
