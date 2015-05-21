@@ -5,6 +5,7 @@ Apache Tez Change Log
 Release 0.8.0: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
   TEZ-2454. Change FetcherOrderedGroup to work as Callables instead of blocking threads.

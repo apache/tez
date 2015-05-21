@@ -6,7 +6,7 @@ https://cwiki.apache.org/confluence/display/TEZ
 ----------------------------------------------------------------------------------
 Requirements:
 
-* JDK 1.6+
+* JDK 1.7+
 * Maven 3.0 or later
 * Findbugs 2.0.2 or later (if running findbugs)
 * ProtocolBuffer 2.5.0
