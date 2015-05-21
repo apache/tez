@@ -1710,7 +1710,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         // set new vertex location hints
         setVertexLocationHint(vertexLocationHint);
         LOG.info("Vertex " + getLogIdentifier() + " parallelism set to " + parallelism + " from "
-            + numTasks);
+            + oldNumTasks);
         
         // notify listeners
         stateChangeNotifier.stateChanged(vertexId,

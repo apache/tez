@@ -7,6 +7,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2474. The old taskNum is logged incorrectly when parallelism is changed
   TEZ-2460. Temporary solution for issue due to YARN-2560
   TEZ-2455. Tez UI: Dag view caching, error handling and minor layout changes
   TEZ-2453. Tez UI: show the dagInfo is the application has set the same.
