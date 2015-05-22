@@ -138,7 +138,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   final StateChangeNotifier stateChangeNotifier;
 
   private final List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
-  private static final List<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
+  static final ArrayList<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
       new ArrayList(0);
 
   // track the status of TaskAttempt (true mean completed, false mean uncompleted)
@@ -485,9 +485,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   @Override
-  public List<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
+  public ArrayList<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int maxEvents) {
-    List<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
+    ArrayList<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
     readLock.lock();
 
     try {
@@ -500,8 +500,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         int actualMax = Math.min(maxEvents,
             (tezEventsForTaskAttempts.size() - fromEventId));
         int toEventId = actualMax + fromEventId;
-        events = Collections.unmodifiableList(new ArrayList<TezEvent>(
-            tezEventsForTaskAttempts.subList(fromEventId, toEventId)));
+        events = new ArrayList<TezEvent>(tezEventsForTaskAttempts.subList(fromEventId, toEventId));
         LOG.info("TaskAttempt:" + attemptID + " sent events: (" + fromEventId
             + "-" + toEventId + ")");
         // currently not modifying the events so that we dont have to create

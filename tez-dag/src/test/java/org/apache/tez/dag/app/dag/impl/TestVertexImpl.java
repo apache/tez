@@ -2493,7 +2493,13 @@ public class TestVertexImpl {
     // verify all events have been put in pending.
     // this is not necessary after legacy routing has been removed
     Assert.assertEquals(5, v4.pendingTaskEvents.size());
-    v4.scheduleTasks(new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>());
+    List<TaskWithLocationHint> taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    // scheduling start to trigger edge routing to begin
+    for (int i=0; i<v4.getTotalTasks(); ++i) {
+      taskList.add(new TaskWithLocationHint(i, null));
+    }
+    v4.scheduleTasks(taskList);
+    dispatcher.await();
     // verify all events have been moved to taskEvents
     Assert.assertEquals(5, v4.getOnDemandRouteEvents().size());
     for (int i=5; i<11; ++i) {
@@ -2511,7 +2517,7 @@ public class TestVertexImpl {
     e.edgeManager = mockPlugin;
     // source task id will not match. all events will return null
     when(mockPlugin.routeDataMovementEventToDestination(1, 0, 0)).thenReturn(mockRoute);
-    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, 0, 1);
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, 0, 0, 1);
     Assert.assertEquals(11, eventInfo.getNextFromEventId()); // all events traversed
     Assert.assertEquals(0, eventInfo.getEvents().size()); // no events
     
@@ -2522,24 +2528,24 @@ public class TestVertexImpl {
         mockPlugin.routeDataMovementEventToDestination(anyInt(),
             anyInt(), anyInt())).thenReturn(mockRoute);
     for (int i=0; i<11; ++i) {
-      eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 1);
+      eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 1);
       fromEventId = eventInfo.getNextFromEventId();
       Assert.assertEquals((i+1), fromEventId);
       Assert.assertEquals(1, eventInfo.getEvents().size());
     }
-    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 1);
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 1);
     Assert.assertEquals(11, eventInfo.getNextFromEventId()); // all events traversed
     Assert.assertEquals(0, eventInfo.getEvents().size()); // no events
     
     // change max events to larger value. max events does not evenly divide total events
     fromEventId = 0;
     for (int i=1; i<=2; ++i) {
-      eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 5);
+      eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
       fromEventId = eventInfo.getNextFromEventId();
       Assert.assertEquals((i*5), fromEventId);
       Assert.assertEquals(5, eventInfo.getEvents().size());
     }
-    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 5);
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
     Assert.assertEquals(11, eventInfo.getNextFromEventId()); // all events traversed
     Assert.assertEquals(1, eventInfo.getEvents().size()); // remainder events
     
@@ -2551,12 +2557,12 @@ public class TestVertexImpl {
     fromEventId = 0;
     int lastFromEventId = 0;
     for (int i=1; i<=4; ++i) {
-      eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 5);
+      eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
       fromEventId = eventInfo.getNextFromEventId();
       Assert.assertEquals((i%2 > 0 ? (lastFromEventId+=2) : (lastFromEventId+=3)), fromEventId);     
       Assert.assertEquals(5, eventInfo.getEvents().size());
     }
-    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 5);
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
     Assert.assertEquals(11, eventInfo.getNextFromEventId()); // all events traversed
     Assert.assertEquals(2, eventInfo.getEvents().size()); // remainder events
   }
@@ -2754,15 +2760,12 @@ public class TestVertexImpl {
   }
   
   @Test(timeout = 5000)
-  public void testVertexPendingTaskEventsLegacyRouting() {
+  public void testVertexPendingTaskEvents() {
     // Remove after bulk routing API is removed
     initAllVertices(VertexState.INITED);
     VertexImpl v3 = vertices.get("vertex3");
     VertexImpl v2 = vertices.get("vertex2");
     VertexImpl v1 = vertices.get("vertex1");
-    v1.useOnDemandRouting = false;
-    v2.useOnDemandRouting = false;
-    v3.useOnDemandRouting = false;
     
     startVertex(v1);
     
@@ -4733,14 +4736,19 @@ public class TestVertexImpl {
       Assert.assertEquals(1, inputSpecs.get(0).getPhysicalEdgeCount());
     }
     
-    // fake scheduling start to trigger edge routing to begin
-    v1.scheduleTasks(new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>());
+    List<TaskWithLocationHint> taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    // scheduling start to trigger edge routing to begin
+    for (int i=0; i<v1.getTotalTasks(); ++i) {
+      taskList.add(new TaskWithLocationHint(i, null));
+    }
+    v1.scheduleTasks(taskList);
+    dispatcher.await();
     // check all tasks get their events
     for (int i=0; i<v1.getTotalTasks(); ++i) {
       Assert.assertEquals(
           1,
           v1.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v1.getTask(i).getTaskId(), 0),
-              0, 100).getEvents().size());
+              0, 0, 100).getEvents().size());
     }
     
     VertexImplWithControlledInitializerManager v2 = (VertexImplWithControlledInitializerManager) vertices.get("vertex2");
@@ -4775,14 +4783,20 @@ public class TestVertexImpl {
     }
     Assert.assertEquals(true, initializerManager2.hasShutDown);
     
-    // fake scheduling start to trigger edge routing to begin
-    v2.scheduleTasks(new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>());
+    // scheduling start to trigger edge routing to begin
+    taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    // scheduling start to trigger edge routing to begin
+    for (int i=0; i<v2.getTotalTasks(); ++i) {
+      taskList.add(new TaskWithLocationHint(i, null));
+    }
+    v2.scheduleTasks(taskList);
+    dispatcher.await();
     // check all tasks get their events
     for (int i=0; i<v2.getTotalTasks(); ++i) {
       Assert.assertEquals(
           ((i==0) ? 2 : 1),
           v2.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v2.getTask(i).getTaskId(), 0),
-              0, 100).getEvents().size());
+              0, 0, 100).getEvents().size());
     }
     for (int i = 0; i < 10; i++) {
       List<InputSpec> inputSpecs = v1.getInputSpecList(i);
@@ -4801,7 +4815,6 @@ public class TestVertexImpl {
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
-    v1.useOnDemandRouting = false;
     dispatcher.getEventHandler().handle(
         new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
     dispatcher.await();
@@ -4828,7 +4841,6 @@ public class TestVertexImpl {
     
     VertexImplWithControlledInitializerManager v2 = (VertexImplWithControlledInitializerManager) vertices.get("vertex2");
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
-    v2.useOnDemandRouting = false;
 
     // non-task events don't get buffered
     List<TezEvent> events = Lists.newLinkedList();

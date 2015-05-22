@@ -147,7 +147,7 @@ public interface Vertex extends Comparable<Vertex> {
   Resource getTaskResource();
   
   public TaskAttemptEventInfo getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
-      int fromEventId, int maxEvents);
+      int fromEventId, int nextPreRoutedFromEventId, int maxEvents);
   
   void handleSpeculatorEvent(SpeculatorEvent event);
 

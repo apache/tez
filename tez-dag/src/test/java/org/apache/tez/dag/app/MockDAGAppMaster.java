@@ -162,6 +162,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       ContainerLaunchContext launchContext;
       int numUpdates = 0;
       int nextFromEventId = 0;
+      int nextPreRoutedFromEventId = 0;
       boolean completed;
       String cIdStr;
       AtomicBoolean remove = new AtomicBoolean(false);
@@ -184,6 +185,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
         launchContext = null;
         numUpdates = 0;
         nextFromEventId = 0;
+        nextPreRoutedFromEventId = 0;
         cIdStr = null;
         remove.set(false);
       }
@@ -338,7 +340,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
       if (response.shouldDie()) {
         cData.remove();
       } else {
-        cData.nextFromEventId += response.getNextFromEventId();
+        cData.nextFromEventId = response.getNextFromEventId();
+        cData.nextPreRoutedFromEventId = response.getNextPreRoutedEventId();
         if (!response.getEvents().isEmpty()) {
           long stopTime = System.nanoTime();
           long stopCpuTime = threadMxBean.getCurrentThreadCpuTime();
@@ -421,7 +424,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)));
               TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
-                  cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
+                  cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
               doHeartbeat(request, cData);
             } else if (version != null && cData.taId.getId() <= version.intValue()) {
               preemptContainer(cData);
@@ -432,7 +435,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
                   new TaskAttemptCompletedEvent(), new EventMetaData(
                       EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)));
               TezHeartbeatRequest request = new TezHeartbeatRequest(++cData.numUpdates, events,
-                  cData.cIdStr, cData.taId, cData.nextFromEventId, 10000);
+                  cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 10000);
               doHeartbeat(request, cData);
               cData.clear();
             }

@@ -33,6 +33,7 @@ public class TezHeartbeatResponse implements Writable {
   private boolean shouldDie = false;
   private List<TezEvent> events;
   private int nextFromEventId;
+  private int nextPreRoutedEventId;
 
   public TezHeartbeatResponse() {
   }
@@ -57,6 +58,10 @@ public class TezHeartbeatResponse implements Writable {
     return nextFromEventId;
   }
 
+  public int getNextPreRoutedEventId() {
+    return nextPreRoutedEventId;
+  }
+
   public void setEvents(List<TezEvent> events) {
     this.events = Collections.unmodifiableList(events);
   }
@@ -73,11 +78,16 @@ public class TezHeartbeatResponse implements Writable {
     this.nextFromEventId = nextFromEventId;
   }
 
+  public void setNextPreRoutedEventId(int nextPreRoutedEventId) {
+    this.nextPreRoutedEventId = nextPreRoutedEventId;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(lastRequestId);
     out.writeBoolean(shouldDie);
     out.writeInt(nextFromEventId);
+    out.writeInt(nextPreRoutedEventId);
     if(events != null) {
       out.writeBoolean(true);
       out.writeInt(events.size());
@@ -94,6 +104,7 @@ public class TezHeartbeatResponse implements Writable {
     lastRequestId = in.readLong();
     shouldDie = in.readBoolean();
     nextFromEventId = in.readInt();
+    nextPreRoutedEventId = in.readInt();
     if(in.readBoolean()) {
       int eventCount = in.readInt();
       events = new ArrayList<TezEvent>(eventCount);
@@ -111,6 +122,7 @@ public class TezHeartbeatResponse implements Writable {
         + " lastRequestId=" + lastRequestId
         + ", shouldDie=" + shouldDie
         + ", nextFromEventId=" + nextFromEventId
+        + ", nextPreRoutedEventId=" + nextPreRoutedEventId
         + ", eventCount=" + (events != null ? events.size() : 0)
         + " }";
   }
