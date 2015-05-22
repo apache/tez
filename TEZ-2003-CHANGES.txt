@@ -27,5 +27,6 @@ ALL CHANGES:
   TEZ-2434. Allow tasks to be killed in the Runtime.
   TEZ-2443. TaskRunner2 should call abort, NPEs while cleaning up tasks.
   TEZ-2465. Retrun the status of a kill request in TaskRunner2.
+  TEZ-2471. NPE in LogicalIOProcessorRuntimeTask while printing thread info.
 
 INCOMPATIBLE CHANGES:

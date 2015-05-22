@@ -936,7 +936,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     long[] threadIds = threadMXBean.getAllThreadIds();
     for (Long id : threadIds) {
       ThreadInfo threadInfo = threadMXBean.getThreadInfo(id);
-      LOG.info("ThreadId : " + id + ", name=" + threadInfo.getThreadName());
+      // The thread could have been shutdown before we read info about it.
+      if (threadInfo != null) {
+        LOG.debug("ThreadId : " + id + ", name=" + threadInfo.getThreadName());
+      }
     }
   }
   
