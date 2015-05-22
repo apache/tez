@@ -36,6 +36,7 @@ public class TezHeartbeatRequest implements Writable {
   private List<TezEvent> events;
   private TezTaskAttemptID currentTaskAttemptID;
   private int startIndex;
+  private int preRoutedStartIndex;
   private int maxEvents;
   private long requestId;
 
@@ -43,12 +44,13 @@ public class TezHeartbeatRequest implements Writable {
   }
 
   public TezHeartbeatRequest(long requestId, List<TezEvent> events,
-      String containerIdentifier, TezTaskAttemptID taskAttemptID,
-      int startIndex, int maxEvents) {
+      int preRoutedStartIndex, String containerIdentifier,
+      TezTaskAttemptID taskAttemptID, int startIndex, int maxEvents) {
     this.containerIdentifier = containerIdentifier;
     this.requestId = requestId;
     this.events = Collections.unmodifiableList(events);
     this.startIndex = startIndex;
+    this.preRoutedStartIndex = preRoutedStartIndex;
     this.maxEvents = maxEvents;
     this.currentTaskAttemptID = taskAttemptID;
   }
@@ -63,6 +65,10 @@ public class TezHeartbeatRequest implements Writable {
 
   public int getStartIndex() {
     return startIndex;
+  }
+
+  public int getPreRoutedStartIndex() {
+    return preRoutedStartIndex;
   }
 
   public int getMaxEvents() {
@@ -95,6 +101,7 @@ public class TezHeartbeatRequest implements Writable {
       out.writeBoolean(false);
     }
     out.writeInt(startIndex);
+    out.writeInt(preRoutedStartIndex);
     out.writeInt(maxEvents);
     out.writeLong(requestId);
     Text.writeString(out, containerIdentifier);
@@ -117,6 +124,7 @@ public class TezHeartbeatRequest implements Writable {
       currentTaskAttemptID = null;
     }
     startIndex = in.readInt();
+    preRoutedStartIndex = in.readInt();
     maxEvents = in.readInt();
     requestId = in.readLong();
     containerIdentifier = Text.readString(in);
@@ -128,6 +136,7 @@ public class TezHeartbeatRequest implements Writable {
         + " containerId=" + containerIdentifier
         + ", requestId=" + requestId
         + ", startIndex=" + startIndex
+        + ", preRoutedStartIndex=" + preRoutedStartIndex
         + ", maxEventsToGet=" + maxEvents
         + ", taskAttemptId=" + currentTaskAttemptID
         + ", eventCount=" + (events != null ? events.size() : 0)

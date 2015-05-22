@@ -253,8 +253,8 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vB.getName());
     TaskImpl tImpl = (TaskImpl) vImpl.getTask(1);
-    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 1);
-    List<TezEvent> tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 1000).getEvents();
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    List<TezEvent> tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
@@ -267,8 +267,8 @@ public class TestMockDAGAppMaster {
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
-    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 1);
-    tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 1000).getEvents();
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
     Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
@@ -281,8 +281,8 @@ public class TestMockDAGAppMaster {
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
-    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 1);
-    tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 1000).getEvents();
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(1, tEvents.size()); // 1 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
     Assert.assertEquals(0, ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex());
@@ -390,22 +390,19 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     // vC uses on demand routing and its task does not provide events
     VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
-    Assert.assertEquals(true, vImpl.useOnDemandRouting);
     TaskImpl tImpl = (TaskImpl) vImpl.getTask(0);
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     Assert.assertEquals(0, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
-    // vD is mixed more and does not use on demand routing and its task provides events
+    // vD is mixed mode and only 1 out of 2 edges does legacy routing with task providing events
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
-    Assert.assertEquals(false, vImpl.useOnDemandRouting);
     tImpl = (TaskImpl) vImpl.getTask(0);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
-    Assert.assertEquals(2, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
+    Assert.assertEquals(1, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
     // vE has single legacy edge and does not use on demand routing and its task provides events
-    vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
-    Assert.assertEquals(false, vImpl.useOnDemandRouting);
+    vImpl = (VertexImpl) dagImpl.getVertex(vE.getName());
     tImpl = (TaskImpl) vImpl.getTask(0);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
-    Assert.assertEquals(2, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
+    Assert.assertEquals(1, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
 
     tezClient.stop();
   }

@@ -243,8 +243,8 @@ public class TestTaskAttemptListenerImplTezDag {
 
     doReturn(vertex).when(dag).getVertex(vertexID);
     doReturn("test_vertex").when(vertex).getName();
-    TaskAttemptEventInfo eventInfo = new TaskAttemptEventInfo(nextFromEventId, sendEvents);
-    doReturn(eventInfo).when(vertex).getTaskAttemptTezEvents(taskAttemptID, fromEventId, maxEvents);
+    TaskAttemptEventInfo eventInfo = new TaskAttemptEventInfo(nextFromEventId, sendEvents, 0);
+    doReturn(eventInfo).when(vertex).getTaskAttemptTezEvents(taskAttemptID, fromEventId, 0, maxEvents);
 
     taskAttemptListener.registerRunningContainer(containerId);
     taskAttemptListener.registerTaskAttempt(amContainerTask, containerId);

@@ -197,7 +197,7 @@ public class Edge {
     setEdgeProperty(modifiedEdgeProperty);
   }
   
-  public synchronized boolean routingToBegin() throws AMUserCodeException {
+  public synchronized void routingToBegin() throws AMUserCodeException {
     if (edgeManagerContext.getDestinationVertexNumTasks() == 0) {
       routingNeeded = false;
     } else if (edgeManagerContext.getDestinationVertexNumTasks() < 0) {
@@ -216,7 +216,11 @@ public class Edge {
       }
     }
     
-    LOG.info("Routing to begin for edge: " + getEdgeInfo() + ". EdgeProperty: " + edgeProperty);
+    LOG.info("Routing to begin for edge: " + getEdgeInfo() + ". EdgeProperty: " + edgeProperty + 
+        " onDemandRouting: " + hasOnDemandRouting());
+  }
+  
+  public synchronized boolean hasOnDemandRouting() {
     return onDemandRouting;
   }
 

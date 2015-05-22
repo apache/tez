@@ -51,6 +51,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
@@ -115,7 +116,6 @@ import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
-import org.apache.tez.dag.app.dag.impl.TestDAGImpl.CustomizedEdgeManager.ExceptionLocation;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
 import org.apache.tez.dag.app.rm.AMSchedulerEvent;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
@@ -670,8 +670,8 @@ public class TestDAGImpl {
   }
 
   // v1 -> v2
-  private DAGPlan createDAGWithCustomEdge(ExceptionLocation exLocation) {
-    LOG.info("Setting up dag plan");
+  private DAGPlan createDAGWithCustomEdge(ExceptionLocation exLocation, boolean useLegacy) {
+    LOG.info("Setting up custome edge dag plan " + exLocation + " " + useLegacy);
     DAGPlan dag = DAGPlan.newBuilder()
         .setName("testverteximpl")
         .addVertex(
@@ -723,7 +723,8 @@ public class TestDAGImpl {
          .addEdge(
              EdgePlan.newBuilder()
                  .setEdgeManager(TezEntityDescriptorProto.newBuilder()
-                         .setClassName(CustomizedEdgeManager.class.getName())
+                         .setClassName(useLegacy ? CustomizedEdgeManagerLegacy.class.getName() :
+                           CustomizedEdgeManager.class.getName())
                          .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
                             .setUserPayload(ByteString.copyFromUtf8(exLocation.name())))
                  )
@@ -866,8 +867,12 @@ public class TestDAGImpl {
   }
 
   private void setupDAGWithCustomEdge(ExceptionLocation exLocation) {
+    setupDAGWithCustomEdge(exLocation, false);
+  }
+  
+  private void setupDAGWithCustomEdge(ExceptionLocation exLocation, boolean useLegacy) {
     dagWithCustomEdgeId =  TezDAGID.getInstance(appAttemptId.getApplicationId(), 4);
-    dagPlanWithCustomEdge = createDAGWithCustomEdge(exLocation);
+    dagPlanWithCustomEdge = createDAGWithCustomEdge(exLocation, useLegacy);
     dagWithCustomEdgeAppContext = mock(AppContext.class);
     doReturn(aclManager).when(dagWithCustomEdgeAppContext).getAMACLManager();
     dagWithCustomEdge = new DAGImpl(dagWithCustomEdgeId, conf, dagPlanWithCustomEdge,
@@ -1018,7 +1023,7 @@ public class TestDAGImpl {
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 1000);
+    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 0, 1000);
     dispatcher.await();
 
     Assert.assertEquals(VertexState.FAILED, v2.getState());
@@ -1031,7 +1036,7 @@ public class TestDAGImpl {
   @Test(timeout = 5000)
   public void testEdgeManager_RouteDataMovementEventToDestinationWithLegacyRouting() {
     // Remove after legacy routing is removed
-    setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination);
+    setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination, true);
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(), 
@@ -1041,8 +1046,7 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    v1.useOnDemandRouting = false;
-    v2.useOnDemandRouting = false;
+
     dispatcher.await();
     Task t1= v2.getTask(0);
     TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
@@ -1063,7 +1067,7 @@ public class TestDAGImpl {
   @Test(timeout = 5000)
   public void testEdgeManager_RouteInputSourceTaskFailedEventToDestinationLegacyRouting() {
     // Remove after legacy routing is removed
-    setupDAGWithCustomEdge(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination);
+    setupDAGWithCustomEdge(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination, true);
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
     dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(), 
@@ -1073,8 +1077,6 @@ public class TestDAGImpl {
 
     VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
-    v1.useOnDemandRouting = false;
-    v2.useOnDemandRouting = false;
     dispatcher.await();
 
     Task t1= v2.getTask(0);
@@ -1084,7 +1086,7 @@ public class TestDAGImpl {
         new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 1000);
+    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 0, 1000);
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     
@@ -1802,18 +1804,17 @@ public class TestDAGImpl {
         TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT));
   }
 
-  public static class CustomizedEdgeManager extends EdgeManagerPluginOnDemand {
+  public static enum ExceptionLocation {
+    Initialize,
+    GetNumDestinationTaskPhysicalInputs,
+    GetNumSourceTaskPhysicalOutputs,
+    RouteDataMovementEventToDestination,
+    RouteInputSourceTaskFailedEventToDestination,
+    GetNumDestinationConsumerTasks,
+    RouteInputErrorEventToSource
+  }
 
-    public static enum ExceptionLocation {
-      Initialize,
-      GetNumDestinationTaskPhysicalInputs,
-      GetNumSourceTaskPhysicalOutputs,
-      RouteDataMovementEventToDestination,
-      RouteInputSourceTaskFailedEventToDestination,
-      GetNumDestinationConsumerTasks,
-      RouteInputErrorEventToSource
-    }
-
+  public static class CustomizedEdgeManagerLegacy extends EdgeManagerPlugin {
     private ExceptionLocation exLocation;
 
     public static EdgeManagerPluginDescriptor getUserPayload(ExceptionLocation exLocation) {
@@ -1821,7 +1822,7 @@ public class TestDAGImpl {
         .setUserPayload(UserPayload.create(ByteBuffer.wrap(exLocation.name().getBytes())));
     }
 
-    public CustomizedEdgeManager(EdgeManagerPluginContext context) {
+    public CustomizedEdgeManagerLegacy(EdgeManagerPluginContext context) {
       super(context);
       this.exLocation = ExceptionLocation.valueOf(
           new String(context.getUserPayload().deepCopyAsArray()));
@@ -1886,6 +1887,55 @@ public class TestDAGImpl {
         int destinationTaskIndex, int destinationFailedInputIndex)
         throws Exception {
       if (exLocation == ExceptionLocation.RouteInputErrorEventToSource) {
+        throw new Exception(exLocation.name());
+      }
+      return 0;
+    }
+  }
+
+  public static class CustomizedEdgeManager extends EdgeManagerPluginOnDemand {
+    private ExceptionLocation exLocation;
+
+    public static EdgeManagerPluginDescriptor getUserPayload(ExceptionLocation exLocation) {
+      return EdgeManagerPluginDescriptor.create(CustomizedEdgeManager.class.getName())
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap(exLocation.name().getBytes())));
+    }
+
+    public CustomizedEdgeManager(EdgeManagerPluginContext context) {
+      super(context);
+      this.exLocation = ExceptionLocation.valueOf(
+          new String(context.getUserPayload().deepCopyAsArray()));
+    }
+
+    @Override
+    public void initialize() throws Exception {
+      if (exLocation == ExceptionLocation.Initialize) {
+        throw new Exception(exLocation.name());
+      }
+    }
+
+    @Override
+    public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex)
+        throws Exception {
+      if (exLocation == ExceptionLocation.GetNumDestinationTaskPhysicalInputs) {
+        throw new Exception(exLocation.name());
+      }
+      return 0;
+    }
+
+    @Override
+    public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex)
+        throws Exception {
+      if (exLocation == ExceptionLocation.GetNumSourceTaskPhysicalOutputs) {
+        throw new Exception(exLocation.name());
+      }
+      return 0;
+    }
+
+    @Override
+    public int getNumDestinationConsumerTasks(int sourceTaskIndex)
+        throws Exception {
+      if (exLocation == ExceptionLocation.GetNumDestinationConsumerTasks) {
         throw new Exception(exLocation.name());
       }
       return 0;

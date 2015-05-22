@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +60,7 @@ public interface Task {
   
   public Vertex getVertex();
   
-  public List<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
+  public ArrayList<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int maxEvents);
   
   public List<String> getDiagnostics();

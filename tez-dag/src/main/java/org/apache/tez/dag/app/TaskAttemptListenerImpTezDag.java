@@ -448,9 +448,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             .getCurrentDAG()
             .getVertex(taskAttemptID.getTaskID().getVertexID())
             .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(),
-                request.getMaxEvents());
+                request.getPreRoutedStartIndex(), request.getMaxEvents());
         response.setEvents(eventInfo.getEvents());
         response.setNextFromEventId(eventInfo.getNextFromEventId());
+        response.setNextPreRoutedEventId(eventInfo.getNextPreRoutedFromEventId());
       }
       containerInfo.lastRequestId = requestId;
       containerInfo.lastReponse = response;

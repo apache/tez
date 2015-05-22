@@ -12,6 +12,7 @@ ALL CHANGES:
   TEZ-2455. Tez UI: Dag view caching, error handling and minor layout changes
   TEZ-2453. Tez UI: show the dagInfo is the application has set the same.
   TEZ-2447. Tez UI: Generic changes based on feedbacks.
+  TEZ-2409. Allow different edges to have different routing plugins
 
 Release 0.7.0: 2015-05-18
 
