@@ -171,6 +171,20 @@ App.DagViewComponent.graphView = (function (){
   }
 
   /**
+   * IE 11 does not support css transforms on svg elements. So manually set the same.
+   * please keep the transform parameters in sync with the ones in dag-view.less
+   * See https://connect.microsoft.com/IE/feedbackdetail/view/920928
+   *
+   * This can be removed once the bug is fixed in all supported IE versions
+   * @param value
+   */
+  function translateIfIE(element, x, y) {
+    if(App.env.isIE) {
+      element.attr('transform', 'translate(%@, %@)'.fmt(x, y));
+    }
+  }
+
+  /**
    * Add task bubble to a vertex node
    * @param node {SVG DOM element} Vertex node
    * @param d {VertexDataNode}
@@ -179,8 +193,10 @@ App.DagViewComponent.graphView = (function (){
     var group = node.append('g');
     group.attr('class', 'task-bubble');
     group.append('use').attr('xlink:href', '#task-bubble');
-    group.append('text')
-        .text(_trimText(d.get('data.numTasks'), 3));
+    translateIfIE(group.append('text')
+        .text(_trimText(d.get('data.numTasks'), 3)), 0, 4);
+
+    translateIfIE(group, 38, -15);
   }
   /**
    * Add IO(source/sink) bubble to a vertex node
@@ -196,8 +212,10 @@ App.DagViewComponent.graphView = (function (){
       group = node.append('g');
       group.attr('class', 'io-bubble');
       group.append('use').attr('xlink:href', '#io-bubble');
-      group.append('text')
-          .text(_trimText('%@/%@'.fmt(inputs, outputs), 3));
+      translateIfIE(group.append('text')
+          .text(_trimText('%@/%@'.fmt(inputs, outputs), 3)), 0, 4);
+
+      translateIfIE(group, -38, -15);
     }
   }
   /**
@@ -212,8 +230,10 @@ App.DagViewComponent.graphView = (function (){
       group = node.append('g');
       group.attr('class', 'group-bubble');
       group.append('use').attr('xlink:href', '#group-bubble');
-      group.append('text')
-          .text(_trimText(d.get('vertexGroup.groupMembers.length'), 2));
+      translateIfIE(group.append('text')
+          .text(_trimText(d.get('vertexGroup.groupMembers.length'), 2)), 0, 4);
+
+      translateIfIE(group, 38, 15);
     }
   }
   /**
@@ -251,9 +271,9 @@ App.DagViewComponent.graphView = (function (){
 
     node.attr('class', 'node %@'.fmt(className));
     node.append('use').attr('xlink:href', '#%@-bg'.fmt(className));
-    node.append('text')
+    translateIfIE(node.append('text')
         .attr('class', 'title')
-        .text(_trimText(d.get(titleProperty || 'name'), maxTitleLength || 12));
+        .text(_trimText(d.get(titleProperty || 'name'), maxTitleLength || 12)), 0, 4);
   }
   /**
    * Populates the calling node with the required content.
@@ -426,7 +446,10 @@ App.DagViewComponent.graphView = (function (){
       case "task":
         var numTasks = d.get('data.numTasks');
         tooltipData.title = (numTasks > 1 ? '%@ Tasks' : '%@ Task').fmt(numTasks);
-        node = d3.event.target;
+
+        if(!App.env.isIE) {
+          node = d3.event.target;
+        }
       break;
       case "io":
         var inputs = d.get('inputs.length'),
@@ -437,7 +460,9 @@ App.DagViewComponent.graphView = (function (){
         title += (outputs > 1 ? '%@ Sinks' : '%@ Sink').fmt(outputs);
         tooltipData.title = title;
 
-        node = d3.event.target;
+        if(!App.env.isIE) {
+          node = d3.event.target;
+        }
       break;
       case "group":
         tooltipData = {
@@ -656,7 +681,12 @@ App.DagViewComponent.graphView = (function (){
         var type = d.get('dataMovementType') || "";
         return 'link ' + type.toLowerCase();
       })
-      .attr("style", "marker-mid: url(#arrow-marker);")
+      /**
+       * IE11 rendering does not work for svg path element with marker set.
+       * See https://connect.microsoft.com/IE/feedback/details/801938
+       * This can be removed once the bug is fixed in all supported IE versions
+       */
+      .attr("style", App.env.isIE ? "" : "marker-mid: url(#arrow-marker);")
       .attr('d', function(d) {
         var node = _getTargetNode(d, "x0") || source;
         var o = {x: node.x0, y: node.y0};

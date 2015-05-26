@@ -30,7 +30,8 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
   LOG_TRANSITIONS_INTERNAL: true,
 
   env: {
-    isStandalone: true // Can ne set false in the wrapper initializer
+    isStandalone: true, // Can ne set false in the wrapper initializer
+    isIE: navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') > 0
   },
 
   setConfigs: function (configs) {

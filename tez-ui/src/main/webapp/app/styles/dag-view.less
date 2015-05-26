@@ -169,6 +169,7 @@
     font: 11px sans-serif;
     text-anchor: middle;
 
+    // Ensure to manually change the transforms in graph-view.js for IE compatibility
     -webkit-transform: translate(0px, 4px); // For safari
     -moz-transform: translate(0px, 4px);
     transform: translate(0px, 4px);
@@ -177,11 +178,13 @@
 
 .vertex {
   text.title {
+    // Ensure to manually change the transforms in graph-view.js for IE compatibility
     -webkit-transform: translate(0px, 3px); // For safari
     transform: translate(0px, -1px);
   }
 
   .task-bubble {
+    // Ensure to manually change the transforms in graph-view.js for IE compatibility
     -webkit-transform: translate(38px, -15px);
     transform: translate(38px, -15px);
     text {
@@ -191,6 +194,7 @@
   }
 
   .io-bubble {
+    // Ensure to manually change the transforms in graph-view.js for IE compatibility
     -webkit-transform: translate(-38px, -15px);
     transform: translate(-38px, -15px);
     opacity: 0;
@@ -206,6 +210,7 @@
   }
 
   .group-bubble {
+    // Ensure to manually change the transforms in graph-view.js for IE compatibility
     -webkit-transform: translate(38px, 15px);
     transform: translate(38px, 15px);
   }
