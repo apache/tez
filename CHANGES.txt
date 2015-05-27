@@ -4,6 +4,7 @@ Apache Tez Change Log
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2557. Port TEZ-1910 to branch-0.5.
   TEZ-2566. Allow TaskAttemptFinishedEvent without TaskAttemptStartedEvent when it is KILLED/FAILED
   TEZ-2475. Fix a potential hang in Tez local mode caused by incorrectly handled interrupts.
