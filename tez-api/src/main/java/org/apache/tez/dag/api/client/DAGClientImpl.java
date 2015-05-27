@@ -31,7 +31,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
@@ -90,10 +89,7 @@ public class DAGClientImpl extends DAGClient {
             conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
                  TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
 
-    if (UserGroupInformation.isSecurityEnabled()){
-      //TODO: enable ATS integration in kerberos secured cluster - see TEZ-1529
-      isATSEnabled = false;
-    }
+    isATSEnabled = DAGClientTimelineImpl.isSupported();
 
     realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient);
   }
@@ -447,7 +443,8 @@ public class DAGClientImpl extends DAGClient {
 
   private void switchToTimelineClient() throws IOException, TezException {
     realClient.close();
-    realClient = new DAGClientTimelineImpl(appId, dagId, conf, frameworkClient);
+    realClient = new DAGClientTimelineImpl(appId, dagId, conf, frameworkClient,
+        (int) (2 * PRINT_STATUS_INTERVAL_MILLIS));
     if (LOG.isDebugEnabled()) {
       LOG.debug("dag completed switching to DAGClientTimelineImpl");
     }

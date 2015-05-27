@@ -100,6 +100,25 @@ public class ReflectionUtils {
   }
 
   @Private
+  @SuppressWarnings("unchecked")
+  public static <T> T invokeMethod(Object target, Method method, Object... args) {
+    try {
+      return (T) method.invoke(target, args);
+    } catch (Exception e) {
+      throw new TezUncheckedException(e);
+    }
+  }
+
+  @Private
+  public static Method getMethod(Class<?> targetClazz, String methodName, Class<?>... parameterTypes) {
+    try {
+      return targetClazz.getMethod(methodName, parameterTypes);
+    } catch (NoSuchMethodException e) {
+      throw new TezUncheckedException(e);
+    }
+  }
+
+  @Private
   public static synchronized void addResourcesToClasspath(List<URL> urls) {
     ClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), Thread
         .currentThread().getContextClassLoader());
