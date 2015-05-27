@@ -404,10 +404,6 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-
-
-
-
   private boolean isThreadInterrupted() throws IOException {
     if (Thread.currentThread().isInterrupted()) {
       if (cleanup) {
@@ -445,6 +441,11 @@ public class PipelinedSorter extends ExternalSorter {
       bufferList.clear();
 
       numAdditionalSpills.increment(numSpills - 1);
+
+      if(indexCacheList.isEmpty()) {
+        LOG.warn("Index list is empty... returning");
+        return;
+      }
 
       if (!finalMergeEnabled) {
         //Generate events for all spills

@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2440. Sorter should check for indexCacheList.size() in flush().
   TEZ-2490. TEZ-2450 breaks Hadoop 2.2 and 2.4 compatability.
   TEZ-2450. support async http clients in ordered & unordered inputs.
   TEZ-2454. Change FetcherOrderedGroup to work as Callables instead of blocking threads.
