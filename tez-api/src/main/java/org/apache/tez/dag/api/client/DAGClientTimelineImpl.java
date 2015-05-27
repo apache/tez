@@ -23,9 +23,6 @@ import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,16 +37,10 @@ import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
-import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
-import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -78,10 +69,10 @@ public class DAGClientTimelineImpl extends DAGClient {
   private static final String FILTER_BY_FIELDS = "primaryfilters,otherinfo";
   private static final String HTTPS_SCHEME = "https://";
   private static final String HTTP_SCHEME = "http://";
-  private static Client httpClient = null;
+  private Client httpClient = null;
+  private final TimelineReaderFactory.TimelineReaderStrategy timelineReaderStrategy;
   private final ApplicationId appId;
   private final String dagId;
-  private final TezConfiguration conf;
   private final FrameworkClient frameworkClient;
 
   private Map<String, VertexTaskStats> vertexTaskStatsCache = null;
@@ -90,16 +81,21 @@ public class DAGClientTimelineImpl extends DAGClient {
   protected String baseUri;
 
   public DAGClientTimelineImpl(ApplicationId appId, String dagId, TezConfiguration conf,
-                               FrameworkClient frameworkClient)
+                               FrameworkClient frameworkClient, int connTimeout)
       throws TezException {
+
+    if (!TimelineReaderFactory.isTimelineClientSupported()) {
+      throw new TezException("Reading from secure timeline is supported only for hadoop 2.6 and above.");
+    }
+
     this.appId = appId;
     this.dagId = dagId;
-    this.conf = conf;
     this.frameworkClient = frameworkClient;
 
     String scheme;
     String webAppAddress;
-    if (webappHttpsOnly(conf)) {
+    boolean useHttps = webappHttpsOnly(conf);
+    if (useHttps) {
       scheme = HTTPS_SCHEME;
       webAppAddress = conf.get(ATSConstants.TIMELINE_SERVICE_WEBAPP_HTTPS_ADDRESS_CONF_NAME);
     } else {
@@ -111,8 +107,14 @@ public class DAGClientTimelineImpl extends DAGClient {
     }
 
     baseUri = Joiner.on("").join(scheme, webAppAddress, ATSConstants.RESOURCE_URI_BASE);
+
+    timelineReaderStrategy =
+        TimelineReaderFactory.getTimelineReaderStrategy(conf, useHttps, connTimeout);
   }
 
+  public static boolean isSupported() {
+    return TimelineReaderFactory.isTimelineClientSupported();
+  }
 
   @Override
   public String getExecutionContext() {
@@ -407,13 +409,15 @@ public class DAGClientTimelineImpl extends DAGClient {
   @VisibleForTesting
   protected JSONObject getJsonRootEntity(String url) throws TezException {
     try {
-      WebResource wr = getHttpClient().resource(url);
+      WebResource wr = getCachedHttpClient().resource(url);
       ClientResponse response = wr.accept(MediaType.APPLICATION_JSON_TYPE)
           .type(MediaType.APPLICATION_JSON_TYPE)
           .get(ClientResponse.class);
 
-      if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
-        throw new TezException("Failed to get response from YARN Timeline: url: " + url);
+      final ClientResponse.Status clientResponseStatus = response.getClientResponseStatus();
+      if (clientResponseStatus != ClientResponse.Status.OK) {
+        throw new TezException("Failed to get response from YARN Timeline:" +
+            " errorCode:" + clientResponseStatus + ", url:" + url);
       }
 
       return response.getEntity(JSONObject.class);
@@ -423,6 +427,8 @@ public class DAGClientTimelineImpl extends DAGClient {
       throw new TezException("Error accessing content from YARN Timeline - unexpected response", e);
     } catch (IllegalArgumentException e) {
       throw new TezException("Error accessing content from YARN Timeline - invalid url", e);
+    } catch (IOException e) {
+      throw new TezException("Error failed to get http client", e);
     }
   }
 
@@ -460,11 +466,9 @@ public class DAGClientTimelineImpl extends DAGClient {
     }
   }
 
-  protected Client getHttpClient() {
+  protected Client getCachedHttpClient() throws IOException {
     if (httpClient == null) {
-      ClientConfig config = new DefaultClientConfig(JSONRootElementProvider.App.class);
-      HttpURLConnectionFactory urlFactory = new PseudoAuthenticatedURLConnectionFactory();
-      httpClient = new Client(new URLConnectionClientHandler(urlFactory), config);
+      httpClient = timelineReaderStrategy.getHttpClient();
     }
     return httpClient;
   }
@@ -497,15 +501,6 @@ public class DAGClientTimelineImpl extends DAGClient {
         put("COMMITTING", VertexStatusStateProto.VERTEX_COMMITTING);
       }});
 
-
-  static class PseudoAuthenticatedURLConnectionFactory implements HttpURLConnectionFactory {
-    @Override
-    public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
-      String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +
-          URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
-      return (HttpURLConnection) (new URL(url.toString() + tokenString)).openConnection();
-    }
-  }
 
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
