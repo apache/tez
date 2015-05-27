@@ -54,10 +54,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -144,7 +144,7 @@ class ShuffleScheduler {
 
   private final ListeningExecutorService fetcherExecutor;
 
-  private final HttpConnection.HttpConnectionParams httpConnectionParams;
+  private final HttpConnectionParams httpConnectionParams;
   private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleClientMetrics shuffleMetrics;
   private final Shuffle shuffle;
@@ -157,6 +157,7 @@ class ShuffleScheduler {
   private final boolean localDiskFetchEnabled;
   private final String localHostname;
   private final int shufflePort;
+  private final boolean asyncHttp;
 
   private final TezCounter ioErrsCounter;
   private final TezCounter wrongLengthErrsCounter;
@@ -245,8 +246,8 @@ class ShuffleScheduler {
     this.startTime = startTime;
     this.lastProgressTime = startTime;
 
-    this.httpConnectionParams =
-        ShuffleUtils.constructHttpShuffleConnectionParams(conf);
+    this.asyncHttp = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP, false);
+    this.httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
     this.shuffleMetrics = new ShuffleClientMetrics(inputContext.getDAGName(),
         inputContext.getTaskVertexName(), inputContext.getTaskIndex(),
         this.conf, UserGroupInformation.getCurrentUser().getShortUserName());
@@ -1016,7 +1017,7 @@ class ShuffleScheduler {
         shuffleMetrics, shuffle, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
         codec, conf, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter);
+        connectionErrsCounter, wrongReduceErrsCounter, asyncHttp);
   }
 
   private class FetchFutureCallback implements FutureCallback<Void> {

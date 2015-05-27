@@ -36,6 +36,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.EditLogFileOutputStream;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.mapreduce.examples.TestOrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.After;
@@ -65,22 +66,30 @@ public class TestSecureShuffle {
   private boolean enableSSLInCluster; //To set ssl config in cluster
   private int resultWithTezSSL; //expected result with tez ssl setting
   private int resultWithoutTezSSL; //expected result without tez ssl setting
+  private boolean asyncHttp;
 
-  public TestSecureShuffle(boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL) {
+  public TestSecureShuffle(boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL,
+      boolean asyncHttp) {
     this.enableSSLInCluster = sslInCluster;
     this.resultWithTezSSL = resultWithTezSSL;
     this.resultWithoutTezSSL = resultWithoutTezSSL;
+    this.asyncHttp = asyncHttp;
   }
 
-  @Parameterized.Parameters(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, resultWithoutTezSSL:{2}]")
+  @Parameterized.Parameters(name = "test[sslInCluster:{0}, resultWithTezSSL:{1}, "
+      + "resultWithoutTezSSL:{2}, asyncHttp:{3}]")
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
     //enable ssl in cluster, succeed with tez-ssl enabled, fail with tez-ssl disabled
-    parameters.add(new Object[] { true, 0, 1 });
+    parameters.add(new Object[] { true, 0, 1, false });
+
+    //With asyncHttp
+    parameters.add(new Object[] { true, 0, 1, true });
+    parameters.add(new Object[] { false, 1, 0, true });
 
     //Negative testcase
-    // disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
-    parameters.add(new Object[] { false, 1, 0 });
+    //disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
+    parameters.add(new Object[] { false, 1, 0, false });
 
     return parameters;
   }
@@ -151,7 +160,7 @@ public class TestSecureShuffle {
    *
    * @throws Exception
    */
-  @Test(timeout = 240000)
+  @Test(timeout = 500000)
   public void testSecureShuffle() throws Exception {
     //With tez-ssl setting
     miniTezCluster.getConfig().setBoolean(

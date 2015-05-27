@@ -27,6 +27,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tez.http.BaseHttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.CallableWithNdc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +45,6 @@ import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Ty
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -86,11 +86,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
-  private LinkedList<InputAttemptIdentifier> remaining;
+  @VisibleForTesting
+  LinkedList<InputAttemptIdentifier> remaining;
 
   volatile DataInputStream input;
 
-  volatile HttpConnection httpConnection;
+  volatile BaseHttpConnection httpConnection;
+  private final boolean asyncHttp;
 
 
   // Initiative value is 0, which means it hasn't retried yet.
@@ -114,7 +116,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                TezCounter badIdErrsCounter,
                                TezCounter wrongMapErrsCounter,
                                TezCounter connectionErrsCounter,
-                               TezCounter wrongReduceErrsCounter) {
+                               TezCounter wrongReduceErrsCounter,
+                               boolean asyncHttp) {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.metrics = metrics;
@@ -134,6 +137,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
     this.httpConnectionParams = httpConnectionParams;
+    this.asyncHttp = asyncHttp;
     if (codec != null) {
       this.codec = codec;
     } else {
@@ -311,8 +315,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     boolean connectSucceeded = false;
     try {
       URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), attempts,
-          httpConnectionParams.getKeepAlive());
-      httpConnection = new HttpConnection(url, httpConnectionParams,
+          httpConnectionParams.isKeepAlive());
+      httpConnection = ShuffleUtils.getHttpConnection(asyncHttp, url, httpConnectionParams,
           logIdentifier, jobTokenSecretManager);
       connectSucceeded = httpConnection.connect();
 
@@ -323,7 +327,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       input = httpConnection.getInputStream();
       httpConnection.validate();
       return true;
-    } catch (IOException ie) {
+    } catch (IOException | InterruptedException ie) {
+      if (ie instanceof InterruptedException) {
+        Thread.currentThread().interrupt(); //reset status
+      }
       if (stopped) {
         LOG.info("Not reporting fetch failure, since an Exception was caught after shutdown");
         return false;

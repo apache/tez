@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
@@ -44,6 +45,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import org.apache.tez.http.HttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.slf4j.Logger;
@@ -59,7 +62,6 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
-import org.apache.tez.runtime.library.common.shuffle.HttpConnection;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -118,7 +120,7 @@ public class TestFetcher {
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, false, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
 
     fetcher.call();
     verify(scheduler).getMapsForHost(mapHost);
@@ -146,7 +148,7 @@ public class TestFetcher {
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
 
     // when local mode is enabled and host and port matches use local fetch
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
@@ -163,7 +165,7 @@ public class TestFetcher {
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -178,7 +180,7 @@ public class TestFetcher {
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -192,7 +194,7 @@ public class TestFetcher {
     fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
         null, conf, DISABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
         wrongLengthErrsCounter, badIdErrsCounter,
-        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -217,7 +219,7 @@ public class TestFetcher {
         "http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=");
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
         null, conf, true, HOST, PORT, "src vertex", host, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter,
-        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
 
@@ -342,6 +344,7 @@ public class TestFetcher {
   }
 
   @Test(timeout = 5000)
+  @SuppressWarnings("unchecked")
   public void testWithRetry() throws Exception {
     Configuration conf = new TezConfiguration();
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3000);
@@ -355,13 +358,12 @@ public class TestFetcher {
     when(inputContext.getCounters()).thenReturn(new TezCounters());
     when(inputContext.getSourceVertexName()).thenReturn("");
 
-    HttpConnection.HttpConnectionParams httpConnectionParams =
-        ShuffleUtils.constructHttpShuffleConnectionParams(conf);
+    HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
     final MapHost host = new MapHost(1, HOST + ":" + PORT,
         "http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=");
     FetcherOrderedGrouped mockFetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
         null, conf, false, HOST, PORT, "src vertex", host, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter,
-        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter);
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
 
@@ -426,4 +428,53 @@ public class TestFetcher {
 
   }
 
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testAsyncWithException() throws Exception {
+    Configuration conf = new TezConfiguration();
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3000);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 3000);
+
+    ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
+    MergeManager merger = mock(MergeManager.class);
+    ShuffleClientMetrics metrics = mock(ShuffleClientMetrics.class);
+    Shuffle shuffle = mock(Shuffle.class);
+
+    TezCounters counters = new TezCounters();
+    InputContext inputContext = mock(InputContext.class);
+    when(inputContext.getCounters()).thenReturn(counters);
+    when(inputContext.getSourceVertexName()).thenReturn("");
+
+    JobTokenSecretManager jobMgr = mock(JobTokenSecretManager.class);
+    doReturn(new byte[10]).when(jobMgr).computeHash(any(byte[].class));
+
+    HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
+    final MapHost host = new MapHost(1, HOST + ":" + PORT,
+        "http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=");
+    FetcherOrderedGrouped mockFetcher =
+        new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger, metrics, shuffle, jobMgr,
+            false, 0,
+            null, conf, false, HOST, PORT, "src vertex", host, ioErrsCounter,
+            wrongLengthErrsCounter, badIdErrsCounter,
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, true);
+    final FetcherOrderedGrouped fetcher = spy(mockFetcher);
+    fetcher.remaining = Lists.newLinkedList();
+
+    final List<InputAttemptIdentifier> srcAttempts = Arrays.asList(
+        new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0"),
+        new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1"),
+        new InputAttemptIdentifier(3, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3")
+    );
+    doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
+
+    try {
+      long currentIOErrors = ioErrsCounter.getValue();
+      boolean connected = fetcher.setupConnection(host, srcAttempts);
+      Assert.assertTrue(connected == false);
+      //Ensure that counters are incremented (i.e it followed the exception codepath)
+      Assert.assertTrue(ioErrsCounter.getValue() > currentIOErrors);
+    } catch (IOException e) {
+      fail();
+    }
+  }
 }

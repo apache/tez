@@ -73,6 +73,18 @@
     <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.orderedgrouped.FetcherOrderedGrouped"/>
+    <Method name="setupConnection" params="org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost, java.util.List" returns="boolean"/>
+    <Bug pattern="BC_VACUOUS_INSTANCEOF"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.Fetcher"/>
+    <Method name="setupConnection" params="java.util.List" returns="org.apache.tez.runtime.library.common.shuffle.Fetcher$HostFetchResult"/>
+    <Bug pattern="BC_VACUOUS_INSTANCEOF"/>
+  </Match>
+
   <!-- TODO This needs more looking into -->
   <Match>
     <Class name="org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter"/>

@@ -94,6 +94,7 @@ public class TestPipelinedShuffle {
     }
   }
 
+  //TODO: Add support for async http clients
   @Before
   public void setupTezCluster() throws Exception {
     //With 1 MB sort buffer and with good amount of dataset, it would spill records
@@ -126,8 +127,18 @@ public class TestPipelinedShuffle {
 
   @Test
   public void baseTest() throws Exception {
+    Configuration conf = new Configuration(miniTezCluster.getConfig());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP, false);
+    test(conf);
+
+    conf = new Configuration(miniTezCluster.getConfig());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP, true);
+    test(conf);
+  }
+
+  private void test(Configuration conf) throws Exception {
     PipelinedShuffleJob pipelinedShuffle = new PipelinedShuffleJob();
-    pipelinedShuffle.setConf(new Configuration(miniTezCluster.getConfig()));
+    pipelinedShuffle.setConf(conf);
 
     String[] args = new String[] { };
     assertEquals(0, pipelinedShuffle.run(args));

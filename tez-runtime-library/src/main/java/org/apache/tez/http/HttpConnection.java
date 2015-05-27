@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,18 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.common.shuffle;
+package org.apache.tez.http;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -24,44 +35,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.security.GeneralSecurityException;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HttpsURLConnection;
-
-import com.google.common.annotations.VisibleForTesting;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.security.ssl.SSLFactory;
-import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
-import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
-
-import com.google.common.base.Stopwatch;
-
-/**
- * HttpConnection which can be used for Unordered / Ordered shuffle.
- */
-public class HttpConnection {
+public class HttpConnection extends BaseHttpConnection {
 
   private static final Logger LOG = LoggerFactory.getLogger(HttpConnection.class);
-
-  /** Basic/unit connection timeout (in milliseconds) */
-  private final static int UNIT_CONNECT_TIMEOUT = 60 * 1000;
 
   private URL url;
   private final String logIdentifier;
 
-  //Shared by many threads
-  private static SSLFactory sslFactory;
-
   @VisibleForTesting
   protected volatile HttpURLConnection connection;
   private volatile DataInputStream input;
-
   private volatile boolean connectionSucceeed;
   private volatile boolean cleanup;
 
@@ -74,7 +59,7 @@ public class HttpConnection {
 
   /**
    * HttpConnection
-   * 
+   *
    * @param url
    * @param connParams
    * @param logIdentifier
@@ -93,62 +78,63 @@ public class HttpConnection {
     }
   }
 
-  private void setupConnection() throws IOException {
-    connection = (HttpURLConnection) url.openConnection();
-    if (sslFactory != null && httpConnParams.sslShuffle) {
-      try {
-        ((HttpsURLConnection) connection).setSSLSocketFactory(sslFactory
-          .createSSLSocketFactory());
-        ((HttpsURLConnection) connection).setHostnameVerifier(sslFactory
-          .getHostnameVerifier());
-      } catch (GeneralSecurityException ex) {
-        throw new IOException(ex);
-      }
-    }
+  @VisibleForTesting
+  public void computeEncHash() throws IOException {
     // generate hash of the url
     msgToEncode = SecureShuffleUtils.buildMsgFrom(url);
     encHash = SecureShuffleUtils.hashFromString(msgToEncode, jobTokenSecretMgr);
+  }
+
+  private void setupConnection() throws IOException {
+    connection = (HttpURLConnection) url.openConnection();
+    if (httpConnParams.isSslShuffle()) {
+      //Configure for SSL
+      SSLFactory sslFactory = httpConnParams.getSslFactory();
+      Preconditions.checkArgument(sslFactory != null, "SSLFactory can not be null");
+      sslFactory.configure(connection);
+    }
+
+    computeEncHash();
 
     // put url hash into http header
-    connection.addRequestProperty(SecureShuffleUtils.HTTP_HEADER_URL_HASH,
-      encHash);
+    connection.addRequestProperty(SecureShuffleUtils.HTTP_HEADER_URL_HASH, encHash);
     // set the read timeout
-    connection.setReadTimeout(httpConnParams.readTimeout);
+    connection.setReadTimeout(httpConnParams.getReadTimeout());
     // put shuffle version into http header
     connection.addRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
-      ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+        ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
     connection.addRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
-      ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+        ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
   }
 
   /**
    * Connect to source
-   * 
+   *
    * @return true if connection was successful
-   *         false if connection was previously cleaned up
+   * false if connection was previously cleaned up
    * @throws IOException upon connection failure
    */
+  @Override
   public boolean connect() throws IOException {
-    return connect(httpConnParams.connectionTimeout);
+    return connect(httpConnParams.getConnectionTimeout());
   }
 
   /**
    * Connect to source with specific timeout
-   * 
+   *
    * @param connectionTimeout
    * @return true if connection was successful
-   *         false if connection was previously cleaned up
+   * false if connection was previously cleaned up
    * @throws IOException upon connection failure
    */
-  public boolean connect(int connectionTimeout) throws IOException {
+  private boolean connect(int connectionTimeout) throws IOException {
     stopWatch.reset().start();
     if (connection == null) {
       setupConnection();
     }
     int unit = 0;
     if (connectionTimeout < 0) {
-      throw new IOException("Invalid timeout " + "[timeout = "
-          + connectionTimeout + " ms]");
+      throw new IOException("Invalid timeout " + "[timeout = " + connectionTimeout + " ms]");
     } else if (connectionTimeout > 0) {
       unit = Math.min(UNIT_CONNECT_TIMEOUT, connectionTimeout);
     }
@@ -205,11 +191,13 @@ public class HttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to connect to " + url.toString() +
-        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms; connectionFailures="+ connectionFailures);
+          " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms; connectionFailures="
+          + connectionFailures);
     }
     return true;
   }
 
+  @Override
   public void validate() throws IOException {
     stopWatch.reset().start();
     int rc = connection.getResponseCode();
@@ -217,58 +205,62 @@ public class HttpConnection {
       throw new IOException("Got invalid response code " + rc + " from " + url
           + ": " + connection.getResponseMessage());
     }
+
     // get the shuffle version
     if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME.equals(connection
-      .getHeaderField(ShuffleHeader.HTTP_HEADER_NAME))
+        .getHeaderField(ShuffleHeader.HTTP_HEADER_NAME))
         || !ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION.equals(connection
-          .getHeaderField(ShuffleHeader.HTTP_HEADER_VERSION))) {
+        .getHeaderField(ShuffleHeader.HTTP_HEADER_VERSION))) {
       throw new IOException("Incompatible shuffle response version");
     }
+
     // get the replyHash which is HMac of the encHash we sent to the server
     String replyHash =
         connection
-          .getHeaderField(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH);
+            .getHeaderField(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH);
     if (replyHash == null) {
       throw new IOException("security validation of TT Map output failed");
     }
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("url=" + msgToEncode + ";encHash=" + encHash + ";replyHash="
           + replyHash);
     }
+
     // verify that replyHash is HMac of encHash
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecretMgr);
     //Following log statement will be used by tez-tool perf-analyzer for mapping attempt to NM host
     LOG.info("for url=" + url +
-      " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+        " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
   }
 
   /**
    * Get the inputstream from the connection
-   * 
+   *
    * @return DataInputStream
    * @throws IOException
    */
+  @Override
   public DataInputStream getInputStream() throws IOException {
     stopWatch.reset().start();
     if (connectionSucceeed) {
-      input =
-          new DataInputStream(new BufferedInputStream(
-            connection.getInputStream(), httpConnParams.bufferSize));
+      input = new DataInputStream(new BufferedInputStream(
+              connection.getInputStream(), httpConnParams.getBufferSize()));
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to getInputStream (connect) " + url +
-        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+          " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
     }
     return input;
   }
 
   /**
    * Cleanup the connection.
-   * 
-   * @param disconnect
-   *          Close the connection if this is true; otherwise respect keepalive
+   *
+   * @param disconnect Close the connection if this is true; otherwise respect keepalive
    * @throws IOException
    */
+  @Override
   public void cleanup(boolean disconnect) throws IOException {
     cleanup = true;
     stopWatch.reset().start();
@@ -278,12 +270,12 @@ public class HttpConnection {
         input.close();
         input = null;
       }
-      if (httpConnParams.keepAlive && connectionSucceeed) {
+      if (httpConnParams.isKeepAlive() && connectionSucceeed) {
         // Refer:
         // http://docs.oracle.com/javase/6/docs/technotes/guides/net/http-keepalive.html
         readErrorStream(connection.getErrorStream());
       }
-      if (connection != null && (disconnect || !httpConnParams.keepAlive)) {
+      if (connection != null && (disconnect || !httpConnParams.isKeepAlive())) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Closing connection on " + logIdentifier);
         }
@@ -300,13 +292,13 @@ public class HttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to cleanup connection to " + url +
-        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+          " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
     }
   }
 
   /**
    * Cleanup the error stream if any, for keepAlive connections
-   * 
+   *
    * @param errorStream
    */
   private void readErrorStream(InputStream errorStream) {
@@ -320,108 +312,6 @@ public class HttpConnection {
       IOUtils.closeStream(errorStream);
     } catch (IOException ioe) {
       // ignore
-    }
-  }
-
-  public static class HttpConnectionParams {
-    private boolean keepAlive;
-    private int keepAliveMaxConnections;
-    private int connectionTimeout;
-    private int readTimeout;
-    private int bufferSize;
-    private boolean sslShuffle;
-
-    public boolean getKeepAlive() {
-      return keepAlive;
-    }
-
-    public int getKeepAliveMaxConnections() {
-      return keepAliveMaxConnections;
-    }
-
-    public int getConnectionTimeout() {
-      return connectionTimeout;
-    }
-
-    public int getReadTimeout() {
-      return readTimeout;
-    }
-
-    public void setReadTimeout(int readTimeout) {
-      this.readTimeout = readTimeout;
-    }
-
-    public int getBufferSize() {
-      return bufferSize;
-    }
-
-    public boolean isSSLShuffleEnabled() {
-      return sslShuffle;
-    }
-
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      sb.append("keepAlive=").append(keepAlive).append(", ");
-      sb.append("keepAliveMaxConnections=").append(keepAliveMaxConnections).append(", ");
-      sb.append("connectionTimeout=").append(connectionTimeout).append(", ");
-      sb.append("readTimeout=").append(readTimeout).append(", ");
-      sb.append("bufferSize=").append(bufferSize).append(", ");
-      sb.append("sslShuffle=").append(sslShuffle);
-      return sb.toString();
-    }
-  }
-
-  public static class HttpConnectionParamsBuilder {
-    private HttpConnectionParams params;
-
-    public HttpConnectionParamsBuilder() {
-      params = new HttpConnectionParams();
-    }
-
-    public HttpConnectionParamsBuilder setKeepAlive(boolean keepAlive,
-        int keepAliveMaxConnections) {
-      params.keepAlive = keepAlive;
-      params.keepAliveMaxConnections = keepAliveMaxConnections;
-      return this;
-    }
-
-    public HttpConnectionParamsBuilder setTimeout(int connectionTimeout,
-        int readTimeout) {
-      params.connectionTimeout = connectionTimeout;
-      params.readTimeout = readTimeout;
-      return this;
-    }
-
-    public synchronized HttpConnectionParamsBuilder setSSL(boolean sslEnabled,
-        Configuration conf) {
-      synchronized (HttpConnectionParamsBuilder.class) {
-        params.sslShuffle = sslEnabled;
-        if (sslEnabled) {
-          //Create sslFactory if it is null or if it was destroyed earlier
-          if (sslFactory == null || sslFactory.getKeystoresFactory()
-              .getTrustManagers() == null) {
-            LOG.info("Initializing SSL factory in HttpConnection");
-            sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
-            try {
-              sslFactory.init();
-            } catch (Exception ex) {
-              sslFactory.destroy();
-              sslFactory = null;
-              throw new RuntimeException(ex);
-            }
-          }
-        }
-      }
-      return this;
-    }
-
-    public HttpConnectionParamsBuilder setBufferSize(int bufferSize) {
-      params.bufferSize = bufferSize;
-      return this;
-    }
-
-    public HttpConnectionParams build() {
-      return params;
     }
   }
 }
