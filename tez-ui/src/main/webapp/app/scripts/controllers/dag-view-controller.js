@@ -52,24 +52,55 @@ App.DagViewController = App.TablePageController.extend({
     return this._super();
   },
 
+  redirect: function (details) {
+    switch(details.type) {
+      case 'vertex':
+        this.transitionToRoute('vertex', details.d.get('data.id'));
+      break;
+      case 'task':
+        this.transitionToRoute('vertex.tasks', details.d.get('data.id'));
+      break;
+      case 'io':
+        this.transitionToRoute('vertex.additionals', details.d.get('data.id'));
+      break;
+      case 'input':
+        this.transitionToRoute('input.configs', details.d.get('parent.data.id'), details.d.entity);
+      break;
+      case 'output':
+        this.transitionToRoute('output.configs', details.d.get('vertex.data.id'), details.d.entity);
+      break;
+    }
+  },
+
   actions: {
+    modalConfirmed: function () {
+      this.redirect(this.get('redirectionDetails'));
+    },
+    modalCanceled: function () {
+    },
     entityClicked: function (details) {
-      switch(details.type) {
-        case 'vertex':
-          this.transitionToRoute('vertex', details.d.get('data.id'));
-        break;
-        case 'task':
-          this.transitionToRoute('vertex.tasks', details.d.get('data.id'));
-        break;
-        case 'io':
-          this.transitionToRoute('vertex.additionals', details.d.get('data.id'));
-        break;
-        case 'input':
-          this.transitionToRoute('input.configs', details.d.get('parent.data.id'), details.d.entity);
-        break;
-        case 'output':
-          this.transitionToRoute('output.configs', details.d.get('vertex.data.id'), details.d.entity);
-        break;
+
+      /**
+       * In IE 11 under Windows 7, mouse events are not delivered to the page
+       * anymore at all after a SVG use element that was under the mouse is
+       * removed from the DOM in the event listener in response to a mouse click.
+       * See https://connect.microsoft.com/IE/feedback/details/796745
+       *
+       * This condition and related actions must be removed once the bug is fixed
+       * in all supported IE versions
+       */
+      if(App.env.isIE) {
+        this.set('redirectionDetails', details);
+        Bootstrap.ModalManager.confirm(
+          this,
+          'Confirmation Required!',
+          'You will be redirected to %@ page'.fmt(
+            details.type == "io" ? "additionals" : details.type
+          )
+        );
+      }
+      else {
+        this.redirect(details);
       }
     }
   },
