@@ -56,7 +56,7 @@ public class TestATSHttpClient {
   public void testGetDagStatusThrowsExceptionOnEmptyJson() throws TezException {
     ApplicationId mockAppId = mock(ApplicationId.class);
     DAGClientTimelineImpl httpClient = new DAGClientTimelineImpl(mockAppId, "EXAMPLE_DAG_ID",
-        new TezConfiguration(), null);
+        new TezConfiguration(), null, 0);
     DAGClientTimelineImpl spyClient = spy(httpClient);
     spyClient.baseUri = "http://yarn.ats.webapp/ws/v1/timeline";
     final String expectedDagUrl = "http://yarn.ats.webapp/ws/v1/timeline/TEZ_DAG_ID/EXAMPLE_DAG_ID" +
@@ -80,7 +80,7 @@ public class TestATSHttpClient {
   public void testGetDagStatusSimple() throws TezException, JSONException, IOException {
     DAGClientTimelineImpl
         httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class),"EXAMPLE_DAG_ID",
-        new TezConfiguration(), null);
+        new TezConfiguration(), null, 0);
     DAGClientTimelineImpl spyClient = spy(httpClient);
     spyClient.baseUri = "http://yarn.ats.webapp/ws/v1/timeline";
     final String expectedDagUrl = "http://yarn.ats.webapp/ws/v1/timeline/TEZ_DAG_ID/EXAMPLE_DAG_ID" +
@@ -140,7 +140,7 @@ public class TestATSHttpClient {
   public void testGetVertexStatusSimple() throws JSONException, TezException, IOException {
     DAGClientTimelineImpl
         httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class), "EXAMPLE_DAG_ID",
-        new TezConfiguration(), null);
+        new TezConfiguration(), null, 0);
     DAGClientTimelineImpl spyClient = spy(httpClient);
     spyClient.baseUri = "http://yarn.ats.webapp/ws/v1/timeline";
     final String expectedVertexUrl = "http://yarn.ats.webapp/ws/v1/timeline/TEZ_VERTEX_ID" +
