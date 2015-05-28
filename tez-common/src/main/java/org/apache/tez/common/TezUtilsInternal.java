@@ -246,10 +246,16 @@ public class TezUtilsInternal {
         return TaskAttemptTerminationCause.COMMUNICATION_ERROR;
       case SERVICE_BUSY:
         return TaskAttemptTerminationCause.SERVICE_BUSY;
-      case INTERRUPTED_BY_SYSTEM:
-        return TaskAttemptTerminationCause.INTERRUPTED_BY_SYSTEM;
-      case INTERRUPTED_BY_USER:
-        return TaskAttemptTerminationCause.INTERRUPTED_BY_USER;
+      case INTERNAL_PREEMPTION:
+        return TaskAttemptTerminationCause.INTERNAL_PREEMPTION;
+      case EXTERNAL_PREEMPTION:
+        return TaskAttemptTerminationCause.EXTERNAL_PREEMPTION;
+      case APPLICATION_ERROR:
+        return TaskAttemptTerminationCause.APPLICATION_ERROR;
+      case FRAMEWORK_ERROR:
+        return TaskAttemptTerminationCause.FRAMEWORK_ERROR;
+      case NODE_FAILED:
+        return TaskAttemptTerminationCause.NODE_FAILED;
       case OTHER:
         return TaskAttemptTerminationCause.UNKNOWN_ERROR;
       default:
@@ -267,20 +273,24 @@ public class TezUtilsInternal {
         return TaskAttemptEndReason.COMMUNICATION_ERROR;
       case SERVICE_BUSY:
         return TaskAttemptEndReason.SERVICE_BUSY;
+      case INTERNAL_PREEMPTION:
+        return TaskAttemptEndReason.INTERNAL_PREEMPTION;
+      case EXTERNAL_PREEMPTION:
+        return TaskAttemptEndReason.EXTERNAL_PREEMPTION;
+      case APPLICATION_ERROR:
+        return TaskAttemptEndReason.APPLICATION_ERROR;
+      case FRAMEWORK_ERROR:
+        return TaskAttemptEndReason.FRAMEWORK_ERROR;
+      case NODE_FAILED:
+        return TaskAttemptEndReason.NODE_FAILED;
       case INTERRUPTED_BY_SYSTEM:
-        return TaskAttemptEndReason.INTERRUPTED_BY_SYSTEM;
       case INTERRUPTED_BY_USER:
-        return TaskAttemptEndReason.INTERRUPTED_BY_USER;
       case UNKNOWN_ERROR:
       case TERMINATED_BY_CLIENT:
       case TERMINATED_AT_SHUTDOWN:
-      case INTERNAL_PREEMPTION:
-      case EXTERNAL_PREEMPTION:
       case TERMINATED_INEFFECTIVE_SPECULATION:
       case TERMINATED_EFFECTIVE_SPECULATION:
       case TERMINATED_ORPHANED:
-      case APPLICATION_ERROR:
-      case FRAMEWORK_ERROR:
       case INPUT_READ_ERROR:
       case OUTPUT_WRITE_ERROR:
       case OUTPUT_LOST:
@@ -288,7 +298,6 @@ public class TezUtilsInternal {
       case CONTAINER_LAUNCH_FAILED:
       case CONTAINER_EXITED:
       case CONTAINER_STOPPED:
-      case NODE_FAILED:
       case NODE_DISK_ERROR:
       default:
         return TaskAttemptEndReason.OTHER;

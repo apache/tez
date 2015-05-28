@@ -36,7 +36,10 @@ public abstract class TaskCommunicator extends AbstractService {
   public abstract void registerRunningContainer(ContainerId containerId, String hostname, int port);
 
   // TODO TEZ-2003 Ideally, don't expose YARN containerId; instead expose a Tez specific construct.
-  public abstract void registerContainerEnd(ContainerId containerId);
+  public abstract void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason);
+
+  // TODO TEZ-2003 Provide additional inforamtion like reason for container end / Task end.
+  // Was it caused by preemption - or as a result of a general task completion / container completion
 
   // TODO TEZ-2003 TaskSpec breakup into a clean interface
   // TODO TEZ-2003 Add support for priority
@@ -48,11 +51,7 @@ public abstract class TaskCommunicator extends AbstractService {
   // TODO TEZ-2003. Are additional APIs required to mark a container as completed ? - for completeness.
 
   // TODO TEZ-2003 Remove reference to TaskAttemptID
-  // TODO TEZ-2003 This needs some information about why the attempt is being unregistered.
-  // e.g. preempted in which case the task may need to be informed. Alternately as a result of
-  // a failed task.
-  // In case of preemption - a killTask API is likely a better bet than trying to overload this method.
-  public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID);
+  public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID, TaskAttemptEndReason endReason);
 
   // TODO TEZ-2003 This doesn't necessarily belong here. A server may not start within the AM.
   public abstract InetSocketAddress getAddress();

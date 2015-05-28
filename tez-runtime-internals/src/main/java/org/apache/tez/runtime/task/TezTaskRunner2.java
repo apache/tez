@@ -261,7 +261,13 @@ public class TezTaskRunner2 {
             taskRunnerCallable.interruptTask();
           }
           return true;
+        } else {
+          LOG.info("Ignoring killTask request for {} since end reason is already set to {}",
+              task.getTaskAttemptID(), firstEndReason);
         }
+      } else {
+        LOG.info("Ignoring killTask request for {} since it is not in a running state",
+            task.getTaskAttemptID());
       }
     }
     return false;
@@ -389,10 +395,18 @@ public class TezTaskRunner2 {
         isFirstTerminate = trySettingEndReason(EndReason.CONTAINER_STOP_REQUESTED);
         // Respect stopContainerRequested since it can come in at any point, despite a previous failure.
         stopContainerRequested.set(true);
-      }
 
-      if (isFirstTerminate) {
-        killTask();
+        if (isFirstTerminate) {
+          LOG.info("Attempting to abort {} since a shutdown request was received",
+              task.getTaskAttemptID());
+          if (taskRunnerCallable != null) {
+            taskKillStartTime = System.currentTimeMillis();
+            taskRunnerCallable.interruptTask();
+          }
+        } else {
+          LOG.info("Not acting on shutdown request for {} since the task is not in running state",
+              task.getTaskAttemptID());
+        }
       }
     }
   }

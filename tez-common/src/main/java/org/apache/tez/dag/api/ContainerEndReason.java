@@ -1,7 +1,7 @@
 /*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -15,13 +15,13 @@
 package org.apache.tez.dag.api;
 
 // TODO TEZ-2003 Expose as a public API
-public enum TaskAttemptEndReason {
+public enum ContainerEndReason {
   NODE_FAILED, // Completed because the node running the container was marked as dead
-  COMMUNICATION_ERROR, // Communication error with the task
-  SERVICE_BUSY, // External service busy
   INTERNAL_PREEMPTION, // Preempted by the AM, due to an internal decision
   EXTERNAL_PREEMPTION, // Preempted due to cluster contention
   APPLICATION_ERROR, // An error in the AM caused by user code
   FRAMEWORK_ERROR, // An error in the AM - likely a bug.
-  OTHER // Unknown reason
+  LAUNCH_FAILED, // Failure to launch the container
+  COMPLETED, // Completed via normal flow
+  OTHER
 }
