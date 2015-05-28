@@ -386,6 +386,8 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2488. Tez AM crashes if a submitted DAG is configured to use invalid resource sizes.
+  TEZ-2080. Localclient should be using tezconf in init instead of yarnconf.
   TEZ-2369. Add a few unit tests for RootInputInitializerManager.
   TEZ-2379. org.apache.hadoop.yarn.state.InvalidStateTransitonException:
     Invalid event: T_ATTEMPT_KILLED at KILLED.

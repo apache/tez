@@ -1423,6 +1423,11 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public boolean isLocal() {
+      return isLocal;
+    }
+
+    @Override
     public DAGAppMasterState getAMState() {
       return state;
     }

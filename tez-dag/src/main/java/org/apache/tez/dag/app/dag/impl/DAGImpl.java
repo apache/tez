@@ -1413,6 +1413,20 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       VertexImpl v = createVertex(this, vertexName, i);
       addVertex(v);
     }
+    // check task resources, only check it in non-local mode
+    if (!appContext.isLocal()) {
+      for (Vertex v : vertexMap.values()) {
+        if (v.getTaskResource().compareTo(appContext.getClusterInfo().getMaxContainerCapability()) > 0) {
+          String msg = "Vertex's TaskResource is beyond the cluster container capability," +
+              "Vertex=" + v.getLogIdentifier() +", Requested TaskResource=" + v.getTaskResource()
+              + ", Cluster MaxContainerCapability=" + appContext.getClusterInfo().getMaxContainerCapability();
+          LOG.error(msg);
+          addDiagnostic(msg);
+          finished(DAGState.FAILED);
+          return DAGState.FAILED;
+        }
+      }
+    }
 
     createDAGEdges(this);
     Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(getJobPlan().getEdgeList());
@@ -1453,6 +1467,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         }
       }
     }
+
     return DAGState.INITED;
   }
 
@@ -1678,6 +1693,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       DAGState state = dag.initializeDAG();
       if (state != DAGState.INITED) {
+        dag.trySetTerminationCause(DAGTerminationCause.INIT_FAILURE);
         return state;
       }
 
