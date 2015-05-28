@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster
+  TEZ-2483. Tez should close task if processor fail
 
 Release 0.6.1: 2015-05-18
 

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +108,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final List<GroupInputSpec> groupInputSpecs;
   private ConcurrentHashMap<String, MergedLogicalInput> groupInputsMap;
 
+  final ConcurrentHashMap<String, LogicalInput> initializedInputs;
+  final ConcurrentHashMap<String, LogicalOutput> initializedOutputs;
+
+  private boolean processorClosed = false;
   private final ProcessorDescriptor processorDescriptor;
   private AbstractLogicalIOProcessor processor;
   private ProcessorContext processorContext;
@@ -152,6 +157,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.outputSpecs = taskSpec.getOutputs();
     this.outputsMap = new ConcurrentHashMap<String, LogicalOutput>(numOutputs);
     this.outputContextMap = new ConcurrentHashMap<String, OutputContext>(numOutputs);
+
+    this.initializedInputs = new ConcurrentHashMap<String, LogicalInput>();
+    this.initializedOutputs = new ConcurrentHashMap<String, LogicalOutput>();
 
     this.runInputMap = new LinkedHashMap<String, LogicalInput>();
     this.runOutputMap = new LinkedHashMap<String, LogicalOutput>();
@@ -333,11 +341,13 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       this.state = State.CLOSED;
 
       // Close the Processor.
+      processorClosed = true;
       processor.close();
 
       // Close the Inputs.
       for (InputSpec inputSpec : inputSpecs) {
         String srcVertexName = inputSpec.getSourceVertexName();
+        initializedInputs.remove(srcVertexName);
         List<Event> closeInputEvents = ((InputFrameworkInterface)inputsMap.get(srcVertexName)).close();
         sendTaskGeneratedEvents(closeInputEvents,
             EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
@@ -347,6 +357,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       // Close the Outputs.
       for (OutputSpec outputSpec : outputSpecs) {
         String destVertexName = outputSpec.getDestinationVertexName();
+        initializedOutputs.remove(destVertexName);
         List<Event> closeOutputEvents = ((LogicalOutputFrameworkInterface)outputsMap.get(destVertexName)).close();
         sendTaskGeneratedEvents(closeOutputEvents,
             EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
@@ -388,6 +399,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       sendTaskGeneratedEvents(events, EventProducerConsumerType.INPUT,
           inputContext.getTaskVertexName(), inputContext.getSourceVertexName(),
           taskSpec.getTaskAttemptID());
+      initializedInputs.put(edgeName, input);
       LOG.info("Initialized Input with src edge: " + edgeName);
       return null;
     }
@@ -436,6 +448,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       sendTaskGeneratedEvents(events, EventProducerConsumerType.OUTPUT,
           outputContext.getTaskVertexName(),
           outputContext.getDestinationVertexName(), taskSpec.getTaskAttemptID());
+      initializedOutputs.put(edgeName, output);
       LOG.info("Initialized Output with dest edge: " + edgeName);
       return null;
     }
@@ -700,6 +713,65 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     setTaskDone();
     if (eventRouterThread != null) {
       eventRouterThread.interrupt();
+    }
+
+    // Close the unclosed IPO
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Processor closed=" + processorClosed);
+      LOG.debug("Num of inputs to be closed=" + initializedInputs.size());
+      LOG.debug("Num of outputs to be closed=" + initializedOutputs.size());
+    }
+    // Close processor
+    if (!processorClosed && processor != null) {
+      try {
+        processorClosed = true;
+        processor.close();
+        LOG.info("Closed processor for vertex=" + processor
+            .getContext().getTaskVertexName() + ", index=" +
+            processor.getContext().getTaskVertexIndex());
+      } catch (Throwable e) {
+        LOG.warn(
+            "Ignoring Exception when closing processor(cleanup). Exception class="
+                + e.getClass().getName() + ", message=" + e.getMessage());
+      }
+    }
+
+    // Close the remaining inited Inputs.
+    Iterator<Map.Entry<String, LogicalInput>> inputIterator = initializedInputs.entrySet().iterator();
+    while (inputIterator.hasNext()) {
+      Map.Entry<String, LogicalInput> entry = inputIterator.next();
+      String srcVertexName = entry.getKey();
+      inputIterator.remove();
+      try {
+        ((InputFrameworkInterface)entry.getValue()).close();
+      } catch (Throwable e) {
+        LOG.warn(
+            "Ignoring exception when closing input " + srcVertexName
+            + "(cleanup). Exception class=" + e.getClass().getName() + ", message="
+            + e.getMessage());
+      } finally {
+        LOG.info("Close input for vertex=" + processor
+            .getContext().getTaskVertexName() + ", sourceVertex=" + srcVertexName);
+      }
+    }
+
+    // Close the remaining inited Outputs.
+    Iterator<Map.Entry<String, LogicalOutput>> outputIterator = initializedOutputs.entrySet().iterator();
+    while (outputIterator.hasNext()) {
+      Map.Entry<String, LogicalOutput> entry = outputIterator.next();
+      String destVertexName = entry.getKey();
+      outputIterator.remove();
+      try {
+        ((OutputFrameworkInterface) entry.getValue()).close();
+      } catch (Throwable e) {
+        LOG.warn(
+            "Ignoring exception when closing output " + destVertexName
+            + "(cleanup). Exception class=" + e.getClass().getName()
+            + ", message=" + e.getMessage());
+      } finally {
+        LOG.info("Close input for vertex=" + processor
+            .getContext().getTaskVertexName() + ", sourceVertex=" + destVertexName);
+      }
     }
   }
   
