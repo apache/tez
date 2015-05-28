@@ -74,6 +74,7 @@ import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAGScheduler;
@@ -162,6 +163,7 @@ public class TestDAGImpl {
   private AppContext dagWithCustomEdgeAppContext;
   private HistoryEventHandler historyEventHandler;
   private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
+  private ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
 
   private DAGImpl chooseDAG(TezDAGID curDAGId) {
     if (curDAGId.equals(dagId)) {
@@ -748,6 +750,7 @@ public class TestDAGImpl {
         dispatcher.getEventHandler(),  taskAttemptListener,
         fsTokens, clock, "user", thh, appContext);
     doReturn(dag).when(appContext).getCurrentDAG();
+    doReturn(clusterInfo).when(appContext).getClusterInfo();
     mrrAppContext = mock(AppContext.class);
     doReturn(aclManager).when(mrrAppContext).getAMACLManager();
     mrrDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 2);
@@ -761,6 +764,7 @@ public class TestDAGImpl {
     doReturn(appAttemptId).when(mrrAppContext).getApplicationAttemptId();
     doReturn(appAttemptId.getApplicationId()).when(mrrAppContext).getApplicationID();
     doReturn(historyEventHandler).when(mrrAppContext).getHistoryHandler();
+    doReturn(clusterInfo).when(mrrAppContext).getClusterInfo();
     groupAppContext = mock(AppContext.class);
     doReturn(aclManager).when(groupAppContext).getAMACLManager();
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
@@ -775,6 +779,7 @@ public class TestDAGImpl {
     doReturn(appAttemptId.getApplicationId())
         .when(groupAppContext).getApplicationID();
     doReturn(historyEventHandler).when(groupAppContext).getHistoryHandler();
+    doReturn(clusterInfo).when(groupAppContext).getClusterInfo();
 
     // reset totalCommitCounter to 0
     TotalCountingOutputCommitter.totalCommitCounter = 0;
@@ -821,6 +826,7 @@ public class TestDAGImpl {
     doReturn(appAttemptId).when(dagWithCustomEdgeAppContext).getApplicationAttemptId();
     doReturn(appAttemptId.getApplicationId()).when(dagWithCustomEdgeAppContext).getApplicationID();
     doReturn(historyEventHandler).when(dagWithCustomEdgeAppContext).getHistoryHandler();
+    doReturn(clusterInfo).when(dagWithCustomEdgeAppContext).getClusterInfo();
     dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDisptacher2());
     dispatcher.register(AMSchedulerEventType.class, new AMSchedulerEventHandler());
   }
@@ -855,6 +861,20 @@ public class TestDAGImpl {
     dagWithCustomEdge.handle(new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_START));
     dispatcher.await();
     Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
+  }
+
+  @Test(timeout = 5000)
+  public void testDAGInitFailedDuetoInvalidResource() {
+    // cluster maxContainerCapability is less than the vertex resource request
+    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(512,10));
+    doReturn(clusterInfo).when(appContext).getClusterInfo();
+    dag.handle(
+        new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
+    dispatcher.await();
+    Assert.assertEquals(DAGState.FAILED, dag.getState());
+    Assert.assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
+    Assert.assertTrue(StringUtils.join(dag.getDiagnostics(),",")
+        .contains("Vertex's TaskResource is beyond the cluster container capability"));
   }
 
   @Test(timeout = 5000)

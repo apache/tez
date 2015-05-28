@@ -83,6 +83,8 @@ public interface AppContext {
 
   boolean isSession();
 
+  boolean isLocal();
+
   DAGAppMasterState getAMState();
 
   HistoryEventHandler getHistoryHandler();
