@@ -13,6 +13,8 @@ import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
@@ -60,7 +62,7 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
  * limitations under the License.
  */
 public class TestPipelinedSorter {
-  private static final Configuration conf = new Configuration();
+  private static Configuration conf = new Configuration();
   private static FileSystem localFs = null;
   private static Path workDir = null;
   private OutputContext outputContext;
@@ -114,6 +116,7 @@ public class TestPipelinedSorter {
   public void reset() throws IOException {
     cleanup();
     localFs.mkdirs(workDir);
+    conf = new Configuration();
   }
 
   @Test
@@ -124,6 +127,17 @@ public class TestPipelinedSorter {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
     basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
 
+  }
+
+  @Test
+  public void testWithEmptyData() throws IOException {
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
+    //# partition, # of keys, size per key, InitialMem, blockSize
+    basicTest(1, 0, 0, (10 * 1024l * 1024l), 3 << 20);
+  }
+
+  @Test
+  public void basicTestWithSmallBlockSize() throws IOException {
     try {
       //3 MB key & 3 MB value, whereas block size is just 3 MB
       basicTest(1, 5, (3 << 20), (10 * 1024l * 1024l), 3 << 20);
@@ -133,11 +147,13 @@ public class TestPipelinedSorter {
           ioe.getMessage().contains("Record too large for in-memory buffer."
               + " Exceeded buffer overflow limit"));
     }
+  }
 
+  @Test
+  public void testWithLargeKeyValue() throws IOException {
     //15 MB key & 15 MB value, 48 MB sort buffer.  block size is 48MB (or 1 block)
     //meta would be 16 MB
     basicTest(1, 5, (15 << 20), (48 * 1024l * 1024l), 48 << 20);
-
   }
 
   @Test
@@ -154,7 +170,7 @@ public class TestPipelinedSorter {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
     PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
-        initialAvailableMem, 1<<20);
+        initialAvailableMem, 1 << 20);
 
     //Write 100 keys each of size 10
     writeData(sorter, 10000, 100);
@@ -172,6 +188,7 @@ public class TestPipelinedSorter {
 
     writeData(sorter, numKeys, keySize);
 
+    verifyCounters(sorter, outputContext);
     Path outputFile = sorter.finalOutputFile;
     FileSystem fs = outputFile.getFileSystem(conf);
 
@@ -180,6 +197,41 @@ public class TestPipelinedSorter {
     verifyData(reader);
     reader.close();
   }
+
+  private void verifyCounters(PipelinedSorter sorter, OutputContext context) {
+    TezCounter numShuffleChunks = context.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
+    TezCounter additionalSpills =
+        context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
+    TezCounter additionalSpillBytesWritten =
+        context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
+    TezCounter additionalSpillBytesRead =
+        context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
+
+    if (sorter.isFinalMergeEnabled()) {
+      assertTrue(additionalSpills.getValue() == (sorter.getNumSpills() - 1));
+      //Number of files served by shuffle-handler
+      assertTrue(1 == numShuffleChunks.getValue());
+      if (sorter.getNumSpills() > 1) {
+        assertTrue(additionalSpillBytesRead.getValue() > 0);
+        assertTrue(additionalSpillBytesWritten.getValue() > 0);
+      }
+    } else {
+      assertTrue(0 == additionalSpills.getValue());
+      //Number of files served by shuffle-handler
+      assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
+      assertTrue(additionalSpillBytesRead.getValue() == 0);
+      assertTrue(additionalSpillBytesWritten.getValue() == 0);
+    }
+
+    TezCounter finalOutputBytes =
+        context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
+    assertTrue(finalOutputBytes.getValue() > 0);
+
+    TezCounter outputBytesWithOverheadCounter = context.getCounters().findCounter
+        (TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
+    assertTrue(outputBytesWithOverheadCounter.getValue() > 0);
+  }
+
 
   @Test
   //Its not possible to allocate > 2 GB in test environment.  Carry out basic checks here.
