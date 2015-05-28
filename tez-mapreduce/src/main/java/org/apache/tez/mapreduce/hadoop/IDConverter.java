@@ -60,7 +60,7 @@ public class IDConverter {
   public static TezDAGID fromMRJobId(
       org.apache.hadoop.mapreduce.JobID jobId) {
     return TezDAGID.getInstance(ApplicationId.newInstance(
-        Long.valueOf(jobId.getJtIdentifier()), jobId.getId()), 1);
+        Long.parseLong(jobId.getJtIdentifier()), jobId.getId()), 1);
   }
 
   // FIXME hack alert converting objects with hard coded id

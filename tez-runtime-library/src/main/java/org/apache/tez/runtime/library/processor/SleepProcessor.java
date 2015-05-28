@@ -120,7 +120,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
     }
 
     public void fromUserPayload(UserPayload userPayload) throws CharacterCodingException {
-      timeToSleepMS = Integer.valueOf(charSet.newDecoder().decode(userPayload.getPayload()).toString()).intValue();
+      timeToSleepMS = Integer.parseInt(charSet.newDecoder().decode(userPayload.getPayload()).toString());
     }
 
     public int getTimeToSleepMS() {

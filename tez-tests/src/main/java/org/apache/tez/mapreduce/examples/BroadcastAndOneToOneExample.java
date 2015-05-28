@@ -114,7 +114,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       if (doLocalityCheck) {
         ObjectRegistry objectRegistry = getContext().getObjectRegistry();
         String index = (String) objectRegistry.get(String.valueOf(getContext().getTaskIndex()));
-        if (index == null || Integer.valueOf(index).intValue() != getContext().getTaskIndex()) {
+        if (index == null || Integer.parseInt(index) != getContext().getTaskIndex()) {
           String msg = "Did not find expected local producer "
               + getContext().getTaskIndex() + " in the same JVM";
           System.out.println(msg);

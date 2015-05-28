@@ -142,6 +142,13 @@
       <Field name="taskSchedulerEventHandler"/>
       <Field name="versionMismatch"/>
       <Field name="versionMismatchDiagnostics"/>
+      <Field name="containers"/>
+      <Field name="currentRecoveryDataDir"/>
+      <Field name="execService"/>
+      <Field name="historyEventHandler"/>
+      <Field name="nodes"/>
+      <Field name="recoveryEnabled"/>
+      <Field name="isLocal"/>
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>

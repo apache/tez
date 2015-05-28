@@ -53,7 +53,7 @@ public class Simple2LevelVersionComparator {
           continue;
         }
         try {
-          int i = Integer.valueOf(token);
+          int i = Integer.parseInt(token);
           if (index == 0) {
             majorVersion = i;
           } else if (index == 1) {

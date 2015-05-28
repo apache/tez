@@ -122,4 +122,10 @@
     <Bug pattern="NN_NAKED_NOTIFY"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.ShuffleUtils"/>
+    <Method name="getHttpConnectionParams" params="org.apache.hadoop.conf.Configuration" return="org.apache.tez.http.HttpConnectionParams"/>
+    <Bug pattern="DC_PARTIALLY_CONSTRUCTED"/>
+  </Match>
+
 </FindBugsFilter>

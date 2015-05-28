@@ -33,7 +33,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.split.SplitSizeEstimator;
 import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -109,6 +108,7 @@ public class TezMapredSplitsGrouper {
       InputSplit[] originalSplits, int desiredNumSplits,
       String wrappedInputFormatName, SplitSizeEstimator estimator) throws IOException {
     LOG.info("Grouping splits in Tez");
+    Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
 
     int configNumSplits = conf.getInt(TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_COUNT, 0);
     if (configNumSplits > 0) {
@@ -122,7 +122,6 @@ public class TezMapredSplitsGrouper {
     }
 
     if (! (configNumSplits > 0 || 
-          originalSplits == null || 
           originalSplits.length == 0) ) {
       // numSplits has not been overridden by config
       // numSplits has been set at runtime

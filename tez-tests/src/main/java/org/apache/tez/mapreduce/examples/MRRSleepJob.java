@@ -235,7 +235,7 @@ public class MRRSleepJob extends Configured implements Tool {
         }
         if (!found) {
           for (String taskId : taskIds) {
-            if (Integer.valueOf(taskId).intValue() ==
+            if (Integer.parseInt(taskId) ==
                 taId.getTaskID().getId()) {
               found = true;
               break;

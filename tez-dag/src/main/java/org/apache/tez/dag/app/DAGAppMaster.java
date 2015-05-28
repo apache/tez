@@ -2000,7 +2000,7 @@ public class DAGAppMaster extends AbstractService {
       String maxAppAttemptsEnv = System.getenv(
           ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
       if (maxAppAttemptsEnv != null) {
-        maxAppAttempts = Integer.valueOf(maxAppAttemptsEnv);
+        maxAppAttempts = Integer.parseInt(maxAppAttemptsEnv);
       }
 
       validateInputParam(appSubmitTimeStr,

@@ -230,9 +230,10 @@ public class Graph {
   }
 
   public void save(String filePath) throws IOException {
-    FileOutputStream fout = new FileOutputStream(filePath);
-    fout.write(generateGraphViz().getBytes("UTF-8"));
-    fout.close();
+    try (FileOutputStream fout = new FileOutputStream(filePath)){
+      fout.write(generateGraphViz().getBytes("UTF-8"));
+      fout.close();
+    }
   }
 
   public static List<Edge> combineEdges(List<Edge> edges) {

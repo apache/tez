@@ -99,7 +99,7 @@ public class TezDAGID extends TezID {
 
   
   private TezDAGID(String yarnRMIdentifier, int appId, int id) {
-    this(ApplicationId.newInstance(Long.valueOf(yarnRMIdentifier),
+    this(ApplicationId.newInstance(Long.parseLong(yarnRMIdentifier),
         appId), id);
   }
 

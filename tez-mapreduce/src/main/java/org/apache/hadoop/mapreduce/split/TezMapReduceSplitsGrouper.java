@@ -169,6 +169,7 @@ public class TezMapReduceSplitsGrouper {
       List<InputSplit> originalSplits, int desiredNumSplits,
       String wrappedInputFormatName, SplitSizeEstimator estimator) throws IOException, InterruptedException {
     LOG.info("Grouping splits in Tez");
+    Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
 
     int configNumSplits = conf.getInt(TEZ_GROUPING_SPLIT_COUNT, 0);
     if (configNumSplits > 0) {
@@ -182,7 +183,6 @@ public class TezMapReduceSplitsGrouper {
     }
 
     if (! (configNumSplits > 0 || 
-          originalSplits == null || 
           originalSplits.size() == 0)) {
       // numSplits has not been overridden by config
       // numSplits has been set at runtime
