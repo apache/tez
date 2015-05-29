@@ -8,7 +8,6 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
-  TEZ-2478. Move OneToOne routing to store events in Tasks.
   TEZ-2503. findbugs version isn't reported properly in test-patch report.
   TEZ-2198. Fix sorter spill counts.
   TEZ-1883. Change findbugs version to 3.x.
@@ -31,6 +30,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2478. Move OneToOne routing to store events in Tasks.
   TEZ-2482. Tez UI: Mouse events not working on IE11
   TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2481. Tez UI: graphical view does not render properly on IE11
