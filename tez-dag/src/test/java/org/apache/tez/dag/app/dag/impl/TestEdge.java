@@ -53,6 +53,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -104,6 +105,36 @@ public class TestEdge {
         .get(0).intValue());
   }
 
+  @Test (timeout = 5000)
+  public void testOneToOneEdgeManagerODR() {
+    EdgeManagerPluginContext mockContext = mock(EdgeManagerPluginContext.class);
+    when(mockContext.getSourceVertexName()).thenReturn("Source");
+    when(mockContext.getDestinationVertexName()).thenReturn("Destination");
+    when(mockContext.getSourceVertexNumTasks()).thenReturn(3);
+    OneToOneEdgeManagerOnDemand manager = new OneToOneEdgeManagerOnDemand(mockContext);
+    manager.initialize();
+    Map<Integer, List<Integer>> destinationTaskAndInputIndices = Maps.newHashMap();
+    DataMovementEvent event = DataMovementEvent.create(1, null);
+
+    // fail when source and destination are inconsistent
+    when(mockContext.getDestinationVertexNumTasks()).thenReturn(4);
+    try {
+      manager.routeDataMovementEventToDestination(event, 1, 1, destinationTaskAndInputIndices);
+      Assert.fail();
+    } catch (IllegalStateException e) {
+      Assert.assertTrue(e.getMessage().contains("1-1 source and destination task counts must match"));
+    }
+
+    // now make it consistent
+    when(mockContext.getDestinationVertexNumTasks()).thenReturn(3);
+    manager.routeDataMovementEventToDestination(event, 1, 1, destinationTaskAndInputIndices);
+    Assert.assertEquals(1, destinationTaskAndInputIndices.size());
+    Assert.assertEquals(1, destinationTaskAndInputIndices.entrySet().iterator().next().getKey()
+        .intValue());
+    Assert.assertEquals(0, destinationTaskAndInputIndices.entrySet().iterator().next().getValue()
+        .get(0).intValue());
+  }
+
   @Test(timeout = 5000)
   public void testScatterGatherManager() {
     EdgeManagerPluginContext mockContext = mock(EdgeManagerPluginContext.class);
@@ -132,7 +163,7 @@ public class TestEdge {
     EdgeProperty edgeProp = EdgeProperty.create(DataMovementType.SCATTER_GATHER,
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, mock(OutputDescriptor.class),
         mock(InputDescriptor.class));
-    Edge edge = new Edge(edgeProp, eventHandler);
+    Edge edge = new Edge(edgeProp, eventHandler, new TezConfiguration());
     
     TezVertexID srcVertexID = createVertexID(1);
     TezVertexID destVertexID = createVertexID(2);
@@ -246,7 +277,7 @@ public class TestEdge {
         DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create(""),
-        InputDescriptor.create("")), mockEventHandler);
+        InputDescriptor.create("")), mockEventHandler, new TezConfiguration());
     TezVertexID v1Id = createVertexID(1);
     TezVertexID v2Id = createVertexID(2);
     edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
@@ -270,7 +301,7 @@ public class TestEdge {
         DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create(""),
-        InputDescriptor.create("")), mockEventHandler);
+        InputDescriptor.create("")), mockEventHandler, new TezConfiguration());
     TezVertexID v1Id = createVertexID(1);
     TezVertexID v2Id = createVertexID(2);
     edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
@@ -294,7 +325,7 @@ public class TestEdge {
         DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create(""),
-        InputDescriptor.create("")), mockEventHandler);
+        InputDescriptor.create("")), mockEventHandler, new TezConfiguration());
     TezVertexID v1Id = createVertexID(1);
     TezVertexID v2Id = createVertexID(2);
     edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));
@@ -321,7 +352,7 @@ public class TestEdge {
         DataSourceType.PERSISTED,
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create(""),
-        InputDescriptor.create("")), mockEventHandler);
+        InputDescriptor.create("")), mockEventHandler, new TezConfiguration());
     TezVertexID v1Id = createVertexID(1);
     TezVertexID v2Id = createVertexID(2);
     edge.setSourceVertex(mockVertex("v1", v1Id, new LinkedHashMap<TezTaskID, Task>()));

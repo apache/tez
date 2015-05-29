@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.tez.dag.app.dag.impl.OneToOneEdgeManagerOnDemand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -64,7 +65,6 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
-import org.apache.tez.dag.app.dag.impl.OneToOneEdgeManager;
 import org.apache.tez.dag.app.dag.impl.RootInputVertexManager;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
@@ -154,6 +154,7 @@ public class TestExceptionPropagation {
     tezConf
         .setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_ONE_TO_ONE_ROUTING_USE_ON_DEMAND_ROUTING, true);
     tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, " -Xmx256m");
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
@@ -753,7 +754,7 @@ public class TestExceptionPropagation {
   }
 
   // EdgeManager for edge linking vertex1 and vertex2
-  public static class CustomEdgeManager extends OneToOneEdgeManager {
+  public static class CustomEdgeManager extends OneToOneEdgeManagerOnDemand {
 
     private ExceptionLocation exLocation;
 
@@ -822,7 +823,7 @@ public class TestExceptionPropagation {
       }
       super.prepareForRouting();
     }
-    
+
     @Override
     public EventRouteMetadata routeDataMovementEventToDestination(
         int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex) throws Exception {

@@ -23,20 +23,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.tez.dag.api.EdgeManagerPlugin;
+import javax.annotation.Nullable;
+
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 import com.google.common.base.Preconditions;
 
-public class OneToOneEdgeManager extends EdgeManagerPlugin {
+public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
 
   final List<Integer> destinationInputIndices =
       Collections.unmodifiableList(Collections.singletonList(0));
   final AtomicBoolean stateChecked = new AtomicBoolean(false);
+ 
+  final EventRouteMetadata commonRouteMeta = 
+      EventRouteMetadata.create(1, new int[]{0}, new int[]{0});
 
-  public OneToOneEdgeManager(EdgeManagerPluginContext context) {
+  public OneToOneEdgeManagerOnDemand(EdgeManagerPluginContext context) {
     super(context);
   }
 
@@ -64,6 +69,37 @@ public class OneToOneEdgeManager extends EdgeManagerPlugin {
   }
   
   @Override
+  public void prepareForRouting() throws Exception {
+    checkState();
+  }
+  
+  @Override
+  public EventRouteMetadata routeDataMovementEventToDestination(
+      int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex)
+      throws Exception {
+    if (sourceTaskIndex == destinationTaskIndex) {
+      return commonRouteMeta;
+    }
+    return null;
+  }
+  
+  @Override
+  public @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex)
+      throws Exception {
+    if (sourceTaskIndex == destinationTaskIndex) {
+      return commonRouteMeta;
+    }
+    return null;
+  }
+
+  @Override
+  public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
+      int sourceTaskIndex, int destinationTaskIndex) throws Exception {
+    return commonRouteMeta;
+  }
+
+  @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     destinationTaskAndInputIndices.put(sourceTaskIndex, destinationInputIndices);
@@ -76,10 +112,15 @@ public class OneToOneEdgeManager extends EdgeManagerPlugin {
   }
   
   @Override
+  public int routeInputErrorEventToSource(int destinationTaskIndex, int destinationFailedInputIndex) {
+    return destinationTaskIndex;
+  }
+
+  @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return 1;
   }
-
+  
   private void checkState() {
     if (stateChecked.get()) {
       return;
@@ -92,4 +133,5 @@ public class OneToOneEdgeManager extends EdgeManagerPlugin {
         + getContext().getSourceVertexName() + " tasks: " + getContext().getSourceVertexNumTasks());
     stateChecked.set(true);
   }
+
 }

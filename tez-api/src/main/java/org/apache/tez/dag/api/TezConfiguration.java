@@ -322,6 +322,13 @@ public class TezConfiguration extends Configuration {
       "cancel.delegation.tokens.on.completion";
   public static final boolean TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION_DEFAULT = true;
 
+  @Private
+  @Unstable
+  @ConfigurationScope(Scope.DAG)
+  public static final String TEZ_AM_ONE_TO_ONE_ROUTING_USE_ON_DEMAND_ROUTING =
+      TEZ_AM_PREFIX + "one-to-one.routing.use.on-demand-routing";
+  public static final boolean TEZ_AM_ONE_TO_ONE_ROUTING_USE_ON_DEMAND_ROUTING_DEFAULT = false;
+
   /**
    * Int value. The number of threads used to listen to task heartbeat requests.
    * Expert level setting.

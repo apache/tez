@@ -2217,7 +2217,7 @@ public class TestVertexImpl {
     for (EdgePlan edgePlan : dagPlan.getEdgeList()) {
       EdgeProperty edgeProperty = DagTypeConverters
           .createEdgePropertyMapFromDAGPlan(edgePlan);
-      edges.put(edgePlan.getId(), new Edge(edgeProperty, dispatcher.getEventHandler()));
+      edges.put(edgePlan.getId(), new Edge(edgeProperty, dispatcher.getEventHandler(), conf));
     }
 
     parseVertexEdges();
