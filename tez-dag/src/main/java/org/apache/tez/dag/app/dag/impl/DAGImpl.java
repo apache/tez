@@ -191,7 +191,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   TezCounters fullCounters = null;
   private Set<TezVertexID> reRunningVertices = new HashSet<TezVertexID>();
 
-  public final Configuration dagConf;
+  private final Configuration dagConf;
   private final DAGPlan jobPlan;
   
   Map<String, LocalResource> localResources;
@@ -1478,7 +1478,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       // edge manager may be also set via API when using custom edge type
       dag.edges.put(edgePlan.getId(),
-          new Edge(edgeProperty, dag.getEventHandler()));
+          new Edge(edgeProperty, dag.getEventHandler(), dagConf));
     }
   }
 

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -104,7 +106,8 @@ public class Edge {
   EdgeManagerPlugin edgeManager;
   private boolean onDemandRouting = false;
   @SuppressWarnings("rawtypes")
-  private EventHandler eventHandler;
+  private final EventHandler eventHandler;
+  private final Configuration conf;
   private AtomicBoolean bufferEvents = new AtomicBoolean(false);
   private List<TezEvent> destinationEventBuffer = new ArrayList<TezEvent>();
   private List<TezEvent> sourceEventBuffer = new ArrayList<TezEvent>();
@@ -116,9 +119,10 @@ public class Edge {
       .newConcurrentMap();
 
   @SuppressWarnings("rawtypes")
-  public Edge(EdgeProperty edgeProperty, EventHandler eventHandler) {
+  public Edge(EdgeProperty edgeProperty, EventHandler eventHandler, Configuration conf) {
     this.edgeProperty = edgeProperty;
     this.eventHandler = eventHandler;
+    this.conf = conf;
     createEdgeManager();
   }
 
@@ -126,7 +130,11 @@ public class Edge {
     switch (edgeProperty.getDataMovementType()) {
       case ONE_TO_ONE:
         edgeManagerContext = new EdgeManagerPluginContextImpl(null);
-        edgeManager = new OneToOneEdgeManager(edgeManagerContext);
+        if (conf.getBoolean(TezConfiguration.TEZ_AM_ONE_TO_ONE_ROUTING_USE_ON_DEMAND_ROUTING, TezConfiguration.TEZ_AM_ONE_TO_ONE_ROUTING_USE_ON_DEMAND_ROUTING_DEFAULT)) {
+          edgeManager = new OneToOneEdgeManagerOnDemand(edgeManagerContext);
+        } else {
+          edgeManager = new OneToOneEdgeManager(edgeManagerContext);
+        }
         break;
       case BROADCAST:
         edgeManagerContext = new EdgeManagerPluginContextImpl(null);
