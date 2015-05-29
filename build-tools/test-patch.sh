@@ -525,7 +525,6 @@ buildAndInstall () {
 ###############################################################################
 ### Check there are no changes in the number of Findbugs warnings
 checkFindbugsWarnings () {
-  findbugs_version=$(${AWK} 'match($0, /findbugs-maven-plugin:[^:]*:findbugs/) { print substr($0, RSTART + 22, RLENGTH - 31); exit }' "${PATCH_DIR}/patchFindBugsOutput.txt")
   echo ""
   echo ""
   echo "======================================================================"
@@ -541,6 +540,7 @@ checkFindbugsWarnings () {
   echo "$MVN clean test findbugs:findbugs -DskipTests < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1"
   $MVN clean test findbugs:findbugs -DskipTests < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1
   rc=$?
+  findbugs_version=$(${AWK} 'match($0, /findbugs-maven-plugin:[^:]*:findbugs/) { print substr($0, RSTART + 22, RLENGTH - 31); exit }' "${PATCH_DIR}/patchFindBugsOutput.txt")
 
   if [ $rc != 0 ] ; then
     JIRA_COMMENT="$JIRA_COMMENT
