@@ -93,6 +93,11 @@
     </asfext:member>
     <asfext:member>
       <foaf:Person>
+        <foaf:name>Jeff Zhang</foaf:name>
+      </foaf:Person>
+    </asfext:member>
+    <asfext:member>
+      <foaf:Person>
         <foaf:name>Jitendra Pandey</foaf:name>
       </foaf:Person>
     </asfext:member>
