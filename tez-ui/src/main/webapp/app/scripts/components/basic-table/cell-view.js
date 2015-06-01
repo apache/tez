@@ -18,15 +18,23 @@
 
 var ObjectPromiseController = Ember.ObjectController.extend(Ember.PromiseProxyMixin);
 
+function stringifyNumbers(content) {
+  var displayText = content.displayText;
+  if(typeof displayText == 'number') {
+    content.displayText = displayText.toString();
+  }
+  return content;
+}
+
 App.BasicTableComponent.CellView = Ember.View.extend({
   templateName: 'components/basic-table/basic-cell',
 
   classNames: ['cell-content'],
 
   _normalizeContent: function (content) {
-    return content && typeof content == 'object' ? content : {
+    return stringifyNumbers(content && typeof content == 'object' ? content : {
       displayText: content
-    };
+    });
   },
 
   cellContent: function () {

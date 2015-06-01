@@ -102,6 +102,19 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         }
       },
       {
+        id: 'status',
+        headerCellName: 'Status',
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
+        getCellContent: function(row) {
+          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
+          return {
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+          };
+        }
+      },
+      {
         id: 'vertexName',
         headerCellName: 'Vertex Name',
         contentPath: 'vertexID',
@@ -150,19 +163,6 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         getSearchValue: function(row) {
           return App.Helpers.date.timingFormat(row.get('duration'), 1);
         },
-      },
-      {
-        id: 'status',
-        headerCellName: 'Status',
-        templateName: 'components/basic-table/status-cell',
-        contentPath: 'status',
-        getCellContent: function(row) {
-          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
-          return {
-            status: status,
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
-          };
-        }
       },
       {
         id: 'containerId',
