@@ -102,6 +102,19 @@ App.VertexTaskAttemptsController = App.TablePageController.extend(App.AutoCounte
         }
       },
       {
+        id: 'status',
+        headerCellName: 'Status',
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
+        getCellContent: function(row) {
+          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
+          return {
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+          };
+        }
+      },
+      {
         id: 'startTime',
         headerCellName: 'Start Time',
         contentPath: 'startTime',
@@ -133,19 +146,6 @@ App.VertexTaskAttemptsController = App.TablePageController.extend(App.AutoCounte
         getSearchValue: function(row) {
           return App.Helpers.date.timingFormat(row.get('duration'), 1);
         },
-      },
-      {
-        id: 'status',
-        headerCellName: 'Status',
-        templateName: 'components/basic-table/status-cell',
-        contentPath: 'status',
-        getCellContent: function(row) {
-          var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
-          return {
-            status: status,
-            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
-          };
-        }
       },
       {
         id: 'containerId',

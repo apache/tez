@@ -112,6 +112,26 @@ App.DagVerticesController = App.TablePageController.extend({
         contentPath: 'id',
       },
       {
+        id: 'status',
+        headerCellName: 'Status',
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
+        getCellContent: function(row) {
+          var status = row.get('status'),
+              content = Ember.Object.create({
+                vertex: row,
+                status: status,
+                statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+                  row.get('hasFailedTaskAttempts'))
+              });
+
+          if(status == 'RUNNING') {
+            row.addObserver('progress', content, onProgressChange);
+          }
+          return content;
+        }
+      },
+      {
         id: 'startTime',
         headerCellName: 'Start Time',
         contentPath: 'startTime',
@@ -164,26 +184,6 @@ App.DagVerticesController = App.TablePageController.extend({
         id: 'processorClass',
         headerCellName: 'Processor Class',
         contentPath: 'processorClassName'
-      },
-      {
-        id: 'status',
-        headerCellName: 'Status',
-        templateName: 'components/basic-table/status-cell',
-        contentPath: 'status',
-        getCellContent: function(row) {
-          var status = row.get('status'),
-              content = Ember.Object.create({
-                vertex: row,
-                status: status,
-                statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
-                  row.get('hasFailedTaskAttempts'))
-              });
-
-          if(status == 'RUNNING') {
-            row.addObserver('progress', content, onProgressChange);
-          }
-          return content;
-        }
       },
       {
         id: 'configurations',
