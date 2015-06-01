@@ -363,13 +363,14 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         }
         TaskHeartbeatRequest tRequest = new TaskHeartbeatRequest(request.getContainerIdentifier(),
             request.getCurrentTaskAttemptID(), request.getEvents(), request.getStartIndex(),
-            request.getMaxEvents());
+            request.getPreRoutedStartIndex(), request.getMaxEvents());
         tResponse = taskCommunicatorContext.heartbeat(tRequest);
       }
       TezHeartbeatResponse response = new TezHeartbeatResponse();
       response.setLastRequestId(requestId);
       response.setEvents(tResponse.getEvents());
       response.setNextFromEventId(tResponse.getNextFromEventId());
+      response.setNextPreRoutedEventId(tResponse.getNextPreRoutedEventId());
       containerInfo.lastRequestId = requestId;
       containerInfo.lastResponse = response;
       return response;

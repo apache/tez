@@ -23,12 +23,14 @@ public class TaskHeartbeatResponse {
 
   private final boolean shouldDie;
   private final int nextFromEventId;
+  private final int nextPreRoutedEventId;
   private final List<TezEvent> events;
 
-  public TaskHeartbeatResponse(boolean shouldDie, List<TezEvent> events, int nextFromEventId) {
+  public TaskHeartbeatResponse(boolean shouldDie, List<TezEvent> events, int nextFromEventId, int nextPreRoutedEventId) {
     this.shouldDie = shouldDie;
     this.events = events;
     this.nextFromEventId = nextFromEventId;
+    this.nextPreRoutedEventId = nextPreRoutedEventId;
   }
 
   public boolean isShouldDie() {
@@ -41,5 +43,9 @@ public class TaskHeartbeatResponse {
 
   public int getNextFromEventId() {
     return nextFromEventId;
+  }
+
+  public int getNextPreRoutedEventId() {
+    return nextPreRoutedEventId;
   }
 }

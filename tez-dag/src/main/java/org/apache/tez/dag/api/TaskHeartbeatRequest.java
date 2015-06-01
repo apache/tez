@@ -29,15 +29,18 @@ public class TaskHeartbeatRequest {
   private final TezTaskAttemptID taskAttemptId;
   private final List<TezEvent> events;
   private final int startIndex;
+  private final int preRoutedStartIndex;
   private final int maxEvents;
 
 
   public TaskHeartbeatRequest(String containerIdentifier, TezTaskAttemptID taskAttemptId, List<TezEvent> events, int startIndex,
+                              int preRoutedStartIndex,
                               int maxEvents) {
     this.containerIdentifier = containerIdentifier;
     this.taskAttemptId = taskAttemptId;
     this.events = events;
     this.startIndex = startIndex;
+    this.preRoutedStartIndex = preRoutedStartIndex;
     this.maxEvents = maxEvents;
   }
 
@@ -55,6 +58,10 @@ public class TaskHeartbeatRequest {
 
   public int getStartIndex() {
     return startIndex;
+  }
+
+  public int getPreRoutedStartIndex() {
+    return preRoutedStartIndex;
   }
 
   public int getMaxEvents() {
