@@ -28,6 +28,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.ClosedByInterruptException;
@@ -124,8 +125,8 @@ public class TestHttpConnection {
         wait(100);
       }
     }
-
     assertTrue("currentThread is still null", currentThread != null);
+    Thread.sleep(1000); //To avoid race to interrupt the thread before connect()
 
     //Try interrupting the thread (exception verification happens in the worker itself)
     currentThread.interrupt();
@@ -186,9 +187,15 @@ public class TestHttpConnection {
         fail();
       } catch(Throwable t) {
         if (expectingInterrupt) {
-          //ClosedByInterruptException normally; InterruptedException if
-          // TezBodyDeferringAsyncHandler quits otherwise
-          assertTrue((t instanceof InterruptedException) || (t instanceof ClosedByInterruptException));
+          if (t instanceof ConnectException) {
+            //ClosedByInterruptException via NettyConnectListener.operationComplete()
+            assertTrue("Expected ClosedByInterruptException, received "
+                    + Throwables.getStackTraceAsString(t.getCause()),
+                t.getCause() instanceof ClosedByInterruptException);
+          } else {
+            // InterruptedException if TezBodyDeferringAsyncHandler quits
+            assertTrue(t instanceof InterruptedException);
+          }
         }
       } finally {
         latch.countDown();
