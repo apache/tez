@@ -42,8 +42,10 @@ App.Dag = App.AbstractEntity.extend({
 	// user name who ran this dag.
 	user: DS.attr('string'),
 
-	// application ID of this dag.
-	applicationId: DS.attr('string'),
+  // application ID of this dag.
+  applicationId: function() {
+    return App.Helpers.misc.getAppIdFromDagId(this.get('id'));
+  }.property('id'),
 
   tezApp: DS.belongsTo('tezApp'),
   appDetail: DS.belongsTo('appDetail'),
@@ -115,7 +117,9 @@ App.Vertex = App.AbstractEntity.extend({
 
   dag: DS.belongsTo('dag'),
   dagID: DS.attr('string'),
-  applicationId: DS.attr('string'),
+  applicationId: function() {
+    return App.Helpers.misc.getAppIdFromVertexId(this.get('id'));
+  }.property('id'),
   dagIdx: function() {
     return this.get('dagID').split('_').splice(-1).pop();
   }.property('dagID'),

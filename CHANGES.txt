@@ -7,6 +7,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2523. Tez UI: derive applicationId from dag/vertex id instead of relying on json data
   TEZ-2505. PipelinedSorter uses Comparator objects concurrently from multiple threads.
   TEZ-2504. Tez UI: tables - show status column without scrolling, numeric 0 shown as Not available
   TEZ-2478. Move OneToOne routing to store events in Tasks.

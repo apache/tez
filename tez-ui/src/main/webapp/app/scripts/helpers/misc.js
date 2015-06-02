@@ -331,9 +331,26 @@ App.Helpers.misc = {
    * @return application id for the dagid {String}
    */
   getAppIdFromDagId: function(dagId) {
-    var dagIdRegex = /dag_(\d+)_(\d+)_\d/;
-    return dagId.replace(dagIdRegex, 'application_$1_$2');
+    var dagIdRegex = /^dag_(\d+)_(\d+)_\d+$/,
+        appId = undefined;
+    if (dagIdRegex.test(dagId)) {
+      appId = dagId.replace(dagIdRegex, 'application_$1_$2');
+    }
+    return appId;
   },
+
+  /* Gets the application id from vertex id
+   * @param vertexId {String}
+   * @return application id for the vertexId {String}
+   */
+  getAppIdFromVertexId: function(vertexId) {
+    var vertexIdRegex = /^vertex_(\d+)_(\d+)_\d+_\d+$/
+        appId = undefined;
+    if (vertexIdRegex.test(vertexId)) {
+      appId = vertexId.replace(vertexIdRegex, 'application_$1_$2');
+    }
+    return appId;
+  },  
 
   /**
    * Remove the specific record from store
