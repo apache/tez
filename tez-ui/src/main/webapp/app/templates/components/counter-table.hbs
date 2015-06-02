@@ -23,7 +23,11 @@
       <th>Counter Value</th>
     </tr>
     <tr>
-      <td class='filter'>{{input size='60' type='search' results='1' placeholder='Search...' valueBinding='nameFilter'}}</td>
+      <td class='filter'>
+        <div {{bind-attr class=":input-group validFilter::has-error"}}>
+          {{input size='60' class="form-control" type='search' results='1' placeholder='Search...' valueBinding='nameFilter'}}
+        </div>
+      </td>
       <td class='filter'></td>
     </tr>
     <tbody>

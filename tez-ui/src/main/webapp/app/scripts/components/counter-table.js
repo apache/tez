@@ -19,9 +19,19 @@
 App.CounterTableComponent = Em.Component.extend({
   layoutName: 'components/counter-table',
   nameFilter: null,
+
+  validFilter: function () {
+    try {
+      new RegExp(this.get('nameFilter'), 'i');
+      return true;
+    }
+    catch(e){}
+    return false;
+  }.property('nameFilter'),
+
   filteredData: function() {
     var rawData = this.get('data') || [];
-    if (Em.isEmpty(this.nameFilter)) {
+    if (Em.isEmpty(this.nameFilter) || !this.get('validFilter')) {
       return rawData;
     }
 
