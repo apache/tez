@@ -107,8 +107,6 @@ public class PipelinedSorter extends ExternalSorter {
 
   private final ArrayList<TezSpillRecord> indexCacheList =
     new ArrayList<TezSpillRecord>();
-  private int totalIndexCacheMemory;
-  private int indexCacheMemoryLimit;
 
   private final boolean pipelinedShuffle;
 
@@ -133,8 +131,6 @@ public class PipelinedSorter extends ExternalSorter {
 
     //sanity checks
     final long sortmb = this.availableMemoryMb;
-    indexCacheMemoryLimit = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES,
-                                       TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT);
 
     // buffers and accounting
     long maxMemUsage = sortmb << 20;
@@ -244,7 +240,8 @@ public class PipelinedSorter extends ExternalSorter {
         }
       }
       Preconditions.checkArgument(listIterator.hasNext(), "block iterator should not be empty");
-      span = new SortSpan((ByteBuffer)listIterator.next().clear(), (1024*1024), perItem, this.comparator);
+      span = new SortSpan((ByteBuffer)listIterator.next().clear(), (1024*1024),
+          perItem, ConfigUtils.getIntermediateOutputKeyComparator(this.conf));
     } else {
       // queue up the sort
       SortTask task = new SortTask(span, sorter);
@@ -755,7 +752,8 @@ public class PipelinedSorter extends ExternalSorter {
           items = 1024*1024;
           perItem = 16;
         }
-        newSpan = new SortSpan(remaining, items, perItem, this.comparator);
+        newSpan = new SortSpan(remaining, items, perItem,
+            ConfigUtils.getIntermediateOutputKeyComparator(conf));
         newSpan.index = index+1;
         LOG.info(String.format("New Span%d.length = %d, perItem = %d", newSpan.index, newSpan
             .length(), perItem) + ", counter:" + mapOutputRecordCounter.getValue());
