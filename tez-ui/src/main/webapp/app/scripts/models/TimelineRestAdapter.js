@@ -93,7 +93,6 @@ var timelineJsonToDagMap = {
   endTime: 'otherinfo.endTime',
   name: 'primaryfilters.dagName.0',
   user: 'primaryfilters.user.0',
-  applicationId: 'primaryfilters.applicationId.0',
   status: 'otherinfo.status',
   hasFailedTaskAttempts: {
     custom: function(source) {
@@ -188,7 +187,6 @@ var timelineJsonToVertexMap = {
   id: 'entity',
   name: 'otherinfo.vertexName',
   dagID: 'primaryfilters.TEZ_DAG_ID.0',
-  applicationId: 'primaryfilters.applicationId.0',
   processorClassName: 'processorClassName',
   counterGroups: 'otherinfo.counters.counterGroups',
   inputs: 'inputs',
