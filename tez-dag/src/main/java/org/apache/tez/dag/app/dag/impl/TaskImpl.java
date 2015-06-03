@@ -144,8 +144,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   // track the status of TaskAttempt (true mean completed, false mean uncompleted)
   private final Map<Integer, Boolean> taskAttemptStatus = new HashMap<Integer,Boolean>();
 
-  private boolean historyTaskStartGenerated = false;
-
   private static final SingleArcTransition<TaskImpl , TaskEvent>
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
   private static final SingleArcTransition<TaskImpl, TaskEvent>
@@ -570,7 +568,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             this.attempts = new LinkedHashMap<TezTaskAttemptID, TaskAttempt>();
           }
           recoveredState = TaskState.SCHEDULED;
-          historyTaskStartGenerated = true;
           taskAttemptStatus.clear();
           return recoveredState;
         }
@@ -602,8 +599,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             LOG.debug("Adding restored attempt into known attempts map"
                 + ", taskAttemptId=" + taskAttemptStartedEvent.getTaskAttemptID());
           }
-          this.attempts.put(taskAttemptStartedEvent.getTaskAttemptID(),
-              recoveredAttempt);
+          Preconditions.checkArgument(this.attempts.put(taskAttemptStartedEvent.getTaskAttemptID(),
+              recoveredAttempt) == null, taskAttemptStartedEvent.getTaskAttemptID() + " already existed.");
           this.taskAttemptStatus.put(taskAttemptStartedEvent.getTaskAttemptID().getId(), false);
           this.recoveredState = TaskState.RUNNING;
           return recoveredState;
@@ -850,11 +847,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             = new LinkedHashMap<TezTaskAttemptID, TaskAttempt>(maxFailedAttempts);
         newAttempts.putAll(attempts);
         attempts = newAttempts;
-        attempts.put(attempt.getID(), attempt);
+        Preconditions.checkArgument(attempts.put(attempt.getID(), attempt) == null,
+            attempt.getID() + " already existed");
         break;
 
       default:
-        attempts.put(attempt.getID(), attempt);
+        Preconditions.checkArgument(attempts.put(attempt.getID(), attempt) == null,
+            attempt.getID() + " already existed");
         break;
     }
 
@@ -1050,7 +1049,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       task.addAndScheduleAttempt();
       task.scheduledTime = task.clock.getTime();
       task.logJobHistoryTaskStartedEvent();
-      task.historyTaskStartGenerated = true;
     }
   }
 
@@ -1092,9 +1090,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       task.eventHandler.handle(new VertexEventTaskCompleted(
           task.taskId, TaskState.SUCCEEDED));
       LOG.info("Task succeeded with attempt " + task.successfulAttempt);
-      if (task.historyTaskStartGenerated) {
-        task.logJobHistoryTaskFinishedEvent();
-      }
+      task.logJobHistoryTaskFinishedEvent();
       TaskAttempt successfulAttempt = task.attempts.get(successTaId);
 
       // issue kill to all other attempts
@@ -1297,13 +1293,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
       // check whether all attempts are finished
       if (task.getFinishedAttemptsCount() == task.attempts.size()) {
-        if (task.historyTaskStartGenerated) {
-          task.logJobHistoryTaskFailedEvent(getExternalState(TaskStateInternal.KILLED));
-        } else {
-          LOG.debug("Not generating HistoryFinish event since start event not" +
-          		" generated for task: " + task.getTaskId());
-        }
-
+        task.logJobHistoryTaskFailedEvent(getExternalState(TaskStateInternal.KILLED));
         task.eventHandler.handle(
             new VertexEventTaskCompleted(
                 task.taskId, getExternalState(TaskStateInternal.KILLED)));
@@ -1349,13 +1339,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);
-
-        if (task.historyTaskStartGenerated) {
-          task.logJobHistoryTaskFailedEvent(TaskState.FAILED);
-        } else {
-          LOG.debug("Not generating HistoryFinish event since start event not" +
-          		" generated for task: " + task.getTaskId());
-        }
+        task.logJobHistoryTaskFailedEvent(TaskState.FAILED);
         task.eventHandler.handle(
             new VertexEventTaskCompleted(task.taskId, TaskState.FAILED));
         return task.finished(TaskStateInternal.FAILED);
@@ -1464,13 +1448,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public void transition(TaskImpl task, TaskEvent event) {
       TaskEventTermination terminateEvent = (TaskEventTermination)event;
       task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
-      if (task.historyTaskStartGenerated) {
-        task.logJobHistoryTaskFailedEvent(TaskState.KILLED);
-      } else {
-        LOG.debug("Not generating HistoryFinish event since start event not" +
-        		" generated for task: " + task.getTaskId());
-      }
-
+      task.logJobHistoryTaskFailedEvent(TaskState.KILLED);
       task.eventHandler.handle(
           new VertexEventTaskCompleted(task.taskId, TaskState.KILLED));
       // TODO Metrics

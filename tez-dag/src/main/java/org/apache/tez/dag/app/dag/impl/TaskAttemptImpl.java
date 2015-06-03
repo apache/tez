@@ -752,10 +752,6 @@ public class TaskAttemptImpl implements TaskAttempt,
         }
         case TASK_ATTEMPT_FINISHED:
         {
-          if (!recoveryStartEventSeen) {
-            throw new RuntimeException("Finished Event seen but"
-                + " no Started Event was encountered earlier");
-          }
           TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) historyEvent;
           this.finishTime = tEvent.getFinishTime();
           this.reportedStatus.counters = tEvent.getCounters();
@@ -1117,17 +1113,8 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
           helper.getTaskAttemptState()));
-      if (ta.getLaunchTime() != 0) {
-        // TODO For cases like this, recovery goes for a toss, since the the
-        // attempt will not exist in the history file.
-        ta.logJobHistoryAttemptUnsuccesfulCompletion(helper
-            .getTaskAttemptState());
-      } else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Not generating HistoryFinish event since start event not "
-              + "generated for taskAttempt: " + ta.getID());
-        }
-      }
+      ta.logJobHistoryAttemptUnsuccesfulCompletion(helper
+          .getTaskAttemptState());
       // Send out events to the Task - indicating TaskAttemptTermination(F/K)
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId, helper
           .getTaskEventType()));

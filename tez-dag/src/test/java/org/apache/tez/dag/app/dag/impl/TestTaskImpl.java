@@ -634,6 +634,8 @@ public class TestTaskImpl {
     mockTask.handle(new TaskEventTermination(taskId, TaskAttemptTerminationCause.TERMINATED_BY_CLIENT, null));
     assertEquals(1, mockTask.getDiagnostics().size());
     assertTrue(mockTask.getDiagnostics().get(0).contains(TaskAttemptTerminationCause.TERMINATED_BY_CLIENT.name()));
+    assertEquals(0, mockTask.taskStartedEventLogged);
+    assertEquals(1, mockTask.taskFinishedEventLogged);
   }
   
   @Test(timeout = 5000)
@@ -673,6 +675,9 @@ public class TestTaskImpl {
 
   @SuppressWarnings("rawtypes")
   private class MockTaskImpl extends TaskImpl {
+
+    public int taskStartedEventLogged = 0;
+    public int taskFinishedEventLogged = 0;
 
     private List<MockTaskAttemptImpl> taskAttempts = new LinkedList<MockTaskAttemptImpl>();
     private Vertex vertex;
@@ -719,12 +724,15 @@ public class TestTaskImpl {
     }
 
     protected void logJobHistoryTaskStartedEvent() {
+      taskStartedEventLogged++;
     }
 
     protected void logJobHistoryTaskFinishedEvent() {
+      taskFinishedEventLogged++;
     }
 
     protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
+      taskFinishedEventLogged++;
     }
   }
 
