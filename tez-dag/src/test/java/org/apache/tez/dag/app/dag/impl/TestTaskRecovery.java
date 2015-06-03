@@ -250,6 +250,16 @@ public class TestTaskRecovery {
   }
 
   /**
+   * -> restoreFromTaskFinishEvent ( no TaskStartEvent )
+   */
+  @Test(timeout = 5000)
+  public void testRecoveryNewToKilled_NoStartEvent() {
+    task.restoreFromEvent(new TaskFinishedEvent(task.getTaskId(), vertexName,
+        taskStartTime, taskFinishTime, null, TaskState.KILLED, "",
+        new TezCounters(), 0));
+  }
+
+  /**
    * restoreFromTaskStartedEvent -> RecoverTransition
    */
   @Test(timeout = 5000)

@@ -392,6 +392,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2304. InvalidStateTransitonException TA_SCHEDULE at START_WAIT during recovery
   TEZ-2488. Tez AM crashes if a submitted DAG is configured to use invalid resource sizes.
   TEZ-2080. Localclient should be using tezconf in init instead of yarnconf.
   TEZ-2369. Add a few unit tests for RootInputInitializerManager.
