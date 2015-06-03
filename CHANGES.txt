@@ -1,12 +1,12 @@
 Apache Tez Change Log
 =====================
 
-
 Release 0.7.1: Unreleased
 
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2527. Tez UI: Application hangs on entering erroneous RegEx in counter table search box
   TEZ-2523. Tez UI: derive applicationId from dag/vertex id instead of relying on json data
   TEZ-2505. PipelinedSorter uses Comparator objects concurrently from multiple threads.
@@ -205,6 +205,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2483. Tez should close task if processor fail
 
 Release 0.6.1: 2015-05-18
