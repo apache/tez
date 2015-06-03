@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2528. Tez UI: Column selector buttons gets clipped, and table scroll bar not visible in mac.
   TEZ-2391. TestVertexImpl timing out at times on jenkins builds.
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2527. Tez UI: Application hangs on entering erroneous RegEx in counter table search box

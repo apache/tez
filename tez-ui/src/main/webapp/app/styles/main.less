@@ -717,6 +717,8 @@ body, html {
   }
 
   .table-body-container{
+    .force-scrollbar;
+
     border: 1px solid @border-color;
     border-radius: 5px;
 
@@ -895,9 +897,13 @@ body, html {
   }
 }
 
-.modal-body {
-  max-height:500px;
-  overflow-y: auto;
+.modal {
+  position: absolute;
+
+  .modal-body {
+    max-height: 450px;
+    overflow-y: auto;
+  }
 }
 
 .per-io {

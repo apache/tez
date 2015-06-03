@@ -80,3 +80,24 @@
        -o-transform: translateZ(0);
           transform: translateZ(0);
 }
+
+.force-scrollbar {
+  &::-webkit-scrollbar {
+    -webkit-appearance: none;
+  }
+  &::-webkit-scrollbar:vertical {
+    width: 11px;
+  }
+  &::-webkit-scrollbar:horizontal {
+    height: 11px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 2px solid #EEE;
+    background-color: #BBB;
+  }
+  &::-webkit-scrollbar-track {
+    background-color: #EEE;
+    border-radius: 8px;
+  }
+}
