@@ -74,7 +74,6 @@ import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
@@ -171,10 +170,6 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   protected static final KilledTransitionHelper KILLED_HELPER =
       new KilledTransitionHelper();
-
-  private static SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent>
-      DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION =
-          new DiagnosticInformationUpdater();
   
   private static SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent>
       TERMINATED_AFTER_SUCCESS_HELPER = new TerminatedAfterSuccessHelper(KILLED_HELPER);
@@ -195,10 +190,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           EnumSet.of(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAILED),
           TaskAttemptEventType.TA_SCHEDULE, new ScheduleTaskattemptTransition())
       .addTransition(TaskAttemptStateInternal.NEW,
-          TaskAttemptStateInternal.NEW,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
-      .addTransition(TaskAttemptStateInternal.NEW,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_KILL_REQUEST,
           new TerminateTransition(KILLED_HELPER))
@@ -214,10 +205,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.RUNNING,
           TaskAttemptEventType.TA_STARTED_REMOTELY, new StartedTransition())
-      .addTransition(TaskAttemptStateInternal.START_WAIT,
-          TaskAttemptStateInternal.START_WAIT,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptEventType.TA_KILL_REQUEST,
@@ -242,10 +229,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.RUNNING,
           TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
-      .addTransition(TaskAttemptStateInternal.RUNNING,
-          TaskAttemptStateInternal.RUNNING,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       // Optional, may not come in for all tasks.
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
@@ -289,10 +272,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_CONTAINER_TERMINATED,
           new ContainerCompletedWhileTerminating())
-      .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS,
-          TaskAttemptStateInternal.KILL_IN_PROGRESS,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       .addTransition(
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
@@ -310,10 +289,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.FAILED,
           TaskAttemptEventType.TA_CONTAINER_TERMINATED,
           new ContainerCompletedWhileTerminating())
-      .addTransition(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       .addTransition(
           TaskAttemptStateInternal.FAIL_IN_PROGRESS,
           TaskAttemptStateInternal.FAIL_IN_PROGRESS,
@@ -327,10 +302,6 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_CONTAINER_TERMINATING,
               TaskAttemptEventType.TA_OUTPUT_FAILED))
 
-      .addTransition(TaskAttemptStateInternal.KILLED,
-          TaskAttemptStateInternal.KILLED,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       .addTransition(
           TaskAttemptStateInternal.KILLED,
           TaskAttemptStateInternal.KILLED,
@@ -346,10 +317,6 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptEventType.TA_CONTAINER_TERMINATED,
               TaskAttemptEventType.TA_OUTPUT_FAILED))
 
-      .addTransition(TaskAttemptStateInternal.FAILED,
-          TaskAttemptStateInternal.FAILED,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       .addTransition(
           TaskAttemptStateInternal.FAILED,
           TaskAttemptStateInternal.FAILED,
@@ -368,10 +335,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       // How will duplicate history events be handled ?
       // TODO Maybe consider not failing REDUCE tasks in this case. Also,
       // MAP_TASKS in case there's only one phase in the job.
-      .addTransition(TaskAttemptStateInternal.SUCCEEDED,
-          TaskAttemptStateInternal.SUCCEEDED,
-          TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE,
-          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
       .addTransition(
           TaskAttemptStateInternal.SUCCEEDED,
           EnumSet.of(TaskAttemptStateInternal.KILLED,
@@ -1070,19 +1033,6 @@ public class TaskAttemptImpl implements TaskAttempt,
           priority, ta.containerContext);
       ta.sendEvent(launchRequestEvent);
       return TaskAttemptStateInternal.START_WAIT;
-    }
-  }
-
-  protected static class DiagnosticInformationUpdater implements
-      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
-    @Override
-    public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      TaskAttemptEventDiagnosticsUpdate diagEvent = (TaskAttemptEventDiagnosticsUpdate) event;
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Diagnostics update for " + ta.attemptId + ": "
-            + diagEvent.getDiagnosticInfo());
-      }
-      ta.addDiagnosticInfo(diagEvent.getDiagnosticInfo());
     }
   }
 

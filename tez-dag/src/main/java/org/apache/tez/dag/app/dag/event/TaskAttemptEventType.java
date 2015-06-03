@@ -23,21 +23,20 @@ package org.apache.tez.dag.app.dag.event;
  */
 public enum TaskAttemptEventType {
 
-//Producer:Task, Speculator
+  //Producer:Task, Speculator
   TA_SCHEDULE,
 
-//Producer: TaskAttemptListener
+  //Producer: TaskAttemptListener
   TA_STARTED_REMOTELY,
   TA_STATUS_UPDATE,
-  TA_DIAGNOSTICS_UPDATE, // REMOVE THIS - UNUSED
   TA_DONE,
   TA_FAILED,
   TA_TIMED_OUT,
   
-//Producer: Client, Scheduler, On speculation.
+  //Producer: Client, Scheduler, On speculation.
   TA_KILL_REQUEST,
 
-//Producer: Container / Scheduler.
+  //Producer: Container / Scheduler.
   // Container may be running and is in the process of shutting down.
   TA_CONTAINER_TERMINATING,
 

@@ -55,7 +55,6 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
@@ -613,21 +612,6 @@ public class TestTaskImpl {
     Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
   }
 
-  @Test(timeout = 5000)
-  public void testDiagnostics_TAUpdate(){
-    TezTaskID taskId = getNewTaskID();
-    scheduleTaskAttempt(taskId);
-    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(), TaskEventType.T_ATTEMPT_KILLED));
-    assertEquals(1, mockTask.getDiagnostics().size());
-    assertEquals("TaskAttempt 0 killed", mockTask.getDiagnostics().get(0));
-    
-    launchTaskAttempt(mockTask.getLastAttempt().getID());
-    mockTask.getLastAttempt().handle(new TaskAttemptEventDiagnosticsUpdate(mockTask.getLastAttempt().getID(), "diagnostics of test"));
-    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(), TaskEventType.T_ATTEMPT_FAILED));
-    assertEquals(2, mockTask.getDiagnostics().size());
-    assertEquals("TaskAttempt 1 failed, info=[diagnostics of test]", mockTask.getDiagnostics().get(1));
-  }
-  
   @Test(timeout = 5000)
   public void testDiagnostics_KillNew(){
     TezTaskID taskId = getNewTaskID();

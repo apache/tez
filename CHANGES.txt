@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2376. Remove TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2506. TestAysncHttpConnection failing.
   TEZ-2503. findbugs version isn't reported properly in test-patch report.
