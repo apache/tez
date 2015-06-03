@@ -2143,6 +2143,10 @@ public class TestVertexImpl {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public void setupPostDagCreation() throws AMUserCodeException {
     String dagName = "dag0";
+    // dispatcher may be created multiple times (setupPostDagCreation may be called multiples)
+    if (dispatcher != null) {
+      dispatcher.stop();
+    }
     dispatcher = new DrainDispatcher();
     appContext = mock(AppContext.class);
     thh = mock(TaskHeartbeatHandler.class);
@@ -2186,6 +2190,10 @@ public class TestVertexImpl {
     vertexGroups = Maps.newHashMap();
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
       vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));
+    }
+    // updateTracker may be created multiple times (setupPostDagCreation may be called multiples)
+    if (updateTracker != null) {
+      updateTracker.stop();
     }
     updateTracker = new StateChangeNotifierForTest(appContext.getCurrentDAG());
     setupVertices();
@@ -2256,11 +2264,11 @@ public class TestVertexImpl {
 
   @After
   public void teardown() {
-    updateTracker.stop();
     if (dispatcher.isInState(STATE.STARTED)) {
       dispatcher.await();
       dispatcher.stop();
     }
+    updateTracker.stop();
     execService.shutdownNow();
     dispatcher = null;
     vertexEventDispatcher = null;
@@ -3844,8 +3852,9 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
 
-    initializer.go();
     while (v1.getState() == VertexState.INITIALIZING || v1.getState() == VertexState.INITED) {
+      // initializer thread may not have started, so call initializer.go() in the loop all the time
+      initializer.go();
       Thread.sleep(10);
     }
 
@@ -3864,6 +3873,7 @@ public class TestVertexImpl {
     // which is required to track events that it receives.
     EventHandlingRootInputInitializer initializer =
         (EventHandlingRootInputInitializer) customInitializer;
+    initializer.setNumVertexStateUpdateEvents(3);
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer();
     setupPostDagCreation();
@@ -3882,8 +3892,9 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
 
-    // At this point, 3 events should have been received - since the dispatcher is complete.
-    Assert.assertEquals(3, initializer.stateUpdates.size());
+    // wait for state update events are received, this is done in the state notifier thread
+    initializer.waitForVertexStateUpdate();
+
     Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
         initializer.stateUpdates.get(0).getVertexState());
     Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.RUNNING,
@@ -5988,6 +5999,8 @@ public class TestVertexImpl {
     private final Condition eventCondition = lock.newCondition();
 
     private final List<VertexStateUpdate> stateUpdates = new LinkedList<VertexStateUpdate>();
+    private int numExpectedVertexStateUpdate = 1;
+    private Object waitForVertexStateUpdate = new Object();
     private final List<InputInitializerEvent> initializerEvents = new LinkedList<InputInitializerEvent>();
     private volatile InputInitializerContext context;
     private volatile int numExpectedEvents = 1;
@@ -6054,11 +6067,28 @@ public class TestVertexImpl {
       this.numExpectedEvents = numEvents;
     }
 
+    public void setNumVertexStateUpdateEvents(int numEvents) {
+      this.numExpectedVertexStateUpdate = numEvents;
+    }
+
     public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
       if (exLocation == IIExceptionLocation.OnVertexStateUpdated) {
         throw new RuntimeException(exLocation.name());
       }
       stateUpdates.add(stateUpdate);
+      if (stateUpdates.size() == numExpectedVertexStateUpdate) {
+        synchronized (waitForVertexStateUpdate) {
+          waitForVertexStateUpdate.notify();
+        }
+      }
+    }
+
+    public void waitForVertexStateUpdate() throws InterruptedException {
+      if (stateUpdates.size() < numExpectedVertexStateUpdate) {
+        synchronized (waitForVertexStateUpdate) {
+          waitForVertexStateUpdate.wait();
+        }
+      }
     }
   }
 

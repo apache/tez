@@ -31,6 +31,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import com.google.common.collect.Lists;
 
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -42,15 +43,18 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestStateChangeNotifier {
   
   // uses the thread based notification code path but effectively blocks update
   // events till listeners have been notified
   public static class StateChangeNotifierForTest extends StateChangeNotifier {
+    private static final Logger LOG = LoggerFactory.getLogger(StateChangeNotifierForTest.class);
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger totalCount = new AtomicInteger(0);
-    
+
     public StateChangeNotifierForTest(DAG dag) {
       super(dag);
     }
@@ -62,6 +66,18 @@ public class TestStateChangeNotifier {
     
     @Override
     protected void processedEventFromQueue() {
+      // addedEventToQueue runs in dispatcher thread while
+      // processedEventFromQueue runs in state change notifier event handling thread.
+      // It is not guaranteed that addedEventToQueue is invoked before processedEventFromQueue.
+      // so sleep here until there's available events
+      while(count.get() <=0) {
+        try {
+          Thread.sleep(10);
+          LOG.info("sleep to wait for available events");
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
       synchronized (count) {
         if (count.decrementAndGet() == 0) {
           count.notifyAll();
