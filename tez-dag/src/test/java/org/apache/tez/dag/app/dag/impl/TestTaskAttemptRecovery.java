@@ -271,16 +271,14 @@ public class TestTaskAttemptRecovery {
   }
 
   /**
-   * restoreFromTAFinishedEvent ( no TAStartEvent before TAFinishedEvent )
+   * restoreFromTAFinishedEvent ( killed before started)
    */
   @Test
   public void testRecover_FINISH_BUT_NO_START() {
-    try {
-      restoreFromTAFinishedEvent(TaskAttemptState.SUCCEEDED);
-      fail("Should fail due to no TaskAttemptStartEvent before TaskAttemptFinishedEvent");
-    } catch (Throwable e) {
-      assertEquals("Finished Event seen but"
-          + " no Started Event was encountered earlier", e.getMessage());
-    }
+    TaskAttemptState recoveredState =
+        ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+            startTime, finishTime, TaskAttemptState.KILLED,
+            "", new TezCounters()));
+    assertEquals(TaskAttemptState.KILLED, recoveredState);
   }
 }
