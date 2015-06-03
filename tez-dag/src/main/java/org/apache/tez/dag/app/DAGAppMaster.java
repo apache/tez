@@ -1353,6 +1353,12 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public boolean isAMInCompletionState() {
+      return EnumSet.of(DAGAppMasterState.SUCCEEDED, DAGAppMasterState.KILLED, DAGAppMasterState.FAILED,
+          DAGAppMasterState.ERROR).contains(state);
+    }
+
+    @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
       if (getServiceState() != STATE.STARTED) {
         throw new TezUncheckedException(

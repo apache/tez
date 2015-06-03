@@ -96,4 +96,8 @@ public interface AppContext {
   ACLManager getAMACLManager();
 
   String getAMUser();
+
+  /** Whether the AM is in the process of shutting down/completing */
+  boolean isAMInCompletionState();
+
 }
