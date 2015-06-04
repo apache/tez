@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
   TEZ-2376. Remove TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2506. TestAysncHttpConnection failing.
@@ -33,6 +34,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
   TEZ-2528. Tez UI: Column selector buttons gets clipped, and table scroll bar not visible in mac.
   TEZ-2391. TestVertexImpl timing out at times on jenkins builds.
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
@@ -234,6 +236,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2483. Tez should close task if processor fail
 
