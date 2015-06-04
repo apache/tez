@@ -180,6 +180,18 @@ public class TestPipelinedSorter {
     verify(outputContext, times(1)).sendEvents(anyListOf(Event.class));
   }
 
+  @Test
+  public void testCountersWithMultiplePartitions() throws IOException {
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    this.numOutputs = 5;
+    this.initialAvailableMem = 5 * 1024 * 1024;
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 0);
+
+    writeData(sorter, 10000, 100);
+    verifyCounters(sorter, outputContext);
+  }
+
   public void basicTest(int partitions, int numKeys, int keySize,
       long initialAvailableMem, int blockSize) throws IOException {
     this.numOutputs = partitions; // single output
