@@ -383,8 +383,8 @@ public class MRHelpers {
 
     // Add the env variables passed by the user
     String mapredChildEnv = (isMap ?
-        conf.get(MRJobConfig.MAP_ENV, "")
-        : conf.get(MRJobConfig.REDUCE_ENV, ""));
+        conf.get(MRJobConfig.MAP_ENV, conf.get("mapred.child.env"))
+        : conf.get(MRJobConfig.REDUCE_ENV, conf.get("mapred.child.env")));
     TezYARNUtils.appendToEnvFromInputString(environment, mapredChildEnv, File.pathSeparator);
 
     // Set logging level in the environment.
