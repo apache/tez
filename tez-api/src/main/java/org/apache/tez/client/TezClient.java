@@ -318,11 +318,11 @@ public class TezClient {
             atsHistoryACLManagerClassName);
         historyACLPolicyManager.setConf(this.amConfig.getYarnConfiguration());
       } catch (TezUncheckedException e) {
-        LOG.warn("Could not instantiate object for " + atsHistoryACLManagerClassName
-            + ". ACLs cannot be enforced correctly for history data in Timeline", e);
         if (!amConfig.getTezConfiguration().getBoolean(
             TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
             TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
+          LOG.warn("Could not instantiate object for " + atsHistoryACLManagerClassName
+                    + ". ACLs cannot be enforced correctly for history data in Timeline", e);
           throw e;
         }
         historyACLPolicyManager = null;
