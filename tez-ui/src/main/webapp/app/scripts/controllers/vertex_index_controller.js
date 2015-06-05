@@ -52,9 +52,13 @@ App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   hasFailedTasks: function() {
     return this.get('failedTasks') > 0;
   }.property('failedTasks'),
-  
+
   failedTasksLink: function() {
-    return '#tasks?status=FAILED&parentType=TEZ_VERTEX_ID&parentID=' + this.get('id');
+    return '#/vertex/%@/tasks?searchText=Status%3AFAILED'.fmt(this.get('id'));
+  }.property('id'),
+
+  failedTaskAttemptsLink: function() {
+    return '#/vertex/%@/taskAttempts?searchText=Status%3AFAILED'.fmt(this.get('id'));
   }.property('id'),
 
   hasFirstTaskStarted: function() {
