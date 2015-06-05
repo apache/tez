@@ -31,10 +31,12 @@ import java.io.IOException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGClientImpl;
+import org.apache.tez.dag.api.client.DAGClientTimelineImpl;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -284,5 +286,44 @@ public class TestDAGClient {
     verify(mockProxy, times(3)).getDAGStatus(null, GetDAGStatusRequestProto.newBuilder()
       .setDagId(dagIdStr).addStatusOptions(StatusGetOptsProto.GET_COUNTERS).build());
   }
-  
+
+  @Test(timeout = 5000)
+  public void testDagClientTimelineEnabledCondition() {
+    String historyLoggingClass = "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
+
+    testAtsEnabled(mockAppId, dagIdStr, false, "", true, true);
+    testAtsEnabled(mockAppId, dagIdStr, false, historyLoggingClass, false, true);
+    testAtsEnabled(mockAppId, dagIdStr, false, historyLoggingClass, true, false);
+    testAtsEnabled(mockAppId, dagIdStr, DAGClientTimelineImpl.isSupported(), historyLoggingClass,
+        true, true);
+  }
+
+  private static void testAtsEnabled(ApplicationId appId, String dagIdStr, boolean expected,
+                                     String loggingClass, boolean amHistoryLoggingEnabled,
+                                     boolean dagHistoryLoggingEnabled) {
+    TezConfiguration tezConf = new TezConfiguration();
+
+    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, loggingClass);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED, amHistoryLoggingEnabled);
+    tezConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, dagHistoryLoggingEnabled);
+
+    DAGClientImplForTest dagClient = new DAGClientImplForTest(appId, dagIdStr, tezConf, null);
+    assertEquals(expected, dagClient.getIsATSEnabled());
+  }
+
+  private static class DAGClientImplForTest extends DAGClientImpl {
+
+    public DAGClientImplForTest(ApplicationId appId, String dagId,
+                                TezConfiguration conf,
+                                FrameworkClient frameworkClient) {
+      super(appId, dagId, conf, frameworkClient);
+    }
+
+
+    public boolean getIsATSEnabled() {
+      return isATSEnabled;
+    }
+
+  }
+
 }
