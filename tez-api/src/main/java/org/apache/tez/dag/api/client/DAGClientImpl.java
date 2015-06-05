@@ -60,7 +60,8 @@ public class DAGClientImpl extends DAGClient {
   @VisibleForTesting
   protected DAGClient realClient;
   private boolean dagCompleted = false;
-  private boolean isATSEnabled = false;
+  @VisibleForTesting
+  protected boolean isATSEnabled = false;
   private DAGStatus cachedDagStatus = null;
   Map<String, VertexStatus> cachedVertexStatus = new HashMap<String, VertexStatus>();
 
@@ -92,9 +93,8 @@ public class DAGClientImpl extends DAGClient {
             conf.getBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
                  TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT) &&
             conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
-                 TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
-
-    isATSEnabled = DAGClientTimelineImpl.isSupported();
+                 TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT) &&
+            DAGClientTimelineImpl.isSupported();
 
     realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient);
     statusPollInterval = conf.getLong(
