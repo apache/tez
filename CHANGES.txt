@@ -396,6 +396,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.4: Unreleased
 
 ALL CHANGES:
+  TEZ-2533. AM deadlock when shutdown
   TEZ-2537. mapreduce.map.env and mapreduce.reduce.env need to fall back to mapred.child.env for compatibility
   TEZ-2304. InvalidStateTransitonException TA_SCHEDULE at START_WAIT during recovery
   TEZ-2488. Tez AM crashes if a submitted DAG is configured to use invalid resource sizes.

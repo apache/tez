@@ -838,19 +838,17 @@ public class DAGAppMaster extends AbstractService {
           // This will also send the final report to the ResourceManager
           LOG.info("Calling stop for all the services");
           stop();
-
+        } catch (Throwable t) {
+          LOG.warn("Graceful stop failed ", t);
+        } finally {
           synchronized (shutdownHandlerRunning) {
             shutdownHandlerRunning.set(false);
             shutdownHandlerRunning.notify();
           }
-
           //Bring the process down by force.
           //Not needed after HADOOP-7140
           LOG.info("Exiting DAGAppMaster..GoodBye!");
           sysexit();
-
-        } catch (Throwable t) {
-          LOG.warn("Graceful stop failed ", t);
         }
       }
     }
