@@ -179,6 +179,10 @@ $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
   jqXHR.requestOptions = originalOptions;
 });
 
+$.ajaxSetup({
+  cache: false
+});
+
 /* Order and include */
 require('scripts/default-configs');
 
