@@ -40,6 +40,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGClientImpl;
+import org.apache.tez.dag.api.client.DAGClientTimelineImpl;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -401,6 +402,30 @@ public class TestDAGClient {
 
   }
 
+  @Test(timeout = 5000)
+  public void testDagClientTimelineEnabledCondition() {
+    String historyLoggingClass = "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
+
+    testAtsEnabled(mockAppId, dagIdStr, false, "", true, true);
+    testAtsEnabled(mockAppId, dagIdStr, false, historyLoggingClass, false, true);
+    testAtsEnabled(mockAppId, dagIdStr, false, historyLoggingClass, true, false);
+    testAtsEnabled(mockAppId, dagIdStr, DAGClientTimelineImpl.isSupported(), historyLoggingClass,
+        true, true);
+  }
+
+  private static void testAtsEnabled(ApplicationId appId, String dagIdStr, boolean expected,
+                                     String loggingClass, boolean amHistoryLoggingEnabled,
+                                     boolean dagHistoryLoggingEnabled) {
+    TezConfiguration tezConf = new TezConfiguration();
+
+    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, loggingClass);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED, amHistoryLoggingEnabled);
+    tezConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, dagHistoryLoggingEnabled);
+
+    DAGClientImplForTest dagClient = new DAGClientImplForTest(appId, dagIdStr, tezConf, null);
+    assertEquals(expected, dagClient.getIsATSEnabled());
+  }
+
   private static class DAGClientRPCImplForTest extends DAGClientRPCImpl {
 
     int numGetStatusViaAmInvocations = 0;
@@ -464,6 +489,11 @@ public class TestDAGClient {
       numGetStatusViaRmInvocations++;
       return rmDagStatus;
     }
+
+    public boolean getIsATSEnabled() {
+      return isATSEnabled;
+    }
+
   }
 
   private DAGProtos.DAGStatusProto.Builder constructDagStatusProto(DAGStatusStateProto stateProto) {

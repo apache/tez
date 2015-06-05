@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2541. DAGClientImpl enable TimelineClient check is wrong.
   TEZ-2539. Tez UI: Pages are not updating in IE.
   TEZ-2535. Tez UI: Failed task attempts link in vertex details page is broken.
   TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
