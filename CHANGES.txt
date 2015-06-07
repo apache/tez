@@ -211,6 +211,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2511. Add exitCode to diagnostics when container fails.
   TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
   TEZ-2483. Tez should close task if processor fail

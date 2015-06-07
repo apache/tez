@@ -303,6 +303,41 @@ public class TestTaskSchedulerEventHandler {
   }
 
   @Test (timeout = 5000)
+  public void testContainerExceededPMem() throws IOException {
+    Configuration conf = new Configuration(false);
+    schedulerHandler.init(conf);
+    schedulerHandler.start();
+
+    String diagnostics = "Exceeded Physical Memory";
+    TaskAttemptImpl mockTask = mock(TaskAttemptImpl.class);
+    ContainerStatus mockStatus = mock(ContainerStatus.class);
+    ContainerId mockCId = mock(ContainerId.class);
+    AMContainer mockAMContainer = mock(AMContainer.class);
+    when(mockAMContainerMap.get(mockCId)).thenReturn(mockAMContainer);
+    when(mockAMContainer.getContainerId()).thenReturn(mockCId);
+    when(mockStatus.getContainerId()).thenReturn(mockCId);
+    when(mockStatus.getDiagnostics()).thenReturn(diagnostics);
+    // use -104 rather than ContainerExitStatus.KILLED_EXCEEDED_PMEM because
+    // ContainerExitStatus.KILLED_EXCEEDED_PMEM is only available after hadoop-2.5
+    when(mockStatus.getExitStatus()).thenReturn(-104);
+    schedulerHandler.containerCompleted(mockTask, mockStatus);
+    assertEquals(1, mockEventHandler.events.size());
+    Event event = mockEventHandler.events.get(0);
+    assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
+    AMContainerEventCompleted completedEvent = (AMContainerEventCompleted) event;
+    assertEquals(mockCId, completedEvent.getContainerId());
+    assertEquals("Container failed, exitCode=-104. Exceeded Physical Memory",
+        completedEvent.getDiagnostics());
+    Assert.assertFalse(completedEvent.isPreempted());
+    Assert.assertFalse(completedEvent.isDiskFailed());
+    assertEquals(TaskAttemptTerminationCause.CONTAINER_EXITED,
+        completedEvent.getTerminationCause());
+
+    schedulerHandler.stop();
+    schedulerHandler.close();
+  }
+
+  @Test (timeout = 5000)
   public void testHistoryUrlConf() throws Exception {
     Configuration conf = schedulerHandler.appContext.getAMConf();
 

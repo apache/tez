@@ -452,7 +452,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         message = "Container disk failed. ";
         errCause = TaskAttemptTerminationCause.NODE_DISK_ERROR;
       } else if (exitStatus != ContainerExitStatus.SUCCESS){
-        message = "Container failed. ";
+        message = "Container failed, exitCode=" + exitStatus + ". ";
       }
       if (containerStatus.getDiagnostics() != null) {
         message += containerStatus.getDiagnostics();
