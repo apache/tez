@@ -105,7 +105,7 @@ class MapOutput {
                                               int fetcher, boolean primaryMapOutput,
                                               TezTaskOutputFiles mapOutputFile) throws
       IOException {
-    FileSystem fs = FileSystem.getLocal(conf);
+    FileSystem fs = FileSystem.getLocal(conf).getRaw();
     Path outputpath = mapOutputFile.getInputFileForWrite(
         attemptIdentifier.getInputIdentifier().getInputIndex(), attemptIdentifier.getSpillEventId(), size);
     // Files are not clobbered due to the id being appended to the outputPath in the tmpPath,

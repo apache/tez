@@ -48,7 +48,7 @@ public class DiskFetchedInput extends FetchedInput {
       throws IOException {
     super(Type.DISK, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
 
-    this.localFS = FileSystem.getLocal(conf);
+    this.localFS = FileSystem.getLocal(conf).getRaw();
     this.outputPath = filenameAllocator.getInputFileForWrite(
         this.inputAttemptIdentifier.getInputIdentifier().getInputIndex(), this
             .inputAttemptIdentifier.getSpillEventId(), actualSize);

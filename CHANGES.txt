@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2473. Consider using RawLocalFileSystem in MapOutput.createDiskMapOutput.
   TEZ-2538. ADDITIONAL_SPILL_COUNT wrongly populated for DefaultSorter with multiple partitions.
   TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
   TEZ-2376. Remove TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE
