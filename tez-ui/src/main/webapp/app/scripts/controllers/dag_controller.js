@@ -61,6 +61,23 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       that.set('loading', false);
     });
 
+    if (!dag.get('appContextInfo.info') && App.get('env.compatibilityMode')) {
+      var dagName = dag.getWithDefault('name', '');
+      var hiveQueryId = dagName.replace(/([^:]*):.*/, '$1');
+      if (dagName !=  hiveQueryId && !!hiveQueryId) {
+        this.store.find('hiveQuery', hiveQueryId).then(function (hiveQueryData) {
+          var queryInfoStr = Em.get(hiveQueryData || {}, 'query') || '{}';
+          var queryInfo = $.parseJSON(queryInfoStr);
+          dag.set('appContextInfo', {
+            appType: 'Hive',
+            info: queryInfo['queryText']
+          });
+        }).catch(function (e) {
+          // ignore.
+        });
+      }
+    }
+
     return Em.RSVP.all(loaders);
   },
 

@@ -32,6 +32,11 @@ App.setConfigs({
      * the following value to point to a different domain.
      */
     // RMWebUrl: 'http://localhost:8088',
+
+    /*
+     * Ensures that some of the UI features work with old versions of Tez
+     */
+    compatibilityMode: false,
   },
 
   /*

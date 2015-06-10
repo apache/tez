@@ -33,14 +33,14 @@ App.Dag = App.AbstractEntity.extend({
     return App.Helpers.date.duration(this.get('startTime'), this.get('endTime'))
   }.property('startTime', 'endTime'),
 
-	// set type to DAG
-	entityType: App.EntityType.DAG,
+  // set type to DAG
+  entityType: App.EntityType.DAG,
 
-	// Name of the dag.
-	name: DS.attr('string'),
+  // Name of the dag.
+  name: DS.attr('string'),
 
-	// user name who ran this dag.
-	user: DS.attr('string'),
+  // user name who ran this dag.
+  user: DS.attr('string'),
 
   // application ID of this dag.
   applicationId: function() {
@@ -50,8 +50,8 @@ App.Dag = App.AbstractEntity.extend({
   tezApp: DS.belongsTo('tezApp'),
   appDetail: DS.belongsTo('appDetail'),
 
-	// status
-	status: DS.attr('string'),
+  // status
+  status: DS.attr('string'),
   hasFailedTaskAttempts: DS.attr('boolean'),
   hasFailedTasks: function() {
     var f = this.get('numFailedTasks');
@@ -59,13 +59,13 @@ App.Dag = App.AbstractEntity.extend({
   }.property('numFailedTasks'),
   numFailedTasks: DS.attr('number'),
 
-	// diagnostics info if any.
-	diagnostics: DS.attr('string'),
+  // diagnostics info if any.
+  diagnostics: DS.attr('string'),
 
   // Dag plan reated data
   planName: DS.attr('string'),
   planVersion: DS.attr('number'),
-  dagPlanContextInfo: DS.attr('string'),
+  appContextInfo: DS.attr('object'),
   vertices: DS.attr('array'), // Serialize when required
   edges: DS.attr('array'), // Serialize when required
   vertexGroups: DS.attr('array'),
@@ -389,6 +389,10 @@ App.VertexProgress = DS.Model.extend({
 App.KVDatum = DS.Model.extend({
   key: DS.attr('string'),
   value: DS.attr('string'),
+});
+
+App.HiveQuery = DS.Model.extend({
+  query: DS.attr('string')
 });
 
 App.VertexState = {

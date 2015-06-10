@@ -548,6 +548,8 @@ App.Helpers.misc = {
       vertexTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
       taskTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
 
+      hiveQuery: 'HIVE_QUERY_ID',
+
       tezApp: 'TEZ_APPLICATION'
     };
     return function (type) {
@@ -570,6 +572,8 @@ App.Helpers.misc = {
       dagTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
       vertexTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
       taskTaskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+
+      hiveQuery: 'HIVE_QUERY_ID',
 
       tezApp: 'applicationId'
     };
