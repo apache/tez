@@ -208,22 +208,24 @@ public class RecoveryService extends AbstractService {
       }
     }
 
-    if (summaryStream != null) {
-      try {
-        LOG.info("Closing Summary Stream");
-        summaryStream.hflush();
-        summaryStream.close();
-      } catch (IOException ioe) {
-        LOG.warn("Error when closing summary stream", ioe);
+    synchronized (lock) {
+      if (summaryStream != null) {
+        try {
+          LOG.info("Closing Summary Stream");
+          summaryStream.hflush();
+          summaryStream.close();
+        } catch (IOException ioe) {
+          LOG.warn("Error when closing summary stream", ioe);
+        }
       }
-    }
-    for (Entry<TezDAGID, FSDataOutputStream> entry : outputStreamMap.entrySet()) {
-      try {
-        LOG.info("Closing Output Stream for DAG " + entry.getKey());
-        entry.getValue().hflush();
-        entry.getValue().close();
-      } catch (IOException ioe) {
-        LOG.warn("Error when closing output stream", ioe);
+      for (Entry<TezDAGID, FSDataOutputStream> entry : outputStreamMap.entrySet()) {
+        try {
+          LOG.info("Closing Output Stream for DAG " + entry.getKey());
+          entry.getValue().hflush();
+          entry.getValue().close();
+        } catch (IOException ioe) {
+          LOG.warn("Error when closing output stream", ioe);
+        }
       }
     }
   }
@@ -280,6 +282,11 @@ public class RecoveryService extends AbstractService {
 
     if (event.getHistoryEvent() instanceof SummaryEvent) {
       synchronized (lock) {
+        if (stopped.get()) {
+          LOG.warn("Igoring event as service stopped, eventType"
+              + event.getHistoryEvent().getEventType());
+          return;
+        }
         try {
           SummaryEvent summaryEvent = (SummaryEvent) event.getHistoryEvent();
           handleSummaryEvent(dagId, eventType, summaryEvent);
