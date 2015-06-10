@@ -39,6 +39,16 @@
             }}
           </div>
         {{/if}}
+        {{#if visibleFilters.id}}
+          <div class='filter-elements'>
+            <div>Id</div>
+            {{input
+              action="filterUpdated"
+              value=boundFilterValues.id
+              placeholder="Search..."
+            }}
+          </div>
+        {{/if}}
         {{#if visibleFilters.user}}
           <div class='filter-elements'>
             <div>Submitter</div>

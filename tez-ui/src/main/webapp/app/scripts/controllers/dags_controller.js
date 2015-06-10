@@ -31,6 +31,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     status_filter: 'status',
     user_filter: 'user',
     appId_filter: 'appid',
+    id_filter: 'id',
     dagName_filter: 'dag_name'
   },
 
@@ -39,6 +40,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
   status_filter: null,
   user_filter: null,
   appId_filter: null,
+  id_filter: null,
   dagName_filter: null,
 
   boundFilterValues: Em.Object.create({
@@ -56,9 +58,10 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
       status: this.get('status_filter'),
       user: this.get('user_filter'),
       appId: this.get('appId_filter'),
+      id: this.get('id_filter'),
       dagName: this.get('dagName_filter')
     }));
-  }.observes('status_filter', 'user_filter', 'appId_filter', 'dagName_filter'),
+  }.observes('status_filter', 'user_filter', 'appId_filter', 'dagName_filter', 'id_filter'),
 
   _filterVisiblilityObserver: function () {
     var visibleFilters = Em.Object.create();
@@ -92,6 +95,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     var that = this,
     store = this.get('store'),
     childEntityType = this.get('childEntityType'),
+    finder,
     record;
     var defaultErrMsg = 'Error while loading dag info.';
 
@@ -99,7 +103,23 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     store.unloadAll(childEntityType);
     store.unloadAll('dagProgress');
 
-    store.findQuery(childEntityType, this.getFilterProperties()).then(function(entities){
+    if(this.id_filter) {
+      finder = store.find(childEntityType, this.id_filter).then(function (entity) {
+        return (
+          (that.dagName_filter && entity.get('name') != that.dagName_filter) ||
+          (that.appId_filter && entity.get('applicationId') != that.appId_filter) ||
+          (that.user_filter && entity.get('user') != that.user_filter) ||
+          (that.status_filter && entity.get('status') != that.status_filter)
+        ) ? [] : [entity];
+      }).catch(function () {
+        return [];
+      });
+    }
+    else {
+      finder = store.findQuery(childEntityType, this.getFilterProperties());
+    }
+
+    finder.then(function(entities){
       that.set('entities', entities);
       that.set('loading', false);
 
@@ -160,6 +180,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         status_filter: filterValues.get('status') || null,
         user_filter: filterValues.get('user') || null,
         appId_filter: filterValues.get('appId') || null,
+        id_filter: filterValues.get('id') || null,
         dagName_filter: filterValues.get('dagName') || null,
       });
       this.loadData();
@@ -208,6 +229,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
       {
         id: 'id',
         headerCellName: 'Id',
+        enableFilter: true,
         contentPath: 'id'
       },
       {
