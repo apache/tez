@@ -93,10 +93,10 @@
   </div>
 {{/if}}
 
-{{#if hasDagInfoContext}}
-  <div class='margin-small-vertical'>
-    {{#bs-panel heading=additionalInfoHeading collapsible=false dismiss=false type='info'}}
-      {{code-mirror value=dagInfoContextDesc mode=dagInfoContextType classNames='additional-dag-info'}}
+{{#if appContext}}
+  <div class='margin-small-vertical code-mirror-container'>
+    {{#bs-panel heading=appContextHeading collapsible=false dismiss=false type='info'}}
+      {{code-mirror value=appContext mode=appInfoContextType classNames='additional-dag-info'}}
     {{/bs-panel}}
   </div>
 {{/if}}

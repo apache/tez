@@ -109,7 +109,27 @@ var timelineJsonToDagMap = {
 
   planName: 'otherinfo.dagPlan.dagName',
   planVersion: 'otherinfo.dagPlan.version',
-  dagPlanContextInfo: 'otherinfo.dagPlan.dagInfo',
+  appContextInfo: {
+    custom: function (source) {
+      var appType = undefined,
+          info = undefined;
+      var dagInfoStr = Em.get(source, 'otherinfo.dagPlan.dagInfo');
+      if (!!dagInfoStr) {
+        try {
+          var dagInfo = $.parseJSON(dagInfoStr);
+          appType = dagInfo['context'];
+          info = dagInfo['description'];
+        } catch (e) {
+          info = dagInfoStr;
+        }
+      }
+
+      return {
+        appType: appType,
+        info: info
+      };
+    }
+  },
   vertices: 'otherinfo.dagPlan.vertices',
   edges: 'otherinfo.dagPlan.edges',
   vertexGroups: 'otherinfo.dagPlan.vertexGroups',
@@ -474,6 +494,28 @@ App.TezAppSerializer = App.TimelineSerializer.extend({
   normalize: function(type, hash, prop) {
     return Em.JsonMapper.map(hash, timelineJsonToTezAppMap);
   },
+});
+
+var timelineJsonToHiveQueryMap = {
+  id: 'entity',
+  query: 'otherinfo.QUERY'
+};
+
+App.HiveQuerySerializer = App.TimelineSerializer.extend({
+  _normalizeSingleDagPayload: function(hiveQuery) {
+    return {
+      hiveQuery: hiveQuery
+    }
+  },
+
+  normalizePayload: function(rawPayload){
+    // we handled only single hive
+    return this._normalizeSingleDagPayload(rawPayload.hiveQuery);
+  },
+
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(hash, timelineJsonToHiveQueryMap);
+  }
 });
 
 App.VertexProgressSerializer = App.DagProgressSerializer = DS.RESTSerializer.extend({});

@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2546. Tez UI: Fetch hive query text from timeline if dagInfo is not set.
   TEZ-2513. Tez UI: Allow filtering by DAG ID on All dags table.
   TEZ-2541. DAGClientImpl enable TimelineClient check is wrong.
   TEZ-2539. Tez UI: Pages are not updating in IE.

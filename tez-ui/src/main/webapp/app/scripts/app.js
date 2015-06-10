@@ -46,6 +46,23 @@ var App = window.App = Em.Application.createWithMixins(Bootstrap, {
     App.advanceReadiness();
   }
 });
+
+Em.Application.initializer({
+  name: "objectTransforms",
+
+  initialize: function(container, application) {
+    application.register('transform:object', DS.Transform.extend({
+      deserialize: function(serialized) {
+        return Em.none(serialized) ? {} : serialized;
+      },
+
+      serialized: function(deserialized) {
+        return Em.none(deserialized) ? {} : deserialized;
+      }
+    }));
+  }
+});
+
 App.deferReadiness();
 
 App.Helpers = Em.Namespace.create(),
