@@ -125,11 +125,7 @@ public class DAGClientHandler {
     }
   }
 
-  public synchronized TezAppMasterStatus getSessionStatus() throws TezException {
-    if (!dagAppMaster.isSession()) {
-      throw new TezException("Unsupported operation as AM not running in"
-          + " session mode");
-    }
+  public synchronized TezAppMasterStatus getTezAppMasterStatus() throws TezException {
     switch (dagAppMaster.getState()) {
     case NEW:
     case INITED:

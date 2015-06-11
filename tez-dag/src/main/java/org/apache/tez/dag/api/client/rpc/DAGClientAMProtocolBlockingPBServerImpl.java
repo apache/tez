@@ -20,10 +20,8 @@ package org.apache.tez.dag.api.client.rpc;
 
 import java.io.IOException;
 import java.security.AccessControlException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -190,9 +188,9 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
     try {
-      TezAppMasterStatus sessionStatus = real.getSessionStatus();
+      TezAppMasterStatus sessionStatus = real.getTezAppMasterStatus();
       return GetAMStatusResponseProto.newBuilder().setStatus(
-          DagTypeConverters.convertTezSessionStatusToProto(sessionStatus))
+          DagTypeConverters.convertTezAppMasterStatusToProto(sessionStatus))
           .build();
     } catch(TezException e) {
       throw wrapException(e);

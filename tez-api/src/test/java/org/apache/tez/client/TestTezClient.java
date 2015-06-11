@@ -33,6 +33,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -59,7 +60,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusReque
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezAppMasterStatusProto;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
@@ -89,20 +90,20 @@ public class TestTezClient {
     }
     
     @Override
-    protected DAGClientAMProtocolBlockingPB getSessionAMProxy(ApplicationId appId) 
+    protected DAGClientAMProtocolBlockingPB getAMProxy(ApplicationId appId)
         throws TezException, IOException {
       if (!callRealGetSessionAMProxy) {
         return sessionAmProxy;
       }
-      return super.getSessionAMProxy(appId);
+      return super.getAMProxy(appId);
     }
   }
   
-  TezClientForTest configure() throws YarnException, IOException {
+  TezClientForTest configure() throws YarnException, IOException, ServiceException {
     return configure(new HashMap<String, LocalResource>(), true);
   }
   
-  TezClientForTest configure(Map<String, LocalResource> lrs, boolean isSession) throws YarnException, IOException {
+  TezClientForTest configure(Map<String, LocalResource> lrs, boolean isSession) throws YarnException, IOException, ServiceException {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
@@ -113,6 +114,8 @@ public class TestTezClient {
     when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
 
     DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
+    when(sessionAmProxy.getAMStatus(any(RpcController.class), any(GetAMStatusRequestProto.class)))
+        .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.RUNNING).build());
 
     client.sessionAmProxy = sessionAmProxy;
     client.mockTezYarnClient = new TezYarnClient(yarnClient);
@@ -252,7 +255,7 @@ public class TestTezClient {
     
     when(
         client.sessionAmProxy.getAMStatus((RpcController) any(), (GetAMStatusRequestProto) any()))
-        .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezSessionStatusProto.READY).build());
+        .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.READY).build());
 
     PreWarmVertex vertex = PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
     client.preWarm(vertex);
