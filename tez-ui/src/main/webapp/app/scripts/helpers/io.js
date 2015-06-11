@@ -95,7 +95,13 @@ App.Helpers.io = {
       Em.Logger.debug("starting download %@".fmt(inProgress));
       var item = itemList.shift();
 
-      var xhr = $.getJSON(item.url);
+      var xhr = $.ajax({
+        crossOrigin: true,
+        url: item.url,
+        xhrFields: {
+          withCredentials: true
+        },
+      });
       var reqID = getRequestId();
       pendingRequests[reqID] = xhr;
 
