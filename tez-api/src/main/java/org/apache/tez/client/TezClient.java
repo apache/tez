@@ -498,7 +498,7 @@ public class TezClient {
         sessionStopped = true;
         boolean sessionShutdownSuccessful = false;
         try {
-          DAGClientAMProtocolBlockingPB proxy = getSessionAMProxy(sessionAppId);
+          DAGClientAMProtocolBlockingPB proxy = getAMProxy(sessionAppId);
           if (proxy != null) {
             ShutdownSessionRequestProto request =
                 ShutdownSessionRequestProto.newBuilder().build();
@@ -587,17 +587,14 @@ public class TezClient {
       case FINISHED:
         return TezAppMasterStatus.SHUTDOWN;
       case RUNNING:
-        if (!isSession) {
-          return TezAppMasterStatus.RUNNING;
-        }
         try {
-          DAGClientAMProtocolBlockingPB proxy = getSessionAMProxy(appId);
+          DAGClientAMProtocolBlockingPB proxy = getAMProxy(appId);
           if (proxy == null) {
             return TezAppMasterStatus.INITIALIZING;
           }
           GetAMStatusResponseProto response = proxy.getAMStatus(null,
               GetAMStatusRequestProto.newBuilder().build());
-          return DagTypeConverters.convertTezSessionStatusFromProto(
+          return DagTypeConverters.convertTezAppMasterStatusFromProto(
               response.getStatus());
         } catch (TezException e) {
           LOG.info("Failed to retrieve AM Status via proxy", e);
@@ -671,6 +668,7 @@ public class TezClient {
       // nothing to wait for in non-session mode
       return;
     }
+
     verifySessionStateForSubmission();
     while (true) {
       TezAppMasterStatus status = getAppMasterStatus();
@@ -684,7 +682,23 @@ public class TezClient {
       Thread.sleep(SLEEP_FOR_READY);
     }
   }
-  
+
+  private void waitNonSessionTillReady() throws IOException, TezException {
+    Preconditions.checkArgument(!isSession, "It is supposed to be only called in non-session mode");
+    while (true) {
+      TezAppMasterStatus status = getAppMasterStatus();
+      // DAGClient will handle the AM SHUTDOWN case
+      if (status.equals(TezAppMasterStatus.RUNNING)
+          || status.equals(TezAppMasterStatus.SHUTDOWN)) {
+        return;
+      }
+      try {
+        Thread.sleep(SLEEP_FOR_READY);
+      } catch (InterruptedException e) {
+        throw new TezException("TezClient is interrupted");
+      }
+    }
+  }
   @VisibleForTesting
   // for testing
   @Private
@@ -694,9 +708,9 @@ public class TezClient {
 
   @VisibleForTesting
   // for testing
-  protected DAGClientAMProtocolBlockingPB getSessionAMProxy(ApplicationId appId) 
+  protected DAGClientAMProtocolBlockingPB getAMProxy(ApplicationId appId)
       throws TezException, IOException {
-    return TezClientUtils.getSessionAMProxy(
+    return TezClientUtils.getAMProxy(
         frameworkClient, amConfig.getYarnConfiguration(), appId);
   }
 
@@ -706,7 +720,7 @@ public class TezClient {
     long endTime = startTime + (clientTimeout * 1000);
     DAGClientAMProtocolBlockingPB proxy = null;
     while (true) {
-      proxy = getSessionAMProxy(sessionAppId);
+      proxy = getAMProxy(sessionAppId);
       if (proxy != null) {
         break;
       }
@@ -768,6 +782,8 @@ public class TezClient {
     } catch (YarnException e) {
       throw new TezException(e);
     }
+    // wait for dag in non-session mode to start running, so that we can start to getDAGStatus
+    waitNonSessionTillReady();
     return getDAGClient(appId, amConfig.getTezConfiguration(), frameworkClient);
   }
 

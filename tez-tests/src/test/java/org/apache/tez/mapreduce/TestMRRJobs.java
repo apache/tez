@@ -131,9 +131,13 @@ public class TestMRRJobs {
     boolean succeeded = job.waitForCompletion(true);
     Assert.assertTrue(succeeded);
     Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
+    // There's one bug in YARN that there may be some suffix at the end of trackingURL (YARN-2246)
+    // After TEZ-1961, the tracking will change from http://localhost:53419/proxy/application_1430963524753_0005
+    // to http://localhost:53419/proxy/application_1430963524753_0005/ui/
+    // So here use String#contains to verify.
     Assert.assertTrue("Tracking URL was " + trackingUrl +
                       " but didn't Match Job ID " + jobId ,
-          trackingUrl.endsWith(jobId.substring(jobId.lastIndexOf("_")) + "/"));
+          trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
@@ -168,7 +172,7 @@ public class TestMRRJobs {
     Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
     Assert.assertTrue("Tracking URL was " + trackingUrl +
                       " but didn't Match Job ID " + jobId ,
-          trackingUrl.endsWith(jobId.substring(jobId.lastIndexOf("_")) + "/"));
+          trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
 
     // Make sure there are three files in the output-dir
 
@@ -291,7 +295,7 @@ public class TestMRRJobs {
     Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
     Assert.assertTrue("Tracking URL was " + trackingUrl +
                       " but didn't Match Job ID " + jobId ,
-          trackingUrl.endsWith(jobId.substring(jobId.lastIndexOf("_")) + "/"));
+          trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?

@@ -75,7 +75,7 @@ message ShutdownSessionRequestProto {
 message ShutdownSessionResponseProto {
 }
 
-enum TezSessionStatusProto {
+enum TezAppMasterStatusProto {
   INITIALIZING = 0;
   READY = 1;
   RUNNING = 2;
@@ -86,7 +86,7 @@ message GetAMStatusRequestProto {
 }
 
 message GetAMStatusResponseProto {
-  required TezSessionStatusProto status = 1;
+  required TezAppMasterStatusProto status = 1;
 }
 
 service DAGClientAMProtocol {

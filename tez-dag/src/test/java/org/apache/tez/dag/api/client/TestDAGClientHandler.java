@@ -58,6 +58,7 @@ public class TestDAGClientHandler {
         .thenReturn(mockVertexStatusBuilder);
 
     DAGAppMaster mockDagAM = mock(DAGAppMaster.class);
+    when(mockDagAM.getState()).thenReturn(DAGAppMasterState.RUNNING);
     AppContext mockAppContext = mock(AppContext.class);
     when(mockDagAM.getContext()).thenReturn(mockAppContext);
     when(mockDagAM.getContext().getCurrentDAG()).thenReturn(mockDAG);
@@ -91,19 +92,16 @@ public class TestDAGClientHandler {
     assertEquals(mockVertexStatusBuilder, vertexStatus);
     
     
-    // getSessionStatus
+    // getTezAppMasterStatus
     when(mockDagAM.isSession()).thenReturn(false);
-    try{
-      dagClientHandler.getSessionStatus();
-      fail("should not come here");
-    }catch(TezException e){
-      assertEquals("Unsupported operation as AM not running in session mode", e.getMessage());
-    }
+
+    assertEquals(TezAppMasterStatus.RUNNING, dagClientHandler.getTezAppMasterStatus());
+
     when(mockDagAM.isSession()).thenReturn(true);
     when(mockDagAM.getState()).thenReturn(DAGAppMasterState.INITED);
-    assertEquals(TezAppMasterStatus.INITIALIZING, dagClientHandler.getSessionStatus());
+    assertEquals(TezAppMasterStatus.INITIALIZING, dagClientHandler.getTezAppMasterStatus());
     when(mockDagAM.getState()).thenReturn(DAGAppMasterState.ERROR);
-    assertEquals(TezAppMasterStatus.SHUTDOWN, dagClientHandler.getSessionStatus());
+    assertEquals(TezAppMasterStatus.SHUTDOWN, dagClientHandler.getTezAppMasterStatus());
         
     // tryKillDAG
     try{
