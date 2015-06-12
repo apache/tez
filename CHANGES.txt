@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.
   TEZ-2547. Tez UI: Download Data fails on secure, cross-origin clusters
   TEZ-1961. Remove misleading exception "No running dag" from AM logs.
   TEZ-2546. Tez UI: Fetch hive query text from timeline if dagInfo is not set.
@@ -215,6 +216,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.
   TEZ-2534. Error handling summary event when shutting down AM.
   TEZ-2511. Add exitCode to diagnostics when container fails.
   TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
