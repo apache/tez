@@ -1,7 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.5.4: Unreleased
+Release 0.5.4: 06-17-2015
 
 ALL CHANGES:
   TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.
