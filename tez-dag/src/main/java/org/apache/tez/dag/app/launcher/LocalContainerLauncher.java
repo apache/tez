@@ -93,9 +93,9 @@ public class LocalContainerLauncher extends AbstractService implements
   private final ExecutionContext executionContext;
   private int numExecutors;
 
-  private final ConcurrentHashMap<ContainerId, ListenableFuture<TezChild.ContainerExecutionResult>>
+  private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
       runningContainers =
-      new ConcurrentHashMap<ContainerId, ListenableFuture<TezChild.ContainerExecutionResult>>();
+      new ConcurrentHashMap<ContainerId, RunningTaskCallback>();
 
   private final ExecutorService callbackExecutor = Executors.newFixedThreadPool(1,
       new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CallbackExecutor").build());
@@ -144,6 +144,7 @@ public class LocalContainerLauncher extends AbstractService implements
   public void serviceStop() throws Exception {
     if (!serviceStopped.compareAndSet(false, true)) {
       LOG.info("Service Already stopped. Ignoring additional stop");
+      return;
     }
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
@@ -184,6 +185,9 @@ public class LocalContainerLauncher extends AbstractService implements
             LOG.error("TezSubTaskRunner interrupted ", e);
           }
           return;
+        } catch (Throwable e) {
+          LOG.error("TezSubTaskRunner failed due to exception", e);
+          throw e;
         }
       }
     }
@@ -229,24 +233,29 @@ public class LocalContainerLauncher extends AbstractService implements
       }
       ListenableFuture<TezChild.ContainerExecutionResult> runningTaskFuture =
           taskExecutorService.submit(createSubTask(tezChild, event.getContainerId()));
-      runningContainers.put(event.getContainerId(), runningTaskFuture);
-      Futures.addCallback(runningTaskFuture,
-          new RunningTaskCallback(context, event.getContainerId(), tezChild), callbackExecutor);
+      RunningTaskCallback callback = new RunningTaskCallback(context, event.getContainerId());
+      runningContainers.put(event.getContainerId(), callback);
+      Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
     } catch (RejectedExecutionException e) {
       handleLaunchFailed(e, event.getContainerId());
     }
   }
 
   private void stop(NMCommunicatorStopRequestEvent event) {
-    ListenableFuture<TezChild.ContainerExecutionResult> future =
+    // A stop_request will come in when a task completes and reports back or a preemption decision
+    // is made. Currently the LocalTaskScheduler does not support preemption. Also preemption
+    // will not work in local mode till Tez supports task preemption instead of container preemption.
+    RunningTaskCallback callback =
         runningContainers.get(event.getContainerId());
-    if (future == null) {
+    if (callback == null) {
       LOG.info("Ignoring stop request for containerId: " + event.getContainerId());
     } else {
-      LOG.info("Interrupting running/queued container with id: " + event.getContainerId());
-      future.cancel(true);
-      // This will work only if the running task respects Interrupts - which at the moment is
-      // not the case for parts of the Runtime.
+      LOG.info(
+          "Ignoring stop request for containerId {}. Relying on regular task shutdown for it to end",
+          event.getContainerId());
+      // Allow the tezChild thread to run it's course. It'll receive a shutdown request from the
+      // AM eventually since the task and container will be unregistered.
+      // This will need to be fixed once interrupting tasks is supported.
     }
     // Send this event to maintain regular control flow. This isn't of much use though.
     context.getEventHandler().handle(
@@ -258,17 +267,16 @@ public class LocalContainerLauncher extends AbstractService implements
 
     private final AppContext appContext;
     private final ContainerId containerId;
-    private final TezChild tezChild;
 
-    RunningTaskCallback(AppContext appContext, ContainerId containerId, TezChild tezChild) {
+    RunningTaskCallback(AppContext appContext, ContainerId containerId) {
       this.appContext = appContext;
       this.containerId = containerId;
-      this.tezChild = tezChild;
     }
 
     @Override
     public void onSuccess(TezChild.ContainerExecutionResult result) {
       runningContainers.remove(containerId);
+      LOG.info("ContainerExecutionResult for: " + containerId + " = " + result);
       if (result.getExitStatus() == TezChild.ContainerExecutionResult.ExitStatus.SUCCESS ||
           result.getExitStatus() ==
               TezChild.ContainerExecutionResult.ExitStatus.ASKED_TO_DIE) {
@@ -289,8 +297,8 @@ public class LocalContainerLauncher extends AbstractService implements
     @Override
     public void onFailure(Throwable t) {
       runningContainers.remove(containerId);
-      tezChild.shutdown();
       // Ignore CancellationException since that is triggered by the LocalContainerLauncher itself
+      // TezChild would have exited by this time. There's no need to invoke shutdown again.
       if (!(t instanceof CancellationException)) {
         LOG.info("Container: " + containerId + ": Execution Failed: ", t);
         // Inform of failure with exit code 1.
@@ -317,6 +325,9 @@ public class LocalContainerLauncher extends AbstractService implements
       @Override
       public TezChild.ContainerExecutionResult call() throws InterruptedException, TezException,
           IOException {
+        // Reset the interrupt status. Ideally the thread should not be in an interrupted state.
+        // TezTaskRunner needs to be fixed to ensure this.
+        Thread.interrupted();
         // Inform about the launch request now that the container has been allocated a thread to execute in.
         context.getEventHandler().handle(new AMContainerEventLaunched(containerId));
         ContainerLaunchedEvent lEvt =

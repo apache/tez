@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -196,7 +197,7 @@ public class TezChild {
 
     UserGroupInformation childUGI = null;
 
-    while (!executor.isTerminated()) {
+    while (!executor.isTerminated() && !isShutdown.get()) {
       if (taskCount > 0) {
         TezUtilsInternal.updateLoggers("");
       }
@@ -212,7 +213,7 @@ public class TezChild {
             cause, "Execution Exception while fetching new work: " + e.getMessage());
       } catch (InterruptedException e) {
         error = true;
-        LOG.info("Interrupted while waiting for new work");
+        LOG.info("Interrupted while waiting for new work for container {}", containerIdString);
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.INTERRUPTED, e,
             "Interrupted while waiting for new work");
       } finally {
@@ -221,7 +222,7 @@ public class TezChild {
         }
       }
       if (containerTask.shouldDie()) {
-        LOG.info("ContainerTask returned shouldDie=true, Exiting");
+        LOG.info("ContainerTask returned shouldDie=true for container {}, Exiting", containerIdString);
         shutdown();
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
             "Asked to die by the AM");
@@ -249,7 +250,7 @@ public class TezChild {
         try {
           shouldDie = !taskRunner.run();
           if (shouldDie) {
-            LOG.info("Got a shouldDie notification via hearbeats. Shutting down");
+            LOG.info("Got a shouldDie notification via heartbeats for container {}. Shutting down", containerIdString);
             shutdown();
             return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
                 "Asked to die by the AM");
@@ -355,8 +356,15 @@ public class TezChild {
   }
 
   public void shutdown() {
+    LOG.info("Shutdown invoked for container {}", containerIdString);
     if (!isShutdown.getAndSet(true)) {
-      executor.shutdownNow();
+      LOG.info("Shutting down container {}", containerIdString);
+      // It's possible that there's pending tasks on the executor. Those should be cancelled.
+      List<Runnable> pendingRunnables = executor.shutdownNow();
+      for (Runnable r : pendingRunnables) {
+        LOG.info("Cancelling pending runnables during TezChild shutdown for containerId={}", containerIdString);
+        ((FutureTask)r).cancel(false);
+      }
       if (taskReporter != null) {
         taskReporter.shutdown();
       }
@@ -412,6 +420,15 @@ public class TezChild {
 
     public String getErrorMessage() {
       return this.errorMessage;
+    }
+
+    @Override
+    public String toString() {
+      return "ContainerExecutionResult{" +
+          "exitStatus=" + exitStatus +
+          ", throwable=" + throwable +
+          ", errorMessage='" + errorMessage + '\'' +
+          '}';
     }
   }
 
