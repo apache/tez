@@ -178,21 +178,13 @@ App.VertexTaskAttemptsController = App.TablePageController.extend(App.AutoCounte
         templateName: 'components/basic-table/logs-cell',
         searchAndSortable: false,
         getCellContent: function(row) {
-          var yarnAppState = that.get('controllers.vertex.yarnAppState'),
-              suffix = "/syslog_" + row.get('id'),
-              link = row.get('inProgressLog') || row.get('completedLog'),
-              cellContent = {};
-
-          if(link) {
-            cellContent.viewUrl = link + suffix;
-          }
-          link = row.get('completedLog');
-          if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
-            cellContent.downloadUrl = link + suffix;
-          }
+          var cellContent = App.Helpers.misc.constructLogLinks(
+                row,
+                that.get('controllers.vertex.yarnAppState'),
+                that.get('controllers.vertex.tezApp.user')
+              );
 
           cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
-
           return cellContent;
         }
       }

@@ -55,6 +55,12 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
     }).catch(function(){});
     loaders.push(appDetailFetcher);
 
+    var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId)
+      .then(function(app){
+        vertex.set('tezApp', app);
+      }).catch(function(){});
+    loaders.push(tezAppLoader);
+
     var dagFetcher = that.store.find('dag', vertex.get('dagID')).then(function (dag) {
       vertex.set('dag', dag);
     });

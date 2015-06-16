@@ -60,26 +60,13 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
     var that = this;
 
     function getLogContent(attempt) {
-      var yarnAppState = that.get('controllers.vertex.yarnAppState'),
-          suffix,
-          link,
-          cellContent = {};
-
-      if(attempt) {
-        suffix = "/syslog_" + attempt.get('id'),
-        link = attempt.get('inProgressLog') || attempt.get('completedLog');
-
-        if(link) {
-          cellContent.viewUrl = link + suffix;
-        }
-        link = attempt.get('completedLog');
-        if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
-          cellContent.downloadUrl = link + suffix;
-        }
-      }
+      var cellContent = App.Helpers.misc.constructLogLinks(
+            attempt,
+            that.get('controllers.vertex.yarnAppState'),
+            that.get('controllers.vertex.tezApp.user')
+          );
 
       cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
-
       return cellContent;
     }
 

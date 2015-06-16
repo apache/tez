@@ -444,6 +444,8 @@ var timelineJsonToTezAppMap = {
   startedTime: 'startedTime',
   domain: 'domain',
 
+  user: 'primaryfilters.user.0',
+
   dags: 'relatedentities.TEZ_DAG_ID',
   configs: 'configs'
 };
