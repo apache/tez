@@ -56,6 +56,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       }).catch(function(){});
 
     loaders.push(appDetailLoader);
+    loaders.push(tezAppLoader);
 
     Em.RSVP.allSettled(loaders).then(function(){
       that.set('loading', false);

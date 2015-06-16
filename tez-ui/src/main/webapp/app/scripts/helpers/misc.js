@@ -532,6 +532,82 @@ App.Helpers.misc = {
     return uniqueArray;
   },
 
+  /*
+   * Extends the path and adds new query params into an url
+   * @param url {String} Url to modify
+   * @param path {String} Path to be added
+   * @param queryParams {Object} Params to be added
+   * @return modified path
+   */
+  modifyUrl: function (url, path, queryParams) {
+    var urlParts = url.split('?'),
+        params = {};
+
+    if(queryParams) {
+      if(urlParts[1]) {
+        params = urlParts[1].split('&').reduce(function (obj, param) {
+          var paramParts;
+          if(param.trim()) {
+            paramParts = param.split('=');
+            obj[paramParts[0]] = paramParts[1];
+          }
+          return obj;
+        }, {});
+      }
+
+      params = $.extend(params, queryParams);
+
+      queryParams = [];
+      $.map(params, function (val, key) {
+        queryParams.push(key + "=" + val);
+      });
+
+      urlParts[1] = queryParams.join('&');
+    }
+
+    urlParts[0] += path || '';
+
+    return urlParts[1] ? '%@?%@'.fmt(urlParts[0], urlParts[1]) : urlParts[0];
+  },
+
+  constructLogLinks: function (attempt, yarnAppState, amUser) {
+    var path,
+        link,
+        logLinks = {},
+        params = amUser ? {
+          "user.name": amUser
+        } : {};
+
+    if(attempt) {
+      link = attempt.get('inProgressLog') || attempt.get('completedLog');
+      if(link) {
+        if(!link.match("/syslog_")) {
+          path = "/syslog_" + attempt.get('id');
+          if(amUser) {
+            path += "/" + amUser;
+          }
+        }
+        logLinks.viewUrl = App.Helpers.misc.modifyUrl(link, path, params);
+      }
+
+      link = attempt.get('completedLog');
+      if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
+        params["start"] = "0";
+
+        if(!link.match("/syslog_")) {
+          path = "/syslog_" + attempt.get('id');
+          if(amUser) {
+            path += "/" + amUser;
+          }
+        }
+
+        logLinks.downloadUrl = App.Helpers.misc.modifyUrl(link, path, params);
+      }
+    }
+
+    return logLinks;
+  },
+
   timelinePathForType: (function () {
     var typeToPathMap = {
       dag: 'TEZ_DAG_ID',

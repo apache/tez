@@ -124,6 +124,8 @@ App.Vertex = App.AbstractEntity.extend({
     return this.get('dagID').split('_').splice(-1).pop();
   }.property('dagID'),
 
+  tezApp: DS.belongsTo('tezApp'),
+
   /**
    * State of this vertex. Should be one of constants defined in
    * App.VertexState.
@@ -322,6 +324,7 @@ App.TezApp = App.AbstractEntity.extend({
   appId: DS.attr('string'),
   entityType: DS.attr('string'),
   domain: DS.attr('string'),
+  user: DS.attr('string'),
 
   startedTime: DS.attr('number'),
 
@@ -349,6 +352,8 @@ App.Task = App.AbstractEntity.extend({
 
   vertex: DS.belongsTo('vertex'),
   vertexID: DS.attr('string'),
+
+  tezApp: DS.belongsTo('tezApp'),
 
   startTime: DS.attr('number'),
 

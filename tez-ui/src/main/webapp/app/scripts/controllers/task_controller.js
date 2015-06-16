@@ -25,18 +25,22 @@ App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.M
 
   loadAdditional: function(task) {
     var that = this;
+    var applicationId = App.Helpers.misc.getAppIdFromVertexId(task.get('vertexID'));
 
     var dagLoader = this.store.find('dag', task.get('dagID'));
     var vertexLoader = this.store.find('vertex', task.get('vertexID'));
+    var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId);
 
     var allLoaders = Em.RSVP.hash({
       dag: dagLoader,
-      vertex: vertexLoader
+      vertex: vertexLoader,
+      tezApp: tezAppLoader
     });
 
     allLoaders.then(function(results) {
       task.set('vertex', results.vertex);
       task.set('vertex.dag', results.dag);
+      task.set('tezApp', results.tezApp);
     }).finally(function() {
       that.set('loading', false);
     });
