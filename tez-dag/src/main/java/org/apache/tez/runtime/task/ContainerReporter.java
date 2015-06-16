@@ -52,7 +52,7 @@ public class ContainerReporter implements Callable<ContainerTask> {
   @Override
   public ContainerTask call() throws Exception {
     ContainerTask containerTask = null;
-    LOG.info("Attempting to fetch new task");
+    LOG.info("Attempting to fetch new task for container " + containerContext.getContainerIdentifier());
     containerTask = umbilical.getTask(containerContext);
     long getTaskPollStartTime = System.currentTimeMillis();
     nextGetTaskPrintTime = getTaskPollStartTime + LOG_INTERVAL;
@@ -62,7 +62,7 @@ public class ContainerReporter implements Callable<ContainerTask> {
       TimeUnit.MILLISECONDS.sleep(sleepTimeMilliSecs);
       containerTask = umbilical.getTask(containerContext);
     }
-    LOG.info("Got TaskUpdate: "
+    LOG.info("Got TaskUpdate for containerId= " + containerContext.getContainerIdentifier() + ": "
         + (System.currentTimeMillis() - getTaskPollStartTime)
         + " ms after starting to poll."
         + " TaskInfo: shouldDie: "
