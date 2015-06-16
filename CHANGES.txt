@@ -8,6 +8,8 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2486. Update tez website to include links based on
+    http://www.apache.org/foundation/marks/pmcs.html#navigation.
   TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.
   TEZ-2473. Consider using RawLocalFileSystem in MapOutput.createDiskMapOutput.
   TEZ-2538. ADDITIONAL_SPILL_COUNT wrongly populated for DefaultSorter with multiple partitions.

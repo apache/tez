@@ -45,6 +45,12 @@
     <href>http://tez.apache.org/</href>
   </bannerLeft>
 
+  <bannerRight>
+    <name>Apache Software Foundation</name>
+    <src>http://www.apache.org/images/asf_logo.gif</src>
+    <href>http://www.apache.org/</href>
+  </bannerRight>
+
   <publishDate position="right"/>
   <version position="none"/>
 
@@ -127,6 +133,13 @@
       <item name="Git (Read/Write)" href="https://git-wip-us.apache.org/repos/asf/tez.git" alt="Use git clone https://git-wip-us.apache.org/repos/asf/tez.git" />
       <item name="Git (Read-only)" href="git://git.apache.org/tez.git" alt="Use git clone git://git.apache.org/tez.git" />
       <item name="How to Contribute" href="https://cwiki.apache.org/confluence/display/TEZ/How+to+Contribute+to+Tez" alt="Detailed guide on how to contribute to Tez" />
+    </menu>
+
+    <menu name="ASF">
+      <item name="License" href="http://www.apache.org/licenses/" />
+      <item name="Donate" href="http://www.apache.org/foundation/sponsorship.html" />
+      <item name="Thanks" href="http://www.apache.org/foundation/thanks.html" />
+      <item name="Security" href="http://www.apache.org/security/" />
     </menu>
 
     <footer>
