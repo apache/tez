@@ -1194,7 +1194,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     if (dag.numCompletedVertices == dag.numVertices) {
       //Only succeed if vertices complete successfully and no terminationCause is registered.
-      if(dag.numSuccessfulVertices == dag.numVertices && dag.terminationCause == null) {
+      if(dag.numSuccessfulVertices == dag.numVertices && dag.isCommittable()) {
         if (dag.commitAllOutputsOnSuccess && !dag.committed.getAndSet(true)) {
           // start dag commit if there's any commit or just finish dag if no commit
           return dag.commitOrFinish();
@@ -1219,6 +1219,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return dag.getInternalState();
   }
 
+  // Only start commit when it is in RUNNING/COMMITTING and terminationCause is null
+  private boolean isCommittable() {
+    return terminationCause == null
+        && (getState() == DAGState.RUNNING || getState() == DAGState.COMMITTING);
+  }
+
   // triggered by commit_complete, checkCommitsForCompletion should only been called in COMMITTING/TERMINATING
   static DAGState checkCommitsForCompletion(DAGImpl dag) {
     LOG.info("Checking commits for DAG completion"
@@ -1230,8 +1236,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         + ", commitInProgress=" + dag.commitFutures.size() 
         + ", terminationCause=" + dag.terminationCause);
 
-    // terminationCause is null means commit is succeeded, otherwise terminationCause will be set.
-    if (dag.terminationCause == null) {
+    // continue the commits if DAG#isCommittable return true, otherwise go to TERMINATING or finish dag.
+    if (dag.isCommittable()) {
       Preconditions.checkState(dag.getState() == DAGState.COMMITTING,
           "DAG should be in COMMITTING state, but in " + dag.getState());
       if (!dag.commitFutures.isEmpty()) {
@@ -1809,7 +1815,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       implements SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
     public void transition(DAGImpl job, DAGEvent event) {
-      job.addDiagnostic("Job received Kill while in RUNNING state.");
+      String msg = "Job received Kill while in RUNNING state.";
+      LOG.info(msg);
+      job.addDiagnostic(msg);
       job.enactKill(DAGTerminationCause.DAG_KILL, VertexTerminationCause.DAG_KILL);
       // Commit may happen when dag is still in RUNNING (vertex group commit)
       job.cancelCommits();
@@ -1929,7 +1937,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private boolean vertexSucceeded(Vertex vertex) {
     numSuccessfulVertices++;
     boolean recoveryFailed = false;
-    if (!commitAllOutputsOnSuccess) {
+    if (!commitAllOutputsOnSuccess && isCommittable()) {
       // committing successful outputs immediately. check for shared outputs
       List<VertexGroupInfo> groupsList = vertexGroupInfo.get(vertex.getName());
       if (groupsList != null) {
