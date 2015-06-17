@@ -1660,7 +1660,7 @@ public class TestCommit {
     Assert
         .assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
     Assert.assertTrue(dag.commitFutures.isEmpty());
-    historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
+    // commit uv12 may not have started, so can't verify the VertexGroupCommitStartedEvent
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
     historyEventHandler.verifyVertexCommitStartedEvent(v1.getVertexId(), 0);
     historyEventHandler.verifyVertexFinishedEvent(v1.getVertexId(), 1);
