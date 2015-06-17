@@ -187,7 +187,7 @@ public class LocalContainerLauncher extends AbstractService implements
           return;
         } catch (Throwable e) {
           LOG.error("TezSubTaskRunner failed due to exception", e);
-          throw e;
+          throw new RuntimeException(e);
         }
       }
     }
