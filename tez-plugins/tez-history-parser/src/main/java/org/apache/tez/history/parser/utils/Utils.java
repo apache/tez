@@ -61,7 +61,7 @@ public class Utils {
         JSONObject counterGroupNode = counterGroupNodes.optJSONObject(i);
         final String groupName = counterGroupNode.optString(Constants.COUNTER_GROUP_NAME);
         final String groupDisplayName = counterGroupNode.optString(
-            Constants.COUNTER_GROUP_DISPLAY_NAME);
+            Constants.COUNTER_GROUP_DISPLAY_NAME, groupName);
 
         CounterGroup group = counters.addGroup(groupName, groupDisplayName);
 
@@ -72,7 +72,7 @@ public class Utils {
           JSONObject counterNode = counterNodes.optJSONObject(j);
           final String counterName = counterNode.getString(Constants.COUNTER_NAME);
           final String counterDisplayName =
-              counterNode.getString(Constants.COUNTER_DISPLAY_NAME);
+              counterNode.optString(Constants.COUNTER_DISPLAY_NAME, counterName);
           final long counterValue = counterNode.getLong(Constants.COUNTER_VALUE);
           TezCounter counter = group.findCounter(
               counterName,
