@@ -468,8 +468,8 @@ App.Helpers.misc = {
     downloader.then(function() {
       Em.Logger.info('Finished download');
       zipHelper.close();
-    }).catch(function() {
-      Em.Logger.error('Failed to download');
+    }).catch(function(e) {
+      Em.Logger.error('Failed to download: ' + e);
       zipHelper.abort();
     });
 
