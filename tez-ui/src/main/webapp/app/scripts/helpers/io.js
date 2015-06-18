@@ -47,7 +47,7 @@ App.Helpers.io = {
     function checkForCompletion() {
       if (hasFailed) {
         if (inProgress == 0) {
-          deferredPromise.reject("FOOBAR");
+          deferredPromise.reject("Unknown Error");
         }
         return;
       }
@@ -98,6 +98,7 @@ App.Helpers.io = {
       var xhr = $.ajax({
         crossOrigin: true,
         url: item.url,
+        dataType: 'json',
         xhrFields: {
           withCredentials: true
         },
@@ -112,7 +113,7 @@ App.Helpers.io = {
           try {
             item.onItemFetched(data, item.context);
           } catch (e) {
-            markFailed("invalid data");
+            markFailed(e || 'failed to process data');
             inProgress--;
             checkForCompletion();
             return;

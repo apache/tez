@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2567. Tez UI: download dag data does not work within ambari
   TEZ-2545. It is not necessary to start the vertex group commit when DAG is in TERMINATING
   TEZ-2554. Tez UI: View log link does not correctly propagate login crendential to read log from yarn web.
   TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.
