@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
@@ -63,6 +64,7 @@ import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -273,6 +275,65 @@ public class TestTaskRecovery {
     assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(0, task.failedAttempts);
     assertEquals(null, task.successfulAttempt);
+  }
+
+  /**
+   * restoreFromTaskStartedEvent -> restoreFromTaskAttemptFinishedEvent (KILLED) ->
+   * RecoverTranstion
+   */
+  @Test(timeout = 5000)
+  public void testRecovery_OnlyTAFinishedEvent_KILLED() {
+    restoreFromTaskStartEvent();
+    TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
+    task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+        0L, 0L, TaskAttemptState.KILLED, TaskAttemptTerminationCause.TERMINATED_BY_CLIENT,"", new TezCounters()));
+    task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    // wait for the second task attempt is scheduled
+    dispatcher.await();
+    assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
+    // taskAttempt_1 is recovered to KILLED, and new task attempt is scheduled
+    assertEquals(2, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(0, task.failedAttempts);
+    assertEquals(null, task.successfulAttempt);
+  }
+
+  /**
+   * restoreFromTaskStartedEvent -> restoreFromTaskAttemptFinishedEvent (FAILED) ->
+   * RecoverTranstion
+   */
+  @Test(timeout = 5000)
+  public void testRecovery_OnlyTAFinishedEvent_FAILED() {
+    restoreFromTaskStartEvent();
+    TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
+    task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+        0L, 0L, TaskAttemptState.FAILED, TaskAttemptTerminationCause.CONTAINER_LAUNCH_FAILED,"", new TezCounters()));
+    task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    // wait for the second task attempt is scheduled
+    dispatcher.await();
+    assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
+    // taskAttempt_1 is recovered to FAILED, and new task attempt is scheduled
+    assertEquals(2, task.getAttempts().size());
+    assertEquals(1, task.getFinishedAttemptsCount());
+    assertEquals(1, task.failedAttempts);
+    assertEquals(null, task.successfulAttempt);
+  }
+
+  /**
+   * restoreFromTaskStartedEvent -> restoreFromTaskAttemptFinishedEvent (SUCCEEDED) ->
+   * RecoverTranstion
+   */
+  @Test(timeout = 5000)
+  public void testRecovery_OnlyTAFinishedEvent_SUCCEEDED() {
+    restoreFromTaskStartEvent();
+    TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
+    try {
+      task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
+          0L, 0L, TaskAttemptState.SUCCEEDED, null ,"", new TezCounters()));
+      fail("Should fail due to no TaskAttemptStartedEvent but with TaskAttemptFinishedEvent(Succeeded)");
+    } catch (TezUncheckedException e) {
+      assertTrue(e.getMessage().contains("Could not find task attempt when trying to recover"));
+    }
   }
 
   /**
