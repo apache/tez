@@ -621,13 +621,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
                 taskAttemptFinishedEvent.getTaskAttemptID());
             this.attempts.put(taskAttemptFinishedEvent.getTaskAttemptID(),
                 recoveredAttempt);
-            if (!taskAttemptFinishedEvent.getState().equals(TaskAttemptState.KILLED)) {
+            // Allow TaskAttemptFinishedEvent without TaskAttemptStartedEvent when it is KILLED/FAILED
+            if (!taskAttemptFinishedEvent.getState().equals(TaskAttemptState.KILLED)
+                && !taskAttemptFinishedEvent.getState().equals(TaskAttemptState.FAILED)) {
               throw new TezUncheckedException("Could not find task attempt"
                   + " when trying to recover"
                   + ", taskAttemptId=" + taskAttemptFinishedEvent.getTaskAttemptID()
                   + ", taskAttemptFinishState" + taskAttemptFinishedEvent.getState());
             }
-            return recoveredState;
+            taskAttempt = recoveredAttempt;
           }
           if (getUncompletedAttemptsCount() < 0) {
             throw new TezUncheckedException("Invalid recovery event for attempt finished"
