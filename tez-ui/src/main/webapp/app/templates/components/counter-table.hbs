@@ -33,11 +33,22 @@
     <tbody>
       {{#each counterGroup in filteredData}}
         <tr class='group-header'>
-          <td colspan='2'>{{counterGroup.counterGroupDisplayName}}</td>
+          <td colspan='2'>
+            {{#if counterGroup.counterGroupDisplayName}}
+              {{counterGroup.counterGroupDisplayName}}
+            {{else}}
+              {{counterGroup.counterGroupName}}
+            {{/if}}
+          </td>
         </tr>
         {{#each counter in counterGroup.counters}}
           <tr>
-            <td>{{counter.counterDisplayName}}</td>
+            <td>{{#if counter.counterDisplayName}}
+                  {{counter.counterDisplayName}}
+                {{else}}
+                  {{counter.counterName}}
+                {{/if}}
+            </td>
             <td>{{formatNumThousands counter.counterValue}}</td>
           </tr>
         {{/each}}

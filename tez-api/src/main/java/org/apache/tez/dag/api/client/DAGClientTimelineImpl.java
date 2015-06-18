@@ -348,7 +348,7 @@ public class DAGClientTimelineImpl extends DAGClient {
 
     final String groupName = counterGroupNode.optString(ATSConstants.COUNTER_GROUP_NAME);
     final String groupDisplayName = counterGroupNode.optString(
-        ATSConstants.COUNTER_GROUP_DISPLAY_NAME);
+        ATSConstants.COUNTER_GROUP_DISPLAY_NAME, groupName);
     final JSONArray counterNodes = counterGroupNode.optJSONArray(ATSConstants.COUNTERS);
     final int numCounters = counterNodes.length();
 
@@ -357,7 +357,8 @@ public class DAGClientTimelineImpl extends DAGClient {
     for (int i = 0; i < numCounters; i++) {
       final JSONObject counterNode = counterNodes.getJSONObject(i);
       final String counterName = counterNode.getString(ATSConstants.COUNTER_NAME);
-      final String counterDisplayName = counterNode.getString(ATSConstants.COUNTER_DISPLAY_NAME);
+      final String counterDisplayName = counterNode.optString(ATSConstants.COUNTER_DISPLAY_NAME,
+          counterName);
       final long counterValue = counterNode.getLong(ATSConstants.COUNTER_VALUE);
 
       counters.add(

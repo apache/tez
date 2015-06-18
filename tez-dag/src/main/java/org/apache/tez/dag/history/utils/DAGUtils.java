@@ -113,21 +113,29 @@ public class DAGUtils {
       }
     ArrayList<Object> counterGroupsList = new ArrayList<Object>();
     for (CounterGroup group : counters) {
-        Map<String,Object> counterGroupMap = new LinkedHashMap<String, Object>();
-        counterGroupMap.put(ATSConstants.COUNTER_GROUP_NAME, group.getName());
-        counterGroupMap.put(ATSConstants.COUNTER_GROUP_DISPLAY_NAME,
-                group.getDisplayName());
         ArrayList<Object> counterList = new ArrayList<Object>();
         for (TezCounter counter : group) {
+          if (counter.getValue() != 0) {
             Map<String,Object> counterMap = new LinkedHashMap<String, Object>();
             counterMap.put(ATSConstants.COUNTER_NAME, counter.getName());
-            counterMap.put(ATSConstants.COUNTER_DISPLAY_NAME,
+            if (!counter.getDisplayName().equals(counter.getName())) {
+              counterMap.put(ATSConstants.COUNTER_DISPLAY_NAME,
                     counter.getDisplayName());
+            }
             counterMap.put(ATSConstants.COUNTER_VALUE, counter.getValue());
             counterList.add(counterMap);
           }
-        putInto(counterGroupMap, ATSConstants.COUNTERS, counterList);
-        counterGroupsList.add(counterGroupMap);
+        }
+        if (!counterList.isEmpty()) {
+          Map<String,Object> counterGroupMap = new LinkedHashMap<String, Object>();
+          counterGroupMap.put(ATSConstants.COUNTER_GROUP_NAME, group.getName());
+          if (!group.getDisplayName().equals(group.getName())) {
+            counterGroupMap.put(ATSConstants.COUNTER_GROUP_DISPLAY_NAME,
+                group.getDisplayName());
+          }
+          counterGroupMap.put(ATSConstants.COUNTERS, counterList);
+          counterGroupsList.add(counterGroupMap);
+        }
       }
     putInto(object, ATSConstants.COUNTER_GROUPS, counterGroupsList);
     return object;
