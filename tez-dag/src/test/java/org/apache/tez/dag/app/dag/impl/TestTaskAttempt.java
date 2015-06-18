@@ -1169,14 +1169,14 @@ public class TestTaskAttempt {
     TezTaskAttemptID mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
     TezEvent tzEvent = new TezEvent(mockReEvent, mockMeta);
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 4));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
     
     // failure threshold not met. state is SUCCEEDED
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
 
     // sending same error again doesnt change anything
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 4));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
     assertEquals("Task attempt is not in succeeded state", taImpl.getState(),
         TaskAttemptState.SUCCEEDED);
     // default value of error cause
@@ -1185,7 +1185,7 @@ public class TestTaskAttempt {
     // different destination attempt reports error. now threshold crossed
     TezTaskAttemptID mockDestId2 = mock(TezTaskAttemptID.class);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId2);    
-    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 4));
+    taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
     
     assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
         TaskAttemptState.FAILED);
@@ -1210,6 +1210,41 @@ public class TestTaskAttempt {
     // No new events.
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(
         arg.capture());
+
+    taskConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, 1);
+    TezTaskID taskID2 = TezTaskID.getInstance(vertexID, 2);
+    MockTaskAttemptImpl taImpl2 = new MockTaskAttemptImpl(taskID2, 1, eventHandler,
+        taListener, taskConf, new SystemClock(),
+        mockHeartbeatHandler, appCtx, false,
+        resource, createFakeContainerContext(), false);
+    TezTaskAttemptID taskAttemptID2 = taImpl2.getID();
+
+    taImpl2.handle(new TaskAttemptEventSchedule(taskAttemptID2, 0, 0));
+    // At state STARTING.
+    taImpl2.handle(new TaskAttemptEventStartedRemotely(taskAttemptID2, contId, null));
+    verify(mockHeartbeatHandler).register(taskAttemptID2);
+    taImpl2.handle(new TaskAttemptEvent(taskAttemptID2, TaskAttemptEventType.TA_DONE));
+    assertEquals("Task attempt is not in succeeded state", taImpl2.getState(),
+        TaskAttemptState.SUCCEEDED);
+    verify(mockHeartbeatHandler).unregister(taskAttemptID2);
+
+    mockReEvent = InputReadErrorEvent.create("", 1, 1);
+    mockMeta = mock(EventMetaData.class);
+    mockDestId1 = mock(TezTaskAttemptID.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
+    tzEvent = new TezEvent(mockReEvent, mockMeta);
+    //This should fail even when MAX_ALLOWED_OUTPUT_FAILURES_FRACTION is within limits, as
+    // MAX_ALLOWED_OUTPUT_FAILURES has crossed the limit.
+    taImpl2.handle(new TaskAttemptEventOutputFailed(taskAttemptID2, tzEvent, 8));
+    assertEquals("Task attempt is not in succeeded state", taImpl2.getState(),
+        TaskAttemptState.FAILED);
+
+    assertEquals("Task attempt is not in FAILED state", taImpl2.getState(),
+        TaskAttemptState.FAILED);
+    assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl2.getTerminationCause());
+    // verify unregister is not invoked again
+    verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID2);
+
   }
 
   @SuppressWarnings("deprecation")

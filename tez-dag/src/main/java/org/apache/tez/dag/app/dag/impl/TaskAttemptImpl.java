@@ -156,10 +156,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
   Set<String> taskRacks = new HashSet<String>();
-  
+
   private Set<TezTaskAttemptID> uniquefailedOutputReports = 
       new HashSet<TezTaskAttemptID>();
-  private static final double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = 0.25;
+  private static double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION;
+  private static int MAX_ALLOWED_OUTPUT_FAILURES;
 
   protected final boolean isRescheduled;
   private final Resource taskResource;
@@ -410,6 +411,14 @@ public class TaskAttemptImpl implements TaskAttempt,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
       Task task) {
+
+    this.MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
+        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
+        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
+
+    this.MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = conf.getDouble(TezConfiguration
+        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, TezConfiguration
+        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT);
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -1458,15 +1467,23 @@ public class TaskAttemptImpl implements TaskAttempt,
       attempt.uniquefailedOutputReports.add(failedDestTaId);
       float failureFraction = ((float) attempt.uniquefailedOutputReports.size())
           / outputFailedEvent.getConsumerTaskNumber();
-      
-      // If needed we can also use the absolute number of reported output errors
+
+      boolean withinFailureFractionLimits =
+          (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION);
+      boolean withinOutputFailureLimits =
+          (attempt.uniquefailedOutputReports.size() < MAX_ALLOWED_OUTPUT_FAILURES);
+
       // If needed we can launch a background task without failing this task
       // to generate a copy of the output just in case.
       // If needed we can consider only running consumer tasks
-      if (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION) {
+      if (withinFailureFractionLimits && withinOutputFailureLimits) {
         return attempt.getInternalState();
       }
-      String message = attempt.getID() + " being failed for too many output errors";
+      String message = attempt.getID() + " being failed for too many output errors. "
+          + "failureFraction=" + failureFraction + ", "
+          + "MAX_ALLOWED_OUTPUT_FAILURES_FRACTION=" + MAX_ALLOWED_OUTPUT_FAILURES_FRACTION + ", "
+          + "uniquefailedOutputReports=" + attempt.uniquefailedOutputReports.size() + ", "
+          + "MAX_ALLOWED_OUTPUT_FAILURES=" + MAX_ALLOWED_OUTPUT_FAILURES;
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
       // send input failed event

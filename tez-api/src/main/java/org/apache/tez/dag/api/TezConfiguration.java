@@ -208,6 +208,30 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_LOG_LEVEL_DEFAULT = "INFO";
 
   /**
+   * double value. Represents ratio of unique failed outputs / number of consumer
+   * tasks. When this condition or value mentioned in {@link
+   * #TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES} is met, task would be declared as failed by AM.
+   *
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION =
+      TEZ_TASK_PREFIX + "max.allowed.output.failures.fraction";
+  public static final double TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT = 0.1;
+
+  /**
+   * Int value. Represents maximum allowed unique failures after which a task would be
+   * declared as failed by AM. When this condition or the threshold mentioned in {@link
+   * #TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION} is met, task would be relaunched by AM.
+   *
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES =
+      TEZ_TASK_PREFIX + "max.allowed.output.failures";
+  public static final int TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT = 10;
+
+  /**
    * Boolean value. Determines when the final outputs to data sinks are committed. Commit is an
    * output specific operation and typically involves making the output visible for consumption. 
    * If the config is true, then the outputs are committed at the end of DAG completion after all 
