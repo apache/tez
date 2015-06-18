@@ -54,6 +54,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
     <build.time>${maven.build.timestamp}</build.time>
+    <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
   </properties>
   <scm>
     <connection>${scm.url}</connection>
