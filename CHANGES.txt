@@ -5,6 +5,7 @@ Apache Tez Change Log
 Release 0.8.0: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
