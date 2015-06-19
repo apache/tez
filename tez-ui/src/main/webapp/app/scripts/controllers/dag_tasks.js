@@ -177,7 +177,11 @@ App.DagTasksController = App.TablePageController.extend({
         }
       }
     ];
-  }.property('id'),
+  }.property(
+    'controllers.dag.vertexIdToNameMap',
+    'controllers.dag.yarnAppState',
+    'controllers.dag.tezApp.user'
+  ),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -188,6 +192,6 @@ App.DagTasksController = App.TablePageController.extend({
         )
       )
     );
-  }.property(),
+  }.property('defaultColumnConfigs'),
 
 });

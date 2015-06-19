@@ -171,7 +171,7 @@ App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColum
         }
       }
     ];
-  }.property('filterEntityId'),
+  }.property('yarnAppState', 'controllers.task.tezApp.user'),
 
 });
 
