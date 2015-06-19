@@ -698,6 +698,7 @@
             </environmentVariables>
             <systemPropertyVariables>
               <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
+              <tez.hadoop.version>${hadoop.version}</tez.hadoop.version>
             </systemPropertyVariables>
           </configuration>
         </plugin>
