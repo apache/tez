@@ -150,7 +150,7 @@ App.TezAppDagsController = App.TablePageController.extend({
         },
       }
     ];
-  }.property('id'),
+  }.property(),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -161,6 +161,6 @@ App.TezAppDagsController = App.TablePageController.extend({
         )
       )
     );
-  }.property(),
+  }.property('defaultColumnConfigs'),
 
 });

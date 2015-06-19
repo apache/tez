@@ -59,7 +59,7 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
   },
 
   defaultColumnConfigs: function() {
-    var that = this;
+    var vertexIdToNameMap = this.get('vertexIdToNameMap');
     return [
       {
         id: 'taskId',
@@ -74,8 +74,7 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
         id: 'vertexName',
         headerCellName: 'Vertex Name',
         getCellContent: function(row) {
-          var vertexId = row.get('vertexID'),
-              vertexIdToNameMap = that.get('vertexIdToNameMap');
+          var vertexId = row.get('vertexID');
           return vertexIdToNameMap[vertexId] || vertexId;
         }
       },
@@ -112,8 +111,7 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
         }
       }
     ];
-    
-  }.property('id'),
+  }.property('vertexIdToNameMap'),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -124,6 +122,6 @@ App.TasksController = Em.ObjectController.extend(App.PaginatedContentMixin, App.
         )
       )
     );
-  }.property(),
+  }.property('defaultColumnConfigs'),
 
 });

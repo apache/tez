@@ -160,6 +160,6 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
         }
       }
     ];
-  }.property('filterEntityId')
+  }.property('controllers.vertex.yarnAppState', 'controllers.vertex.tezApp.user')
 
 });

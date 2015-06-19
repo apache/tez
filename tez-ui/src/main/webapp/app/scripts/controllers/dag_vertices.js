@@ -81,8 +81,6 @@ App.DagVerticesController = App.TablePageController.extend({
   },
 
   defaultColumnConfigs: function() {
-    var that = this;
-
     function onProgressChange() {
       var progress = this.get('vertex.progress'),
           pct;
@@ -204,7 +202,7 @@ App.DagVerticesController = App.TablePageController.extend({
         }
       }
     ];
-  }.property('id'),
+  }.property(),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -215,6 +213,6 @@ App.DagVerticesController = App.TablePageController.extend({
         )
       )
     );
-  }.property(),
+  }.property('defaultColumnConfigs'),
 
 });

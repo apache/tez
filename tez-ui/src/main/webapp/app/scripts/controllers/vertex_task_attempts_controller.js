@@ -189,6 +189,6 @@ App.VertexTaskAttemptsController = App.TablePageController.extend(App.AutoCounte
         }
       }
     ];
-  }.property('filterEntityId'),
+  }.property('controllers.vertex.yarnAppState', 'controllers.vertex.tezApp.user'),
 
 });

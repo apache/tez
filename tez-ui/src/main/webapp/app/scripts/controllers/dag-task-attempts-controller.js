@@ -206,7 +206,11 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         }
       }
     ];
-  }.property(),
+  }.property(
+    'controllers.dag.vertexIdToNameMap',
+    'controllers.dag.yarnAppState',
+    'controllers.dag.tezApp.user'
+  ),
 
   columnConfigs: function() {
     return this.get('defaultColumnConfigs').concat(
@@ -217,6 +221,6 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         )
       )
     );
-  }.property(),
+  }.property('defaultColumnConfigs'),
 
 });

@@ -89,6 +89,6 @@ App.VertexInputsController = Em.ObjectController.extend(App.PaginatedContentMixi
         )
       )
     );
-  }.property(),
+  }.property('defaultColumnConfigs'),
 
 });
