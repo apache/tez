@@ -7,6 +7,7 @@ ALL CHANGES:
   TEZ-2569. branch 0.5 build fails due to cannot find symbol TaskAttemptTerminationCause
   TEZ-1529. ATS and TezClient integration in secure kerberos enabled cluster.
   TEZ-2557. Port TEZ-1910 to branch-0.5.
+  TEZ-2561. Port for TaskAttemptListenerImpTezDag should be configurable
   TEZ-2566. Allow TaskAttemptFinishedEvent without TaskAttemptStartedEvent when it is KILLED/FAILED
   TEZ-2475. Fix a potential hang in Tez local mode caused by incorrectly handled interrupts.
   TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.

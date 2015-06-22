@@ -129,6 +129,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             .setNumHandlers(
                 conf.getInt(TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
                     TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
+            .setPortRangeConfig(TezConfiguration.TEZ_AM_TASK_AM_PORT_RANGE)
             .setSecretManager(jobTokenSecretManager).build();
 
         // Enable service authorization?
@@ -140,6 +141,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
         server.start();
         this.address = NetUtils.getConnectAddress(server);
+        LOG.info("Instantiated TaskAttemptListener RPC at " + this.address);
       } catch (IOException e) {
         throw new TezUncheckedException(e);
       }
