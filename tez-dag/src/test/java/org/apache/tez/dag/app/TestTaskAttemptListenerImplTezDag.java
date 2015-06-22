@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -30,7 +31,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -40,6 +43,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -54,7 +58,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventType;
@@ -232,6 +235,59 @@ public class TestTaskAttemptListenerImplTezDag {
     assertEquals(2, response.getNextFromEventId());
     assertEquals(1, response.getLastRequestId());
     assertEquals(eventsToSend, response.getEvents());
+  }
+
+  //try 10 times to allocate random port, fail it if no one is succeed.
+  @Test (timeout = 5000)
+  public void testPortRange() {
+    boolean succeedToAllocate = false;
+    Random rand = new Random();
+    for (int i = 0; i < 10; ++i) {
+      int nextPort = 1024 + rand.nextInt(65535 - 1024);
+      if (testPortRange(nextPort)) {
+        succeedToAllocate = true;
+        break;
+      }
+    }
+    if (!succeedToAllocate) {
+      fail("Can not allocate free port even in 10 iterations for TaskAttemptListener");
+    }
+  }
+
+  @Test (timeout= 5000)
+  public void testPortRange_NotSpecified() {
+    Configuration conf = new Configuration();
+    taskAttemptListener = new TaskAttemptListenerImpTezDag(appContext,
+        mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null);
+    // no exception happen, should started properly
+    taskAttemptListener.init(conf);
+    taskAttemptListener.start();
+  }
+
+  private boolean testPortRange(int port) {
+    boolean succeedToAllocate = true;
+    try {
+      Configuration conf = new Configuration();
+      conf.set(TezConfiguration.TEZ_AM_TASK_AM_PORT_RANGE, port + "-" + port);
+      taskAttemptListener = new TaskAttemptListenerImpTezDag(appContext,
+          mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null);
+      taskAttemptListener.init(conf);
+      taskAttemptListener.start();
+      int resultedPort = taskAttemptListener.getAddress().getPort();
+      assertEquals(port, resultedPort);
+    } catch (Exception e) {
+      succeedToAllocate = false;
+    } finally {
+      if (taskAttemptListener != null) {
+        try {
+          taskAttemptListener.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+          fail("fail to stop TaskAttemptListener");
+        }
+      }
+    }
+    return succeedToAllocate;
   }
 
   private TezHeartbeatResponse generateHeartbeat(List<TezEvent> events,

@@ -490,11 +490,21 @@ public class TezConfiguration extends Configuration {
   
   /**
    * String value. Range of ports that the AM can use when binding for client connections. Leave blank
-   * to use all possible ports. Expert level setting.
+   * to use all possible ports. Expert level setting. It's hadoop standard range configuration.
+   * For example 50000-50050,50100-50200
    */
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_AM_CLIENT_AM_PORT_RANGE =
       TEZ_AM_PREFIX + "client.am.port-range";
+
+  /**
+   * String value. Range of ports that the AM can use when binding for task connections. Leave blank
+   * to use all possible ports. Expert level setting. It's hadoop standard range configuration.
+   * For example 50000-50050,50100-50200
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_TASK_AM_PORT_RANGE =
+      TEZ_AM_PREFIX + "task.am.port-range";
 
   /**
    * String value. The class to be used for DAG Scheduling. Expert level setting.
