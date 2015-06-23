@@ -41,6 +41,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2568. V_INPUT_DATA_INFORMATION may happen after vertex is initialized
   TEZ-2291. TEZ UI: Improper vertex name in tables.
   TEZ-2567. Tez UI: download dag data does not work within ambari
   TEZ-2559. tez-ui fails compilation due to version dependency of frontend-maven-plugin
