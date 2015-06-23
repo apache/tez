@@ -4680,11 +4680,12 @@ public class TestVertexImpl {
     initializerManager1.completeInputInitialization(0, 5, v1Hints);
     dispatcher.await();
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
-
+    Assert.assertEquals(1, v1.numInitializerCompletionsHandled);
     // Complete second initializer
     initializerManager1.completeInputInitialization(1);
     dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
+    Assert.assertEquals(2, v1.numInitializerCompletionsHandled);
   }
 
   @Test(timeout = 5000)
@@ -4709,11 +4710,12 @@ public class TestVertexImpl {
     initializerManager1.completeInputInitialization(1);
     dispatcher.await();
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
-
+    Assert.assertEquals(1, v1.numInitializerCompletionsHandled);
     // Complete second initializer which sets parallelism
     initializerManager1.completeInputInitialization(0, 5, v1Hints);
     dispatcher.await();
     Assert.assertEquals(VertexState.INITED, v1.getState());
+    Assert.assertEquals(2, v1.numInitializerCompletionsHandled);
   }
 
   @Test(timeout = 500000)
