@@ -24,13 +24,13 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BoundedByteArrayOutputStream;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.RawComparator;
@@ -41,9 +41,14 @@ import org.apache.hadoop.util.Progressable;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryWriter;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MergeManager;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.TestMergeManager;
 import org.junit.AfterClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -53,6 +58,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestTezMerger {
 
@@ -69,6 +75,8 @@ public class TestTezMerger {
 
   //store the generated data for final verification
   private static ListMultimap<Integer, Long> verificationDataSet = LinkedListMultimap.create();
+
+  private MergeManager merger = mock(MergeManager.class);
 
   static {
     defaultConf.set("fs.defaultFS", "file:///");
@@ -600,6 +608,11 @@ public class TestTezMerger {
         null,
         new Progress());
 
+    verifyData(records);
+    verificationDataSet.clear();
+  }
+
+  private void verifyData(TezRawKeyValueIterator records) throws IOException {
     //Verify the merged data is correct
     Map<Integer, Integer> dataMap = Maps.newHashMap();
     int pk = -1;
@@ -646,7 +659,6 @@ public class TestTezMerger {
     }
 
     LOG.info("******************");
-    verificationDataSet.clear();
   }
 
   private List<Path> createIFiles(int fileCount, int keysPerFile)
@@ -659,6 +671,95 @@ public class TestTezMerger {
       pathList.add(ifilePath);
     }
     return pathList;
+  }
+
+  @Test(timeout = 20000)
+  public void testMergeSegments() throws Exception {
+    List<TezMerger.Segment> segments = Lists.newLinkedList();
+    segments.addAll(createInMemorySegments(10, 100));
+    segments.addAll(createDiskSegments(10, 100));
+    mergeSegments(segments, 5, true);
+    verificationDataSet.clear();
+    segments.clear();
+
+    segments.addAll(createDiskSegments(10, 100));
+    mergeSegments(segments, 5, true);
+    verificationDataSet.clear();
+    segments.clear();
+
+    segments.addAll(createInMemorySegments(3, 100));
+    mergeSegments(segments, 5, false);
+    verificationDataSet.clear();
+    segments.clear();
+  }
+
+  @SuppressWarnings("unchecked")
+  private void mergeSegments(List<TezMerger.Segment> segmentList, int mergeFactor, boolean
+      hasDiskSegments) throws Exception {
+    //Merge datasets
+    TezMerger.MergeQueue mergeQueue = new TezMerger.MergeQueue(defaultConf, localFs, segmentList,
+        comparator, new Reporter(), false, false);
+
+    TezRawKeyValueIterator records = mergeQueue.merge(IntWritable.class, LongWritable.class,
+        mergeFactor, new Path(workDir, "tmp_"
+        + System.nanoTime()), null, null, null, null);
+
+    //Verify the merged data is correct
+    verifyData(records);
+
+    //ensure disk buffers are used
+    int diskBufLen = mergeQueue.diskIFileValue.getLength();
+    assertTrue(diskBufLen + " disk buf length should be > 0", (hasDiskSegments == diskBufLen > 0));
+
+    verificationDataSet.clear();
+  }
+
+  private List<TezMerger.Segment> createInMemorySegments(int segmentCount, int keysPerSegment)
+      throws IOException {
+    List<TezMerger.Segment> segmentList = Lists.newLinkedList();
+    Random rnd = new Random();
+    DataInputBuffer key = new DataInputBuffer();
+    DataInputBuffer value = new DataInputBuffer();
+    for (int i = 0; i < segmentCount; i++) {
+      BoundedByteArrayOutputStream stream = new BoundedByteArrayOutputStream(10000);
+      InMemoryWriter writer = new InMemoryWriter(stream);
+
+      for (int j = 0; j < keysPerSegment; j++) {
+        populateData(new IntWritable(rnd.nextInt()), new LongWritable(rnd.nextLong()), key, value);
+        writer.append(key, value);
+      }
+      writer.close();
+      InMemoryReader reader = new InMemoryReader(merger, null, stream.getBuffer(), 0, stream.getLimit());
+
+      segmentList.add(new TezMerger.Segment(reader, true, null));
+    }
+    return segmentList;
+  }
+
+  private void populateData(IntWritable intKey, LongWritable longVal, DataInputBuffer key,
+      DataInputBuffer value)
+      throws  IOException {
+    DataOutputBuffer k = new DataOutputBuffer();
+    DataOutputBuffer v = new DataOutputBuffer();
+    intKey.write(k);
+    longVal.write(v);
+    key.reset(k.getData(), 0, k.getLength());
+    value.reset(v.getData(), 0, v.getLength());
+    verificationDataSet.put(intKey.get(), longVal.get());
+  }
+
+  private List<TezMerger.Segment> createDiskSegments(int segmentCount, int keysPerSegment) throws
+      IOException {
+    List<TezMerger.Segment> segmentList = Lists.newLinkedList();
+    Random rnd = new Random();
+    for (int i = 0; i < segmentCount; i++) {
+      int repeatCount = ((i % 2 == 0) && keysPerSegment > 0) ? rnd.nextInt(keysPerSegment) : 0;
+      Path ifilePath = writeIFile(keysPerSegment, repeatCount);
+
+      segmentList.add(new TezMerger.Segment(localFs, ifilePath, 0, localFs.getFileStatus
+          (ifilePath).getLen(), null, false, 1024, 1024, false, null));
+    }
+    return segmentList;
   }
 
   static Path writeIFile(int keysPerFile, int repeatCount) throws

@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -375,7 +376,8 @@ public class TezMerger {
     }
   }
 
-  private static class MergeQueue<K extends Object, V extends Object> 
+  @VisibleForTesting
+  static class MergeQueue<K extends Object, V extends Object>
   extends PriorityQueue<Segment> implements TezRawKeyValueIterator {
     Configuration conf;
     FileSystem fs;
@@ -566,6 +568,8 @@ public class TezMerger {
         }
       }
       minSegment = top();
+      long startPos = minSegment.getPosition();
+      key = minSegment.getKey();
       if (!minSegment.inMemory()) {
         //When we load the value from an inmemory segment, we reset
         //the "value" DIB in this class to the inmem segment's byte[].
@@ -576,11 +580,11 @@ public class TezMerger {
         //segment, we reset the "value" DIB to the byte[] in that (so 
         //we reuse the disk segment DIB whenever we consider
         //a disk segment).
+        minSegment.getValue(diskIFileValue);
         value.reset(diskIFileValue.getData(), diskIFileValue.getLength());
+      } else {
+        minSegment.getValue(value);
       }
-      long startPos = minSegment.getPosition();
-      key = minSegment.getKey();
-      minSegment.getValue(value);
       long endPos = minSegment.getPosition();
       totalBytesProcessed += endPos - startPos;
       mergeProgress.set(totalBytesProcessed * progPerByte);
