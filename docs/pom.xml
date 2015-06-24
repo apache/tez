@@ -410,9 +410,6 @@
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes>
-              <exclude>**/*.eps</exclude>
-            </excludes>
           </configuration>
         </plugin>
         <plugin>

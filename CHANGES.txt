@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2570. Fix license header issue for eps image files.
   TEZ-2378. In case Fetcher (unordered) fails to do local fetch, log in debug mode to reduce log size.
   TEZ-1314. Port MAPREDUCE-5821 to Tez.
   TEZ-2558. Upload additional Tez images.
