@@ -577,8 +577,11 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
                   host + " : " + e.getClass().getName() + ", message=" + e.getMessage());
           break;
         }
-        LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host + "(local fetch)",
-            e);
+        if (failMissing) {
+          LOG.warn(
+              "Failed to shuffle output of " + srcAttemptId + " from " + host + "(local fetch)",
+              e);
+        }
       }
     }
 
