@@ -47,6 +47,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.tez.runtime.api.VertexStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -5776,6 +5777,36 @@ public class TestVertexImpl {
     String diagnostics = StringUtils.join(v2.getDiagnostics(), ",");
     assertTrue(diagnostics.contains(IIExceptionLocation.OnVertexStateUpdated.name()));
     Assert.assertEquals(VertexTerminationCause.ROOT_INPUT_INIT_FAILURE, v2.getTerminationCause());
+  }
+
+  @Test (timeout=5000)
+  public void testCompletedStatsCache() {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v = vertices.get("vertex2");
+    startVertex(v);
+
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+
+    dispatcher.getEventHandler().handle(new TaskEventTAUpdate(TezTaskAttemptID.getInstance(t1, 0),
+        TaskEventType.T_ATTEMPT_LAUNCHED));
+    dispatcher.getEventHandler().handle(new TaskEventTAUpdate(TezTaskAttemptID.getInstance(t1, 0),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
+    dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.await();
+
+
+    VertexStatistics stats = v.getStatistics();
+
+    //Ensure that task 0 is available in completed stats cache
+    Assert.assertTrue(v.completedTasksStatsCache.taskSet.get(0));
+
+    //Reschedule task 0
+    dispatcher.getEventHandler().handle(new VertexEventTaskReschedule(t1));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+
+    //cache should be cleared
+    Assert.assertTrue(v.completedTasksStatsCache.taskSet.cardinality() == 0);
   }
 
   @Test (timeout = 5000)

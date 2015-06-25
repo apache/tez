@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.dag.impl;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -76,6 +77,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.ProgressBuilder;
@@ -783,7 +785,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private VertexStats vertexStats = null;
 
   private final TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOpts;
-  
+
+  @VisibleForTesting
+  VertexStatisticsImpl completedTasksStatsCache;
+
   static class EventInfo {
     final TezEvent tezEvent;
     final Edge eventEdge;
@@ -814,23 +819,25 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   class VertexStatisticsImpl implements VertexStatistics {
     final Map<String, IOStatisticsImpl> ioStats;
-    
+    final BitSet taskSet;
+
     public VertexStatisticsImpl() {
       ioStats = Maps.newHashMapWithExpectedSize(ioIndices.size());
-      for (String name : ioIndices.keySet()) {
+      taskSet = new BitSet();
+      for (String name : getIOIndices().keySet()) {
         ioStats.put(name, new IOStatisticsImpl());
       }
     }
-    
+
     public IOStatisticsImpl getIOStatistics(String ioName) {
       return ioStats.get(ioName);
     }
-    
+
     void mergeFrom(TaskStatistics taskStats) {
       if (taskStats == null) {
         return;
       }
-      
+
       for (Map.Entry<String, org.apache.tez.runtime.api.impl.IOStatistics> entry : taskStats
           .getIOStatistics().entrySet()) {
         String ioName = entry.getKey();
@@ -850,8 +857,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     public OutputStatistics getOutputStatistics(String outputName) {
       return getIOStatistics(outputName);
     }
+
+    void addTask(TezTaskID taskID) {
+      taskSet.set(taskID.getId());
+    }
+
+    boolean containsTask(TezTaskID taskID) {
+      return taskSet.get(taskID.getId());
+    }
   }
-  
+
+  void resetCompletedTaskStatsCache(boolean recompute) {
+    completedTasksStatsCache = new VertexStatisticsImpl();
+    if (recompute) {
+      for (Task t : getTasks().values()) {
+        if (t.getState() == TaskState.SUCCEEDED) {
+          completedTasksStatsCache.mergeFrom(((TaskImpl) t).getStatistics());
+        }
+      }
+    }
+  }
+
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration dagConf, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Clock clock,
@@ -3595,15 +3621,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.constructFinalFullcounters();
     }
   }
-  
+
   private VertexStatisticsImpl constructStatistics() {
-    VertexStatisticsImpl stats = new VertexStatisticsImpl();
-    for (Task t : this.tasks.values()) {
-      TaskStatistics  taskStats = ((TaskImpl)t).getStatistics();
-      stats.mergeFrom(taskStats);
-    }
-    
-    return stats;
+    return completedTasksStatsCache;
   }
 
   @Private
@@ -3816,6 +3836,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
+      if (vertex.completedTasksStatsCache == null) {
+        vertex.resetCompletedTaskStatsCache(false);
+      }
       boolean forceTransitionToKillWait = false;
       vertex.completedTaskCount++;
       LOG.info("Num completed Tasks for " + vertex.logIdentifier + " : "
@@ -3824,6 +3847,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       Task task = vertex.tasks.get(taskEvent.getTaskID());
       if (taskEvent.getState() == TaskState.SUCCEEDED) {
         taskSucceeded(vertex, task);
+        if (!vertex.completedTasksStatsCache.containsTask(task.getTaskId())) {
+          vertex.completedTasksStatsCache.addTask(task.getTaskId());
+          vertex.completedTasksStatsCache.mergeFrom(((TaskImpl) task).getStatistics());
+        }
       } else if (taskEvent.getState() == TaskState.FAILED) {
         LOG.info("Failing vertex: " + vertex.logIdentifier +
             " because task failed: " + taskEvent.getTaskID());
@@ -3871,6 +3898,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       //succeeded task is restarted back
       vertex.completedTaskCount--;
       vertex.succeededTaskCount--;
+      vertex.resetCompletedTaskStatsCache(true);
     }
   }
 

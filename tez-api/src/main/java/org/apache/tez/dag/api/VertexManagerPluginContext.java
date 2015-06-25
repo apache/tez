@@ -29,7 +29,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.VertexStatistics;
@@ -61,7 +60,7 @@ public interface VertexManagerPluginContext {
       return locationHint;
     }
   }
-  
+
   /**
    * Get the edge properties on the input edges of this vertex. The input edge 
    * is represented by the source vertex name
@@ -79,9 +78,9 @@ public interface VertexManagerPluginContext {
   /**
    * Get a {@link VertexStatistics} object to find out execution statistics
    * about the given {@link Vertex}.
-   * <br>This only provides point in time values for the statistics and must be
-   * called again to get updated values.
-   * 
+   * <br>This only provides point in time values for statistics (completed tasks)
+   * and must be called again to get updated values.
+   *
    * @param vertexName
    *          Name of the {@link Vertex}
    * @return {@link VertexStatistics} for the given vertex
