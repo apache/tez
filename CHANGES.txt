@@ -13,7 +13,6 @@ ALL CHANGES:
   TEZ-2296. Add option to print counters for tez-examples.
   TEZ-2570. Fix license header issue for eps image files.
   TEZ-2378. In case Fetcher (unordered) fails to do local fetch, log in debug mode to reduce log size.
-  TEZ-1314. Port MAPREDUCE-5821 to Tez.
   TEZ-2558. Upload additional Tez images.
   TEZ-2486. Update tez website to include links based on
     http://www.apache.org/foundation/marks/pmcs.html#navigation.
@@ -46,6 +45,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-1314. Port MAPREDUCE-5821 to Tez.
   TEZ-2568. V_INPUT_DATA_INFORMATION may happen after vertex is initialized
   TEZ-2291. TEZ UI: Improper vertex name in tables.
   TEZ-2567. Tez UI: download dag data does not work within ambari
