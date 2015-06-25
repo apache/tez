@@ -53,9 +53,15 @@ public abstract class TezExampleBase extends Configured implements Tool {
   private TezClient tezClientInternal;
   protected static final String DISABLE_SPLIT_GROUPING = "disableSplitGrouping";
   protected static final String LOCAL_MODE = "local";
+  protected static final String COUNTER_LOG = "counter";
 
   private boolean disableSplitGrouping = false;
   private boolean isLocalMode = false;
+  private boolean isCountersLog = false;
+
+  protected boolean isCountersLog() {
+	  return isCountersLog;
+  }
 
   protected boolean isDisableSplitGrouping() {
     return disableSplitGrouping;
@@ -65,6 +71,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     Options options = new Options();
     options.addOption(LOCAL_MODE, false, "run it as local mode");
     options.addOption(DISABLE_SPLIT_GROUPING, false , "disable split grouping");
+    options.addOption(COUNTER_LOG, false , "print counter log");
     return options;
   }
 
@@ -79,6 +86,10 @@ public abstract class TezExampleBase extends Configured implements Tool {
     if (optionParser.getCommandLine().hasOption(DISABLE_SPLIT_GROUPING)) {
       disableSplitGrouping = true;
     }
+    if (optionParser.getCommandLine().hasOption(COUNTER_LOG)) {
+        isCountersLog = true;
+    }
+
     return _execute(otherArgs, null, null);
   }
 
@@ -107,6 +118,9 @@ public abstract class TezExampleBase extends Configured implements Tool {
     }
     if (optionParser.getCommandLine().hasOption(DISABLE_SPLIT_GROUPING)) {
       disableSplitGrouping = true;
+    }
+    if (optionParser.getCommandLine().hasOption(COUNTER_LOG)) {
+        isCountersLog = true;
     }
     String[] otherArgs = optionParser.getRemainingArgs();
     return _execute(otherArgs, conf, tezClient);
@@ -210,6 +224,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
         + " run it in distributed mode without this option");
     ps.println("-" + DISABLE_SPLIT_GROUPING + "\t\t disable split grouping for MRInput,"
         + " enable split grouping without this option.");
+    ps.println("-" + COUNTER_LOG + "\t\t to print counters information");
     ps.println();
     ps.println("The Tez example extra options usage syntax is ");
     ps.println("example_name [extra_options] [example_parameters]");

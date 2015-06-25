@@ -199,7 +199,7 @@ public class OrderedWordCount extends TezExampleBase {
         args.length == 3 ? Integer.parseInt(args[2]) : 1, isDisableSplitGrouping(),
         "OrderedWordCount");
     LOG.info("Running OrderedWordCount");
-    return runDag(dag, false, LOG);
+    return runDag(dag, isCountersLog(), LOG);
   }
 
   public static void main(String[] args) throws Exception {

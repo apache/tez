@@ -19,6 +19,7 @@
 package org.apache.tez.examples;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +97,11 @@ public class JoinValidate extends TezExampleBase {
 
     tezClient.waitTillReady();
     DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
+    Set<StatusGetOpts> getOpts = Sets.newHashSet();
+    if (isCountersLog()) {
+      getOpts.add(StatusGetOpts.GET_COUNTERS);
+    }
+    DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(getOpts);
     if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
       LOG.info("DAG diagnostics: " + dagStatus.getDiagnostics());
       return -1;

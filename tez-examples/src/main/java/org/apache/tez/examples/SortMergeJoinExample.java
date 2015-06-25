@@ -117,7 +117,7 @@ public class SortMergeJoinExample extends TezExampleBase {
     DAG dag =
         createDag(tezConf, inputPath1, inputPath2, outputPath, numPartitions);
     LOG.info("Running SortMergeJoinExample");
-    return runDag(dag, false, LOG);
+    return runDag(dag, isCountersLog(), LOG);
   }
 
   @Override

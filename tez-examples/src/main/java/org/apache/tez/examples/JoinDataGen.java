@@ -118,7 +118,7 @@ public class JoinDataGen extends TezExampleBase {
     DAG dag = createDag(tezConf, largeOutPath, smallOutPath, expectedOutputPath, numTasks,
         largeOutSize, smallOutSize);
 
-    return runDag(dag, false, LOG);
+    return runDag(dag, isCountersLog(), LOG);
   }
 
   @Override

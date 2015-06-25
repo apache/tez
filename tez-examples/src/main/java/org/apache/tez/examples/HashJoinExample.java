@@ -127,7 +127,7 @@ public class HashJoinExample extends TezExampleBase {
         createDag(tezConf, streamInputPath, hashInputPath, outputPath,
             numPartitions, doBroadcast);
 
-    return runDag(dag, false, LOG);
+    return runDag(dag, isCountersLog(), LOG);
   }
 
   @Override

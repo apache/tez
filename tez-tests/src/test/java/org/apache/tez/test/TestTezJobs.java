@@ -185,7 +185,7 @@ public class TestTezJobs {
 
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
     assertEquals(0, hashJoinExample.run(args));
 
     FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {
@@ -242,7 +242,7 @@ public class TestTezJobs {
 
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        "-local", "-disableSplitGrouping",
+        "-counter", "-local", "-disableSplitGrouping",
         inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
     assertEquals(0, hashJoinExample.run(args));
 
@@ -299,7 +299,7 @@ public class TestTezJobs {
 
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
     assertEquals(0, sortMergeJoinExample.run(args));
 
     FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {
@@ -340,7 +340,7 @@ public class TestTezJobs {
 
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
     assertEquals(0, sortMergeJoinHelper.run(conf, args, tezClient));
 
     verifySortMergeJoinInput(outPath, expectedResults);
@@ -453,7 +453,7 @@ public class TestTezJobs {
 
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        "-local","-disableSplitGrouping",
+        "-counter", "-local","-disableSplitGrouping",
         inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
     assertEquals(0, sortMergeJoinExample.run(args));
 
@@ -502,6 +502,7 @@ public class TestTezJobs {
 
       JoinDataGen dataGen = new JoinDataGen();
       String[] dataGenArgs = new String[] {
+          "-counter",
           dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
           expectedOutputPath.toString(), "2" };
       assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
@@ -513,7 +514,7 @@ public class TestTezJobs {
 
       JoinValidate joinValidate = new JoinValidate();
       String[] validateArgs = new String[] {
-          expectedOutputPath.toString(), outPath.toString(), "3" };
+          "-counter", expectedOutputPath.toString(), outPath.toString(), "3" };
       assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
 
     } finally {
@@ -677,7 +678,7 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{inputDirStr, outputDirStr, "2"}, null)==0);
+      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null)==0);
       verifyOutput(outputDir, remoteFs);
 
     } finally {
@@ -709,7 +710,7 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-local", "-disableSplitGrouping",
+      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", "-local", "-disableSplitGrouping",
           inputDirStr, outputDirStr, "2"}, null)==0);
       verifyOutput(outputDir, localFs);
 
