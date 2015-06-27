@@ -451,7 +451,7 @@ TEZ-UI CHANGES (TEZ-8):
   TEZ-1783. Wrapper in standalone mode.
   TEZ-1820. Fix wrong links.
 
-Release 0.5.4: Unreleased
+Release 0.5.4: 2015-06-26
 
 ALL CHANGES:
   TEZ-2561. Port for TaskAttemptListenerImpTezDag should be configurable
