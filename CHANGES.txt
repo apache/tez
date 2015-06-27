@@ -1,7 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.5.4: Unreleased
+Release 0.5.4: 2015-06-26
 
 ALL CHANGES:
   TEZ-2569. branch 0.5 build fails due to cannot find symbol TaskAttemptTerminationCause
