@@ -1055,7 +1055,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       // issue kill to all other attempts
       for (TaskAttempt attempt : task.attempts.values()) {
-        if (attempt.getID() != task.successfulAttempt &&
+        if (!attempt.getID().equals(task.successfulAttempt) &&
             // This is okay because it can only talk us out of sending a
             //  TA_KILL message to an attempt that doesn't need one for
             //  other reasons.
