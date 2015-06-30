@@ -295,19 +295,6 @@ public class VertexManager {
       return appContext.getTaskScheduler().getNumClusterNodes();
     }
 
-    // TODO TEZ-2048. Remove this API
-    @Override
-    public synchronized Container getTaskContainer(String vertexName, Integer taskIndex) {
-      checkAndThrowIfDone();
-      Vertex vertex = appContext.getCurrentDAG().getVertex(vertexName);
-      Task task = vertex.getTask(taskIndex.intValue());
-      TaskAttempt attempt = task.getSuccessfulAttempt();
-      if (attempt != null) {
-        return attempt.getAssignedContainer();
-      }
-      return null;
-    }
-
     @Override
     public synchronized void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
       checkAndThrowIfDone();

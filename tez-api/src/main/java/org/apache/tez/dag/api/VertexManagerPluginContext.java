@@ -113,14 +113,6 @@ public interface VertexManagerPluginContext {
   Resource getVertexTaskResource();
   
   /**
-   * Get the container for the successful attempt of the task
-   * @return YARN container for the successful task. Maybe null if there is no
-   * successful task.
-   */
-  @Deprecated
-  public Container getTaskContainer(String vertexName, Integer taskIndex);
-  
-  /**
    * Get the total resource allocated to this vertex. If the DAG is running in 
    * a busy cluster then it may have no resources available dedicated to it. The
    * DAG may divide its available resource among member vertices.
