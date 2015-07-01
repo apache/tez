@@ -79,9 +79,11 @@ public class DAGClientHandler {
   }
 
   DAG getDAG(String dagIdStr) throws TezException {
-    TezDAGID dagId = TezDAGID.fromString(dagIdStr);
-    if (dagId == null) {
-      throw new TezException("Bad dagId: " + dagIdStr);
+    TezDAGID dagId;
+    try {
+      dagId = TezDAGID.fromString(dagIdStr);
+    } catch (IllegalArgumentException e) {
+      throw new TezException("Bad dagId: " + dagIdStr, e);
     }
 
     DAG currentDAG = getCurrentDAG();

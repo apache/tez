@@ -307,4 +307,5 @@ public class TestDAG {
       Assert.assertEquals("Duplicated output:output_1, vertexName=v1", e.getMessage());
     }
   }
+
 }

@@ -508,9 +508,11 @@ public class RecoveryParser {
               + ", timestamp=" + proto.getTimestamp()
               + ", event=" + eventType);
         }
-        TezDAGID dagId = TezDAGID.fromString(proto.getDagId());
-        if (dagId == null) {
-          throw new IOException("null dagId, summary records may be corrupted");
+        TezDAGID dagId;
+        try {
+          dagId = TezDAGID.fromString(proto.getDagId());
+        } catch (IllegalArgumentException e) {
+          throw new IOException("Invalid dagId, summary records may be corrupted", e);
         }
         if (dagCounter < dagId.getId()) {
           dagCounter = dagId.getId();

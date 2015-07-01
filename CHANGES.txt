@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2542. TezDAGID fromString array length check.
   TEZ-2296. Add option to print counters for tez-examples.
   TEZ-2570. Fix license header issue for eps image files.
   TEZ-2378. In case Fetcher (unordered) fails to do local fetch, log in debug mode to reduce log size.

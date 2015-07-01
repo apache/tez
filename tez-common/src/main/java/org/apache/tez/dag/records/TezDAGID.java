@@ -177,17 +177,26 @@ public class TezDAGID extends TezID {
   }
 
   public static TezDAGID fromString(String dagId) {
-    try {
-      String[] split = dagId.split("_");
-      String rmId = split[1];
-      int appId = tezAppIdFormat.get().parse(split[2]).intValue();
-      int id;
-      id = tezDagIdFormat.get().parse(split[3]).intValue();
-      return TezDAGID.getInstance(rmId, appId, id);
-    } catch (Exception e) {
-      e.printStackTrace();
+    int id = 0;
+    int appId = 0;
+    String[] split = dagId.split("_");
+    if (split.length != 4 || !dagId.startsWith(DAG + "_")) {
+      throw new IllegalArgumentException("Invalid DAG Id format : " + dagId);
     }
-    return null;
+    String rmId = split[1];
+    try {
+      appId = Integer.parseInt(split[2]);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Error while parsing App Id '"
+          + split[2] + "' of DAG Id : " + dagId);
+    }
+    try {
+      id = Integer.parseInt(split[3]);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Error while parsing Id '" + split[3]
+          + "' of DAG Id : " + dagId);
+    }
+    return TezDAGID.getInstance(rmId, appId, id);
   }
 
   /**

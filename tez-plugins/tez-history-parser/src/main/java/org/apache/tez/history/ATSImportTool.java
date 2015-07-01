@@ -124,12 +124,13 @@ public class ATSImportTool extends Configured implements Tool {
   private final File downloadDir;
   private final File zipFile;
   private final Client httpClient;
+  private final TezDAGID tezDAGID;
 
   public ATSImportTool(String baseUri, String dagId, File baseDownloadDir, int batchSize)
       throws TezException {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(dagId), "dagId can not be null or empty");
     Preconditions.checkArgument(baseDownloadDir != null, "downloadDir can not be null");
-    Preconditions.checkArgument(TezDAGID.fromString(dagId) != null, "Not a valid DAG ID " + dagId);
+    tezDAGID = TezDAGID.fromString(dagId);
 
     this.baseUri = baseUri;
     this.batchSize = batchSize;
@@ -185,7 +186,7 @@ public class ATSImportTool extends Configured implements Tool {
     JSONObject finalJson = new JSONObject();
 
     //Download application details (TEZ_VERSION etc)
-    String tezAppId = "tez_" + (TezDAGID.fromString(dagId)).getApplicationId().toString();
+    String tezAppId = "tez_" + tezDAGID.getApplicationId().toString();
     String tezAppUrl = String.format("%s/%s/%s", baseUri, Constants.TEZ_APPLICATION, tezAppId);
     JSONObject tezAppJson = getJsonRootEntity(tezAppUrl);
     finalJson.put(Constants.APPLICATION, tezAppJson);

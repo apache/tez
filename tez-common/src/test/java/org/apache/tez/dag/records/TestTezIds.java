@@ -108,4 +108,43 @@ public class TestTezIds {
     verifyAttemptId(taIdStr, taId);
   }
 
+  @Test(timeout=5000)
+  public void testInvalidDagIds() {
+    String dagIdStr = "aaa_111_1_1";
+    TezDAGID dagId;
+    try {
+      dagId = TezDAGID.fromString(dagIdStr);
+      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains("Invalid DAG Id format"));
+    }
+
+    dagIdStr = "dag_111_11";
+    try {
+      dagId = TezDAGID.fromString(dagIdStr);
+      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains("Invalid DAG Id format"));
+    }
+
+    dagIdStr = "dag_111_11_aa";
+    try {
+      dagId = TezDAGID.fromString(dagIdStr);
+      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains("Error while parsing"));
+    }
+
+    dagIdStr = "dag_111_aa_1";
+    try {
+      dagId = TezDAGID.fromString(dagIdStr);
+      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains("Error while parsing"));
+    }
+
+  }
+
+
+
 }
