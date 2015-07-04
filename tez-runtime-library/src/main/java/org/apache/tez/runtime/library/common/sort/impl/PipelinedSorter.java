@@ -210,21 +210,18 @@ public class PipelinedSorter extends ExternalSorter {
     SortSpan newSpan = span.next();
 
     if(newSpan == null) {
-      Stopwatch stopWatch = new Stopwatch();
-      stopWatch.start();
-      // sort in the same thread, do not wait for the thread pool
-      merger.add(span.sort(sorter));
-      spill();
-      stopWatch.stop();
-      LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
-      if (pipelinedShuffle) {
-        List<Event> events = Lists.newLinkedList();
-        String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
-        ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false, outputContext,
-            (numSpills - 1), indexCacheList.get(numSpills - 1), partitions, sendEmptyPartitionDetails,
-            pathComponent);
-        outputContext.sendEvents(events);
-        LOG.info("Adding spill event for spill (final update=false), spillId=" + (numSpills - 1));
+      //avoid sort/spill of empty span
+      if (span.length() > 0) {
+        Stopwatch stopWatch = new Stopwatch();
+        stopWatch.start();
+        // sort in the same thread, do not wait for the thread pool
+        merger.add(span.sort(sorter));
+        spill();
+        stopWatch.stop();
+        LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
+        if (pipelinedShuffle) {
+          sendPipelinedShuffleEvents();
+        }
       }
       //safe to reset the iterator
       listIterator = bufferList.listIterator();
@@ -251,6 +248,17 @@ public class PipelinedSorter extends ExternalSorter {
     }
     valSerializer.open(span.out);
     keySerializer.open(span.out);
+  }
+
+  // if pipelined shuffle is enabled, this method is called to send events for every spill
+  private void sendPipelinedShuffleEvents() throws IOException{
+    List<Event> events = Lists.newLinkedList();
+    String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
+    ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false, outputContext,
+        (numSpills - 1), indexCacheList.get(numSpills - 1), partitions, sendEmptyPartitionDetails,
+        pathComponent);
+    outputContext.sendEvents(events);
+    LOG.info("Added spill event for spill (final update=false), spillId=" + (numSpills - 1));
   }
 
   @Override
@@ -281,13 +289,18 @@ public class PipelinedSorter extends ExternalSorter {
       throw new IOException("Illegal partition for " + key + " (" +
           partition + ")");
     }
-    if(span.kvmeta.remaining() < METASIZE) {
+    // TBD:FIX in TEZ-2574
+    if (span.kvmeta.remaining() < METASIZE) {
       this.sort();
+      if (span.length() == 0) {
+        spillSingleRecord(key, value, partition);
+        return;
+      }
     }
     int keystart = span.kvbuffer.position();
     int valstart = -1;
     int valend = -1;
-    try { 
+    try {
       keySerializer.serialize(key);
       valstart = span.kvbuffer.position();      
       valSerializer.serialize(value);
@@ -296,13 +309,13 @@ public class PipelinedSorter extends ExternalSorter {
       // restore limit
       span.kvbuffer.position(keystart);
       this.sort();
-
-      bufferOverflowRecursion++;
-      if (bufferOverflowRecursion > bufferList.size()) {
-        throw new MapBufferTooSmallException("Record too large for in-memory buffer. Exceeded "
-            + "buffer overflow limit, bufferOverflowRecursion=" + bufferOverflowRecursion + ", bufferList"
-            + ".size=" + bufferList.size() + ", blockSize=" + blockSize);
+      if (span.length() == 0 || bufferOverflowRecursion > bufferList.size()) {
+        // spill the current key value pair
+        spillSingleRecord(key, value, partition);
+        bufferOverflowRecursion = 0;
+        return;
       }
+      bufferOverflowRecursion++;
       // try again
       this.collect(key, value, partition);
       return;
@@ -341,6 +354,75 @@ public class PipelinedSorter extends ExternalSorter {
         // Set this up for the first write only. Subsequent ones will be handled in the final merge.
         outputBytesWithOverheadCounter.increment(rawLength);
       }
+    }
+  }
+
+  // it is guaranteed that when spillSingleRecord is called, there is
+  // no merger spans queued in executor.
+  private void spillSingleRecord(final Object key, final Object value,
+          int partition) throws IOException {
+    final TezSpillRecord spillRec = new TezSpillRecord(partitions);
+    // getSpillFileForWrite with size -1 as the serialized size of KV pair is still unknown
+    final Path filename = mapOutputFile.getSpillFileForWrite(numSpills, -1);
+    spillFilePaths.put(numSpills, filename);
+    FSDataOutputStream out = rfs.create(filename, true, 4096);
+
+    try {
+      LOG.info("Spilling to " + filename.toString());
+      for (int i = 0; i < partitions; ++i) {
+        if (isThreadInterrupted()) {
+          return;
+        }
+        Writer writer = null;
+        try {
+          long segmentStart = out.getPos();
+          writer = new Writer(conf, out, keyClass, valClass, codec,
+              spilledRecordsCounter, null, false);
+          // we need not check for combiner since its a single record
+          if (i == partition) {
+            final long recordStart = out.getPos();
+            writer.append(key, value);
+            mapOutputRecordCounter.increment(1);
+            mapOutputByteCounter.increment(out.getPos() - recordStart);
+          }
+
+          writer.close();
+          adjustSpillCounters(writer.getRawLength(), writer.getCompressedLength());
+
+          // record offsets
+          final TezIndexRecord rec =
+              new TezIndexRecord(
+                  segmentStart,
+                  writer.getRawLength(),
+                  writer.getCompressedLength());
+          spillRec.putIndex(rec, i);
+          writer = null;
+        } finally {
+          if (null != writer) {
+            writer.close();
+          }
+        }
+      }
+
+      Path indexFilename =
+          mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
+              * MAP_OUTPUT_INDEX_RECORD_LENGTH);
+      LOG.info("Spill Index filename:" + indexFilename);
+      spillFileIndexPaths.put(numSpills, indexFilename);
+      spillRec.writeToFile(indexFilename, conf);
+      //TODO: honor cache limits
+      indexCacheList.add(spillRec);
+      ++numSpills;
+      if (!isFinalMergeEnabled()) {
+          fileOutputByteCounter.increment(rfs.getFileStatus(filename).getLen());
+          //No final merge. Set the number of files offered via shuffle-handler
+          numShuffleChunks.setValue(numSpills);
+      }
+      if (pipelinedShuffle) {
+        sendPipelinedShuffleEvents();
+      }
+    } finally {
+        out.close();
     }
   }
 
@@ -383,7 +465,6 @@ public class PipelinedSorter extends ExternalSorter {
         //close
         writer.close();
         adjustSpillCounters(writer.getRawLength(), writer.getCompressedLength());
-
         // record offsets
         final TezIndexRecord rec = 
             new TezIndexRecord(
@@ -463,7 +544,6 @@ public class PipelinedSorter extends ExternalSorter {
 
         for (int i = startIndex; i < endIndex; i++) {
           boolean isLastEvent = (i == numSpills - 1);
-
           String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
           ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), isLastEvent,
               outputContext, i, indexCacheList.get(i), partitions,
@@ -507,7 +587,6 @@ public class PipelinedSorter extends ExternalSorter {
             "numSpills: " + numSpills + ", finalOutputFile:" + finalOutputFile + ", finalIndexFile:"
                 + finalIndexFile);
       }
-
       //The output stream for the final single output file
       FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
 
@@ -542,7 +621,6 @@ public class PipelinedSorter extends ExternalSorter {
             nullProgressable, sortSegments, true,
             null, spilledRecordsCounter, additionalSpillBytesRead,
             null); // Not using any Progress in TezMerger. Should just work.
-
         //write merged output to disk
         long segmentStart = finalOut.getPos();
         Writer writer =
@@ -668,7 +746,7 @@ public class PipelinedSorter extends ExternalSorter {
       ByteBuffer reserved = source.duplicate();
       reserved.mark();
       LOG.info("reserved.remaining() = " + reserved.remaining());
-      LOG.info("reserved.size = "+ metasize);
+      LOG.info("reserved.metasize = "+ metasize);
       reserved.position(metasize);
       kvbuffer = reserved.slice();
       reserved.flip();
