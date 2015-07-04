@@ -183,6 +183,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
@@ -191,6 +192,7 @@ import org.apache.tez.test.EdgeManagerForTest;
 import org.apache.tez.test.VertexManagerPluginForTest;
 import org.apache.tez.test.VertexManagerPluginForTest.VertexManagerPluginForTestConfig;
 import org.apache.tez.runtime.api.impl.EventMetaData;
+import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -2787,6 +2789,13 @@ public class TestVertexImpl {
     Assert.assertEquals(11, eventInfo.getNextFromEventId()); // all events traversed
     Assert.assertEquals(0, eventInfo.getEvents().size()); // no events
     
+    // ask for events with sufficient buffer. get all events in a single shot.
+    fromEventId = 0;
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 100);
+    fromEventId = eventInfo.getNextFromEventId();
+    Assert.assertEquals(11, fromEventId);
+    Assert.assertEquals(11, eventInfo.getEvents().size());
+    
     // change max events to larger value. max events does not evenly divide total events
     fromEventId = 0;
     for (int i=1; i<=2; ++i) {
@@ -2815,6 +2824,131 @@ public class TestVertexImpl {
     eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
     Assert.assertEquals(11, eventInfo.getNextFromEventId()); // all events traversed
     Assert.assertEquals(2, eventInfo.getEvents().size()); // remainder events
+  }
+  
+  @Test (timeout = 5000)
+  public void testVertexGetTAAttemptsObsoletion() throws Exception {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(v1);
+    VertexImpl v2 = vertices.get("vertex2");
+    startVertex(v2);
+    VertexImpl v3 = vertices.get("vertex3");
+    VertexImpl v4 = vertices.get("vertex4");
+    
+    List<ScheduleTaskRequest> taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
+    // scheduling start to trigger edge routing to begin
+    for (int i=0; i<v4.getTotalTasks(); ++i) {
+      taskList.add(ScheduleTaskRequest.create(i, null));
+    }
+    v4.scheduleTasks(taskList);
+    Assert.assertEquals(VertexState.RUNNING, v4.getState());
+    Assert.assertEquals(1, v4.sourceVertices.size());
+    Edge e = v4.sourceVertices.get(v3);
+    TezTaskAttemptID v3TaId = TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(v3.getVertexId(), 0), 0);
+    TezTaskAttemptID v4TaId = TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(v4.getVertexId(), 0), 0);
+    
+    for (int i=0; i<11; ++i) {
+      v4.handle(new VertexEventRouteEvent(v4.getVertexId(), Collections.singletonList(
+          new TezEvent(DataMovementEvent.create(0, null), 
+              new EventMetaData(EventProducerConsumerType.OUTPUT, v3.getName(), v3.getName(), v3TaId)))));
+    }
+    dispatcher.await();
+    // verify all events have been are in taskEvents
+    Assert.assertEquals(11, v4.getOnDemandRouteEvents().size());
+    
+    TaskAttemptEventInfo eventInfo;
+    EdgeManagerPluginOnDemand mockPlugin = mock(EdgeManagerPluginOnDemand.class);
+    EventRouteMetadata mockRoute = EventRouteMetadata.create(1, new int[]{0});
+    e.edgeManager = mockPlugin;
+    when(
+        mockPlugin.routeInputSourceTaskFailedEventToDestination(anyInt(),
+            anyInt())).thenReturn(mockRoute);
+    when(
+        mockPlugin.routeDataMovementEventToDestination(anyInt(),
+            anyInt(), anyInt())).thenReturn(mockRoute);
+    
+    // send an input failed event
+    v4.handle(new VertexEventRouteEvent(v4.getVertexId(), Collections.singletonList(
+        new TezEvent(InputFailedEvent.create(0, 0), 
+            new EventMetaData(EventProducerConsumerType.OUTPUT, v3.getName(), v3.getName(), v3TaId)))));
+
+    // ask for events with sufficient buffer. get only input failed event. all DM events obsoleted
+    int fromEventId = 0;
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 100);
+    fromEventId = eventInfo.getNextFromEventId();
+    Assert.assertEquals(12, fromEventId);
+    Assert.assertEquals(1, eventInfo.getEvents().size());
+    Assert.assertEquals(EventType.INPUT_FAILED_EVENT, eventInfo.getEvents().get(0).getEventType());
+  }
+  
+  @Test (timeout = 5000)
+  public void testVertexGetTAAttemptsObsoletionWithPendingRoutes() throws Exception {
+    initAllVertices(VertexState.INITED);
+    VertexImpl v1 = vertices.get("vertex1");
+    startVertex(v1);
+    VertexImpl v2 = vertices.get("vertex2");
+    startVertex(v2);
+    VertexImpl v3 = vertices.get("vertex3");
+    VertexImpl v4 = vertices.get("vertex4");
+
+    List<ScheduleTaskRequest> taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
+    // scheduling start to trigger edge routing to begin
+    for (int i=0; i<v4.getTotalTasks(); ++i) {
+      taskList.add(ScheduleTaskRequest.create(i, null));
+    }
+    
+    v4.scheduleTasks(taskList);
+    Assert.assertEquals(VertexState.RUNNING, v4.getState());
+    Assert.assertEquals(1, v4.sourceVertices.size());
+    Edge e = v4.sourceVertices.get(v3);
+    TezTaskAttemptID v3TaId = TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(v3.getVertexId(), 0), 0);
+    TezTaskAttemptID v4TaId = TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(v4.getVertexId(), 0), 0);
+    
+    for (int i=0; i<11; ++i) {
+      v4.handle(new VertexEventRouteEvent(v4.getVertexId(), Collections.singletonList(
+          new TezEvent(DataMovementEvent.create(0, null), 
+              new EventMetaData(EventProducerConsumerType.OUTPUT, v3.getName(), v3.getName(), v3TaId)))));
+    }
+    dispatcher.await();
+    // verify all events have been are in taskEvents
+    Assert.assertEquals(11, v4.getOnDemandRouteEvents().size());
+    
+    TaskAttemptEventInfo eventInfo;
+    EdgeManagerPluginOnDemand mockPlugin = mock(EdgeManagerPluginOnDemand.class);
+    EventRouteMetadata mockFailedRoute = EventRouteMetadata.create(1, new int[]{0});
+    e.edgeManager = mockPlugin;
+    when(
+        mockPlugin.routeInputSourceTaskFailedEventToDestination(anyInt(),
+            anyInt())).thenReturn(mockFailedRoute);
+
+    // return more events that dont evenly fit in max size
+    EventRouteMetadata mockRoute = EventRouteMetadata.create(2, new int[]{0, 0});    
+    when(
+        mockPlugin.routeDataMovementEventToDestination(anyInt(),
+            anyInt(), anyInt())).thenReturn(mockRoute);
+    
+    int fromEventId = 0;
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
+    fromEventId = eventInfo.getNextFromEventId();
+    Assert.assertEquals(2, fromEventId); // 0-1 events expanded and fit, 2nd event has pending routes
+    Assert.assertEquals(5, eventInfo.getEvents().size());
+    
+    // send an input failed event
+    v4.handle(new VertexEventRouteEvent(v4.getVertexId(), Collections.singletonList(
+        new TezEvent(InputFailedEvent.create(0, 0), 
+            new EventMetaData(EventProducerConsumerType.OUTPUT, v3.getName(), v3.getName(), v3TaId)))));
+
+    // get only input failed event. all DM events obsoleted
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 5);
+    fromEventId = eventInfo.getNextFromEventId();
+    Assert.assertEquals(12, fromEventId);
+    Assert.assertEquals(1, eventInfo.getEvents().size());
+    Assert.assertEquals(EventType.INPUT_FAILED_EVENT, eventInfo.getEvents().get(0).getEventType());
   }
 
   @Test(timeout = 5000)

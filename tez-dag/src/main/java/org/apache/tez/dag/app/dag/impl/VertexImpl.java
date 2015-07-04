@@ -799,6 +799,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     final TezEvent tezEvent;
     final Edge eventEdge;
     final int eventTaskIndex;
+    boolean isObsolete = false;
     EventInfo(TezEvent tezEvent, Edge eventEdge, int eventTaskIndex) {
       this.tezEvent = tezEvent;
       this.eventEdge = eventEdge;
@@ -4224,12 +4225,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           Preconditions.checkState(taskIndex < tasks.size(), "Invalid task index for TA: " + attemptID
               + " vertex: " + getLogIdentifier());
           boolean isFirstEvent = true;
+          boolean firstEventObsoleted = false;
           for (nextFromEventId = fromEventId; nextFromEventId < currEventCount; ++nextFromEventId) {
             boolean earlyExit = false;
             if (events.size() == maxEvents) {
               break;
             }
             EventInfo eventInfo = onDemandRouteEvents.get(nextFromEventId);
+            if (eventInfo.isObsolete) {
+              // ignore obsolete events
+              firstEventObsoleted = true;
+              continue;
+            }
             TezEvent tezEvent = eventInfo.tezEvent;
             switch(tezEvent.getEventType()) {
             case INPUT_FAILED_EVENT:
@@ -4240,11 +4247,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                 Edge srcEdge = eventInfo.eventEdge;
                 PendingEventRouteMetadata pendingRoute = null;
                 if (isFirstEvent) {
-                  // do this precondition check only for the first event
+                  // the first event is the one that can have pending routes because its expanded
+                  // events had not been completely sent in the last round.
                   isFirstEvent = false;
                   pendingRoute = srcEdge.removePendingEvents(attemptID);
                   if (pendingRoute != null) {
-                    Preconditions.checkState(tezEvent == pendingRoute.getTezEvent()); // same object
+                    // the first event must match the pending route event
+                    // the only reason it may not match is if in between rounds that event got
+                    // obsoleted
+                    if(tezEvent != pendingRoute.getTezEvent()) {
+                      Preconditions.checkState(firstEventObsoleted);
+                      // pending routes can be ignored for obsoleted events
+                      pendingRoute = null;
+                    }
                   }
                 }
                 if (!srcEdge.maybeAddTezEventForDestinationTask(tezEvent, attemptID, srcTaskIndex,
@@ -4384,12 +4399,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                     getLogIdentifier());
               }
               if (srcEdge.hasOnDemandRouting()) {
-                onDemandRouteEventsWriteLock.lock();
-                try {
-                  onDemandRouteEvents.add(new EventInfo(tezEvent, srcEdge, srcTaskIndex));
-                } finally {
-                  onDemandRouteEventsWriteLock.unlock();
-                }
+                processOnDemandEvent(tezEvent, srcEdge, srcTaskIndex);
               } else {
                 // send to tasks            
                 srcEdge.sendTezEventToDestinationTasks(tezEvent);
@@ -4523,6 +4533,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         throw new TezUncheckedException("Unhandled tez event type: "
             + tezEvent.getEventType());
       }
+    }
+  }
+  
+  private void processOnDemandEvent(TezEvent tezEvent, Edge srcEdge, int srcTaskIndex) {
+    onDemandRouteEventsWriteLock.lock();
+    try {
+      onDemandRouteEvents.add(new EventInfo(tezEvent, srcEdge, srcTaskIndex));
+      if (tezEvent.getEventType() == EventType.INPUT_FAILED_EVENT) {
+        for (EventInfo eventInfo : onDemandRouteEvents) {
+          if (eventInfo.eventEdge == srcEdge 
+              && eventInfo.tezEvent.getSourceInfo().getTaskAttemptID().equals(
+                 tezEvent.getSourceInfo().getTaskAttemptID())
+              && (eventInfo.tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT
+                  || eventInfo.tezEvent
+                      .getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT)) {
+            // any earlier data movement events from the same source
+            // edge+task
+            // can be obsoleted by an input failed event from the
+            // same source edge+task
+            eventInfo.isObsolete = true;
+          }
+        }
+      }
+    } finally {
+      onDemandRouteEventsWriteLock.unlock();
     }
   }
 

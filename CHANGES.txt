@@ -1,8 +1,6 @@
 Apache Tez Change Log
 =====================
 
-Release 0.7.1: Unreleased
-
 INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
   TEZ-2949. Allow duplicate dag names within session for Tez.
@@ -11,6 +9,7 @@ ALL CHANGES
   TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.
   TEZ-2496. Consider scheduling tasks in ShuffleVertexManager based on the partition sizes from the source.
   TEZ-2995. Timeline primary filter should only be on callerId and not type.
+  TEZ-2599. Dont send obsoleted data movement events to tasks
   TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
   reduce and slow start
   TEZ-2956. Handle auto-reduce parallelism when the
