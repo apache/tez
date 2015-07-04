@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2599. Dont send obsoleted data movement events to tasks
   TEZ-2542. TezDAGID fromString array length check.
   TEZ-2296. Add option to print counters for tez-examples.
   TEZ-2570. Fix license header issue for eps image files.

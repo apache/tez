@@ -343,7 +343,9 @@ public class TestInput extends AbstractLogicalInput {
             dmEvent.getUserPayload().getInt();
       } else if (event instanceof InputFailedEvent) {
         InputFailedEvent ifEvent = (InputFailedEvent) event;
-        numCompletedInputs--;
+        if (this.completedInputVersion[ifEvent.getTargetIndex()] == ifEvent.getVersion()) {
+          numCompletedInputs--;
+        }
         LOG.info("Received InputFailed event targetId: " + ifEvent.getTargetIndex() +
             " version: " + ifEvent.getVersion() +
             " numInputs: " + getNumPhysicalInputs() +
