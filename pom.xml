@@ -55,6 +55,8 @@
     <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
     <build.time>${maven.build.timestamp}</build.time>
     <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
+    <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
+    <javadoc-maven-plugin.version>2.9.1</javadoc-maven-plugin.version>
   </properties>
   <scm>
     <connection>${scm.url}</connection>
@@ -723,7 +725,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>2.9.1</version>
+          <version>${maven-javadoc-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.hadoop</groupId>
@@ -782,7 +784,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>${findbugs-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -1124,7 +1126,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9.1</version>
+        <version>${maven-javadoc-plugin.version}</version>
         <reportSets>
           <reportSet>
             <id>aggregate</id>
@@ -1148,6 +1150,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
+        <version>${findbugs-maven-plugin.version}</version>
         <configuration>
           <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
         </configuration>
