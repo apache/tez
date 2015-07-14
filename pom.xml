@@ -725,7 +725,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>${maven-javadoc-plugin.version}</version>
+          <version>${javadoc-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.hadoop</groupId>
@@ -1073,6 +1073,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${javadoc-maven-plugin.version}</version>
             <configuration>
               <docfilessubdirs>true</docfilessubdirs>
             </configuration>
@@ -1126,7 +1127,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>${maven-javadoc-plugin.version}</version>
+        <version>${javadoc-maven-plugin.version}</version>
         <reportSets>
           <reportSet>
             <id>aggregate</id>
