@@ -128,11 +128,11 @@ public class TezClientUtils {
     Path p = new Path(uri);
     FileSystem fs = p.getFileSystem(conf);
     p = fs.resolvePath(p);
-
-    if (fs.isDirectory(p)) {
-      return fs.listStatus(p);
+    FileSystem targetFS = p.getFileSystem(conf); 
+    if (targetFS.isDirectory(p)) {
+      return targetFS.listStatus(p);
     } else {
-      FileStatus fStatus = fs.getFileStatus(p);
+      FileStatus fStatus = targetFS.getFileStatus(p);
       return new FileStatus[]{fStatus};
     }
   }
