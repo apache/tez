@@ -32,5 +32,6 @@ ALL CHANGES:
   TEZ-2502. Fix for TezTaskRunner2 not killing tasks properly in all situations.
   TEZ-2508. rebase 06/01
   TEZ-2526. Fix version for tez-history-parser.
+  TEZ-2621. rebase 07/14
 
 INCOMPATIBLE CHANGES:

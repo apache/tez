@@ -35,7 +35,9 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -45,7 +47,9 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.ContainerEndReason;
 import org.apache.tez.dag.api.TaskAttemptEndReason;
@@ -284,11 +288,18 @@ public class TestTaskAttemptListenerImplTezDag {
     }
   }
 
+  // TODO TEZ-2003 Move this into TestTezTaskCommunicator. Potentially other tests as well.
   @Test (timeout= 5000)
   public void testPortRange_NotSpecified() {
     Configuration conf = new Configuration();
+    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
+        "fakeIdentifier"));
+    Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
+        new JobTokenSecretManager());
+    sessionToken.setService(identifier.getJobId());
+    TokenCache.setSessionToken(sessionToken, credentials);
     taskAttemptListener = new TaskAttemptListenerImpTezDag(appContext,
-        mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null);
+        mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null, null, false);
     // no exception happen, should started properly
     taskAttemptListener.init(conf);
     taskAttemptListener.start();
@@ -298,12 +309,20 @@ public class TestTaskAttemptListenerImplTezDag {
     boolean succeedToAllocate = true;
     try {
       Configuration conf = new Configuration();
+      
+      JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
+          "fakeIdentifier"));
+      Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
+          new JobTokenSecretManager());
+      sessionToken.setService(identifier.getJobId());
+      TokenCache.setSessionToken(sessionToken, credentials);
+
       conf.set(TezConfiguration.TEZ_AM_TASK_AM_PORT_RANGE, port + "-" + port);
       taskAttemptListener = new TaskAttemptListenerImpTezDag(appContext,
-          mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null);
+          mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null, null, false);
       taskAttemptListener.init(conf);
       taskAttemptListener.start();
-      int resultedPort = taskAttemptListener.getAddress().getPort();
+      int resultedPort = taskAttemptListener.getTaskCommunicator(0).getAddress().getPort();
       assertEquals(port, resultedPort);
     } catch (Exception e) {
       succeedToAllocate = false;
