@@ -222,6 +222,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2600. When used with HDFS federation(viewfs) ,tez will throw a error
   TEZ-2579. Incorrect comparison of TaskAttemptId
   TEZ-2549. Reduce Counter Load on the Timeline Server
   TEZ-2548. TezClient submitDAG can hang if the AM is in the process of shutting down.
