@@ -257,7 +257,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     }
     
     public void preemptContainer(ContainerData cData) {
-      getTaskSchedulerEventHandler().containerCompleted(null, 
+      getTaskSchedulerEventHandler().containerCompleted(0, null,
           ContainerStatus.newInstance(cData.cId, null, "Preempted", ContainerExitStatus.PREEMPTED));
       cData.clear();
     }

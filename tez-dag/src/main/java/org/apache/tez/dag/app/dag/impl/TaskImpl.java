@@ -1396,7 +1396,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         if (amContainer != null) {
           // inform the node about failure
           task.eventHandler.handle(
-              new AMNodeEventTaskAttemptEnded(amContainer.getContainer().getNodeId(), 
+              new AMNodeEventTaskAttemptEnded(amContainer.getContainer().getNodeId(),
+                  task.getVertex().getTaskSchedulerIdentifier(),
                   containerId, failedAttemptId, true));
         }
       }

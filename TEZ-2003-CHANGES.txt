@@ -33,5 +33,6 @@ ALL CHANGES:
   TEZ-2508. rebase 06/01
   TEZ-2526. Fix version for tez-history-parser.
   TEZ-2621. rebase 07/14
+  TEZ-2124. Change Node tracking to work per external container source.
 
 INCOMPATIBLE CHANGES:

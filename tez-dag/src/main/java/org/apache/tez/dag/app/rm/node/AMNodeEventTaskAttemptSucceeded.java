@@ -27,9 +27,9 @@ public class AMNodeEventTaskAttemptSucceeded extends AMNodeEvent {
   private final ContainerId containerId;
   private final TezTaskAttemptID taskAttemptId;
 
-  public AMNodeEventTaskAttemptSucceeded(NodeId nodeId,
+  public AMNodeEventTaskAttemptSucceeded(NodeId nodeId, int sourceId,
       ContainerId containerId, TezTaskAttemptID taskAttemptId) {
-    super(nodeId, AMNodeEventType.N_TA_SUCCEEDED);
+    super(nodeId, sourceId, AMNodeEventType.N_TA_SUCCEEDED);
     this.containerId = containerId;
     this.taskAttemptId = taskAttemptId;
   }

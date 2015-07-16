@@ -24,8 +24,8 @@ public class AMNodeEventContainerAllocated extends AMNodeEvent {
 
   private final ContainerId containerId;
 
-  public AMNodeEventContainerAllocated(NodeId nodeId, ContainerId containerId) {
-    super(nodeId, AMNodeEventType.N_CONTAINER_ALLOCATED);
+  public AMNodeEventContainerAllocated(NodeId nodeId, int sourceId, ContainerId containerId) {
+    super(nodeId, sourceId, AMNodeEventType.N_CONTAINER_ALLOCATED);
     this.containerId = containerId;
   }
 

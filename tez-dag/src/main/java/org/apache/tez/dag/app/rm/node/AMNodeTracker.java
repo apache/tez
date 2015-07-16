@@ -18,9 +18,8 @@
 
 package org.apache.tez.dag.app.rm.node;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
@@ -29,7 +28,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -42,23 +40,21 @@ public class AMNodeTracker extends AbstractService implements
   
   static final Logger LOG = LoggerFactory.getLogger(AMNodeTracker.class);
   
-  private final ConcurrentHashMap<NodeId, AMNode> nodeMap;
-  private final ConcurrentHashMap<String, Set<NodeId>> blacklistMap;
+  private final ConcurrentMap<Integer, PerSourceNodeTracker> perSourceNodeTrackers;
+
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private final AppContext appContext;
-  private int numClusterNodes;
-  private boolean ignoreBlacklisting = false;
+
+  // Not final since it's setup in serviceInit
   private int maxTaskFailuresPerNode;
   private boolean nodeBlacklistingEnabled;
   private int blacklistDisablePercent;
-  float currentIgnoreBlacklistingCountThreshold = 0;
-  
+
   @SuppressWarnings("rawtypes")
   public AMNodeTracker(EventHandler eventHandler, AppContext appContext) {
     super("AMNodeMap");
-    this.nodeMap = new ConcurrentHashMap<NodeId, AMNode>();
-    this.blacklistMap = new ConcurrentHashMap<String, Set<NodeId>>();
+    this.perSourceNodeTrackers = new ConcurrentHashMap<>();
     this.eventHandler = eventHandler;
     this.appContext = appContext;
   }
@@ -76,7 +72,7 @@ public class AMNodeTracker extends AbstractService implements
           TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
 
     LOG.info("blacklistDisablePercent is " + blacklistDisablePercent +
-        ", blacklistingEnabled: " + nodeBlacklistingEnabled + 
+        ", blacklistingEnabled: " + nodeBlacklistingEnabled +
         ", maxTaskFailuresPerNode: " + maxTaskFailuresPerNode);
 
     if (blacklistDisablePercent < -1 || blacklistDisablePercent > 100) {
@@ -85,130 +81,66 @@ public class AMNodeTracker extends AbstractService implements
           + ". Should be an integer between 0 and 100 or -1 to disabled");
     }
   }
-  
-  public void nodeSeen(NodeId nodeId) {
-    if (nodeMap.putIfAbsent(nodeId, new AMNodeImpl(nodeId, maxTaskFailuresPerNode,
-        eventHandler, nodeBlacklistingEnabled, appContext)) == null) {
-      LOG.info("Adding new node: " + nodeId);
-    }
+
+  public void nodeSeen(NodeId nodeId, int sourceId) {
+    PerSourceNodeTracker nodeTracker = getAndCreateIfNeededPerSourceTracker(sourceId);
+    nodeTracker.nodeSeen(nodeId);
   }
 
-  private void addToBlackList(NodeId nodeId) {
-    String host = nodeId.getHost();
 
-    if (!blacklistMap.containsKey(host)) {
-      blacklistMap.putIfAbsent(host, new HashSet<NodeId>());
-    }
-    Set<NodeId> nodes = blacklistMap.get(host);
-
-    if (!nodes.contains(nodeId)) {
-      nodes.add(nodeId);
-    }
-  }
-
-  boolean registerBadNodeAndShouldBlacklist(AMNode amNode) {
-    if (nodeBlacklistingEnabled) {
-      addToBlackList(amNode.getNodeId());
-      computeIgnoreBlacklisting();
-      return !ignoreBlacklisting;
-    } else {
-      return false;
-    }
+  boolean registerBadNodeAndShouldBlacklist(AMNode amNode, int sourceId) {
+    return perSourceNodeTrackers.get(sourceId).registerBadNodeAndShouldBlacklist(amNode);
   }
 
   public void handle(AMNodeEvent rEvent) {
     // No synchronization required until there's multiple dispatchers.
-    NodeId nodeId = rEvent.getNodeId();
     switch (rEvent.getType()) {
-    case N_NODE_COUNT_UPDATED:
-      AMNodeEventNodeCountUpdated event = (AMNodeEventNodeCountUpdated) rEvent;
-      numClusterNodes = event.getNodeCount();
-      LOG.info("Num cluster nodes = " + numClusterNodes);
-      recomputeCurrentIgnoreBlacklistingThreshold();
-      computeIgnoreBlacklisting();
-      break;
-    case N_TURNED_UNHEALTHY:
-    case N_TURNED_HEALTHY:
-      AMNode amNode = nodeMap.get(nodeId);
-      if (amNode == null) {
-        LOG.info("Ignoring RM Health Update for unknown node: " + nodeId);
-      } else {
-        amNode.handle(rEvent);
-      }
-      break;
-    default:
-      nodeMap.get(nodeId).handle(rEvent);
+      case N_CONTAINER_ALLOCATED:
+      case N_TA_SUCCEEDED:
+      case N_TA_ENDED:
+      case N_IGNORE_BLACKLISTING_ENABLED:
+      case N_IGNORE_BLACKLISTING_DISABLED:
+        // All of these will only be seen after a node has been registered.
+        perSourceNodeTrackers.get(rEvent.getSourceId()).handle(rEvent);
+        break;
+      case N_TURNED_UNHEALTHY:
+      case N_TURNED_HEALTHY:
+      case N_NODE_COUNT_UPDATED:
+        // These events can be seen without a node having been marked as 'seen' before
+        getAndCreateIfNeededPerSourceTracker(rEvent.getSourceId()).handle(rEvent);
+        break;
     }
   }
 
-  private void recomputeCurrentIgnoreBlacklistingThreshold() {
-    if (nodeBlacklistingEnabled && blacklistDisablePercent != -1) {
-      currentIgnoreBlacklistingCountThreshold =
-          (float) numClusterNodes * blacklistDisablePercent / 100;
-    }
+  public AMNode get(NodeId nodeId, int sourceId) {
+    return perSourceNodeTrackers.get(sourceId).get(nodeId);
   }
 
-  // May be incorrect if there's multiple NodeManagers running on a single host.
-  // knownNodeCount is based on node managers, not hosts. blacklisting is
-  // currently based on hosts.
-  protected void computeIgnoreBlacklisting() {
-
-    boolean stateChanged = false;
-
-    if (!nodeBlacklistingEnabled || blacklistDisablePercent == -1 || blacklistMap.size() == 0) {
-      return;
-    }
-    if (blacklistMap.size() >= currentIgnoreBlacklistingCountThreshold) {
-      if (ignoreBlacklisting == false) {
-        ignoreBlacklisting = true;
-        LOG.info("Ignore Blacklisting set to true. Known: " + numClusterNodes
-            + ", Blacklisted: " + blacklistMap.size());
-        stateChanged = true;
-      }
-    } else {
-      if (ignoreBlacklisting == true) {
-        ignoreBlacklisting = false;
-        LOG.info("Ignore blacklisting set to false. Known: "
-            + numClusterNodes + ", Blacklisted: " + blacklistMap.size());
-        stateChanged = true;
-      }
-    }
-
-    if (stateChanged) {
-      sendIngoreBlacklistingStateToNodes();
-    }
-  }
-
-  private void sendIngoreBlacklistingStateToNodes() {
-    AMNodeEventType eventType =
-        ignoreBlacklisting ? AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED
-        : AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED;
-    for (NodeId nodeId : nodeMap.keySet()) {
-      sendEvent(new AMNodeEvent(nodeId, eventType));
-    }
-  }
-
-  public AMNode get(NodeId nodeId) {
-    return nodeMap.get(nodeId);
-  }
-
-  @SuppressWarnings("unchecked")
-  private void sendEvent(Event<?> event) {
-    this.eventHandler.handle(event);
-  }
-
-  public int getNumNodes() {
-    return nodeMap.size();
+  public int getNumNodes(int sourceId) {
+    return perSourceNodeTrackers.get(sourceId).getNumNodes();
   }
 
   @Private
   @VisibleForTesting
-  public boolean isBlacklistingIgnored() {
-    return this.ignoreBlacklisting;
+  public boolean isBlacklistingIgnored(int sourceId) {
+    return perSourceNodeTrackers.get(sourceId).isBlacklistingIgnored();
   }
 
   public void dagComplete(DAG dag) {
     // TODO TEZ-2337 Maybe reset failures from previous DAGs
   }
+
+  private PerSourceNodeTracker getAndCreateIfNeededPerSourceTracker(int sourceId) {
+    PerSourceNodeTracker nodeTracker = perSourceNodeTrackers.get(sourceId);
+    if (nodeTracker == null) {
+      nodeTracker =
+          new PerSourceNodeTracker(sourceId, eventHandler, appContext, maxTaskFailuresPerNode,
+              nodeBlacklistingEnabled, blacklistDisablePercent);
+      PerSourceNodeTracker old = perSourceNodeTrackers.putIfAbsent(sourceId, nodeTracker);
+      nodeTracker = old != null ? old : nodeTracker;
+    }
+    return nodeTracker;
+  }
+
 
 }

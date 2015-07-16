@@ -29,6 +29,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback.AppFinalStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -81,8 +82,7 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import com.google.common.base.Preconditions;
 
 
-public class TaskSchedulerEventHandler extends AbstractService
-                                         implements TaskSchedulerAppCallback,
+public class TaskSchedulerEventHandler extends AbstractService implements
                                                EventHandler<AMSchedulerEvent> {
   static final Logger LOG = LoggerFactory.getLogger(TaskSchedulerEventHandler.class);
 
@@ -315,7 +315,7 @@ public class TaskSchedulerEventHandler extends AbstractService
       // stopped.
       // AMNodeImpl blacklisting logic does not account for KILLED attempts.
       sendEvent(new AMNodeEventTaskAttemptEnded(appContext.getAllContainers().
-          get(attemptContainerId).getContainer().getNodeId(), attemptContainerId,
+          get(attemptContainerId).getContainer().getNodeId(), event.getSchedulerId(), attemptContainerId,
           attempt.getID(), event.getState() == TaskAttemptState.FAILED));
     }
   }
@@ -330,7 +330,7 @@ public class TaskSchedulerEventHandler extends AbstractService
       sendEvent(new AMContainerEventTASucceeded(usedContainerId,
           event.getAttemptID()));
       sendEvent(new AMNodeEventTaskAttemptSucceeded(appContext.getAllContainers().
-          get(usedContainerId).getContainer().getNodeId(), usedContainerId,
+          get(usedContainerId).getContainer().getNodeId(), event.getSchedulerId(), usedContainerId,
           event.getAttemptID()));
     }
 
@@ -392,14 +392,16 @@ public class TaskSchedulerEventHandler extends AbstractService
   private TaskSchedulerService createTaskScheduler(String host, int port, String trackingUrl,
                                                    AppContext appContext,
                                                    String schedulerClassName,
-                                                   long customAppIdIdentifier) {
+                                                   long customAppIdIdentifier,
+                                                   int schedulerId) {
+    TaskSchedulerAppCallback appCallback = new TaskSchedulerAppCallbackImpl(this, schedulerId);
     if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
       LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
-      return new YarnTaskSchedulerService(this, this.containerSignatureMatcher,
+      return new YarnTaskSchedulerService(appCallback, this.containerSignatureMatcher,
           host, port, trackingUrl, appContext);
     } else if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
       LOG.info("Creating TaskScheduler: Local TaskScheduler");
-      return new LocalTaskSchedulerService(this, this.containerSignatureMatcher,
+      return new LocalTaskSchedulerService(appCallback, this.containerSignatureMatcher,
           host, port, trackingUrl, customAppIdIdentifier, appContext);
     } else {
       LOG.info("Creating custom TaskScheduler: " + schedulerClassName);
@@ -411,7 +413,7 @@ public class TaskSchedulerEventHandler extends AbstractService
             .getConstructor(TaskSchedulerAppCallback.class, AppContext.class, String.class,
                 int.class, String.class, long.class, Configuration.class);
         ctor.setAccessible(true);
-        return ctor.newInstance(this, appContext, host, port, trackingUrl, customAppIdIdentifier,
+        return ctor.newInstance(appCallback, appContext, host, port, trackingUrl, customAppIdIdentifier,
             getConfig());
       } catch (NoSuchMethodException e) {
         throw new TezUncheckedException(e);
@@ -441,7 +443,7 @@ public class TaskSchedulerEventHandler extends AbstractService
       LOG.info("ClusterIdentifier for TaskScheduler [" + i + ":" + taskSchedulerClasses[i] + "]=" +
           customAppIdIdentifier);
       taskSchedulers[i] = createTaskScheduler(host, port,
-          trackingUrl, appContext, taskSchedulerClasses[i], customAppIdIdentifier);
+          trackingUrl, appContext, taskSchedulerClasses[i], customAppIdIdentifier, i);
     }
   }
 
@@ -525,20 +527,21 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
   }
 
-  // TaskSchedulerAppCallback methods
-  @Override
-  public synchronized void taskAllocated(Object task,
+  // TODO TEZ-2003 Consolidate TaskSchedulerAppCallback methods once these methods are moved into context
+
+  // TaskSchedulerAppCallback methods with schedulerId, where relevant
+  public synchronized void taskAllocated(int schedulerId, Object task,
                                            Object appCookie,
                                            Container container) {
     AMSchedulerEventTALaunchRequest event =
         (AMSchedulerEventTALaunchRequest) appCookie;
     ContainerId containerId = container.getId();
     if (appContext.getAllContainers()
-        .addContainerIfNew(container, event.getSchedulerId(), event.getLauncherId(),
+        .addContainerIfNew(container, schedulerId, event.getLauncherId(),
             event.getTaskCommId())) {
-      appContext.getNodeTracker().nodeSeen(container.getNodeId());
+      appContext.getNodeTracker().nodeSeen(container.getNodeId(), schedulerId);
       sendEvent(new AMNodeEventContainerAllocated(container
-          .getNodeId(), container.getId()));
+          .getNodeId(), schedulerId, container.getId()));
     }
 
 
@@ -558,8 +561,8 @@ public class TaskSchedulerEventHandler extends AbstractService
             .getContainerContext().getCredentials(), event.getPriority()));
   }
 
-  @Override
-  public synchronized void containerCompleted(Object task, ContainerStatus containerStatus) {
+  public synchronized void containerCompleted(int schedulerId, Object task, ContainerStatus containerStatus) {
+    // SchedulerId isn't used here since no node updates are sent out
     // Inform the Containers about completion.
     AMContainer amContainer = appContext.getAllContainers().get(containerStatus.getContainerId());
     if (amContainer != null) {
@@ -582,8 +585,8 @@ public class TaskSchedulerEventHandler extends AbstractService
     }
   }
 
-  @Override
-  public synchronized void containerBeingReleased(ContainerId containerId) {
+  public synchronized void containerBeingReleased(int schedulerId, ContainerId containerId) {
+    // SchedulerId isn't used here since no node updates are sent out
     AMContainer amContainer = appContext.getAllContainers().get(containerId);
     if (amContainer != null) {
       sendEvent(new AMContainerEventStopRequest(containerId));
@@ -591,28 +594,27 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   @SuppressWarnings("unchecked")
-  @Override
-  public synchronized void nodesUpdated(List<NodeReport> updatedNodes) {
+  public synchronized void nodesUpdated(int schedulerId, List<NodeReport> updatedNodes) {
     for (NodeReport nr : updatedNodes) {
       // Scheduler will find out from the node, if at all.
       // Relying on the RM to not allocate containers on an unhealthy node.
-      eventHandler.handle(new AMNodeEventStateChanged(nr));
+      eventHandler.handle(new AMNodeEventStateChanged(nr, schedulerId));
     }
   }
 
-  @Override
-  public synchronized void appShutdownRequested() {
+  public synchronized void appShutdownRequested(int schedulerId) {
     // This can happen if the RM has been restarted. If it is in that state,
     // this application must clean itself up.
-    LOG.info("App shutdown requested by scheduler");
+    LOG.info("App shutdown requested by scheduler {}", schedulerId);
     sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.AM_REBOOT));
   }
 
-  @Override
   public synchronized void setApplicationRegistrationData(
+      int schedulerId,
       Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls, 
       ByteBuffer clientAMSecretKey) {
+    // TODO TEZ-2003 (post) Ideally clusterInfo should be available per source rather than a global view.
     this.appContext.getClusterInfo().setMaxContainerCapability(
         maxContainerCapability);
     this.appAcls = appAcls;
@@ -623,7 +625,6 @@ public class TaskSchedulerEventHandler extends AbstractService
   // TaskScheduler uses a separate thread for it's callbacks. Since this method
   // returns a value which is required, the TaskScheduler wait for the call to
   // complete and can hence lead to a deadlock if called from within a TSEH lock.
-  @Override
   public AppFinalStatus getFinalAppStatus() {
     FinalApplicationStatus finishState = FinalApplicationStatus.UNDEFINED;
     StringBuffer sb = new StringBuffer();
@@ -665,24 +666,25 @@ public class TaskSchedulerEventHandler extends AbstractService
   // TaskScheduler uses a separate thread for it's callbacks. Since this method
   // returns a value which is required, the TaskScheduler wait for the call to
   // complete and can hence lead to a deadlock if called from within a TSEH lock.
-  @Override
-  public float getProgress() {
+  public float getProgress(int schedulerId) {
     // at this point allocate has been called and so node count must be available
     // may change after YARN-1722
     // This is a heartbeat in from the scheduler into the APP, and is being used to piggy-back and
     // node updates from the cluster.
+
+    // Doubles as a mechanism to update node counts periodically. Hence schedulerId required.
+
     // TODO Handle this in TEZ-2124. Need a way to know which scheduler is calling in.
     int nodeCount = taskSchedulers[0].getClusterNodeCount();
     if (nodeCount != cachedNodeCount) {
       cachedNodeCount = nodeCount;
-      sendEvent(new AMNodeEventNodeCountUpdated(cachedNodeCount));
+      sendEvent(new AMNodeEventNodeCountUpdated(cachedNodeCount, schedulerId));
     }
     return dagAppMaster.getProgress();
   }
 
-  @Override
-  public void onError(Throwable t) {
-    LOG.info("Error reported by scheduler", t);
+  public void onError(int schedulerId, Throwable t) {
+    LOG.info("Error reported by scheduler {} - {}", schedulerId, t);
     sendEvent(new DAGAppMasterEventSchedulingServiceError(t));
   }
 
@@ -697,8 +699,7 @@ public class TaskSchedulerEventHandler extends AbstractService
     // the context has updated information.
   }
 
-  @Override
-  public void preemptContainer(ContainerId containerId) {
+  public void preemptContainer(int schedulerId, ContainerId containerId) {
     // TODO Why is this making a call back into the scheduler, when the call is originating from there.
     // An AMContainer instance should already exist if an attempt is being made to preempt it
     AMContainer amContainer = appContext.getAllContainers().get(containerId);

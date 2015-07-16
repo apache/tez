@@ -163,7 +163,7 @@ public class TestTaskSchedulerEventHandler {
     AMSchedulerEventTALaunchRequest lr =
         new AMSchedulerEventTALaunchRequest(mockAttemptId, resource, null, mockTaskAttempt, locHint,
             priority, containerContext, 0, 0, 0);
-    schedulerHandler.taskAllocated(mockTaskAttempt, lr, container);
+    schedulerHandler.taskAllocated(0, mockTaskAttempt, lr, container);
     assertEquals(2, mockEventHandler.events.size());
     assertTrue(mockEventHandler.events.get(1) instanceof AMContainerEventAssignTA);
     AMContainerEventAssignTA assignEvent =
@@ -227,7 +227,7 @@ public class TestTaskSchedulerEventHandler {
     when(mockStatus.getContainerId()).thenReturn(mockCId);
     when(mockStatus.getDiagnostics()).thenReturn(diagnostics);
     when(mockStatus.getExitStatus()).thenReturn(ContainerExitStatus.PREEMPTED);
-    schedulerHandler.containerCompleted(mockTask, mockStatus);
+    schedulerHandler.containerCompleted(0, mockTask, mockStatus);
     assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
     assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
@@ -257,7 +257,7 @@ public class TestTaskSchedulerEventHandler {
     ContainerId mockCId = mock(ContainerId.class);
     verify(mockTaskScheduler, times(0)).deallocateContainer((ContainerId)any());
     when(mockAMContainerMap.get(mockCId)).thenReturn(mockAmContainer);
-    schedulerHandler.preemptContainer(mockCId);
+    schedulerHandler.preemptContainer(0, mockCId);
     verify(mockTaskScheduler, times(1)).deallocateContainer(mockCId);
     assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
@@ -290,7 +290,7 @@ public class TestTaskSchedulerEventHandler {
     when(mockStatus.getContainerId()).thenReturn(mockCId);
     when(mockStatus.getDiagnostics()).thenReturn(diagnostics);
     when(mockStatus.getExitStatus()).thenReturn(ContainerExitStatus.DISKS_FAILED);
-    schedulerHandler.containerCompleted(mockTask, mockStatus);
+    schedulerHandler.containerCompleted(0, mockTask, mockStatus);
     assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
     assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
@@ -325,7 +325,7 @@ public class TestTaskSchedulerEventHandler {
     // use -104 rather than ContainerExitStatus.KILLED_EXCEEDED_PMEM because
     // ContainerExitStatus.KILLED_EXCEEDED_PMEM is only available after hadoop-2.5
     when(mockStatus.getExitStatus()).thenReturn(-104);
-    schedulerHandler.containerCompleted(mockTask, mockStatus);
+    schedulerHandler.containerCompleted(0, mockTask, mockStatus);
     assertEquals(1, mockEventHandler.events.size());
     Event event = mockEventHandler.events.get(0);
     assertEquals(AMContainerEventType.C_COMPLETED, event.getType());
@@ -383,4 +383,5 @@ public class TestTaskSchedulerEventHandler {
 
   }
 
+  // TODO TEZ-2003. Add tests with multiple schedulers, and ensuring that events go out with correct IDs.
 }

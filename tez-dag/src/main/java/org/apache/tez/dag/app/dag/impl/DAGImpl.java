@@ -1440,9 +1440,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       VertexImpl v = createVertex(this, vertexName, i);
       addVertex(v);
     }
+
     // check task resources, only check it in non-local mode
     if (!appContext.isLocal()) {
       for (Vertex v : vertexMap.values()) {
+        // TODO TEZ-2003 (post) Ideally, this should be per source.
         if (v.getTaskResource().compareTo(appContext.getClusterInfo().getMaxContainerCapability()) > 0) {
           String msg = "Vertex's TaskResource is beyond the cluster container capability," +
               "Vertex=" + v.getLogIdentifier() +", Requested TaskResource=" + v.getTaskResource()

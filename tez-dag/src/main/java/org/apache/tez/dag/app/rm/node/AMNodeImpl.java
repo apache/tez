@@ -54,6 +54,7 @@ public class AMNodeImpl implements AMNode {
   private final ReadLock readLock;
   private final WriteLock writeLock;
   private final NodeId nodeId;
+  private final int sourceId;
   private final AppContext appContext;
   private final int maxTaskFailuresPerNode;
   private boolean blacklistingEnabled;
@@ -172,13 +173,14 @@ public class AMNodeImpl implements AMNode {
 
 
   @SuppressWarnings("rawtypes")
-  public AMNodeImpl(NodeId nodeId, int maxTaskFailuresPerNode,
+  public AMNodeImpl(NodeId nodeId, int sourceId, int maxTaskFailuresPerNode,
       EventHandler eventHandler, boolean blacklistingEnabled,
       AppContext appContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
     this.nodeId = nodeId;
+    this.sourceId = sourceId;
     this.appContext = appContext;
     this.eventHandler = eventHandler;
     this.blacklistingEnabled = blacklistingEnabled;
@@ -247,7 +249,7 @@ public class AMNodeImpl implements AMNode {
 
   /* Blacklist the node with the AMNodeTracker and check if the node should be blacklisted */
   protected boolean registerBadNodeAndShouldBlacklist() {
-    return appContext.getNodeTracker().registerBadNodeAndShouldBlacklist(this);
+    return appContext.getNodeTracker().registerBadNodeAndShouldBlacklist(this, sourceId);
   }
 
   protected void blacklistSelf() {

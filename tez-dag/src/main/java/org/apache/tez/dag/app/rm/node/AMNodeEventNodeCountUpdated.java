@@ -22,8 +22,8 @@ public class AMNodeEventNodeCountUpdated extends AMNodeEvent {
 
   private final int count;
   
-  public AMNodeEventNodeCountUpdated(int nodeCount) {
-    super(null, AMNodeEventType.N_NODE_COUNT_UPDATED);
+  public AMNodeEventNodeCountUpdated(int nodeCount, int sourceId) {
+    super(null, sourceId, AMNodeEventType.N_NODE_COUNT_UPDATED);
     this.count = nodeCount;
   }
   

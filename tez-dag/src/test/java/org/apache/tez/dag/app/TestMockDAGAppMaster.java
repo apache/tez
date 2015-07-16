@@ -200,7 +200,7 @@ public class TestMockDAGAppMaster {
     mockLauncher.waitTillContainersLaunched();
     ContainerData cData = mockLauncher.getContainers().values().iterator().next();
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
-    mockApp.getTaskSchedulerEventHandler().preemptContainer(cData.cId);
+    mockApp.getTaskSchedulerEventHandler().preemptContainer(0, cData.cId);
     
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();

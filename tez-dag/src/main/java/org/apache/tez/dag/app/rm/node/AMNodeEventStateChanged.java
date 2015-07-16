@@ -23,8 +23,8 @@ public class AMNodeEventStateChanged extends AMNodeEvent {
 
   private NodeReport nodeReport;
 
-  public AMNodeEventStateChanged(NodeReport nodeReport) {
-    super(nodeReport.getNodeId(), 
+  public AMNodeEventStateChanged(NodeReport nodeReport, int sourceId) {
+    super(nodeReport.getNodeId(), sourceId,
           (nodeReport.getNodeState().isUnusable() ? 
               AMNodeEventType.N_TURNED_UNHEALTHY :
               AMNodeEventType.N_TURNED_HEALTHY));

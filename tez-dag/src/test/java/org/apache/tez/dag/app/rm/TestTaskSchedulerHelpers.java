@@ -134,7 +134,7 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
-      taskSchedulers[0] = new TaskSchedulerWithDrainableAppCallback(this,
+      taskSchedulers[0] = new TaskSchedulerWithDrainableAppCallback(new TaskSchedulerAppCallbackImpl(this, 0),
           containerSignatureMatcher, host, port, trackingUrl, amrmClientAsync,
           appContext);
     }

@@ -93,12 +93,12 @@ public class TestAMNodeTracker {
     amNodeTracker.start();
 
     NodeId nodeId = NodeId.newInstance("host1", 2342);
-    amNodeTracker.nodeSeen(nodeId);
+    amNodeTracker.nodeSeen(nodeId, 0);
 
     NodeReport nodeReport = generateNodeReport(nodeId, NodeState.UNHEALTHY);
-    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport));
+    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport, 0));
     dispatcher.await();
-    assertEquals(AMNodeState.UNHEALTHY, amNodeTracker.get(nodeId).getState());
+    assertEquals(AMNodeState.UNHEALTHY, amNodeTracker.get(nodeId, 0).getState());
     amNodeTracker.stop();
   }
 
@@ -114,7 +114,7 @@ public class TestAMNodeTracker {
     NodeId nodeId = NodeId.newInstance("unknownhost", 2342);
 
     NodeReport nodeReport = generateNodeReport(nodeId, NodeState.UNHEALTHY);
-    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport));
+    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport, 0));
     dispatcher.await();
 
     amNodeTracker.stop();
@@ -142,27 +142,27 @@ public class TestAMNodeTracker {
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
-    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(1));
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(1, 0));
     NodeId nodeId = NodeId.newInstance("host1", 1234);
-    amNodeTracker.nodeSeen(nodeId);
+    amNodeTracker.nodeSeen(nodeId, 0);
 
-    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId);
+    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId, 0);
 
     ContainerId cId1 = mock(ContainerId.class);
     ContainerId cId2 = mock(ContainerId.class);
 
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId1));
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId2));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, 0, cId1));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, 0, cId2));
 
     TezTaskAttemptID ta1 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta2 = mock(TezTaskAttemptID.class);
 
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId1, ta1, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, 0, cId1, ta1, true));
     dispatcher.await();
     assertEquals(1, node.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node.getState());
 
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, 0, cId2, ta2, true));
     dispatcher.await();
     assertEquals(2, node.numFailedTAs);
     assertEquals(1, handler.events.size());
@@ -187,44 +187,44 @@ public class TestAMNodeTracker {
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
-    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(4));
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(4, 0));
     NodeId nodeId = NodeId.newInstance("host1", 1234);
     NodeId nodeId2 = NodeId.newInstance("host2", 1234);
     NodeId nodeId3 = NodeId.newInstance("host3", 1234);
     NodeId nodeId4 = NodeId.newInstance("host4", 1234);
-    amNodeTracker.nodeSeen(nodeId);
-    amNodeTracker.nodeSeen(nodeId2);
-    amNodeTracker.nodeSeen(nodeId3);
-    amNodeTracker.nodeSeen(nodeId4);
-    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId);
+    amNodeTracker.nodeSeen(nodeId, 0);
+    amNodeTracker.nodeSeen(nodeId2, 0);
+    amNodeTracker.nodeSeen(nodeId3, 0);
+    amNodeTracker.nodeSeen(nodeId4, 0);
+    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId, 0);
     
     ContainerId cId1 = mock(ContainerId.class);
     ContainerId cId2 = mock(ContainerId.class);
     ContainerId cId3 = mock(ContainerId.class);
     
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId1));
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId2));
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cId3));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, 0, cId1));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, 0, cId2));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, 0, cId3));
     assertEquals(3, node.containers.size());
     
     TezTaskAttemptID ta1 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta2 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta3 = mock(TezTaskAttemptID.class);
     
-    amNodeTracker.handle(new AMNodeEventTaskAttemptSucceeded(nodeId, cId1, ta1));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptSucceeded(nodeId, 0, cId1, ta1));
     assertEquals(1, node.numSuccessfulTAs);
     
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, 0, cId2, ta2, true));
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(1, node.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node.getState());
     // duplicate should not affect anything
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId2, ta2, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, 0, cId2, ta2, true));
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(1, node.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node.getState());
     
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, cId3, ta3, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId, 0, cId3, ta3, true));
     dispatcher.await();
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(2, node.numFailedTAs);
@@ -246,20 +246,20 @@ public class TestAMNodeTracker {
     ContainerId cId5 = mock(ContainerId.class);
     TezTaskAttemptID ta4 = mock(TezTaskAttemptID.class);
     TezTaskAttemptID ta5 = mock(TezTaskAttemptID.class);
-    AMNodeImpl node2 = (AMNodeImpl) amNodeTracker.get(nodeId2);
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId2, cId4));
-    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId2, cId5));
+    AMNodeImpl node2 = (AMNodeImpl) amNodeTracker.get(nodeId2, 0);
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId2, 0, cId4));
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId2, 0, cId5));
     
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId2, cId4, ta4, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId2, 0, cId4, ta4, true));
     assertEquals(1, node2.numFailedTAs);
     assertEquals(AMNodeState.ACTIVE, node2.getState());
     
     handler.events.clear();
-    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId2, cId5, ta5, true));
+    amNodeTracker.handle(new AMNodeEventTaskAttemptEnded(nodeId2, 0, cId5, ta5, true));
     dispatcher.await();
     assertEquals(2, node2.numFailedTAs);
     assertEquals(AMNodeState.FORCED_ACTIVE, node2.getState());
-    AMNodeImpl node3 = (AMNodeImpl) amNodeTracker.get(nodeId3);
+    AMNodeImpl node3 = (AMNodeImpl) amNodeTracker.get(nodeId3, 0);
     assertEquals(AMNodeState.FORCED_ACTIVE, node3.getState());
     assertEquals(5, handler.events.size());
 
@@ -286,7 +286,7 @@ public class TestAMNodeTracker {
     // Increase the number of nodes. BLACKLISTING should be re-enabled.
     // Node 1 and Node 2 should go into BLACKLISTED state
     handler.events.clear();
-    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(8));
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(8, 0));
     dispatcher.await();
     LOG.info(("Completed waiting for dispatcher to process all pending events"));
     assertEquals(AMNodeState.BLACKLISTED, node.getState());
@@ -336,4 +336,6 @@ public class TestAMNodeTracker {
     doReturn(healthReportTime).when(nodeReport).getLastHealthReportTime();
     return nodeReport;
   }
+
+  // TODO TEZ-2003. Add tests for multiple sources.
 }
