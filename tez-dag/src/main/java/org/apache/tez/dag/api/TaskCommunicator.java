@@ -22,6 +22,8 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.serviceplugins.api.ContainerEndReason;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
@@ -87,4 +89,11 @@ public abstract class TaskCommunicator extends AbstractService {
   // TODO TEZ-2003 This is extremely difficult to use. Add the dagStarted notification, and potentially
   // throw exceptions between a dagComplete and dagStart invocation.
   public abstract void dagComplete(String dagName);
+
+  /**
+   * Share meta-information such as host:port information where the Task Communicator may be listening.
+   * Primarily for use by compatible launchers to learn this information.
+   * @return
+   */
+  public abstract Object getMetaInfo();
 }

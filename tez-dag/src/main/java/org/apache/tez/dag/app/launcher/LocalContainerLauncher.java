@@ -44,11 +44,15 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
+import org.apache.tez.serviceplugins.api.ContainerLauncher;
+import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+import org.apache.tez.serviceplugins.api.ContainerStopRequest;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
@@ -60,17 +64,6 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TezTaskCommunicatorImpl;
-import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
-import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchFailed;
-import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
-import org.apache.tez.dag.app.rm.container.AMContainerEventType;
-import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -82,17 +75,17 @@ import org.apache.tez.runtime.task.TezChild;
  * Since all (sub)tasks share the same local directory, they must be executed
  * sequentially in order to avoid creating/deleting the same files/dirs.
  */
-public class LocalContainerLauncher extends AbstractService implements
-  ContainerLauncher {
+public class LocalContainerLauncher extends ContainerLauncher {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalContainerLauncher.class);
+
   private final AppContext context;
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private final String workingDirectory;
   private final TaskAttemptListener tal;
   private final Map<String, String> localEnv;
   private final ExecutionContext executionContext;
-  private int numExecutors;
+  private final int numExecutors;
   private final boolean isPureLocalMode;
 
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
@@ -102,23 +95,25 @@ public class LocalContainerLauncher extends AbstractService implements
   private final ExecutorService callbackExecutor = Executors.newFixedThreadPool(1,
       new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CallbackExecutor").build());
 
-  private BlockingQueue<NMCommunicatorEvent> eventQueue =
-      new LinkedBlockingQueue<NMCommunicatorEvent>();
+  private BlockingQueue<ContainerOp> eventQueue = new LinkedBlockingQueue<>();
   private Thread eventHandlingThread;
 
 
   private ListeningExecutorService taskExecutorService;
 
 
-
-  public LocalContainerLauncher(AppContext context,
+  public LocalContainerLauncher(ContainerLauncherContext containerLauncherContext,
+                                AppContext context,
                                 TaskAttemptListener taskAttemptListener,
                                 String workingDirectory,
                                 boolean isPureLocalMode) throws UnknownHostException {
-    super(LocalContainerLauncher.class.getName());
+    // TODO Post TEZ-2003. Most of this information is dynamic and only available after the AM
+    // starts up. It's not possible to set these up via a static payload.
+    // Will need some kind of mechanism to dynamically crate payloads / bind to parameters
+    // after the AM starts up.
+    super(LocalContainerLauncher.class.getName(), containerLauncherContext);
     this.context = context;
     this.tal = taskAttemptListener;
-
     this.workingDirectory = workingDirectory;
     this.isPureLocalMode = isPureLocalMode;
     if (isPureLocalMode) {
@@ -133,11 +128,8 @@ public class LocalContainerLauncher extends AbstractService implements
     String host = isPureLocalMode ? InetAddress.getLocalHost().getHostName() :
         System.getenv(Environment.NM_HOST.name());
     executionContext = new ExecutionContextImpl(host);
-  }
 
-  @Override
-  public synchronized void serviceInit(Configuration conf) {
-    numExecutors = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
+    numExecutors = getContext().getInitialConfiguration().getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
         TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
     Preconditions.checkState(numExecutors >=1, "Must have at least 1 executor");
     ExecutorService rawExecutor = Executors.newFixedThreadPool(numExecutors,
@@ -169,20 +161,22 @@ public class LocalContainerLauncher extends AbstractService implements
     callbackExecutor.shutdownNow();
   }
 
+
+
   // Thread to monitor the queue of incoming NMCommunicator events
   private class TezSubTaskRunner implements Runnable {
     @Override
     public void run() {
       while (!Thread.currentThread().isInterrupted() && !serviceStopped.get()) {
-        NMCommunicatorEvent event;
+        ContainerOp event;
         try {
           event = eventQueue.take();
-          switch (event.getType()) {
-            case CONTAINER_LAUNCH_REQUEST:
-              launch((NMCommunicatorLaunchRequestEvent) event);
+          switch (event.getOpType()) {
+            case LAUNCH_REQUEST:
+              launch(event.getLaunchRequest());
               break;
-            case CONTAINER_STOP_REQUEST:
-              stop((NMCommunicatorStopRequestEvent)event);
+            case STOP_REQUEST:
+              stop(event.getStopRequest());
               break;
           }
         } catch (InterruptedException e) {
@@ -200,7 +194,7 @@ public class LocalContainerLauncher extends AbstractService implements
 
   @SuppressWarnings("unchecked")
   void sendContainerLaunchFailedMsg(ContainerId containerId, String message) {
-    context.getEventHandler().handle(new AMContainerEventLaunchFailed(containerId, message));
+    getContext().containerLaunchFailed(containerId, message);
   }
 
   private void handleLaunchFailed(Throwable t, ContainerId containerId) {
@@ -215,16 +209,17 @@ public class LocalContainerLauncher extends AbstractService implements
   }
 
   //launch tasks
-  private void launch(NMCommunicatorLaunchRequestEvent event) {
+  private void launch(ContainerLaunchRequest event) {
 
     String tokenIdentifier = context.getApplicationID().toString();
     try {
       TezChild tezChild;
       try {
+        int taskCommId = context.getTaskCommunicatorIdentifier(event.getTaskCommunicatorName());
         tezChild =
             createTezChild(context.getAMConf(), event.getContainerId(), tokenIdentifier,
                 context.getApplicationAttemptId().getAttemptId(), context.getLocalDirs(),
-                ((TezTaskCommunicatorImpl)tal.getTaskCommunicator(event.getTaskCommId())).getUmbilical(),
+                ((TezTaskCommunicatorImpl)tal.getTaskCommunicator(taskCommId)).getUmbilical(),
                 TezCommonUtils.parseCredentialsBytes(event.getContainerLaunchContext().getTokens().array()));
       } catch (InterruptedException e) {
         handleLaunchFailed(e, event.getContainerId());
@@ -238,7 +233,7 @@ public class LocalContainerLauncher extends AbstractService implements
       }
       ListenableFuture<TezChild.ContainerExecutionResult> runningTaskFuture =
           taskExecutorService.submit(createSubTask(tezChild, event.getContainerId()));
-      RunningTaskCallback callback = new RunningTaskCallback(context, event.getContainerId());
+      RunningTaskCallback callback = new RunningTaskCallback(event.getContainerId());
       runningContainers.put(event.getContainerId(), callback);
       Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
     } catch (RejectedExecutionException e) {
@@ -246,7 +241,7 @@ public class LocalContainerLauncher extends AbstractService implements
     }
   }
 
-  private void stop(NMCommunicatorStopRequestEvent event) {
+  private void stop(ContainerStopRequest event) {
     // A stop_request will come in when a task completes and reports back or a preemption decision
     // is made. Currently the LocalTaskScheduler does not support preemption. Also preemption
     // will not work in local mode till Tez supports task preemption instead of container preemption.
@@ -263,18 +258,15 @@ public class LocalContainerLauncher extends AbstractService implements
       // This will need to be fixed once interrupting tasks is supported.
     }
     // Send this event to maintain regular control flow. This isn't of much use though.
-    context.getEventHandler().handle(
-        new AMContainerEvent(event.getContainerId(), AMContainerEventType.C_NM_STOP_SENT));
+    getContext().containerStopRequested(event.getContainerId());
   }
 
   private class RunningTaskCallback
       implements FutureCallback<TezChild.ContainerExecutionResult> {
 
-    private final AppContext appContext;
     private final ContainerId containerId;
 
-    RunningTaskCallback(AppContext appContext, ContainerId containerId) {
-      this.appContext = appContext;
+    RunningTaskCallback(ContainerId containerId) {
       this.containerId = containerId;
     }
 
@@ -286,16 +278,16 @@ public class LocalContainerLauncher extends AbstractService implements
           result.getExitStatus() ==
               TezChild.ContainerExecutionResult.ExitStatus.ASKED_TO_DIE) {
         LOG.info("Container: " + containerId + " completed successfully");
-        appContext.getEventHandler().handle(
-            new AMContainerEventCompleted(containerId, result.getExitStatus().getExitCode(),
-                null, TaskAttemptTerminationCause.CONTAINER_EXITED));
+        getContext()
+            .containerCompleted(containerId, result.getExitStatus().getExitCode(), null,
+                TaskAttemptEndReason.CONTAINER_EXITED);
       } else {
         LOG.info("Container: " + containerId + " completed but with errors");
-        appContext.getEventHandler().handle(
-            new AMContainerEventCompleted(containerId, result.getExitStatus().getExitCode(),
-                result.getErrorMessage() == null ?
-                    (result.getThrowable() == null ? null : result.getThrowable().getMessage()) :
-                    result.getErrorMessage(), TaskAttemptTerminationCause.APPLICATION_ERROR));
+        getContext().containerCompleted(
+            containerId, result.getExitStatus().getExitCode(),
+            result.getErrorMessage() == null ?
+                (result.getThrowable() == null ? null : result.getThrowable().getMessage()) :
+                result.getErrorMessage(), TaskAttemptEndReason.APPLICATION_ERROR);
       }
     }
 
@@ -307,16 +299,14 @@ public class LocalContainerLauncher extends AbstractService implements
       if (!(t instanceof CancellationException)) {
         LOG.info("Container: " + containerId + ": Execution Failed: ", t);
         // Inform of failure with exit code 1.
-        appContext.getEventHandler()
-            .handle(new AMContainerEventCompleted(containerId,
-                TezChild.ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE.getExitCode(),
-                t.getMessage(), TaskAttemptTerminationCause.APPLICATION_ERROR));
+        getContext().containerCompleted(containerId,
+            TezChild.ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE.getExitCode(),
+            t.getMessage(), TaskAttemptEndReason.APPLICATION_ERROR);
       } else {
         LOG.info("Ignoring CancellationException - triggered by LocalContainerLauncher");
-        appContext.getEventHandler()
-            .handle(new AMContainerEventCompleted(containerId,
-                TezChild.ContainerExecutionResult.ExitStatus.SUCCESS.getExitCode(),
-                "CancellationException", TaskAttemptTerminationCause.CONTAINER_EXITED));
+        getContext().containerCompleted(containerId,
+            TezChild.ContainerExecutionResult.ExitStatus.SUCCESS.getExitCode(),
+            "CancellationException", TaskAttemptEndReason.COMMUNICATION_ERROR.CONTAINER_EXITED);
       }
     }
   }
@@ -334,12 +324,7 @@ public class LocalContainerLauncher extends AbstractService implements
         // TezTaskRunner needs to be fixed to ensure this.
         Thread.interrupted();
         // Inform about the launch request now that the container has been allocated a thread to execute in.
-        context.getEventHandler().handle(new AMContainerEventLaunched(containerId));
-        ContainerLaunchedEvent lEvt =
-            new ContainerLaunchedEvent(containerId, context.getClock().getTime(),
-                context.getApplicationAttemptId());
-
-        context.getHistoryHandler().handle(new DAGHistoryEvent(context.getCurrentDAGID(), lEvt));
+        getContext().containerLaunched(containerId);
         return tezChild.run();
       }
     };
@@ -368,11 +353,19 @@ public class LocalContainerLauncher extends AbstractService implements
   }
 
 
+  @Override
+  public void launchContainer(ContainerLaunchRequest launchRequest) {
+    try {
+      eventQueue.put(new ContainerOp(ContainerOp.OPType.LAUNCH_REQUEST, launchRequest));
+    } catch (InterruptedException e) {
+      throw new TezUncheckedException(e);
+    }
+  }
 
   @Override
-  public void handle(NMCommunicatorEvent event) {
+  public void stopContainer(ContainerStopRequest stopRequest) {
     try {
-      eventQueue.put(event);
+      eventQueue.put(new ContainerOp(ContainerOp.OPType.STOP_REQUEST, stopRequest));
     } catch (InterruptedException e) {
       throw new TezUncheckedException(e);
     }

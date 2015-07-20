@@ -14,14 +14,5 @@
 
 package org.apache.tez.dag.api;
 
-// TODO TEZ-2003 Expose as a public API
-public enum ContainerEndReason {
-  NODE_FAILED, // Completed because the node running the container was marked as dead
-  INTERNAL_PREEMPTION, // Preempted by the AM, due to an internal decision
-  EXTERNAL_PREEMPTION, // Preempted due to cluster contention
-  APPLICATION_ERROR, // An error in the AM caused by user code
-  FRAMEWORK_ERROR, // An error in the AM - likely a bug.
-  LAUNCH_FAILED, // Failure to launch the container
-  COMPLETED, // Completed via normal flow
-  OTHER
+public interface TaskCommunicatorInterface {
 }

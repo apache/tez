@@ -14,53 +14,32 @@
 
 package org.apache.tez.dag.app.launcher;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.yarn.util.Clock;
-import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
-import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
-import org.apache.tez.dag.app.rm.container.AMContainerEventType;
-import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
+import org.apache.tez.serviceplugins.api.ContainerLauncher;
+import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+import org.apache.tez.serviceplugins.api.ContainerStopRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TezTestServiceNoOpContainerLauncher extends AbstractService implements ContainerLauncher {
+public class TezTestServiceNoOpContainerLauncher extends ContainerLauncher {
 
   static final Logger LOG = LoggerFactory.getLogger(TezTestServiceNoOpContainerLauncher.class);
 
-  private final AppContext context;
-  private final Clock clock;
 
-  public TezTestServiceNoOpContainerLauncher(AppContext appContext, Configuration conf,
-                                         TaskAttemptListener tal) {
-    super(TezTestServiceNoOpContainerLauncher.class.getName());
-    this.context = appContext;
-    this.clock = appContext.getClock();
+  public TezTestServiceNoOpContainerLauncher(ContainerLauncherContext containerLauncherContext) {
+    super(TezTestServiceNoOpContainerLauncher.class.getName(), containerLauncherContext);
   }
 
   @Override
-  public void handle(NMCommunicatorEvent event) {
-    switch(event.getType()) {
-      case CONTAINER_LAUNCH_REQUEST:
-        final NMCommunicatorLaunchRequestEvent launchEvent = (NMCommunicatorLaunchRequestEvent) event;
-        LOG.info("No-op launch for container: " + launchEvent.getContainerId() + " succeeded on host: " + launchEvent.getNodeId());
-        context.getEventHandler().handle(new AMContainerEventLaunched(launchEvent.getContainerId()));
-        ContainerLaunchedEvent lEvt = new ContainerLaunchedEvent(
-            launchEvent.getContainerId(), clock.getTime(), context.getApplicationAttemptId());
-        context.getHistoryHandler().handle(new DAGHistoryEvent(
-            null, lEvt));
-        break;
-      case CONTAINER_STOP_REQUEST:
-        LOG.info("DEBUG: Ignoring STOP_REQUEST for event: " + event);
-        context.getEventHandler().handle(new AMContainerEvent(event.getContainerId(),
-            AMContainerEventType.C_NM_STOP_SENT));
-        break;
-    }
+  public void launchContainer(ContainerLaunchRequest launchRequest) {
+    LOG.info("No-op launch for container {} succeeded on host: {}", launchRequest.getContainerId(),
+        launchRequest.getNodeId());
+    getContext().containerLaunched(launchRequest.getContainerId());
+  }
 
+  @Override
+  public void stopContainer(ContainerStopRequest stopRequest) {
+    LOG.info("DEBUG: Ignoring STOP_REQUEST {}", stopRequest);
+    getContext().containerStopRequested(stopRequest.getContainerId());
   }
 }

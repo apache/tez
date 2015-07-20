@@ -35,13 +35,12 @@ import java.util.zip.Inflater;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.TextFormat;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Appender;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.TaskAttemptEndReason;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
@@ -256,6 +255,8 @@ public class TezUtilsInternal {
         return TaskAttemptTerminationCause.FRAMEWORK_ERROR;
       case NODE_FAILED:
         return TaskAttemptTerminationCause.NODE_FAILED;
+      case CONTAINER_EXITED:
+        return TaskAttemptTerminationCause.CONTAINER_EXITED;
       case OTHER:
         return TaskAttemptTerminationCause.UNKNOWN_ERROR;
       default:
@@ -283,6 +284,8 @@ public class TezUtilsInternal {
         return TaskAttemptEndReason.FRAMEWORK_ERROR;
       case NODE_FAILED:
         return TaskAttemptEndReason.NODE_FAILED;
+      case CONTAINER_EXITED:
+        return TaskAttemptEndReason.CONTAINER_EXITED;
       case INTERRUPTED_BY_SYSTEM:
       case INTERRUPTED_BY_USER:
       case UNKNOWN_ERROR:
@@ -296,7 +299,7 @@ public class TezUtilsInternal {
       case OUTPUT_LOST:
       case TASK_HEARTBEAT_ERROR:
       case CONTAINER_LAUNCH_FAILED:
-      case CONTAINER_EXITED:
+
       case CONTAINER_STOPPED:
       case NODE_DISK_ERROR:
       default:

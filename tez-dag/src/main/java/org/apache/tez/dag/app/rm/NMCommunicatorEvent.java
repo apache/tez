@@ -29,14 +29,19 @@ public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> 
   private final NodeId nodeId;
   private final Token containerToken;
   private final int launcherId;
+  private final int schedulerId;
+  private final int taskCommId;
 
   public NMCommunicatorEvent(ContainerId containerId, NodeId nodeId,
-      Token containerToken, NMCommunicatorEventType type, int launcherId) {
+                             Token containerToken, NMCommunicatorEventType type, int launcherId,
+                             int schedulerId, int taskCommId) {
     super(type);
     this.containerId = containerId;
     this.nodeId = nodeId;
     this.containerToken = containerToken;
     this.launcherId = launcherId;
+    this.schedulerId = schedulerId;
+    this.taskCommId = taskCommId;
   }
 
   public ContainerId getContainerId() {
@@ -55,9 +60,18 @@ public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> 
     return launcherId;
   }
 
+  public int getSchedulerId() {
+    return schedulerId;
+  }
+
+  public int getTaskCommId() {
+    return taskCommId;
+  }
+
   public String toSrting() {
     return super.toString() + " for container " + containerId + ", nodeId: "
-        + nodeId + ", launcherId: " + launcherId;
+        + nodeId + ", launcherId: " + launcherId + ", schedulerId=" + schedulerId +
+        ", taskCommId=" + taskCommId;
   }
 
   @Override

@@ -1551,6 +1551,21 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public String getTaskCommunicatorName(int taskCommId) {
+      return taskCommunicators.inverse().get(taskCommId);
+    }
+
+    @Override
+    public String getTaskSchedulerName(int schedulerId) {
+      return taskSchedulers.inverse().get(schedulerId);
+    }
+
+    @Override
+    public String getContainerLauncherName(int launcherId) {
+      return containerLaunchers.inverse().get(launcherId);
+    }
+
+    @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
       if (getServiceState() != STATE.STARTED) {
         throw new TezUncheckedException(

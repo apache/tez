@@ -118,4 +118,9 @@ public interface AppContext {
   public Integer getTaskCommunicatorIdentifier(String name);
   public Integer getTaskScheduerIdentifier(String name);
   public Integer getContainerLauncherIdentifier(String name);
+
+  public String getTaskCommunicatorName(int taskCommId);
+  public String getTaskSchedulerName(int schedulerId);
+  public String getContainerLauncherName(int launcherId);
+
 }

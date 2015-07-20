@@ -34,11 +34,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
+import org.apache.tez.serviceplugins.api.ContainerLauncher;
+import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+import org.apache.tez.serviceplugins.api.ContainerStopRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -53,23 +56,14 @@ import org.apache.tez.dag.api.TaskHeartbeatRequest;
 import org.apache.tez.dag.api.TaskHeartbeatResponse;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.app.launcher.ContainerLauncher;
 import org.apache.tez.dag.app.launcher.ContainerLauncherRouter;
 import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
-import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
-import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
-import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -89,6 +83,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class MockDAGAppMaster extends DAGAppMaster {
   
   private static final Logger LOG = LoggerFactory.getLogger(MockDAGAppMaster.class);
+  ContainerLauncherContext containerLauncherContext;
   MockContainerLauncher containerLauncher;
   boolean initFailFlag;
   boolean startFailFlag;
@@ -121,7 +116,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   // Upon, launch of a container is simulates the container asking for tasks
   // Upon receiving a task it simulates completion of the tasks
   // It can be used to preempt the container for a given task
-  public class MockContainerLauncher extends AbstractService implements ContainerLauncher, Runnable {
+  public class MockContainerLauncher extends ContainerLauncher implements Runnable {
 
     BlockingQueue<NMCommunicatorEvent> eventQueue = new LinkedBlockingQueue<NMCommunicatorEvent>();
     Thread eventHandlingThread;
@@ -141,11 +136,13 @@ public class MockDAGAppMaster extends DAGAppMaster {
     Map<TezTaskID, Integer> preemptedTasks = Maps.newConcurrentMap();
     
     Map<TezTaskAttemptID, Integer> tasksWithStatusUpdates = Maps.newConcurrentMap();
-    
-    public MockContainerLauncher(AtomicBoolean goFlag) {
-      super("MockContainerLauncher");
+
+    public MockContainerLauncher(AtomicBoolean goFlag,
+                                 ContainerLauncherContext containerLauncherContext) {
+      super("MockContainerLauncher", containerLauncherContext);
       this.goFlag = goFlag;
     }
+
 
     public class ContainerData {
       ContainerId cId;
@@ -211,20 +208,18 @@ public class MockDAGAppMaster extends DAGAppMaster {
         executorService.shutdownNow();
       }
     }
-    
+
+
     @Override
-    public void handle(NMCommunicatorEvent event) {
-      switch (event.getType()) {
-      case CONTAINER_LAUNCH_REQUEST:
-        launch((NMCommunicatorLaunchRequestEvent) event);
-        break;
-      case CONTAINER_STOP_REQUEST:
-        stop((NMCommunicatorStopRequestEvent)event);
-        break;
-      }
+    public void launchContainer(ContainerLaunchRequest launchRequest) {
+      launch(launchRequest);
     }
-    
-    
+
+    @Override
+    public void stopContainer(ContainerStopRequest stopRequest) {
+      stop(stopRequest);
+    }
+
     void waitToGo() {
       if (goFlag == null) {
         return;
@@ -266,20 +261,19 @@ public class MockDAGAppMaster extends DAGAppMaster {
       tasksWithStatusUpdates.put(tId, numUpdates);
     }
     
-    void stop(NMCommunicatorStopRequestEvent event) {
+    void stop(ContainerStopRequest event) {
       // remove from simulated container list
       containers.remove(event.getContainerId());
-      getContext().getEventHandler().handle(
-          new AMContainerEvent(event.getContainerId(), AMContainerEventType.C_NM_STOP_SENT));
+      getContext().containerStopRequested(event.getContainerId());
     }
 
-    void launch(NMCommunicatorLaunchRequestEvent event) {
+    void launch(ContainerLaunchRequest event) {
       // launch container by putting it in simulated container list
       ContainerData cData = new ContainerData(event.getContainerId(),
           event.getContainerLaunchContext());
       containers.put(event.getContainerId(), cData);
       containersToProcess.add(cData);
-      getContext().getEventHandler().handle(new AMContainerEventLaunched(event.getContainerId()));      
+      getContext().containerLaunched(event.getContainerId());
     }
     
     public void waitTillContainersLaunched() throws InterruptedException {
@@ -289,7 +283,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     }
     
     void incrementTime(long inc) {
-      Clock clock = getContext().getClock();
+      Clock clock = MockDAGAppMaster.this.getContext().getClock();
       if (clock instanceof MockClock) {
         ((MockClock) clock).incrementTime(inc);
       }
@@ -493,7 +487,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
         isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(), 1,
         credentials, jobUserName);
-    containerLauncher = new MockContainerLauncher(launcherGoFlag);
+    containerLauncherContext = new ContainerLauncherContextImpl(getContext(), getTaskAttemptListener());
+    containerLauncher = new MockContainerLauncher(launcherGoFlag, containerLauncherContext);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
     this.initFailFlag = initFailFlag;
     this.startFailFlag = startFailFlag;
@@ -508,7 +503,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
                                                                   String[] containerLaunchers,
                                                                   boolean isLocal)
       throws UnknownHostException {
-    return new ContainerLauncherRouter(containerLauncher);
+    return new ContainerLauncherRouter(containerLauncher, getContext());
   }
 
   @Override

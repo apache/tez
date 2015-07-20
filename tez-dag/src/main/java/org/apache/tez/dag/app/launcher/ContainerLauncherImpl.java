@@ -30,12 +30,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
+import org.apache.tez.serviceplugins.api.ContainerLauncher;
+import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+import org.apache.tez.serviceplugins.api.ContainerStopRequest;
 import org.apache.tez.dag.api.TezConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainerRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainersRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.StartContainersResponse;
@@ -45,57 +48,43 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.client.api.impl.ContainerManagementProtocolProxy;
 import org.apache.hadoop.yarn.client.api.impl.ContainerManagementProtocolProxy.ContainerManagementProtocolProxyData;
-import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEvent;
-import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchFailed;
-import org.apache.tez.dag.app.rm.container.AMContainerEventLaunched;
-import org.apache.tez.dag.app.rm.container.AMContainerEventStopFailed;
-import org.apache.tez.dag.app.rm.container.AMContainerEventType;
-import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 
-// TODO XXX: See what part of this lifecycle and state management can be simplified.
+// TODO See what part of this lifecycle and state management can be simplified.
 // Ideally, no state - only sendStart / sendStop.
 
-// TODO XXX: Review this entire code and clean it up.
+// TODO Review this entire code and clean it up.
 
 /**
  * This class is responsible for launching of containers.
  */
-public class ContainerLauncherImpl extends AbstractService implements
-    ContainerLauncher {
+public class ContainerLauncherImpl extends ContainerLauncher {
 
-  // TODO XXX Ensure the same thread is used to launch / stop the same container. Or - ensure event ordering.
+  // TODO Ensure the same thread is used to launch / stop the same container. Or - ensure event ordering.
   static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherImpl.class);
 
-  private ConcurrentHashMap<ContainerId, Container> containers =
-    new ConcurrentHashMap<ContainerId, Container>();
-  private AppContext context;
+  private final ConcurrentHashMap<ContainerId, Container> containers =
+    new ConcurrentHashMap<>();
   protected ThreadPoolExecutor launcherPool;
   protected static final int INITIAL_POOL_SIZE = 10;
-  private int limitOnPoolSize;
+  private final int limitOnPoolSize;
+  private final Configuration conf;
   private Thread eventHandlingThread;
-  protected BlockingQueue<NMCommunicatorEvent> eventQueue =
-      new LinkedBlockingQueue<NMCommunicatorEvent>();
-  private Clock clock;
+  protected BlockingQueue<ContainerOp> eventQueue = new LinkedBlockingQueue<>();
   private ContainerManagementProtocolProxy cmProxy;
   private AtomicBoolean serviceStopped = new AtomicBoolean(false);
 
-  private Container getContainer(NMCommunicatorEvent event) {
-    ContainerId id = event.getContainerId();
+  private Container getContainer(ContainerOp event) {
+    ContainerId id = event.getBaseOperation().getContainerId();
     Container c = containers.get(id);
     if(c == null) {
-      c = new Container(event.getContainerId(),
-          event.getNodeId().toString(), event.getContainerToken());
+      c = new Container(id,
+          event.getBaseOperation().getNodeId().toString(), event.getBaseOperation().getContainerToken());
       Container old = containers.putIfAbsent(id, c);
       if(old != null) {
         c = old;
@@ -110,6 +99,7 @@ public class ContainerLauncherImpl extends AbstractService implements
       containers.remove(id);
     }
   }
+
 
   private static enum ContainerState {
     PREP, FAILED, RUNNING, DONE, KILLED_BEFORE_LAUNCH
@@ -135,7 +125,7 @@ public class ContainerLauncherImpl extends AbstractService implements
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void launch(NMCommunicatorLaunchRequestEvent event) {
+    public synchronized void launch(ContainerLaunchRequest event) {
       LOG.info("Launching Container with Id: " + event.getContainerId());
       if(this.state == ContainerState.KILLED_BEFORE_LAUNCH) {
         state = ContainerState.DONE;
@@ -171,13 +161,7 @@ public class ContainerLauncherImpl extends AbstractService implements
 
         // after launching, send launched event to task attempt to move
         // it from ASSIGNED to RUNNING state
-        context.getEventHandler().handle(
-            new AMContainerEventLaunched(containerID));
-        ContainerLaunchedEvent lEvt = new ContainerLaunchedEvent(
-            containerID, clock.getTime(), context.getApplicationAttemptId());
-        context.getHistoryHandler().handle(new DAGHistoryEvent(
-            null, lEvt));
-
+        getContext().containerLaunched(containerID);
         this.state = ContainerState.RUNNING;
       } catch (Throwable t) {
         String message = "Container launch failed for " + containerID + " : "
@@ -217,16 +201,14 @@ public class ContainerLauncherImpl extends AbstractService implements
 
             // If stopContainer returns without an error, assuming the stop made
             // it over to the NodeManager.
-          context.getEventHandler().handle(
-              new AMContainerEvent(containerID, AMContainerEventType.C_NM_STOP_SENT));
+          getContext().containerStopRequested(containerID);
         } catch (Throwable t) {
 
           // ignore the cleanup failure
           String message = "cleanup failed for container "
             + this.containerID + " : "
             + ExceptionUtils.getStackTrace(t);
-          context.getEventHandler().handle(
-              new AMContainerEventStopFailed(containerID, message));
+          getContext().containerStopFailed(containerID, message);
           LOG.warn(message);
           this.state = ContainerState.DONE;
           return;
@@ -240,15 +222,9 @@ public class ContainerLauncherImpl extends AbstractService implements
     }
   }
 
-  public ContainerLauncherImpl(AppContext context) {
-    super(ContainerLauncherImpl.class.getName());
-    this.context = context;
-    this.clock = context.getClock();
-  }
-
-  @Override
-  public synchronized void serviceInit(Configuration config) {
-    Configuration conf = new Configuration(config);
+  public ContainerLauncherImpl(ContainerLauncherContext containerLauncherContext) {
+    super(ContainerLauncherImpl.class.getName(), containerLauncherContext);
+    this.conf = new Configuration(containerLauncherContext.getInitialConfiguration());
     conf.setInt(
         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECTION_MAXIDLETIME_KEY,
         0);
@@ -262,7 +238,7 @@ public class ContainerLauncherImpl extends AbstractService implements
   public void serviceStart() {
     // pass a copy of config to ContainerManagementProtocolProxy until YARN-3497 is fixed
     cmProxy =
-        new ContainerManagementProtocolProxy(new Configuration(getConfig()));
+        new ContainerManagementProtocolProxy(conf);
 
     ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat(
         "ContainerLauncher #%d").setDaemon(true).build();
@@ -275,7 +251,7 @@ public class ContainerLauncherImpl extends AbstractService implements
     eventHandlingThread = new Thread() {
       @Override
       public void run() {
-        NMCommunicatorEvent event = null;
+        ContainerOp event = null;
         while (!Thread.currentThread().isInterrupted()) {
           try {
             event = eventQueue.take();
@@ -293,9 +269,8 @@ public class ContainerLauncherImpl extends AbstractService implements
 
             // nodes where containers will run at *this* point of time. This is
             // *not* the cluster size and doesn't need to be.
-            int yarnSourceIndex =
-                context.getTaskScheduerIdentifier(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
-            int numNodes = context.getNodeTracker().getNumNodes(yarnSourceIndex);
+            int numNodes = getContext().getNumNodes(
+                TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
             int idealPoolSize = Math.min(limitOnPoolSize, numNodes);
 
             if (poolSize < idealPoolSize) {
@@ -347,7 +322,7 @@ public class ContainerLauncherImpl extends AbstractService implements
     }
   }
 
-  protected EventProcessor createEventProcessor(NMCommunicatorEvent event) {
+  protected EventProcessor createEventProcessor(ContainerOp event) {
     return new EventProcessor(event);
   }
 
@@ -361,32 +336,29 @@ public class ContainerLauncherImpl extends AbstractService implements
    * Setup and start the container on remote nodemanager.
    */
   class EventProcessor implements Runnable {
-    private NMCommunicatorEvent event;
+    private ContainerOp event;
 
-    EventProcessor(NMCommunicatorEvent event) {
+    EventProcessor(ContainerOp event) {
       this.event = event;
     }
 
     @Override
     public void run() {
-      LOG.info("Processing the event " + event.toString());
+      LOG.info("Processing operation {}", event.toString());
 
       // Load ContainerManager tokens before creating a connection.
       // TODO: Do it only once per NodeManager.
-      ContainerId containerID = event.getContainerId();
+      ContainerId containerID = event.getBaseOperation().getContainerId();
 
       Container c = getContainer(event);
-      switch(event.getType()) {
-
-      case CONTAINER_LAUNCH_REQUEST:
-        NMCommunicatorLaunchRequestEvent launchEvent
-            = (NMCommunicatorLaunchRequestEvent) event;
-        c.launch(launchEvent);
-        break;
-
-      case CONTAINER_STOP_REQUEST:
-        c.kill();
-        break;
+      switch(event.getOpType()) {
+        case LAUNCH_REQUEST:
+          ContainerLaunchRequest launchRequest = event.getLaunchRequest();
+          c.launch(launchRequest);
+          break;
+        case STOP_REQUEST:
+          c.kill();
+          break;
       }
       removeContainerIfDone(containerID);
     }
@@ -408,13 +380,23 @@ public class ContainerLauncherImpl extends AbstractService implements
   void sendContainerLaunchFailedMsg(ContainerId containerId,
       String message) {
     LOG.error(message);
-    context.getEventHandler().handle(new AMContainerEventLaunchFailed(containerId, message));
+    getContext().containerLaunchFailed(containerId, message);
+  }
+
+
+  @Override
+  public void launchContainer(ContainerLaunchRequest launchRequest) {
+    try {
+      eventQueue.put(new ContainerOp(ContainerOp.OPType.LAUNCH_REQUEST, launchRequest));
+    } catch (InterruptedException e) {
+      throw new TezUncheckedException(e);
+    }
   }
 
   @Override
-  public void handle(NMCommunicatorEvent event) {
+  public void stopContainer(ContainerStopRequest stopRequest) {
     try {
-      eventQueue.put(event);
+      eventQueue.put(new ContainerOp(ContainerOp.OPType.STOP_REQUEST, stopRequest));
     } catch (InterruptedException e) {
       throw new TezUncheckedException(e);
     }

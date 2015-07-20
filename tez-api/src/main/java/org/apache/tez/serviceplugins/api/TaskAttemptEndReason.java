@@ -12,9 +12,13 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.api;
+package org.apache.tez.serviceplugins.api;
 
-// TODO TEZ-2003 Expose as a public API
+import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceStability;
+
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
 public enum TaskAttemptEndReason {
   NODE_FAILED, // Completed because the node running the container was marked as dead
   COMMUNICATION_ERROR, // Communication error with the task
@@ -23,5 +27,6 @@ public enum TaskAttemptEndReason {
   EXTERNAL_PREEMPTION, // Preempted due to cluster contention
   APPLICATION_ERROR, // An error in the AM caused by user code
   FRAMEWORK_ERROR, // An error in the AM - likely a bug.
+  CONTAINER_EXITED,
   OTHER // Unknown reason
 }
