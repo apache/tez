@@ -26,6 +26,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.roaringbitmap</groupId>
+      <artifactId>RoaringBitmap</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.ning</groupId>
       <artifactId>async-http-client</artifactId>
     </dependency>

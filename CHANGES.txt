@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2496. Consider scheduling tasks in ShuffleVertexManager based on the partition sizes from the source.
   TEZ-2616. Fix build warning by undefined version of maven-findbugs-plugin.
   TEZ-2588. Improper argument name
   TEZ-2575. Handle KeyValue pairs size which do not fit in a single block.

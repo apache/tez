@@ -29,17 +29,21 @@ import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.http.SSLFactory;
 import org.apache.tez.http.async.netty.AsyncHttpConnection;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
+import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.io.DataInputByteBuffer;
@@ -372,12 +376,13 @@ public class ShuffleUtils {
    * @param spillRecord
    * @param numPhysicalOutputs
    * @param pathComponent
+   * @param partitionStats
    * @throws IOException
    */
   public static void generateEventOnSpill(List<Event> eventList, boolean finalMergeEnabled,
       boolean isLastEvent, OutputContext context, int spillId, TezSpillRecord spillRecord,
-      int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent)
-      throws IOException {
+      int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent,
+      @Nullable long[] partitionStats) throws IOException {
     Preconditions.checkArgument(eventList != null, "EventList can't be null");
 
     if (finalMergeEnabled) {
@@ -405,6 +410,16 @@ public class ShuffleUtils {
       // up adding up to final outputsize.  This is needed for auto-reduce parallelism to work
       // properly.
       vmBuilder.setOutputSize(outputSize);
+
+      //set partition stats
+      if (partitionStats != null && partitionStats.length > 0) {
+        RoaringBitmap stats = getPartitionStatsForPhysicalOutput(partitionStats);
+        DataOutputBuffer dout = new DataOutputBuffer();
+        stats.serialize(dout);
+        ByteString partitionStatsBytes = TezCommonUtils.compressByteArrayToByteString(dout.getData());
+        vmBuilder.setPartitionStats(partitionStatsBytes);
+      }
+
       VertexManagerEvent vmEvent = VertexManagerEvent.create(
           context.getDestinationVertexName(), vmBuilder.build().toByteString().asReadOnlyByteBuffer());
       eventList.add(vmEvent);
@@ -416,6 +431,24 @@ public class ShuffleUtils {
     eventList.add(csdme);
   }
 
+  /**
+   * Data size for the destinations
+   *
+   * @param sizes for physical outputs
+   */
+  public static RoaringBitmap getPartitionStatsForPhysicalOutput(long[] sizes) {
+    RoaringBitmap partitionStats = new RoaringBitmap();
+    if (sizes == null || sizes.length == 0) {
+      return partitionStats;
+    }
+    final int RANGE_LEN = DATA_RANGE_IN_MB.values().length;
+    for (int i = 0; i < sizes.length; i++) {
+      int bucket = DATA_RANGE_IN_MB.getRange(sizes[i]).ordinal();
+      int index = i * (RANGE_LEN);
+      partitionStats.add(index + bucket);
+    }
+    return partitionStats;
+  }
 
 
   /**

@@ -26,6 +26,7 @@ import java.util.Map;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,7 @@ public abstract class ExternalSorter {
   public void close() throws IOException {
     spillFileIndexPaths.clear();
     spillFilePaths.clear();
+    reportStatistics();
   }
 
   public abstract void flush() throws IOException;
@@ -119,6 +121,8 @@ public abstract class ExternalSorter {
 
   protected final boolean cleanup;
 
+  protected OutputStatisticsReporter statsReporter;
+  protected final long[] partitionStats;
   protected final boolean finalMergeEnabled;
   protected final boolean sendEmptyPartitionDetails;
 
@@ -155,6 +159,10 @@ public abstract class ExternalSorter {
     this.outputContext = outputContext;
     this.conf = conf;
     this.partitions = numOutputs;
+    boolean reportPartitionStats = conf.getBoolean(TezRuntimeConfiguration
+            .TEZ_RUNTIME_REPORT_PARTITION_STATS,
+        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT);
+    this.partitionStats = (reportPartitionStats) ? (new long[partitions]) : null;
 
     cleanup = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT,
         TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT_DEFAULT);
@@ -241,6 +249,8 @@ public abstract class ExternalSorter {
     this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.partitions);
     this.partitioner = TezRuntimeUtils.instantiatePartitioner(this.conf);
     this.combiner = TezRuntimeUtils.instantiateCombiner(this.conf, outputContext);
+
+    this.statsReporter = outputContext.getStatisticsReporter();
     this.finalMergeEnabled = conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT,
         TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT_DEFAULT);
@@ -369,5 +379,22 @@ public abstract class ExternalSorter {
     for(Map.Entry<Integer, Path> entry : spillMap.entrySet()) {
       cleanup(entry.getValue());
     }
+  }
+
+  public long[] getPartitionStats() {
+    return partitionStats;
+  }
+
+  protected boolean reportPartitionStats() {
+    return (partitionStats != null);
+  }
+
+  protected synchronized void reportStatistics() {
+    // This works for non-started outputs since new counters will be created with an initial value of 0
+    long outputSize = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
+    statsReporter.reportDataSize(outputSize);
+    long outputRecords = outputContext.getCounters()
+        .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
+    statsReporter.reportItemsProcessed(outputRecords);
   }
 }

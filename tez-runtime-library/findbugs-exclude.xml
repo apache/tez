@@ -128,4 +128,13 @@
     <Bug pattern="DC_PARTIALLY_CONSTRUCTED"/>
   </Match>
 
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+    <Or>
+      <Class name="org.apache.tez.runtime.library.common.sort.impl.ExteralSorter" />
+      <Method name="getPartitionStats"/>
+      <Field name="partitionStats"/>
+    </Or>
+  </Match>
+
 </FindBugsFilter>

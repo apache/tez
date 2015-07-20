@@ -35,6 +35,7 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
@@ -166,6 +167,7 @@ public class TestOnFileSortedOutput {
 
   private void startSortedOutput(int partitions) throws Exception {
     OutputContext context = createTezOutputContext();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, true);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     doReturn(payLoad).when(context).getUserPayload();
@@ -292,6 +294,12 @@ public class TestOnFileSortedOutput {
         .parseFrom(
             ByteString.copyFrom(((CompositeDataMovementEvent) eventList.get(1)).getUserPayload()));
 
+    ShuffleUserPayloads.VertexManagerEventPayloadProto
+        vmPayload = ShuffleUserPayloads.VertexManagerEventPayloadProto
+        .parseFrom(
+            ByteString.copyFrom(((VertexManagerEvent) eventList.get(0)).getUserPayload()));
+
+    assertTrue(vmPayload.hasPartitionStats());
     assertEquals(HOST, payload.getHost());
     assertEquals(PORT, payload.getPort());
     assertEquals(UniqueID, payload.getPathComponent());
