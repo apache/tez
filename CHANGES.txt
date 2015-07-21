@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2623. tez-runtime-library should depend on hadoop-auth.
   TEZ-2496. Consider scheduling tasks in ShuffleVertexManager based on the partition sizes from the source.
   TEZ-2616. Fix build warning by undefined version of maven-findbugs-plugin.
   TEZ-2588. Improper argument name
@@ -52,6 +53,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2623. tez-runtime-library should depend on hadoop-auth.
   TEZ-1314. Port MAPREDUCE-5821 to Tez.
   TEZ-2568. V_INPUT_DATA_INFORMATION may happen after vertex is initialized
   TEZ-2291. TEZ UI: Improper vertex name in tables.
@@ -269,6 +271,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2623. tez-runtime-library should depend on hadoop-auth.
   TEZ-2600. When used with HDFS federation(viewfs) ,tez will throw a error
   TEZ-2579. Incorrect comparison of TaskAttemptId
   TEZ-2549. Reduce Counter Load on the Timeline Server
