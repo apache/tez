@@ -85,6 +85,10 @@ For Hadoop version X where X < 2.4.0
 
  $ mvn package  -Dhadoop.version=${X} -P\!hadoop24 -P\!hadoop26
 
+For recent versions of Hadoop, you can bundle AWS-S3 (2.6.0+) or Azure (2.7.0+) support 
+
+ $ mvn package -Dhadoop.version=${X} -Paws -Pazure 
+
 For building on Windows with the hadoop24 profile enabled:
 
 Tez has a couple of symlinks in its codebase. Windows is a bit difficult with
