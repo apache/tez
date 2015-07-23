@@ -24,6 +24,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.apache.tez.runtime.library.testutils.RandomTextGenerator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -189,6 +190,54 @@ public class TestPipelinedSorter {
     assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
   }
+
+  @Test
+  public void test_TEZ_2602_50mb() throws IOException {
+    this.numOutputs = 1;
+    this.initialAvailableMem = 1 *1024 * 1024;
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 1 << 20);
+
+    Text value = new Text("1");
+    long size = 50 * 1024 * 1024;
+    while(size > 0) {
+      Text key = RandomTextGenerator.generateSentence();
+      sorter.write(key, value);
+      size -= key.getLength();
+    }
+
+    sorter.flush();
+    sorter.close();
+  }
+
+  @Test
+  public void testLargeDataWithMixedKV() throws IOException {
+    this.numOutputs = 1;
+    this.initialAvailableMem = 48 *1024 * 1024;
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 0);
+
+    //write 10 MB KV
+    Text key = new Text(RandomStringUtils.randomAlphanumeric(10 << 20));
+    Text value = new Text(RandomStringUtils.randomAlphanumeric(10 << 20));
+    sorter.write(key, value);
+
+    //write 24 MB KV. This should cause single record spill
+    key = new Text(RandomStringUtils.randomAlphanumeric(24 << 20));
+    value = new Text(RandomStringUtils.randomAlphanumeric(24 << 20));
+    sorter.write(key, value);
+
+    //write 10 MB KV
+    key = new Text(RandomStringUtils.randomAlphanumeric(10 << 20));
+    value = new Text(RandomStringUtils.randomAlphanumeric(10 << 20));
+    sorter.write(key, value);
+
+    sorter.flush();
+    sorter.close();
+  }
+
 
   @Test
   // first write a KV which dosnt fit into span, this will spill to disk

@@ -210,17 +210,15 @@ public class PipelinedSorter extends ExternalSorter {
 
     if(newSpan == null) {
       //avoid sort/spill of empty span
-      if (span.length() > 0) {
-        Stopwatch stopWatch = new Stopwatch();
-        stopWatch.start();
-        // sort in the same thread, do not wait for the thread pool
-        merger.add(span.sort(sorter));
-        spill();
-        stopWatch.stop();
-        LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
-        if (pipelinedShuffle) {
-          sendPipelinedShuffleEvents();
-        }
+      Stopwatch stopWatch = new Stopwatch();
+      stopWatch.start();
+      // sort in the same thread, do not wait for the thread pool
+      merger.add(span.sort(sorter));
+      spill();
+      stopWatch.stop();
+      LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
+      if (pipelinedShuffle) {
+        sendPipelinedShuffleEvents();
       }
       //safe to reset the iterator
       listIterator = bufferList.listIterator();
@@ -236,6 +234,7 @@ public class PipelinedSorter extends ExternalSorter {
         }
       }
       Preconditions.checkArgument(listIterator.hasNext(), "block iterator should not be empty");
+      //TODO: fix per item being passed.
       span = new SortSpan((ByteBuffer)listIterator.next().clear(), (1024*1024),
           perItem, ConfigUtils.getIntermediateOutputKeyComparator(this.conf));
     } else {
