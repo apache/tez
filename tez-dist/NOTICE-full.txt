@@ -9,8 +9,12 @@ jersey-guice and jersey-json.  The details on how to obtain those
 modules are available at https://jersey.java.net/.
 
 This product includes javax.servlet-api library. The details on
-how to obtain the library is available at
+how to obtain the library are available at
 http://servlet-spec.java.net/.
+
+This produce includes jaxb-api-2.2.2, jaxb-impl-2.2.3-1 libraries. 
+The details on how to obtain the library are available at 
+https://jaxb.java.net/
 
 This product bundles the tez-ui war which includes fonts protected
 under the Open Font License.  These fonts can only be distributed
