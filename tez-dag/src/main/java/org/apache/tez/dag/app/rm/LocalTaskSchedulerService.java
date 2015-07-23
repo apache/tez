@@ -20,16 +20,15 @@ package org.apache.tez.dag.app.rm;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
 import com.google.common.primitives.Ints;
 
+import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -43,56 +42,30 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
+import org.apache.tez.common.ContainerSignatureMatcher;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
-public class LocalTaskSchedulerService extends TaskSchedulerService {
+public class LocalTaskSchedulerService extends TaskScheduler {
 
   private static final Logger LOG = LoggerFactory.getLogger(LocalTaskSchedulerService.class);
 
-  final TaskSchedulerAppCallback realAppClient;
-  final TaskSchedulerAppCallback appClientDelegate;
   final ContainerSignatureMatcher containerSignatureMatcher;
   final PriorityBlockingQueue<TaskRequest> taskRequestQueue;
+  final Configuration conf;
   AsyncDelegateRequestHandler taskRequestHandler;
   Thread asyncDelegateRequestThread;
-  final ExecutorService appCallbackExecutor;
 
   final HashMap<Object, Container> taskAllocations;
-  final String appHostName;
-  final int appHostPort;
   final String appTrackingUrl;
-  final AppContext appContext;
   final long customContainerAppId;
 
-  public LocalTaskSchedulerService(TaskSchedulerAppCallback appClient,
-      ContainerSignatureMatcher containerSignatureMatcher, String appHostName,
-      int appHostPort, String appTrackingUrl, long customContainerAppId, AppContext appContext) {
-    super(LocalTaskSchedulerService.class.getName());
-    this.realAppClient = appClient;
-    this.appCallbackExecutor = createAppCallbackExecutorService();
-    this.containerSignatureMatcher = containerSignatureMatcher;
-    this.appClientDelegate = createAppCallbackDelegate(appClient);
-    this.appHostName = appHostName;
-    this.appHostPort = appHostPort;
-    this.appTrackingUrl = appTrackingUrl;
-    this.appContext = appContext;
+  public LocalTaskSchedulerService(TaskSchedulerContext taskSchedulerContext) {
+    super(taskSchedulerContext);
     taskRequestQueue = new PriorityBlockingQueue<TaskRequest>();
     taskAllocations = new LinkedHashMap<Object, Container>();
-    this.customContainerAppId = customContainerAppId;
-  }
-
-  private ExecutorService createAppCallbackExecutorService() {
-    return Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
-        .setNameFormat("TaskSchedulerAppCaller #%d").setDaemon(true).build());
-  }
-
-  private TaskSchedulerAppCallback createAppCallbackDelegate(
-      TaskSchedulerAppCallback realAppClient) {
-    return new TaskSchedulerAppCallbackWrapper(realAppClient,
-        appCallbackExecutor);
+    this.appTrackingUrl = taskSchedulerContext.getAppTrackingUrl();
+    this.containerSignatureMatcher = taskSchedulerContext.getContainerSignatureMatcher();
+    this.customContainerAppId = taskSchedulerContext.getCustomClusterIdentifier();
+    this.conf = taskSchedulerContext.getInitialConfiguration();
   }
 
   @Override
@@ -160,7 +133,7 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
   }
 
   @Override
-  public void serviceInit(Configuration conf) {
+  public void initialize() {
     taskRequestHandler = createRequestHandler(conf);
     asyncDelegateRequestThread = new Thread(taskRequestHandler);
     asyncDelegateRequestThread.setDaemon(true);
@@ -168,24 +141,22 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
 
   protected AsyncDelegateRequestHandler createRequestHandler(Configuration conf) {
     return new AsyncDelegateRequestHandler(taskRequestQueue,
-        new LocalContainerFactory(appContext, customContainerAppId),
+        new LocalContainerFactory(getContext().getApplicationAttemptId(), customContainerAppId),
         taskAllocations,
-        appClientDelegate,
+        getContext(),
         conf);
   }
 
   @Override
-  public void serviceStart() {
+  public void start() {
     asyncDelegateRequestThread.start();
   }
 
   @Override
-  public void serviceStop() throws InterruptedException {
+  public void shutdown() throws InterruptedException {
     if (asyncDelegateRequestThread != null) {
       asyncDelegateRequestThread.interrupt();
     }
-    appCallbackExecutor.shutdownNow();
-    appCallbackExecutor.awaitTermination(1000l, TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -207,12 +178,12 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
     AtomicInteger nextId;
     final ApplicationAttemptId customAppAttemptId;
 
-    public LocalContainerFactory(AppContext appContext, long appIdLong) {
+    public LocalContainerFactory(ApplicationAttemptId appAttemptId, long customAppId) {
       this.nextId = new AtomicInteger(1);
       ApplicationId appId = ApplicationId
-          .newInstance(appIdLong, appContext.getApplicationAttemptId().getApplicationId().getId());
+          .newInstance(customAppId, appAttemptId.getApplicationId().getId());
       this.customAppAttemptId = ApplicationAttemptId
-          .newInstance(appId, appContext.getApplicationAttemptId().getAttemptId());
+          .newInstance(appId, appAttemptId.getAttemptId());
     }
 
     public Container createContainer(Resource capability, Priority priority) {
@@ -335,18 +306,18 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
     final BlockingQueue<TaskRequest> taskRequestQueue;
     final LocalContainerFactory localContainerFactory;
     final HashMap<Object, Container> taskAllocations;
-    final TaskSchedulerAppCallback appClientDelegate;
+    final TaskSchedulerContext taskSchedulerContext;
     final int MAX_TASKS;
 
     AsyncDelegateRequestHandler(BlockingQueue<TaskRequest> taskRequestQueue,
         LocalContainerFactory localContainerFactory,
         HashMap<Object, Container> taskAllocations,
-        TaskSchedulerAppCallback appClientDelegate,
+        TaskSchedulerContext taskSchedulerContext,
         Configuration conf) {
       this.taskRequestQueue = taskRequestQueue;
       this.localContainerFactory = localContainerFactory;
       this.taskAllocations = taskAllocations;
-      this.appClientDelegate = appClientDelegate;
+      this.taskSchedulerContext = taskSchedulerContext;
       this.MAX_TASKS = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
           TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
     }
@@ -412,13 +383,13 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
       Container container = localContainerFactory.createContainer(request.capability,
           request.priority);
       taskAllocations.put(request.task, container);
-      appClientDelegate.taskAllocated(request.task, request.clientCookie, container);
+      taskSchedulerContext.taskAllocated(request.task, request.clientCookie, container);
     }
 
     void deallocateTask(DeallocateTaskRequest request) {
       Container container = taskAllocations.remove(request.task);
       if (container != null) {
-        appClientDelegate.containerBeingReleased(container.getId());
+        taskSchedulerContext.containerBeingReleased(container.getId());
       }
       else {
         boolean deallocationBeforeAllocation = false;

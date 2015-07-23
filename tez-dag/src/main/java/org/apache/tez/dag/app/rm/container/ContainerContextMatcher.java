@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.app.ContainerContext;
 
 import com.google.common.base.Preconditions;
+import org.apache.tez.common.ContainerSignatureMatcher;
 
 public class ContainerContextMatcher implements ContainerSignatureMatcher {
 

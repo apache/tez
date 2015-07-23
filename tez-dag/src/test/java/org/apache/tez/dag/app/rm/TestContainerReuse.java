@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -46,7 +45,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
@@ -68,16 +66,14 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
-import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback.AppFinalStatus;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientAsyncForTest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientForTest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.CapturingEventHandler;
-import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerAppCallbackDrainable;
+import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerContextDrainable;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerEventHandlerForTest;
-import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableAppCallback;
+import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableContext;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventStopRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
@@ -116,14 +112,13 @@ public class TestContainerReuse {
     conf.setBoolean(
       TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
     conf.setBoolean(
-      TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, false);
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, false);
     conf.setBoolean(
-      TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED, false);
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED, false);
     conf.setLong(
       TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 3000l);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
@@ -132,12 +127,6 @@ public class TestContainerReuse {
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
       spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(conf).when(appContext).getAMConf();
@@ -161,11 +150,11 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(conf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler =
-      (TaskSchedulerWithDrainableAppCallback)
+    TaskSchedulerWithDrainableContext taskScheduler =
+      (TaskSchedulerWithDrainableContext)
         ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback =
+    TaskSchedulerContextDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
 
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
@@ -251,8 +240,7 @@ public class TestContainerReuse {
       }
     }
     assertTrue("containerHost2 was not released", exception == null);
-    taskScheduler.stop();
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -267,7 +255,6 @@ public class TestContainerReuse {
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 1000l);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
@@ -276,12 +263,6 @@ public class TestContainerReuse {
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
       spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -304,11 +285,11 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(conf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler =
-      (TaskSchedulerWithDrainableAppCallback)
+    TaskSchedulerWithDrainableContext taskScheduler =
+      (TaskSchedulerWithDrainableContext)
         ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
           .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback =
+    TaskSchedulerContextDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
     
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
@@ -366,8 +347,7 @@ public class TestContainerReuse {
       eq(containerHost2.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
 
-    taskScheduler.stop();
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -380,19 +360,12 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -410,9 +383,9 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler = (TaskSchedulerWithDrainableAppCallback) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
+    TaskSchedulerWithDrainableContext taskScheduler = (TaskSchedulerWithDrainableContext) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
@@ -504,7 +477,7 @@ public class TestContainerReuse {
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
     eventHandler.reset();
 
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -522,19 +495,11 @@ public class TestContainerReuse {
     tezConf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, "dir=/tmp/__VERTEX_NAME__/__TASK_INDEX__");
     TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption =  new TaskSpecificLaunchCmdOption(tezConf);
 
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
-
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -554,10 +519,10 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler =
-        (TaskSchedulerWithDrainableAppCallback) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
+    TaskSchedulerWithDrainableContext taskScheduler =
+        (TaskSchedulerWithDrainableContext) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
           .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
@@ -705,7 +670,7 @@ public class TestContainerReuse {
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta16), any(Object.class), eq(container3));
     eventHandler.reset();
 
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -721,20 +686,12 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 1000l);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 1000l);
 
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
-
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
         spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -758,11 +715,11 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler =
-      (TaskSchedulerWithDrainableAppCallback)
+    TaskSchedulerWithDrainableContext taskScheduler =
+      (TaskSchedulerWithDrainableContext)
         ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback =
+    TaskSchedulerContextDrainable drainableAppCallback =
       taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
@@ -836,7 +793,7 @@ public class TestContainerReuse {
     verify(rmClient).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
 
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -853,20 +810,12 @@ public class TestContainerReuse {
     tezConf.setInt(
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, 1);
 
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
-
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient =
       spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -890,11 +839,11 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler =
-      (TaskSchedulerWithDrainableAppCallback)
+    TaskSchedulerWithDrainableContext taskScheduler =
+      (TaskSchedulerWithDrainableContext)
         ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
           .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
 
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
@@ -965,7 +914,7 @@ public class TestContainerReuse {
     // container should not get released due to min held containers
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
 
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
   
@@ -979,19 +928,11 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, -1);
 
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
-
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID1 = TezDAGID.getInstance("0", 1, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -1011,9 +952,9 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler = (TaskSchedulerWithDrainableAppCallback) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
+    TaskSchedulerWithDrainableContext taskScheduler = (TaskSchedulerWithDrainableContext) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
@@ -1129,7 +1070,7 @@ public class TestContainerReuse {
     assertEquals(2, assignEvent.getRemoteTaskLocalResources().size());
     eventHandler.reset();
 
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -1143,19 +1084,11 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, -1);
 
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
-
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID1 = TezDAGID.getInstance("0", 1, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -1177,9 +1110,9 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler = (TaskSchedulerWithDrainableAppCallback) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
+    TaskSchedulerWithDrainableContext taskScheduler = (TaskSchedulerWithDrainableContext) ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
@@ -1291,7 +1224,7 @@ public class TestContainerReuse {
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta211), any(Object.class), eq(container2));
     eventHandler.reset();
 
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 
@@ -1305,19 +1238,12 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 0);
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
-    TaskSchedulerAppCallback mockApp = mock(TaskSchedulerAppCallback.class);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
-    String appUrl = "url";
-    String appMsg = "success";
-    AppFinalStatus finalStatus =
-        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
-
-    doReturn(finalStatus).when(mockApp).getFinalAppStatus();
 
     AppContext appContext = mock(AppContext.class);
     doReturn(new Configuration(false)).when(appContext).getAMConf();
@@ -1326,7 +1252,7 @@ public class TestContainerReuse {
     AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
-    doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(DAGAppMasterState.SUCCEEDED).when(appContext).getAMState();
     doReturn(true).when(appContext).isAMInCompletionState();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
@@ -1338,10 +1264,10 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
 
-    TaskSchedulerWithDrainableAppCallback taskScheduler = (TaskSchedulerWithDrainableAppCallback)
+    TaskSchedulerWithDrainableContext taskScheduler = (TaskSchedulerWithDrainableContext)
         ((TaskSchedulerEventHandlerForTest) taskSchedulerEventHandler)
         .getSpyTaskScheduler();
-    TaskSchedulerAppCallbackDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
+    TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
 
@@ -1369,7 +1295,7 @@ public class TestContainerReuse {
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(0), eq(ta11),
         any(Object.class), eq(container1));
-    taskScheduler.close();
+    taskScheduler.shutdown();
     taskSchedulerEventHandler.close();
   }
 

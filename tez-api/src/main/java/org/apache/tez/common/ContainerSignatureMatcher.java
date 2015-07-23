@@ -15,12 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.app.rm.container;
+package org.apache.tez.common;
 
 import java.util.Map;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
 public interface ContainerSignatureMatcher {
   /**
    * Checks the compatibility between the specified container signatures.

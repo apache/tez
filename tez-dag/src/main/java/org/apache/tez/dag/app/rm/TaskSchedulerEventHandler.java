@@ -25,11 +25,19 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback.AppFinalStatus;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
+import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -62,7 +70,6 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
-import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -70,7 +77,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerEventStopRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerEventTASucceeded;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
-import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
+import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.rm.node.AMNodeEventContainerAllocated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventNodeCountUpdated;
 import org.apache.tez.dag.app.rm.node.AMNodeEventStateChanged;
@@ -106,7 +113,12 @@ public class TaskSchedulerEventHandler extends AbstractService implements
       new AtomicBoolean(false);
   private final WebUIService webUI;
   private final String[] taskSchedulerClasses;
-  protected final TaskSchedulerService []taskSchedulers;
+  protected final TaskScheduler[]taskSchedulers;
+  protected final ServicePluginLifecycleAbstractService []taskSchedulerServiceWrappers;
+
+  // Single executor service shared by all Schedulers for context callbacks
+  @VisibleForTesting
+  final ExecutorService appCallbackExecutor;
 
   private final boolean isPureLocalMode;
   // If running in non local-only mode, the YARN task scheduler will always run to take care of
@@ -147,6 +159,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     this.webUI = webUI;
     this.historyUrl = getHistoryUrl();
     this.isPureLocalMode = isPureLocalMode;
+    this.appCallbackExecutor = createAppCallbackExecutorService();
     if (this.webUI != null) {
       this.webUI.setHistoryUrl(this.historyUrl);
     }
@@ -181,7 +194,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
         this.yarnTaskSchedulerIndex = foundYarnTaskSchedulerIndex;
       }
     }
-    taskSchedulers = new TaskSchedulerService[this.taskSchedulerClasses.length];
+    taskSchedulers = new TaskScheduler[this.taskSchedulerClasses.length];
+    taskSchedulerServiceWrappers = new ServicePluginLifecycleAbstractService[this.taskSchedulerClasses.length];
   }
 
   public Map<ApplicationAccessType, String> getApplicationAcls() {
@@ -203,6 +217,12 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
   public Resource getTotalResources(int schedulerId) {
     return taskSchedulers[schedulerId].getTotalResources();
+  }
+
+  private ExecutorService createAppCallbackExecutorService() {
+    return Executors.newSingleThreadExecutor(
+        new ThreadFactoryBuilder().setNameFormat("TaskSchedulerAppCallbackExecutor #%d").setDaemon(true)
+            .build());
   }
 
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
@@ -315,7 +335,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
       // stopped.
       // AMNodeImpl blacklisting logic does not account for KILLED attempts.
       sendEvent(new AMNodeEventTaskAttemptEnded(appContext.getAllContainers().
-          get(attemptContainerId).getContainer().getNodeId(), event.getSchedulerId(), attemptContainerId,
+          get(attemptContainerId).getContainer().getNodeId(), event.getSchedulerId(),
+          attemptContainerId,
           attempt.getID(), event.getState() == TaskAttemptState.FAILED));
     }
   }
@@ -389,32 +410,30 @@ public class TaskSchedulerEventHandler extends AbstractService implements
         event);
   }
 
-  private TaskSchedulerService createTaskScheduler(String host, int port, String trackingUrl,
+  private TaskScheduler createTaskScheduler(String host, int port, String trackingUrl,
                                                    AppContext appContext,
                                                    String schedulerClassName,
                                                    long customAppIdIdentifier,
                                                    int schedulerId) {
-    TaskSchedulerAppCallback appCallback = new TaskSchedulerAppCallbackImpl(this, schedulerId);
+    TaskSchedulerContext rawContext =
+        new TaskSchedulerContextImpl(this, appContext, schedulerId, trackingUrl,
+            customAppIdIdentifier, host, port, getConfig());
+    TaskSchedulerContext wrappedContext = new TaskSchedulerContextImplWrapper(rawContext, appCallbackExecutor);
     if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
       LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
-      return new YarnTaskSchedulerService(appCallback, this.containerSignatureMatcher,
-          host, port, trackingUrl, appContext);
+      return new YarnTaskSchedulerService(wrappedContext);
     } else if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
       LOG.info("Creating TaskScheduler: Local TaskScheduler");
-      return new LocalTaskSchedulerService(appCallback, this.containerSignatureMatcher,
-          host, port, trackingUrl, customAppIdIdentifier, appContext);
+      return new LocalTaskSchedulerService(wrappedContext);
     } else {
       LOG.info("Creating custom TaskScheduler: " + schedulerClassName);
-      // TODO TEZ-2003 Temporary reflection with specific parameters. Remove once there is a clean interface.
-      Class<? extends TaskSchedulerService> taskSchedulerClazz =
-          (Class<? extends TaskSchedulerService>) ReflectionUtils.getClazz(schedulerClassName);
+      Class<? extends TaskScheduler> taskSchedulerClazz =
+          (Class<? extends TaskScheduler>) ReflectionUtils.getClazz(schedulerClassName);
       try {
-        Constructor<? extends TaskSchedulerService> ctor = taskSchedulerClazz
-            .getConstructor(TaskSchedulerAppCallback.class, AppContext.class, String.class,
-                int.class, String.class, long.class, Configuration.class);
+        Constructor<? extends TaskScheduler> ctor = taskSchedulerClazz
+            .getConstructor(TaskSchedulerContext.class);
         ctor.setAccessible(true);
-        return ctor.newInstance(appCallback, appContext, host, port, trackingUrl, customAppIdIdentifier,
-            getConfig());
+        return ctor.newInstance(wrappedContext);
       } catch (NoSuchMethodException e) {
         throw new TezUncheckedException(e);
       } catch (InvocationTargetException e) {
@@ -444,6 +463,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
           customAppIdIdentifier);
       taskSchedulers[i] = createTaskScheduler(host, port,
           trackingUrl, appContext, taskSchedulerClasses[i], customAppIdIdentifier, i);
+      taskSchedulerServiceWrappers[i] = new ServicePluginLifecycleAbstractService(taskSchedulers[i]);
     }
   }
 
@@ -460,8 +480,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     instantiateScheduelrs(serviceAddr.getHostName(), serviceAddr.getPort(), trackingUrl, appContext);
 
     for (int i = 0 ; i < taskSchedulers.length ; i++) {
-      taskSchedulers[i].init(getConfig());
-      taskSchedulers[i].start();
+      taskSchedulerServiceWrappers[i].init(getConfig());
+      taskSchedulerServiceWrappers[i].start();
       if (shouldUnregisterFlag.get()) {
         // Flag may have been set earlier when task scheduler was not initialized
         // TODO TEZ-2003 Should setRegister / unregister be part of APIs when not YARN specific ?
@@ -514,7 +534,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   }
 
   @Override
-  public void serviceStop() {
+  public void serviceStop() throws InterruptedException {
     synchronized(this) {
       this.stopEventHandling = true;
       if (eventHandlingThread != null)
@@ -522,9 +542,12 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     }
     for (int i = 0 ; i < taskSchedulers.length ; i++) {
       if (taskSchedulers[i] != null) {
-        taskSchedulers[i].stop();
+        taskSchedulerServiceWrappers[i].stop();
       }
     }
+    LOG.info("Shutting down AppCallbackExecutor");
+    appCallbackExecutor.shutdownNow();
+    appCallbackExecutor.awaitTermination(1000l, TimeUnit.MILLISECONDS);
   }
 
   // TODO TEZ-2003 Consolidate TaskSchedulerAppCallback methods once these methods are moved into context
@@ -720,6 +743,10 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     }
   }
 
+  public ContainerSignatureMatcher getContainerSignatureMatcher() {
+    return containerSignatureMatcher;
+  }
+
   public boolean hasUnregistered() {
     boolean result = true;
     for (int i = 0 ; i < taskSchedulers.length ; i++) {
@@ -760,5 +787,11 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     }
 
     return historyUrl;
+  }
+
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  ExecutorService getContextExecutorService() {
+    return appCallbackExecutor;
   }
 }

@@ -27,11 +27,9 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.TestLocalTaskSchedulerService.MockLocalTaskSchedulerSerivce.MockAsyncDelegateRequestHandler;
-import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -82,14 +80,15 @@ public class TestLocalTaskSchedulerService {
    * Normal flow of TaskAttempt
    */
   @Test(timeout = 5000)
-  public void testDeallocationBeforeAllocation() {
-    AppContext appContext = mock(AppContext.class);
+  public void testDeallocationBeforeAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
-    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
-    MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce
-        (mock(TaskSchedulerAppCallback.class), mock(ContainerSignatureMatcher.class), "", 0, "", appContext);
-    taskSchedulerService.init(new Configuration());
+
+    TaskSchedulerContext mockContext = TestTaskSchedulerHelpers
+        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000l, null, new Configuration());
+
+    MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce(mockContext);
+    taskSchedulerService.initialize();
     taskSchedulerService.start();
 
     Task task = mock(Task.class);
@@ -103,21 +102,24 @@ public class TestLocalTaskSchedulerService {
     assertEquals(1, requestHandler.deallocateCount);
     // The corresponding AllocateTaskRequest will be removed, so won't been processed.
     assertEquals(0, requestHandler.allocateCount);
-    taskSchedulerService.stop();
+    taskSchedulerService.shutdown();
   }
 
   /**
    * TaskAttempt Killed from START_WAIT
    */
   @Test(timeout = 5000)
-  public void testDeallocationAfterAllocation() {
-    AppContext appContext = mock(AppContext.class);
+  public void testDeallocationAfterAllocation() throws InterruptedException {
     ApplicationAttemptId appAttemptId =
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(10000l, 1), 1);
-    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
-    MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce
-        (mock(TaskSchedulerAppCallback.class), mock(ContainerSignatureMatcher.class), "", 0, "", appContext);
-    taskSchedulerService.init(new Configuration());
+
+    TaskSchedulerContext mockContext = TestTaskSchedulerHelpers
+        .setupMockTaskSchedulerContext("", 0, "", false, appAttemptId, 10000l, null, new Configuration());
+
+    MockLocalTaskSchedulerSerivce taskSchedulerService =
+        new MockLocalTaskSchedulerSerivce(mockContext);
+
+    taskSchedulerService.initialize();
     taskSchedulerService.start();
 
     Task task = mock(Task.class);
@@ -130,33 +132,29 @@ public class TestLocalTaskSchedulerService {
     requestHandler.drainRequest(2);
     assertEquals(1, requestHandler.deallocateCount);
     assertEquals(1, requestHandler.allocateCount);
-    taskSchedulerService.stop();
+    taskSchedulerService.shutdown();
   }
 
   static class MockLocalTaskSchedulerSerivce extends LocalTaskSchedulerService {
 
     private MockAsyncDelegateRequestHandler requestHandler;
 
-    public MockLocalTaskSchedulerSerivce(TaskSchedulerAppCallback appClient,
-        ContainerSignatureMatcher containerSignatureMatcher,
-        String appHostName, int appHostPort, String appTrackingUrl,
-        AppContext appContext) {
-      super(appClient, containerSignatureMatcher, appHostName, appHostPort,
-          appTrackingUrl, 10000l, appContext);
+    public MockLocalTaskSchedulerSerivce(TaskSchedulerContext appClient) {
+      super(appClient);
     }
 
     @Override
     public AsyncDelegateRequestHandler createRequestHandler(Configuration conf) {
       requestHandler = new MockAsyncDelegateRequestHandler(taskRequestQueue,
-          new LocalContainerFactory(appContext, customContainerAppId),
+          new LocalContainerFactory(getContext().getApplicationAttemptId(), customContainerAppId),
           taskAllocations,
-          appClientDelegate,
+          getContext(),
           conf);
       return requestHandler;
     }
 
     @Override
-    public void serviceStart() {
+    public void start() {
       // don't start RequestHandler thread, control it in unit test
     }
 
@@ -178,7 +176,7 @@ public class TestLocalTaskSchedulerService {
           BlockingQueue<TaskRequest> taskRequestQueue,
           LocalContainerFactory localContainerFactory,
           HashMap<Object, Container> taskAllocations,
-          TaskSchedulerAppCallback appClientDelegate, Configuration conf) {
+          TaskSchedulerContext appClientDelegate, Configuration conf) {
         super(taskRequestQueue, localContainerFactory, taskAllocations,
             appClientDelegate, conf);
       }

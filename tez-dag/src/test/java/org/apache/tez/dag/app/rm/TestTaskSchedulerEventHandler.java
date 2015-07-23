@@ -47,11 +47,13 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
+import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
 import org.apache.tez.dag.app.dag.impl.TaskImpl;
 import org.apache.tez.dag.app.dag.impl.VertexImpl;
@@ -61,10 +63,10 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
-import org.apache.tez.dag.app.rm.container.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,6 +98,7 @@ public class TestTaskSchedulerEventHandler {
     protected void instantiateScheduelrs(String host, int port, String trackingUrl,
                                          AppContext appContext) {
       taskSchedulers[0] = mockTaskScheduler;
+      taskSchedulerServiceWrappers[0] = new ServicePluginLifecycleAbstractService(taskSchedulers[0]);
     }
     
     @Override
@@ -113,7 +116,7 @@ public class TestTaskSchedulerEventHandler {
   TestEventHandler mockEventHandler;
   ContainerSignatureMatcher mockSigMatcher;
   MockTaskSchedulerEventHandler schedulerHandler;
-  TaskSchedulerService mockTaskScheduler;
+  TaskScheduler mockTaskScheduler;
   AMContainerMap mockAMContainerMap;
   WebUIService mockWebUIService;
 
@@ -124,7 +127,7 @@ public class TestTaskSchedulerEventHandler {
     mockClientService = mock(DAGClientServer.class);
     mockEventHandler = new TestEventHandler();
     mockSigMatcher = mock(ContainerSignatureMatcher.class);
-    mockTaskScheduler = mock(TaskSchedulerService.class);
+    mockTaskScheduler = mock(TaskScheduler.class);
     mockAMContainerMap = mock(AMContainerMap.class);
     mockWebUIService = mock(WebUIService.class);
     when(mockAppContext.getAllContainers()).thenReturn(mockAMContainerMap);

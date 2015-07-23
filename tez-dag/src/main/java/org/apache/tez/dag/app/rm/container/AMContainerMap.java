@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.common.ContainerSignatureMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.service.AbstractService;

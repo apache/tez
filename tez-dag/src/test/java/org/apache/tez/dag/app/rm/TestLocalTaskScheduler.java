@@ -18,12 +18,12 @@
 
 package org.apache.tez.dag.app.rm;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,24 +33,12 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Priority;
 
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AsyncDelegateRequestHandler;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.LocalContainerFactory;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.TaskRequest;
-import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 
 public class TestLocalTaskScheduler {
 
-  public AppContext createMockAppContext() {
-
-    ApplicationId appId = ApplicationId.newInstance(2000, 1);
-    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
-
-    AppContext appContext = mock(AppContext.class);
-    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
-
-    return appContext;
-  }
 
   @Test(timeout = 5000)
   public void maxTasksAllocationsCannotBeExceeded() {
@@ -59,17 +47,24 @@ public class TestLocalTaskScheduler {
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.setInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS, MAX_TASKS);
 
-    LocalContainerFactory containerFactory = new LocalContainerFactory(createMockAppContext(), 1000);
+    ApplicationId appId = ApplicationId.newInstance(2000, 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
+
+    TaskSchedulerContext
+        mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
+        appAttemptId, 1000l, null, new Configuration());
+
+    LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
+
     HashMap<Object, Container> taskAllocations = new LinkedHashMap<Object, Container>();
     PriorityBlockingQueue<TaskRequest> taskRequestQueue = new PriorityBlockingQueue<TaskRequest>();
-    TaskSchedulerAppCallback appClientDelegate = mock(TaskSchedulerAppCallback.class);
 
     // Object under test
     AsyncDelegateRequestHandler requestHandler =
       new AsyncDelegateRequestHandler(taskRequestQueue,
           containerFactory,
           taskAllocations,
-          appClientDelegate,
+          mockContext,
           tezConf);
 
     // Allocate up to max tasks
