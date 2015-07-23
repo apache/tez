@@ -257,10 +257,17 @@ license:
   - hadoop-yarn-common-*.jar
   - hadoop-yarn-server-common-*.jar
   - hadoop-yarn-server-web-proxy-*.jar
+  - httpclient-*.jar
+  - httpcore-*.jar
+  - jackson-core-asl-*.jar
+  - jackson-jaxrs-*.jar
+  - jackson-mapper-asl-*.jar
+  - jackson-xc-*.jar
+  - javax.inject-1.jar
   - guava-*.jar
   - jettison-*.jar - Copyright 2006 Envoi Solutions LLC
-  - jetty-6.1.*.jar 
-  - jetty-utils-6.1.*.jar 
+  - jetty-6.1.*.jar - Copyright 2001-2005 Mort Bay Consulting Pty. Ltd.
+  - jetty-utils-6.1.*.jar - Copyright 2001-2005 Mort Bay Consulting Pty. Ltd.
 
 -----------------------------------------------------------------------
 Dual Licensed under Common Development And Disribution License (CDDL - Version 1.1)
@@ -272,8 +279,12 @@ The Apache TEZ binary distribution bundles the following files under the dual li
  CDDL License and GPL version 2 with the [“Classpath Exception”]:
 
   - jersey-client-*.jar
+  - jersey-core-*.jar
+  - jersey-guice-*.jar
   - jersey-json-*.jar
   - servlet-api-*.jar
+  - jaxb-api-*.jar
+  - jaxb-impl-*.jar
 
 COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL)Version 1.1
 
