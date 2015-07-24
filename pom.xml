@@ -52,6 +52,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
     <build.time>${maven.build.timestamp}</build.time>
+    <frontend-maven-plugin.version>0.0.23</frontend-maven-plugin.version>
   </properties>
   <scm>
     <connection>${scm.url}</connection>
@@ -725,7 +726,7 @@
         <plugin>
           <groupId>com.github.eirslett</groupId>
           <artifactId>frontend-maven-plugin</artifactId>
-          <version>0.0.16</version>
+          <version>${frontend-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <artifactId>exec-maven-plugin</artifactId>
@@ -1041,6 +1042,33 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- fix for the frontend-maven-plugin - see TEZ-2560 -->
+    <profile>
+      <id>maven304</id>
+      <activation>
+        <property>
+          <name>maven.version</name>
+          <value>3.0.4</value>
+        </property>
+      </activation>
+      <properties>
+        <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
+      </properties>
+    </profile>
+    <profile>
+      <id>maven305</id>
+      <activation>
+        <property>
+          <name>maven.version</name>
+          <value>3.0.5</value>
+        </property>
+      </activation>
+      <properties>
+        <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
+      </properties>
+    </profile>
+
   </profiles>
 
   <reporting>
