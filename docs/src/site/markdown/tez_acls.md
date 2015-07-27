@@ -37,6 +37,11 @@ From the above, you can see that All users/groups that have access to do operati
 
 Support for ACLs was introduced in Tez 0.5.0. Integration of these ACLs with YARN Timeline is only available from Tez 0.6.0 onwards.
 
+## ACLs and the Tez UI
+
+For [versions of YARN Timeline Server](./tez_yarn_timeline.html) that support ACLs, the UI will respect the ACLs for such secure clusters. For example, when a particular
+authenticated user is viewing the "All DAGs" page on the UI, the user will only be shown DAGs that the user has access to view.
+
 ## How to setup the ACLs
 
 By default, ACLs are always enabled in Tez. To disable ACLs, set the following configuration property:
