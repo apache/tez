@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-1314. Port MAPREDUCE-5821 to Tez.
   TEZ-2568. V_INPUT_DATA_INFORMATION may happen after vertex is initialized
   TEZ-2291. TEZ UI: Improper vertex name in tables.
@@ -222,6 +223,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-2560. fix tex-ui build for maven 3.3+
   TEZ-2600. When used with HDFS federation(viewfs) ,tez will throw a error
   TEZ-2579. Incorrect comparison of TaskAttemptId
