@@ -20,7 +20,7 @@
 Apache Tez 0.5.2
 ----------------
 
-- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez/0.5.2/)
+- [Release Artifacts](http://archive.apache.org/dist/tez/0.5.2/)
 - [Release Notes](0.5.2/release-notes.txt)
 - Documentation (See 0.5.3 documentation)
 
