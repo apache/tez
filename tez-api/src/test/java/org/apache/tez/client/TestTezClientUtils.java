@@ -57,6 +57,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -71,7 +72,6 @@ import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.junit.Assert;
 import org.junit.Test;
-
 /**
  * 
  */
@@ -202,6 +202,42 @@ public class TestTezClientUtils {
     Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
     Assert.assertFalse(TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap));
     assertFalse(localizedMap.isEmpty());
+  }
+
+  @Test(timeout = 2000)
+  // this test checks if the priority field is set properly in the
+  // ApplicationSubmissionContext
+  public void testAppSubmissionContextForPriority() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration();
+    int testpriority = 999;
+    ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    Credentials credentials = new Credentials();
+    TezClientUtils.createSessionToken(appId.toString(),
+        new JobTokenSecretManager(), credentials);
+    tezConf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
+    Map<String, LocalResource> m = new HashMap<String, LocalResource>();
+    tezConf.setInt(TezConfiguration.TEZ_AM_APPLICATION_PRIORITY, testpriority);
+    AMConfiguration amConf =
+        new AMConfiguration(tezConf, new HashMap<String, LocalResource>(), credentials);
+    ApplicationSubmissionContext appcontext;
+    appcontext = TezClientUtils.createApplicationSubmissionContext(
+        appId, null, "dagname",
+        amConf, m,
+        credentials, false,
+        new TezApiVersionInfo(), null);
+    assertEquals(testpriority, appcontext.getPriority().getPriority());
+  }
+
+  @Test(timeout=1000)
+  // when tez config property for app priority not set,
+  // tez should not set app priority and let YARN deal with it.
+  public void testSetApplicationPriority() {
+    TezConfiguration conf = new TezConfiguration(false);
+    AMConfiguration amconfig = new AMConfiguration(conf, null, null);
+    ApplicationSubmissionContext appContext = Records
+        .newRecord(ApplicationSubmissionContext.class);
+    TezClientUtils.setApplicationPriority(appContext, amconfig);
+    assertNull(appContext.getPriority());
   }
 
   @Test(timeout = 5000)

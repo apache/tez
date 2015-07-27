@@ -912,6 +912,12 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_QUEUE_NAME = TEZ_PREFIX + "queue.name";
 
+  /**
+   * String value. The job priority of submitted application.
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_APPLICATION_PRIORITY = TEZ_PREFIX + "am.application.priority";
+
   @Unstable
   /**
    * Boolean value. Generate debug artifacts like DAG plan in text format.

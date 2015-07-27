@@ -299,6 +299,7 @@ public class TestTezJobs {
 
     String[] args = new String[] {
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
+        "-D" + TezConfiguration.TEZ_AM_APPLICATION_PRIORITY + "=" + "2",
         "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
     assertEquals(0, sortMergeJoinExample.run(args));
 

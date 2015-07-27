@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2627. Support for Tez Job Priorities.
   TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-2464. Move older releases to dist archive.
   TEZ-2239. Update Tez UI docs to explain how to configure history url for YARN.

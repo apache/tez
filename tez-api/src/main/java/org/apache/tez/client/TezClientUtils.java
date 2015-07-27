@@ -68,6 +68,7 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -662,6 +663,8 @@ public class TezClientUtils {
     if (amConfig.getQueueName() != null) {
       appContext.setQueue(amConfig.getQueueName());
     }
+    // set the application priority
+    setApplicationPriority(appContext, amConfig);
     appContext.setApplicationName(amName);
     appContext.setCancelTokensWhenComplete(amConfig.getTezConfiguration().getBoolean(
         TezConfiguration.TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION,
@@ -1006,6 +1009,24 @@ public class TezClientUtils {
       }
     } else {
       return null;
+    }
+  }
+
+  @VisibleForTesting
+  // this method will set the app priority only if the priority config has been defined
+  public static void setApplicationPriority(ApplicationSubmissionContext context,
+      AMConfiguration amConfig) {
+    if (amConfig.getTezConfiguration().get(TezConfiguration.TEZ_AM_APPLICATION_PRIORITY) != null) {
+      // since we already checked not null condition, we are guaranteed that default value
+      // (0 in this case for getInt) will not be returned/used.
+      // The idea is to not use any default priority from TEZ side, if none provided in config;
+      // let YARN determine the priority of the submitted application
+      int priority = amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_APPLICATION_PRIORITY, 0);
+      context.setPriority(Priority.newInstance(priority));
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Settting TEZ application priority, applicationId= " + context.getApplicationId() +
+            ", priority= " + context.getPriority().getPriority());
+      }
     }
   }
 }
