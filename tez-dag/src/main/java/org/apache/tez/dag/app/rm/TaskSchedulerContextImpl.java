@@ -18,7 +18,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -28,6 +27,7 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
@@ -40,12 +40,12 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   private final long customClusterIdentifier;
   private final String appHostName;
   private final int clientPort;
-  private final Configuration conf;
+  private final UserPayload initialUserPayload;
 
   public TaskSchedulerContextImpl(TaskSchedulerEventHandler tseh, AppContext appContext,
                                   int schedulerId, String trackingUrl, long customClusterIdentifier,
                                   String appHostname, int clientPort,
-                                  Configuration conf) {
+                                  UserPayload initialUserPayload) {
     this.tseh = tseh;
     this.appContext = appContext;
     this.schedulerId = schedulerId;
@@ -53,7 +53,7 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
     this.customClusterIdentifier = customClusterIdentifier;
     this.appHostName = appHostname;
     this.clientPort = clientPort;
-    this.conf = conf;
+    this.initialUserPayload = initialUserPayload;
 
   }
 
@@ -110,8 +110,8 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   }
 
   @Override
-  public Configuration getInitialConfiguration() {
-    return conf;
+  public UserPayload getInitialUserPayload() {
+    return initialUserPayload;
   }
 
 

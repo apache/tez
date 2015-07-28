@@ -29,9 +29,9 @@ import java.util.concurrent.ConcurrentMap;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
@@ -103,7 +103,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   public TaskAttemptListenerImpTezDag(AppContext context,
                                       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
                                       List<NamedEntityDescriptor> taskCommunicatorDescriptors,
-                                      Configuration conf,
+                                      UserPayload defaultUserPayload,
                                       boolean isPureLocalMode) {
     super(TaskAttemptListenerImpTezDag.class.getName());
     this.context = context;
@@ -112,17 +112,26 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     if (taskCommunicatorDescriptors == null || taskCommunicatorDescriptors.isEmpty()) {
       if (isPureLocalMode) {
         taskCommunicatorDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezUberServicePluginName(), null));
+            TezConstants.getTezUberServicePluginName(), null).setUserPayload(defaultUserPayload));
       } else {
         taskCommunicatorDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezYarnServicePluginName(), null));
+            TezConstants.getTezYarnServicePluginName(), null).setUserPayload(defaultUserPayload));
       }
     }
     this.taskCommunicators = new TaskCommunicator[taskCommunicatorDescriptors.size()];
     this.taskCommunicatorContexts = new TaskCommunicatorContext[taskCommunicatorDescriptors.size()];
     this.taskCommunicatorServiceWrappers = new ServicePluginLifecycleAbstractService[taskCommunicatorDescriptors.size()];
     for (int i = 0 ; i < taskCommunicatorDescriptors.size() ; i++) {
-      taskCommunicatorContexts[i] = new TaskCommunicatorContextImpl(context, this, conf, i);
+      UserPayload userPayload;
+      if (taskCommunicatorDescriptors.get(i).getEntityName()
+          .equals(TezConstants.getTezYarnServicePluginName()) ||
+          taskCommunicatorDescriptors.get(i).getEntityName()
+              .equals(TezConstants.getTezUberServicePluginName())) {
+        userPayload = defaultUserPayload;
+      } else {
+        userPayload = taskCommunicatorDescriptors.get(i).getUserPayload();
+      }
+      taskCommunicatorContexts[i] = new TaskCommunicatorContextImpl(context, this, userPayload, i);
       taskCommunicators[i] = createTaskCommunicator(taskCommunicatorDescriptors.get(i), i);
       taskCommunicatorServiceWrappers[i] = new ServicePluginLifecycleAbstractService(taskCommunicators[i]);
     }

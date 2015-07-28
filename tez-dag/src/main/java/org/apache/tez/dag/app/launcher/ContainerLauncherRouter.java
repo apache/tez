@@ -27,6 +27,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
@@ -63,7 +64,7 @@ public class ContainerLauncherRouter extends AbstractService
   }
 
   // Accepting conf to setup final parameters, if required.
-  public ContainerLauncherRouter(Configuration conf, AppContext context,
+  public ContainerLauncherRouter(UserPayload defaultUserPayload, AppContext context,
                                  TaskAttemptListener taskAttemptListener,
                                  String workingDirectory,
                                  List<NamedEntityDescriptor> containerLauncherDescriptors,
@@ -74,10 +75,10 @@ public class ContainerLauncherRouter extends AbstractService
     if (containerLauncherDescriptors == null || containerLauncherDescriptors.isEmpty()) {
       if (isPureLocalMode) {
         containerLauncherDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezUberServicePluginName(), null));
+            TezConstants.getTezUberServicePluginName(), null).setUserPayload(defaultUserPayload));
       } else {
         containerLauncherDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezYarnServicePluginName(), null));
+            TezConstants.getTezYarnServicePluginName(), null).setUserPayload(defaultUserPayload));
       }
     }
     containerLauncherContexts = new ContainerLauncherContext[containerLauncherDescriptors.size()];
@@ -86,10 +87,20 @@ public class ContainerLauncherRouter extends AbstractService
 
 
     for (int i = 0; i < containerLauncherDescriptors.size(); i++) {
-      ContainerLauncherContext containerLauncherContext = new ContainerLauncherContextImpl(context, taskAttemptListener);
+      UserPayload userPayload;
+      if (containerLauncherDescriptors.get(i).getEntityName()
+          .equals(TezConstants.getTezYarnServicePluginName()) ||
+          containerLauncherDescriptors.get(i).getEntityName()
+              .equals(TezConstants.getTezUberServicePluginName())) {
+        userPayload = defaultUserPayload;
+      } else {
+        userPayload = containerLauncherDescriptors.get(i).getUserPayload();
+      }
+      ContainerLauncherContext containerLauncherContext =
+          new ContainerLauncherContextImpl(context, taskAttemptListener, userPayload);
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = createContainerLauncher(containerLauncherDescriptors.get(i), context,
-          containerLauncherContext, taskAttemptListener, workingDirectory, isPureLocalMode, conf);
+          containerLauncherContext, taskAttemptListener, workingDirectory, isPureLocalMode);
       containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService(containerLaunchers[i]);
     }
   }
@@ -99,8 +110,7 @@ public class ContainerLauncherRouter extends AbstractService
                                                     ContainerLauncherContext containerLauncherContext,
                                                     TaskAttemptListener taskAttemptListener,
                                                     String workingDirectory,
-                                                    boolean isPureLocalMode,
-                                                    Configuration conf) throws
+                                                    boolean isPureLocalMode) throws
       UnknownHostException {
     if (containerLauncherDescriptor.getEntityName().equals(
         TezConstants.getTezYarnServicePluginName())) {

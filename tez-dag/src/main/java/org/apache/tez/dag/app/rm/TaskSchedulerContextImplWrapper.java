@@ -27,7 +27,6 @@ import java.util.concurrent.Future;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -37,6 +36,7 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
 /**
@@ -132,8 +132,8 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   // does not use locks.
 
   @Override
-  public Configuration getInitialConfiguration() {
-    return real.getInitialConfiguration();
+  public UserPayload getInitialUserPayload() {
+    return real.getInitialUserPayload();
   }
 
   @Override

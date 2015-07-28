@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -129,7 +130,14 @@ public class LocalContainerLauncher extends ContainerLauncher {
         System.getenv(Environment.NM_HOST.name());
     executionContext = new ExecutionContextImpl(host);
 
-    numExecutors = getContext().getInitialConfiguration().getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
+    Configuration conf;
+    try {
+      conf = TezUtils.createConfFromUserPayload(getContext().getInitialUserPayload());
+    } catch (IOException e) {
+      throw new TezUncheckedException(
+          "Failed to parse user payload for " + LocalContainerLauncher.class.getSimpleName(), e);
+    }
+    numExecutors = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
         TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
     Preconditions.checkState(numExecutors >=1, "Must have at least 1 executor");
     ExecutorService rawExecutor = Executors.newFixedThreadPool(numExecutors,

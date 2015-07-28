@@ -20,7 +20,6 @@ import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -30,6 +29,7 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ContainerSignatureMatcher;
+import org.apache.tez.dag.api.UserPayload;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
@@ -84,8 +84,7 @@ public interface TaskSchedulerContext {
 
   // Getters
 
-  // TODO TEZ-2003. To be replaced by getInitialPayload
-  public Configuration getInitialConfiguration();
+  public UserPayload getInitialUserPayload();
 
   public String getAppTrackingUrl();
 

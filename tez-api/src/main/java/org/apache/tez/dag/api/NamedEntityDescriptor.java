@@ -17,7 +17,7 @@ package org.apache.tez.dag.api;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 
-public class NamedEntityDescriptor<T extends EntityDescriptor<T>> extends EntityDescriptor<T> {
+public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends EntityDescriptor<NamedEntityDescriptor<T>>  {
   private final String entityName;
 
   @InterfaceAudience.Private
@@ -29,5 +29,10 @@ public class NamedEntityDescriptor<T extends EntityDescriptor<T>> extends Entity
 
   public String getEntityName() {
     return entityName;
+  }
+
+  public T setUserPayload(UserPayload userPayload) {
+    super.setUserPayload(userPayload);
+    return (T) this;
   }
 }

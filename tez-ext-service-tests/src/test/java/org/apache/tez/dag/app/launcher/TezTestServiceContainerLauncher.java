@@ -19,10 +19,12 @@ import java.net.InetSocketAddress;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -49,17 +51,22 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
   private final int servicePort;
   private final TezTestServiceCommunicator communicator;
   private final ApplicationAttemptId appAttemptId;
-  //  private final TaskAttemptListener tal;
+  private final Configuration conf;
 
 
   // Configuration passed in here to set up final parameters
   public TezTestServiceContainerLauncher(ContainerLauncherContext containerLauncherContext) {
     super(containerLauncherContext);
-    int numThreads = getContext().getInitialConfiguration().getInt(
+    try {
+      conf = TezUtils.createConfFromUserPayload(getContext().getInitialUserPayload());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    int numThreads = conf.getInt(
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_AM_COMMUNICATOR_NUM_THREADS,
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_AM_COMMUNICATOR_NUM_THREADS_DEFAULT);
 
-    this.servicePort = getContext().getInitialConfiguration().getInt(
+    this.servicePort = conf.getInt(
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_RPC_PORT, -1);
     Preconditions.checkArgument(servicePort > 0,
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_RPC_PORT + " must be set");
@@ -70,7 +77,7 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
 
   @Override
   public void start() {
-    communicator.init(getContext().getInitialConfiguration());
+    communicator.init(conf);
     communicator.start();
   }
 

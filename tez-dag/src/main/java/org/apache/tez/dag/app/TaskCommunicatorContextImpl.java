@@ -23,10 +23,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.TaskHeartbeatRequest;
@@ -49,17 +49,17 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   private final int taskCommunicatorIndex;
   private final ReentrantReadWriteLock.ReadLock dagChangedReadLock;
   private final ReentrantReadWriteLock.WriteLock dagChangedWriteLock;
-  private final Configuration conf;
+  private final UserPayload userPayload;
 
   private DAG dag;
 
   public TaskCommunicatorContextImpl(AppContext appContext,
                                      TaskAttemptListenerImpTezDag taskAttemptListener,
-                                     Configuration conf,
+                                     UserPayload userPayload,
                                      int taskCommunicatorIndex) {
     this.context = appContext;
     this.taskAttemptListener = taskAttemptListener;
-    this.conf = conf;
+    this.userPayload = userPayload;
     this.taskCommunicatorIndex = taskCommunicatorIndex;
 
     ReentrantReadWriteLock dagChangedLock = new ReentrantReadWriteLock();
@@ -68,8 +68,8 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   }
 
   @Override
-  public Configuration getInitialConfiguration() {
-    return conf;
+  public UserPayload getInitialUserPayload() {
+    return userPayload;
   }
 
   @Override

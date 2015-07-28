@@ -76,7 +76,7 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
   @Override
   public void initialize() throws Exception {
     super.initialize();
-    this.communicator.init(getContext().getInitialConfiguration());
+    this.communicator.init(getConf());
   }
 
   @Override

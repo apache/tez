@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.common.TezUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -144,7 +145,7 @@ public class TestContainerReuse {
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
         new TaskSchedulerEventHandlerForTest(
           appContext, eventHandler, rmClient,
-          new AlwaysMatchesContainerMatcher());
+          new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(conf));
     TaskSchedulerEventHandler taskSchedulerEventHandler =
         spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(conf);
@@ -279,7 +280,7 @@ public class TestContainerReuse {
 
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
       new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient,
-        new AlwaysMatchesContainerMatcher());
+        new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(conf));
     TaskSchedulerEventHandler taskSchedulerEventHandler =
       spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(conf);
@@ -378,7 +379,7 @@ public class TestContainerReuse {
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
-    TaskSchedulerEventHandler taskSchedulerEventHandlerReal = new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new AlwaysMatchesContainerMatcher());
+    TaskSchedulerEventHandler taskSchedulerEventHandlerReal = new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
@@ -514,7 +515,7 @@ public class TestContainerReuse {
 
     //Use ContainerContextMatcher here.  Otherwise it would not match the JVM options
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
-        new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new ContainerContextMatcher());
+        new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new ContainerContextMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
@@ -709,7 +710,7 @@ public class TestContainerReuse {
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
         new TaskSchedulerEventHandlerForTest(
           appContext, eventHandler, rmClient,
-          new AlwaysMatchesContainerMatcher());
+          new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler =
         spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
@@ -833,7 +834,7 @@ public class TestContainerReuse {
 
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
       new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient,
-        new AlwaysMatchesContainerMatcher());
+        new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler =
       spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
@@ -947,7 +948,7 @@ public class TestContainerReuse {
     doAnswer(dagIDAnswer).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
     
-    TaskSchedulerEventHandler taskSchedulerEventHandlerReal = new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new AlwaysMatchesContainerMatcher());
+    TaskSchedulerEventHandler taskSchedulerEventHandlerReal = new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient, new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
@@ -1105,7 +1106,7 @@ public class TestContainerReuse {
 
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
         new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient,
-            new ContainerContextMatcher());
+            new ContainerContextMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();
@@ -1259,7 +1260,7 @@ public class TestContainerReuse {
 
     TaskSchedulerEventHandler taskSchedulerEventHandlerReal =
         new TaskSchedulerEventHandlerForTest(appContext, eventHandler, rmClient,
-            new AlwaysMatchesContainerMatcher());
+            new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerEventHandler taskSchedulerEventHandler = spy(taskSchedulerEventHandlerReal);
     taskSchedulerEventHandler.init(tezConf);
     taskSchedulerEventHandler.start();

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -59,7 +60,10 @@ import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ContainerSignatureMatcher;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
@@ -125,22 +129,26 @@ class TestTaskSchedulerHelpers {
 
     private TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync;
     private ContainerSignatureMatcher containerSignatureMatcher;
+    private UserPayload defaultPayload;
 
     @SuppressWarnings("rawtypes")
     public TaskSchedulerEventHandlerForTest(AppContext appContext,
         EventHandler eventHandler,
         TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
-        ContainerSignatureMatcher containerSignatureMatcher) {
-      super(appContext, null, eventHandler, containerSignatureMatcher, null, new LinkedList<NamedEntityDescriptor>(), false);
+        ContainerSignatureMatcher containerSignatureMatcher,
+        UserPayload defaultPayload) {
+      super(appContext, null, eventHandler, containerSignatureMatcher, null,
+          new LinkedList<NamedEntityDescriptor>(), defaultPayload, false);
       this.amrmClientAsync = amrmClientAsync;
       this.containerSignatureMatcher = containerSignatureMatcher;
+      this.defaultPayload = defaultPayload;
     }
 
     @Override
     public void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
       TaskSchedulerContext taskSchedulerContext =
           new TaskSchedulerContextImpl(this, appContext, 0, trackingUrl, 1000, host, port,
-              getConfig());
+              defaultPayload);
       TaskSchedulerContextImplWrapper wrapper =
           new TaskSchedulerContextImplWrapper(taskSchedulerContext,
               new CountingExecutorService(appCallbackExecutor));
@@ -287,8 +295,8 @@ class TestTaskSchedulerHelpers {
     // Not incrementing invocations for methods which to not obtain locks,
     // and do not go via the executor service.
     @Override
-    public Configuration getInitialConfiguration() {
-      return real.getInitialConfiguration();
+    public UserPayload getInitialUserPayload() {
+      return real.getInitialUserPayload();
     }
 
     @Override
@@ -523,7 +531,13 @@ class TestTaskSchedulerHelpers {
     when(mockContext.getAppTrackingUrl()).thenReturn(appUrl);
 
     when(mockContext.getAMState()).thenReturn(TaskSchedulerContext.AMState.RUNNING_APP);
-    when(mockContext.getInitialConfiguration()).thenReturn(conf);
+    UserPayload userPayload;
+    try {
+      userPayload = TezUtils.createUserPayloadFromConf(conf);
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
+    when(mockContext.getInitialUserPayload()).thenReturn(userPayload);
     when(mockContext.isSession()).thenReturn(isSession);
     if (containerSignatureMatcher != null) {
       when(mockContext.getContainerSignatureMatcher())

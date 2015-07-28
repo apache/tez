@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
@@ -224,7 +225,12 @@ public class ContainerLauncherImpl extends ContainerLauncher {
 
   public ContainerLauncherImpl(ContainerLauncherContext containerLauncherContext) {
     super(containerLauncherContext);
-    this.conf = new Configuration(containerLauncherContext.getInitialConfiguration());
+    try {
+      this.conf = TezUtils.createConfFromUserPayload(containerLauncherContext.getInitialUserPayload());
+    } catch (IOException e) {
+      throw new TezUncheckedException(
+          "Failed to parse user payload for " + ContainerLauncherImpl.class.getSimpleName(), e);
+    }
     conf.setInt(
         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECTION_MAXIDLETIME_KEY,
         0);

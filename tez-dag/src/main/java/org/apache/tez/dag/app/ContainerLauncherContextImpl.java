@@ -14,10 +14,10 @@
 
 package org.apache.tez.dag.app;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
@@ -33,10 +33,12 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
 
   private final AppContext context;
   private final TaskAttemptListener tal;
+  private final UserPayload initialUserPayload;
 
-  public ContainerLauncherContextImpl(AppContext appContext, TaskAttemptListener tal) {
+  public ContainerLauncherContextImpl(AppContext appContext, TaskAttemptListener tal, UserPayload initialUserPayload) {
     this.context = appContext;
     this.tal = tal;
+    this.initialUserPayload = initialUserPayload;
   }
 
   @Override
@@ -76,8 +78,8 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
   }
 
   @Override
-  public Configuration getInitialConfiguration() {
-    return context.getAMConf();
+  public UserPayload getInitialUserPayload() {
+    return initialUserPayload;
   }
 
   @Override

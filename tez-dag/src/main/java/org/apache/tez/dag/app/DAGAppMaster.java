@@ -62,8 +62,10 @@ import com.google.common.collect.HashBiMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
@@ -492,9 +494,12 @@ public class DAGAppMaster extends AbstractService {
     jobTokenSecretManager.addTokenForJob(
         appAttemptID.getApplicationId().toString(), sessionToken);
 
+    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(amConf);
+
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
-        taskHeartbeatHandler, containerHeartbeatHandler, taskCommunicatorDescriptors, isLocal);
+        taskHeartbeatHandler, containerHeartbeatHandler, taskCommunicatorDescriptors,
+        defaultPayload, isLocal);
     addIfService(taskAttemptListener, true);
 
     containerSignatureMatcher = createContainerSignatureMatcher();
@@ -540,9 +545,11 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
+
+
     this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService,
-        taskSchedulerDescriptors, isLocal);
+        taskSchedulerDescriptors, defaultPayload, isLocal);
     addIfService(taskSchedulerEventHandler, true);
 
     if (enableWebUIService()) {
@@ -560,7 +567,7 @@ public class DAGAppMaster extends AbstractService {
         taskSchedulerEventHandler);
     addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
 
-    this.containerLauncherRouter = createContainerLauncherRouter(conf, containerLauncherDescriptors, isLocal);
+    this.containerLauncherRouter = createContainerLauncherRouter(defaultPayload, containerLauncherDescriptors, isLocal);
     addIfService(containerLauncherRouter, true);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncherRouter);
 
@@ -1071,10 +1078,11 @@ public class DAGAppMaster extends AbstractService {
                                                           TaskHeartbeatHandler thh,
                                                           ContainerHeartbeatHandler chh,
                                                           List<NamedEntityDescriptor> entityDescriptors,
+                                                          UserPayload defaultUserPayload,
                                                           boolean isLocal) {
     TaskAttemptListener lis =
         new TaskAttemptListenerImpTezDag(context, thh, chh,
-            entityDescriptors, amConf, isLocal);
+            entityDescriptors, defaultUserPayload, isLocal);
     return lis;
   }
 
@@ -1095,11 +1103,11 @@ public class DAGAppMaster extends AbstractService {
     return chh;
   }
 
-  protected ContainerLauncherRouter createContainerLauncherRouter(Configuration conf,
+  protected ContainerLauncherRouter createContainerLauncherRouter(UserPayload defaultPayload,
                                                                   List<NamedEntityDescriptor> containerLauncherDescriptors,
                                                                   boolean isLocal) throws
       UnknownHostException {
-    return new ContainerLauncherRouter(conf, context, taskAttemptListener, workingDirectory,
+    return new ContainerLauncherRouter(defaultPayload, context, taskAttemptListener, workingDirectory,
         containerLauncherDescriptors, isLocal);
   }
 

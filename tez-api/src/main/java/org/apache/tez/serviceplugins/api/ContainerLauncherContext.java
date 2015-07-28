@@ -16,9 +16,9 @@ package org.apache.tez.serviceplugins.api;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.dag.api.UserPayload;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
@@ -43,8 +43,7 @@ public interface ContainerLauncherContext {
 
   // Lookup APIs
 
-  // TODO TEZ-2003. To be replaced by getInitialPayload once the DAG API is changed.
-  Configuration getInitialConfiguration();
+  UserPayload getInitialUserPayload();
 
   int getNumNodes(String sourceName);
 

@@ -22,9 +22,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -34,6 +36,10 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
@@ -51,7 +57,7 @@ import org.mockito.ArgumentCaptor;
 public class TestTaskAttemptListenerImplTezDag2 {
 
   @Test(timeout = 5000)
-  public void testTaskAttemptFailedKilled() {
+  public void testTaskAttemptFailedKilled() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     Credentials credentials = new Credentials();
@@ -73,9 +79,11 @@ public class TestTaskAttemptListenerImplTezDag2 {
     doReturn(amContainer).when(amContainerMap).get(any(ContainerId.class));
     doReturn(container).when(amContainer).getContainer();
 
+    Configuration conf = new TezConfiguration();
+    UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
     TaskAttemptListenerImpTezDag taskAttemptListener =
         new TaskAttemptListenerImpTezDag(appContext, mock(TaskHeartbeatHandler.class),
-            mock(ContainerHeartbeatHandler.class), null, null, false);
+            mock(ContainerHeartbeatHandler.class), null, userPayload, false);
 
     TaskSpec taskSpec1 = mock(TaskSpec.class);
     TezTaskAttemptID taskAttemptId1 = mock(TezTaskAttemptID.class);

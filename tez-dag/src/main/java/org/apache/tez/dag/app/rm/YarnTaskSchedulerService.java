@@ -31,13 +31,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AMState;
@@ -72,7 +70,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /* TODO not yet updating cluster nodes on every allocate response
  * from RMContainerRequestor
@@ -220,7 +217,13 @@ public class YarnTaskSchedulerService extends TaskScheduler
     this.appHostName = taskSchedulerContext.getAppHostName();
     this.appHostPort = taskSchedulerContext.getAppClientPort();
     this.appTrackingUrl = taskSchedulerContext.getAppTrackingUrl();
-    this.conf = taskSchedulerContext.getInitialConfiguration();
+    try {
+      this.conf = TezUtils.createConfFromUserPayload(taskSchedulerContext.getInitialUserPayload());
+    } catch (IOException e) {
+      throw new TezUncheckedException(
+          "Failed to deserialize payload for " + YarnTaskSchedulerService.class.getSimpleName(),
+          e);
+    }
   }
 
   @Private
@@ -233,7 +236,13 @@ public class YarnTaskSchedulerService extends TaskScheduler
     this.appHostName = taskSchedulerContext.getAppHostName();
     this.appHostPort = taskSchedulerContext.getAppClientPort();
     this.appTrackingUrl = taskSchedulerContext.getAppTrackingUrl();
-    this.conf = taskSchedulerContext.getInitialConfiguration();
+    try {
+      this.conf = TezUtils.createConfFromUserPayload(taskSchedulerContext.getInitialUserPayload());
+    } catch (IOException e) {
+      throw new TezUncheckedException(
+          "Failed to deserialize payload for " + YarnTaskSchedulerService.class.getSimpleName(),
+          e);
+    }
   }
 
   @Override

@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -27,6 +28,7 @@ import java.util.LinkedHashMap;
 
 import com.google.common.primitives.Ints;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.slf4j.Logger;
@@ -65,7 +67,13 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     this.appTrackingUrl = taskSchedulerContext.getAppTrackingUrl();
     this.containerSignatureMatcher = taskSchedulerContext.getContainerSignatureMatcher();
     this.customContainerAppId = taskSchedulerContext.getCustomClusterIdentifier();
-    this.conf = taskSchedulerContext.getInitialConfiguration();
+    try {
+      this.conf = TezUtils.createConfFromUserPayload(taskSchedulerContext.getInitialUserPayload());
+    } catch (IOException e) {
+      throw new TezUncheckedException(
+          "Failed to deserialize payload for " + LocalTaskSchedulerService.class.getSimpleName(),
+          e);
+    }
   }
 
   @Override

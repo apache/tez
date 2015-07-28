@@ -145,7 +145,8 @@ public class TestTaskScheduler {
 
     scheduler.initialize();
     drainableAppCallback.drain();
-    verify(mockRMClient).init(conf);
+    // Verifying the validity of the configuration via the interval only instead of making sure
+    // it's the same instance.
     verify(mockRMClient).setHeartbeatInterval(interval);
 
     RegisterApplicationMasterResponse mockRegResponse =

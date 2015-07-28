@@ -37,6 +37,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
@@ -114,7 +115,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   private AtomicBoolean shouldUnregisterFlag =
       new AtomicBoolean(false);
   private final WebUIService webUI;
-  private final String[] taskSchedulerClasses;
+  private final NamedEntityDescriptor[] taskSchedulerDescriptors;
   protected final TaskScheduler[]taskSchedulers;
   protected final ServicePluginLifecycleAbstractService []taskSchedulerServiceWrappers;
 
@@ -152,7 +153,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   public TaskSchedulerEventHandler(AppContext appContext,
       DAGClientServer clientService, EventHandler eventHandler, 
       ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI,
-      List<NamedEntityDescriptor> schedulerDescriptors, boolean isPureLocalMode) {
+      List<NamedEntityDescriptor> schedulerDescriptors, UserPayload defaultPayload,
+                                   boolean isPureLocalMode) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
     this.eventHandler = eventHandler;
@@ -168,39 +170,50 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
     // Override everything for pure local mode
     if (isPureLocalMode) {
-      this.taskSchedulerClasses = new String[] {TezConstants.getTezUberServicePluginName()};
+      this.taskSchedulerDescriptors = new NamedEntityDescriptor[]{
+          new NamedEntityDescriptor(TezConstants.getTezUberServicePluginName(), null)
+              .setUserPayload(defaultPayload)};
       this.yarnTaskSchedulerIndex = -1;
     } else {
       if (schedulerDescriptors == null || schedulerDescriptors.isEmpty()) {
-        this.taskSchedulerClasses = new String[] {TezConstants.getTezYarnServicePluginName()};
+        this.taskSchedulerDescriptors = new NamedEntityDescriptor[]{
+            new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
+                .setUserPayload(defaultPayload)};
         this.yarnTaskSchedulerIndex = 0;
       } else {
         // Ensure the YarnScheduler will be setup and note it's index. This will be responsible for heartbeats and YARN registration.
         int foundYarnTaskSchedulerIndex = -1;
 
-        List<String> taskSchedulerClassList = new LinkedList<>();
+        List<NamedEntityDescriptor> schedulerDescriptorList = new LinkedList<>();
         for (int i = 0 ; i < schedulerDescriptors.size() ; i++) {
           if (schedulerDescriptors.get(i).getEntityName().equals(
               TezConstants.getTezYarnServicePluginName())) {
-            taskSchedulerClassList.add(schedulerDescriptors.get(i).getEntityName());
+            schedulerDescriptorList.add(
+                new NamedEntityDescriptor(schedulerDescriptors.get(i).getEntityName(), null)
+                    .setUserPayload(
+                        defaultPayload));
             foundYarnTaskSchedulerIndex = i;
           } else if (schedulerDescriptors.get(i).getEntityName().equals(
               TezConstants.getTezUberServicePluginName())) {
-            taskSchedulerClassList.add(schedulerDescriptors.get(i).getEntityName());
+            schedulerDescriptorList.add(
+                new NamedEntityDescriptor(schedulerDescriptors.get(i).getEntityName(), null)
+                    .setUserPayload(
+                        defaultPayload));
           } else {
-            taskSchedulerClassList.add(schedulerDescriptors.get(i).getClassName());
+            schedulerDescriptorList.add(schedulerDescriptors.get(i));
           }
         }
         if (foundYarnTaskSchedulerIndex == -1) {
-          taskSchedulerClassList.add(YarnTaskSchedulerService.class.getName());
-          foundYarnTaskSchedulerIndex = taskSchedulerClassList.size() -1;
+          schedulerDescriptorList.add(new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null).setUserPayload(
+              defaultPayload));
+          foundYarnTaskSchedulerIndex = schedulerDescriptorList.size() -1;
         }
-        this.taskSchedulerClasses = taskSchedulerClassList.toArray(new String[taskSchedulerClassList.size()]);
+        this.taskSchedulerDescriptors = schedulerDescriptorList.toArray(new NamedEntityDescriptor[schedulerDescriptorList.size()]);
         this.yarnTaskSchedulerIndex = foundYarnTaskSchedulerIndex;
       }
     }
-    taskSchedulers = new TaskScheduler[this.taskSchedulerClasses.length];
-    taskSchedulerServiceWrappers = new ServicePluginLifecycleAbstractService[this.taskSchedulerClasses.length];
+    taskSchedulers = new TaskScheduler[this.taskSchedulerDescriptors.length];
+    taskSchedulerServiceWrappers = new ServicePluginLifecycleAbstractService[this.taskSchedulerDescriptors.length];
   }
 
   public Map<ApplicationAccessType, String> getApplicationAcls() {
@@ -417,23 +430,24 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
   private TaskScheduler createTaskScheduler(String host, int port, String trackingUrl,
                                                    AppContext appContext,
-                                                   String schedulerClassName,
+                                                   NamedEntityDescriptor taskSchedulerDescriptor,
                                                    long customAppIdIdentifier,
                                                    int schedulerId) {
     TaskSchedulerContext rawContext =
         new TaskSchedulerContextImpl(this, appContext, schedulerId, trackingUrl,
-            customAppIdIdentifier, host, port, getConfig());
+            customAppIdIdentifier, host, port, taskSchedulerDescriptor.getUserPayload());
     TaskSchedulerContext wrappedContext = new TaskSchedulerContextImplWrapper(rawContext, appCallbackExecutor);
-    if (schedulerClassName.equals(TezConstants.getTezYarnServicePluginName())) {
+    String schedulerName = taskSchedulerDescriptor.getEntityName();
+    if (schedulerName.equals(TezConstants.getTezYarnServicePluginName())) {
       LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
       return new YarnTaskSchedulerService(wrappedContext);
-    } else if (schedulerClassName.equals(TezConstants.getTezUberServicePluginName())) {
+    } else if (schedulerName.equals(TezConstants.getTezUberServicePluginName())) {
       LOG.info("Creating TaskScheduler: Local TaskScheduler");
       return new LocalTaskSchedulerService(wrappedContext);
     } else {
-      LOG.info("Creating custom TaskScheduler: " + schedulerClassName);
+      LOG.info("Creating custom TaskScheduler {}:{}", taskSchedulerDescriptor.getEntityName(), taskSchedulerDescriptor.getClassName());
       Class<? extends TaskScheduler> taskSchedulerClazz =
-          (Class<? extends TaskScheduler>) ReflectionUtils.getClazz(schedulerClassName);
+          (Class<? extends TaskScheduler>) ReflectionUtils.getClazz(taskSchedulerDescriptor.getClassName());
       try {
         Constructor<? extends TaskScheduler> ctor = taskSchedulerClazz
             .getConstructor(TaskSchedulerContext.class);
@@ -453,21 +467,20 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
   @VisibleForTesting
   protected void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
-    // TODO Add error checking for components being used in the Vertex when running in pure local mode.
     // Iterate over the list and create all the taskSchedulers
     int j = 0;
-    for (int i = 0; i < taskSchedulerClasses.length; i++) {
+    for (int i = 0; i < taskSchedulerDescriptors.length; i++) {
       long customAppIdIdentifier;
-      if (isPureLocalMode || taskSchedulerClasses[i].equals(
+      if (isPureLocalMode || taskSchedulerDescriptors[i].equals(
           TezConstants.getTezYarnServicePluginName())) { // Use the app identifier from the appId.
         customAppIdIdentifier = appContext.getApplicationID().getClusterTimestamp();
       } else {
         customAppIdIdentifier = SCHEDULER_APP_ID_BASE + (j++ * SCHEDULER_APP_ID_INCREMENT);
       }
-      LOG.info("ClusterIdentifier for TaskScheduler [" + i + ":" + taskSchedulerClasses[i] + "]=" +
+      LOG.info("ClusterIdentifier for TaskScheduler [" + i + ":" + taskSchedulerDescriptors[i].getEntityName() + "]=" +
           customAppIdIdentifier);
       taskSchedulers[i] = createTaskScheduler(host, port,
-          trackingUrl, appContext, taskSchedulerClasses[i], customAppIdIdentifier, i);
+          trackingUrl, appContext, taskSchedulerDescriptors[i], customAppIdIdentifier, i);
       taskSchedulerServiceWrappers[i] = new ServicePluginLifecycleAbstractService(taskSchedulers[i]);
     }
   }

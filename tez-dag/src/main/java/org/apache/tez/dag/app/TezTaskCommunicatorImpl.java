@@ -77,6 +77,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
   protected final String tokenIdentifier;
   protected final Token<JobTokenIdentifier> sessionToken;
+  protected final Configuration conf;
   protected InetSocketAddress address;
 
   protected volatile Server server;
@@ -119,6 +120,12 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     this.taskUmbilical = new TezTaskUmbilicalProtocolImpl();
     this.tokenIdentifier = taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString();
     this.sessionToken = TokenCache.getSessionToken(taskCommunicatorContext.getCredentials());
+    try {
+      conf = TezUtils.createConfFromUserPayload(getContext().getInitialUserPayload());
+    } catch (IOException e) {
+      throw new TezUncheckedException(
+          "Unable to parse user payload for " + TezTaskCommunicatorImpl.class.getSimpleName(), e);
+    }
   }
 
   @Override
@@ -132,7 +139,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   }
 
   protected void startRpcServer() {
-    Configuration conf = getContext().getInitialConfiguration();
     try {
       JobTokenSecretManager jobTokenSecretManager =
           new JobTokenSecretManager();
@@ -169,6 +175,10 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       server.stop();
       server = null;
     }
+  }
+
+  protected Configuration getConf() {
+    return this.conf;
   }
 
   private void refreshServiceAcls(Configuration configuration,
