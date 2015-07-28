@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,9 +27,9 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.launcher.TezTestServiceNoOpContainerLauncher;
@@ -43,6 +42,10 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.service.MiniTezTestServiceCluster;
 import org.apache.tez.service.impl.ContainerRunnerImpl;
+import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -72,9 +75,15 @@ public class TestExternalTezServices {
   private static final Path HASH_JOIN_EXPECTED_RESULT_PATH = new Path(SRC_DATA_DIR, "expectedOutputPath");
   private static final Path HASH_JOIN_OUTPUT_PATH = new Path(SRC_DATA_DIR, "outPath");
 
-  private static final Map<String, String> PROPS_EXT_SERVICE_PUSH = Maps.newHashMap();
-  private static final Map<String, String> PROPS_REGULAR_CONTAINERS = Maps.newHashMap();
-  private static final Map<String, String> PROPS_IN_AM = Maps.newHashMap();
+  private static final VertexExecutionContext EXECUTION_CONTEXT_EXT_SERVICE_PUSH =
+      VertexExecutionContext.create(
+          EXT_PUSH_ENTITY_NAME, EXT_PUSH_ENTITY_NAME, EXT_PUSH_ENTITY_NAME);
+  private static final VertexExecutionContext EXECUTION_CONTEXT_REGULAR_CONTAINERS =
+      VertexExecutionContext.createExecuteInContainers(true);
+  private static final VertexExecutionContext EXECUTION_CONTEXT_IN_AM =
+      VertexExecutionContext.createExecuteInAm(true);
+
+  private static final VertexExecutionContext EXECUTION_CONTEXT_DEFAULT = EXECUTION_CONTEXT_EXT_SERVICE_PUSH;
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestExternalTezServices.class.getName()
       + "-tmpDir";
@@ -127,51 +136,28 @@ public class TestExternalTezServices {
     confForJobs.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
     confForJobs.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
 
-    confForJobs.setStrings(TezConfiguration.TEZ_AM_TASK_SCHEDULERS,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
-        EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceTaskSchedulerService.class.getName());
+    TaskSchedulerDescriptor[] taskSchedulerDescriptors = new TaskSchedulerDescriptor[]{
+        TaskSchedulerDescriptor
+            .create(EXT_PUSH_ENTITY_NAME, TezTestServiceTaskSchedulerService.class.getName())};
 
-    confForJobs.setStrings(TezConfiguration.TEZ_AM_CONTAINER_LAUNCHERS,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
-        EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceNoOpContainerLauncher.class.getName());
+    ContainerLauncherDescriptor[] containerLauncherDescriptors = new ContainerLauncherDescriptor[]{
+        ContainerLauncherDescriptor
+            .create(EXT_PUSH_ENTITY_NAME, TezTestServiceNoOpContainerLauncher.class.getName())};
 
-    confForJobs.setStrings(TezConfiguration.TEZ_AM_TASK_COMMUNICATORS,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT,
-        EXT_PUSH_ENTITY_NAME + ":" + TezTestServiceTaskCommunicatorImpl.class.getName());
+    TaskCommunicatorDescriptor[] taskCommunicatorDescriptors = new TaskCommunicatorDescriptor[]{
+        TaskCommunicatorDescriptor
+            .create(EXT_PUSH_ENTITY_NAME, TezTestServiceTaskCommunicatorImpl.class.getName())};
 
-    // Default all jobs to run via the service. Individual tests override this on a per vertex/dag level.
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, EXT_PUSH_ENTITY_NAME);
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, EXT_PUSH_ENTITY_NAME);
-    confForJobs.set(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, EXT_PUSH_ENTITY_NAME);
-
-    // Setup various executor sets
-    PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
-    PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
-    PROPS_REGULAR_CONTAINERS.put(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT);
-
-    PROPS_EXT_SERVICE_PUSH.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, EXT_PUSH_ENTITY_NAME);
-    PROPS_EXT_SERVICE_PUSH.put(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, EXT_PUSH_ENTITY_NAME);
-    PROPS_EXT_SERVICE_PUSH.put(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, EXT_PUSH_ENTITY_NAME);
-
-    PROPS_IN_AM.put(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT);
-    PROPS_IN_AM.put(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT);
-    PROPS_IN_AM.put(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME,
-        TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT);
-
+    ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor.create(true, true,
+        taskSchedulerDescriptors, containerLauncherDescriptors, taskCommunicatorDescriptors);
 
     // Create a session to use for all tests.
     TezConfiguration tezClientConf = new TezConfiguration(confForJobs);
 
-    sharedTezClient = TezClient.create(TestExternalTezServices.class.getSimpleName() + "_session",
-        tezClientConf, true);
+    sharedTezClient = TezClient
+        .newBuilder(TestExternalTezServices.class.getSimpleName() + "_session", tezClientConf)
+        .setIsSession(true).setServicePluginDescriptor(servicePluginsDescriptor).build();
+
     sharedTezClient.start();
     LOG.info("Shared TezSession started");
     sharedTezClient.waitTillReady();
@@ -225,71 +211,71 @@ public class TestExternalTezServices {
   @Test(timeout = 60000)
   public void testAllInService() throws Exception {
     int expectedExternalSubmissions = 4 + 3; //4 for 4 src files, 3 for num reducers.
-    runJoinValidate("AllInService", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
-        PROPS_EXT_SERVICE_PUSH, PROPS_EXT_SERVICE_PUSH);
+    runJoinValidate("AllInService", expectedExternalSubmissions, EXECUTION_CONTEXT_EXT_SERVICE_PUSH,
+        EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
   }
 
   @Test(timeout = 60000)
   public void testAllInContainers() throws Exception {
     int expectedExternalSubmissions = 0; // All in containers
-    runJoinValidate("AllInContainers", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
-        PROPS_REGULAR_CONTAINERS, PROPS_REGULAR_CONTAINERS);
+    runJoinValidate("AllInContainers", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
+        EXECUTION_CONTEXT_REGULAR_CONTAINERS, EXECUTION_CONTEXT_REGULAR_CONTAINERS);
   }
 
   @Test(timeout = 60000)
   public void testAllInAM() throws Exception {
     int expectedExternalSubmissions = 0; // All in AM
-    runJoinValidate("AllInAM", expectedExternalSubmissions, PROPS_IN_AM,
-        PROPS_IN_AM, PROPS_IN_AM);
+    runJoinValidate("AllInAM", expectedExternalSubmissions, EXECUTION_CONTEXT_IN_AM,
+        EXECUTION_CONTEXT_IN_AM, EXECUTION_CONTEXT_IN_AM);
   }
 
   @Test(timeout = 60000)
   public void testMixed1() throws Exception { // M-ExtService, R-containers
     int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers.
-    runJoinValidate("Mixed1", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
-        PROPS_EXT_SERVICE_PUSH, PROPS_REGULAR_CONTAINERS);
+    runJoinValidate("Mixed1", expectedExternalSubmissions, EXECUTION_CONTEXT_EXT_SERVICE_PUSH,
+        EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_REGULAR_CONTAINERS);
   }
 
   @Test(timeout = 60000)
   public void testMixed2() throws Exception { // M-Containers, R-ExtService
     int expectedExternalSubmissions = 0 + 3; // 3 for num reducers.
-    runJoinValidate("Mixed2", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
-        PROPS_REGULAR_CONTAINERS, PROPS_EXT_SERVICE_PUSH);
+    runJoinValidate("Mixed2", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
+        EXECUTION_CONTEXT_REGULAR_CONTAINERS, EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
   }
 
   @Test(timeout = 60000)
   public void testMixed3() throws Exception { // M - service, R-AM
     int expectedExternalSubmissions = 4 + 0; //4 for 4 src files, 0 for num reducers (in-AM).
-    runJoinValidate("Mixed3", expectedExternalSubmissions, PROPS_EXT_SERVICE_PUSH,
-        PROPS_EXT_SERVICE_PUSH, PROPS_IN_AM);
+    runJoinValidate("Mixed3", expectedExternalSubmissions, EXECUTION_CONTEXT_EXT_SERVICE_PUSH,
+        EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_IN_AM);
   }
 
   @Test(timeout = 60000)
   public void testMixed4() throws Exception { // M - containers, R-AM
     int expectedExternalSubmissions = 0 + 0; // Nothing in external service.
-    runJoinValidate("Mixed4", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
-        PROPS_REGULAR_CONTAINERS, PROPS_IN_AM);
+    runJoinValidate("Mixed4", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
+        EXECUTION_CONTEXT_REGULAR_CONTAINERS, EXECUTION_CONTEXT_IN_AM);
   }
 
   @Test(timeout = 60000)
   public void testMixed5() throws Exception { // M1 - containers, M2-extservice, R-AM
     int expectedExternalSubmissions = 2 + 0; // 2 for M2
-    runJoinValidate("Mixed5", expectedExternalSubmissions, PROPS_REGULAR_CONTAINERS,
-        PROPS_EXT_SERVICE_PUSH, PROPS_IN_AM);
+    runJoinValidate("Mixed5", expectedExternalSubmissions, EXECUTION_CONTEXT_REGULAR_CONTAINERS,
+        EXECUTION_CONTEXT_EXT_SERVICE_PUSH, EXECUTION_CONTEXT_IN_AM);
   }
 
   @Test(timeout = 60000)
   public void testMixed6() throws Exception { // M - AM, R - Service
     int expectedExternalSubmissions = 0 + 3; // 3 for R in service
-    runJoinValidate("Mixed6", expectedExternalSubmissions, PROPS_IN_AM,
-        PROPS_IN_AM, PROPS_EXT_SERVICE_PUSH);
+    runJoinValidate("Mixed6", expectedExternalSubmissions, EXECUTION_CONTEXT_IN_AM,
+        EXECUTION_CONTEXT_IN_AM, EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
   }
 
   @Test(timeout = 60000)
   public void testMixed7() throws Exception { // M - AM, R - Containers
     int expectedExternalSubmissions = 0; // Nothing in ext service
-    runJoinValidate("Mixed7", expectedExternalSubmissions, PROPS_IN_AM,
-        PROPS_IN_AM, PROPS_REGULAR_CONTAINERS);
+    runJoinValidate("Mixed7", expectedExternalSubmissions, EXECUTION_CONTEXT_IN_AM,
+        EXECUTION_CONTEXT_IN_AM, EXECUTION_CONTEXT_REGULAR_CONTAINERS);
   }
 
   @Test(timeout = 60000)
@@ -303,10 +289,9 @@ public class TestExternalTezServices {
     DAG dag = DAG.create(ContainerRunnerImpl.DAG_NAME_INSTRUMENTED_FAILURES);
     Vertex v =Vertex.create("Vertex1", ProcessorDescriptor.create(SleepProcessor.class.getName()),
         3);
-    for (Map.Entry<String, String> prop : PROPS_EXT_SERVICE_PUSH.entrySet()) {
-      v.setConf(prop.getKey(), prop.getValue());
-    }
+    v.setExecutionContext(EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
     dag.addVertex(v);
+
     DAGClient dagClient = sharedTezClient.submitDAG(dag);
     DAGStatus dagStatus = dagClient.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
@@ -315,16 +300,16 @@ public class TestExternalTezServices {
 
   }
 
-  private void runJoinValidate(String name, int extExpectedCount, Map<String, String> lhsProps,
-                               Map<String, String> rhsProps,
-                               Map<String, String> validateProps) throws
+  private void runJoinValidate(String name, int extExpectedCount, VertexExecutionContext lhsContext,
+                               VertexExecutionContext rhsContext,
+                               VertexExecutionContext validateContext) throws
       Exception {
     int externalSubmissionCount = tezTestServiceCluster.getNumSubmissions();
 
     TezConfiguration tezConf = new TezConfiguration(confForJobs);
     JoinValidateConfigured joinValidate =
-        new JoinValidateConfigured(lhsProps, rhsProps,
-            validateProps, name);
+        new JoinValidateConfigured(EXECUTION_CONTEXT_DEFAULT, lhsContext, rhsContext,
+            validateContext, name);
     String[] validateArgs = new String[]{"-disableSplitGrouping",
         HASH_JOIN_EXPECTED_RESULT_PATH.toString(), HASH_JOIN_OUTPUT_PATH.toString(), "3"};
     assertEquals(0, joinValidate.run(tezConf, validateArgs, sharedTezClient));

@@ -28,11 +28,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
-import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 
 import com.google.common.base.Preconditions;
@@ -57,6 +57,7 @@ public class Vertex {
   private final Map<String, LocalResource> taskLocalResources = new HashMap<String, LocalResource>();
   private Map<String, String> taskEnvironment = new HashMap<String, String>();
   private Map<String, String> vertexConf = new HashMap<String, String>();
+  private VertexExecutionContext vertexExecutionContext;
   private final Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs
                       = new HashMap<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>();
   private final Map<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> additionalOutputs
@@ -410,6 +411,108 @@ public class Vertex {
     return this;
   }
 
+  /**
+   * Sets the execution context for this Vertex - i.e. the Task Scheduler, ContainerLauncher and
+   * TaskCommunicator to be used. Also whether the vertex will be executed within the AM.
+   * If partially specified, the default components in Tez will be used - which may or may not work
+   * with the custom context.
+   *
+   * @param vertexExecutionContext the execution context for the vertex.
+   *
+   * @return
+   */
+  public Vertex setExecutionContext(VertexExecutionContext vertexExecutionContext) {
+    this.vertexExecutionContext = vertexExecutionContext;
+    return this;
+  }
+
+  @Public
+  @InterfaceStability.Unstable
+  public static class VertexExecutionContext {
+    final boolean executeInAm;
+    final boolean executeInContainers;
+    final String taskSchedulerName;
+    final String containerLauncherName;
+    final String taskCommName;
+
+    public static VertexExecutionContext createExecuteInAm(boolean executeInAm) {
+      return new VertexExecutionContext(executeInAm, false);
+    }
+
+    public static VertexExecutionContext createExecuteInContainers(boolean executeInContainers) {
+      return new VertexExecutionContext(false, executeInContainers);
+    }
+
+    public static VertexExecutionContext create(String taskSchedulerName, String containerLauncherName,
+                                                String taskCommName) {
+      return new VertexExecutionContext(taskSchedulerName, containerLauncherName, taskCommName);
+    }
+
+    private VertexExecutionContext(boolean executeInAm, boolean executeInContainers) {
+      this(executeInAm, executeInContainers, null, null, null);
+    }
+
+    private VertexExecutionContext(String taskSchedulerName, String containerLauncherName,
+                                  String taskCommName) {
+      this(false, false, taskSchedulerName, containerLauncherName, taskCommName);
+    }
+
+    private VertexExecutionContext(boolean executeInAm, boolean executeInContainers, String taskSchedulerName, String containerLauncherName,
+                      String taskCommName) {
+      if (executeInAm || executeInContainers) {
+        Preconditions.checkState(!(executeInAm && executeInContainers),
+            "executeInContainers and executeInAM are mutually exclusive");
+        Preconditions.checkState(
+            taskSchedulerName == null && containerLauncherName == null && taskCommName == null,
+            "Uber (in-AM) or container execution cannot be enabled with a custom plugins. TaskScheduler=" +
+                taskSchedulerName + ", ContainerLauncher=" + containerLauncherName +
+                ", TaskCommunicator=" + taskCommName);
+      }
+      if (taskSchedulerName != null || containerLauncherName != null || taskCommName != null) {
+        Preconditions.checkState(executeInAm == false && executeInContainers == false,
+            "Uber (in-AM) and container execution cannot be enabled with a custom plugins. TaskScheduler=" +
+                taskSchedulerName + ", ContainerLauncher=" + containerLauncherName +
+                ", TaskCommunicator=" + taskCommName);
+      }
+      this.executeInAm = executeInAm;
+      this.executeInContainers = executeInContainers;
+      this.taskSchedulerName = taskSchedulerName;
+      this.containerLauncherName = containerLauncherName;
+      this.taskCommName = taskCommName;
+    }
+
+    public boolean shouldExecuteInAm() {
+      return executeInAm;
+    }
+
+    public boolean shouldExecuteInContainers() {
+      return executeInContainers;
+    }
+
+    public String getTaskSchedulerName() {
+      return taskSchedulerName;
+    }
+
+    public String getContainerLauncherName() {
+      return containerLauncherName;
+    }
+
+    public String getTaskCommName() {
+      return taskCommName;
+    }
+
+    @Override
+    public String toString() {
+      return "VertexExecutionContext{" +
+          "executeInAm=" + executeInAm +
+          ", executeInContainers=" + executeInContainers +
+          ", taskSchedulerName='" + taskSchedulerName + '\'' +
+          ", containerLauncherName='" + containerLauncherName + '\'' +
+          ", taskCommName='" + taskCommName + '\'' +
+          '}';
+    }
+  }
+
   @Override
   public String toString() {
     return "[" + vertexName + " : " + processorDescriptor.getClassName() + "]";
@@ -473,6 +576,11 @@ public class Vertex {
   @Private
   public List<DataSinkDescriptor> getDataSinks() {
     return dataSinks;
+  }
+
+  @Private
+  public VertexExecutionContext getVertexExecutionContext() {
+    return this.vertexExecutionContext;
   }
 
   List<Edge> getInputEdges() {

@@ -22,6 +22,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -34,6 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
@@ -55,7 +58,6 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint.TaskBasedLocationAffinity;
@@ -143,14 +145,14 @@ public class TaskSchedulerEventHandler extends AbstractService implements
    * @param eventHandler
    * @param containerSignatureMatcher
    * @param webUI
-   * @param schedulerClasses the list of scheduler classes / codes. Tez internal classes are represented as codes.
+   * @param schedulerDescriptors the list of scheduler descriptors. Tez internal classes will not have the class names populated.
    *                         An empty list defaults to using the YarnTaskScheduler as the only source.
    */
   @SuppressWarnings("rawtypes")
   public TaskSchedulerEventHandler(AppContext appContext,
       DAGClientServer clientService, EventHandler eventHandler, 
       ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI,
-      String [] schedulerClasses, boolean isPureLocalMode) {
+      List<NamedEntityDescriptor> schedulerDescriptors, boolean isPureLocalMode) {
     super(TaskSchedulerEventHandler.class.getName());
     this.appContext = appContext;
     this.eventHandler = eventHandler;
@@ -166,31 +168,34 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
     // Override everything for pure local mode
     if (isPureLocalMode) {
-      this.taskSchedulerClasses = new String[] {TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT};
+      this.taskSchedulerClasses = new String[] {TezConstants.getTezUberServicePluginName()};
       this.yarnTaskSchedulerIndex = -1;
     } else {
-      if (schedulerClasses == null || schedulerClasses.length ==0) {
-        this.taskSchedulerClasses = new String[] {TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT};
+      if (schedulerDescriptors == null || schedulerDescriptors.isEmpty()) {
+        this.taskSchedulerClasses = new String[] {TezConstants.getTezYarnServicePluginName()};
         this.yarnTaskSchedulerIndex = 0;
       } else {
         // Ensure the YarnScheduler will be setup and note it's index. This will be responsible for heartbeats and YARN registration.
         int foundYarnTaskSchedulerIndex = -1;
-        for (int i = 0 ; i < schedulerClasses.length ; i++) {
-          if (schedulerClasses[i].equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
+
+        List<String> taskSchedulerClassList = new LinkedList<>();
+        for (int i = 0 ; i < schedulerDescriptors.size() ; i++) {
+          if (schedulerDescriptors.get(i).getEntityName().equals(
+              TezConstants.getTezYarnServicePluginName())) {
+            taskSchedulerClassList.add(schedulerDescriptors.get(i).getEntityName());
             foundYarnTaskSchedulerIndex = i;
-            break;
+          } else if (schedulerDescriptors.get(i).getEntityName().equals(
+              TezConstants.getTezUberServicePluginName())) {
+            taskSchedulerClassList.add(schedulerDescriptors.get(i).getEntityName());
+          } else {
+            taskSchedulerClassList.add(schedulerDescriptors.get(i).getClassName());
           }
         }
-        if (foundYarnTaskSchedulerIndex == -1) { // Not found. Add at the end.
-          this.taskSchedulerClasses = new String[schedulerClasses.length+1];
-          foundYarnTaskSchedulerIndex = this.taskSchedulerClasses.length -1;
-          for (int i = 0 ; i < schedulerClasses.length ; i++) { // Copy over the rest.
-            this.taskSchedulerClasses[i] = schedulerClasses[i];
-          }
-          this.taskSchedulerClasses[foundYarnTaskSchedulerIndex] = TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT;
-        } else {
-          this.taskSchedulerClasses = schedulerClasses;
+        if (foundYarnTaskSchedulerIndex == -1) {
+          taskSchedulerClassList.add(YarnTaskSchedulerService.class.getName());
+          foundYarnTaskSchedulerIndex = taskSchedulerClassList.size() -1;
         }
+        this.taskSchedulerClasses = taskSchedulerClassList.toArray(new String[taskSchedulerClassList.size()]);
         this.yarnTaskSchedulerIndex = foundYarnTaskSchedulerIndex;
       }
     }
@@ -419,10 +424,10 @@ public class TaskSchedulerEventHandler extends AbstractService implements
         new TaskSchedulerContextImpl(this, appContext, schedulerId, trackingUrl,
             customAppIdIdentifier, host, port, getConfig());
     TaskSchedulerContext wrappedContext = new TaskSchedulerContextImplWrapper(rawContext, appCallbackExecutor);
-    if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
+    if (schedulerClassName.equals(TezConstants.getTezYarnServicePluginName())) {
       LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
       return new YarnTaskSchedulerService(wrappedContext);
-    } else if (schedulerClassName.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
+    } else if (schedulerClassName.equals(TezConstants.getTezUberServicePluginName())) {
       LOG.info("Creating TaskScheduler: Local TaskScheduler");
       return new LocalTaskSchedulerService(wrappedContext);
     } else {
@@ -454,7 +459,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     for (int i = 0; i < taskSchedulerClasses.length; i++) {
       long customAppIdIdentifier;
       if (isPureLocalMode || taskSchedulerClasses[i].equals(
-          TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) { // Use the app identifier from the appId.
+          TezConstants.getTezYarnServicePluginName())) { // Use the app identifier from the appId.
         customAppIdIdentifier = appContext.getApplicationID().getClusterTimestamp();
       } else {
         customAppIdIdentifier = SCHEDULER_APP_ID_BASE + (j++ * SCHEDULER_APP_ID_INCREMENT);

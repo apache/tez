@@ -261,7 +261,7 @@ public class TestTezClientUtils {
     ApplicationSubmissionContext appSubmissionContext =
         TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
             new HashMap<String, LocalResource>(), credentials, false, new TezApiVersionInfo(),
-            mock(HistoryACLPolicyManager.class));
+            mock(HistoryACLPolicyManager.class), null);
 
     ContainerLaunchContext amClc = appSubmissionContext.getAMContainerSpec();
     Map<String, ByteBuffer> amServiceData = amClc.getServiceData();
@@ -294,7 +294,7 @@ public class TestTezClientUtils {
     ApplicationSubmissionContext appSubmissionContext =
         TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
             new HashMap<String, LocalResource>(), credentials, false, new TezApiVersionInfo(),
-            mock(HistoryACLPolicyManager.class));
+            mock(HistoryACLPolicyManager.class), null);
 
     List<String> expectedCommands = new LinkedList<String>();
     expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
@@ -334,7 +334,7 @@ public class TestTezClientUtils {
     ApplicationSubmissionContext appSubmissionContext =
         TezClientUtils.createApplicationSubmissionContext(appId, dag, "amName", amConf,
             new HashMap<String, LocalResource>(), credentials, false, new TezApiVersionInfo(),
-            mock(HistoryACLPolicyManager.class));
+            mock(HistoryACLPolicyManager.class), null);
 
     List<String> expectedCommands = new LinkedList<String>();
     expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
@@ -516,7 +516,7 @@ public class TestTezClientUtils {
     expected.put("property1", val1);
     expected.put("property2", expVal2);
 
-    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null);
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null, null);
 
     for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
       String v = expected.remove(kvPair.getKey());
@@ -620,7 +620,7 @@ public class TestTezClientUtils {
       srcConf.set(entry.getKey(), entry.getValue());
     }
 
-    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(srcConf);
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(srcConf, null, null);
 
     for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
       String val = confMap.remove(kvPair.getKey());
@@ -676,5 +676,7 @@ public class TestTezClientUtils {
     Assert.assertTrue(resourceNames.contains("f1.txt"));
     Assert.assertTrue(resourceNames.contains("dir2-f.txt"));
   }
+
+  // TODO TEZ-2003 Add test to validate ServicePluginDescriptor propagation
 
 }

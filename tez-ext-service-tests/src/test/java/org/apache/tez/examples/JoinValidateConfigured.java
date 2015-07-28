@@ -14,36 +14,46 @@
 
 package org.apache.tez.examples;
 
-import java.util.Map;
+
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 
 public class JoinValidateConfigured extends JoinValidate {
 
-  private final Map<String, String> lhsProps;
-  private final Map<String, String> rhsProps;
-  private final Map<String, String> validateProps;
+  private final VertexExecutionContext defaultExecutionContext;
+  private final VertexExecutionContext lhsContext;
+  private final VertexExecutionContext rhsContext;
+  private final VertexExecutionContext validateContext;
   private final String dagNameSuffix;
 
-  public JoinValidateConfigured(Map<String, String> lhsProps, Map<String, String> rhsProps,
-                                Map<String, String> validateProps, String dagNameSuffix) {
-    this.lhsProps = lhsProps;
-    this.rhsProps = rhsProps;
-    this.validateProps = validateProps;
+  public JoinValidateConfigured(VertexExecutionContext defaultExecutionContext,
+                                VertexExecutionContext lhsContext,
+                                VertexExecutionContext rhsContext,
+                                VertexExecutionContext validateContext, String dagNameSuffix) {
+    this.defaultExecutionContext = defaultExecutionContext;
+    this.lhsContext = lhsContext;
+    this.rhsContext = rhsContext;
+    this.validateContext = validateContext;
     this.dagNameSuffix = dagNameSuffix;
   }
 
   @Override
-  protected Map<String, String> getLhsVertexProperties() {
-    return this.lhsProps;
+  protected VertexExecutionContext getDefaultExecutionContext() {
+    return this.defaultExecutionContext;
   }
 
   @Override
-  protected Map<String, String> getRhsVertexProperties() {
-    return this.rhsProps;
+  protected VertexExecutionContext getLhsExecutionContext() {
+    return this.lhsContext;
   }
 
   @Override
-  protected Map<String, String> getValidateVertexProperties() {
-    return this.validateProps;
+  protected VertexExecutionContext getRhsExecutionContext() {
+    return this.rhsContext;
+  }
+
+  @Override
+  protected VertexExecutionContext getValidateExecutionContext() {
+    return this.validateContext;
   }
 
   @Override

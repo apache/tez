@@ -20,8 +20,8 @@ package org.apache.tez.examples;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.Map;
 
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -137,6 +137,9 @@ public class JoinValidate extends TezExampleBase {
   private DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
       throws IOException {
     DAG dag = DAG.create(getDagName());
+    if (getDefaultExecutionContext() != null) {
+      dag.setExecutionContext(getDefaultExecutionContext());
+    }
 
     // Configuration for intermediate output - shared by Vertex1 and Vertex2
     // This should only be setting selective keys from the underlying conf. Fix after there's a
@@ -153,18 +156,18 @@ public class JoinValidate extends TezExampleBase {
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 lhs.toUri().toString()).groupSplits(!isDisableSplitGrouping()).build());
-    setVertexProperties(lhsVertex, getLhsVertexProperties());
+    setVertexExecutionContext(lhsVertex, getLhsExecutionContext());
 
     Vertex rhsVertex = Vertex.create(RHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
                 rhs.toUri().toString()).groupSplits(!isDisableSplitGrouping()).build());
-    setVertexProperties(rhsVertex, getRhsVertexProperties());
+    setVertexExecutionContext(rhsVertex, getRhsExecutionContext());
 
     Vertex joinValidateVertex = Vertex.create("joinvalidate", ProcessorDescriptor.create(
         JoinValidateProcessor.class.getName()), numPartitions);
-    setVertexProperties(joinValidateVertex, getValidateVertexProperties());
+    setVertexExecutionContext(joinValidateVertex, getValidateExecutionContext());
 
     Edge e1 = Edge.create(lhsVertex, joinValidateVertex, edgeConf.createDefaultEdgeProperty());
     Edge e2 = Edge.create(rhsVertex, joinValidateVertex, edgeConf.createDefaultEdgeProperty());
@@ -174,23 +177,25 @@ public class JoinValidate extends TezExampleBase {
     return dag;
   }
 
-  private void setVertexProperties(Vertex vertex, Map<String, String> properties) {
-    if (properties != null) {
-      for (Map.Entry<String, String> entry : properties.entrySet()) {
-        vertex.setConf(entry.getKey(), entry.getValue());
-      }
+  private void setVertexExecutionContext(Vertex vertex, VertexExecutionContext executionContext) {
+    if (executionContext != null) {
+      vertex.setExecutionContext(executionContext);
     }
   }
 
-  protected Map<String, String> getLhsVertexProperties() {
+  protected VertexExecutionContext getDefaultExecutionContext() {
     return null;
   }
 
-  protected Map<String, String> getRhsVertexProperties() {
+  protected VertexExecutionContext getLhsExecutionContext() {
     return null;
   }
 
-  protected Map<String, String> getValidateVertexProperties() {
+  protected VertexExecutionContext getRhsExecutionContext() {
+    return null;
+  }
+
+  protected VertexExecutionContext getValidateExecutionContext() {
     return null;
   }
 
@@ -240,4 +245,6 @@ public class JoinValidate extends TezExampleBase {
       }
     }
   }
+
+
 }

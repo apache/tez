@@ -57,7 +57,7 @@ public class TezUtilsInternal {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezUtilsInternal.class);
 
-  public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
+  public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
       IOException {
     FileInputStream confPBBinaryStream = null;
     ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
@@ -72,14 +72,41 @@ public class TezUtilsInternal {
     }
 
     ConfigurationProto confProto = confProtoBuilder.build();
+    return confProto;
+  }
 
-    List<PlanKeyValuePair> kvPairList = confProto.getConfKeyValuesList();
+  public static void addUserSpecifiedTezConfiguration(Configuration conf,
+                                                      List<PlanKeyValuePair> kvPairList) {
     if (kvPairList != null && !kvPairList.isEmpty()) {
       for (PlanKeyValuePair kvPair : kvPairList) {
         conf.set(kvPair.getKey(), kvPair.getValue());
       }
     }
   }
+//
+//  public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
+//      IOException {
+//    FileInputStream confPBBinaryStream = null;
+//    ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
+//    try {
+//      confPBBinaryStream =
+//          new FileInputStream(new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME));
+//      confProtoBuilder.mergeFrom(confPBBinaryStream);
+//    } finally {
+//      if (confPBBinaryStream != null) {
+//        confPBBinaryStream.close();
+//      }
+//    }
+//
+//    ConfigurationProto confProto = confProtoBuilder.build();
+//
+//    List<PlanKeyValuePair> kvPairList = confProto.getConfKeyValuesList();
+//    if (kvPairList != null && !kvPairList.isEmpty()) {
+//      for (PlanKeyValuePair kvPair : kvPairList) {
+//        conf.set(kvPair.getKey(), kvPair.getValue());
+//      }
+//    }
+//  }
 
 
   public static byte[] compressBytes(byte[] inBytes) throws IOException {

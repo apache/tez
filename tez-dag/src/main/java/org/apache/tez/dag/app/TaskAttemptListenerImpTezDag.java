@@ -27,8 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
@@ -46,7 +49,6 @@ import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TaskHeartbeatResponse;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -100,28 +102,28 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   public TaskAttemptListenerImpTezDag(AppContext context,
                                       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
-                                      String [] taskCommunicatorClassIdentifiers,
+                                      List<NamedEntityDescriptor> taskCommunicatorDescriptors,
                                       Configuration conf,
                                       boolean isPureLocalMode) {
     super(TaskAttemptListenerImpTezDag.class.getName());
     this.context = context;
     this.taskHeartbeatHandler = thh;
     this.containerHeartbeatHandler = chh;
-    if (taskCommunicatorClassIdentifiers == null || taskCommunicatorClassIdentifiers.length == 0) {
+    if (taskCommunicatorDescriptors == null || taskCommunicatorDescriptors.isEmpty()) {
       if (isPureLocalMode) {
-        taskCommunicatorClassIdentifiers =
-            new String[]{TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT};
+        taskCommunicatorDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
+            TezConstants.getTezUberServicePluginName(), null));
       } else {
-        taskCommunicatorClassIdentifiers =
-            new String[]{TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT};
+        taskCommunicatorDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
+            TezConstants.getTezYarnServicePluginName(), null));
       }
     }
-    this.taskCommunicators = new TaskCommunicator[taskCommunicatorClassIdentifiers.length];
-    this.taskCommunicatorContexts = new TaskCommunicatorContext[taskCommunicatorClassIdentifiers.length];
-    this.taskCommunicatorServiceWrappers = new ServicePluginLifecycleAbstractService[taskCommunicatorClassIdentifiers.length];
-    for (int i = 0 ; i < taskCommunicatorClassIdentifiers.length ; i++) {
+    this.taskCommunicators = new TaskCommunicator[taskCommunicatorDescriptors.size()];
+    this.taskCommunicatorContexts = new TaskCommunicatorContext[taskCommunicatorDescriptors.size()];
+    this.taskCommunicatorServiceWrappers = new ServicePluginLifecycleAbstractService[taskCommunicatorDescriptors.size()];
+    for (int i = 0 ; i < taskCommunicatorDescriptors.size() ; i++) {
       taskCommunicatorContexts[i] = new TaskCommunicatorContextImpl(context, this, conf, i);
-      taskCommunicators[i] = createTaskCommunicator(taskCommunicatorClassIdentifiers[i], i);
+      taskCommunicators[i] = createTaskCommunicator(taskCommunicatorDescriptors.get(i), i);
       taskCommunicatorServiceWrappers[i] = new ServicePluginLifecycleAbstractService(taskCommunicators[i]);
     }
     // TODO TEZ-2118 Start using taskCommunicator indices properly
@@ -143,17 +145,18 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
   }
 
-  private TaskCommunicator createTaskCommunicator(String taskCommClassIdentifier, int taskCommIndex) {
-    if (taskCommClassIdentifier.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT)) {
+  private TaskCommunicator createTaskCommunicator(NamedEntityDescriptor taskCommDescriptor, int taskCommIndex) {
+    if (taskCommDescriptor.getEntityName().equals(TezConstants.getTezYarnServicePluginName())) {
       LOG.info("Using Default Task Communicator");
       return createTezTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
-    } else if (taskCommClassIdentifier.equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT)) {
+    } else if (taskCommDescriptor.getEntityName().equals(TezConstants.getTezUberServicePluginName())) {
       LOG.info("Using Default Local Task Communicator");
       return new TezLocalTaskCommunicatorImpl(taskCommunicatorContexts[taskCommIndex]);
     } else {
-      LOG.info("Using TaskCommunicator: " + taskCommClassIdentifier);
+      // TODO TEZ-2003. Use the payload
+      LOG.info("Using TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(), taskCommDescriptor.getClassName());
       Class<? extends TaskCommunicator> taskCommClazz = (Class<? extends TaskCommunicator>) ReflectionUtils
-          .getClazz(taskCommClassIdentifier);
+          .getClazz(taskCommDescriptor.getClassName());
       try {
         Constructor<? extends TaskCommunicator> ctor = taskCommClazz.getConstructor(TaskCommunicatorContext.class);
         ctor.setAccessible(true);

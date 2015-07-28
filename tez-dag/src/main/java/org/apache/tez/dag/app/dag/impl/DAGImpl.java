@@ -717,6 +717,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   @Override
+  public org.apache.tez.dag.api.Vertex.VertexExecutionContext getDefaultExecutionContext() {
+    if (jobPlan.hasDefaultExecutionContext()) {
+      return DagTypeConverters.convertFromProto(jobPlan.getDefaultExecutionContext());
+    } else {
+      return null;
+    }
+  }
+
+  @Override
   public TezCounters getAllCounters() {
 
     readLock.lock();

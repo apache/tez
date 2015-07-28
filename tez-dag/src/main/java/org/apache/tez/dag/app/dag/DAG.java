@@ -98,4 +98,6 @@ public interface DAG {
 
   StateChangeNotifier getStateChangeNotifier();
 
+  org.apache.tez.dag.api.Vertex.VertexExecutionContext getDefaultExecutionContext();
+
 }

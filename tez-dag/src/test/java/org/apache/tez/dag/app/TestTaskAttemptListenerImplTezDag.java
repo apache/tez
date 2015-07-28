@@ -50,6 +50,7 @@ import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
+import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
@@ -375,10 +376,10 @@ public class TestTaskAttemptListenerImplTezDag {
     public TaskAttemptListenerImplForTest(AppContext context,
                                           TaskHeartbeatHandler thh,
                                           ContainerHeartbeatHandler chh,
-                                          String[] taskCommunicatorClassIdentifiers,
+                                          List<NamedEntityDescriptor> taskCommDescriptors,
                                           Configuration conf,
                                           boolean isPureLocalMode) {
-      super(context, thh, chh, taskCommunicatorClassIdentifiers, conf,
+      super(context, thh, chh, taskCommDescriptors, conf,
           isPureLocalMode);
     }
 

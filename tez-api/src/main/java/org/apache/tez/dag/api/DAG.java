@@ -32,6 +32,9 @@ import java.util.Stack;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
+import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -60,9 +63,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -92,6 +93,7 @@ public class DAG {
   Map<String, LocalResource> commonTaskLocalFiles = Maps.newHashMap();
   String dagInfo;
   private Map<String,String> dagConf = new HashMap<String, String>();
+  private VertexExecutionContext defaultExecutionContext;
 
   private Stack<String> topologicalVertexStack = new Stack<String>();
 
@@ -333,6 +335,26 @@ public class DAG {
     TezConfiguration.validateProperty(property, Scope.DAG);
     dagConf.put(property, value);
     return this;
+  }
+
+  /**
+   * Sets the default execution context for the DAG. This can be overridden at a per Vertex level.
+   * See {@link org.apache.tez.dag.api.Vertex#setExecutionContext(VertexExecutionContext)}
+   *
+   * @param vertexExecutionContext the default execution context for the DAG
+   *
+   * @return
+   */
+  @Public
+  @InterfaceStability.Unstable
+  public synchronized DAG setExecutionContext(VertexExecutionContext vertexExecutionContext) {
+    this.defaultExecutionContext = vertexExecutionContext;
+    return this;
+  }
+
+  @Private
+  VertexExecutionContext getDefaultExecutionContext() {
+    return this.defaultExecutionContext;
   }
 
   @Private
@@ -707,7 +729,15 @@ public class DAG {
     if (this.dagInfo != null && !this.dagInfo.isEmpty()) {
       dagBuilder.setDagInfo(this.dagInfo);
     }
-    
+
+    // Setup default execution context.
+    VertexExecutionContext defaultContext = getDefaultExecutionContext();
+    if (defaultContext != null) {
+      DAGProtos.VertexExecutionContextProto contextProto = DagTypeConverters.convertToProto(
+          defaultContext);
+      dagBuilder.setDefaultExecutionContext(contextProto);
+    }
+
     if (!vertexGroups.isEmpty()) {
       for (VertexGroup av : vertexGroups) {
         GroupInfo groupInfo = av.getGroupInfo();
@@ -800,7 +830,17 @@ public class DAG {
       vertexBuilder.setName(vertex.getName());
       vertexBuilder.setType(PlanVertexType.NORMAL); // vertex type is implicitly NORMAL until  TEZ-46.
       vertexBuilder.setProcessorDescriptor(DagTypeConverters
-        .convertToDAGPlan(vertex.getProcessorDescriptor()));
+          .convertToDAGPlan(vertex.getProcessorDescriptor()));
+
+      // Vertex ExecutionContext setup
+      VertexExecutionContext execContext = vertex.getVertexExecutionContext();
+      if (execContext != null) {
+        DAGProtos.VertexExecutionContextProto contextProto =
+            DagTypeConverters.convertToProto(execContext);
+        vertexBuilder.setExecutionContext(contextProto);
+      }
+      // End of VertexExecutionContext setup.
+
       if (vertex.getInputs().size() > 0) {
         for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : vertex.getInputs()) {
           vertexBuilder.addInputs(DagTypeConverters.convertToDAGPlan(input));

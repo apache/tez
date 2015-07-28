@@ -37,5 +37,6 @@ ALL CHANGES:
   TEZ-2004. Define basic interface for pluggable ContainerLaunchers.
   TEZ-2005. Define basic interface for pluggable TaskScheduler.
   TEZ-2651. Pluggable services should not extend AbstractService.
+  TEZ-2652. Cleanup the way services are specified for an AM and vertices.
 
 INCOMPATIBLE CHANGES:

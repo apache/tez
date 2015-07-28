@@ -995,14 +995,37 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
 
     String tezDefaultComponentName =
-        isLocal ? TezConstants.TEZ_AM_SERVICE_PLUGINS_LOCAL_MODE_NAME_DEFAULT :
-            TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT;
-    String taskSchedulerName =
-        vertexConf.get(TezConfiguration.TEZ_AM_VERTEX_TASK_SCHEDULER_NAME, tezDefaultComponentName);
-    String taskCommName = vertexConf
-        .get(TezConfiguration.TEZ_AM_VERTEX_TASK_COMMUNICATOR_NAME, tezDefaultComponentName);
-    String containerLauncherName = vertexConf
-        .get(TezConfiguration.TEZ_AM_VERTEX_CONTAINER_LAUNCHER_NAME, tezDefaultComponentName);
+        isLocal ? TezConstants.getTezUberServicePluginName() :
+            TezConstants.getTezYarnServicePluginName();
+
+    org.apache.tez.dag.api.Vertex.VertexExecutionContext execContext = dag.getDefaultExecutionContext();
+    if (vertexPlan.hasExecutionContext()) {
+      execContext = DagTypeConverters.convertFromProto(vertexPlan.getExecutionContext());
+      LOG.info("Using ExecutionContext from Vertex for Vertex {}", vertexName);
+    } else if (execContext != null) {
+      LOG.info("Using ExecutionContext from DAG for Vertex {}", vertexName);
+    }
+    if (execContext != null) {
+      if (execContext.shouldExecuteInAm()) {
+        tezDefaultComponentName = TezConstants.getTezUberServicePluginName();
+      }
+    }
+
+    String taskSchedulerName = tezDefaultComponentName;
+    String containerLauncherName = tezDefaultComponentName;
+    String taskCommName = tezDefaultComponentName;
+
+    if (execContext != null) {
+      if (execContext.getTaskSchedulerName() != null) {
+        taskSchedulerName = execContext.getTaskSchedulerName();
+      }
+      if (execContext.getContainerLauncherName() != null) {
+        containerLauncherName = execContext.getContainerLauncherName();
+      }
+      if (execContext.getTaskCommName() != null) {
+        taskCommName = execContext.getTaskCommName();
+      }
+    }
 
     LOG.info("Vertex: " + logIdentifier + " configured with TaskScheduler=" + taskSchedulerName +
         ", ContainerLauncher=" + containerLauncherName + ", TaskComm=" + taskCommName);

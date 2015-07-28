@@ -341,7 +341,7 @@ public class LocalClient extends FrameworkClient {
       String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName) {
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         new SystemClock(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-        versionInfo.getVersion(), 1, credentials, jobUserName);
+        versionInfo.getVersion(), 1, credentials, jobUserName, null);
   }
 
 }

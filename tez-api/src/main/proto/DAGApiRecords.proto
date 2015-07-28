@@ -127,6 +127,14 @@ message RootInputLeafOutputProto {
   optional TezEntityDescriptorProto controller_descriptor = 3;
 }
 
+message VertexExecutionContextProto {
+  optional bool execute_in_am = 1;
+  optional bool execute_in_containers = 2;
+  optional string task_scheduler_name = 3;
+  optional string container_launcher_name = 4;
+  optional string task_comm_name = 5;
+}
+
 message VertexPlan {
   required string name = 1;
   required PlanVertexType type = 2;
@@ -139,6 +147,7 @@ message VertexPlan {
   repeated RootInputLeafOutputProto outputs = 9;
   optional TezEntityDescriptorProto vertex_manager_plugin = 10;
   optional ConfigurationProto vertexConf = 11;
+  optional VertexExecutionContextProto execution_context = 12;
 }
 
 message PlanEdgeProperty {
@@ -162,8 +171,23 @@ message EdgePlan {
   optional TezEntityDescriptorProto edge_manager = 9;
 }
 
+message TezNamedEntityDescriptorProto {
+  optional string name = 1;
+  optional TezEntityDescriptorProto entity_descriptor = 2;
+}
+
+
+message AMPluginDescriptorProto {
+  optional bool containers_enabled = 1 [default = true];
+  optional bool uber_enabled = 2 [default = false];
+  repeated TezNamedEntityDescriptorProto task_scedulers = 3;
+  repeated TezNamedEntityDescriptorProto container_launchers = 4;
+  repeated TezNamedEntityDescriptorProto task_communicators = 5;
+}
+
 message ConfigurationProto {
   repeated PlanKeyValuePair confKeyValues = 1;
+  optional AMPluginDescriptorProto am_plugin_descriptor = 2;
 }
 
 message DAGPlan {
@@ -175,6 +199,7 @@ message DAGPlan {
   repeated PlanVertexGroupInfo vertex_groups = 6;
   repeated PlanLocalResource local_resource = 7;
   optional string dag_info = 8;
+  optional VertexExecutionContextProto default_execution_context = 9;
 }
 
 // DAG monitoring messages

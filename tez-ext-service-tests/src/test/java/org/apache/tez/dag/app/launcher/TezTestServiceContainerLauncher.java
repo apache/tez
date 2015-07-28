@@ -121,7 +121,8 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
   private RunContainerRequestProto constructRunContainerRequest(ContainerLaunchRequest launchRequest) throws
       IOException {
     RunContainerRequestProto.Builder builder = RunContainerRequestProto.newBuilder();
-    Preconditions.checkArgument(launchRequest.getTaskCommunicatorName().equals(TezConstants.TEZ_AM_SERVICE_PLUGINS_NAME_DEFAULT));
+    Preconditions.checkArgument(launchRequest.getTaskCommunicatorName().equals(
+        TezConstants.getTezYarnServicePluginName()));
     InetSocketAddress address = (InetSocketAddress) getContext().getTaskCommunicatorMetaInfo(launchRequest.getTaskCommunicatorName());
     builder.setAmHost(address.getHostName()).setAmPort(address.getPort());
     builder.setAppAttemptNumber(appAttemptId.getAttemptId());

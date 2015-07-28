@@ -73,11 +73,15 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCounterGroupProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.Output;
+import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 
 @Private
 public class DagTypeConverters {
@@ -399,6 +403,8 @@ public class DagTypeConverters {
     return userPayload;
   }
 
+
+
   private static void setUserPayload(EntityDescriptor<?> entity, UserPayload payload) {
     if (payload != null) {
       entity.setUserPayload(payload);
@@ -421,6 +427,15 @@ public class DagTypeConverters {
     OutputDescriptor od = OutputDescriptor.create(className);
     setUserPayload(od, payload);
     return od;
+  }
+
+  public static NamedEntityDescriptor convertNamedDescriptorFromProto(TezNamedEntityDescriptorProto proto) {
+    String name = proto.getName();
+    String className = proto.getEntityDescriptor().getClassName();
+    UserPayload payload = convertTezUserPayloadFromDAGPlan(proto.getEntityDescriptor());
+    NamedEntityDescriptor descriptor = new NamedEntityDescriptor(name, className);
+    setUserPayload(descriptor, payload);
+    return descriptor;
   }
 
   public static InputInitializerDescriptor convertInputInitializerDescriptorFromDAGPlan(
@@ -550,11 +565,11 @@ public class DagTypeConverters {
   public static LocalResource convertPlanLocalResourceToLocalResource(
       PlanLocalResource plr) {
     return LocalResource.newInstance(
-      ConverterUtils.getYarnUrlFromPath(new Path(plr.getUri())),
-      DagTypeConverters.convertFromDAGPlan(plr.getType()),
-      DagTypeConverters.convertFromDAGPlan(plr.getVisibility()),
-      plr.getSize(), plr.getTimeStamp(),
-      plr.hasPattern() ? plr.getPattern() : null);
+        ConverterUtils.getYarnUrlFromPath(new Path(plr.getUri())),
+        DagTypeConverters.convertFromDAGPlan(plr.getType()),
+        DagTypeConverters.convertFromDAGPlan(plr.getVisibility()),
+        plr.getSize(), plr.getTimeStamp(),
+        plr.hasPattern() ? plr.getPattern() : null);
   }
 
   public static TezCounters convertTezCountersFromProto(TezCountersProto proto) {
@@ -715,6 +730,74 @@ public class DagTypeConverters {
       return null;
     }
     return payload.getPayload();
+  }
+
+  public static DAGProtos.VertexExecutionContextProto convertToProto(
+      Vertex.VertexExecutionContext context) {
+    if (context == null) {
+      return null;
+    } else {
+      DAGProtos.VertexExecutionContextProto.Builder builder =
+          DAGProtos.VertexExecutionContextProto.newBuilder();
+      builder.setExecuteInAm(context.shouldExecuteInAm());
+      builder.setExecuteInContainers(context.shouldExecuteInContainers());
+      if (context.getTaskSchedulerName() != null) {
+        builder.setTaskSchedulerName(context.getTaskSchedulerName());
+      }
+      if (context.getContainerLauncherName() != null) {
+        builder.setContainerLauncherName(context.getContainerLauncherName());
+      }
+      if (context.getTaskCommName() != null) {
+        builder.setTaskCommName(context.getTaskCommName());
+      }
+      return builder.build();
+    }
+  }
+
+  public static Vertex.VertexExecutionContext convertFromProto(
+      DAGProtos.VertexExecutionContextProto proto) {
+    if (proto == null) {
+      return null;
+    } else {
+      if (proto.getExecuteInAm()) {
+        Vertex.VertexExecutionContext context =
+            Vertex.VertexExecutionContext.createExecuteInAm(proto.getExecuteInAm());
+        return context;
+      } else if (proto.getExecuteInContainers()) {
+        Vertex.VertexExecutionContext context =
+            Vertex.VertexExecutionContext.createExecuteInContainers(proto.getExecuteInContainers());
+        return context;
+      } else {
+        String taskScheduler = proto.hasTaskSchedulerName() ? proto.getTaskSchedulerName() : null;
+        String containerLauncher =
+            proto.hasContainerLauncherName() ? proto.getContainerLauncherName() : null;
+        String taskComm = proto.hasTaskCommName() ? proto.getTaskCommName() : null;
+        Vertex.VertexExecutionContext context =
+            Vertex.VertexExecutionContext.create(taskScheduler, containerLauncher, taskComm);
+        return context;
+      }
+    }
+  }
+
+  public static List<TezNamedEntityDescriptorProto> convertNamedEntityCollectionToProto(
+      NamedEntityDescriptor[] namedEntityDescriptors) {
+    List<TezNamedEntityDescriptorProto> list =
+        Lists.newArrayListWithCapacity(namedEntityDescriptors.length);
+    for (NamedEntityDescriptor namedEntity : namedEntityDescriptors) {
+      TezNamedEntityDescriptorProto namedEntityProto = convertNamedEntityToProto(namedEntity);
+      list.add(namedEntityProto);
+    }
+    return list;
+  }
+
+  public static TezNamedEntityDescriptorProto convertNamedEntityToProto(
+      NamedEntityDescriptor namedEntityDescriptor) {
+    TezNamedEntityDescriptorProto.Builder builder = TezNamedEntityDescriptorProto.newBuilder();
+    builder.setName(namedEntityDescriptor.getEntityName());
+    DAGProtos.TezEntityDescriptorProto entityProto =
+        DagTypeConverters.convertToDAGPlan(namedEntityDescriptor);
+    builder.setEntityDescriptor(entityProto);
+    return builder.build();
   }
 
 }
