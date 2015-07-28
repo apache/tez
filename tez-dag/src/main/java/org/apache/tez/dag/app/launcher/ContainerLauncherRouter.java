@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -45,6 +46,7 @@ public class ContainerLauncherRouter extends AbstractService
 
   private final ContainerLauncher containerLaunchers[];
   private final ContainerLauncherContext containerLauncherContexts[];
+  protected final ServicePluginLifecycleAbstractService[] containerLauncherServiceWrappers;
   private final AppContext appContext;
 
   @VisibleForTesting
@@ -53,6 +55,8 @@ public class ContainerLauncherRouter extends AbstractService
     this.appContext = context;
     containerLaunchers = new ContainerLauncher[] {containerLauncher};
     containerLauncherContexts = new ContainerLauncherContext[] {containerLauncher.getContext()};
+    containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[]{
+        new ServicePluginLifecycleAbstractService(containerLauncher)};
   }
 
   // Accepting conf to setup final parameters, if required.
@@ -75,6 +79,7 @@ public class ContainerLauncherRouter extends AbstractService
     }
     containerLauncherContexts = new ContainerLauncherContext[containerLauncherClassIdentifiers.length];
     containerLaunchers = new ContainerLauncher[containerLauncherClassIdentifiers.length];
+    containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[containerLauncherClassIdentifiers.length];
 
 
     for (int i = 0; i < containerLauncherClassIdentifiers.length; i++) {
@@ -82,6 +87,7 @@ public class ContainerLauncherRouter extends AbstractService
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = createContainerLauncher(containerLauncherClassIdentifiers[i], context,
           containerLauncherContext, taskAttemptListener, workingDirectory, isPureLocalMode, conf);
+      containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService(containerLaunchers[i]);
     }
   }
 
@@ -130,21 +136,21 @@ public class ContainerLauncherRouter extends AbstractService
   @Override
   public void serviceInit(Configuration conf) {
     for (int i = 0 ; i < containerLaunchers.length ; i++) {
-      ((AbstractService) containerLaunchers[i]).init(conf);
+      containerLauncherServiceWrappers[i].init(conf);
     }
   }
 
   @Override
   public void serviceStart() {
     for (int i = 0 ; i < containerLaunchers.length ; i++) {
-      ((AbstractService) containerLaunchers[i]).start();
+      containerLauncherServiceWrappers[i].start();
     }
   }
 
   @Override
   public void serviceStop() {
     for (int i = 0 ; i < containerLaunchers.length ; i++) {
-      ((AbstractService) containerLaunchers[i]).stop();
+      containerLauncherServiceWrappers[i].stop();
     }
   }
 

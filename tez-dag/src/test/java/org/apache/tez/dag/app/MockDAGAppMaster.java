@@ -139,7 +139,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
     public MockContainerLauncher(AtomicBoolean goFlag,
                                  ContainerLauncherContext containerLauncherContext) {
-      super("MockContainerLauncher", containerLauncherContext);
+      super(containerLauncherContext);
       this.goFlag = goFlag;
     }
 
@@ -182,7 +182,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     }
     
     @Override
-    public void serviceStart() throws Exception {
+    public void start() throws Exception {
       taListener = (TaskAttemptListenerImpTezDag) getTaskAttemptListener();
       taskCommunicator = (TezTaskCommunicatorImpl) taListener.getTaskCommunicator(0);
       eventHandlingThread = new Thread(this);
@@ -199,7 +199,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     }
 
     @Override
-    public void serviceStop() throws Exception {
+    public void shutdown() throws Exception {
       if (eventHandlingThread != null) {
         eventHandlingThread.interrupt();
         eventHandlingThread.join(2000l);

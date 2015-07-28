@@ -27,7 +27,7 @@ public class TezTestServiceNoOpContainerLauncher extends ContainerLauncher {
 
 
   public TezTestServiceNoOpContainerLauncher(ContainerLauncherContext containerLauncherContext) {
-    super(TezTestServiceNoOpContainerLauncher.class.getName(), containerLauncherContext);
+    super(containerLauncherContext);
   }
 
   @Override

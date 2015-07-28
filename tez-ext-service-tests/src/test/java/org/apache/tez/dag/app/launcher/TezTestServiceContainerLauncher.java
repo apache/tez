@@ -54,7 +54,7 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
 
   // Configuration passed in here to set up final parameters
   public TezTestServiceContainerLauncher(ContainerLauncherContext containerLauncherContext) {
-    super(TezTestServiceContainerLauncher.class.getName(), containerLauncherContext);
+    super(containerLauncherContext);
     int numThreads = getContext().getInitialConfiguration().getInt(
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_AM_COMMUNICATOR_NUM_THREADS,
         TezTestServiceConfConstants.TEZ_TEST_SERVICE_AM_COMMUNICATOR_NUM_THREADS_DEFAULT);
@@ -69,13 +69,13 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
   }
 
   @Override
-  public void serviceStart() {
+  public void start() {
     communicator.init(getContext().getInitialConfiguration());
     communicator.start();
   }
 
   @Override
-  public void serviceStop() {
+  public void shutdown() {
     communicator.stop();
   }
 

@@ -17,6 +17,7 @@ package org.apache.tez.serviceplugins.api;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.tez.common.ServicePluginLifecycle;
 
 /**
  * Plugin to allow custom container launchers to be written to launch containers on different types
@@ -25,16 +26,27 @@ import org.apache.hadoop.service.AbstractService;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public abstract class ContainerLauncher extends AbstractService {
+public abstract class ContainerLauncher implements ServicePluginLifecycle {
 
   private final ContainerLauncherContext containerLauncherContext;
 
   // TODO TEZ-2003 Simplify this by moving away from AbstractService. Potentially Guava AbstractService.
   // A serviceInit(Configuration) is not likely to be very useful, and will expose unnecessary internal
   // configuration to the services if populated with the AM Configuration
-  public ContainerLauncher(String name, ContainerLauncherContext containerLauncherContext) {
-    super(name);
+  public ContainerLauncher(ContainerLauncherContext containerLauncherContext) {
     this.containerLauncherContext = containerLauncherContext;
+  }
+
+  @Override
+  public void initialize() throws Exception {
+  }
+
+  @Override
+  public void start() throws Exception {
+  }
+
+  @Override
+  public void shutdown() throws Exception {
   }
 
   public final ContainerLauncherContext getContext() {

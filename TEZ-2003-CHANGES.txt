@@ -36,5 +36,6 @@ ALL CHANGES:
   TEZ-2124. Change Node tracking to work per external container source.
   TEZ-2004. Define basic interface for pluggable ContainerLaunchers.
   TEZ-2005. Define basic interface for pluggable TaskScheduler.
+  TEZ-2651. Pluggable services should not extend AbstractService.
 
 INCOMPATIBLE CHANGES:

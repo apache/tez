@@ -18,9 +18,9 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.common.ServicePluginLifecycle;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
@@ -28,10 +28,32 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
 // TODO TEZ-2003 Move this into the tez-api module
-public abstract class TaskCommunicator extends AbstractService {
-  public TaskCommunicator(String name) {
-    super(name);
+public abstract class TaskCommunicator implements ServicePluginLifecycle {
+
+  private final TaskCommunicatorContext taskCommunicatorContext;
+
+  public TaskCommunicator(TaskCommunicatorContext taskCommunicatorContext) {
+    this.taskCommunicatorContext = taskCommunicatorContext;
   }
+
+  public TaskCommunicatorContext getContext() {
+    return taskCommunicatorContext;
+  }
+
+  @Override
+  public void initialize() throws Exception {
+  }
+
+  @Override
+  public void start() throws Exception {
+  }
+
+  @Override
+  public void shutdown() throws Exception {
+  }
+
+  // TODO Post TEZ-2003 Move this into the API module. Moving this requires abstractions for
+  // TaskSpec and related classes. (assuming that's efficient for execution)
 
   // TODO TEZ-2003 Ideally, don't expose YARN containerId; instead expose a Tez specific construct.
   // TODO When talking to an external service, this plugin implementer may need access to a host:port

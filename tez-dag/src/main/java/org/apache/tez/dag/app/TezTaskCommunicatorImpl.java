@@ -67,7 +67,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   private static final ContainerTask TASK_FOR_INVALID_JVM = new ContainerTask(
       null, true, null, null, false);
 
-  private final TaskCommunicatorContext taskCommunicatorContext;
   private final TezTaskUmbilicalProtocol taskUmbilical;
 
   protected final ConcurrentMap<ContainerId, ContainerInfo> registeredContainers =
@@ -116,25 +115,24 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
    * Construct the service.
    */
   public TezTaskCommunicatorImpl(TaskCommunicatorContext taskCommunicatorContext) {
-    super(TezTaskCommunicatorImpl.class.getName());
-    this.taskCommunicatorContext = taskCommunicatorContext;
+    super(taskCommunicatorContext);
     this.taskUmbilical = new TezTaskUmbilicalProtocolImpl();
-    this.tokenIdentifier = this.taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString();
+    this.tokenIdentifier = taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString();
     this.sessionToken = TokenCache.getSessionToken(taskCommunicatorContext.getCredentials());
   }
 
   @Override
-  public void serviceStart() {
+  public void start() {
     startRpcServer();
   }
 
   @Override
-  public void serviceStop() {
+  public void shutdown() {
     stopRpcServer();
   }
 
   protected void startRpcServer() {
-    Configuration conf = getConfig();
+    Configuration conf = getContext().getInitialConfiguration();
     try {
       JobTokenSecretManager jobTokenSecretManager =
           new JobTokenSecretManager();
@@ -281,10 +279,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     return sessionToken;
   }
 
-  protected TaskCommunicatorContext getTaskCommunicatorContext() {
-    return taskCommunicatorContext;
-  }
-
   public TezTaskUmbilicalProtocol getUmbilical() {
     return this.taskUmbilical;
   }
@@ -305,7 +299,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         }
         task = getContainerTask(containerId);
         if (task != null && !task.shouldDie()) {
-          taskCommunicatorContext
+          getContext()
               .taskStartedRemotely(task.getTaskSpec().getTaskAttemptID(), containerId);
         }
       }
@@ -317,7 +311,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
     @Override
     public boolean canCommit(TezTaskAttemptID taskAttemptId) throws IOException {
-      return taskCommunicatorContext.canCommit(taskAttemptId);
+      return getContext().canCommit(taskAttemptId);
     }
 
     @Override
@@ -370,7 +364,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         TaskHeartbeatRequest tRequest = new TaskHeartbeatRequest(request.getContainerIdentifier(),
             request.getCurrentTaskAttemptID(), request.getEvents(), request.getStartIndex(),
             request.getPreRoutedStartIndex(), request.getMaxEvents());
-        tResponse = taskCommunicatorContext.heartbeat(tRequest);
+        tResponse = getContext().heartbeat(tRequest);
       }
       TezHeartbeatResponse response = new TezHeartbeatResponse();
       response.setLastRequestId(requestId);
@@ -402,7 +396,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     ContainerTask task = null;
     if (containerInfo == null) {
-      if (taskCommunicatorContext.isKnownContainer(containerId)) {
+      if (getContext().isKnownContainer(containerId)) {
         LOG.info("Container with id: " + containerId
             + " is valid, but no longer registered, and will be killed");
       } else {

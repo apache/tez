@@ -111,7 +111,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
     // starts up. It's not possible to set these up via a static payload.
     // Will need some kind of mechanism to dynamically crate payloads / bind to parameters
     // after the AM starts up.
-    super(LocalContainerLauncher.class.getName(), containerLauncherContext);
+    super(containerLauncherContext);
     this.context = context;
     this.tal = taskAttemptListener;
     this.workingDirectory = workingDirectory;
@@ -139,14 +139,14 @@ public class LocalContainerLauncher extends ContainerLauncher {
   }
 
   @Override
-  public void serviceStart() throws Exception {
+  public void start() throws Exception {
     eventHandlingThread =
         new Thread(new TezSubTaskRunner(), "LocalContainerLauncher-SubTaskRunner");
     eventHandlingThread.start();
   }
 
   @Override
-  public void serviceStop() throws Exception {
+  public void shutdown() throws Exception {
     if (!serviceStopped.compareAndSet(false, true)) {
       LOG.info("Service Already stopped. Ignoring additional stop");
       return;

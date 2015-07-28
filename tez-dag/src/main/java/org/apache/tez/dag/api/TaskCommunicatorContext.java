@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -35,6 +36,9 @@ public interface TaskCommunicatorContext {
 
   // TODO TEZ-2003 Maybe add book-keeping as a helper library, instead of each impl tracking container to task etc.
 
+  // TODO TEZ-2003 To be replaced by getInitialPayload
+  Configuration getInitialConfiguration();
+
   ApplicationAttemptId getApplicationAttemptId();
   Credentials getCredentials();
 
@@ -42,6 +46,7 @@ public interface TaskCommunicatorContext {
   boolean canCommit(TezTaskAttemptID taskAttemptId) throws IOException;
 
   // TODO TEZ-2003 Split the heartbeat API to a liveness check and a status update
+  // KKK Rename this API
   TaskHeartbeatResponse heartbeat(TaskHeartbeatRequest request) throws IOException, TezException;
 
   boolean isKnownContainer(ContainerId containerId);

@@ -223,7 +223,7 @@ public class ContainerLauncherImpl extends ContainerLauncher {
   }
 
   public ContainerLauncherImpl(ContainerLauncherContext containerLauncherContext) {
-    super(ContainerLauncherImpl.class.getName(), containerLauncherContext);
+    super(containerLauncherContext);
     this.conf = new Configuration(containerLauncherContext.getInitialConfiguration());
     conf.setInt(
         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECTION_MAXIDLETIME_KEY,
@@ -235,7 +235,7 @@ public class ContainerLauncherImpl extends ContainerLauncher {
   }
 
   @Override
-  public void serviceStart() {
+  public void start() {
     // pass a copy of config to ContainerManagementProtocolProxy until YARN-3497 is fixed
     cmProxy =
         new ContainerManagementProtocolProxy(conf);
@@ -307,7 +307,7 @@ public class ContainerLauncherImpl extends ContainerLauncher {
   }
 
   @Override
-  public void serviceStop() {
+  public void shutdown() {
     if(!serviceStopped.compareAndSet(false, true)) {
       LOG.info("Ignoring multiple stops");
       return;

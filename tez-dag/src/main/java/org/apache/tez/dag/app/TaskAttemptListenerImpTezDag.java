@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
@@ -61,7 +62,6 @@ import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
-import org.apache.tez.common.security.JobTokenSecretManager;
 
 
 @SuppressWarnings("unchecked")
@@ -75,6 +75,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   private final AppContext context;
   private final TaskCommunicator[] taskCommunicators;
   private final TaskCommunicatorContext[] taskCommunicatorContexts;
+  protected final ServicePluginLifecycleAbstractService []taskCommunicatorServiceWrappers;
 
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
   protected final ContainerHeartbeatHandler containerHeartbeatHandler;
@@ -99,9 +100,8 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   public TaskAttemptListenerImpTezDag(AppContext context,
                                       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
-                                      // TODO TEZ-2003 pre-merge. Remove reference to JobTokenSecretManager.
-                                      JobTokenSecretManager jobTokenSecretManager,
                                       String [] taskCommunicatorClassIdentifiers,
+                                      Configuration conf,
                                       boolean isPureLocalMode) {
     super(TaskAttemptListenerImpTezDag.class.getName());
     this.context = context;
@@ -118,9 +118,11 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     this.taskCommunicators = new TaskCommunicator[taskCommunicatorClassIdentifiers.length];
     this.taskCommunicatorContexts = new TaskCommunicatorContext[taskCommunicatorClassIdentifiers.length];
+    this.taskCommunicatorServiceWrappers = new ServicePluginLifecycleAbstractService[taskCommunicatorClassIdentifiers.length];
     for (int i = 0 ; i < taskCommunicatorClassIdentifiers.length ; i++) {
-      taskCommunicatorContexts[i] = new TaskCommunicatorContextImpl(context, this, i);
+      taskCommunicatorContexts[i] = new TaskCommunicatorContextImpl(context, this, conf, i);
       taskCommunicators[i] = createTaskCommunicator(taskCommunicatorClassIdentifiers[i], i);
+      taskCommunicatorServiceWrappers[i] = new ServicePluginLifecycleAbstractService(taskCommunicators[i]);
     }
     // TODO TEZ-2118 Start using taskCommunicator indices properly
   }
@@ -129,15 +131,15 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   public void serviceStart() {
     // TODO Why is init tied to serviceStart
     for (int i = 0 ; i < taskCommunicators.length ; i++) {
-      taskCommunicators[i].init(getConfig());
-      taskCommunicators[i].start();
+      taskCommunicatorServiceWrappers[i].init(getConfig());
+      taskCommunicatorServiceWrappers[i].start();
     }
   }
 
   @Override
   public void serviceStop() {
     for (int i = 0 ; i < taskCommunicators.length ; i++) {
-      taskCommunicators[i].stop();
+      taskCommunicatorServiceWrappers[i].stop();
     }
   }
 
