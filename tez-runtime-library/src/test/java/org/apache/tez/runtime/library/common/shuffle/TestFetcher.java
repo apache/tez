@@ -33,9 +33,13 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
@@ -46,6 +50,7 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.junit.Assert;
 import org.junit.Test;
@@ -230,5 +235,58 @@ public class TestFetcher {
     Assert.assertEquals("success callback compressed size", f.getCompressedSize(), p * 100);
     Assert.assertEquals("success callback input id", f.getInputAttemptIdentifier(), srcAttempId);
     Assert.assertEquals("success callback type", f.getType(), FetchedInput.Type.DISK_DIRECT);
+  }
+
+  @Test(timeout=1000)
+  public void testInputAttemptIdentifierMap() {
+    InputAttemptIdentifier[] srcAttempts = {
+        new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+            //duplicate entry
+        new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        // pipeline shuffle based identifiers, with multiple attempts
+        new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(new InputIdentifier(1), 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
+        new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
+        new InputAttemptIdentifier(new InputIdentifier(2), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
+    };
+    InputAttemptIdentifier[] expectedSrcAttempts = {
+        new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        // pipeline shuffle based identifiers
+        new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(new InputIdentifier(1), 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
+        new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
+        new InputAttemptIdentifier(new InputIdentifier(2), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
+    };
+    TezConfiguration conf = new TezConfiguration();
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
+    int partition = 42;
+    FetcherCallback callback = mock(FetcherCallback.class);
+    Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
+        ApplicationId.newInstance(0, 1), null, "fetcherTest", conf, true, HOST, PORT, false);
+    builder.assignWork(HOST, PORT, partition, Arrays.asList(srcAttempts));
+    Fetcher fetcher = spy(builder.build());
+    fetcher.populateRemainingMap(new LinkedList<InputAttemptIdentifier>(Arrays.asList(srcAttempts)));
+    Assert.assertTrue(expectedSrcAttempts.length == fetcher.srcAttemptsRemaining.size());
+    Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.srcAttemptsRemaining.entrySet().iterator();
+    int count = 0;
+    while(iterator.hasNext()) {
+      String key = iterator.next().getKey();
+      Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
+    }
   }
 }

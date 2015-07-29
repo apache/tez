@@ -27,6 +27,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -34,6 +35,7 @@ import javax.crypto.SecretKey;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.http.BaseHttpConnection;
@@ -201,8 +203,8 @@ public class ShuffleUtils {
     return sb;
   }
 
-  public static URL constructInputURL(String baseURI, 
-      List<InputAttemptIdentifier> inputs, boolean keepAlive) throws MalformedURLException {
+  public static URL constructInputURL(String baseURI,
+      Collection<InputAttemptIdentifier> inputs, boolean keepAlive) throws MalformedURLException {
     StringBuilder url = new StringBuilder(baseURI);
     boolean first = true;
     for (InputAttemptIdentifier input : inputs) {
