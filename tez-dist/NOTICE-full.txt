@@ -16,6 +16,10 @@ This produce includes jaxb-api-2.2.2, jaxb-impl-2.2.3-1 libraries.
 The details on how to obtain the library are available at 
 https://jaxb.java.net/
 
+This product includes JavaBeans Activation Framework. The details on how
+to obtain the library is available at
+http://www.oracle.com/technetwork/articles/java/index-135046.html
+
 This product bundles the tez-ui war which includes fonts protected
 under the Open Font License.  These fonts can only be distributed
 as part of a piece of software, but not individually.
