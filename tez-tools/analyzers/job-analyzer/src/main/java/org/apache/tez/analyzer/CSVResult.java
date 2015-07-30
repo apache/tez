@@ -21,7 +21,7 @@ package org.apache.tez.analyzer;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.directory.api.util.Strings;
+import com.google.common.base.Strings;
 import org.apache.tez.dag.api.TezException;
 
 import java.io.BufferedWriter;
@@ -99,7 +99,7 @@ public class CSVResult implements Result {
 
       StringBuilder sb = new StringBuilder();
       for(int i=0;i<record.length;i++) {
-        sb.append(Strings.isNotEmpty(record[i]) ? record[i] : " ");
+        sb.append(Strings.isNullOrEmpty(record[i]) ? record[i] : " ");
         if (i < record.length - 1) {
           sb.append(",");
         }
