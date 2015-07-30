@@ -37,11 +37,14 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
+import org.apache.tez.dag.api.records.DAGProtos.VertexExecutionContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -131,7 +134,8 @@ public class TestDAGPlan {
     EdgeManagerPluginDescriptor emDesc = edgeProperty.getEdgeManagerDescriptor();
     Assert.assertNotNull(emDesc);
     Assert.assertEquals("emClass", emDesc.getClassName());
-    Assert.assertTrue(Arrays.equals("emPayload".getBytes(), emDesc.getUserPayload().deepCopyAsArray()));
+    Assert.assertTrue(
+        Arrays.equals("emPayload".getBytes(), emDesc.getUserPayload().deepCopyAsArray()));
   }
 
   @Test(timeout = 5000)
@@ -310,5 +314,62 @@ public class TestDAGPlan {
     assertEquals(2, fetchedCredentials.numberOfTokens());
     assertNotNull(fetchedCredentials.getToken(new Text("Token1")));
     assertNotNull(fetchedCredentials.getToken(new Text("Token2")));
+  }
+
+  @Test(timeout = 5000)
+  public void testServiceDescriptorPropagation() {
+    DAG dag = DAG.create("testDag");
+    ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
+        setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
+    ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
+        setUserPayload(UserPayload.create(ByteBuffer.wrap("processor2Bytes".getBytes())));
+
+    VertexExecutionContext defaultExecutionContext =
+        VertexExecutionContext.create("plugin", "plugin", "plugin");
+    VertexExecutionContext v1Context = VertexExecutionContext.createExecuteInAm(true);
+
+
+    Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1)).setExecutionContext(v1Context);
+    Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
+    v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
+    v2.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
+        .addTaskLocalFiles(new HashMap<String, LocalResource>());
+
+    InputDescriptor inputDescriptor = InputDescriptor.create("input").
+        setUserPayload(UserPayload.create(ByteBuffer.wrap("inputBytes".getBytes())));
+    OutputDescriptor outputDescriptor = OutputDescriptor.create("output").
+        setUserPayload(UserPayload.create(ByteBuffer.wrap("outputBytes".getBytes())));
+    Edge edge = Edge.create(v1, v2, EdgeProperty.create(
+        DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL, outputDescriptor, inputDescriptor));
+
+    dag.addVertex(v1).addVertex(v2).addEdge(edge);
+    dag.setExecutionContext(defaultExecutionContext);
+
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
+
+    assertEquals(2, dagProto.getVertexCount());
+    assertEquals(1, dagProto.getEdgeCount());
+
+    assertTrue(dagProto.hasDefaultExecutionContext());
+    VertexExecutionContextProto defaultContextProto = dagProto.getDefaultExecutionContext();
+    assertFalse(defaultContextProto.getExecuteInContainers());
+    assertFalse(defaultContextProto.getExecuteInAm());
+    assertEquals("plugin", defaultContextProto.getTaskSchedulerName());
+    assertEquals("plugin", defaultContextProto.getContainerLauncherName());
+    assertEquals("plugin", defaultContextProto.getTaskCommName());
+
+    VertexPlan v1Proto = dagProto.getVertex(0);
+    assertTrue(v1Proto.hasExecutionContext());
+    VertexExecutionContextProto v1ContextProto = v1Proto.getExecutionContext();
+    assertFalse(v1ContextProto.getExecuteInContainers());
+    assertTrue(v1ContextProto.getExecuteInAm());
+    assertFalse(v1ContextProto.hasTaskSchedulerName());
+    assertFalse(v1ContextProto.hasContainerLauncherName());
+    assertFalse(v1ContextProto.hasTaskCommName());
+
+    VertexPlan v2Proto = dagProto.getVertex(1);
+    assertFalse(v2Proto.hasExecutionContext());
   }
 }

@@ -409,9 +409,9 @@ public class DAGAppMaster extends AbstractService {
     }
 
     taskSchedulerDescriptors = parsePlugin(taskSchedulers,
-        (amPluginDescriptorProto == null || amPluginDescriptorProto.getTaskScedulersCount() == 0 ?
+        (amPluginDescriptorProto == null || amPluginDescriptorProto.getTaskSchedulersCount() == 0 ?
             null :
-            amPluginDescriptorProto.getTaskScedulersList()),
+            amPluginDescriptorProto.getTaskSchedulersList()),
         tezYarnEnabled, uberEnabled);
 
     containerLauncherDescriptors = parsePlugin(containerLaunchers,

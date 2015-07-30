@@ -96,13 +96,16 @@ public class TezClient {
   @VisibleForTesting
   static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";
 
-  private final String clientName;
+  @VisibleForTesting
+  final String clientName;
   private ApplicationId sessionAppId;
   private ApplicationId lastSubmittedAppId;
-  private AMConfiguration amConfig;
+  @VisibleForTesting
+  final AMConfiguration amConfig;
   private FrameworkClient frameworkClient;
   private String diagnostics;
-  private boolean isSession;
+  @VisibleForTesting
+  final boolean isSession;
   private boolean sessionStarted = false;
   private boolean sessionStopped = false;
   /** Tokens which will be required for all DAGs submitted to this session. */
@@ -114,8 +117,10 @@ public class TezClient {
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
   private final Map<String, LocalResource> additionalLocalResources = Maps.newHashMap();
-  private final TezApiVersionInfo apiVersionInfo;
-  private final ServicePluginsDescriptor servicePluginsDescriptor;
+  @VisibleForTesting
+  final TezApiVersionInfo apiVersionInfo;
+  @VisibleForTesting
+  final ServicePluginsDescriptor servicePluginsDescriptor;
   private HistoryACLPolicyManager historyACLPolicyManager;
 
   private int preWarmDAGCounter = 0;

@@ -40,5 +40,6 @@ ALL CHANGES:
   TEZ-2652. Cleanup the way services are specified for an AM and vertices.
   TEZ-2653. Change service contexts to expose a user specified payload instead of the AM configuration.
   TEZ-2441. Add tests for TezTaskRunner2.
+  TEZ-2657. Add tests for client side changes - specifying plugins, etc.
 
 INCOMPATIBLE CHANGES:

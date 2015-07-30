@@ -180,7 +180,7 @@ message TezNamedEntityDescriptorProto {
 message AMPluginDescriptorProto {
   optional bool containers_enabled = 1 [default = true];
   optional bool uber_enabled = 2 [default = false];
-  repeated TezNamedEntityDescriptorProto task_scedulers = 3;
+  repeated TezNamedEntityDescriptorProto task_schedulers = 3;
   repeated TezNamedEntityDescriptorProto container_launchers = 4;
   repeated TezNamedEntityDescriptorProto task_communicators = 5;
 }

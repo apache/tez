@@ -70,6 +70,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
 /**
@@ -500,7 +501,8 @@ public class TestTezClientUtils {
     Assert.assertNotNull(javaOpts);
     Assert.assertTrue(javaOpts.contains("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FOOBAR")
         && javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE)
-        && javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
+        &&
+        javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
   }
 
   @Test (timeout = 5000)
@@ -677,6 +679,16 @@ public class TestTezClientUtils {
     Assert.assertTrue(resourceNames.contains("dir2-f.txt"));
   }
 
-  // TODO TEZ-2003 Add test to validate ServicePluginDescriptor propagation
+  @Test(timeout = 5000)
+  public void testServiceDescriptorSerializationForAM() {
+    Configuration conf = new Configuration(false);
+    ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor.create(true);
+
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null,
+        servicePluginsDescriptor);
+
+    assertTrue(confProto.hasAmPluginDescriptor());
+    assertTrue(confProto.getAmPluginDescriptor().getUberEnabled());
+  }
 
 }

@@ -511,6 +511,47 @@ public class Vertex {
           ", taskCommName='" + taskCommName + '\'' +
           '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      VertexExecutionContext that = (VertexExecutionContext) o;
+
+      if (executeInAm != that.executeInAm) {
+        return false;
+      }
+      if (executeInContainers != that.executeInContainers) {
+        return false;
+      }
+      if (taskSchedulerName != null ? !taskSchedulerName.equals(that.taskSchedulerName) :
+          that.taskSchedulerName != null) {
+        return false;
+      }
+      if (containerLauncherName != null ?
+          !containerLauncherName.equals(that.containerLauncherName) :
+          that.containerLauncherName != null) {
+        return false;
+      }
+      return !(taskCommName != null ? !taskCommName.equals(that.taskCommName) :
+          that.taskCommName != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+      int result = (executeInAm ? 1 : 0);
+      result = 31 * result + (executeInContainers ? 1 : 0);
+      result = 31 * result + (taskSchedulerName != null ? taskSchedulerName.hashCode() : 0);
+      result = 31 * result + (containerLauncherName != null ? containerLauncherName.hashCode() : 0);
+      result = 31 * result + (taskCommName != null ? taskCommName.hashCode() : 0);
+      return result;
+    }
   }
 
   @Override

@@ -46,6 +46,15 @@ public class ServicePluginsDescriptor {
     this.taskCommunicatorDescriptors = taskCommunicatorDescriptors;
   }
 
+  /**
+   * Create a service plugin descriptor with the provided plugins. Regular containers will also be enabled
+   * when using this method.
+   *
+   * @param taskSchedulerDescriptor the task scheduler plugin descriptors
+   * @param containerLauncherDescriptors the container launcher plugin descriptors
+   * @param taskCommunicatorDescriptors the task communicator plugin descriptors
+   * @return
+   */
   public static ServicePluginsDescriptor create(TaskSchedulerDescriptor[] taskSchedulerDescriptor,
                                                 ContainerLauncherDescriptor[] containerLauncherDescriptors,
                                                 TaskCommunicatorDescriptor[] taskCommunicatorDescriptors) {
@@ -53,6 +62,15 @@ public class ServicePluginsDescriptor {
         containerLauncherDescriptors, taskCommunicatorDescriptors);
   }
 
+  /**
+   * Create a service plugin descriptor with the provided plugins. Also allows specification of whether
+   * in-AM execution is enabled. Container execution is enabled by default.
+   * @param enableUber whether to enable execution in the AM or not
+   * @param taskSchedulerDescriptor the task scheduler plugin descriptors
+   * @param containerLauncherDescriptors the container launcher plugin descriptors
+   * @param taskCommunicatorDescriptors the task communicator plugin descriptors
+   * @return
+   */
   public static ServicePluginsDescriptor create(boolean enableUber,
                                                 TaskSchedulerDescriptor[] taskSchedulerDescriptor,
                                                 ContainerLauncherDescriptor[] containerLauncherDescriptors,
@@ -61,6 +79,17 @@ public class ServicePluginsDescriptor {
         containerLauncherDescriptors, taskCommunicatorDescriptors);
   }
 
+  /**
+   * Create a service plugin descriptor with the provided plugins. Also allows specification of whether
+   * container execution and in-AM execution will be enabled.
+   *
+   * @param enableContainers whether to enable execution in containers
+   * @param enableUber whether to enable execution in the AM or not
+   * @param taskSchedulerDescriptor the task scheduler plugin descriptors
+   * @param containerLauncherDescriptors the container launcher plugin descriptors
+   * @param taskCommunicatorDescriptors the task communicator plugin descriptors
+   * @return
+   */
   public static ServicePluginsDescriptor create(boolean enableContainers, boolean enableUber,
                                                 TaskSchedulerDescriptor[] taskSchedulerDescriptor,
                                                 ContainerLauncherDescriptor[] containerLauncherDescriptors,
@@ -69,6 +98,13 @@ public class ServicePluginsDescriptor {
         containerLauncherDescriptors, taskCommunicatorDescriptors);
   }
 
+  /**
+   * Create a service plugin descriptor which may have in-AM execution of tasks enabled. Container
+   * execution is enabled by default
+   *
+   * @param enableUber whether to enable execution in the AM or not
+   * @return
+   */
   public static ServicePluginsDescriptor create(boolean enableUber) {
     return new ServicePluginsDescriptor(true, enableUber, null, null, null);
   }

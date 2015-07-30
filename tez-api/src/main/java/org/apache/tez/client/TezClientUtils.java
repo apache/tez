@@ -39,9 +39,7 @@ import java.util.Map.Entry;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
-import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
-import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -778,47 +776,13 @@ public class TezClientUtils {
     }
 
     AMPluginDescriptorProto pluginDescriptorProto =
-        createAMServicePluginDescriptorProto(servicePluginsDescriptor);
+        DagTypeConverters.convertServicePluginDescriptoToProto(servicePluginsDescriptor);
     builder.setAmPluginDescriptor(pluginDescriptorProto);
 
     return builder.build();
   }
 
-  static AMPluginDescriptorProto createAMServicePluginDescriptorProto(
-      ServicePluginsDescriptor servicePluginsDescriptor) {
-    AMPluginDescriptorProto.Builder pluginDescriptorBuilder =
-        AMPluginDescriptorProto.newBuilder();
-    if (servicePluginsDescriptor != null) {
 
-      pluginDescriptorBuilder.setContainersEnabled(servicePluginsDescriptor.areContainersEnabled());
-      pluginDescriptorBuilder.setUberEnabled(servicePluginsDescriptor.isUberEnabled());
-
-      if (servicePluginsDescriptor.getTaskSchedulerDescriptors() != null &&
-          servicePluginsDescriptor.getTaskSchedulerDescriptors().length > 0) {
-        List<TezNamedEntityDescriptorProto> namedEntityProtos = DagTypeConverters.convertNamedEntityCollectionToProto(
-            servicePluginsDescriptor.getTaskSchedulerDescriptors());
-        pluginDescriptorBuilder.addAllTaskScedulers(namedEntityProtos);
-      }
-
-      if (servicePluginsDescriptor.getContainerLauncherDescriptors() != null &&
-          servicePluginsDescriptor.getContainerLauncherDescriptors().length > 0) {
-        List<TezNamedEntityDescriptorProto> namedEntityProtos = DagTypeConverters.convertNamedEntityCollectionToProto(
-            servicePluginsDescriptor.getContainerLauncherDescriptors());
-        pluginDescriptorBuilder.addAllContainerLaunchers(namedEntityProtos);
-      }
-
-      if (servicePluginsDescriptor.getTaskCommunicatorDescriptors() != null &&
-          servicePluginsDescriptor.getTaskCommunicatorDescriptors().length > 0) {
-        List<TezNamedEntityDescriptorProto> namedEntityProtos = DagTypeConverters.convertNamedEntityCollectionToProto(
-            servicePluginsDescriptor.getTaskCommunicatorDescriptors());
-        pluginDescriptorBuilder.addAllTaskCommunicators(namedEntityProtos);
-      }
-
-    } else {
-      pluginDescriptorBuilder.setContainersEnabled(true).setUberEnabled(false);
-    }
-    return pluginDescriptorBuilder.build();
-  }
 
   /**
    * Helper function to create a YARN LocalResource

@@ -52,9 +52,11 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezAppMasterStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
@@ -74,14 +76,13 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.VertexExecutionContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.Output;
-import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
-import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
-import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 
 @Private
 public class DagTypeConverters {
@@ -732,13 +733,13 @@ public class DagTypeConverters {
     return payload.getPayload();
   }
 
-  public static DAGProtos.VertexExecutionContextProto convertToProto(
-      Vertex.VertexExecutionContext context) {
+  public static VertexExecutionContextProto convertToProto(
+      VertexExecutionContext context) {
     if (context == null) {
       return null;
     } else {
-      DAGProtos.VertexExecutionContextProto.Builder builder =
-          DAGProtos.VertexExecutionContextProto.newBuilder();
+      VertexExecutionContextProto.Builder builder =
+          VertexExecutionContextProto.newBuilder();
       builder.setExecuteInAm(context.shouldExecuteInAm());
       builder.setExecuteInContainers(context.shouldExecuteInContainers());
       if (context.getTaskSchedulerName() != null) {
@@ -754,26 +755,26 @@ public class DagTypeConverters {
     }
   }
 
-  public static Vertex.VertexExecutionContext convertFromProto(
-      DAGProtos.VertexExecutionContextProto proto) {
+  public static VertexExecutionContext convertFromProto(
+      VertexExecutionContextProto proto) {
     if (proto == null) {
       return null;
     } else {
       if (proto.getExecuteInAm()) {
-        Vertex.VertexExecutionContext context =
-            Vertex.VertexExecutionContext.createExecuteInAm(proto.getExecuteInAm());
+        VertexExecutionContext context =
+            VertexExecutionContext.createExecuteInAm(proto.getExecuteInAm());
         return context;
       } else if (proto.getExecuteInContainers()) {
-        Vertex.VertexExecutionContext context =
-            Vertex.VertexExecutionContext.createExecuteInContainers(proto.getExecuteInContainers());
+        VertexExecutionContext context =
+            VertexExecutionContext.createExecuteInContainers(proto.getExecuteInContainers());
         return context;
       } else {
         String taskScheduler = proto.hasTaskSchedulerName() ? proto.getTaskSchedulerName() : null;
         String containerLauncher =
             proto.hasContainerLauncherName() ? proto.getContainerLauncherName() : null;
         String taskComm = proto.hasTaskCommName() ? proto.getTaskCommName() : null;
-        Vertex.VertexExecutionContext context =
-            Vertex.VertexExecutionContext.create(taskScheduler, containerLauncher, taskComm);
+        VertexExecutionContext context =
+            VertexExecutionContext.create(taskScheduler, containerLauncher, taskComm);
         return context;
       }
     }
@@ -798,6 +799,42 @@ public class DagTypeConverters {
         DagTypeConverters.convertToDAGPlan(namedEntityDescriptor);
     builder.setEntityDescriptor(entityProto);
     return builder.build();
+  }
+
+  public static AMPluginDescriptorProto convertServicePluginDescriptoToProto(
+      ServicePluginsDescriptor servicePluginsDescriptor) {
+    AMPluginDescriptorProto.Builder pluginDescriptorBuilder =
+        AMPluginDescriptorProto.newBuilder();
+    if (servicePluginsDescriptor != null) {
+
+      pluginDescriptorBuilder.setContainersEnabled(servicePluginsDescriptor.areContainersEnabled());
+      pluginDescriptorBuilder.setUberEnabled(servicePluginsDescriptor.isUberEnabled());
+
+      if (servicePluginsDescriptor.getTaskSchedulerDescriptors() != null &&
+          servicePluginsDescriptor.getTaskSchedulerDescriptors().length > 0) {
+        List<TezNamedEntityDescriptorProto> namedEntityProtos = DagTypeConverters.convertNamedEntityCollectionToProto(
+            servicePluginsDescriptor.getTaskSchedulerDescriptors());
+        pluginDescriptorBuilder.addAllTaskSchedulers(namedEntityProtos);
+      }
+
+      if (servicePluginsDescriptor.getContainerLauncherDescriptors() != null &&
+          servicePluginsDescriptor.getContainerLauncherDescriptors().length > 0) {
+        List<TezNamedEntityDescriptorProto> namedEntityProtos = DagTypeConverters.convertNamedEntityCollectionToProto(
+            servicePluginsDescriptor.getContainerLauncherDescriptors());
+        pluginDescriptorBuilder.addAllContainerLaunchers(namedEntityProtos);
+      }
+
+      if (servicePluginsDescriptor.getTaskCommunicatorDescriptors() != null &&
+          servicePluginsDescriptor.getTaskCommunicatorDescriptors().length > 0) {
+        List<TezNamedEntityDescriptorProto> namedEntityProtos = DagTypeConverters.convertNamedEntityCollectionToProto(
+            servicePluginsDescriptor.getTaskCommunicatorDescriptors());
+        pluginDescriptorBuilder.addAllTaskCommunicators(namedEntityProtos);
+      }
+
+    } else {
+      pluginDescriptorBuilder.setContainersEnabled(true).setUberEnabled(false);
+    }
+    return pluginDescriptorBuilder.build();
   }
 
 }
