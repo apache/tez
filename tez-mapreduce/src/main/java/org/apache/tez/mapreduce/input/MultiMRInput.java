@@ -110,6 +110,9 @@ public class MultiMRInput extends MRInputBase {
     super.initialize();
     LOG.info("Using New mapreduce API: " + useNewApi + ", numPhysicalInputs: "
         + getNumPhysicalInputs());
+    if (getNumPhysicalInputs() == 0) {
+      getContext().inputIsReady();
+    }
     return null;
   }
 
@@ -140,6 +143,10 @@ public class MultiMRInput extends MRInputBase {
   public void handleEvents(List<Event> inputEvents) throws Exception {
     lock.lock();
     try {
+      if (getNumPhysicalInputs() == 0) {
+        throw new IllegalStateException(
+            "Unexpected event. MultiMRInput has been setup to receive 0 events");
+      }
       Preconditions.checkState(eventCount.get() + inputEvents.size() <= getNumPhysicalInputs(),
           "Unexpected event. All physical sources already initialized");
       for (Event event : inputEvents) {
@@ -197,6 +204,6 @@ public class MultiMRInput extends MRInputBase {
 
   @Override
   public void start() throws Exception {
-    Preconditions.checkState(getNumPhysicalInputs() >= 1, "Expecting one or more physical inputs");
+    Preconditions.checkState(getNumPhysicalInputs() >= 0, "Expecting zero or more physical inputs");
   }
 }
