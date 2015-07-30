@@ -208,6 +208,14 @@ TEZ-UI CHANGES (TEZ-8):
   TEZ-1783. Wrapper in standalone mode.
   TEZ-1820. Fix wrong links.
 
+Release 0.5.5: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-2636. MRInput and MultiMRInput should work for cases when there are 0 physical inputs.
+  TEZ-2600. When used with HDFS federation(viewfs) ,tez will throw a error
+
 Release 0.5.4: 2015-06-26
 
 ALL CHANGES:

@@ -445,7 +445,9 @@ public class MRInput extends MRInputBase {
 
   @Override
   public void start() {
-    Preconditions.checkState(getNumPhysicalInputs() == 1, "Expecting only 1 physical input for MRInput");
+    Preconditions.checkState(getNumPhysicalInputs() == 0 || getNumPhysicalInputs() == 1,
+        "Expecting 0 or 1 physical input for MRInput");
+    LOG.info("MRInput setup to received events" + getNumPhysicalInputs());
   }
 
   @Private
@@ -501,6 +503,24 @@ public class MRInput extends MRInputBase {
         .checkState(readerCreated == false,
             "Only a single instance of record reader can be created for this input.");
     readerCreated = true;
+    if (getNumPhysicalInputs() == 0) {
+      return new KeyValueReader() {
+        @Override
+        public boolean next() throws IOException {
+          return false;
+        }
+
+        @Override
+        public Object getCurrentKey() throws IOException {
+          return null;
+        }
+
+        @Override
+        public Object getCurrentValue() throws IOException {
+          return null;
+        }
+      };
+    }
     rrLock.lock();
     try {
       if (!mrReader.isSetup())
@@ -514,6 +534,10 @@ public class MRInput extends MRInputBase {
 
   @Override
   public void handleEvents(List<Event> inputEvents) throws Exception {
+    if (getNumPhysicalInputs() == 0) {
+      throw new IllegalStateException(
+          "Unexpected event. MRInput has been setup to receive 0 events");
+    }
     if (eventReceived || inputEvents.size() != 1) {
       throw new IllegalStateException(
           "MRInput expects only a single input. Received: current eventListSize: "
