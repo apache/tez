@@ -130,8 +130,6 @@ public class TestExternalTezServices {
       confForJobs.set(entry.getKey(), entry.getValue());
     }
 
-    // TODO TEZ-2003 Once per vertex configuration is possible, run separate tests for push vs pull (regular threaded execution)
-
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
     remoteFs.mkdirs(stagingDirPath);
     // This is currently configured to push tasks into the Service, and then use the standard RPC

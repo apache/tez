@@ -41,5 +41,6 @@ ALL CHANGES:
   TEZ-2653. Change service contexts to expose a user specified payload instead of the AM configuration.
   TEZ-2441. Add tests for TezTaskRunner2.
   TEZ-2657. Add tests for client side changes - specifying plugins, etc.
+  TEZ-2626. Fix log lines with DEBUG in messages, consolidate TEZ-2003 TODOs.
 
 INCOMPATIBLE CHANGES:

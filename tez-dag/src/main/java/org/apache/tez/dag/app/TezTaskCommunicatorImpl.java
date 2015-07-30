@@ -463,9 +463,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
 
   // Holder for Task information, which eventually will likely be VertexImplm taskIndex, attemptIndex
+  // TODO TEZ-2003. TEZ-2670. Remove this class.
   protected static class TaskAttempt {
-    // TODO TEZ-2003 Change this to work with VertexName, int id, int version
-    // TODO TEZ-2003 Avoid constructing this unit all over the place
     private TezTaskAttemptID taskAttemptId;
 
     TaskAttempt(TezTaskAttemptID taskAttemptId) {

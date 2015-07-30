@@ -28,23 +28,27 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 
 // Do not make calls into this from within a held lock.
 
-// TODO TEZ-2003 Move this into the tez-api module
+// TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
 public interface TaskCommunicatorContext {
 
-  // TODO TEZ-2003 Add signalling back into this to indicate errors - e.g. Container unregsitered, task no longer running, etc.
-
-  // TODO TEZ-2003 Maybe add book-keeping as a helper library, instead of each impl tracking container to task etc.
+  // TODO TEZ-2003 (post) TEZ-2666 Enhancements to API
+  // - Consolidate usage of IDs
+  // - Split the heartbeat API to a liveness check and a status update
+  // - Rename and consolidate TaskHeartbeatResponse and TaskHeartbeatRequest
+  // - Fix taskStarted needs to be invoked before launching the actual task.
+  // - Potentially add methods to report availability stats to the scheduler
+  // - Report taskSuccess via a method instead of the heartbeat
+  // - Add methods to signal container / task state changes
+  // - Maybe add book-keeping as a helper library, instead of each impl tracking container to task etc.
+  // - Handling of containres / tasks which no longer exist in the system (formalized interface instead of a shouldDie notification)
 
   UserPayload getInitialUserPayload();
 
   ApplicationAttemptId getApplicationAttemptId();
   Credentials getCredentials();
 
-  // TODO TEZ-2003 Move to vertex, taskIndex, version
   boolean canCommit(TezTaskAttemptID taskAttemptId) throws IOException;
 
-  // TODO TEZ-2003 Split the heartbeat API to a liveness check and a status update
-  // KKK Rename this API
   TaskHeartbeatResponse heartbeat(TaskHeartbeatRequest request) throws IOException, TezException;
 
   boolean isKnownContainer(ContainerId containerId);
@@ -53,13 +57,10 @@ public interface TaskCommunicatorContext {
 
   void containerAlive(ContainerId containerId);
 
-  // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
   void taskStartedRemotely(TezTaskAttemptID taskAttemptId, ContainerId containerId);
 
-  // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
   void taskKilled(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason, @Nullable String diagnostics);
 
-  // TODO TEZ-2003 Move to vertex, taskIndex, version. Rename to taskAttempt*
   void taskFailed(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason, @Nullable String diagnostics);
 
   /**
@@ -72,9 +73,6 @@ public interface TaskCommunicatorContext {
    * @param stateSet   the set of states for which notifications are required. null implies all
    */
   void registerForVertexStateUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
-  // TODO TEZ-2003 API. Should a method exist for task succeeded.
-
-  // TODO Eventually Add methods to report availability stats to the scheduler.
 
   /**
    * Get the name of the currently executing dag

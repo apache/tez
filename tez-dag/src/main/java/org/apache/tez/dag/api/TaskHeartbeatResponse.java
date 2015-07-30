@@ -18,7 +18,7 @@ import java.util.List;
 
 import org.apache.tez.runtime.api.impl.TezEvent;
 
-// TODO TEZ-2003 Move this into the tez-api module
+// TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
 public class TaskHeartbeatResponse {
 
   private final boolean shouldDie;

@@ -19,13 +19,11 @@ import java.util.List;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
-// TODO TEZ-2003 Move this into the tez-api module
+// TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
 public class TaskHeartbeatRequest {
 
-  // TODO TEZ-2003 Ideally containerIdentifier should not be part of the request.
-  // Replace with a task lookup - vertex name + task index
+  // TODO TEZ-2003 (post) TEZ-2666 Ideally containerIdentifier should not be part of the request.
   private final String containerIdentifier;
-  // TODO TEZ-2003 Get rid of the task attemptId reference if possible
   private final TezTaskAttemptID taskAttemptId;
   private final List<TezEvent> events;
   private final int startIndex;

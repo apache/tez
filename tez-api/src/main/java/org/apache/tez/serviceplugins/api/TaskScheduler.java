@@ -27,6 +27,11 @@ import org.apache.tez.common.ServicePluginLifecycle;
 @InterfaceStability.Unstable
 public abstract class TaskScheduler implements ServicePluginLifecycle {
 
+  // TODO TEZ-2003 (post) TEZ-2668
+  // - Should setRegister / unregister be part of APIs when not YARN specific ?
+  // - Include vertex / task information in therequest so that the scheduler can make decisions
+  // around prioritizing tasks in the same vertex when others exist at the same priority.
+
   private final TaskSchedulerContext taskSchedulerContext;
 
   public TaskScheduler(TaskSchedulerContext taskSchedulerContext) {

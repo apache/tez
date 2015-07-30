@@ -26,8 +26,6 @@ import org.apache.tez.runtime.task.ErrorReporter;
 
 public interface TaskReporterInterface {
 
-  // TODO TEZ-2003 Consolidate private API usage if making this public
-
   void registerTask(RuntimeTask task, ErrorReporter errorReporter);
 
   void unregisterTask(TezTaskAttemptID taskAttemptId);

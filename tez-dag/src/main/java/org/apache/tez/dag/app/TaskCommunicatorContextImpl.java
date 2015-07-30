@@ -43,6 +43,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 @InterfaceAudience.Private
 public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, VertexStateUpdateListener {
 
+  // TODO TEZ-2003 (post) TEZ-2669 Propagate errors baack to the AM with proper error reporting
 
   private final AppContext context;
   private final TaskAttemptListenerImpTezDag taskAttemptListener;
@@ -188,7 +189,6 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     try {
       taskAttemptListener.vertexStateUpdateNotificationReceived(event, taskCommunicatorIndex);
     } catch (Exception e) {
-      // TODO TEZ-2003 This needs to be propagated to the DAG as a user error.
       throw new TezUncheckedException(e);
     }
   }

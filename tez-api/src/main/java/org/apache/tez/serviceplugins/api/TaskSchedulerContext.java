@@ -53,7 +53,10 @@ public interface TaskSchedulerContext {
     IDLE, RUNNING_APP, COMPLETED
   }
 
-  // TODO Post TEZ-2003. Remove references to YARN constructs like Container, ContainerStatus, NodeReport
+  // TODO TEZ-2003 (post) TEZ-2664. Remove references to YARN constructs like Container, ContainerStatus, NodeReport
+  // TODO TEZ-2003 (post) TEZ-2668 Enhancements to TaskScheduler interfaces
+  // - setApplicationRegistrationData may not be relevant to non YARN clusters
+  // - getAppFinalStatus may not be relevant to non YARN clusters
   // upcall to app must be outside locks
   public void taskAllocated(Object task,
                             Object appCookie,
@@ -78,7 +81,6 @@ public interface TaskSchedulerContext {
   public float getProgress();
   public void preemptContainer(ContainerId containerId);
 
-  // TODO Post TEZ-2003. Another method which is primarily relevant to YARN clusters for unregistration.
   public AppFinalStatus getFinalAppStatus();
 
 

@@ -16,7 +16,6 @@ package org.apache.tez.serviceplugins.api;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.common.ServicePluginLifecycle;
 
 /**
@@ -30,9 +29,6 @@ public abstract class ContainerLauncher implements ServicePluginLifecycle {
 
   private final ContainerLauncherContext containerLauncherContext;
 
-  // TODO TEZ-2003 Simplify this by moving away from AbstractService. Potentially Guava AbstractService.
-  // A serviceInit(Configuration) is not likely to be very useful, and will expose unnecessary internal
-  // configuration to the services if populated with the AM Configuration
   public ContainerLauncher(ContainerLauncherContext containerLauncherContext) {
     this.containerLauncherContext = containerLauncherContext;
   }

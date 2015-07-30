@@ -173,7 +173,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
         throw new TezException(e);
       }
     }
-    LOG.info("DEBUG: Dirs are: " + Arrays.toString(localDirs));
+    LOG.info("Dirs for {} are {}", request.getContainerIdString(), Arrays.toString(localDirs));
 
 
     // Setup workingDir. This is otherwise setup as Environment.PWD
@@ -193,7 +193,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
 
     // TODO Unregistering does not happen at the moment, since there's no signals on when an app completes.
-    LOG.info("DEBUG: Registering request with the ShuffleHandler");
+    LOG.info("Registering request with the ShuffleHandler for containerId {}", request.getContainerIdString());
     ShuffleHandler.get().registerApplication(request.getApplicationIdString(), jobToken, request.getUser());
 
 
@@ -255,7 +255,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
 
     // TODO Unregistering does not happen at the moment, since there's no signals on when an app completes.
-    LOG.info("DEBUG: Registering request with the ShuffleHandler");
+    LOG.info("Registering request with the ShuffleHandler for containerId {}", request.getContainerIdString());
     ShuffleHandler.get().registerApplication(request.getApplicationIdString(), jobToken, request.getUser());
     TaskRunnerCallable callable = new TaskRunnerCallable(request, new Configuration(getConfig()),
         new ExecutionContextImpl(localAddress.get().getHostName()), env, localDirs,

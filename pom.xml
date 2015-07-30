@@ -682,10 +682,10 @@
     <module>tez-examples</module>
     <module>tez-tests</module>
     <module>tez-dag</module>
+    <module>tez-ext-service-tests</module>
     <module>tez-ui</module>
     <module>tez-plugins</module>
     <module>tez-tools</module>
-    <module>tez-ext-service-tests</module>
     <module>tez-dist</module>
     <module>docs</module>
   </modules>

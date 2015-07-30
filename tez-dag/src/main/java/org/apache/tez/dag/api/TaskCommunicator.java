@@ -27,8 +27,17 @@ import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
-// TODO TEZ-2003 Move this into the tez-api module
+// TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
+// TODO TEZ-2003 (post) TEZ-2664. Ideally, don't expose YARN containerId; instead expose a Tez specific construct.
 public abstract class TaskCommunicator implements ServicePluginLifecycle {
+
+  // TODO TEZ-2003 (post) TEZ-2666 Enhancements to interface
+  // - registerContainerEnd should provide the end reason / possible rename
+  // - get rid of getAddress
+  // - Add methods to support task preemption
+  // - Add a dagStarted notification, along with a payload
+  // - taskSpec breakup into a clean interface
+  // - Add methods to report task / container completion
 
   private final TaskCommunicatorContext taskCommunicatorContext;
 
@@ -52,35 +61,19 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
   public void shutdown() throws Exception {
   }
 
-  // TODO Post TEZ-2003 Move this into the API module. Moving this requires abstractions for
-  // TaskSpec and related classes. (assuming that's efficient for execution)
 
-  // TODO TEZ-2003 Ideally, don't expose YARN containerId; instead expose a Tez specific construct.
-  // TODO When talking to an external service, this plugin implementer may need access to a host:port
   public abstract void registerRunningContainer(ContainerId containerId, String hostname, int port);
 
-  // TODO TEZ-2003 Ideally, don't expose YARN containerId; instead expose a Tez specific construct.
   public abstract void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason);
 
-  // TODO TEZ-2003 Provide additional inforamtion like reason for container end / Task end.
-  // Was it caused by preemption - or as a result of a general task completion / container completion
-
-  // TODO TEZ-2003 TaskSpec breakup into a clean interface
-  // TODO TEZ-2003 Add support for priority
   public abstract void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
                                                   Map<String, LocalResource> additionalResources,
                                                   Credentials credentials,
                                                   boolean credentialsChanged, int priority);
 
-  // TODO TEZ-2003. Are additional APIs required to mark a container as completed ? - for completeness.
-
-  // TODO TEZ-2003 Remove reference to TaskAttemptID
   public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID, TaskAttemptEndReason endReason);
 
-  // TODO TEZ-2003 This doesn't necessarily belong here. A server may not start within the AM.
   public abstract InetSocketAddress getAddress();
-
-  // TODO Eventually. Add methods here to support preemption of tasks.
 
   /**
    * Receive notifications on vertex state changes.
@@ -108,8 +101,6 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
    * After this, the contents returned from querying the context may change at any point - due to
    * the next dag being submitted.
    */
-  // TODO TEZ-2003 This is extremely difficult to use. Add the dagStarted notification, and potentially
-  // throw exceptions between a dagComplete and dagStart invocation.
   public abstract void dagComplete(String dagName);
 
   /**

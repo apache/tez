@@ -162,7 +162,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       LOG.info("Using Default Local Task Communicator");
       return new TezLocalTaskCommunicatorImpl(taskCommunicatorContexts[taskCommIndex]);
     } else {
-      // TODO TEZ-2003. Use the payload
       LOG.info("Using TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(), taskCommDescriptor.getClassName());
       Class<? extends TaskCommunicator> taskCommClazz = (Class<? extends TaskCommunicator>) ReflectionUtils
           .getClazz(taskCommDescriptor.getClassName());
@@ -217,7 +216,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
         // This can happen when a task heartbeats. Meanwhile the container is unregistered.
         // The information will eventually make it through to the plugin via a corresponding unregister.
         // There's a race in that case between the unregister making it through, and this method returning.
-        // TODO TEZ-2003. An exception back is likely a better approach than sending a shouldDie = true,
+        // TODO TEZ-2003 (post) TEZ-2666. An exception back is likely a better approach than sending a shouldDie = true,
         // so that the plugin can handle the scenario. Alternately augment the response with error codes.
         // Error codes would be better than exceptions.
         LOG.info("Attempt: " + taskAttemptID + " is not recognized for heartbeats");
@@ -278,7 +277,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
                          String diagnostics) {
     // Regular flow via TaskAttempt will take care of un-registering from the heartbeat handler,
     // and messages from the scheduler will release the container.
-    // TODO TEZ-2003 Maybe consider un-registering here itself, since the task is not active anymore,
+    // TODO TEZ-2003 (post) TEZ-2671 Maybe consider un-registering here itself, since the task is not active anymore,
     // instead of waiting for the unregister to flow through the Container.
     // Fix along the same lines as TEZ-2124 by introducing an explict context.
     context.getEventHandler().handle(new TaskAttemptEventAttemptKilled(taskAttemptId,
@@ -290,7 +289,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
                          String diagnostics) {
     // Regular flow via TaskAttempt will take care of un-registering from the heartbeat handler,
     // and messages from the scheduler will release the container.
-    // TODO TEZ-2003 Maybe consider un-registering here itself, since the task is not active anymore,
+    // TODO TEZ-2003 (post) TEZ-2671 Maybe consider un-registering here itself, since the task is not active anymore,
     // instead of waiting for the unregister to flow through the Container.
     // Fix along the same lines as TEZ-2124 by introducing an explict context.
     context.getEventHandler().handle(new TaskAttemptEventAttemptFailed(taskAttemptId,

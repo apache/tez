@@ -23,7 +23,6 @@
     <version>0.8.0-TEZ-2003-SNAPSHOT</version>
   </parent>
 
-  <!-- TODO TEZ-2003 Merge this into the tez-tests module -->
   <artifactId>tez-ext-service-tests</artifactId>
 
   <dependencies>

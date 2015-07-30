@@ -37,8 +37,6 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainer
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO TEZ-2003 look for all LOG.*(DBG and LOG.*(DEBUG messages
-
 public class TezTestServiceContainerLauncher extends ContainerLauncher {
 
   // TODO Support interruptability of tasks which haven't yet been launched.
@@ -119,7 +117,7 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
 
   @Override
   public void stopContainer(ContainerStopRequest stopRequest) {
-    LOG.info("DEBUG: Ignoring STOP_REQUEST for event: " + stopRequest);
+    LOG.info("Ignoring stopContainer for event: " + stopRequest);
     // that the container is actually done (normally received from RM)
     // TODO Sending this out for an un-launched container is invalid
     getContext().containerStopRequested(stopRequest.getContainerId());

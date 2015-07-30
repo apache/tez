@@ -502,7 +502,6 @@ public class TaskSchedulerEventHandler extends AbstractService implements
       taskSchedulerServiceWrappers[i].start();
       if (shouldUnregisterFlag.get()) {
         // Flag may have been set earlier when task scheduler was not initialized
-        // TODO TEZ-2003 Should setRegister / unregister be part of APIs when not YARN specific ?
         // External services could need to talk to some other entity.
         taskSchedulers[i].setShouldUnregister();
       }
@@ -567,8 +566,6 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     appCallbackExecutor.shutdownNow();
     appCallbackExecutor.awaitTermination(1000l, TimeUnit.MILLISECONDS);
   }
-
-  // TODO TEZ-2003 Consolidate TaskSchedulerAppCallback methods once these methods are moved into context
 
   // TaskSchedulerAppCallback methods with schedulerId, where relevant
   public synchronized void taskAllocated(int schedulerId, Object task,
@@ -655,7 +652,6 @@ public class TaskSchedulerEventHandler extends AbstractService implements
       Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls, 
       ByteBuffer clientAMSecretKey) {
-    // TODO TEZ-2003 (post) Ideally clusterInfo should be available per source rather than a global view.
     this.appContext.getClusterInfo().setMaxContainerCapability(
         maxContainerCapability);
     this.appAcls = appAcls;
@@ -755,7 +751,6 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     this.shouldUnregisterFlag.set(true);
     for (int i = 0 ; i < taskSchedulers.length ; i++) {
       if (this.taskSchedulers[i] != null) {
-        // TODO TEZ-2003 registration required for all schedulers ?
         this.taskSchedulers[i].setShouldUnregister();
       }
     }
@@ -768,7 +763,6 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   public boolean hasUnregistered() {
     boolean result = true;
     for (int i = 0 ; i < taskSchedulers.length ; i++) {
-      // TODO TEZ-2003 registration required for all schedulers ?
       result |= this.taskSchedulers[i].hasUnregistered();
       if (result == false) {
         return result;
