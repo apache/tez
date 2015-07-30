@@ -49,7 +49,6 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
-import org.apache.log4j.LogManager;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezCommonUtils;
@@ -68,7 +67,6 @@ import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.TaskSpec;
-import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.slf4j.Logger;
@@ -256,6 +254,7 @@ public class TezChild {
         boolean shouldDie;
         try {
           TaskRunner2Result result = taskRunner.run();
+          LOG.info("TaskRunner2Result: {}", result);
           shouldDie = result.isContainerShutdownRequested();
           if (shouldDie) {
             LOG.info("Got a shouldDie notification via heartbeats for container {}. Shutting down", containerIdString);
@@ -377,8 +376,6 @@ public class TezChild {
       }
       if (ownUmbilical) {
         RPC.stopProxy(umbilical);
-        // TODO Temporary change. Revert. Ideally, move this over to the main method in TezChild if possible.
-//        LogManager.shutdown();
       }
     }
   }

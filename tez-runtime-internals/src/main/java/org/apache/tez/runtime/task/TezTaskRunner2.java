@@ -24,6 +24,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -48,6 +49,9 @@ import org.slf4j.LoggerFactory;
 
 public class TezTaskRunner2 {
 
+  // Behaviour changes as compared to TezTaskRunner
+  // - Exception not thrown. Instead returned in the result.
+  // - The actual exception is part of the result, instead of requiring a getCause().
 
   private static final Logger LOG = LoggerFactory.getLogger(TezTaskRunner2.class);
 
@@ -156,19 +160,7 @@ public class TezTaskRunner2 {
           }
         }
       }
-      if (executionResult != null) {
-        synchronized (this) {
-          if (isRunningState()) {
-            if (executionResult.error != null) {
-              trySettingEndReason(EndReason.TASK_ERROR);
-              registerFirstException(executionResult.error, null);
-            } else {
-              trySettingEndReason(EndReason.SUCCESS);
-              taskComplete.set(true);
-            }
-          }
-        }
-      }
+      processCallableResult(executionResult);
 
       switch (firstEndReason) {
         case SUCCESS:
@@ -246,6 +238,26 @@ public class TezTaskRunner2 {
         LOG.info("Time taken to interrupt task={}", (System.currentTimeMillis() - taskKillStartTime));
       }
       Thread.interrupted();
+    }
+  }
+
+  // It's possible for the task to actually complete, and an alternate signal such as killTask/killContainer
+  // come in before the future has been processed by this thread. That condition is not handled - and
+  // the result of the execution will be determind by the thread order.
+  @VisibleForTesting
+  void processCallableResult(TaskRunner2CallableResult executionResult) {
+    if (executionResult != null) {
+      synchronized (this) {
+        if (isRunningState()) {
+          if (executionResult.error != null) {
+            trySettingEndReason(EndReason.TASK_ERROR);
+            registerFirstException(executionResult.error, null);
+          } else {
+            trySettingEndReason(EndReason.SUCCESS);
+            taskComplete.set(true);
+          }
+        }
+      }
     }
   }
 
@@ -438,12 +450,12 @@ public class TezTaskRunner2 {
   private String getTaskDiagnosticsString(Throwable t, String message) {
     String diagnostics;
     if (t != null && message != null) {
-      diagnostics = "exceptionThrown=" + ExceptionUtils.getStackTrace(t) + ", errorMessage="
+      diagnostics = "Failure while running task: " + ExceptionUtils.getStackTrace(t) + ", errorMessage="
           + message;
     } else if (t == null && message == null) {
       diagnostics = "Unknown error";
     } else {
-      diagnostics = t != null ? "exceptionThrown=" + ExceptionUtils.getStackTrace(t)
+      diagnostics = t != null ? "Failure while running task: " + ExceptionUtils.getStackTrace(t)
           : " errorMessage=" + message;
     }
     return diagnostics;

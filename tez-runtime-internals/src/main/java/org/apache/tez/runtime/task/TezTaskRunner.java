@@ -250,7 +250,7 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
                   cause = ((UndeclaredThrowableException) cause).getCause();
                 }
                 maybeRegisterFirstException(cause);
-                LOG.info("Encounted an error while executing task: " + task.getTaskAttemptID(),
+                LOG.info("Encountered an error while executing task: " + task.getTaskAttemptID(),
                     cause);
                 try {
                   sendFailure(cause, "Failure while running task");

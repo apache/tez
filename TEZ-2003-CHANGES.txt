@@ -39,5 +39,6 @@ ALL CHANGES:
   TEZ-2651. Pluggable services should not extend AbstractService.
   TEZ-2652. Cleanup the way services are specified for an AM and vertices.
   TEZ-2653. Change service contexts to expose a user specified payload instead of the AM configuration.
+  TEZ-2441. Add tests for TezTaskRunner2.
 
 INCOMPATIBLE CHANGES:
