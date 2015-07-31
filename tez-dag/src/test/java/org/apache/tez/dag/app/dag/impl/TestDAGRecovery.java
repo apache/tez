@@ -29,6 +29,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.event.AbstractEvent;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
@@ -39,6 +40,7 @@ import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.DAGTerminationCause;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -49,6 +51,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGKillRequestEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
@@ -155,6 +158,10 @@ public class TestDAGRecovery {
     assertEquals(tezCounters, dag.fullCounters);
   }
 
+  private void restoreFromDAGKillRequestEvent() {
+    dag.restoreFromEvent(new DAGKillRequestEvent(dag.getID(), 0L, false));
+  }
+
   /**
    * New -> RecoverTransition
    */
@@ -171,6 +178,18 @@ public class TestDAGRecovery {
     assertEquals(2, events.size());
     assertEquals(DAGEventType.DAG_INIT, events.get(0).getType());
     assertEquals(DAGEventType.DAG_START, events.get(1).getType());
+  }
+
+  /**
+   * New -> restoreFromDAGKillRequested -> RecoverTransition
+   */
+  @Test(timeout = 5000)
+  public void testDAGRecovery_FromNewToKilled() {
+    restoreFromDAGKillRequestEvent();
+    assertNewState();
+    dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
+    assertEquals(DAGState.KILLED, dag.getState());
+    assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
   }
 
   /**
@@ -198,6 +217,18 @@ public class TestDAGRecovery {
   }
 
   /**
+   * restoreFromDAGInitializedEvent -> restoreFromDAGKillRequested -> RecoverTransition
+   */
+  @Test(timeout = 5000)
+  public void testDAGRecovery_FromInitedToKilled() {
+    restoreFromDAGInitializedEvent();
+    restoreFromDAGKillRequestEvent();
+    dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
+    assertEquals(DAGState.KILLED, dag.getState());
+    assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+  }
+
+  /**
    * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent ->
    * RecoverTransition
    */
@@ -221,6 +252,34 @@ public class TestDAGRecovery {
       VertexEventRecoverVertex recoverEvent = (VertexEventRecoverVertex) vEvent;
       assertEquals(VertexState.RUNNING, recoverEvent.getDesiredState());
     }
+  }
+
+  /**
+   * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent -> restoreFromDAGKillRequested
+   * RecoverTransition
+   */
+  @Test(timeout = 5000)
+  public void testDAGRecovery_FromStartedtoKilled() {
+    assertNewState();
+    restoreFromDAGInitializedEvent();
+    restoreFromDAGStartedEvent();
+    restoreFromDAGKillRequestEvent();
+    dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
+    assertEquals(DAGState.KILLED, dag.getState());
+    assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+    // send recover event to all the vertices with desired state of KILLED
+    ArgumentCaptor<AbstractEvent> eventCaptor =
+        ArgumentCaptor.forClass(AbstractEvent.class);
+    verify(mockEventHandler, times(7)).handle(eventCaptor.capture());
+    List<AbstractEvent> events = eventCaptor.getAllValues();
+    assertEquals(7, events.size());
+    for (int i=0;i<6;++i) {
+      AbstractEvent vEvent = events.get(i);
+      assertTrue(vEvent instanceof VertexEventRecoverVertex);
+      VertexEventRecoverVertex recoverEvent = (VertexEventRecoverVertex) vEvent;
+      assertEquals(VertexState.KILLED, recoverEvent.getDesiredState());
+    }
+    assertTrue(events.get(6) instanceof DAGAppMasterEventDAGFinished);
   }
 
   /**
@@ -298,6 +357,42 @@ public class TestDAGRecovery {
     assertNewState();
     restoreFromDAGInitializedEvent();
     restoreFromDAGStartedEvent();
+    restoreFromDAGFinishedEvent(DAGState.KILLED);
+
+    dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));
+    assertEquals(DAGState.KILLED, dag.getState());
+    assertEquals(tezCounters, dag.getAllCounters());
+    // recover all the vertices to KILLED
+    ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(mockEventHandler, times(7)).handle(eventCaptor.capture());
+    List<Event> events = eventCaptor.getAllValues();
+    int i = 0;
+    for (; i < 6; ++i) {
+      assertTrue(events.get(i) instanceof VertexEventRecoverVertex);
+      VertexEventRecoverVertex recoverEvent =
+          (VertexEventRecoverVertex) events.get(i);
+      assertEquals(VertexState.KILLED, recoverEvent.getDesiredState());
+    }
+
+    // send DAGAppMasterEventDAGFinished at last
+    assertTrue(events.get(i) instanceof DAGAppMasterEventDAGFinished);
+    DAGAppMasterEventDAGFinished dagFinishedEvent =
+        (DAGAppMasterEventDAGFinished) events.get(i);
+    assertEquals(DAGState.KILLED, dagFinishedEvent.getDAGState());
+  }
+
+  /**
+   * restoreFromDAGInitializedEvent -> restoreFromDAGStartedEvent
+   * --> restoreFromDAGKillRequestEvent -->
+   * restoreFromDAGFinishedEvent -> RecoverTransition
+   */
+  @Test(timeout = 5000)
+  public void testDAGRecovery_Finished_KILLED_WithKillRequest() {
+    // same behavior as without DAGKillRequestEvent because DAGFinishedEvent is seen
+    assertNewState();
+    restoreFromDAGInitializedEvent();
+    restoreFromDAGStartedEvent();
+    restoreFromDAGKillRequestEvent();
     restoreFromDAGFinishedEvent(DAGState.KILLED);
 
     dag.handle(new DAGEventRecoverEvent(dagId, new ArrayList<URL>()));

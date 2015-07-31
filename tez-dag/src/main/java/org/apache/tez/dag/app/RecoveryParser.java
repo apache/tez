@@ -50,6 +50,7 @@ import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGKillRequestEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -105,6 +106,7 @@ public class RecoveryParser {
     public DAGState dagState = null;
     public boolean isCompleted = false;
     public boolean nonRecoverable = false;
+    public boolean isSessionStopped = false;
     public String reason = null;
     public Map<String, LocalResource> cumulativeAdditionalResources = null;
   }
@@ -163,6 +165,9 @@ public class RecoveryParser {
         break;
       case DAG_FINISHED:
         event = new DAGFinishedEvent();
+        break;
+      case DAG_KILL_REQUEST:
+        event = new DAGKillRequestEvent();
         break;
       case CONTAINER_LAUNCHED:
         event = new ContainerLaunchedEvent();
@@ -349,6 +354,11 @@ public class RecoveryParser {
           DAGFinishedEvent dagFinishedEvent = new DAGFinishedEvent();
           dagFinishedEvent.fromSummaryProtoStream(proto);
           dagState = dagFinishedEvent.getState();
+          break;
+        case DAG_KILL_REQUEST:
+          DAGKillRequestEvent killRequestEvent = new DAGKillRequestEvent();
+          killRequestEvent.fromSummaryProtoStream(proto);
+          bufferedSummaryEvents.add(killRequestEvent);
           break;
         case DAG_COMMIT_STARTED:
           dagCommitCompleted = false;
@@ -657,6 +667,13 @@ public class RecoveryParser {
             recoveredDAGData.recoveredDAG.restoreFromEvent(event);
             break;
           }
+          case DAG_KILL_REQUEST:
+          {
+            LOG.info("Recovering from event"
+                + ", eventType=" + eventType
+                + ", event=" + event.toString());
+            break;
+          }
           case DAG_FINISHED:
           {
             LOG.info("Recovering from event"
@@ -835,6 +852,11 @@ public class RecoveryParser {
               } else {
                 vertex.restoreFromEvent(vertexFinishedEvent);
               }
+              break;
+            case DAG_KILL_REQUEST:
+              DAGKillRequestEvent killRequestEvent = (DAGKillRequestEvent)bufferedEvent;
+              recoveredDAGData.isSessionStopped = killRequestEvent.isSessionStopped();
+              recoveredDAGData.recoveredDAG.restoreFromEvent(bufferedEvent);
               break;
             default:
               throw new RuntimeException("Invalid data found in buffered summary events"

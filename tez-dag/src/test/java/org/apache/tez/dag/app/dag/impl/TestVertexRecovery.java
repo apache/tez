@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
@@ -56,9 +57,13 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
+import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventRecoverEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
@@ -72,6 +77,8 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
@@ -401,6 +408,7 @@ public class TestVertexRecovery {
   public void setUp() throws IOException {
 
     dispatcher = new DrainDispatcher();
+    dispatcher.register(DAGAppMasterEventType.class, mock(EventHandler.class));
     dispatcher.register(DAGEventType.class, mock(EventHandler.class));
     vertexEventHandler = new VertexEventHanlder();
     dispatcher.register(VertexEventType.class, vertexEventHandler);
@@ -423,7 +431,8 @@ public class TestVertexRecovery {
     ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
     doReturn(clusterInfo).when(mockAppContext).getClusterInfo();
 
-    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_INIT));
+    dag.restoreFromEvent(new DAGInitializedEvent(dag.getID(), 0L, "user", "dagName", null));
+    dag.restoreFromEvent(new DAGStartedEvent(dag.getID(), 0L, "user", "dagName"));
     LOG.info("finish setUp");
   }
 
@@ -869,6 +878,33 @@ public class TestVertexRecovery {
 
   @Test(timeout = 5000)
   public void testRecovery_VertexManagerErrorOnRecovery() {
+    // In order to simulate the behavior that VertexManagerError happens in recovering stage, need to start the recovering from
+    // vertex and disable the the eventhandling of DAG (use mock here).
+    dispatcher = new DrainDispatcher();
+    dispatcher.register(DAGEventType.class, mock(EventHandler.class));
+    vertexEventHandler = new VertexEventHanlder();
+    dispatcher.register(VertexEventType.class, vertexEventHandler);
+    taskEventHandler = new TaskEventHandler();
+    dispatcher.register(TaskEventType.class, taskEventHandler);
+    dispatcher.register(TaskAttemptEventType.class,
+        new TaskAttemptEventHandler());
+    dispatcher.init(new Configuration());
+    dispatcher.start();
+    mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    DAGPlan dagPlan = createDAGPlan();
+    dag =
+        new DAGImpl(dagId, new Configuration(), dagPlan,
+            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            new Credentials(), new SystemClock(), user,
+            mock(TaskHeartbeatHandler.class), mockAppContext);
+    when(mockAppContext.getCurrentDAG()).thenReturn(dag);
+    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
+    doReturn(clusterInfo).when(mockAppContext).getClusterInfo();
+    dag.restoreFromEvent(new DAGInitializedEvent(dag.getID(), 0L, "user", "dagName", null));
+    dag.restoreFromEvent(new DAGStartedEvent(dag.getID(), 0L, "user", "dagName"));
+    LOG.info("finish setUp");
+
+    /////////////////// Start the recover ////////////////////////
     VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
     restoreFromInitializedEvent(vertex1);
     vertex1.handle(new VertexEventRecoverVertex(vertex1.getVertexId(),
@@ -1114,5 +1150,125 @@ public class TestVertexRecovery {
     assertTaskRecoveredEventSent(vertex1);
     assertTaskRecoveredEventSent(vertex2);
     assertTaskRecoveredEventSent(vertex3);
+  }
+
+  /**
+   * vertex1 (New) -> restoreFromInitialized -> restoreFromVertexStarted ->
+   * restoreFromVertexFinished (KILLED)
+   * vertex2 (New) -> restoreFromInitialized -> restoreFromVertexStarted ->
+   * restoreFromVertexFinished (KILLED)
+   * vertex3 (New) -> restoreFromInitialized -> restoreFromVertexStarted ->
+   * restoreFromVertexFinished (KILLED)
+  */
+  @Test(timeout = 5000)
+  public void testRecovery_KilledBeforeTaskStarted() {
+    VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
+    restoreFromInitializedEvent(vertex1);
+    VertexState recoveredState = vertex1.restoreFromEvent(new VertexStartedEvent(vertex1.getVertexId(),
+        initRequestedTime + 100L, initRequestedTime + 200L));
+    recoveredState = vertex1.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
+        "vertex1", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
+        initRequestedTime + 400L, initRequestedTime + 500L,
+        VertexState.KILLED, "", new TezCounters(), new VertexStats(), null));
+    assertEquals(VertexState.KILLED, recoveredState);
+
+    VertexImpl vertex2 = (VertexImpl) dag.getVertex("vertex2");
+    restoreFromInitializedEvent(vertex2);
+    recoveredState = vertex2.restoreFromEvent(new VertexStartedEvent(vertex2.getVertexId(),
+        initRequestedTime + 100L, initRequestedTime + 200L));
+    recoveredState = vertex2.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
+        "vertex2", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
+        initRequestedTime + 400L, initRequestedTime + 500L,
+        VertexState.KILLED, "", new TezCounters(), new VertexStats(), null));
+    assertEquals(VertexState.KILLED, recoveredState);
+
+    VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
+    restoreFromInitializedEvent(vertex3);
+    recoveredState = vertex3.restoreFromEvent(new VertexStartedEvent(vertex3.getVertexId(),
+        initRequestedTime + 100L, initRequestedTime + 200L));
+    recoveredState = vertex3.restoreFromEvent(new VertexFinishedEvent(vertex3.getVertexId(),
+        "vertex3", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
+        initRequestedTime + 400L, initRequestedTime + 500L,
+        VertexState.KILLED, "", new TezCounters(), new VertexStats(), null));
+    assertEquals(VertexState.KILLED, recoveredState);
+
+    // start the recovering, send RecoverEvent to its root vertices (v1, v2)
+    dag.handle(new DAGEventRecoverEvent(dag.getID(), null));
+    dispatcher.await();
+    // recover v1 to KILLED directly and also its tasks are recovered to KILLED
+    assertEquals(VertexState.KILLED, vertex1.getState());
+    for (Task task : vertex1.tasks.values()) {
+      assertEquals(TaskState.KILLED, task.getState());
+    }
+    // recover v2 to KILLED directly and also its tasks are recovered to KILLED
+    assertEquals(VertexState.KILLED, vertex2.getState());
+    for (Task task : vertex2.tasks.values()) {
+      assertEquals(TaskState.KILLED, task.getState());
+    }
+    // recover v3 to KILLED directly and also its tasks are recovered to KILLED
+    assertEquals(VertexState.KILLED, vertex3.getState());
+    for (Task task : vertex3.tasks.values()) {
+      assertEquals(TaskState.KILLED, task.getState());
+    }
+  }
+
+  /**
+   * vertex1 (New) -> restoreFromInitialized -> restoreFromVertexStarted ->
+   * restoreFromVertexFinished (FAILED)
+   * vertex2 (New) -> restoreFromInitialized -> restoreFromVertexStarted
+   * vertex3 (New) -> restoreFromInitialized -> restoreFromVertexStarted ->
+   * restoreFromVertexFinished (FAILED)
+  */
+  @Test(timeout = 5000)
+  public void testRecovery_FailedBeforeTaskStarted() {
+    VertexImpl vertex1 = (VertexImpl) dag.getVertex("vertex1");
+    restoreFromInitializedEvent(vertex1);
+    VertexState recoveredState = vertex1.restoreFromEvent(new VertexStartedEvent(vertex1.getVertexId(),
+        initRequestedTime + 100L, initRequestedTime + 200L));
+    recoveredState = vertex1.restoreFromEvent(new VertexFinishedEvent(vertex1.getVertexId(),
+        "vertex1", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
+        initRequestedTime + 400L, initRequestedTime + 500L,
+        VertexState.FAILED, "", new TezCounters(), new VertexStats(), null));
+    assertEquals(VertexState.FAILED, recoveredState);
+
+    VertexImpl vertex2 = (VertexImpl) dag.getVertex("vertex2");
+    restoreFromInitializedEvent(vertex2);
+    recoveredState = vertex2.restoreFromEvent(new VertexStartedEvent(vertex2.getVertexId(),
+        initRequestedTime + 100L, initRequestedTime + 200L));
+    recoveredState = vertex2.restoreFromEvent(new VertexFinishedEvent(vertex2.getVertexId(),
+        "vertex2", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
+        initRequestedTime + 400L, initRequestedTime + 500L,
+        VertexState.FAILED, "", new TezCounters(), new VertexStats(), null));
+    assertEquals(VertexState.FAILED, recoveredState);
+
+    VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
+    restoreFromInitializedEvent(vertex3);
+    recoveredState = vertex3.restoreFromEvent(new VertexStartedEvent(vertex3.getVertexId(),
+        initRequestedTime + 100L, initRequestedTime + 200L));
+    recoveredState = vertex3.restoreFromEvent(new VertexFinishedEvent(vertex3.getVertexId(),
+        "vertex3", 1, initRequestedTime, initedTime, initRequestedTime + 300L,
+        initRequestedTime + 400L, initRequestedTime + 500L,
+        VertexState.FAILED, "", new TezCounters(), new VertexStats(), null));
+    assertEquals(VertexState.FAILED, recoveredState);
+
+    // start the recovering from DAG
+    dag.handle(new DAGEventRecoverEvent(dag.getID(), null));
+    dispatcher.await();
+    // recover v1 to KILLED directly and also its tasks are recovered to KILLED
+    assertEquals(VertexState.FAILED, vertex1.getState());
+    for (Task task : vertex1.tasks.values()) {
+      assertEquals(TaskState.FAILED, task.getState());
+    }
+    // recover v2 to KILLED directly and also its tasks are recovered to KILLED
+    assertEquals(VertexState.FAILED, vertex2.getState());
+    for (Task task : vertex2.tasks.values()) {
+      assertEquals(TaskState.FAILED, task.getState());
+    }
+
+    // recover v3 to KILLED directly and also its tasks are recovered to KILLED
+    assertEquals(VertexState.FAILED, vertex3.getState());
+    for (Task task : vertex3.tasks.values()) {
+      assertEquals(TaskState.FAILED, task.getState());
+    }
   }
 }
