@@ -143,8 +143,10 @@ public class ShuffleManager implements FetcherCallback {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   
-  private final String srcNameTrimmed; 
-  
+  private final String srcNameTrimmed;
+
+  private final int maxTaskOutputAtOnce;
+
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
   private final TezCounter shuffledInputsCounter;
@@ -256,6 +258,14 @@ public class ShuffleManager implements FetcherCallback {
         inputContext.getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
     this.shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetaData);
 
+    /**
+     * Setting to very high val can lead to Http 400 error. Cap it to 75; every attempt id would
+     * be approximately 48 bytes; 48 * 75 = 3600 which should give some room for other info in URL.
+     */
+    this.maxTaskOutputAtOnce = Math.max(1, Math.min(75, conf.getInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT)));
+
     Arrays.sort(this.localDisks);
 
     shuffleInfoEventsMap = new ConcurrentHashMap<InputIdentifier, ShuffleEventInfo>();
@@ -266,7 +276,7 @@ public class ShuffleManager implements FetcherCallback {
         + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength +", "
         + "localDiskFetchEnabled=" + localDiskFetchEnabled + ", "
         + "sharedFetchEnabled=" + sharedFetchEnabled + ", "
-        + httpConnectionParams.toString());
+        + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce);
   }
 
   public void run() throws IOException {
@@ -407,6 +417,7 @@ public class ShuffleManager implements FetcherCallback {
     // remove from the obsolete list.
     List<InputAttemptIdentifier> pendingInputsForHost = inputHost
         .clearAndGetPendingInputs();
+    int includedMaps = 0;
     for (Iterator<InputAttemptIdentifier> inputIter = pendingInputsForHost
         .iterator(); inputIter.hasNext();) {
       InputAttemptIdentifier input = inputIter.next();
@@ -424,10 +435,20 @@ public class ShuffleManager implements FetcherCallback {
       // Avoid adding attempts which have been marked as OBSOLETE 
       if (obsoletedInputs.contains(input)) {
         inputIter.remove();
+        continue;
+      }
+
+      // Check if max threshold is met
+      if (includedMaps >= maxTaskOutputAtOnce) {
+        inputIter.remove();
+        inputHost.addKnownInput(input); //add to inputHost
+      } else {
+        includedMaps++;
       }
     }
-    // TODO NEWTEZ Maybe limit the number of inputs being given to a single
-    // fetcher, especially in the case where #hosts < #fetchers
+    if (inputHost.getNumPendingInputs() > 0) {
+      pendingHosts.add(inputHost); //add it to queue
+    }
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
         inputHost.getSrcPhysicalIndex(), pendingInputsForHost);
     LOG.info("Created Fetcher for host: " + inputHost.getHost()

@@ -423,6 +423,7 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2635. Limit number of attempts being downloaded in unordered fetch.
   TEZ-2636. MRInput and MultiMRInput should work for cases when there are 0 physical inputs.
   TEZ-2600. When used with HDFS federation(viewfs) ,tez will throw a error
 
