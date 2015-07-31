@@ -134,7 +134,11 @@ public class LocalClient extends FrameworkClient {
 
   @Override
   public void killApplication(ApplicationId appId) {
-    clientHandler.shutdownAM();
+    try {
+      clientHandler.shutdownAM();
+    } catch (TezException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

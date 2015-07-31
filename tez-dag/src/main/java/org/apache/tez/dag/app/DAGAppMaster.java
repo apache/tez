@@ -157,6 +157,7 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.history.events.AppLaunchedEvent;
+import org.apache.tez.dag.history.events.DAGKillRequestEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
@@ -1173,7 +1174,7 @@ public class DAGAppMaster extends AbstractService {
         + oldState + " new state: " + state);
   }
 
-  public void shutdownTezAM() {
+  public void shutdownTezAM() throws TezException {
     sessionStopped.set(true);
     synchronized (this) {
       this.taskSchedulerEventHandler.setShouldUnregisterFlag();
@@ -1182,6 +1183,11 @@ public class DAGAppMaster extends AbstractService {
         //send a DAG_KILL message
         LOG.info("Sending a kill event to the current DAG"
             + ", dagId=" + currentDAG.getID());
+        try {
+          logDAGKillRequestEvent(currentDAG.getID(), true);
+        } catch (IOException e) {
+          throw new TezException(e);
+        }
         sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.DAG_KILL));
       } else {
         LOG.info("No current running DAG, shutting down the AM");
@@ -1191,6 +1197,12 @@ public class DAGAppMaster extends AbstractService {
         shutdownHandler.shutdown();
       }
     }
+  }
+
+  void logDAGKillRequestEvent(TezDAGID dagId, boolean isSessionStopped) throws IOException {
+    DAGKillRequestEvent killRequestEvent = new DAGKillRequestEvent(dagId, clock.getTime(), isSessionStopped);
+    historyEventHandler.handleCriticalEvent(
+        new DAGHistoryEvent(dagId, killRequestEvent));
   }
 
   public String submitDAGToAppMaster(DAGPlan dagPlan,
@@ -1228,7 +1240,12 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @SuppressWarnings("unchecked")
-  public void tryKillDAG(DAG dag){
+  public void tryKillDAG(DAG dag) throws TezException {
+    try {
+      logDAGKillRequestEvent(dag.getID(), false);
+    } catch (IOException e) {
+      throw new TezException(e);
+    }
     dispatcher.getEventHandler().handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
   }
   
@@ -1756,7 +1773,14 @@ public class DAGAppMaster extends AbstractService {
         amResources.putAll(recoveredDAGData.cumulativeAdditionalResources);
         cumulativeAdditionalResources.putAll(recoveredDAGData.cumulativeAdditionalResources);
       }
-      
+
+      if (recoveredDAGData.isSessionStopped) {
+        LOG.info("AM crashed when shutting down in the previous attempt"
+            + ", continue the shutdown and recover it to SUCCEEDED");
+        this.sessionStopped.set(true);
+        return;
+      }
+
       if (recoveredDAGData.isCompleted
           || recoveredDAGData.nonRecoverable) {
         LOG.info("Found previous DAG in completed or non-recoverable state"
@@ -1822,7 +1846,11 @@ public class DAGAppMaster extends AbstractService {
       this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
         @Override
         public void run() {
-          checkAndHandleSessionTimeout();
+          try {
+            checkAndHandleSessionTimeout();
+          } catch (TezException e) {
+            LOG.error("Error when check AM session timeout", e);
+          }
         }
       }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
     }
@@ -1973,7 +2001,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private synchronized void checkAndHandleSessionTimeout() {
+  private synchronized void checkAndHandleSessionTimeout() throws TezException {
     if (EnumSet.of(DAGAppMasterState.RUNNING,
         DAGAppMasterState.RECOVERING).contains(this.state)
         || sessionStopped.get()) {

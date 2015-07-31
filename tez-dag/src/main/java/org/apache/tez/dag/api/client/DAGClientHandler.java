@@ -118,7 +118,7 @@ public class DAGClientHandler {
     return dagAppMaster.submitDAGToAppMaster(dagPlan, additionalAmResources);
   }
 
-  public synchronized void shutdownAM() {
+  public synchronized void shutdownAM() throws TezException {
     LOG.info("Received message to shutdown AM");
     if (dagAppMaster != null) {
       dagAppMaster.shutdownTezAM();
