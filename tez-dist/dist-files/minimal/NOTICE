@@ -5,7 +5,7 @@ This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 This product includes jersey libraries : jersey-client and
-jersey-client. The details on how to obtain those modules
+jersey-json. The details on how to obtain those modules
 are available at https://jersey.java.net/.
 
 This product includes javax.servlet-api library. The details on
