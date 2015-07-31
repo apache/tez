@@ -141,9 +141,13 @@ class ShuffleScheduler {
         conf.getBoolean(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, 
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR_DEFAULT);
-    this.maxTaskOutputAtOnce = Math.max(1, conf.getInt(
+    /**
+     * Setting to very high val can lead to Http 400 error. Cap it to 75; every attempt id would
+     * be approximately 48 bytes; 48 * 75 = 3600 which should give some room for other info in URL.
+     */
+    this.maxTaskOutputAtOnce = Math.max(1, Math.min(75, conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT));
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT)));
     
     this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
 
@@ -153,7 +157,8 @@ class ShuffleScheduler {
         + ", reportReadErrorImmediately=" + reportReadErrorImmediately
         + ", maxFailedUniqueFetches=" + maxFailedUniqueFetches
         + ", abortFailureLimit=" + abortFailureLimit
-        + ", maxMapRuntime=" + maxMapRuntime);
+        + ", maxMapRuntime=" + maxMapRuntime
+        + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce);
   }
 
   public synchronized void copySucceeded(InputAttemptIdentifier srcAttemptIdentifier, 
