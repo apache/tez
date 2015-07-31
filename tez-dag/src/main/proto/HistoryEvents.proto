@@ -77,6 +77,12 @@ message DAGFinishedProto {
   optional TezCountersProto counters = 5;
 }
 
+message DAGKillRequestProto {
+  optional string dag_id = 1;
+  optional int64 kill_request_time = 2;
+  optional bool isSessionStopped = 3;
+}
+
 message VertexInitializedProto {
   optional string vertex_name = 1;
   optional string vertex_id = 2;

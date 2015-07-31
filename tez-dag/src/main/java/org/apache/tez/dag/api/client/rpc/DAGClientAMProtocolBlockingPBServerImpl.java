@@ -176,8 +176,12 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     if (!real.getACLManager().checkAMModifyAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
-    real.shutdownAM();
-    return ShutdownSessionResponseProto.newBuilder().build();
+    try {
+      real.shutdownAM();
+      return ShutdownSessionResponseProto.newBuilder().build();
+    } catch(TezException e) {
+      throw wrapException(e);
+    }
   }
 
   @Override
