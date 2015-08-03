@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2048. Remove VertexManagerPluginContext.getTaskContainer()
   TEZ-2565. Consider scanning unfinished tasks in VertexImpl::constructStatistics to reduce merge overhead.
   TEZ-2468. Change the minimum Java version to Java 7.
+  TEZ-2646. Add scheduling casual dependency for attempts
 
 ALL CHANGES:
   TEZ-2613. Fetcher(unordered) using List to store InputAttemptIdentifier can lead to some inefficiency during remove() operation.

@@ -45,7 +45,7 @@ public class TaskAttemptInfo extends BaseInfo {
   private final String nodeId;
   private final String status;
   private final String logUrl;
-
+  private final String schedulingCausalTA;
   private TaskInfo taskInfo;
 
   private Container container;
@@ -66,6 +66,7 @@ public class TaskAttemptInfo extends BaseInfo {
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
     successfulAttemptId = otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID);
     scheduledTime = otherInfoNode.optLong(Constants.SCHEDULED_TIME);
+    schedulingCausalTA = otherInfoNode.optString(Constants.SCHEDULING_CAUSAL_ATTEMPT);
 
     containerId = otherInfoNode.optString(Constants.CONTAINER_ID);
     String id = otherInfoNode.optString(Constants.NODE_ID);
@@ -110,6 +111,10 @@ public class TaskAttemptInfo extends BaseInfo {
 
   public final long getScheduledTime() {
     return scheduledTime - (getTaskInfo().getVertexInfo().getDagInfo().getAbsStartTime());
+  }
+  
+  public final String getSchedulingCausalTA() {
+    return schedulingCausalTA;
   }
 
   @Override

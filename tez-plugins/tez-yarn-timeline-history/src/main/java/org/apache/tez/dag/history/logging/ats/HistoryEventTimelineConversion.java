@@ -467,6 +467,11 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
     atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
     atsEntity.addOtherInfo(ATSConstants.STATUS, TaskAttemptState.RUNNING.name());
+    atsEntity.addOtherInfo(ATSConstants.SCHEDULED_TIME, event.getScheduledTime());
+    if (event.getSchedulingCausalTA() != null) {
+      atsEntity.addOtherInfo(ATSConstants.SCHEDULING_CAUSAL_ATTEMPT,
+          event.getSchedulingCausalTA().toString());
+    }
 
     return atsEntity;
   }

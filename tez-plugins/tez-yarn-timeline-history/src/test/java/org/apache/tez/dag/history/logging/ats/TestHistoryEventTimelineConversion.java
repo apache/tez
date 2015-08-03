@@ -165,7 +165,7 @@ public class TestHistoryEventTimelineConversion {
           break;
         case TASK_ATTEMPT_STARTED:
           event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1", random.nextInt(), containerId,
-              nodeId, null, null, "nodeHttpAddress");
+              nodeId, null, null, "nodeHttpAddress", 0, null);
           break;
         case TASK_ATTEMPT_FINISHED:
           event = new TaskAttemptFinishedEvent(tezTaskAttemptID, "v1", random.nextInt(),
@@ -724,8 +724,10 @@ public class TestHistoryEventTimelineConversion {
   @Test(timeout = 5000)
   public void testConvertTaskAttemptStartedEvent() {
     long startTime = random.nextLong();
+    long scheduleTime = 1024;
     TaskAttemptStartedEvent event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1",
-        startTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress");
+        startTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress", 
+        scheduleTime, tezTaskAttemptID);
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
@@ -770,6 +772,9 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.NODE_HTTP_ADDRESS));
     Assert.assertTrue(TaskAttemptState.RUNNING.name()
         .equals(timelineEntity.getOtherInfo().get(ATSConstants.STATUS)));
+    Assert.assertEquals(tezTaskAttemptID.toString(), 
+        timelineEntity.getOtherInfo().get(ATSConstants.SCHEDULING_CAUSAL_ATTEMPT));
+    Assert.assertEquals(scheduleTime, timelineEntity.getOtherInfo().get(ATSConstants.SCHEDULED_TIME));
   }
 
   @Test(timeout = 5000)

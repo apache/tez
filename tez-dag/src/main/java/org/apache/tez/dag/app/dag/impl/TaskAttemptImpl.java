@@ -165,6 +165,9 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Resource taskResource;
   private final ContainerContext containerContext;
   private final boolean leafVertex;
+  
+  private TezTaskAttemptID schedulingCausalTA;
+  private long scheduledTime;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -374,12 +377,22 @@ public class TaskAttemptImpl implements TaskAttempt,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
       Task task) {
+    this(taskId, attemptNumber, eventHandler, taskAttemptListener, conf, clock,
+        taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
+        task, null);
+  }
+  public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
+      TaskAttemptListener taskAttemptListener, Configuration conf, Clock clock,
+      TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
+      boolean isRescheduled,
+      Resource resource, ContainerContext containerContext, boolean leafVertex,
+      Task task, TezTaskAttemptID schedulingCausalTA) {
 
-    this.MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
+    MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
 
-    this.MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = conf.getDouble(TezConfiguration
+    MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = conf.getDouble(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT);
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -394,6 +407,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.appContext = appContext;
     this.task = task;
     this.vertex = this.task.getVertex();
+    this.schedulingCausalTA = schedulingCausalTA;
+    this.scheduledTime = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
@@ -424,6 +439,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   @Override
   public TezDAGID getDAGID() {
     return getVertexID().getDAGId();
+  }
+  
+  public TezTaskAttemptID getSchedulingCausalTA() {
+    return schedulingCausalTA;
   }
 
   TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
@@ -716,6 +735,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         {
           TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
           this.launchTime = tEvent.getStartTime();
+          this.scheduledTime = tEvent.getScheduledTime();
+          this.schedulingCausalTA = tEvent.getSchedulingCausalTA();
           recoveryStartEventSeen = true;
           recoveredState = TaskAttemptState.RUNNING;
           this.containerId = tEvent.getContainerId();
@@ -936,7 +957,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getVertex().getName(),
         launchTime, containerId, containerNodeId,
-        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress);
+        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress, scheduledTime, schedulingCausalTA);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), startEvt));
   }
@@ -1076,7 +1097,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           .getTaskAttemptState());
       // Send out events to the Task - indicating TaskAttemptTermination(F/K)
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId, helper
-          .getTaskEventType()));
+          .getTaskEventType(), event));
     }
   }
 

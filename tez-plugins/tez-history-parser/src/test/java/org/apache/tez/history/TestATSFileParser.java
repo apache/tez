@@ -240,6 +240,10 @@ public class TestATSFileParser {
         assertTrue(taskInfo.getSuccessfulTaskAttempts().size() > 0);
         assertTrue(taskInfo.getFailedTaskAttempts().size() == 0);
         assertTrue(taskInfo.getKilledTaskAttempts().size() == 0);
+        for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
+          assertTrue(attemptInfo.getStartTime() > 0);
+          assertTrue(attemptInfo.getScheduledTime() > 0);
+        }
       }
       assertTrue(vertexInfo.getLastTaskToFinish() != null);
       if (vertexInfo.getVertexName().equals(TOKENIZER)) {
@@ -326,6 +330,17 @@ public class TestATSFileParser {
         20); //Every line has 2 words. 10 lines x 2 words = 20
     verifyCounter(dagInfo.getCounter(TaskCounter.SPILLED_RECORDS.toString()),
         "TaskCounter_Tokenizer_OUTPUT_Summation", 20); //Same as above
+    
+    for (TaskInfo taskInfo : summationVertex.getTasks()) {
+      String lastAttemptId = null;
+      for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
+        if (lastAttemptId != null) {
+          // failed attempt should be causal TA of next attempt
+          assertTrue(lastAttemptId.equals(attemptInfo.getSchedulingCausalTA()));
+        }
+        lastAttemptId = attemptInfo.getTaskAttemptId();
+      }
+    }
 
     //TODO: Need to check for SUMMATION vertex counters. Since all attempts are failed, counters are not getting populated.
     //TaskCounter.REDUCE_INPUT_RECORDS

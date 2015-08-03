@@ -82,6 +82,7 @@ public class ATSConstants {
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";
   public static final String EXIT_STATUS = "exitStatus";
   public static final String UPDATED_EDGE_MANAGERS = "updatedEdgeManagers";
+  public static final String SCHEDULING_CAUSAL_ATTEMPT = "schedulingCausalAttempt";
 
   /* Counters-related keys */
   public static final String COUNTER_GROUPS = "counterGroups";

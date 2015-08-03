@@ -70,6 +70,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
@@ -549,7 +550,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private TaskAttempt createRecoveredTaskAttempt(TezTaskAttemptID tezTaskAttemptID) {
-    TaskAttempt taskAttempt = createAttempt(tezTaskAttemptID.getId());
+    TaskAttempt taskAttempt = createAttempt(tezTaskAttemptID.getId(), null);
     return taskAttempt;
   }
 
@@ -814,10 +815,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
   
-  TaskAttemptImpl createAttempt(int attemptNumber) {
+  TaskAttemptImpl createAttempt(int attemptNumber, TezTaskAttemptID schedulingCausalTA) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
-        (failedAttempts > 0), taskResource, containerContext, leafVertex, this);
+        (failedAttempts > 0), taskResource, containerContext, leafVertex, this, schedulingCausalTA);
   }
 
   @Override
@@ -834,8 +835,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   // This is always called in the Write Lock
-  private void addAndScheduleAttempt() {
-    TaskAttempt attempt = createAttempt(attempts.size());
+  private void addAndScheduleAttempt(TezTaskAttemptID schedulingCausalTA) {
+    TaskAttempt attempt = createAttempt(attempts.size(), schedulingCausalTA);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created attempt " + attempt.getID());
     }
@@ -1048,7 +1049,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       TaskEventScheduleTask scheduleEvent = (TaskEventScheduleTask) event;
       task.locationHint = scheduleEvent.getTaskLocationHint();
       task.baseTaskSpec = scheduleEvent.getBaseTaskSpec();
-      task.addAndScheduleAttempt();
+      // For now, initial scheduling dependency is due to vertex manager scheduling
+      task.addAndScheduleAttempt(null);
       task.scheduledTime = task.clock.getTime();
       task.logJobHistoryTaskStartedEvent();
     }
@@ -1066,7 +1068,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public void transition(TaskImpl task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
       task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
-      task.addAndScheduleAttempt();
+      TezTaskAttemptID earliestUnfinishedAttempt = null;
+      for (TaskAttempt ta : task.attempts.values()) {
+        // find the oldest running attempt
+        if (!ta.isFinished()) {
+          earliestUnfinishedAttempt = ta.getID();
+        }
+      }
+      task.addAndScheduleAttempt(earliestUnfinishedAttempt);
     }
   }
 
@@ -1143,9 +1152,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // we KillWaitAttemptCompletedTransitionready have a spare
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
       task.getVertex().incrementKilledTaskAttemptCount();
-      if (task.getUncompletedAttemptsCount() == 0
-          && task.successfulAttempt == null) {
-        task.addAndScheduleAttempt();
+      if (task.shouldScheduleNewAttempt()) {
+        task.addAndScheduleAttempt(castEvent.getTaskAttemptID());
       }
     }
   }
@@ -1255,7 +1263,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           // If any incomplete, the running attempt will moved to failed and its
           // update will trigger a new attempt if possible
           if (task.attempts.size() == task.getFinishedAttemptsCount()) {
-            task.addAndScheduleAttempt();
+            task.addAndScheduleAttempt(null);
           }
           endState = TaskStateInternal.RUNNING;
           break;
@@ -1304,15 +1312,23 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       return task.getInternalState();
     }
   }
+  
+  private boolean shouldScheduleNewAttempt() {
+    return (getUncompletedAttemptsCount() == 0
+            && successfulAttempt == null);
+  }
 
   private static class AttemptFailedTransition implements
     MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
 
+    private TezTaskAttemptID schedulingCausalTA;
+    
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
       task.getVertex().incrementFailedTaskAttemptCount();
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      schedulingCausalTA = castEvent.getTaskAttemptID();
       task.addDiagnosticInfo("TaskAttempt " + castEvent.getTaskAttemptID().getId() + " failed,"
           + " info=" + task.getAttempt(castEvent.getTaskAttemptID()).getDiagnostics());
       if (task.commitAttempt != null &&
@@ -1327,12 +1343,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);
         // we don't need a new event if we already have a spare
-        if (task.getUncompletedAttemptsCount() == 0
-            && task.successfulAttempt == null) {
+        if (task.shouldScheduleNewAttempt()) {
           LOG.info("Scheduling new attempt for task: " + task.getTaskId()
               + ", currentFailedAttempts: " + task.failedAttempts + ", maxFailedAttempts: "
               + task.maxFailedAttempts);
-          task.addAndScheduleAttempt();
+          task.addAndScheduleAttempt(getSchedulingCausalTA());
         }
       } else {
         LOG.info("Failing task: " + task.getTaskId()
@@ -1352,10 +1367,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     protected TaskStateInternal getDefaultState(TaskImpl task) {
       return task.getInternalState();
     }
+    
+    protected TezTaskAttemptID getSchedulingCausalTA() {
+      return schedulingCausalTA;
+    }
   }
 
   private static class TaskRetroactiveFailureTransition
       extends AttemptFailedTransition {
+
+    private TezTaskAttemptID schedulingCausalTA;
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
@@ -1386,6 +1407,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // succeeded state
         return TaskStateInternal.SUCCEEDED;
       }
+      
+      Preconditions.checkState(castEvent.getCausalEvent() != null);
+      TaskAttemptEventOutputFailed destinationEvent = 
+          (TaskAttemptEventOutputFailed) castEvent.getCausalEvent();
+      schedulingCausalTA = destinationEvent.getInputFailedEvent().getSourceInfo().getTaskAttemptID();
 
       // super.transition is mostly coded for the case where an
       //  UNcompleted task failed.  When a COMPLETED task retroactively
@@ -1401,6 +1427,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       }
 
       return returnState;
+    }
+    
+    @Override
+    protected TezTaskAttemptID getSchedulingCausalTA() {
+      return schedulingCausalTA;
     }
 
     @Override
@@ -1433,7 +1464,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // from the map splitInfo. So the bad node might be sent as a location
         // to the RM. But the RM would ignore that just like it would ignore
         // currently pending container requests affinitized to bad nodes.
-        task.addAndScheduleAttempt();
+        task.addAndScheduleAttempt(attemptId);
         return TaskStateInternal.SCHEDULED;
       } else {
         // nothing to do

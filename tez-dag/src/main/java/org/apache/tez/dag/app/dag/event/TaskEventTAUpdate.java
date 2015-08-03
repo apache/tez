@@ -18,19 +18,31 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.tez.common.TezAbstractEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
+@SuppressWarnings("rawtypes")
 public class TaskEventTAUpdate extends TaskEvent {
 
   private TezTaskAttemptID attemptID;
+  private TezAbstractEvent causalEvent;
 
   public TaskEventTAUpdate(TezTaskAttemptID id, TaskEventType type) {
-    super(id.getTaskID(), type);
-    this.attemptID = id;
+    this(id, type, null);
   }
 
+  public TaskEventTAUpdate(TezTaskAttemptID id, TaskEventType type, TezAbstractEvent causalEvent) {
+    super(id.getTaskID(), type);
+    this.attemptID = id;
+    this.causalEvent = causalEvent;
+  }
+  
   public TezTaskAttemptID getTaskAttemptID() {
     return attemptID;
+  }
+  
+  public TezAbstractEvent getCausalEvent() {
+    return causalEvent;
   }
 
 }
