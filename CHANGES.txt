@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2211. Tez UI: Allow users to configure timezone
   TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-1314. Port MAPREDUCE-5821 to Tez.
   TEZ-2568. V_INPUT_DATA_INFORMATION may happen after vertex is initialized
