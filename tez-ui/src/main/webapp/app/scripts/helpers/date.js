@@ -63,7 +63,11 @@ App.Helpers.date = {
         format += ':SSS';
       }
     }
-    return moment.utc(timestamp).local().format(format);
+    var zone = moment.tz.zone(App.get('env.timezone'));
+    if (zone == null)  {
+      return moment.utc(timestamp).local().format(format);
+    }
+    return moment.tz(timestamp, zone.name).format(format);
   },
 
   /**

@@ -40,6 +40,9 @@
   <div class="footer">
     <div class="main-container">
       <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Licensed under the Apache License, Version 2.0</a>.
+      {{#if App.env.timezone}}
+        <span>Timezone: {{App.env.timezone}}</span>
+      {{/if}}
     </div>
   </div>
 </div>

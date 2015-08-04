@@ -41,6 +41,9 @@ In configs.js
   * Visibility of table columns can be controlled using the column selector. Also an optional set
     of file system counters can be made visible as columns for most of the tables. For adding more
     counters refer configs.js.
+  * Timezone defaults to displaying timestamps in local timezone. For configuring to a specific
+    timezone, configure the timezone value referring to http://momentjs.com/timezone/docs/
+    for valid entries.
 
 Building
 ---------
