@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tez.http.BaseHttpConnection;
@@ -87,8 +89,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   @VisibleForTesting
-  LinkedList<InputAttemptIdentifier> remaining;
-
+  Map<String, InputAttemptIdentifier> remaining;
   volatile DataInputStream input;
 
   volatile BaseHttpConnection httpConnection;
@@ -228,25 +229,19 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     retryStartTime = 0;
     // Get completed maps on 'host'
     List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
-
     // Sanity check to catch hosts with only 'OBSOLETE' maps, 
     // especially at the tail of large jobs
     if (srcAttempts.size() == 0) {
       return;
     }
-    
     if(LOG.isDebugEnabled()) {
       LOG.debug("Fetcher " + id + " going to fetch from " + host + " for: "
         + srcAttempts + ", partitionId: " + currentPartition);
     }
-    
-    // List of maps to be fetched yet
-    remaining = new LinkedList<InputAttemptIdentifier>(srcAttempts);
-    
+    populateRemainingMap(srcAttempts);
     // Construct the url and connect
-
     try {
-      if (!setupConnection(host, srcAttempts)) {
+      if (!setupConnection(host, remaining.values())) {
         if (stopped) {
           cleanupCurrentConnection(true);
         }
@@ -273,7 +268,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             return;
           }
           // Connect with retry
-          if (!setupConnection(host, new LinkedList<InputAttemptIdentifier>(remaining))) {
+          if (!setupConnection(host, remaining.values())) {
             if (stopped) {
               cleanupCurrentConnection(true);
               LOG.info("Not reporting connection re-establishment failure since fetcher is stopped");
@@ -310,7 +305,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   @VisibleForTesting
-  boolean setupConnection(MapHost host, List<InputAttemptIdentifier> attempts)
+  boolean setupConnection(MapHost host, Collection<InputAttemptIdentifier> attempts)
       throws IOException {
     boolean connectSucceeded = false;
     try {
@@ -347,7 +342,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       // At this point, either the connection failed, or the initial header verification failed.
       // The error does not relate to any specific Input. Report all of them as failed.
       // This ends up indirectly penalizing the host (multiple failures reported on the single host)
-      for(InputAttemptIdentifier left: remaining) {
+      for (InputAttemptIdentifier left : remaining.values()) {
         // Need to be handling temporary glitches ..
         // Report read error to the AM to trigger source failure heuristics
         scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded);
@@ -361,7 +356,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     // Cycle through remaining MapOutputs
     boolean isFirst = true;
     InputAttemptIdentifier first = null;
-    for (InputAttemptIdentifier left : remaining) {
+    for (InputAttemptIdentifier left : remaining.values()) {
       if (isFirst) {
         first = left;
         isFirst = false;
@@ -487,7 +482,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength,
                               endTime - startTime, mapOutput);
       // Note successful shuffle
-      remaining.remove(srcAttemptId);
+      remaining.remove(srcAttemptId.toString());
       metrics.successFetch();
       return null;
     } catch (IOException ioe) {
@@ -514,12 +509,11 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                  srcAttemptId + " decomp: " + 
                  decompressedLength + ", " + compressedLength, ioe);
         if(srcAttemptId == null) {
-          return remaining.toArray(new InputAttemptIdentifier[remaining.size()]);
+          return remaining.values().toArray(new InputAttemptIdentifier[remaining.values().size()]);
         } else {
           return new InputAttemptIdentifier[] {srcAttemptId};
         }
       }
-      
       LOG.warn("Failed to shuffle output of " + srcAttemptId + 
                " from " + host.getHostIdentifier(), ioe); 
 
@@ -528,7 +522,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       metrics.failedFetch();
       return new InputAttemptIdentifier[] {srcAttemptId};
     }
-
   }
 
   /**
@@ -572,7 +565,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
-      int forReduce, List<InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
+      int forReduce, Map<String, InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
       LOG.warn(logIdentifier + " invalid lengths in map output header: id: " +
@@ -592,7 +585,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
 
     // Sanity check
-    if (!remaining.contains(srcAttemptId)) {
+    if (remaining.get(srcAttemptId.toString()) == null) {
       wrongMapErrs.increment(1);
       LOG.warn("Invalid map-output! Received output for " + srcAttemptId);
       return false;
@@ -603,7 +596,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (remaining.size() > 0) {
-      return remaining.iterator().next();
+      return remaining.values().iterator().next();
     } else {
       return null;
     }
@@ -626,10 +619,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
 
     // List of maps to be fetched yet
-    remaining = new LinkedList<InputAttemptIdentifier>(srcAttempts);
+    populateRemainingMap(srcAttempts);
 
     try {
-      final Iterator<InputAttemptIdentifier> iter = remaining.iterator();
+      final Iterator<InputAttemptIdentifier> iter = remaining.values().iterator();
       while (iter.hasNext()) {
         // Avoid fetching more if already stopped
         if (stopped) {
@@ -701,5 +694,16 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     return MapOutput.createLocalDiskMapOutput(srcAttemptId, allocator, filename,
         indexRecord.getStartOffset(), indexRecord.getPartLength(), true);
   }
+
+  @VisibleForTesting
+  void populateRemainingMap(List<InputAttemptIdentifier> origlist) {
+    if (remaining == null) {
+      remaining = new LinkedHashMap<String, InputAttemptIdentifier>(origlist.size());
+    }
+    for (InputAttemptIdentifier id : origlist) {
+      remaining.put(id.toString(), id);
+    }
+  }
+
 }
 
