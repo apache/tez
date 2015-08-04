@@ -377,7 +377,7 @@ public class Edge {
     EventMetaData srcInfo = tezEvent.getSourceInfo();
     
     for (DataMovementEvent dmEvent : compEvent.getEvents()) {
-      TezEvent newEvent = new TezEvent(dmEvent, srcInfo);
+      TezEvent newEvent = new TezEvent(dmEvent, srcInfo, tezEvent.getEventReceivedTime());
       sendTezEventToDestinationTasks(newEvent);
     }
   }
@@ -406,7 +406,7 @@ public class Edge {
             InputFailedEvent ifEvent = ((InputFailedEvent) event);
             e = InputFailedEvent.create(inputIndex, ifEvent.getVersion());
           }
-          tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo());
+          tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo(), tezEvent.getEventReceivedTime());
           tezEventToSend.setDestinationInfo(destinationMetaInfo);
           // cache the event object per input because are unique per input index
           inputIndicesWithEvents.put(inputIndex, tezEventToSend);
@@ -553,7 +553,8 @@ public class Edge {
                 DataMovementEvent e = compEvent.expand(sourceIndices[numEventsDone],
                     targetIndices[numEventsDone]);
                 numEventsDone++;
-                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo());
+                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo(),
+                    tezEvent.getEventReceivedTime());
                 tezEventToSend.setDestinationInfo(destinationMetaInfo);
                 listToAdd.add(tezEventToSend);
               }
@@ -585,7 +586,8 @@ public class Edge {
               while (numEventsDone < numEvents && listSize++ < listMaxSize) {
                 InputFailedEvent e = ifEvent.makeCopy(targetIndices[numEventsDone]);
                 numEventsDone++;
-                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo());
+                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo(),
+                    tezEvent.getEventReceivedTime());
                 tezEventToSend.setDestinationInfo(destinationMetaInfo);
                 listToAdd.add(tezEventToSend);
               }
@@ -617,7 +619,8 @@ public class Edge {
               while (numEventsDone < numEvents && listSize++ < listMaxSize) {
                 DataMovementEvent e = dmEvent.makeCopy(targetIndices[numEventsDone]);
                 numEventsDone++;
-                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo());
+                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo(),
+                    tezEvent.getEventReceivedTime());
                 tezEventToSend.setDestinationInfo(destinationMetaInfo);
                 listToAdd.add(tezEventToSend);
               }

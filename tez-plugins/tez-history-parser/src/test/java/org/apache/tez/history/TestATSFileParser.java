@@ -80,6 +80,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
@@ -105,7 +106,6 @@ public class TestATSFileParser {
       "target" + Path.SEPARATOR + TestATSFileParser.class.getName() + "-tez";
   private static String DOWNLOAD_DIR = TEST_ROOT_DIR + Path.SEPARATOR + "download";
 
-  private static String timelineAddress;
   private static TezClient tezClient;
 
   private static int dagNumber;
@@ -228,8 +228,11 @@ public class TestATSFileParser {
     assertTrue(edgeInfo.getEdgeSourceClass().equals(OrderedPartitionedKVOutput.class.getName()));
     assertTrue(edgeInfo.getEdgeDestinationClass().equals(OrderedGroupedKVInput.class.getName()));
     assertTrue(dagInfo.getVertices().size() == 2);
+    String lastSourceTA = null;
+    String lastDataEventSourceTA = null;
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {
       assertTrue(vertexInfo.getKilledTasksCount() == 0);
+      long finishTime = 0;
       for (TaskInfo taskInfo : vertexInfo.getTasks()) {
         assertTrue(taskInfo.getNumberOfTaskAttempts() == 1);
         assertTrue(taskInfo.getMaxTaskAttemptDuration() >= 0);
@@ -240,6 +243,24 @@ public class TestATSFileParser {
         assertTrue(taskInfo.getSuccessfulTaskAttempts().size() > 0);
         assertTrue(taskInfo.getFailedTaskAttempts().size() == 0);
         assertTrue(taskInfo.getKilledTaskAttempts().size() == 0);
+        List<TaskAttemptInfo> attempts = taskInfo.getTaskAttempts();
+        if (vertexInfo.getVertexName().equals(TOKENIZER)) {
+          // get the last task to finish and track its successful attempt
+          if (finishTime < taskInfo.getAbsFinishTime()) {
+            finishTime = taskInfo.getAbsFinishTime();
+            lastSourceTA = taskInfo.getSuccessfulAttemptId();
+          }
+        } else {
+          for (TaskAttemptInfo attempt : attempts) {
+            assertTrue(attempt.getLastDataEventTime() > 0);
+            if (lastDataEventSourceTA == null) {
+              lastDataEventSourceTA = attempt.getLastDataEventSourceTA();
+            } else {
+              // all attempts should have the same last data event source TA
+              assertTrue(lastDataEventSourceTA.equals(attempt.getLastDataEventSourceTA()));
+            }
+          }
+        }
         for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
           assertTrue(attemptInfo.getStartTime() > 0);
           assertTrue(attemptInfo.getScheduledTime() > 0);
@@ -258,6 +279,7 @@ public class TestATSFileParser {
         assertTrue(vertexInfo.getInputVertices().size() == 1);
       }
     }
+    assertTrue(lastSourceTA.equals(lastDataEventSourceTA));
   }
 
   /**

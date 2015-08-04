@@ -45,6 +45,8 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   private String diagnostics;
   private TezCounters tezCounters;
   private TaskAttemptTerminationCause error;
+  private TezTaskAttemptID lastDataEventSourceTA;
+  private long lastDataEventTime;
 
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
       String vertexName,
@@ -52,7 +54,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       long finishTime,
       TaskAttemptState state,
       TaskAttemptTerminationCause error,
-      String diagnostics, TezCounters counters) {
+      String diagnostics, TezCounters counters, 
+      long lastDataEventTime, 
+      TezTaskAttemptID lastDataEventSourceTA) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.startTime = startTime;
@@ -61,6 +65,8 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     this.diagnostics = diagnostics;
     this.tezCounters = counters;
     this.error = error;
+    this.lastDataEventTime = lastDataEventTime;
+    this.lastDataEventSourceTA = lastDataEventSourceTA;
   }
 
   public TaskAttemptFinishedEvent() {
@@ -80,6 +86,14 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   public boolean isHistoryEvent() {
     return true;
   }
+  
+  public long getLastDataEventTime() {
+    return lastDataEventTime;
+  }
+  
+  public TezTaskAttemptID getLastDataEventSourceTA() {
+    return lastDataEventSourceTA;
+  }
 
   public TaskAttemptFinishedProto toProto() {
     TaskAttemptFinishedProto.Builder builder =
@@ -95,6 +109,10 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     }
     if (tezCounters != null) {
       builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
+    }
+    if (lastDataEventSourceTA != null) {
+      builder.setLastDataEventSourceTA(lastDataEventSourceTA.toString());
+      builder.setLastDataEventTime(lastDataEventTime);
     }
     return builder.build();
   }
@@ -112,6 +130,10 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     if (proto.hasCounters()) {
       this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
         proto.getCounters());
+    }
+    if (proto.hasLastDataEventSourceTA()) {
+      this.lastDataEventSourceTA = TezTaskAttemptID.fromString(proto.getLastDataEventSourceTA());
+      this.lastDataEventTime = proto.getLastDataEventTime();
     }
   }
 
@@ -140,6 +162,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         + ", status=" + state.name()
         + ", errorEnum=" + (error != null ? error.name() : "")
         + ", diagnostics=" + diagnostics
+        + ", lastDataEventSourceTA=" + 
+              ((lastDataEventSourceTA==null) ? null:lastDataEventSourceTA.toString())
+        + ", lastDataEventTime=" + lastDataEventTime
         + ", counters=" + (tezCounters == null ? "null" :
           tezCounters.toString()
             .replaceAll("\\n", ", ").replaceAll("\\s+", " "));

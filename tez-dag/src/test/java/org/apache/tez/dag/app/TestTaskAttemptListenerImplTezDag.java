@@ -99,12 +99,15 @@ public class TestTaskAttemptListenerImplTezDag {
 
     eventHandler = mock(EventHandler.class);
 
+    MockClock clock = new MockClock();
+    
     appContext = mock(AppContext.class);
     doReturn(eventHandler).when(appContext).getEventHandler();
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(appAcls).when(appContext).getApplicationACLs();
     doReturn(amContainerMap).when(appContext).getAllContainers();
-
+    doReturn(clock).when(appContext).getClock();
+    
     taskAttemptListener = new TaskAttemptListenerImplForTest(appContext,
         mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null);
 

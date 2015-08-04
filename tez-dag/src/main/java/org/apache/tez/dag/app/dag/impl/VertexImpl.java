@@ -4092,7 +4092,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Override
   public TaskAttemptEventInfo getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int preRoutedFromEventId, int maxEvents) {
-    ArrayList<TezEvent> events = getTask(attemptID.getTaskID()).getTaskAttemptTezEvents(
+    Task task = getTask(attemptID.getTaskID());
+    ArrayList<TezEvent> events = task.getTaskAttemptTezEvents(
         attemptID, preRoutedFromEventId, maxEvents);
     int nextPreRoutedFromEventId = preRoutedFromEventId + events.size();
     int nextFromEventId = fromEventId;
@@ -4191,6 +4192,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
     } finally {
       onDemandRouteEventsReadLock.unlock();
+    }
+    if (!events.isEmpty()) {
+      for (int i=(events.size() - 1); i>=0; --i) {
+        TezEvent lastEvent = events.get(i);
+              // record the last event sent by the AM to the task
+        EventType lastEventType = lastEvent.getEventType();
+        // if the following changes then critical path logic/recording may need revision
+        if (lastEventType == EventType.COMPOSITE_DATA_MOVEMENT_EVENT ||
+            lastEventType == EventType.DATA_MOVEMENT_EVENT ||
+            lastEventType == EventType.ROOT_INPUT_DATA_INFORMATION_EVENT) {
+          task.getAttempt(attemptID).setLastEventSent(lastEvent);
+          break;
+        }
+      }
     }
     return new TaskAttemptEventInfo(nextFromEventId, events, nextPreRoutedFromEventId);
   }

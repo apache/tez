@@ -81,6 +81,8 @@ public class ATSConstants {
   public static final String IN_PROGRESS_LOGS_URL = "inProgressLogsURL";
   public static final String COMPLETED_LOGS_URL = "completedLogsURL";
   public static final String EXIT_STATUS = "exitStatus";
+  public static final String LAST_DATA_EVENT_TIME = "lastDataEventTime";
+  public static final String LAST_DATA_EVENT_SOURCE_TA = "lastDataEventSourceTA";
   public static final String UPDATED_EDGE_MANAGERS = "updatedEdgeManagers";
   public static final String SCHEDULING_CAUSAL_ATTEMPT = "schedulingCausalAttempt";
 

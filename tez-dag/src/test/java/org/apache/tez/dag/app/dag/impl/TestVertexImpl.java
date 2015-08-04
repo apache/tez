@@ -110,6 +110,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
+import org.apache.tez.dag.app.MockClock;
 import org.apache.tez.dag.app.TaskAttemptEventInfo;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -2179,6 +2180,8 @@ public class TestVertexImpl {
       }})
     .when(execService).submit((Callable<Void>) any());
     
+    MockClock clock = new MockClock();
+    
     doReturn(execService).when(appContext).getExecService();
     doReturn(conf).when(appContext).getAMConf();
     doReturn(new Credentials()).when(dag).getCredentials();
@@ -2189,7 +2192,8 @@ public class TestVertexImpl {
     doReturn(Resource.newInstance(102400, 60)).when(taskScheduler).getTotalResources();
     doReturn(historyEventHandler).when(appContext).getHistoryHandler();
     doReturn(dispatcher.getEventHandler()).when(appContext).getEventHandler();
-
+    doReturn(clock).when(appContext).getClock();
+    
     vertexGroups = Maps.newHashMap();
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
       vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));

@@ -20,6 +20,8 @@ package org.apache.tez.history.parser.datamodel;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -46,6 +48,9 @@ public class TaskAttemptInfo extends BaseInfo {
   private final String status;
   private final String logUrl;
   private final String schedulingCausalTA;
+  private final long lastDataEventTime;
+  private final String lastDataEventSourceTA;
+
   private TaskInfo taskInfo;
 
   private Container container;
@@ -75,6 +80,8 @@ public class TaskAttemptInfo extends BaseInfo {
 
     status = otherInfoNode.optString(Constants.STATUS);
     container = new Container(containerId, nodeId);
+    lastDataEventTime = otherInfoNode.optLong(ATSConstants.LAST_DATA_EVENT_TIME);
+    lastDataEventSourceTA = otherInfoNode.optString(ATSConstants.LAST_DATA_EVENT_SOURCE_TA);
   }
 
   void setTaskInfo(TaskInfo taskInfo) {
@@ -103,6 +110,14 @@ public class TaskAttemptInfo extends BaseInfo {
 
   public final long getAbsoluteScheduledTime() {
     return scheduledTime;
+  }
+  
+  public final long getLastDataEventTime() {
+    return lastDataEventTime;
+  }
+  
+  public final String getLastDataEventSourceTA() {
+    return lastDataEventSourceTA;
   }
 
   public final long getTimeTaken() {

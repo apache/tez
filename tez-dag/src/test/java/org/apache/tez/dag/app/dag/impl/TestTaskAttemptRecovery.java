@@ -169,9 +169,11 @@ public class TestTaskAttemptRecovery {
       errorEnum = TaskAttemptTerminationCause.APPLICATION_ERROR;
     }
 
+    long lastDataEventTime = 1024;
+    TezTaskAttemptID lastDataEventTA = mock(TezTaskAttemptID.class);
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
-            startTime, finishTime, state, errorEnum, diag, counters));
+            startTime, finishTime, state, errorEnum, diag, counters, lastDataEventTime, lastDataEventTA));
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(finishTime, ta.getFinishTime());
     assertEquals(counters, ta.reportedStatus.counters);
@@ -180,6 +182,8 @@ public class TestTaskAttemptRecovery {
     assertEquals(1, ta.getDiagnostics().size());
     assertEquals(diag, ta.getDiagnostics().get(0));
     assertEquals(state, recoveredState);
+    assertEquals(lastDataEventTime, ta.lastDataEventTime);
+    assertEquals(lastDataEventTA, ta.lastDataEventSourceTA);
     if (state != TaskAttemptState.SUCCEEDED) {
       assertEquals(errorEnum, ta.getTerminationCause());
     } else {
@@ -304,7 +308,7 @@ public class TestTaskAttemptRecovery {
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
             startTime, finishTime, TaskAttemptState.KILLED,
-            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters()));
+            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters(), 0, null));
     assertEquals(TaskAttemptState.KILLED, recoveredState);
   }
 }

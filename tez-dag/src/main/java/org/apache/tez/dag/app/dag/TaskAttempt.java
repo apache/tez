@@ -34,6 +34,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
  * Read only view of TaskAttempt.
@@ -79,6 +80,8 @@ public interface TaskAttempt {
   float getProgress();
   TaskAttemptState getState();
   TaskAttemptState getStateNoLock();
+  
+  void setLastEventSent(TezEvent lastEventSent);
 
   /** 
    * Has attempt reached the final state or not.

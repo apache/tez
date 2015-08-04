@@ -505,7 +505,9 @@ public class TestHistoryEventsProtoConversion {
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
           "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED,
-          null, null, null);
+          null, null, null, 1024, 
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+              TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 110), 1), 1));
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskAttemptID(),
@@ -518,6 +520,8 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getState());
       Assert.assertEquals(event.getCounters(),
           deserializedEvent.getCounters());
+      Assert.assertEquals(event.getLastDataEventTime(), deserializedEvent.getLastDataEventTime());
+      Assert.assertEquals(event.getLastDataEventSourceTA(), deserializedEvent.getLastDataEventSourceTA());
       logEvents(event, deserializedEvent);
     }
     {
@@ -525,7 +529,7 @@ public class TestHistoryEventsProtoConversion {
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
           "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED,
-          TaskAttemptTerminationCause.APPLICATION_ERROR, "diagnose", new TezCounters());
+          TaskAttemptTerminationCause.APPLICATION_ERROR, "diagnose", new TezCounters(), 0, null);
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskAttemptID(),
@@ -588,9 +592,10 @@ public class TestHistoryEventsProtoConversion {
     } catch (RuntimeException e) {
       // Expected
     }
+    long eventTime = 1024;
     List<TezEvent> events =
         Arrays.asList(new TezEvent(DataMovementEvent.create(1, null),
-            new EventMetaData(EventProducerConsumerType.SYSTEM, "foo", "bar", null)));
+            new EventMetaData(EventProducerConsumerType.SYSTEM, "foo", "bar", null), eventTime));
     event = new VertexRecoverableEventsGeneratedEvent(
             TezVertexID.getInstance(
                 TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), events);
@@ -601,6 +606,8 @@ public class TestHistoryEventsProtoConversion {
         deserializedEvent.getTezEvents().size());
     Assert.assertEquals(event.getTezEvents().get(0).getEventType(),
         deserializedEvent.getTezEvents().get(0).getEventType());
+    Assert.assertEquals(event.getTezEvents().get(0).getEventReceivedTime(),
+        deserializedEvent.getTezEvents().get(0).getEventReceivedTime());
     logEvents(event, deserializedEvent);
   }
 

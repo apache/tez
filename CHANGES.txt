@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2565. Consider scanning unfinished tasks in VertexImpl::constructStatistics to reduce merge overhead.
   TEZ-2468. Change the minimum Java version to Java 7.
   TEZ-2646. Add scheduling casual dependency for attempts
+  TEZ-2647. Add input causality dependency for attempts
 
 ALL CHANGES:
   TEZ-2172. FetcherOrderedGrouped using List to store InputAttemptIdentifier can lead to some inefficiency during remove() operation.

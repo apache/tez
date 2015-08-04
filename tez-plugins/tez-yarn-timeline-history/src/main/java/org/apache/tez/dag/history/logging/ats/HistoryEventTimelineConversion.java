@@ -432,7 +432,11 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     atsEntity.addOtherInfo(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToATSMap(event.getCounters()));
-
+    atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENT_TIME, event.getLastDataEventTime());
+    if (event.getLastDataEventSourceTA() != null) {
+      atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENT_SOURCE_TA,
+          event.getLastDataEventSourceTA().toString());
+    }
     return atsEntity;
   }
 

@@ -147,6 +147,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Vertex vertex;
 
   @VisibleForTesting
+  long lastDataEventTime;
+  TezTaskAttemptID lastDataEventSourceTA = null;
+  
+  @VisibleForTesting
   TaskAttemptStatus reportedStatus;
   private DAGCounter localityCounter;
   
@@ -754,6 +758,8 @@ public class TaskAttemptImpl implements TaskAttempt,
               : TaskAttemptTerminationCause.UNKNOWN_ERROR;
           this.diagnostics.add(tEvent.getDiagnostics());
           this.recoveredState = tEvent.getState();
+          this.lastDataEventTime = tEvent.getLastDataEventTime();
+          this.lastDataEventSourceTA = tEvent.getLastDataEventSourceTA();
           sendEvent(createDAGCounterUpdateEventTAFinished(this, tEvent.getState()));
           return recoveredState;
         }
@@ -969,7 +975,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, null,
-        "", getCounters());
+        "", getCounters(), lastDataEventTime, lastDataEventSourceTA);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -982,7 +988,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         clock.getTime(), state,
         terminationCause,
         StringUtils.join(
-            getDiagnostics(), LINE_SEPARATOR), getCounters());
+            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEventTime, 
+        lastDataEventSourceTA);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1485,7 +1492,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             new EventMetaData(EventProducerConsumerType.SYSTEM, 
                 vertex.getName(), 
                 edgeVertex.getName(), 
-                getID())));
+                getID()), appContext.getClock().getTime()));
       }
       sendEvent(new VertexEventRouteEvent(vertex.getVertexId(), tezIfEvents));
     }
@@ -1561,5 +1568,13 @@ public class TaskAttemptImpl implements TaskAttempt,
   @Override
   public String toString() {
     return getID().toString();
+  }
+
+
+  @Override
+  public void setLastEventSent(TezEvent lastEventSent) {
+    // task attempt id may be null for input data information events
+    this.lastDataEventSourceTA = lastEventSent.getSourceInfo().getTaskAttemptID();
+    this.lastDataEventTime = lastEventSent.getEventReceivedTime();
   }
 }
