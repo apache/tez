@@ -1,6 +1,13 @@
 Apache Tez Change Log
 =====================
 
+Release 0.6.3: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-2630. TezChild receives IP address instead of FQDN.
+
 Release 0.6.2: Unreleased
 
 INCOMPATIBLE CHANGES
