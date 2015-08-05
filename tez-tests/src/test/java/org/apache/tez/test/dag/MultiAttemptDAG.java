@@ -40,7 +40,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -49,6 +49,7 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.InputInitializer;
@@ -57,15 +58,12 @@ import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.test.TestInput;
 import org.apache.tez.test.TestOutput;
 import org.apache.tez.test.TestProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MultiAttemptDAG {
@@ -102,14 +100,11 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public void onVertexStarted(Map<String, List<Integer>> completions) {
+    public void onVertexStarted(List<TaskAttemptIdentifier> completions) {
       if (completions != null) {
-        for (Entry<String, List<Integer>> entry : completions.entrySet()) {
-          LOG.info("Received completion events on vertexStarted"
-              + ", vertex=" + entry.getKey()
-              + ", completions=" + entry.getValue().size());
-          numCompletions.addAndGet(entry.getValue().size());
-        }
+        LOG.info("Received completion events on vertexStarted"
+            + ", completions=" + completions.size());
+        numCompletions.addAndGet(completions.size());
       }
       maybeScheduleTasks();
     }
@@ -129,20 +124,20 @@ public class MultiAttemptDAG {
         } else if (successAttemptId == getContext().getDAGAttemptNumber()) {
           LOG.info("Scheduling tasks for vertex=" + getContext().getVertexName());
           int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
-          List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
+          List<ScheduleTaskRequest> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
           for (int i=0; i<numTasks; ++i) {
-            scheduledTasks.add(new TaskWithLocationHint(new Integer(i), null));
+            scheduledTasks.add(ScheduleTaskRequest.create(i, null));
           }
-          getContext().scheduleVertexTasks(scheduledTasks);
+          getContext().scheduleTasks(scheduledTasks);
         }
       }
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       LOG.info("Received completion events for source task"
-          + ", vertex=" + srcVertexName
-          + ", taskIdx=" + taskId);
+          + ", vertex=" + attempt.getTaskIdentifier().getVertexIdentifier().getName()
+          + ", taskIdx=" + attempt.getTaskIdentifier().getIdentifier());
       numCompletions.incrementAndGet();
       maybeScheduleTasks();
     }

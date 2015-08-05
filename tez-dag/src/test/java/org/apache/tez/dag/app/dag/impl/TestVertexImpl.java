@@ -94,7 +94,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
@@ -161,6 +161,7 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+import org.apache.tez.dag.records.TaskAttemptIdentifierImpl;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -170,6 +171,7 @@ import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
@@ -2513,10 +2515,10 @@ public class TestVertexImpl {
     // verify all events have been put in pending.
     // this is not necessary after legacy routing has been removed
     Assert.assertEquals(5, v4.pendingTaskEvents.size());
-    List<TaskWithLocationHint> taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    List<ScheduleTaskRequest> taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
     // scheduling start to trigger edge routing to begin
     for (int i=0; i<v4.getTotalTasks(); ++i) {
-      taskList.add(new TaskWithLocationHint(i, null));
+      taskList.add(ScheduleTaskRequest.create(i, null));
     }
     v4.scheduleTasks(taskList);
     dispatcher.await();
@@ -2604,10 +2606,10 @@ public class TestVertexImpl {
     VertexImpl v3 = vertices.get("vertex3");
     VertexImpl v4 = vertices.get("vertex4");
     
-    List<TaskWithLocationHint> taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    List<ScheduleTaskRequest> taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
     // scheduling start to trigger edge routing to begin
     for (int i=0; i<v4.getTotalTasks(); ++i) {
-      taskList.add(new TaskWithLocationHint(i, null));
+      taskList.add(ScheduleTaskRequest.create(i, null));
     }
     v4.scheduleTasks(taskList);
     Assert.assertEquals(VertexState.RUNNING, v4.getState());
@@ -2662,10 +2664,10 @@ public class TestVertexImpl {
     VertexImpl v3 = vertices.get("vertex3");
     VertexImpl v4 = vertices.get("vertex4");
     
-    List<TaskWithLocationHint> taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    List<ScheduleTaskRequest> taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
     // scheduling start to trigger edge routing to begin
     for (int i=0; i<v4.getTotalTasks(); ++i) {
-      taskList.add(new TaskWithLocationHint(i, null));
+      taskList.add(ScheduleTaskRequest.create(i, null));
     }
     v4.scheduleTasks(taskList);
     Assert.assertEquals(VertexState.RUNNING, v4.getState());
@@ -2856,7 +2858,7 @@ public class TestVertexImpl {
     startVertex(v1);
     v3.reconfigureVertex(10, null, null);
     checkTasks(v3, 10);
-    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
+    v3.scheduleTasks(Collections.singletonList(ScheduleTaskRequest.create(0, null)));
     try {
       v3.reconfigureVertex(5, null, null);
       Assert.fail();
@@ -2881,7 +2883,7 @@ public class TestVertexImpl {
     checkTasks(v3, 10);
     taskEventDispatcher.events.clear();
     TaskLocationHint mockLocation = mock(TaskLocationHint.class);
-    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), mockLocation)));
+    v3.scheduleTasks(Collections.singletonList(ScheduleTaskRequest.create(0, mockLocation)));
     dispatcher.await();
     Assert.assertEquals(1, taskEventDispatcher.events.size());
     TaskEventScheduleTask event = (TaskEventScheduleTask) taskEventDispatcher.events.get(0);
@@ -2901,7 +2903,7 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(vertices.get("vertex2"));
     startVertex(v1);
-    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
+    v3.scheduleTasks(Collections.singletonList(ScheduleTaskRequest.create(0, null)));
     try {
       v3.reconfigureVertex(5, null, null);
       Assert.fail();
@@ -2937,7 +2939,7 @@ public class TestVertexImpl {
         new VertexEventRouteEvent(v3.getVertexId(), taskEvents));
     dispatcher.await();
     Assert.assertEquals(2, v3.pendingTaskEvents.size());
-    v3.scheduleTasks(Collections.singletonList(new TaskWithLocationHint(new Integer(0), null)));
+    v3.scheduleTasks(Collections.singletonList(ScheduleTaskRequest.create(0, null)));
     dispatcher.await();
     Assert.assertEquals(0, v3.pendingTaskEvents.size());
     // send events and test that they are not buffered anymore
@@ -4892,10 +4894,10 @@ public class TestVertexImpl {
       Assert.assertEquals(1, inputSpecs.get(0).getPhysicalEdgeCount());
     }
     
-    List<TaskWithLocationHint> taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    List<ScheduleTaskRequest> taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
     // scheduling start to trigger edge routing to begin
     for (int i=0; i<v1.getTotalTasks(); ++i) {
-      taskList.add(new TaskWithLocationHint(i, null));
+      taskList.add(ScheduleTaskRequest.create(i, null));
     }
     v1.scheduleTasks(taskList);
     dispatcher.await();
@@ -4940,10 +4942,10 @@ public class TestVertexImpl {
     Assert.assertEquals(true, initializerManager2.hasShutDown);
     
     // scheduling start to trigger edge routing to begin
-    taskList = new LinkedList<VertexManagerPluginContext.TaskWithLocationHint>();
+    taskList = new LinkedList<VertexManagerPluginContext.ScheduleTaskRequest>();
     // scheduling start to trigger edge routing to begin
     for (int i=0; i<v2.getTotalTasks(); ++i) {
-      taskList.add(new TaskWithLocationHint(i, null));
+      taskList.add(ScheduleTaskRequest.create(i, null));
     }
     v2.scheduleTasks(taskList);
     dispatcher.await();
@@ -5770,8 +5772,10 @@ public class TestVertexImpl {
     RootInputInitializerManagerControlled initializerManager1 = v1.getRootInputInitializerManager();
     initializerManager1.completeInputInitialization();
 
-    Event vmEvent = VertexManagerEvent.create(v1.getName(), ByteBuffer.wrap(new byte[0]));
-    TezEvent tezEvent = new TezEvent(vmEvent, null);
+    VertexManagerEvent vmEvent = VertexManagerEvent.create(v1.getName(), ByteBuffer.wrap(new byte[0]));
+    TezTaskAttemptID taId1 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(v1.getVertexId(), 0), 0);
+    TezEvent tezEvent = new TezEvent(vmEvent, new EventMetaData(EventProducerConsumerType.OUTPUT,
+        v1.getName(), null, taId1));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v1.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
 
@@ -6043,7 +6047,7 @@ public class TestVertexImpl {
     verify(historyEventHandler, atLeast(1)).handle(argCaptor.capture());
     verifyHistoryEvents(argCaptor.getAllValues(), HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED, 1);
 
-    v3.scheduleTasks(Lists.newArrayList(new TaskWithLocationHint(0, null)));
+    v3.scheduleTasks(Lists.newArrayList(ScheduleTaskRequest.create(0, null)));
     dispatcher.await();
     assertTrue(v3.pendingTaskEvents.size() == 0);
     // recovery events is not only handled one time
@@ -6078,11 +6082,11 @@ public class TestVertexImpl {
     }
 
     @Override
-    public void onVertexStarted(Map<String, List<Integer>> completions) {
+    public void onVertexStarted(List<TaskAttemptIdentifier> completions) {
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
     }
 
     @Override
@@ -6189,15 +6193,15 @@ public class TestVertexImpl {
     }
     
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer attemptId) {
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       if (this.exLocation == VMExceptionLocation.OnSourceTaskCompleted) {
         throw new RuntimeException(this.exLocation.name());
       }
-      super.onSourceTaskCompleted(srcVertexName, attemptId);
+      super.onSourceTaskCompleted(attempt);
     }
     
     @Override
-    public void onVertexStarted(Map<String, List<Integer>> completions) {
+    public void onVertexStarted(List<TaskAttemptIdentifier> completions) {
       if (this.exLocation == VMExceptionLocation.OnVertexStarted) {
         throw new RuntimeException(this.exLocation.name());
       }

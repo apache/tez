@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.api;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +27,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 /**
@@ -59,20 +62,58 @@ public abstract class VertexManagerPlugin {
    */
   public abstract void initialize() throws Exception;
 
+  @Deprecated
   /**
+   * This is replaced by {@link VertexManagerPlugin#onVertexStarted(List)}
    * Notification that the vertex is ready to start running tasks
    * @param completions Source vertices and all their tasks that have already completed
    * @throws Exception
    */
-  public abstract void onVertexStarted(Map<String, List<Integer>> completions) throws Exception;
+  public void onVertexStarted(Map<String, List<Integer>> completions) throws Exception {
+    throw new UnsupportedOperationException();
+  }
 
   /**
+   * Notification that the vertex is ready to start running tasks
+   * @param completions All the source task attempts that have already completed
+   * @throws Exception
+   */
+  public void onVertexStarted(List<TaskAttemptIdentifier> completions) throws Exception {
+    Map<String, List<Integer>> completionsMap = new HashMap<String, List<Integer>>();
+    for (TaskAttemptIdentifier attempt : completions) {
+      String vName = attempt.getTaskIdentifier().getVertexIdentifier().getName();
+      List<Integer> tasks = completionsMap.get(vName);
+      if (tasks == null) {
+        tasks = new LinkedList<Integer>();
+        completionsMap.put(vName, tasks);
+      }
+      tasks.add(attempt.getTaskIdentifier().getIdentifier());
+    }
+    onVertexStarted(completionsMap);
+  }
+  
+  @Deprecated
+  /**
+   * This has been replaced by 
+   * {@link VertexManagerPlugin#onSourceTaskCompleted(TaskAttemptIdentifier)}
    * Notification of a source vertex completion.
    * @param srcVertexName
    * @param taskId Index of the task that completed
    * @throws Exception
    */
-  public abstract void onSourceTaskCompleted(String srcVertexName, Integer taskId) throws Exception;
+  public void onSourceTaskCompleted(String srcVertexName, Integer taskId) throws Exception {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Notification of a source vertex task completion.
+   * @param attempt Identifier of the task attempt that completed
+   * @throws Exception
+   */
+  public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) throws Exception {
+    onSourceTaskCompleted(attempt.getTaskIdentifier().getVertexIdentifier().getName(), 
+        attempt.getTaskIdentifier().getIdentifier());
+  }
 
   /**
    * Notification of an event directly sent to this vertex manager

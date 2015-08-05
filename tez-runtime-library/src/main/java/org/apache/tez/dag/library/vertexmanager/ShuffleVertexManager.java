@@ -24,6 +24,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -46,11 +47,13 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
+import org.apache.tez.runtime.api.TaskIdentifier;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
@@ -72,6 +75,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -142,6 +146,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   List<PendingTaskInfo> pendingTasks = Lists.newLinkedList();
   int totalTasksToSchedule = 0;
   private AtomicBoolean onVertexStartedDone = new AtomicBoolean(false);
+  
+  private Set<TaskIdentifier> taskWithVmEvents = Sets.newHashSet();
   
   //Track source vertex and its finished tasks
   private final Map<String, SourceVertexInfo> srcVertexInfo = Maps.newConcurrentMap();
@@ -469,7 +475,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   
   @Override
-  public synchronized void onVertexStarted(Map<String, List<Integer>> completions) {
+  public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions) {
     // examine edges after vertex started because until then these may not have been defined
     Map<String, EdgeProperty> inputs = getContext().getInputVertexEdgeProperties();
     for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
@@ -498,10 +504,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
              totalTasksToSchedule + " pending tasks");
     
     if (completions != null) {
-      for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
-        for (Integer taskId : entry.getValue()) {
-          onSourceTaskCompleted(entry.getKey(), taskId);
-        }
+      for (TaskAttemptIdentifier attempt : completions) {
+        onSourceTaskCompleted(attempt);
       }
     }
     onVertexStartedDone.set(true);
@@ -511,7 +515,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
 
   @Override
-  public synchronized void onSourceTaskCompleted(String srcVertexName, Integer srcTaskId) {
+  public synchronized void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+    String srcVertexName = attempt.getTaskIdentifier().getVertexIdentifier().getName();
+    int srcTaskId = attempt.getTaskIdentifier().getIdentifier();
     updateSourceTaskCount();
     SourceVertexInfo srcInfo = srcVertexInfo.get(srcVertexName);
 
@@ -550,7 +556,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   @Override
   public synchronized void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
-    // TODO handle duplicates from retries
+    // currently events from multiple attempts of the same task can be ignored because
+    // their output will be the same. However, with pipelined events that may not hold.
+    TaskIdentifier producerTask = vmEvent.getProducerAttemptIdentifier().getTaskIdentifier();
+    if (!taskWithVmEvents.add(producerTask)) {
+      LOG.info("Ignoring vertex manager event from: " + producerTask);
+      return;
+    }
+    
     numVertexManagerEventsReceived++;
 
     long sourceTaskOutputSize = 0;
@@ -758,16 +771,16 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     //Sort in case partition stats are available
     sortPendingTasksBasedOnDataSize();
-    List<TaskWithLocationHint> scheduledTasks = Lists.newArrayListWithCapacity(numTasksToSchedule);
+    List<ScheduleTaskRequest> scheduledTasks = Lists.newArrayListWithCapacity(numTasksToSchedule);
 
     while(!pendingTasks.isEmpty() && numTasksToSchedule > 0) {
       numTasksToSchedule--;
       Integer taskIndex = pendingTasks.get(0).index;
-      scheduledTasks.add(new TaskWithLocationHint(taskIndex, null));
+      scheduledTasks.add(ScheduleTaskRequest.create(taskIndex, null));
       pendingTasks.remove(0);
     }
 
-    getContext().scheduleVertexTasks(scheduledTasks);
+    getContext().scheduleTasks(scheduledTasks);
     if (pendingTasks.size() == 0) {
       // done scheduling all tasks
       // TODO TEZ-1714 locking issues. getContext().vertexManagerDone();

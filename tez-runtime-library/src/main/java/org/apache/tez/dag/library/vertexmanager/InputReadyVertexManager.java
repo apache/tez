@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -34,17 +33,16 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 
 @Private
 public class InputReadyVertexManager extends VertexManagerPlugin {
@@ -57,7 +55,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   TaskLocationHint oneToOneLocationHints[];
   int numOneToOneEdges;
   int numConfiguredSources;
-  Multimap<String, Integer> pendingCompletions = LinkedListMultimap.create();
+  List<TaskAttemptIdentifier> pendingCompletions = Lists.newLinkedList();
   AtomicBoolean configured;
   AtomicBoolean started;
 
@@ -144,10 +142,8 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   
   private void trySchedulingPendingCompletions() {
     if (readyToSchedule() && !pendingCompletions.isEmpty()) {
-      for (Map.Entry<String, Collection<Integer>> entry : pendingCompletions.asMap().entrySet()) {
-        for (Integer i : entry.getValue()) {
-          onSourceTaskCompleted(entry.getKey(), i);
-        }
+      for (TaskAttemptIdentifier attempt : pendingCompletions) {
+        onSourceTaskCompleted(attempt);
       }
     }
   }
@@ -180,10 +176,10 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   }
 
   @Override
-  public synchronized void onVertexStarted(Map<String, List<Integer>> completions) {
-    for (Map.Entry<String, List<Integer>> entry : completions.entrySet()) {
-      pendingCompletions.putAll(entry.getKey(), entry.getValue());
-    }    
+  public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions) {
+    if (completions != null) {
+      pendingCompletions.addAll(completions);
+    }
 
     // allow scheduling
     started.set(true);
@@ -192,12 +188,14 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
   }
 
   @Override
-  public synchronized void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+  public synchronized void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+    String srcVertexName = attempt.getTaskIdentifier().getVertexIdentifier().getName();
+    int taskId = attempt.getTaskIdentifier().getIdentifier();
     if (readyToSchedule()) {
       // configured and started. try to schedule
       handleSourceTaskFinished(srcVertexName, taskId);
     } else {
-      pendingCompletions.put(srcVertexName, taskId);
+      pendingCompletions.add(attempt);
     }
   }
 
@@ -245,7 +243,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     }
     
     // all source vertices will full dependencies are done
-    List<TaskWithLocationHint> tasksToStart = null;
+    List<ScheduleTaskRequest> tasksToStart = null;
     if (numOneToOneEdges == 0) {
       // no 1-1 dependency. Start all tasks
       int numTasks = taskIsStarted.length;
@@ -253,7 +251,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       tasksToStart = Lists.newArrayListWithCapacity(numTasks);
       for (int i=0; i<numTasks; ++i) {
         taskIsStarted[i] = true;
-        tasksToStart.add(new TaskWithLocationHint(Integer.valueOf(i), null));
+        tasksToStart.add(ScheduleTaskRequest.create(i, null));
       }
     } else {
       // start only the ready 1-1 tasks
@@ -268,13 +266,13 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
           LOG.info("Starting task " + i + " for vertex: "
               + getContext().getVertexName() + " with location: "
               + ((locationHint != null) ? locationHint.getAffinitizedTask() : "null"));
-          tasksToStart.add(new TaskWithLocationHint(Integer.valueOf(i), locationHint));
+          tasksToStart.add(ScheduleTaskRequest.create(Integer.valueOf(i), locationHint));
         }
       }
     }
     
     if (tasksToStart != null && !tasksToStart.isEmpty()) {
-      getContext().scheduleVertexTasks(tasksToStart);
+      getContext().scheduleTasks(tasksToStart);
     }
     
   }

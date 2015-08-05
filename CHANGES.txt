@@ -10,6 +10,8 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
   TEZ-2646. Add scheduling casual dependency for attempts
   TEZ-2647. Add input causality dependency for attempts
+  TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
+  instead of tasks
 
 ALL CHANGES:
   TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.
