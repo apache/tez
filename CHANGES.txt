@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2630. TezChild receives IP address instead of FQDN.
   TEZ-2211. Tez UI: Allow users to configure timezone
   TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-1314. Port MAPREDUCE-5821 to Tez.
@@ -218,6 +219,13 @@ ALL CHANGES:
   TEZ-1856. Remove LocalOnFileSortedOutput, LocalMergedInput, LocalTaskOutputFiles.
   TEZ-1949. Whitelist TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH for broadcast edges.
   TEZ-1593. Refactor PipelinedSorter to remove all MMAP based ByteBuffer references.
+
+Release 0.6.3: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-2630. TezChild receives IP address instead of FQDN.
 
 Release 0.6.2: Unreleased
 
