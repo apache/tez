@@ -3471,6 +3471,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         vertex.distanceFromRoot = distanceFromRoot;
       }
       vertex.numStartedSourceVertices++;
+      vertex.startTimeRequested = vertex.clock.getTime();
       LOG.info("Source vertex started: " + startEvent.getSourceVertexId() +
           " for vertex: " + vertex.logIdentifier + " numStartedSources: " +
           vertex.numStartedSourceVertices + " numSources: " + vertex.sourceVertices.size());
@@ -3529,12 +3530,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       Preconditions.checkState(
           (vertex.sourceVertices == null || vertex.sourceVertices.isEmpty()),
           "Vertex: " + vertex.logIdentifier + " got invalid start event");
-      vertex.startTimeRequested = vertex.clock.getTime();
       vertex.startSignalPending = true;
+      vertex.startTimeRequested = vertex.clock.getTime();
     }
 
   }
-
+  
   public static class StartTransition implements
     MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
@@ -3542,7 +3543,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   public VertexState transition(VertexImpl vertex, VertexEvent event) {
       Preconditions.checkState(vertex.getState() == VertexState.INITED,
           "Unexpected state " + vertex.getState() + " for " + vertex.logIdentifier);
-      vertex.startTimeRequested = vertex.clock.getTime();
+      // if the start signal is pending this event is a fake start event to trigger this transition
+      if (!vertex.startSignalPending) {
+        vertex.startTimeRequested = vertex.clock.getTime();
+      }
       return vertex.startVertex();
     }
   }

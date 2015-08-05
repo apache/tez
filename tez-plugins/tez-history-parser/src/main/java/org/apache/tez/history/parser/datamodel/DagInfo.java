@@ -307,9 +307,9 @@ public class DagInfo extends BaseInfo {
     sb.append("dagID=").append(getDagId()).append(", ");
     sb.append("dagName=").append(getName()).append(", ");
     sb.append("status=").append(getStatus()).append(", ");
-    sb.append("startTime=").append(getStartTime()).append(", ");
-    sb.append("submitTime=").append(getAbsoluteSubmitTime()).append(", ");
-    sb.append("endTime=").append(getFinishTime()).append(", ");
+    sb.append("startTime=").append(getStartTimeInterval()).append(", ");
+    sb.append("submitTime=").append(getSubmitTime()).append(", ");
+    sb.append("endTime=").append(getFinishTimeInterval()).append(", ");
     sb.append("timeTaken=").append(getTimeTaken()).append(", ");
     sb.append("diagnostics=").append(getDiagnostics()).append(", ");
     sb.append("vertexNameIDMapping=").append(getVertexNameIDMapping()).append(", ");
@@ -336,15 +336,15 @@ public class DagInfo extends BaseInfo {
     return Collections.unmodifiableCollection(edgeInfoMap.values());
   }
 
-  public final long getAbsoluteSubmitTime() {
+  public final long getSubmitTime() {
     return submitTime;
   }
 
-  public final long getAbsStartTime() {
+  public final long getStartTime() {
     return startTime;
   }
 
-  public final long getAbsFinishTime() {
+  public final long getFinishTime() {
     return endTime;
   }
 
@@ -354,24 +354,24 @@ public class DagInfo extends BaseInfo {
    *
    * @return starting time w.r.t to dag
    */
-  public final long getStartTime() {
+  public final long getStartTimeInterval() {
     return 0;
   }
 
   @Override
-  public final long getFinishTime() {
+  public final long getFinishTimeInterval() {
     long dagEndTime = (endTime - startTime);
     if (dagEndTime < 0) {
       //probably dag is not complete or failed in middle. get the last task attempt time
       for (VertexInfo vertexInfo : getVertices()) {
-        dagEndTime = (vertexInfo.getFinishTime() > dagEndTime) ? vertexInfo.getFinishTime() : dagEndTime;
+        dagEndTime = (vertexInfo.getFinishTimeInterval() > dagEndTime) ? vertexInfo.getFinishTimeInterval() : dagEndTime;
       }
     }
     return dagEndTime;
   }
 
   public final long getTimeTaken() {
-    return getFinishTime();
+    return getFinishTimeInterval();
   }
 
   public final String getStatus() {
@@ -412,8 +412,8 @@ public class DagInfo extends BaseInfo {
     Collections.sort(vertices, new Comparator<VertexInfo>() {
 
       @Override public int compare(VertexInfo o1, VertexInfo o2) {
-        return (o1.getStartTime() < o2.getStartTime()) ? -1 :
-            ((o1.getStartTime() == o2.getStartTime()) ?
+        return (o1.getStartTimeInterval() < o2.getStartTimeInterval()) ? -1 :
+            ((o1.getStartTimeInterval() == o2.getStartTimeInterval()) ?
                 0 : 1);
       }
     });

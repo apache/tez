@@ -12,6 +12,7 @@ INCOMPATIBLE CHANGES
   TEZ-2647. Add input causality dependency for attempts
   TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
   instead of tasks
+  TEZ-2650. Timing details on Vertex state changes
 
 ALL CHANGES:
   TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.

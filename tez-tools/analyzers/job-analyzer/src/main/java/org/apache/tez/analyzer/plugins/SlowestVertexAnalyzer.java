@@ -83,8 +83,8 @@ public class SlowestVertexAnalyzer implements Analyzer {
           //Find the slowest last event received
           if (entry.getValue().getValue() > max) {
             //w.r.t vertex start time.
-            max =(attemptInfo.getStartTime() +  entry.getValue().getValue()) -
-                (vertexInfo.getStartTime());
+            max =(attemptInfo.getStartTimeInterval() +  entry.getValue().getValue()) -
+                (vertexInfo.getStartTimeInterval());
             maxSourceName = entry.getKey();
           }
         }
@@ -105,8 +105,8 @@ public class SlowestVertexAnalyzer implements Analyzer {
           //Find the slowest last event received
           if (entry.getValue().getValue() > shuffleMax) {
             //w.r.t vertex start time.
-            shuffleMax =(attemptInfo.getStartTime() +  entry.getValue().getValue()) -
-                (vertexInfo.getStartTime());
+            shuffleMax =(attemptInfo.getStartTimeInterval() +  entry.getValue().getValue()) -
+                (vertexInfo.getStartTimeInterval());
             shuffleMaxSource = entry.getKey();
           }
         }

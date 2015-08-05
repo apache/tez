@@ -91,24 +91,24 @@ public class TaskAttemptInfo extends BaseInfo {
   }
 
   @Override
-  public final long getStartTime() {
-    return startTime - (getTaskInfo().getVertexInfo().getDagInfo().getAbsStartTime());
+  public final long getStartTimeInterval() {
+    return startTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
 
   @Override
-  public final long getFinishTime() {
-    return endTime - (getTaskInfo().getVertexInfo().getDagInfo().getAbsStartTime());
+  public final long getFinishTimeInterval() {
+    return endTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
 
-  public final long getAbsStartTime() {
+  public final long getStartTime() {
     return startTime;
   }
 
-  public final long getAbsFinishTime() {
+  public final long getFinishTime() {
     return endTime;
   }
 
-  public final long getAbsoluteScheduledTime() {
+  public final long getScheduledTime() {
     return scheduledTime;
   }
   
@@ -121,11 +121,11 @@ public class TaskAttemptInfo extends BaseInfo {
   }
 
   public final long getTimeTaken() {
-    return getFinishTime() - getStartTime();
+    return getFinishTimeInterval() - getStartTimeInterval();
   }
 
-  public final long getScheduledTime() {
-    return scheduledTime - (getTaskInfo().getVertexInfo().getDagInfo().getAbsStartTime());
+  public final long getScheduledTimeInterval() {
+    return scheduledTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
   
   public final String getSchedulingCausalTA() {
@@ -255,9 +255,9 @@ public class TaskAttemptInfo extends BaseInfo {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
     sb.append("taskAttemptId=").append(getTaskAttemptId()).append(", ");
-    sb.append("scheduledTime=").append(getScheduledTime()).append(", ");
-    sb.append("startTime=").append(getStartTime()).append(", ");
-    sb.append("finishTime=").append(getFinishTime()).append(", ");
+    sb.append("scheduledTime=").append(getScheduledTimeInterval()).append(", ");
+    sb.append("startTime=").append(getStartTimeInterval()).append(", ");
+    sb.append("finishTime=").append(getFinishTimeInterval()).append(", ");
     sb.append("timeTaken=").append(getTimeTaken()).append(", ");
     sb.append("events=").append(getEvents()).append(", ");
     sb.append("diagnostics=").append(getDiagnostics()).append(", ");

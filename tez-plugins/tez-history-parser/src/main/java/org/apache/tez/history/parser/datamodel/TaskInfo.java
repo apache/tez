@@ -76,26 +76,26 @@ public class TaskInfo extends BaseInfo {
   }
 
   @Override
-  public final long getStartTime() {
-    return startTime - (vertexInfo.getDagInfo().getAbsStartTime());
+  public final long getStartTimeInterval() {
+    return startTime - (vertexInfo.getDagInfo().getStartTime());
   }
 
-  public final long getAbsStartTime() {
+  public final long getStartTime() {
     return startTime;
   }
 
-  public final long getAbsFinishTime() {
+  public final long getFinishTime() {
     return endTime;
   }
 
   @Override
-  public final long getFinishTime() {
-    long taskFinishTime =  endTime - (vertexInfo.getDagInfo().getAbsStartTime());
+  public final long getFinishTimeInterval() {
+    long taskFinishTime =  endTime - (vertexInfo.getDagInfo().getStartTime());
     if (taskFinishTime < 0) {
       //probably vertex is not complete or failed in middle. get the last task attempt time
       for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
-        taskFinishTime = (attemptInfo.getFinishTime() > taskFinishTime)
-            ? attemptInfo.getFinishTime() : taskFinishTime;
+        taskFinishTime = (attemptInfo.getFinishTimeInterval() > taskFinishTime)
+            ? attemptInfo.getFinishTimeInterval() : taskFinishTime;
       }
     }
     return taskFinishTime;
@@ -222,8 +222,8 @@ public class TaskInfo extends BaseInfo {
 
     return Ordering.from(new Comparator<TaskAttemptInfo>() {
       @Override public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
-        return (o1.getFinishTime() < o2.getFinishTime()) ? -1 :
-            ((o1.getFinishTime() == o2.getFinishTime()) ?
+        return (o1.getFinishTimeInterval() < o2.getFinishTimeInterval()) ? -1 :
+            ((o1.getFinishTimeInterval() == o2.getFinishTimeInterval()) ?
                 0 : 1);
       }
     }).max(attemptsList);
@@ -259,8 +259,8 @@ public class TaskInfo extends BaseInfo {
   private Ordering<TaskAttemptInfo> orderingOnAttemptStartTime() {
     return Ordering.from(new Comparator<TaskAttemptInfo>() {
       @Override public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
-        return (o1.getStartTime() < o2.getStartTime()) ? -1 :
-            ((o1.getStartTime() == o2.getStartTime()) ? 0 : 1);
+        return (o1.getStartTimeInterval() < o2.getStartTimeInterval()) ? -1 :
+            ((o1.getStartTimeInterval() == o2.getStartTimeInterval()) ? 0 : 1);
       }
     });
   }
@@ -306,7 +306,7 @@ public class TaskInfo extends BaseInfo {
   }
 
   public final long getTimeTaken() {
-    return getFinishTime() - getStartTime();
+    return getFinishTimeInterval() - getStartTimeInterval();
   }
 
   public final String getSuccessfulAttemptId() {
@@ -318,7 +318,7 @@ public class TaskInfo extends BaseInfo {
   }
 
   public final long getScheduledTime() {
-    return scheduledTime - this.getVertexInfo().getDagInfo().getAbsStartTime();
+    return scheduledTime - this.getVertexInfo().getDagInfo().getStartTime();
   }
 
   @Override
@@ -327,8 +327,8 @@ public class TaskInfo extends BaseInfo {
     sb.append("[");
     sb.append("taskId=").append(getTaskId()).append(", ");
     sb.append("scheduledTime=").append(getAbsoluteScheduleTime()).append(", ");
-    sb.append("startTime=").append(getStartTime()).append(", ");
-    sb.append("finishTime=").append(getFinishTime()).append(", ");
+    sb.append("startTime=").append(getStartTimeInterval()).append(", ");
+    sb.append("finishTime=").append(getFinishTimeInterval()).append(", ");
     sb.append("timeTaken=").append(getTimeTaken()).append(", ");
     sb.append("events=").append(getEvents()).append(", ");
     sb.append("diagnostics=").append(getDiagnostics()).append(", ");

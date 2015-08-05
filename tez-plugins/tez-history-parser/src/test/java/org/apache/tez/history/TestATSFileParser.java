@@ -232,6 +232,11 @@ public class TestATSFileParser {
     String lastDataEventSourceTA = null;
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {
       assertTrue(vertexInfo.getKilledTasksCount() == 0);
+      assertTrue(vertexInfo.getInitRequestedTime() > 0);
+      assertTrue(vertexInfo.getInitTime() > 0);
+      assertTrue(vertexInfo.getStartRequestedTime() > 0);
+      assertTrue(vertexInfo.getStartTime() > 0);
+      assertTrue(vertexInfo.getFinishTime() > 0);
       long finishTime = 0;
       for (TaskInfo taskInfo : vertexInfo.getTasks()) {
         assertTrue(taskInfo.getNumberOfTaskAttempts() == 1);
@@ -246,8 +251,8 @@ public class TestATSFileParser {
         List<TaskAttemptInfo> attempts = taskInfo.getTaskAttempts();
         if (vertexInfo.getVertexName().equals(TOKENIZER)) {
           // get the last task to finish and track its successful attempt
-          if (finishTime < taskInfo.getAbsFinishTime()) {
-            finishTime = taskInfo.getAbsFinishTime();
+          if (finishTime < taskInfo.getFinishTime()) {
+            finishTime = taskInfo.getFinishTime();
             lastSourceTA = taskInfo.getSuccessfulAttemptId();
           }
         } else {
@@ -262,8 +267,8 @@ public class TestATSFileParser {
           }
         }
         for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
-          assertTrue(attemptInfo.getStartTime() > 0);
-          assertTrue(attemptInfo.getScheduledTime() > 0);
+          assertTrue(attemptInfo.getStartTimeInterval() > 0);
+          assertTrue(attemptInfo.getScheduledTimeInterval() > 0);
         }
       }
       assertTrue(vertexInfo.getLastTaskToFinish() != null);
@@ -471,16 +476,16 @@ public class TestATSFileParser {
     assertTrue(versionInfo.getRevision() != null);
     assertTrue(versionInfo.getBuildTime() != null);
 
-    assertTrue(dagInfo.getAbsStartTime() > 0);
-    assertTrue(dagInfo.getFinishTime() > 0);
-    assertTrue(dagInfo.getStartTime() == 0);
-    assertTrue(dagInfo.getAbsStartTime() > 0);
+    assertTrue(dagInfo.getStartTime() > 0);
+    assertTrue(dagInfo.getFinishTimeInterval() > 0);
+    assertTrue(dagInfo.getStartTimeInterval() == 0);
+    assertTrue(dagInfo.getStartTime() > 0);
     if (dagInfo.getStatus().equalsIgnoreCase(DAGState.SUCCEEDED.toString())) {
-      assertTrue(dagInfo.getAbsFinishTime() >= dagInfo.getAbsStartTime());
+      assertTrue(dagInfo.getFinishTime() >= dagInfo.getStartTime());
     }
-    assertTrue(dagInfo.getFinishTime() > dagInfo.getStartTime());
+    assertTrue(dagInfo.getFinishTimeInterval() > dagInfo.getStartTimeInterval());
 
-    assertTrue(dagInfo.getAbsStartTime() > dagInfo.getAbsoluteSubmitTime());
+    assertTrue(dagInfo.getStartTime() > dagInfo.getSubmitTime());
     assertTrue(dagInfo.getTimeTaken() > 0);
 
     //Verify all vertices
@@ -501,13 +506,13 @@ public class TestATSFileParser {
     if (hasFailedTasks) {
       assertTrue(vertexInfo.getFailedTasksCount() > 0);
     }
+    assertTrue(vertexInfo.getStartTimeInterval() > 0);
     assertTrue(vertexInfo.getStartTime() > 0);
-    assertTrue(vertexInfo.getAbsStartTime() > 0);
-    assertTrue(vertexInfo.getFinishTime() > 0);
-    assertTrue(vertexInfo.getStartTime() < vertexInfo.getFinishTime());
+    assertTrue(vertexInfo.getFinishTimeInterval() > 0);
+    assertTrue(vertexInfo.getStartTimeInterval() < vertexInfo.getFinishTimeInterval());
     assertTrue(vertexInfo.getVertexName() != null);
     if (!hasFailedTasks) {
-      assertTrue(vertexInfo.getAbsFinishTime() > 0);
+      assertTrue(vertexInfo.getFinishTime() > 0);
       assertTrue(vertexInfo.getFailedTasks().size() == 0);
       assertTrue(vertexInfo.getSucceededTasksCount() == vertexInfo.getSuccessfulTasks().size());
       assertTrue(vertexInfo.getFailedTasksCount() == 0);
@@ -535,22 +540,22 @@ public class TestATSFileParser {
     assertTrue(vertexInfo.getProcessorClassName() != null);
     assertTrue(vertexInfo.getStatus() != null);
     assertTrue(vertexInfo.getDagInfo() != null);
-    assertTrue(vertexInfo.getInitTime() > 0);
+    assertTrue(vertexInfo.getInitTimeInterval() > 0);
     assertTrue(vertexInfo.getNumTasks() > 0);
   }
 
   private void verifyTask(TaskInfo taskInfo, boolean hasFailedAttempts) {
     assertTrue(taskInfo != null);
     assertTrue(taskInfo.getStatus() != null);
-    assertTrue(taskInfo.getStartTime() > 0);
+    assertTrue(taskInfo.getStartTimeInterval() > 0);
 
     //Not testing for killed attempts. So if there are no failures, it should succeed
     if (!hasFailedAttempts) {
       assertTrue(taskInfo.getStatus().equals(TaskState.SUCCEEDED.toString()));
-      assertTrue(taskInfo.getFinishTime() > 0 && taskInfo.getAbsFinishTime() > taskInfo
-          .getFinishTime());
+      assertTrue(taskInfo.getFinishTimeInterval() > 0 && taskInfo.getFinishTime() > taskInfo
+          .getFinishTimeInterval());
       assertTrue(
-          taskInfo.getStartTime() > 0 && taskInfo.getAbsStartTime() > taskInfo.getStartTime());
+          taskInfo.getStartTimeInterval() > 0 && taskInfo.getStartTime() > taskInfo.getStartTimeInterval());
       assertTrue(taskInfo.getSuccessfulAttemptId() != null);
       assertTrue(taskInfo.getSuccessfulTaskAttempt() != null);
     }
@@ -564,13 +569,13 @@ public class TestATSFileParser {
   private void verifyTaskAttemptInfo(TaskAttemptInfo attemptInfo) {
     if (attemptInfo.getStatus() != null && attemptInfo.getStatus()
         .equals(TaskAttemptState.SUCCEEDED)) {
+      assertTrue(attemptInfo.getStartTimeInterval() > 0);
+      assertTrue(attemptInfo.getFinishTimeInterval() > 0);
       assertTrue(attemptInfo.getStartTime() > 0);
       assertTrue(attemptInfo.getFinishTime() > 0);
-      assertTrue(attemptInfo.getAbsStartTime() > 0);
-      assertTrue(attemptInfo.getAbsFinishTime() > 0);
-      assertTrue(attemptInfo.getAbsFinishTime() > attemptInfo.getAbsStartTime());
-      assertTrue(attemptInfo.getAbsFinishTime() > attemptInfo.getFinishTime());
-      assertTrue(attemptInfo.getAbsStartTime() > attemptInfo.getStartTime());
+      assertTrue(attemptInfo.getFinishTime() > attemptInfo.getStartTime());
+      assertTrue(attemptInfo.getFinishTime() > attemptInfo.getFinishTimeInterval());
+      assertTrue(attemptInfo.getStartTime() > attemptInfo.getStartTimeInterval());
       assertTrue(attemptInfo.getNodeId() != null);
       assertTrue(attemptInfo.getTimeTaken() != -1);
       assertTrue(attemptInfo.getEvents() != null);
