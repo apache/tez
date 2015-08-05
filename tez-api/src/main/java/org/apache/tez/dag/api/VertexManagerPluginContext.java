@@ -44,11 +44,35 @@ import com.google.common.base.Preconditions;
 @Public
 public interface VertexManagerPluginContext {
   
+  public class ScheduleTaskRequest {
+    int taskIndex;
+    TaskLocationHint locationHint;
+
+    public static ScheduleTaskRequest create(int taskIndex, @Nullable TaskLocationHint locationHint) {
+      return new ScheduleTaskRequest(taskIndex, locationHint); 
+    }
+    
+    private ScheduleTaskRequest(int taskIndex, @Nullable TaskLocationHint locationHint) {
+      Preconditions.checkState(taskIndex >= 0);
+      this.taskIndex = taskIndex;
+      this.locationHint = locationHint;
+    }
+    
+    public int getTaskIndex() {
+      return taskIndex;
+    }
+    
+    public TaskLocationHint getTaskLocationHint() {
+      return locationHint;
+    }    
+  }
+  
+  @Deprecated
   public class TaskWithLocationHint {
     Integer taskIndex;
     TaskLocationHint locationHint;
     public TaskWithLocationHint(Integer taskIndex, @Nullable TaskLocationHint locationHint) {
-      Preconditions.checkNotNull(taskIndex);
+      Preconditions.checkState(taskIndex != null);
       this.taskIndex = taskIndex;
       this.locationHint = locationHint;
     }
@@ -161,7 +185,7 @@ public interface VertexManagerPluginContext {
    * destination tasks may need to be updated to account for the new task
    * parallelism. This method can be called to update the parallelism multiple
    * times until any of the tasks of the vertex have been scheduled (by invoking
-   * {@link #scheduleVertexTasks(List)}. If needed, the original source edge
+   * {@link #scheduleTasks(List)}. If needed, the original source edge
    * properties may be obtained via {@link #getInputVertexEdgeProperties()}
    * 
    * @param parallelism
@@ -218,12 +242,20 @@ public interface VertexManagerPluginContext {
    */
   public void addRootInputEvents(String inputName, Collection<InputDataInformationEvent> events);
   
+  @Deprecated
   /**
+   * Replaced by {@link #scheduleTasks(List)}
    * Notify the vertex to start the given tasks
    * @param tasks Indices of the tasks to be started
    */
   public void scheduleVertexTasks(List<TaskWithLocationHint> tasks);
   
+  /**
+   * Notify the vertex to schedule the given tasks
+   * @param tasks Identifier and metadata for the tasks to schedule
+   */
+  public void scheduleTasks(List<ScheduleTaskRequest> tasks);
+
   /**
    * Get the names of the non-vertex inputs of this vertex. These are primary 
    * sources of data.

@@ -78,7 +78,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -150,6 +150,7 @@ import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
+import org.apache.tez.dag.records.TaskAttemptIdentifierImpl;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -161,6 +162,7 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.OutputStatistics;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
@@ -1526,16 +1528,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         getInputSpecList(taskIndex), getOutputSpecList(taskIndex), 
         getGroupInputSpecList(taskIndex));
   }
-  
+
   @Override
-  public void scheduleTasks(List<TaskWithLocationHint> tasksToSchedule) {
+  public void scheduleTasks(List<ScheduleTaskRequest> tasksToSchedule) {
     try {
       unsetTasksNotYetScheduled();
       // update state under write lock
       writeLock.lock();
       try {
-        for (TaskWithLocationHint task : tasksToSchedule) {
-          if (numTasks <= task.getTaskIndex().intValue()) {
+        for (ScheduleTaskRequest task : tasksToSchedule) {
+          if (numTasks <= task.getTaskIndex()) {
             throw new TezUncheckedException(
                 "Invalid taskId: " + task.getTaskIndex() + " for vertex: " + logIdentifier);
           }
@@ -1544,7 +1546,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             if (taskLocationHints == null) {
               taskLocationHints = new TaskLocationHint[numTasks];
             }
-            taskLocationHints[task.getTaskIndex().intValue()] = locationHint;
+            taskLocationHints[task.getTaskIndex()] = locationHint;
           }
         }
       } finally {
@@ -1553,8 +1555,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       
       readLock.lock();
       try {
-        for (TaskWithLocationHint task : tasksToSchedule) {
-          TezTaskID taskId = TezTaskID.getInstance(vertexId, task.getTaskIndex().intValue());
+        for (ScheduleTaskRequest task : tasksToSchedule) {
+          TezTaskID taskId = TezTaskID.getInstance(vertexId, task.getTaskIndex());
           TaskSpec baseTaskSpec = createRemoteTaskSpec(taskId.getId());
           eventHandler.handle(new TaskEventScheduleTask(taskId, baseTaskSpec,
               getTaskLocationHint(taskId)));
@@ -2834,8 +2836,24 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   }
   
+  private static List<TaskAttemptIdentifier> getTaskAttemptIdentifiers(DAG dag, 
+      List<TezTaskAttemptID> taIds) {
+    List<TaskAttemptIdentifier> attempts = new ArrayList<TaskAttemptIdentifier>(taIds.size());
+    String dagName = dag.getName();
+    for (TezTaskAttemptID taId : taIds) {
+      String vertexName = dag.getVertex(taId.getTaskID().getVertexID()).getName();
+      attempts.add(getTaskAttemptIdentifier(dagName, vertexName, taId));
+    }
+    return attempts;
+  }
+  
+  private static TaskAttemptIdentifier getTaskAttemptIdentifier(String dagName, String vertexName, 
+      TezTaskAttemptID taId) {
+    return new TaskAttemptIdentifierImpl(dagName, vertexName, taId);
+  }
+  
   private void recoveryCodeSimulatingStart() throws AMUserCodeException {
-    vertexManager.onVertexStarted(pendingReportedSrcCompletions);
+    vertexManager.onVertexStarted(getTaskAttemptIdentifiers(dag, pendingReportedSrcCompletions));
     // This code is duplicated from startVertex() because recovery does not follow normal
     // transitions. To be removed after recovery code is fixed.
     maybeSendConfiguredEvent();
@@ -3647,7 +3665,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     startedTime = clock.getTime();
     try {
-      vertexManager.onVertexStarted(pendingReportedSrcCompletions);
+      vertexManager.onVertexStarted(getTaskAttemptIdentifiers(dag, pendingReportedSrcCompletions));
     } catch (AMUserCodeException e) {
       String msg = "Exception in " + e.getSource() +", vertex=" + logIdentifier;
       LOG.error(msg, e);
@@ -3912,8 +3930,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         if (vertex.getState() == VertexState.RUNNING) {
           try {
             // Inform the vertex manager about the source task completing.
-            vertex.vertexManager.onSourceTaskCompleted(completionEvent
-                .getTaskAttemptId().getTaskID());
+            TezTaskAttemptID taId = completionEvent.getTaskAttemptId();
+            vertex.vertexManager.onSourceTaskCompleted(
+                getTaskAttemptIdentifier(vertex.dag.getName(), 
+                vertex.dag.getVertex(taId.getTaskID().getVertexID()).getName(), 
+                taId));
           } catch (AMUserCodeException e) {
             String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
             LOG.error(msg, e);
@@ -4400,6 +4421,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         Vertex target = getDAG().getVertex(vmEvent.getTargetVertexName());
         Preconditions.checkArgument(target != null,
             "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
+        TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
+        if (srcTaId.getTaskID().getVertexID().equals(vertexId)) {
+          // this is the producer tasks' vertex
+          vmEvent.setProducerAttemptIdentifier(
+              getTaskAttemptIdentifier(dag.getName(), getName(), srcTaId));
+        }
         if (target == this) {
           if (!vmIsInitialized.get()) {
             // The VM hasn't been setup yet, defer event consumption

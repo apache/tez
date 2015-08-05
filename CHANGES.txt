@@ -8,6 +8,8 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
+  instead of tasks
   TEZ-2824. Add javadocs for Vertex.setConf and DAG.setConf.
   TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
   TEZ-2966. Tez does not honor mapreduce.task.timeout

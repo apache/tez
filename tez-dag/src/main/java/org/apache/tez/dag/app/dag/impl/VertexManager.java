@@ -65,10 +65,9 @@ import org.apache.tez.dag.app.dag.event.VertexEventInputDataInformation;
 import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputSpecUpdate;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
@@ -85,7 +84,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "deprecation"})
 public class VertexManager {
   final VertexManagerPluginDescriptor pluginDesc;
   final UserGroupInformation dagUgi;
@@ -202,9 +201,20 @@ public class VertexManager {
     }
 
     @Override
-    public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
+    public synchronized void scheduleTasks(List<ScheduleTaskRequest> tasks) {
       checkAndThrowIfDone();
       managedVertex.scheduleTasks(tasks);
+    }
+    
+    @Override
+    public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
+      checkAndThrowIfDone();
+      List<ScheduleTaskRequest> schedTasks = new ArrayList<ScheduleTaskRequest>(tasks.size());
+      for (TaskWithLocationHint task : tasks) {
+        schedTasks.add(ScheduleTaskRequest.create(
+            task.getTaskIndex(), task.getTaskLocationHint()));
+      }
+      scheduleTasks(schedTasks);
     }
 
     @Nullable
@@ -455,30 +465,12 @@ public class VertexManager {
     }
   }
 
-  public void onVertexStarted(List<TezTaskAttemptID> completions) throws AMUserCodeException {
-    Map<String, List<Integer>> pluginCompletionsMap = Maps.newHashMap();
-    if (completions != null && !completions.isEmpty()) {
-      for (TezTaskAttemptID tezTaskAttemptID : completions) {
-        Integer taskId = Integer.valueOf(tezTaskAttemptID.getTaskID().getId());
-        String vertexName =
-            appContext.getCurrentDAG().getVertex(
-                tezTaskAttemptID.getTaskID().getVertexID()).getName();
-        List<Integer> taskIdList = pluginCompletionsMap.get(vertexName);
-        if (taskIdList == null) {
-          taskIdList = Lists.newArrayList();
-          pluginCompletionsMap.put(vertexName, taskIdList);
-        }
-        taskIdList.add(taskId);
-      }
-    }
-    enqueueAndScheduleNextEvent(new VertexManagerEventOnVertexStarted(pluginCompletionsMap));
+  public void onVertexStarted(List<TaskAttemptIdentifier> completions) throws AMUserCodeException {
+    enqueueAndScheduleNextEvent(new VertexManagerEventOnVertexStarted(completions));
   }
 
-  public void onSourceTaskCompleted(TezTaskID tezTaskId) throws AMUserCodeException {
-    Integer taskId = Integer.valueOf(tezTaskId.getId());
-    String vertexName =
-        appContext.getCurrentDAG().getVertex(tezTaskId.getVertexID()).getName();
-    enqueueAndScheduleNextEvent(new VertexManagerEventSourceTaskCompleted(taskId, vertexName));
+  public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) throws AMUserCodeException {
+    enqueueAndScheduleNextEvent(new VertexManagerEventSourceTaskCompleted(attempt));
   }
 
   public void onVertexManagerEventReceived(
@@ -576,31 +568,29 @@ public class VertexManager {
   }
   
   class VertexManagerEventOnVertexStarted extends VertexManagerEvent {
-    private final Map<String, List<Integer>> pluginCompletionsMap;
+    private final List<TaskAttemptIdentifier> pluginCompletions;
 
-    public VertexManagerEventOnVertexStarted(Map<String, List<Integer>> pluginCompletionsMap) {
-      this.pluginCompletionsMap = pluginCompletionsMap;
+    public VertexManagerEventOnVertexStarted(List<TaskAttemptIdentifier> pluginCompletions) {
+      this.pluginCompletions = pluginCompletions;
     }
     
     @Override
     public void invoke() throws Exception {
-      plugin.onVertexStarted(pluginCompletionsMap);
+      plugin.onVertexStarted(pluginCompletions);
     }
     
   }
   
   class VertexManagerEventSourceTaskCompleted extends VertexManagerEvent {
-    private final Integer taskId;
-    private final String vertexName;
+    private final TaskAttemptIdentifier attempt;
     
-    public VertexManagerEventSourceTaskCompleted(Integer taskId, String vertexName) {
-      this.taskId = taskId;
-      this.vertexName = vertexName;
+    public VertexManagerEventSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+      this.attempt = attempt;
     }
     
     @Override
     public void invoke() throws Exception {
-      plugin.onSourceTaskCompleted(vertexName, taskId);      
+      plugin.onSourceTaskCompleted(attempt);      
     }
     
   }

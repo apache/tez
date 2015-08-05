@@ -79,6 +79,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
@@ -696,7 +697,7 @@ public class TestExceptionPropagation {
     }
 
     @Override
-    public void onVertexStarted(Map<String, List<Integer>> completions) {
+    public void onVertexStarted(List<TaskAttemptIdentifier> completions) {
       if (this.exLocation == ExceptionLocation.VM_ON_VERTEX_STARTED) {
         throw new RuntimeException(this.exLocation.name());
       }
@@ -739,11 +740,11 @@ public class TestExceptionPropagation {
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer attemptId) {
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       if (this.exLocation == ExceptionLocation.VM_ON_SOURCETASK_COMPLETED) {
         throw new RuntimeException(this.exLocation.name());
       }
-      super.onSourceTaskCompleted(srcVertexName, attemptId);
+      super.onSourceTaskCompleted(attempt);
     }
 
     @Override

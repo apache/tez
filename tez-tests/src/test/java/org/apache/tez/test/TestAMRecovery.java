@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -56,7 +55,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
@@ -71,6 +70,7 @@ import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import org.junit.After;
@@ -523,8 +523,8 @@ public class TestAMRecovery {
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-      super.onSourceTaskCompleted(srcVertexName, taskId);
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+      super.onSourceTaskCompleted(attempt);
       completedTaskNum ++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
@@ -532,7 +532,8 @@ public class TestAMRecovery {
             System.exit(-1);
           }
         } else {
-          if (completedTaskNum == getContext().getVertexNumTasks(srcVertexName)) {
+          if (completedTaskNum == getContext().
+              getVertexNumTasks(attempt.getTaskIdentifier().getVertexIdentifier().getName())) {
             System.exit(-1);
           }
         }
@@ -562,8 +563,8 @@ public class TestAMRecovery {
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-      super.onSourceTaskCompleted(srcVertexName, taskId);
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+      super.onSourceTaskCompleted(attempt);
       completedTaskNum ++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
@@ -571,7 +572,8 @@ public class TestAMRecovery {
             System.exit(-1);
           }
         } else {
-          if (completedTaskNum == getContext().getVertexNumTasks(srcVertexName)) {
+          if (completedTaskNum == getContext().
+              getVertexNumTasks(attempt.getTaskIdentifier().getVertexIdentifier().getName())) {
             System.exit(-1);
           }
         }
@@ -602,8 +604,8 @@ public class TestAMRecovery {
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
-      super.onSourceTaskCompleted(srcVertexName, taskId);
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+      super.onSourceTaskCompleted(attempt);
       completedTaskNum ++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
@@ -611,7 +613,8 @@ public class TestAMRecovery {
             System.exit(-1);
           }
         } else {
-          if (completedTaskNum == getContext().getVertexNumTasks(srcVertexName)) {
+          if (completedTaskNum == getContext().
+              getVertexNumTasks(attempt.getTaskIdentifier().getVertexIdentifier().getName())) {
             System.exit(-1);
           }
         }
@@ -643,26 +646,26 @@ public class TestAMRecovery {
     }
 
     @Override
-    public void onVertexStarted(Map<String, List<Integer>> completions)
+    public void onVertexStarted(List<TaskAttemptIdentifier> completions)
         throws Exception {
       if (getContext().getDAGAttemptNumber() == 1) {
         // only schedule one task if it is partiallyFinished case
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
-          getContext().scheduleVertexTasks(Lists.newArrayList(new TaskWithLocationHint(0, null)));
+          getContext().scheduleTasks(Lists.newArrayList(ScheduleTaskRequest.create(0, null)));
           return ;
         }
       }
       // schedule all tasks when it is not partiallyFinished
       int taskNum = getContext().getVertexNumTasks(getContext().getVertexName());
-      List<TaskWithLocationHint> taskWithLocationHints = new ArrayList<TaskWithLocationHint>();
+      List<ScheduleTaskRequest> taskWithLocationHints = new ArrayList<ScheduleTaskRequest>();
       for (int i=0;i<taskNum;++i) {
-        taskWithLocationHints.add(new TaskWithLocationHint(i, null));
+        taskWithLocationHints.add(ScheduleTaskRequest.create(i, null));
       }
-      getContext().scheduleVertexTasks(taskWithLocationHints);
+      getContext().scheduleTasks(taskWithLocationHints);
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId)
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt)
         throws Exception {
       
     }
@@ -704,9 +707,9 @@ public class TestAMRecovery {
     }
 
     @Override
-    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) {
+    public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       int curAttempt = getContext().getDAGAttemptNumber();
-      super.onSourceTaskCompleted(srcVertexName, taskId);
+      super.onSourceTaskCompleted(attempt);
       int failOnAttempt = conf.getInt(FAIL_ON_ATTEMPT, 1);
       LOG.info("failOnAttempt:" + failOnAttempt);
       LOG.info("curAttempt:" + curAttempt);

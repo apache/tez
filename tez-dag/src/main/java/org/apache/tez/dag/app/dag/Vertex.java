@@ -37,8 +37,8 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.VertexLocationHint;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.TaskLocationHint;
-import org.apache.tez.dag.api.VertexManagerPluginContext.TaskWithLocationHint;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
@@ -150,7 +150,7 @@ public interface Vertex extends Comparable<Vertex> {
 
   int getInputVerticesCount();
   int getOutputVerticesCount();
-  void scheduleTasks(List<TaskWithLocationHint> tasks);
+  void scheduleTasks(List<ScheduleTaskRequest> tasks);
   void scheduleSpeculativeTask(TezTaskID taskId);
   Resource getTaskResource();
   

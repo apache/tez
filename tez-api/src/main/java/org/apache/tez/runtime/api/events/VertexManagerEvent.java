@@ -20,16 +20,19 @@ package org.apache.tez.runtime.api.events;
 
 import java.nio.ByteBuffer;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 
 import com.google.common.base.Preconditions;
 
 /**
  * Event used to send information from a Task to the VertexManager for a vertex.
  * This may be used to send statistics like samples etc to the VertexManager for
- * automatic plan recofigurations based on observed statistics
+ * automatic plan reconfigurations based on observed statistics
  */
 @Unstable
 @Public
@@ -39,6 +42,8 @@ public class VertexManagerEvent extends Event {
    * Vertex to which the event should be sent 
    */
   private final String targetVertexName;
+  
+  private TaskAttemptIdentifier producerAttempt;
   
   /**
    * User payload to be sent
@@ -67,5 +72,20 @@ public class VertexManagerEvent extends Event {
   
   public ByteBuffer getUserPayload() {
     return userPayload == null ? null : userPayload.asReadOnlyBuffer();
+  }
+  
+  /**
+   * Get metadata about the task attempt that produced the event.
+   * This method will provide a valid return value only when invoked in the 
+   * {@link VertexManagerPlugin}
+   * @return attempt metadata
+   */
+  public TaskAttemptIdentifier getProducerAttemptIdentifier() {
+    return producerAttempt;
+  }
+  
+  @Private
+  public void setProducerAttemptIdentifier(TaskAttemptIdentifier producerAttempt) {
+    this.producerAttempt = producerAttempt;
   }
 }
