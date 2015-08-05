@@ -86,7 +86,7 @@ public class TezRuntimeChildJVM {
     vargs.add(TezChild.class.getName());  // main of Child
 
     // pass TaskAttemptListener's address
-    vargs.add(taskAttemptListenerAddr.getAddress().getHostAddress());
+    vargs.add(taskAttemptListenerAddr.getAddress().getHostName());
     vargs.add(Integer.toString(taskAttemptListenerAddr.getPort()));
     vargs.add(containerIdentifier);
     vargs.add(tokenIdentifier);
