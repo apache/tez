@@ -490,6 +490,7 @@ TEZ-UI CHANGES (TEZ-8):
 Release 0.5.5: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
   TEZ-2630. TezChild receives IP address instead of FQDN.
