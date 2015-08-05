@@ -47,7 +47,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.runtime.api.VertexStatistics;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -5572,6 +5577,75 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.RUNNING, vA.getState());
     Assert.assertEquals(VertexState.RUNNING, vB.getState());
     Assert.assertEquals(VertexState.RUNNING, vC.getState());
+  }
+
+  @Test(timeout = 5000)
+  public void testTez2684() throws AMUserCodeException, IOException {
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan2();
+    setupPostDagCreation();
+
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    //vA init & start
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+        VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vA.getState());
+    Assert.assertEquals(VertexState.NEW, vB.getState());
+    Assert.assertEquals(VertexState.NEW, vC.getState());
+
+    //vB init
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITED, vB.getState());
+    Assert.assertEquals(VertexState.INITED, vC.getState());
+
+    //Send VertexManagerEvent
+    long[] sizes = new long[]{(100 * 1000l * 1000l)};
+    Event vmEvent = getVertexManagerEvent(sizes, 1060000000, "C");
+    TezEvent tezEvent = new TezEvent(vmEvent, null);
+    dispatcher.getEventHandler().handle(new VertexEventRouteEvent(vC.getVertexId(),
+        Lists.newArrayList(tezEvent)));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITED, vC.getState());
+
+    //vB start
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(), VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vC.getState());
+
+  }
+
+  VertexManagerEvent getVertexManagerEvent(long[] sizes, long totalSize, String vertexName)
+      throws IOException {
+    ByteBuffer payload = null;
+    if (sizes != null) {
+      RoaringBitmap partitionStats = ShuffleUtils.getPartitionStatsForPhysicalOutput(sizes);
+      DataOutputBuffer dout = new DataOutputBuffer();
+      partitionStats.serialize(dout);
+      ByteString
+          partitionStatsBytes = TezCommonUtils.compressByteArrayToByteString(dout.getData());
+      payload =
+          ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder()
+              .setOutputSize(totalSize)
+              .setPartitionStats(partitionStatsBytes)
+              .build().toByteString()
+              .asReadOnlyByteBuffer();
+    } else {
+      payload =
+          ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder()
+              .setOutputSize(totalSize)
+              .build().toByteString()
+              .asReadOnlyByteBuffer();
+    }
+    VertexManagerEvent vmEvent = VertexManagerEvent.create(vertexName, payload);
+    return vmEvent;
   }
 
   @Test(timeout = 5000)

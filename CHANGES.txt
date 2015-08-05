@@ -12,6 +12,7 @@ INCOMPATIBLE CHANGES
   TEZ-2647. Add input causality dependency for attempts
 
 ALL CHANGES:
+  TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.
   TEZ-2172. FetcherOrderedGrouped using List to store InputAttemptIdentifier can lead to some inefficiency during remove() operation.
   TEZ-2613. Fetcher(unordered) using List to store InputAttemptIdentifier can lead to some inefficiency during remove() operation.
   TEZ-2645. Provide standard analyzers for job analysis.

@@ -589,8 +589,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
 
   void updatePendingTasks() {
+    int tasks = getContext().getVertexNumTasks(getContext().getVertexName());
+    if (tasks == pendingTasks.size() || tasks <= 0) {
+      return;
+    }
     pendingTasks.clear();
-    for (int i=0; i<getContext().getVertexNumTasks(getContext().getVertexName()); ++i) {
+    for (int i = 0; i < tasks; ++i) {
       pendingTasks.add(new PendingTaskInfo(i));
     }
     totalTasksToSchedule = pendingTasks.size();
@@ -801,7 +805,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     boolean computedPartitionSizes = false;
     for (PendingTaskInfo taskInfo : pendingTasks) {
       int index = taskInfo.index;
-      if (targetIndexes != null) { //things have been reconfigured.
+      if (targetIndexes != null) { //parallelism has changed.
         Preconditions.checkState(index < targetIndexes.length,
             "index=" + index +", targetIndexes length=" + targetIndexes.length);
         int[] mapping = targetIndexes[index];
@@ -957,7 +961,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         + slowStartMaxSrcCompletionFraction + " auto:" + enableAutoParallelism
         + " desiredTaskIput:" + desiredTaskInputDataSize + " minTasks:"
         + minTaskParallelism);
-    
+
+    updatePendingTasks();
     if (enableAutoParallelism) {
       getContext().vertexReconfigurationPlanned();
     }
