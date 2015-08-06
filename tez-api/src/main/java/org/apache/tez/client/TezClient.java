@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.tez.common.RPCUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -473,7 +474,7 @@ public class TezClient {
         dagId = response.getDagId();
       }
     } catch (ServiceException e) {
-      throw new TezException(e);
+      RPCUtil.unwrapAndThrowException(e);
     }
     LOG.info("Submitted dag to TezSession"
         + ", sessionName=" + clientName

@@ -15,6 +15,7 @@ INCOMPATIBLE CHANGES
   TEZ-2650. Timing details on Vertex state changes
 
 ALL CHANGES:
+  TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.
   TEZ-2630. TezChild receives IP address instead of FQDN.
   TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.
   TEZ-2172. FetcherOrderedGrouped using List to store InputAttemptIdentifier can lead to some inefficiency during remove() operation.

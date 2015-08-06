@@ -353,6 +353,8 @@ public class DAGClientImpl extends DAGClient {
       dagCompleted = true;
     } catch (TezException e) {
       // can be either due to a n/w issue of due to AM completed.
+    } catch (IOException e) {
+      // can be either due to a n/w issue of due to AM completed.
     }
 
     if (dagStatus == null && !dagCompleted) {
@@ -370,6 +372,8 @@ public class DAGClientImpl extends DAGClient {
     } catch (DAGNotRunningException e) {
       dagCompleted = true;
     } catch (TezException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    } catch (IOException e) {
       // can be either due to a n/w issue of due to AM completed.
     }
 
