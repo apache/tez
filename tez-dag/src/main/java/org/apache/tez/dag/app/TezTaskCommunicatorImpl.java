@@ -163,7 +163,10 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       }
 
       server.start();
-      this.address = NetUtils.getConnectAddress(server);
+      InetSocketAddress serverBindAddress = NetUtils.getConnectAddress(server);
+      this.address = NetUtils.createSocketAddrForHost(
+          serverBindAddress.getAddress().getCanonicalHostName(),
+          serverBindAddress.getPort());
       LOG.info("Instantiated TezTaskCommunicator RPC at " + this.address);
     } catch (IOException e) {
       throw new TezUncheckedException(e);

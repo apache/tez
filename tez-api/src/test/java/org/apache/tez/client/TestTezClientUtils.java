@@ -225,7 +225,7 @@ public class TestTezClientUtils {
         appId, null, "dagname",
         amConf, m,
         credentials, false,
-        new TezApiVersionInfo(), null);
+        new TezApiVersionInfo(), null, null);
     assertEquals(testpriority, appcontext.getPriority().getPriority());
   }
 

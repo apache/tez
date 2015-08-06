@@ -401,7 +401,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               List<TezEvent> events = Lists.newArrayListWithCapacity(
                                       cData.taskSpec.getOutputs().size() + 1);
               if (cData.numUpdates == 0 && eventsDelegate != null) {
-                eventsDelegate.getEvents(cData.taskSpec, events, getContext().getClock().getTime());
+                eventsDelegate.getEvents(cData.taskSpec, events, MockDAGAppMaster.this.getContext().getClock().getTime());
               }
               TezCounters counters = null;
               if (countersDelegate != null) {
@@ -416,7 +416,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               float progress = updateProgress ? cData.numUpdates/maxUpdates : 0f;
               events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
-                  getContext().getClock().getTime()));
+                  MockDAGAppMaster.this.getContext().getClock().getTime()));
 //              TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
 //                  cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
               TaskHeartbeatRequest request =
@@ -431,7 +431,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               List<TezEvent> events = Collections.singletonList(new TezEvent(
                   new TaskAttemptCompletedEvent(), new EventMetaData(
                       EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
-                  getContext().getClock().getTime()));
+                  MockDAGAppMaster.this.getContext().getClock().getTime()));
               TaskHeartbeatRequest request =
                   new TaskHeartbeatRequest(cData.cIdStr, cData.taId, events, cData.nextFromEventId, cData.nextPreRoutedFromEventId,
                       10000);

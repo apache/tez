@@ -89,7 +89,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("unchecked")
-// TODO TEZ-2003 Rename to TestTezTaskCommunicator
+// TODO TEZ-2003 (post) TEZ-2696 Rename to TestTezTaskCommunicator
 public class TestTaskAttemptListenerImplTezDag {
   private ApplicationId appId;
   private ApplicationAttemptId appAttemptId;
@@ -153,8 +153,6 @@ public class TestTaskAttemptListenerImplTezDag {
         Lists.newArrayList(
             new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
                 .setUserPayload(defaultPayload)));
-    TezTaskCommunicatorImpl taskCommunicator = (TezTaskCommunicatorImpl)taskAttemptListener.getTaskCommunicator();
-    TezTaskUmbilicalProtocol tezUmbilical = taskCommunicator.getUmbilical();
 
     taskSpec = mock(TaskSpec.class);
     doReturn(taskAttemptID).when(taskSpec).getTaskAttemptID();
