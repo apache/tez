@@ -21,6 +21,7 @@ package org.apache.tez.history.parser.datamodel;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
@@ -41,7 +42,7 @@ public class TaskAttemptInfo extends BaseInfo {
   private final long startTime;
   private final long endTime;
   private final String diagnostics;
-  private final String successfulAttemptId;
+
   private final long scheduledTime;
   private final String containerId;
   private final String nodeId;
@@ -62,26 +63,27 @@ public class TaskAttemptInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_TASK_ATTEMPT_ID));
 
-    taskAttemptId = jsonObject.optString(Constants.ENTITY);
+    taskAttemptId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY));
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
     startTime = otherInfoNode.optLong(Constants.START_TIME);
     endTime = otherInfoNode.optLong(Constants.FINISH_TIME);
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
-    successfulAttemptId = otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID);
     scheduledTime = otherInfoNode.optLong(Constants.SCHEDULED_TIME);
-    schedulingCausalTA = otherInfoNode.optString(Constants.SCHEDULING_CAUSAL_ATTEMPT);
+    schedulingCausalTA = StringInterner.weakIntern(
+        otherInfoNode.optString(Constants.SCHEDULING_CAUSAL_ATTEMPT));
 
-    containerId = otherInfoNode.optString(Constants.CONTAINER_ID);
+    containerId = StringInterner.weakIntern(otherInfoNode.optString(Constants.CONTAINER_ID));
     String id = otherInfoNode.optString(Constants.NODE_ID);
-    nodeId = (id != null) ? (id.split(":")[0]) : "";
+    nodeId = StringInterner.weakIntern((id != null) ? (id.split(":")[0]) : "");
     logUrl = otherInfoNode.optString(Constants.COMPLETED_LOGS_URL);
 
-    status = otherInfoNode.optString(Constants.STATUS);
+    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
     container = new Container(containerId, nodeId);
     lastDataEventTime = otherInfoNode.optLong(ATSConstants.LAST_DATA_EVENT_TIME);
-    lastDataEventSourceTA = otherInfoNode.optString(ATSConstants.LAST_DATA_EVENT_SOURCE_TA);
+    lastDataEventSourceTA = StringInterner.weakIntern(
+        otherInfoNode.optString(ATSConstants.LAST_DATA_EVENT_SOURCE_TA));
   }
 
   void setTaskInfo(TaskInfo taskInfo) {
@@ -131,6 +133,7 @@ public class TaskAttemptInfo extends BaseInfo {
   public final String getSchedulingCausalTA() {
     return schedulingCausalTA;
   }
+
 
   @Override
   public final String getDiagnostics() {
@@ -184,10 +187,6 @@ public class TaskAttemptInfo extends BaseInfo {
 
   public final String getTaskAttemptId() {
     return taskAttemptId;
-  }
-
-  public final String getSuccessfulAttemptId() {
-    return successfulAttemptId;
   }
 
   public final String getNodeId() {
@@ -261,7 +260,6 @@ public class TaskAttemptInfo extends BaseInfo {
     sb.append("timeTaken=").append(getTimeTaken()).append(", ");
     sb.append("events=").append(getEvents()).append(", ");
     sb.append("diagnostics=").append(getDiagnostics()).append(", ");
-    sb.append("successfulAttempId=").append(getSuccessfulAttemptId()).append(", ");
     sb.append("container=").append(getContainer()).append(", ");
     sb.append("nodeId=").append(getNodeId()).append(", ");
     sb.append("logURL=").append(getLogURL()).append(", ");

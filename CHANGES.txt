@@ -13,6 +13,7 @@ INCOMPATIBLE CHANGES
   TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
   instead of tasks
   TEZ-2650. Timing details on Vertex state changes
+  TEZ-2699. Internalize strings in ATF parser
 
 ALL CHANGES:
   TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.

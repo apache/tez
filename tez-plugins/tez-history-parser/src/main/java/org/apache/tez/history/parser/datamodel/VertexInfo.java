@@ -27,6 +27,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
+
+import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -43,6 +45,7 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 @Evolving
 public class VertexInfo extends BaseInfo {
 
+  private final String vertexId;
   private final String vertexName;
   private final long finishTime;
   private final long initTime;
@@ -80,6 +83,7 @@ public class VertexInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_VERTEX_ID));
 
+    vertexId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY_TYPE));
     taskInfoMap = Maps.newHashMap();
 
     inEdgeList = Lists.newLinkedList();
@@ -104,9 +108,9 @@ public class VertexInfo extends BaseInfo {
     killedTasks = otherInfoNode.optInt(Constants.NUM_KILLED_TASKS);
     numFailedTaskAttempts =
         otherInfoNode.optInt(Constants.NUM_FAILED_TASKS_ATTEMPTS);
-    vertexName = otherInfoNode.optString(Constants.VERTEX_NAME);
-    processorClass = otherInfoNode.optString(Constants.PROCESSOR_CLASS_NAME);
-    status = otherInfoNode.optString(Constants.STATUS);
+    vertexName = StringInterner.weakIntern(otherInfoNode.optString(Constants.VERTEX_NAME));
+    processorClass = StringInterner.weakIntern(otherInfoNode.optString(Constants.PROCESSOR_CLASS_NAME));
+    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
   }
 
   public static VertexInfo create(JSONObject vertexInfoObject) throws
@@ -216,6 +220,10 @@ public class VertexInfo extends BaseInfo {
 
   public final String getVertexName() {
     return vertexName;
+  }
+  
+  public final String getVertexId() {
+    return vertexId;
   }
 
   //Quite possible that getFinishTime is not yet recorded for failed vertices (or killed vertices)

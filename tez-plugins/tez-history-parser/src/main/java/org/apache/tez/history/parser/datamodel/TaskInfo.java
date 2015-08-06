@@ -27,6 +27,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
+
+import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -63,16 +65,17 @@ public class TaskInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_TASK_ID));
 
-    taskId = jsonObject.optString(Constants.ENTITY);
+    taskId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY));
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
     startTime = otherInfoNode.optLong(Constants.START_TIME);
     endTime = otherInfoNode.optLong(Constants.FINISH_TIME);
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
-    successfulAttemptId = otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID);
+    successfulAttemptId = StringInterner.weakIntern(
+        otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID));
     scheduledTime = otherInfoNode.optLong(Constants.SCHEDULED_TIME);
-    status = otherInfoNode.optString(Constants.STATUS);
+    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
   }
 
   @Override
