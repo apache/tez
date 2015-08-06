@@ -235,6 +235,7 @@ public class TestAMRecovery {
         createDAG("VertexCompletelyFinished_Broadcast", ControlledImmediateStartVertexManager.class,
             DataMovementType.BROADCAST, false);
     TezCounters counters = runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+
     assertEquals(4, counters.findCounter(DAGCounter.NUM_SUCCEEDED_TASKS).getValue());
     assertEquals(2, counters.findCounter(TestCounter.Counter_1).getValue());
 
@@ -483,7 +484,7 @@ public class TestAMRecovery {
               "application", "dag")
               + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
       if (fs.exists(recoveryFilePath)) {
-        LOG.info("read recovery file:" + recoveryFilePath);
+        LOG.info("Read recovery file:" + recoveryFilePath);
         historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(fs.open(recoveryFilePath)));
       }
     }

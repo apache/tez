@@ -25,7 +25,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.apache.tez.common.JavaOptsChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -43,7 +42,9 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.RPCUtil;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.DAG;
@@ -501,7 +502,7 @@ public class TezClient {
         dagId = response.getDagId();
       }
     } catch (ServiceException e) {
-      throw new TezException(e);
+      RPCUtil.unwrapAndThrowException(e);
     }
     LOG.info("Submitted dag to TezSession"
         + ", sessionName=" + clientName
