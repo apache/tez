@@ -28,17 +28,23 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -47,6 +53,7 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.junit.Test;
 
 /**
@@ -60,7 +67,8 @@ public class TestVertexImpl2 {
     Configuration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_TASK_LOG_LEVEL, "DEBUG;org.apache.hadoop.ipc=INFO;org.apache.hadoop.server=INFO");
 
-    LogTestInfoHolder testInfo = new LogTestInfoHolder(conf);
+    LogTestInfoHolder testInfo = new LogTestInfoHolder();
+    VertexWrapper vertexWrapper = createVertexWrapperForLogTests(testInfo, conf);
 
     List<String> expectedCommands = new LinkedList<String>();
     expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
@@ -71,7 +79,8 @@ public class TestVertexImpl2 {
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
     for (int i = 0 ; i < testInfo.numTasks ; i++) {
-      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      ContainerContext containerContext = vertexWrapper
+          .vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
       for (String expectedCmd : expectedCommands) {
@@ -92,7 +101,8 @@ public class TestVertexImpl2 {
     Configuration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_TASK_LOG_LEVEL, "DEBUG");
 
-    LogTestInfoHolder testInfo = new LogTestInfoHolder(conf);
+    LogTestInfoHolder testInfo = new LogTestInfoHolder();
+    VertexWrapper vertexWrapper = createVertexWrapperForLogTests(testInfo, conf);
 
     List<String> expectedCommands = new LinkedList<String>();
     expectedCommands.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
@@ -103,7 +113,7 @@ public class TestVertexImpl2 {
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
     for (int i = 0 ; i < testInfo.numTasks ; i++) {
-      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
       for (String expectedCmd : expectedCommands) {
@@ -130,7 +140,8 @@ public class TestVertexImpl2 {
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL, "DEBUG;org.apache.tez=INFO");
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, customJavaOpts);
 
-    LogTestInfoHolder testInfo = new LogTestInfoHolder(conf);
+    LogTestInfoHolder testInfo = new LogTestInfoHolder();
+    VertexWrapper vertexWrapper = createVertexWrapperForLogTests(testInfo, conf);
 
     // Expected command opts for regular tasks
     List<String> expectedCommands = new LinkedList<String>();
@@ -142,7 +153,7 @@ public class TestVertexImpl2 {
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
     for (int i = 3 ; i < testInfo.numTasks ; i++) {
-      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
@@ -167,7 +178,7 @@ public class TestVertexImpl2 {
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
     for (int i = 0 ; i < 3 ; i++) {
-      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
@@ -195,7 +206,8 @@ public class TestVertexImpl2 {
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LOG_LEVEL, "DEBUG");
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, customJavaOpts);
 
-    LogTestInfoHolder testInfo = new LogTestInfoHolder(conf);
+    LogTestInfoHolder testInfo = new LogTestInfoHolder();
+    VertexWrapper vertexWrapper = createVertexWrapperForLogTests(testInfo, conf);
 
     // Expected command opts for regular tasks
     List<String> expectedCommands = new LinkedList<String>();
@@ -207,7 +219,7 @@ public class TestVertexImpl2 {
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
     for (int i = 3 ; i < testInfo.numTasks ; i++) {
-      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
@@ -232,7 +244,7 @@ public class TestVertexImpl2 {
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
     for (int i = 0 ; i < 3 ; i++) {
-      ContainerContext containerContext = testInfo.vertex.getContainerContext(i);
+      ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
@@ -248,43 +260,224 @@ public class TestVertexImpl2 {
     }
   }
 
+  @Test(timeout = 5000)
+  public void testNullExecutionContexts() {
+
+    ExecutionContextTestInfoHolder info = new ExecutionContextTestInfoHolder(null, null);
+    VertexWrapper vertexWrapper = createVertexWrapperForExecutionContextTest(info);
+
+    assertEquals(0, vertexWrapper.vertex.taskSchedulerIdentifier);
+    assertEquals(0, vertexWrapper.vertex.containerLauncherIdentifier);
+    assertEquals(0, vertexWrapper.vertex.taskCommunicatorIdentifier);
+  }
+
+  @Test(timeout = 5000)
+  public void testDefaultExecContextViaDag() {
+    VertexExecutionContext defaultExecContext = VertexExecutionContext.create(
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_SCHEDULER_NAME_BASE, 0),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.CONTAINER_LAUNCHER_NAME_BASE, 2),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_COMM_NAME_BASE, 2));
+    ExecutionContextTestInfoHolder info =
+        new ExecutionContextTestInfoHolder(null, defaultExecContext, 3);
+    VertexWrapper vertexWrapper = createVertexWrapperForExecutionContextTest(info);
+
+    assertEquals(0, vertexWrapper.vertex.taskSchedulerIdentifier);
+    assertEquals(2, vertexWrapper.vertex.containerLauncherIdentifier);
+    assertEquals(2, vertexWrapper.vertex.taskCommunicatorIdentifier);
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexExecutionContextOnly() {
+    VertexExecutionContext vertexExecutionContext = VertexExecutionContext.create(
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_SCHEDULER_NAME_BASE, 1),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.CONTAINER_LAUNCHER_NAME_BASE, 1),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_COMM_NAME_BASE, 1));
+    ExecutionContextTestInfoHolder info =
+        new ExecutionContextTestInfoHolder(vertexExecutionContext, null, 3);
+    VertexWrapper vertexWrapper = createVertexWrapperForExecutionContextTest(info);
+
+    assertEquals(1, vertexWrapper.vertex.taskSchedulerIdentifier);
+    assertEquals(1, vertexWrapper.vertex.containerLauncherIdentifier);
+    assertEquals(1, vertexWrapper.vertex.taskCommunicatorIdentifier);
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexExecutionContextOverride() {
+    VertexExecutionContext defaultExecContext = VertexExecutionContext.create(
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_SCHEDULER_NAME_BASE, 0),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.CONTAINER_LAUNCHER_NAME_BASE, 2),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_COMM_NAME_BASE, 2));
+
+    VertexExecutionContext vertexExecutionContext = VertexExecutionContext.create(
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_SCHEDULER_NAME_BASE, 1),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.CONTAINER_LAUNCHER_NAME_BASE, 1),
+        ExecutionContextTestInfoHolder
+            .append(ExecutionContextTestInfoHolder.TASK_COMM_NAME_BASE, 1));
+    ExecutionContextTestInfoHolder info =
+        new ExecutionContextTestInfoHolder(vertexExecutionContext, defaultExecContext, 3);
+    VertexWrapper vertexWrapper = createVertexWrapperForExecutionContextTest(info);
+
+    assertEquals(1, vertexWrapper.vertex.taskSchedulerIdentifier);
+    assertEquals(1, vertexWrapper.vertex.containerLauncherIdentifier);
+    assertEquals(1, vertexWrapper.vertex.taskCommunicatorIdentifier);
+  }
+
+
+  private static class ExecutionContextTestInfoHolder {
+
+    static final String TASK_SCHEDULER_NAME_BASE = "TASK_SCHEDULER";
+    static final String CONTAINER_LAUNCHER_NAME_BASE = "CONTAINER_LAUNCHER";
+    static final String TASK_COMM_NAME_BASE = "TASK_COMMUNICATOR";
+
+    static String append(String base, int index) {
+      return base + index;
+    }
+
+    final String vertexName;
+    final VertexExecutionContext defaultExecutionContext;
+    final VertexExecutionContext vertexExecutionContext;
+    final BiMap<String, Integer> taskSchedulers = HashBiMap.create();
+    final BiMap<String, Integer> containerLaunchers = HashBiMap.create();
+    final BiMap<String, Integer> taskComms = HashBiMap.create();
+    final AppContext appContext;
+
+    public ExecutionContextTestInfoHolder(VertexExecutionContext vertexExecutionContext,
+                                          VertexExecutionContext defaultDagExecutionContext) {
+      this(vertexExecutionContext, defaultDagExecutionContext, 0);
+    }
+
+    public ExecutionContextTestInfoHolder(VertexExecutionContext vertexExecutionContext,
+                                          VertexExecutionContext defaultDagExecitionContext,
+                                          int numPlugins) {
+      this.vertexName = "testvertex";
+      this.vertexExecutionContext = vertexExecutionContext;
+      this.defaultExecutionContext = defaultDagExecitionContext;
+      if (numPlugins == 0) {
+        this.taskSchedulers.put(TezConstants.getTezYarnServicePluginName(), 0);
+        this.containerLaunchers.put(TezConstants.getTezYarnServicePluginName(), 0);
+        this.taskSchedulers.put(TezConstants.getTezYarnServicePluginName(), 0);
+      } else {
+        for (int i = 0; i < numPlugins; i++) {
+          this.taskSchedulers.put(append(TASK_SCHEDULER_NAME_BASE, i), i);
+          this.containerLaunchers.put(append(CONTAINER_LAUNCHER_NAME_BASE, i), i);
+          this.taskComms.put(append(TASK_COMM_NAME_BASE, i), i);
+        }
+      }
+
+      this.appContext = createDefaultMockAppContext();
+      DAG dag = appContext.getCurrentDAG();
+      doReturn(defaultDagExecitionContext).when(dag).getDefaultExecutionContext();
+      for (Map.Entry<String, Integer> entry : taskSchedulers.entrySet()) {
+        doReturn(entry.getKey()).when(appContext).getTaskSchedulerName(entry.getValue());
+        doReturn(entry.getValue()).when(appContext).getTaskScheduerIdentifier(entry.getKey());
+      }
+      for (Map.Entry<String, Integer> entry : containerLaunchers.entrySet()) {
+        doReturn(entry.getKey()).when(appContext).getContainerLauncherName(entry.getValue());
+        doReturn(entry.getValue()).when(appContext).getContainerLauncherIdentifier(entry.getKey());
+      }
+      for (Map.Entry<String, Integer> entry : taskComms.entrySet()) {
+        doReturn(entry.getKey()).when(appContext).getTaskCommunicatorName(entry.getValue());
+        doReturn(entry.getValue()).when(appContext).getTaskCommunicatorIdentifier(entry.getKey());
+      }
+    }
+  }
+
+  private VertexWrapper createVertexWrapperForExecutionContextTest(
+      ExecutionContextTestInfoHolder vertexInfo) {
+    VertexPlan vertexPlan = createVertexPlanForExeuctionContextTests(vertexInfo);
+    VertexWrapper vertexWrapper =
+        new VertexWrapper(vertexInfo.appContext, vertexPlan, new Configuration(false));
+    return vertexWrapper;
+  }
+
+  private VertexPlan createVertexPlanForExeuctionContextTests(ExecutionContextTestInfoHolder info) {
+    VertexPlan.Builder vertexPlanBuilder = VertexPlan.newBuilder()
+        .setName(info.vertexName)
+        .setTaskConfig(DAGProtos.PlanTaskConfiguration.newBuilder()
+            .setNumTasks(10)
+            .setJavaOpts("dontcare")
+            .setMemoryMb(1024)
+            .setVirtualCores(1)
+            .setTaskModule("taskmodule")
+            .build())
+        .setType(DAGProtos.PlanVertexType.NORMAL);
+    if (info.vertexExecutionContext != null) {
+      vertexPlanBuilder
+          .setExecutionContext(DagTypeConverters.convertToProto(info.vertexExecutionContext));
+    }
+    return vertexPlanBuilder.build();
+  }
 
   private static class LogTestInfoHolder {
-
-    final AppContext mockAppContext;
-    final DAG mockDag;
-    final VertexImpl vertex;
-    final DAGProtos.VertexPlan vertexPlan;
-
     final int numTasks = 10;
     final String initialJavaOpts = "initialJavaOpts";
     final String envKey = "key1";
     final String envVal = "val1";
+    final String vertexName;
 
-    LogTestInfoHolder(Configuration conf) {
-      this(conf, "testvertex");
+    public LogTestInfoHolder() {
+      this("testvertex");
     }
 
-    LogTestInfoHolder(Configuration conf, String vertexName) {
-      mockAppContext = mock(AppContext.class);
-      mockDag = mock(DAG.class);
-      doReturn(new Credentials()).when(mockDag).getCredentials();
-      doReturn(mockDag).when(mockAppContext).getCurrentDAG();
+    public LogTestInfoHolder(String vertexName) {
+      this.vertexName = vertexName;
+    }
+  }
 
-      vertexPlan = DAGProtos.VertexPlan.newBuilder()
-          .setName(vertexName)
-          .setTaskConfig(DAGProtos.PlanTaskConfiguration.newBuilder()
-              .setJavaOpts(initialJavaOpts)
-              .setNumTasks(numTasks)
-              .setMemoryMb(1024)
-              .setVirtualCores(1)
-              .setTaskModule("taskmodule")
-              .addEnvironmentSetting(DAGProtos.PlanKeyValuePair.newBuilder()
-                  .setKey(envKey)
-                  .setValue(envVal)
-                  .build())
-              .build())
-          .setType(DAGProtos.PlanVertexType.NORMAL).build();
+  private VertexWrapper createVertexWrapperForLogTests(LogTestInfoHolder logTestInfoHolder,
+                                                       Configuration conf) {
+    VertexPlan vertexPlan = createVertexPlanForLogTests(logTestInfoHolder);
+    VertexWrapper vertexWrapper = new VertexWrapper(vertexPlan, conf);
+    return vertexWrapper;
+  }
+
+  private VertexPlan createVertexPlanForLogTests(LogTestInfoHolder logTestInfoHolder) {
+    VertexPlan vertexPlan = VertexPlan.newBuilder()
+        .setName(logTestInfoHolder.vertexName)
+        .setTaskConfig(DAGProtos.PlanTaskConfiguration.newBuilder()
+            .setJavaOpts(logTestInfoHolder.initialJavaOpts)
+            .setNumTasks(logTestInfoHolder.numTasks)
+            .setMemoryMb(1024)
+            .setVirtualCores(1)
+            .setTaskModule("taskmodule")
+            .addEnvironmentSetting(DAGProtos.PlanKeyValuePair.newBuilder()
+                .setKey(logTestInfoHolder.envKey)
+                .setValue(logTestInfoHolder.envVal)
+                .build())
+            .build())
+        .setType(DAGProtos.PlanVertexType.NORMAL).build();
+    return vertexPlan;
+  }
+
+  private static class VertexWrapper {
+
+    final AppContext mockAppContext;
+    final VertexImpl vertex;
+    final VertexPlan vertexPlan;
+
+    VertexWrapper(AppContext appContext, VertexPlan vertexPlan, Configuration conf) {
+      if (appContext == null) {
+        mockAppContext = createDefaultMockAppContext();
+        DAG mockDag = mock(DAG.class);
+        doReturn(new Credentials()).when(mockDag).getCredentials();
+        doReturn(mockDag).when(mockAppContext).getCurrentDAG();
+      } else {
+        mockAppContext = appContext;
+      }
+
+
+      this.vertexPlan = vertexPlan;
 
       vertex =
           new VertexImpl(TezVertexID.fromString("vertex_1418197758681_0001_1_00"), vertexPlan,
@@ -293,5 +486,17 @@ public class TestVertexImpl2 {
               VertexLocationHint.create(new LinkedList<TaskLocationHint>()), null,
               new TaskSpecificLaunchCmdOption(conf), mock(StateChangeNotifier.class));
     }
+
+    VertexWrapper(VertexPlan vertexPlan, Configuration conf) {
+      this(null, vertexPlan, conf);
+    }
+  }
+
+  private static AppContext createDefaultMockAppContext() {
+    AppContext appContext = mock(AppContext.class);
+    DAG mockDag = mock(DAG.class);
+    doReturn(new Credentials()).when(mockDag).getCredentials();
+    doReturn(mockDag).when(appContext).getCurrentDAG();
+    return appContext;
   }
 }

@@ -233,9 +233,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   
   private final boolean isSpeculationEnabled;
 
-  private final int taskSchedulerIdentifier;
-  private final int containerLauncherIdentifier;
-  private final int taskCommunicatorIdentifier;
+  @VisibleForTesting
+  final int taskSchedulerIdentifier;
+  @VisibleForTesting
+  final int containerLauncherIdentifier;
+  @VisibleForTesting
+  final int taskCommunicatorIdentifier;
 
   //fields initialized in init
 

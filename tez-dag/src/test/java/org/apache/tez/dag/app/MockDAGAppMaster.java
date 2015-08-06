@@ -511,8 +511,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
   // use mock container launcher for tests
   @Override
-  protected ContainerLauncherRouter createContainerLauncherRouter(final UserPayload defaultUserPayload,
-                                                                  List<NamedEntityDescriptor> containerLauncherDescirptors,
+  protected ContainerLauncherRouter createContainerLauncherRouter(List<NamedEntityDescriptor> containerLauncherDescirptors,
                                                                   boolean isLocal)
       throws UnknownHostException {
     return new ContainerLauncherRouter(containerLauncher, getContext());

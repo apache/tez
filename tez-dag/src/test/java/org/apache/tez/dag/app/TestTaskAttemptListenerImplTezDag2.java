@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -37,7 +38,9 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
@@ -83,7 +86,8 @@ public class TestTaskAttemptListenerImplTezDag2 {
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
     TaskAttemptListenerImpTezDag taskAttemptListener =
         new TaskAttemptListenerImpTezDag(appContext, mock(TaskHeartbeatHandler.class),
-            mock(ContainerHeartbeatHandler.class), null, userPayload, false);
+            mock(ContainerHeartbeatHandler.class), Lists.newArrayList(new NamedEntityDescriptor(
+            TezConstants.getTezYarnServicePluginName(), null).setUserPayload(userPayload)));
 
     TaskSpec taskSpec1 = mock(TaskSpec.class);
     TezTaskAttemptID taskAttemptId1 = mock(TezTaskAttemptID.class);

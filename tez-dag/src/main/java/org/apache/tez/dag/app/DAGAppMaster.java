@@ -59,6 +59,7 @@ import java.util.regex.Pattern;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
@@ -389,42 +390,16 @@ public class DAGAppMaster extends AbstractService {
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
 
-    List<NamedEntityDescriptor> taskSchedulerDescriptors;
-    List<NamedEntityDescriptor> containerLauncherDescriptors;
-    List<NamedEntityDescriptor> taskCommunicatorDescriptors;
-    boolean tezYarnEnabled = true;
-    boolean uberEnabled = false;
+    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(amConf);
 
-    if (!isLocal) {
-      if (amPluginDescriptorProto == null) {
-        tezYarnEnabled = true;
-        uberEnabled = false;
-      } else {
-        tezYarnEnabled = amPluginDescriptorProto.getContainersEnabled();
-        uberEnabled = amPluginDescriptorProto.getUberEnabled();
-      }
-    } else {
-      tezYarnEnabled = false;
-      uberEnabled = true;
-    }
+    List<NamedEntityDescriptor> taskSchedulerDescriptors = Lists.newLinkedList();
+    List<NamedEntityDescriptor> containerLauncherDescriptors = Lists.newLinkedList();
+    List<NamedEntityDescriptor> taskCommunicatorDescriptors = Lists.newLinkedList();
 
-    taskSchedulerDescriptors = parsePlugin(taskSchedulers,
-        (amPluginDescriptorProto == null || amPluginDescriptorProto.getTaskSchedulersCount() == 0 ?
-            null :
-            amPluginDescriptorProto.getTaskSchedulersList()),
-        tezYarnEnabled, uberEnabled);
+    parseAllPlugins(taskSchedulerDescriptors, taskSchedulers, containerLauncherDescriptors,
+        containerLaunchers, taskCommunicatorDescriptors, taskCommunicators, amPluginDescriptorProto,
+        isLocal, defaultPayload);
 
-    containerLauncherDescriptors = parsePlugin(containerLaunchers,
-        (amPluginDescriptorProto == null ||
-            amPluginDescriptorProto.getContainerLaunchersCount() == 0 ? null :
-            amPluginDescriptorProto.getContainerLaunchersList()),
-        tezYarnEnabled, uberEnabled);
-
-    taskCommunicatorDescriptors = parsePlugin(taskCommunicators,
-        (amPluginDescriptorProto == null ||
-            amPluginDescriptorProto.getTaskCommunicatorsCount() == 0 ? null :
-            amPluginDescriptorProto.getTaskCommunicatorsList()),
-        tezYarnEnabled, uberEnabled);
 
 
     LOG.info(buildPluginComponentLog(taskSchedulerDescriptors, taskSchedulers, "TaskSchedulers"));
@@ -494,12 +469,11 @@ public class DAGAppMaster extends AbstractService {
     jobTokenSecretManager.addTokenForJob(
         appAttemptID.getApplicationId().toString(), sessionToken);
 
-    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(amConf);
+
 
     //service to handle requests to TaskUmbilicalProtocol
     taskAttemptListener = createTaskAttemptListener(context,
-        taskHeartbeatHandler, containerHeartbeatHandler, taskCommunicatorDescriptors,
-        defaultPayload, isLocal);
+        taskHeartbeatHandler, containerHeartbeatHandler, taskCommunicatorDescriptors);
     addIfService(taskAttemptListener, true);
 
     containerSignatureMatcher = createContainerSignatureMatcher();
@@ -549,7 +523,7 @@ public class DAGAppMaster extends AbstractService {
 
     this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService,
-        taskSchedulerDescriptors, defaultPayload, isLocal);
+        taskSchedulerDescriptors, isLocal);
     addIfService(taskSchedulerEventHandler, true);
 
     if (enableWebUIService()) {
@@ -567,7 +541,7 @@ public class DAGAppMaster extends AbstractService {
         taskSchedulerEventHandler);
     addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
 
-    this.containerLauncherRouter = createContainerLauncherRouter(defaultPayload, containerLauncherDescriptors, isLocal);
+    this.containerLauncherRouter = createContainerLauncherRouter(containerLauncherDescriptors, isLocal);
     addIfService(containerLauncherRouter, true);
     dispatcher.register(NMCommunicatorEventType.class, containerLauncherRouter);
 
@@ -1077,12 +1051,9 @@ public class DAGAppMaster extends AbstractService {
   protected TaskAttemptListener createTaskAttemptListener(AppContext context,
                                                           TaskHeartbeatHandler thh,
                                                           ContainerHeartbeatHandler chh,
-                                                          List<NamedEntityDescriptor> entityDescriptors,
-                                                          UserPayload defaultUserPayload,
-                                                          boolean isLocal) {
+                                                          List<NamedEntityDescriptor> entityDescriptors) {
     TaskAttemptListener lis =
-        new TaskAttemptListenerImpTezDag(context, thh, chh,
-            entityDescriptors, defaultUserPayload, isLocal);
+        new TaskAttemptListenerImpTezDag(context, thh, chh, entityDescriptors);
     return lis;
   }
 
@@ -1103,11 +1074,10 @@ public class DAGAppMaster extends AbstractService {
     return chh;
   }
 
-  protected ContainerLauncherRouter createContainerLauncherRouter(UserPayload defaultPayload,
-                                                                  List<NamedEntityDescriptor> containerLauncherDescriptors,
+  protected ContainerLauncherRouter createContainerLauncherRouter(List<NamedEntityDescriptor> containerLauncherDescriptors,
                                                                   boolean isLocal) throws
       UnknownHostException {
-    return new ContainerLauncherRouter(defaultPayload, context, taskAttemptListener, workingDirectory,
+    return new ContainerLauncherRouter(context, taskAttemptListener, workingDirectory,
         containerLauncherDescriptors, isLocal);
   }
 
@@ -2407,41 +2377,106 @@ public class DAGAppMaster extends AbstractService {
         TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE_DEFAULT);
   }
 
-  private static List<NamedEntityDescriptor> parsePlugin(
+
+  @VisibleForTesting
+  static void parseAllPlugins(
+      List<NamedEntityDescriptor> taskSchedulerDescriptors, BiMap<String, Integer> taskSchedulerPluginMap,
+      List<NamedEntityDescriptor> containerLauncherDescriptors, BiMap<String, Integer> containerLauncherPluginMap,
+      List<NamedEntityDescriptor> taskCommDescriptors, BiMap<String, Integer> taskCommPluginMap,
+      AMPluginDescriptorProto amPluginDescriptorProto, boolean isLocal, UserPayload defaultPayload) {
+
+    boolean tezYarnEnabled;
+    boolean uberEnabled;
+    if (!isLocal) {
+      if (amPluginDescriptorProto == null) {
+        tezYarnEnabled = true;
+        uberEnabled = false;
+      } else {
+        tezYarnEnabled = amPluginDescriptorProto.getContainersEnabled();
+        uberEnabled = amPluginDescriptorProto.getUberEnabled();
+      }
+    } else {
+      tezYarnEnabled = false;
+      uberEnabled = true;
+    }
+
+    parsePlugin(taskSchedulerDescriptors, taskSchedulerPluginMap,
+        (amPluginDescriptorProto == null || amPluginDescriptorProto.getTaskSchedulersCount() == 0 ?
+            null :
+            amPluginDescriptorProto.getTaskSchedulersList()),
+        tezYarnEnabled, uberEnabled, defaultPayload);
+    processSchedulerDescriptors(taskSchedulerDescriptors, isLocal, defaultPayload, taskSchedulerPluginMap);
+
+    parsePlugin(containerLauncherDescriptors, containerLauncherPluginMap,
+        (amPluginDescriptorProto == null ||
+            amPluginDescriptorProto.getContainerLaunchersCount() == 0 ? null :
+            amPluginDescriptorProto.getContainerLaunchersList()),
+        tezYarnEnabled, uberEnabled, defaultPayload);
+
+    parsePlugin(taskCommDescriptors, taskCommPluginMap,
+        (amPluginDescriptorProto == null ||
+            amPluginDescriptorProto.getTaskCommunicatorsCount() == 0 ? null :
+            amPluginDescriptorProto.getTaskCommunicatorsList()),
+        tezYarnEnabled, uberEnabled, defaultPayload);
+  }
+
+
+  @VisibleForTesting
+  static void parsePlugin(List<NamedEntityDescriptor> resultList,
       BiMap<String, Integer> pluginMap, List<TezNamedEntityDescriptorProto> namedEntityDescriptorProtos,
-      boolean tezYarnEnabled, boolean uberEnabled) {
-
-    int index = 0;
-
-    List<NamedEntityDescriptor> resultList = new LinkedList<>();
+      boolean tezYarnEnabled, boolean uberEnabled, UserPayload defaultPayload) {
 
     if (tezYarnEnabled) {
       // Default classnames will be populated by individual components
       NamedEntityDescriptor r = new NamedEntityDescriptor(
-          TezConstants.getTezYarnServicePluginName(), null);
-      resultList.add(r);
-      pluginMap.put(TezConstants.getTezYarnServicePluginName(), index);
-      index++;
+          TezConstants.getTezYarnServicePluginName(), null).setUserPayload(defaultPayload);
+      addDescriptor(resultList, pluginMap, r);
     }
 
     if (uberEnabled) {
       // Default classnames will be populated by individual components
       NamedEntityDescriptor r = new NamedEntityDescriptor(
-          TezConstants.getTezUberServicePluginName(), null);
-      resultList.add(r);
-      pluginMap.put(TezConstants.getTezUberServicePluginName(), index);
-      index++;
+          TezConstants.getTezUberServicePluginName(), null).setUserPayload(defaultPayload);
+      addDescriptor(resultList, pluginMap, r);
     }
 
     if (namedEntityDescriptorProtos != null) {
       for (TezNamedEntityDescriptorProto namedEntityDescriptorProto : namedEntityDescriptorProtos) {
-        resultList.add(DagTypeConverters
-            .convertNamedDescriptorFromProto(namedEntityDescriptorProto));
-        pluginMap.put(resultList.get(index).getEntityName(), index);
-        index++;
+        NamedEntityDescriptor namedEntityDescriptor = DagTypeConverters
+            .convertNamedDescriptorFromProto(namedEntityDescriptorProto);
+        addDescriptor(resultList, pluginMap, namedEntityDescriptor);
       }
     }
-    return resultList;
+  }
+
+  @VisibleForTesting
+  static void addDescriptor(List<NamedEntityDescriptor> list, BiMap<String, Integer> pluginMap,
+                            NamedEntityDescriptor namedEntityDescriptor) {
+    list.add(namedEntityDescriptor);
+    pluginMap.put(list.get(list.size() - 1).getEntityName(), list.size() - 1);
+  }
+
+  @VisibleForTesting
+  static void processSchedulerDescriptors(List<NamedEntityDescriptor> descriptors, boolean isLocal,
+                                          UserPayload defaultPayload,
+                                          BiMap<String, Integer> schedulerPluginMap) {
+    if (isLocal) {
+      Preconditions.checkState(descriptors.size() == 1 &&
+          descriptors.get(0).getEntityName().equals(TezConstants.getTezUberServicePluginName()));
+    } else {
+      boolean foundYarn = false;
+      for (int i = 0; i < descriptors.size(); i++) {
+        if (descriptors.get(i).getEntityName().equals(TezConstants.getTezYarnServicePluginName())) {
+          foundYarn = true;
+        }
+      }
+      if (!foundYarn) {
+        NamedEntityDescriptor yarnDescriptor =
+            new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
+                .setUserPayload(defaultPayload);
+        addDescriptor(descriptors, schedulerPluginMap, yarnDescriptor);
+      }
+    }
   }
 
   String buildPluginComponentLog(List<NamedEntityDescriptor> namedEntityDescriptors, BiMap<String, Integer> map,

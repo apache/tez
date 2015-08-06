@@ -20,7 +20,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -48,8 +48,10 @@ public class ContainerLauncherRouter extends AbstractService
 
   static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherImpl.class);
 
-  private final ContainerLauncher containerLaunchers[];
-  private final ContainerLauncherContext containerLauncherContexts[];
+  @VisibleForTesting
+  final ContainerLauncher containerLaunchers[];
+  @VisibleForTesting
+  final ContainerLauncherContext containerLauncherContexts[];
   protected final ServicePluginLifecycleAbstractService[] containerLauncherServiceWrappers;
   private final AppContext appContext;
 
@@ -64,7 +66,7 @@ public class ContainerLauncherRouter extends AbstractService
   }
 
   // Accepting conf to setup final parameters, if required.
-  public ContainerLauncherRouter(UserPayload defaultUserPayload, AppContext context,
+  public ContainerLauncherRouter(AppContext context,
                                  TaskAttemptListener taskAttemptListener,
                                  String workingDirectory,
                                  List<NamedEntityDescriptor> containerLauncherDescriptors,
@@ -72,79 +74,91 @@ public class ContainerLauncherRouter extends AbstractService
     super(ContainerLauncherRouter.class.getName());
 
     this.appContext = context;
-    if (containerLauncherDescriptors == null || containerLauncherDescriptors.isEmpty()) {
-      if (isPureLocalMode) {
-        containerLauncherDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezUberServicePluginName(), null).setUserPayload(defaultUserPayload));
-      } else {
-        containerLauncherDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezYarnServicePluginName(), null).setUserPayload(defaultUserPayload));
-      }
-    }
+    Preconditions.checkArgument(
+        containerLauncherDescriptors != null && !containerLauncherDescriptors.isEmpty(),
+        "ContainerLauncherDescriptors must be specified");
     containerLauncherContexts = new ContainerLauncherContext[containerLauncherDescriptors.size()];
     containerLaunchers = new ContainerLauncher[containerLauncherDescriptors.size()];
     containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[containerLauncherDescriptors.size()];
 
 
     for (int i = 0; i < containerLauncherDescriptors.size(); i++) {
-      UserPayload userPayload;
-      if (containerLauncherDescriptors.get(i).getEntityName()
-          .equals(TezConstants.getTezYarnServicePluginName()) ||
-          containerLauncherDescriptors.get(i).getEntityName()
-              .equals(TezConstants.getTezUberServicePluginName())) {
-        userPayload = defaultUserPayload;
-      } else {
-        userPayload = containerLauncherDescriptors.get(i).getUserPayload();
-      }
+      UserPayload userPayload = containerLauncherDescriptors.get(i).getUserPayload();
       ContainerLauncherContext containerLauncherContext =
           new ContainerLauncherContextImpl(context, taskAttemptListener, userPayload);
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = createContainerLauncher(containerLauncherDescriptors.get(i), context,
-          containerLauncherContext, taskAttemptListener, workingDirectory, isPureLocalMode);
+          containerLauncherContext, taskAttemptListener, workingDirectory, i, isPureLocalMode);
       containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService(containerLaunchers[i]);
     }
   }
 
-  private ContainerLauncher createContainerLauncher(NamedEntityDescriptor containerLauncherDescriptor,
-                                                    AppContext context,
-                                                    ContainerLauncherContext containerLauncherContext,
-                                                    TaskAttemptListener taskAttemptListener,
-                                                    String workingDirectory,
-                                                    boolean isPureLocalMode) throws
+  @VisibleForTesting
+  ContainerLauncher createContainerLauncher(
+      NamedEntityDescriptor containerLauncherDescriptor,
+      AppContext context,
+      ContainerLauncherContext containerLauncherContext,
+      TaskAttemptListener taskAttemptListener,
+      String workingDirectory,
+      int containerLauncherIndex,
+      boolean isPureLocalMode) throws
       UnknownHostException {
     if (containerLauncherDescriptor.getEntityName().equals(
         TezConstants.getTezYarnServicePluginName())) {
-      LOG.info("Creating DefaultContainerLauncher");
-      return new ContainerLauncherImpl(containerLauncherContext);
+      return createYarnContainerLauncher(containerLauncherContext);
     } else if (containerLauncherDescriptor.getEntityName()
         .equals(TezConstants.getTezUberServicePluginName())) {
-      LOG.info("Creating LocalContainerLauncher");
-      // TODO Post TEZ-2003. LocalContainerLauncher is special cased, since it makes use of
-      // extensive internals which are only available at runtime. Will likely require
-      // some kind of runtime binding of parameters in the payload to work correctly.
-      return
-          new LocalContainerLauncher(containerLauncherContext, context, taskAttemptListener, workingDirectory, isPureLocalMode);
+      return createUberContainerLauncher(containerLauncherContext, context, taskAttemptListener,
+          workingDirectory, isPureLocalMode);
     } else {
-      LOG.info("Creating container launcher {}:{} ", containerLauncherDescriptor.getEntityName(), containerLauncherDescriptor.getClassName());
-      Class<? extends ContainerLauncher> containerLauncherClazz =
-          (Class<? extends ContainerLauncher>) ReflectionUtils.getClazz(
-              containerLauncherDescriptor.getClassName());
-      try {
-        Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
-            .getConstructor(ContainerLauncherContext.class);
-        ctor.setAccessible(true);
-        return ctor.newInstance(containerLauncherContext);
-      } catch (NoSuchMethodException e) {
-        throw new TezUncheckedException(e);
-      } catch (InvocationTargetException e) {
-        throw new TezUncheckedException(e);
-      } catch (InstantiationException e) {
-        throw new TezUncheckedException(e);
-      } catch (IllegalAccessException e) {
-        throw new TezUncheckedException(e);
-      }
+      return createCustomContainerLauncher(containerLauncherContext, containerLauncherDescriptor);
     }
-    // TODO TEZ-2118 Handle routing to multiple launchers
+  }
+
+  @VisibleForTesting
+  ContainerLauncher createYarnContainerLauncher(ContainerLauncherContext containerLauncherContext) {
+    LOG.info("Creating DefaultContainerLauncher");
+    return new ContainerLauncherImpl(containerLauncherContext);
+  }
+
+  @VisibleForTesting
+  ContainerLauncher createUberContainerLauncher(ContainerLauncherContext containerLauncherContext,
+                                                AppContext context,
+                                                TaskAttemptListener taskAttemptListener,
+                                                String workingDirectory,
+                                                boolean isPureLocalMode) throws
+      UnknownHostException {
+    LOG.info("Creating LocalContainerLauncher");
+    // TODO Post TEZ-2003. LocalContainerLauncher is special cased, since it makes use of
+    // extensive internals which are only available at runtime. Will likely require
+    // some kind of runtime binding of parameters in the payload to work correctly.
+    return
+        new LocalContainerLauncher(containerLauncherContext, context, taskAttemptListener,
+            workingDirectory, isPureLocalMode);
+  }
+
+  @VisibleForTesting
+  ContainerLauncher createCustomContainerLauncher(ContainerLauncherContext containerLauncherContext,
+                                                  NamedEntityDescriptor containerLauncherDescriptor) {
+    LOG.info("Creating container launcher {}:{} ", containerLauncherDescriptor.getEntityName(),
+        containerLauncherDescriptor.getClassName());
+    Class<? extends ContainerLauncher> containerLauncherClazz =
+        (Class<? extends ContainerLauncher>) ReflectionUtils.getClazz(
+            containerLauncherDescriptor.getClassName());
+    try {
+      Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
+          .getConstructor(ContainerLauncherContext.class);
+      ctor.setAccessible(true);
+      return ctor.newInstance(containerLauncherContext);
+    } catch (NoSuchMethodException e) {
+      throw new TezUncheckedException(e);
+    } catch (InvocationTargetException e) {
+      throw new TezUncheckedException(e);
+    } catch (InstantiationException e) {
+      throw new TezUncheckedException(e);
+    } catch (IllegalAccessException e) {
+      throw new TezUncheckedException(e);
+    }
   }
 
   @Override

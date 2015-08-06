@@ -35,4 +35,11 @@ public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends E
     super.setUserPayload(userPayload);
     return (T) this;
   }
+
+  @Override
+  public String toString() {
+    boolean hasPayload =
+        getUserPayload() == null ? false : getUserPayload().getPayload() == null ? false : true;
+    return "EntityName=" + entityName + ", ClassName=" + getClassName() + ", hasPayload=" + hasPayload;
+  }
 }

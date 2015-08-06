@@ -22,7 +22,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -34,10 +33,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
@@ -126,9 +123,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   private final boolean isPureLocalMode;
   // If running in non local-only mode, the YARN task scheduler will always run to take care of
   // registration with YARN and heartbeats to YARN.
-  // Splitting registration and heartbeats is not straigh-forward due to the taskScheduler being
+  // Splitting registration and heartbeats is not straight-forward due to the taskScheduler being
   // tied to a ContainerRequestType.
-  private final int yarnTaskSchedulerIndex;
   // Custom AppIds to avoid container conflicts if there's multiple sources
   private final long SCHEDULER_APP_ID_BASE = 111101111;
   private final long SCHEDULER_APP_ID_INCREMENT = 111111111;
@@ -153,9 +149,10 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   public TaskSchedulerEventHandler(AppContext appContext,
       DAGClientServer clientService, EventHandler eventHandler, 
       ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI,
-      List<NamedEntityDescriptor> schedulerDescriptors, UserPayload defaultPayload,
-                                   boolean isPureLocalMode) {
+      List<NamedEntityDescriptor> schedulerDescriptors, boolean isPureLocalMode) {
     super(TaskSchedulerEventHandler.class.getName());
+    Preconditions.checkArgument(schedulerDescriptors != null && !schedulerDescriptors.isEmpty(),
+        "TaskSchedulerDescriptors must be specified");
     this.appContext = appContext;
     this.eventHandler = eventHandler;
     this.clientService = clientService;
@@ -168,50 +165,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
       this.webUI.setHistoryUrl(this.historyUrl);
     }
 
-    // Override everything for pure local mode
-    if (isPureLocalMode) {
-      this.taskSchedulerDescriptors = new NamedEntityDescriptor[]{
-          new NamedEntityDescriptor(TezConstants.getTezUberServicePluginName(), null)
-              .setUserPayload(defaultPayload)};
-      this.yarnTaskSchedulerIndex = -1;
-    } else {
-      if (schedulerDescriptors == null || schedulerDescriptors.isEmpty()) {
-        this.taskSchedulerDescriptors = new NamedEntityDescriptor[]{
-            new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
-                .setUserPayload(defaultPayload)};
-        this.yarnTaskSchedulerIndex = 0;
-      } else {
-        // Ensure the YarnScheduler will be setup and note it's index. This will be responsible for heartbeats and YARN registration.
-        int foundYarnTaskSchedulerIndex = -1;
+    this.taskSchedulerDescriptors = schedulerDescriptors.toArray(new NamedEntityDescriptor[schedulerDescriptors.size()]);
 
-        List<NamedEntityDescriptor> schedulerDescriptorList = new LinkedList<>();
-        for (int i = 0 ; i < schedulerDescriptors.size() ; i++) {
-          if (schedulerDescriptors.get(i).getEntityName().equals(
-              TezConstants.getTezYarnServicePluginName())) {
-            schedulerDescriptorList.add(
-                new NamedEntityDescriptor(schedulerDescriptors.get(i).getEntityName(), null)
-                    .setUserPayload(
-                        defaultPayload));
-            foundYarnTaskSchedulerIndex = i;
-          } else if (schedulerDescriptors.get(i).getEntityName().equals(
-              TezConstants.getTezUberServicePluginName())) {
-            schedulerDescriptorList.add(
-                new NamedEntityDescriptor(schedulerDescriptors.get(i).getEntityName(), null)
-                    .setUserPayload(
-                        defaultPayload));
-          } else {
-            schedulerDescriptorList.add(schedulerDescriptors.get(i));
-          }
-        }
-        if (foundYarnTaskSchedulerIndex == -1) {
-          schedulerDescriptorList.add(new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null).setUserPayload(
-              defaultPayload));
-          foundYarnTaskSchedulerIndex = schedulerDescriptorList.size() -1;
-        }
-        this.taskSchedulerDescriptors = schedulerDescriptorList.toArray(new NamedEntityDescriptor[schedulerDescriptorList.size()]);
-        this.yarnTaskSchedulerIndex = foundYarnTaskSchedulerIndex;
-      }
-    }
     taskSchedulers = new TaskScheduler[this.taskSchedulerDescriptors.length];
     taskSchedulerServiceWrappers = new ServicePluginLifecycleAbstractService[this.taskSchedulerDescriptors.length];
   }
@@ -239,7 +194,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
   private ExecutorService createAppCallbackExecutorService() {
     return Executors.newSingleThreadExecutor(
-        new ThreadFactoryBuilder().setNameFormat("TaskSchedulerAppCallbackExecutor #%d").setDaemon(true)
+        new ThreadFactoryBuilder().setNameFormat("TaskSchedulerAppCallbackExecutor #%d")
+            .setDaemon(true)
             .build());
   }
 
@@ -428,7 +384,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
         event);
   }
 
-  private TaskScheduler createTaskScheduler(String host, int port, String trackingUrl,
+  @VisibleForTesting
+  TaskScheduler createTaskScheduler(String host, int port, String trackingUrl,
                                                    AppContext appContext,
                                                    NamedEntityDescriptor taskSchedulerDescriptor,
                                                    long customAppIdIdentifier,
@@ -436,32 +393,57 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     TaskSchedulerContext rawContext =
         new TaskSchedulerContextImpl(this, appContext, schedulerId, trackingUrl,
             customAppIdIdentifier, host, port, taskSchedulerDescriptor.getUserPayload());
-    TaskSchedulerContext wrappedContext = new TaskSchedulerContextImplWrapper(rawContext, appCallbackExecutor);
+    TaskSchedulerContext wrappedContext = wrapTaskSchedulerContext(rawContext);
     String schedulerName = taskSchedulerDescriptor.getEntityName();
     if (schedulerName.equals(TezConstants.getTezYarnServicePluginName())) {
-      LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
-      return new YarnTaskSchedulerService(wrappedContext);
+      return createYarnTaskScheduler(wrappedContext, schedulerId);
     } else if (schedulerName.equals(TezConstants.getTezUberServicePluginName())) {
-      LOG.info("Creating TaskScheduler: Local TaskScheduler");
-      return new LocalTaskSchedulerService(wrappedContext);
+      return createUberTaskScheduler(wrappedContext, schedulerId);
     } else {
-      LOG.info("Creating custom TaskScheduler {}:{}", taskSchedulerDescriptor.getEntityName(), taskSchedulerDescriptor.getClassName());
-      Class<? extends TaskScheduler> taskSchedulerClazz =
-          (Class<? extends TaskScheduler>) ReflectionUtils.getClazz(taskSchedulerDescriptor.getClassName());
-      try {
-        Constructor<? extends TaskScheduler> ctor = taskSchedulerClazz
-            .getConstructor(TaskSchedulerContext.class);
-        ctor.setAccessible(true);
-        return ctor.newInstance(wrappedContext);
-      } catch (NoSuchMethodException e) {
-        throw new TezUncheckedException(e);
-      } catch (InvocationTargetException e) {
-        throw new TezUncheckedException(e);
-      } catch (InstantiationException e) {
-        throw new TezUncheckedException(e);
-      } catch (IllegalAccessException e) {
-        throw new TezUncheckedException(e);
-      }
+      return createCustomTaskScheduler(wrappedContext, taskSchedulerDescriptor, schedulerId);
+    }
+  }
+
+  @VisibleForTesting
+  TaskSchedulerContext wrapTaskSchedulerContext(TaskSchedulerContext rawContext) {
+    return new TaskSchedulerContextImplWrapper(rawContext, appCallbackExecutor);
+  }
+
+  @VisibleForTesting
+  TaskScheduler createYarnTaskScheduler(TaskSchedulerContext taskSchedulerContext,
+                                        int schedulerId) {
+    LOG.info("Creating TaskScheduler: YarnTaskSchedulerService");
+    return new YarnTaskSchedulerService(taskSchedulerContext);
+  }
+
+  @VisibleForTesting
+  TaskScheduler createUberTaskScheduler(TaskSchedulerContext taskSchedulerContext,
+                                        int schedulerId) {
+    LOG.info("Creating TaskScheduler: Local TaskScheduler");
+    return new LocalTaskSchedulerService(taskSchedulerContext);
+  }
+
+  TaskScheduler createCustomTaskScheduler(TaskSchedulerContext taskSchedulerContext,
+                                          NamedEntityDescriptor taskSchedulerDescriptor,
+                                          int schedulerId) {
+    LOG.info("Creating custom TaskScheduler {}:{}", taskSchedulerDescriptor.getEntityName(),
+        taskSchedulerDescriptor.getClassName());
+    Class<? extends TaskScheduler> taskSchedulerClazz =
+        (Class<? extends TaskScheduler>) ReflectionUtils
+            .getClazz(taskSchedulerDescriptor.getClassName());
+    try {
+      Constructor<? extends TaskScheduler> ctor = taskSchedulerClazz
+          .getConstructor(TaskSchedulerContext.class);
+      ctor.setAccessible(true);
+      return ctor.newInstance(taskSchedulerContext);
+    } catch (NoSuchMethodException e) {
+      throw new TezUncheckedException(e);
+    } catch (InvocationTargetException e) {
+      throw new TezUncheckedException(e);
+    } catch (InstantiationException e) {
+      throw new TezUncheckedException(e);
+    } catch (IllegalAccessException e) {
+      throw new TezUncheckedException(e);
     }
   }
 
@@ -801,9 +783,4 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     return historyUrl;
   }
 
-  @VisibleForTesting
-  @InterfaceAudience.Private
-  ExecutorService getContextExecutorService() {
-    return appCallbackExecutor;
-  }
 }

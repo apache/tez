@@ -19,22 +19,30 @@
 package org.apache.tez.dag.app.rm;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -44,6 +52,7 @@ import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.Event;
@@ -53,12 +62,13 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
 import org.apache.tez.dag.app.dag.impl.TaskImpl;
 import org.apache.tez.dag.app.dag.impl.VertexImpl;
@@ -70,8 +80,14 @@ import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,10 +111,9 @@ public class TestTaskSchedulerEventHandler {
     
     public MockTaskSchedulerEventHandler(AppContext appContext,
         DAGClientServer clientService, EventHandler eventHandler,
-        ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI,
-        UserPayload defaultPayload) {
+        ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI) {
       super(appContext, clientService, eventHandler, containerSignatureMatcher, webUI,
-          new LinkedList<NamedEntityDescriptor>(), defaultPayload, false);
+          Lists.newArrayList(new NamedEntityDescriptor("FakeDescriptor", null)), false);
     }
 
     @Override
@@ -140,14 +155,8 @@ public class TestTaskSchedulerEventHandler {
     when(mockAppContext.getAllContainers()).thenReturn(mockAMContainerMap);
     when(mockClientService.getBindAddress()).thenReturn(new InetSocketAddress(10000));
     Configuration conf = new Configuration(false);
-    UserPayload userPayload;
-    try {
-      userPayload = TezUtils.createUserPayloadFromConf(conf);
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
     schedulerHandler = new MockTaskSchedulerEventHandler(
-        mockAppContext, mockClientService, mockEventHandler, mockSigMatcher, mockWebUIService, userPayload);
+        mockAppContext, mockClientService, mockEventHandler, mockSigMatcher, mockWebUIService);
   }
 
   @Test(timeout = 5000)
@@ -272,7 +281,7 @@ public class TestTaskSchedulerEventHandler {
     when(mockAmContainer.getContainerLauncherIdentifier()).thenReturn(0);
     when(mockAmContainer.getTaskCommunicatorIdentifier()).thenReturn(0);
     ContainerId mockCId = mock(ContainerId.class);
-    verify(mockTaskScheduler, times(0)).deallocateContainer((ContainerId)any());
+    verify(mockTaskScheduler, times(0)).deallocateContainer((ContainerId) any());
     when(mockAMContainerMap.get(mockCId)).thenReturn(mockAmContainer);
     schedulerHandler.preemptContainer(0, mockCId);
     verify(mockTaskScheduler, times(1)).deallocateContainer(mockCId);
@@ -400,5 +409,300 @@ public class TestTaskSchedulerEventHandler {
 
   }
 
-  // TODO TEZ-2003. Add tests with multiple schedulers, and ensuring that events go out with correct IDs.
+  @Test(timeout = 5000)
+  public void testNoSchedulerSpecified() throws IOException {
+    try {
+      TSEHForMultipleSchedulersTest tseh =
+          new TSEHForMultipleSchedulersTest(mockAppContext, mockClientService, mockEventHandler,
+              mockSigMatcher, mockWebUIService, null, false);
+      fail("Expecting an IllegalStateException with no schedulers specified");
+    } catch (IllegalArgumentException e) {
+    }
+  }
+
+  // Verified via statics
+  @Test(timeout = 5000)
+  public void testCustomTaskSchedulerSetup() throws IOException {
+    Configuration conf = new Configuration(false);
+    conf.set("testkey", "testval");
+    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(conf);
+
+    String customSchedulerName = "fakeScheduler";
+    List<NamedEntityDescriptor> taskSchedulers = new LinkedList<>();
+    ByteBuffer bb = ByteBuffer.allocate(4);
+    bb.putInt(0, 3);
+    UserPayload userPayload = UserPayload.create(bb);
+    taskSchedulers.add(
+        new NamedEntityDescriptor(customSchedulerName, FakeTaskScheduler.class.getName())
+            .setUserPayload(userPayload));
+    taskSchedulers.add(new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
+        .setUserPayload(defaultPayload));
+
+    TSEHForMultipleSchedulersTest tseh =
+        new TSEHForMultipleSchedulersTest(mockAppContext, mockClientService, mockEventHandler,
+            mockSigMatcher, mockWebUIService, taskSchedulers, false);
+
+    tseh.init(conf);
+    tseh.start();
+
+    // Verify that the YARN task scheduler is installed by default
+    assertTrue(tseh.getYarnSchedulerCreated());
+    assertFalse(tseh.getUberSchedulerCreated());
+    assertEquals(2, tseh.getNumCreateInvocations());
+
+    // Verify the order of the schedulers
+    assertEquals(customSchedulerName, tseh.getTaskSchedulerName(0));
+    assertEquals(TezConstants.getTezYarnServicePluginName(), tseh.getTaskSchedulerName(1));
+
+    // Verify the payload setup for the custom task scheduler
+    assertNotNull(tseh.getTaskSchedulerContext(0));
+    assertEquals(bb, tseh.getTaskSchedulerContext(0).getInitialUserPayload().getPayload());
+
+    // Verify the payload on the yarn scheduler
+    assertNotNull(tseh.getTaskSchedulerContext(1));
+    Configuration parsed = TezUtils.createConfFromUserPayload(tseh.getTaskSchedulerContext(1).getInitialUserPayload());
+    assertEquals("testval", parsed.get("testkey"));
+  }
+
+  @Test(timeout = 5000)
+  public void testTaskSchedulerRouting() throws Exception {
+    Configuration conf = new Configuration(false);
+    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(conf);
+
+    String customSchedulerName = "fakeScheduler";
+    List<NamedEntityDescriptor> taskSchedulers = new LinkedList<>();
+    ByteBuffer bb = ByteBuffer.allocate(4);
+    bb.putInt(0, 3);
+    UserPayload userPayload = UserPayload.create(bb);
+    taskSchedulers.add(
+        new NamedEntityDescriptor(customSchedulerName, FakeTaskScheduler.class.getName())
+            .setUserPayload(userPayload));
+    taskSchedulers.add(new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
+        .setUserPayload(defaultPayload));
+
+    TSEHForMultipleSchedulersTest tseh =
+        new TSEHForMultipleSchedulersTest(mockAppContext, mockClientService, mockEventHandler,
+            mockSigMatcher, mockWebUIService, taskSchedulers, false);
+
+    tseh.init(conf);
+    tseh.start();
+
+    // Verify that the YARN task scheduler is installed by default
+    assertTrue(tseh.getYarnSchedulerCreated());
+    assertFalse(tseh.getUberSchedulerCreated());
+    assertEquals(2, tseh.getNumCreateInvocations());
+
+    // Verify the order of the schedulers
+    assertEquals(customSchedulerName, tseh.getTaskSchedulerName(0));
+    assertEquals(TezConstants.getTezYarnServicePluginName(), tseh.getTaskSchedulerName(1));
+
+    verify(tseh.getTestTaskScheduler(0)).initialize();
+    verify(tseh.getTestTaskScheduler(0)).start();
+
+    ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    TezDAGID dagId = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagId, 1);
+    TezTaskID taskId1 = TezTaskID.getInstance(vertexID, 1);
+    TezTaskAttemptID attemptId11 = TezTaskAttemptID.getInstance(taskId1, 1);
+    TezTaskID taskId2 = TezTaskID.getInstance(vertexID, 2);
+    TezTaskAttemptID attemptId21 = TezTaskAttemptID.getInstance(taskId2, 1);
+
+    Resource resource = Resource.newInstance(1024, 1);
+
+    TaskAttempt mockTaskAttempt1 = mock(TaskAttempt.class);
+    TaskAttempt mockTaskAttempt2 = mock(TaskAttempt.class);
+
+    AMSchedulerEventTALaunchRequest launchRequest1 =
+        new AMSchedulerEventTALaunchRequest(attemptId11, resource, mock(TaskSpec.class),
+            mockTaskAttempt1, mock(TaskLocationHint.class), 1, mock(ContainerContext.class), 0, 0,
+            0);
+
+    tseh.handle(launchRequest1);
+
+    verify(tseh.getTestTaskScheduler(0)).allocateTask(eq(mockTaskAttempt1), eq(resource),
+        any(String[].class), any(String[].class), any(Priority.class), any(Object.class),
+        eq(launchRequest1));
+
+    AMSchedulerEventTALaunchRequest launchRequest2 =
+        new AMSchedulerEventTALaunchRequest(attemptId21, resource, mock(TaskSpec.class),
+            mockTaskAttempt2, mock(TaskLocationHint.class), 1, mock(ContainerContext.class), 1, 0,
+            0);
+    tseh.handle(launchRequest2);
+    verify(tseh.getTestTaskScheduler(1)).allocateTask(eq(mockTaskAttempt2), eq(resource),
+        any(String[].class), any(String[].class), any(Priority.class), any(Object.class),
+        eq(launchRequest2));
+  }
+
+  private static class TSEHForMultipleSchedulersTest extends TaskSchedulerEventHandler {
+
+    private final TaskScheduler yarnTaskScheduler;
+    private final TaskScheduler uberTaskScheduler;
+    private final AtomicBoolean uberSchedulerCreated = new AtomicBoolean(false);
+    private final AtomicBoolean yarnSchedulerCreated = new AtomicBoolean(false);
+    private final AtomicInteger numCreateInvocations = new AtomicInteger(0);
+    private final Set<Integer> seenSchedulers = new HashSet<>();
+    private final List<TaskSchedulerContext> taskSchedulerContexts = new LinkedList<>();
+    private final List<String> taskSchedulerNames = new LinkedList<>();
+    private final List<TaskScheduler> testTaskSchedulers = new LinkedList<>();
+
+    public TSEHForMultipleSchedulersTest(AppContext appContext,
+                                         DAGClientServer clientService,
+                                         EventHandler eventHandler,
+                                         ContainerSignatureMatcher containerSignatureMatcher,
+                                         WebUIService webUI,
+                                         List<NamedEntityDescriptor> schedulerDescriptors,
+                                         boolean isPureLocalMode) {
+      super(appContext, clientService, eventHandler, containerSignatureMatcher, webUI,
+          schedulerDescriptors, isPureLocalMode);
+      yarnTaskScheduler = mock(TaskScheduler.class);
+      uberTaskScheduler = mock(TaskScheduler.class);
+    }
+
+    @Override
+    TaskScheduler createTaskScheduler(String host, int port, String trackingUrl,
+                                      AppContext appContext,
+                                      NamedEntityDescriptor taskSchedulerDescriptor,
+                                      long customAppIdIdentifier,
+                                      int schedulerId) {
+
+      numCreateInvocations.incrementAndGet();
+      boolean added = seenSchedulers.add(schedulerId);
+      assertTrue("Cannot add multiple schedulers with the same schedulerId", added);
+      taskSchedulerNames.add(taskSchedulerDescriptor.getEntityName());
+      return super.createTaskScheduler(host, port, trackingUrl, appContext, taskSchedulerDescriptor,
+          customAppIdIdentifier, schedulerId);
+    }
+
+    @Override
+    TaskSchedulerContext wrapTaskSchedulerContext(TaskSchedulerContext rawContext) {
+      // Avoid wrapping in threads
+      return rawContext;
+    }
+
+    @Override
+    TaskScheduler createYarnTaskScheduler(TaskSchedulerContext taskSchedulerContext, int schedulerId) {
+      taskSchedulerContexts.add(taskSchedulerContext);
+      testTaskSchedulers.add(yarnTaskScheduler);
+      yarnSchedulerCreated.set(true);
+      return yarnTaskScheduler;
+    }
+
+    @Override
+    TaskScheduler createUberTaskScheduler(TaskSchedulerContext taskSchedulerContext, int schedulerId) {
+      taskSchedulerContexts.add(taskSchedulerContext);
+      uberSchedulerCreated.set(true);
+      testTaskSchedulers.add(yarnTaskScheduler);
+      return uberTaskScheduler;
+    }
+
+    @Override
+    TaskScheduler createCustomTaskScheduler(TaskSchedulerContext taskSchedulerContext,
+                                            NamedEntityDescriptor taskSchedulerDescriptor, int schedulerId) {
+      taskSchedulerContexts.add(taskSchedulerContext);
+      TaskScheduler taskScheduler = spy(super.createCustomTaskScheduler(taskSchedulerContext, taskSchedulerDescriptor, schedulerId));
+      testTaskSchedulers.add(taskScheduler);
+      return taskScheduler;
+    }
+
+    @Override
+    // Inline handling of events.
+    public void handle(AMSchedulerEvent event) {
+      handleEvent(event);
+    }
+
+    public boolean getUberSchedulerCreated() {
+      return uberSchedulerCreated.get();
+    }
+
+    public boolean getYarnSchedulerCreated() {
+      return yarnSchedulerCreated.get();
+    }
+
+    public int getNumCreateInvocations() {
+      return numCreateInvocations.get();
+    }
+
+    public TaskSchedulerContext getTaskSchedulerContext(int schedulerId) {
+      return taskSchedulerContexts.get(schedulerId);
+    }
+
+    public String getTaskSchedulerName(int schedulerId) {
+      return taskSchedulerNames.get(schedulerId);
+    }
+
+    public TaskScheduler getTestTaskScheduler(int schedulerId) {
+      return testTaskSchedulers.get(schedulerId);
+    }
+  }
+
+  public static class FakeTaskScheduler extends TaskScheduler {
+
+    public FakeTaskScheduler(
+        TaskSchedulerContext taskSchedulerContext) {
+      super(taskSchedulerContext);
+    }
+
+    @Override
+    public Resource getAvailableResources() {
+      return null;
+    }
+
+    @Override
+    public int getClusterNodeCount() {
+      return 0;
+    }
+
+    @Override
+    public void dagComplete() {
+
+    }
+
+    @Override
+    public Resource getTotalResources() {
+      return null;
+    }
+
+    @Override
+    public void blacklistNode(NodeId nodeId) {
+
+    }
+
+    @Override
+    public void unblacklistNode(NodeId nodeId) {
+
+    }
+
+    @Override
+    public void allocateTask(Object task, Resource capability, String[] hosts, String[] racks,
+                             Priority priority, Object containerSignature, Object clientCookie) {
+
+    }
+
+    @Override
+    public void allocateTask(Object task, Resource capability, ContainerId containerId,
+                             Priority priority, Object containerSignature, Object clientCookie) {
+
+    }
+
+    @Override
+    public boolean deallocateTask(Object task, boolean taskSucceeded,
+                                  TaskAttemptEndReason endReason) {
+      return false;
+    }
+
+    @Override
+    public Object deallocateContainer(ContainerId containerId) {
+      return null;
+    }
+
+    @Override
+    public void setShouldUnregister() {
+
+    }
+
+    @Override
+    public boolean hasUnregistered() {
+      return false;
+    }
+  }
 }

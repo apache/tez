@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
@@ -102,35 +102,19 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
 
   public TaskAttemptListenerImpTezDag(AppContext context,
                                       TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
-                                      List<NamedEntityDescriptor> taskCommunicatorDescriptors,
-                                      UserPayload defaultUserPayload,
-                                      boolean isPureLocalMode) {
+                                      List<NamedEntityDescriptor> taskCommunicatorDescriptors) {
     super(TaskAttemptListenerImpTezDag.class.getName());
     this.context = context;
     this.taskHeartbeatHandler = thh;
     this.containerHeartbeatHandler = chh;
-    if (taskCommunicatorDescriptors == null || taskCommunicatorDescriptors.isEmpty()) {
-      if (isPureLocalMode) {
-        taskCommunicatorDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezUberServicePluginName(), null).setUserPayload(defaultUserPayload));
-      } else {
-        taskCommunicatorDescriptors = Lists.newArrayList(new NamedEntityDescriptor(
-            TezConstants.getTezYarnServicePluginName(), null).setUserPayload(defaultUserPayload));
-      }
-    }
+    Preconditions.checkArgument(
+        taskCommunicatorDescriptors != null && !taskCommunicatorDescriptors.isEmpty(),
+        "TaskCommunicators must be specified");
     this.taskCommunicators = new TaskCommunicator[taskCommunicatorDescriptors.size()];
     this.taskCommunicatorContexts = new TaskCommunicatorContext[taskCommunicatorDescriptors.size()];
     this.taskCommunicatorServiceWrappers = new ServicePluginLifecycleAbstractService[taskCommunicatorDescriptors.size()];
     for (int i = 0 ; i < taskCommunicatorDescriptors.size() ; i++) {
-      UserPayload userPayload;
-      if (taskCommunicatorDescriptors.get(i).getEntityName()
-          .equals(TezConstants.getTezYarnServicePluginName()) ||
-          taskCommunicatorDescriptors.get(i).getEntityName()
-              .equals(TezConstants.getTezUberServicePluginName())) {
-        userPayload = defaultUserPayload;
-      } else {
-        userPayload = taskCommunicatorDescriptors.get(i).getUserPayload();
-      }
+      UserPayload userPayload = taskCommunicatorDescriptors.get(i).getUserPayload();
       taskCommunicatorContexts[i] = new TaskCommunicatorContextImpl(context, this, userPayload, i);
       taskCommunicators[i] = createTaskCommunicator(taskCommunicatorDescriptors.get(i), i);
       taskCommunicatorServiceWrappers[i] = new ServicePluginLifecycleAbstractService(taskCommunicators[i]);
@@ -154,36 +138,54 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
   }
 
-  private TaskCommunicator createTaskCommunicator(NamedEntityDescriptor taskCommDescriptor, int taskCommIndex) {
+  @VisibleForTesting
+  TaskCommunicator createTaskCommunicator(NamedEntityDescriptor taskCommDescriptor,
+                                          int taskCommIndex) {
     if (taskCommDescriptor.getEntityName().equals(TezConstants.getTezYarnServicePluginName())) {
-      LOG.info("Using Default Task Communicator");
-      return createTezTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
-    } else if (taskCommDescriptor.getEntityName().equals(TezConstants.getTezUberServicePluginName())) {
-      LOG.info("Using Default Local Task Communicator");
-      return new TezLocalTaskCommunicatorImpl(taskCommunicatorContexts[taskCommIndex]);
+      return createDefaultTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
+    } else if (taskCommDescriptor.getEntityName()
+        .equals(TezConstants.getTezUberServicePluginName())) {
+      return createUberTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
     } else {
-      LOG.info("Using TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(), taskCommDescriptor.getClassName());
-      Class<? extends TaskCommunicator> taskCommClazz = (Class<? extends TaskCommunicator>) ReflectionUtils
-          .getClazz(taskCommDescriptor.getClassName());
-      try {
-        Constructor<? extends TaskCommunicator> ctor = taskCommClazz.getConstructor(TaskCommunicatorContext.class);
-        ctor.setAccessible(true);
-        return ctor.newInstance(taskCommunicatorContexts[taskCommIndex]);
-      } catch (NoSuchMethodException e) {
-        throw new TezUncheckedException(e);
-      } catch (InvocationTargetException e) {
-        throw new TezUncheckedException(e);
-      } catch (InstantiationException e) {
-        throw new TezUncheckedException(e);
-      } catch (IllegalAccessException e) {
-        throw new TezUncheckedException(e);
-      }
+      return createCustomTaskCommunicator(taskCommunicatorContexts[taskCommIndex],
+          taskCommDescriptor);
     }
   }
 
   @VisibleForTesting
-  protected TezTaskCommunicatorImpl createTezTaskCommunicator(TaskCommunicatorContext context) {
-    return new TezTaskCommunicatorImpl(context);
+  TaskCommunicator createDefaultTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext) {
+    LOG.info("Using Default Task Communicator");
+    return new TezTaskCommunicatorImpl(taskCommunicatorContext);
+  }
+
+  @VisibleForTesting
+  TaskCommunicator createUberTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext) {
+    LOG.info("Using Default Local Task Communicator");
+    return new TezLocalTaskCommunicatorImpl(taskCommunicatorContext);
+  }
+
+  @VisibleForTesting
+  TaskCommunicator createCustomTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext,
+                                                NamedEntityDescriptor taskCommDescriptor) {
+    LOG.info("Using TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(),
+        taskCommDescriptor.getClassName());
+    Class<? extends TaskCommunicator> taskCommClazz =
+        (Class<? extends TaskCommunicator>) ReflectionUtils
+            .getClazz(taskCommDescriptor.getClassName());
+    try {
+      Constructor<? extends TaskCommunicator> ctor =
+          taskCommClazz.getConstructor(TaskCommunicatorContext.class);
+      ctor.setAccessible(true);
+      return ctor.newInstance(taskCommunicatorContext);
+    } catch (NoSuchMethodException e) {
+      throw new TezUncheckedException(e);
+    } catch (InvocationTargetException e) {
+      throw new TezUncheckedException(e);
+    } catch (InstantiationException e) {
+      throw new TezUncheckedException(e);
+    } catch (IllegalAccessException e) {
+      throw new TezUncheckedException(e);
+    }
   }
 
   public TaskHeartbeatResponse heartbeat(TaskHeartbeatRequest request)

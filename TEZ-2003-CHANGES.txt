@@ -42,5 +42,6 @@ ALL CHANGES:
   TEZ-2441. Add tests for TezTaskRunner2.
   TEZ-2657. Add tests for client side changes - specifying plugins, etc.
   TEZ-2626. Fix log lines with DEBUG in messages, consolidate TEZ-2003 TODOs.
+  TEZ-2126. Add unit tests for verifying multiple schedulers, launchers, communicators.
 
 INCOMPATIBLE CHANGES:

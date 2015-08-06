@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
@@ -138,7 +139,8 @@ class TestTaskSchedulerHelpers {
         ContainerSignatureMatcher containerSignatureMatcher,
         UserPayload defaultPayload) {
       super(appContext, null, eventHandler, containerSignatureMatcher, null,
-          new LinkedList<NamedEntityDescriptor>(), defaultPayload, false);
+          Lists.newArrayList(new NamedEntityDescriptor("FakeScheduler", null)),
+          false);
       this.amrmClientAsync = amrmClientAsync;
       this.containerSignatureMatcher = containerSignatureMatcher;
       this.defaultPayload = defaultPayload;
