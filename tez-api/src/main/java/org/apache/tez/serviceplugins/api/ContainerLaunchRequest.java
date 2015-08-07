@@ -22,6 +22,9 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Token;
 
+/**
+ * Contains specifications for a container which needs to be launched
+ */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
@@ -46,6 +49,10 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
 
   // TODO Post TEZ-2003. TEZ-2625. ContainerLaunchContext needs to be built here instead of being passed in.
   // Basic specifications need to be provided here
+  /**
+   * The {@link ContainerLauncherContext} for the container being launched
+   * @return the container launch context for the launch request
+   */
   public ContainerLaunchContext getContainerLaunchContext() {
     return clc;
   }
@@ -53,7 +60,7 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
   /**
    * Get the name of the task communicator which will be used to communicate
    * with the task that will run in this container.
-   * @return
+   * @return the task communicator to be used for this request
    */
   public String getTaskCommunicatorName() {
     return taskCommName;
@@ -61,7 +68,7 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
 
   /**
    * Get the name of the scheduler which allocated this container.
-   * @return
+   * @return the scheduler name which provided the container
    */
   public String getSchedulerName() {
     return schedulerName;

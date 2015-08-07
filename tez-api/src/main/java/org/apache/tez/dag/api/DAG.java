@@ -343,7 +343,7 @@ public class DAG {
    *
    * @param vertexExecutionContext the default execution context for the DAG
    *
-   * @return
+   * @return this DAG
    */
   @Public
   @InterfaceStability.Unstable

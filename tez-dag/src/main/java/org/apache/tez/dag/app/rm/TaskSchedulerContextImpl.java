@@ -57,6 +57,9 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
 
   }
 
+  // this may end up being called for a task+container pair that the app
+  // has not heard about. this can happen because of a race between
+  // taskAllocated() upcall and deallocateTask() downcall
   @Override
   public void taskAllocated(Object task, Object appCookie, Container container) {
     tseh.taskAllocated(schedulerId, task, appCookie, container);

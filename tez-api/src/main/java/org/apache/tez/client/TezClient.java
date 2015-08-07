@@ -284,7 +284,7 @@ public class TezClient {
    * Only LocalResourceType.FILE is supported. All files will be treated as
    * private.
    * 
-   * @param localFiles
+   * @param localFiles the files to be made available in the AM
    */
   public synchronized void addAppMasterLocalFiles(Map<String, LocalResource> localFiles) {
     Preconditions.checkNotNull(localFiles);
@@ -314,7 +314,7 @@ public class TezClient {
    * Master for the next DAG. <br>In session mode, credentials, if needed, must be
    * set before calling start()
    * 
-   * @param credentials
+   * @param credentials credentials
    */
   public synchronized void setAppMasterCredentials(Credentials credentials) {
     Preconditions
@@ -883,6 +883,9 @@ public class TezClient {
          append(tezDagIdFormat.get().format(1)).toString();
   }
 
+  /**
+   * A builder for setting up an instance of {@link org.apache.tez.client.TezClient}
+   */
   @Public
   public static class TezClientBuilder {
     final String name;
@@ -892,6 +895,15 @@ public class TezClient {
     private Credentials credentials;
     ServicePluginsDescriptor servicePluginsDescriptor;
 
+    /**
+     * Create an instance of a TezClientBuilder
+     *
+     * @param name
+     *          Name of the client. Used for logging etc. This will also be used
+     *          as app master name is session mode
+     * @param tezConf
+     *          Configuration for the framework
+     */
     private TezClientBuilder(String name, TezConfiguration tezConf) {
       this.name = name;
       this.tezConf = tezConf;
@@ -899,26 +911,62 @@ public class TezClient {
           TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT);
     }
 
+    /**
+     * Specify whether this client is a session or not
+     * @param isSession whether the client is a session
+     * @return the current builder
+     */
     public TezClientBuilder setIsSession(boolean isSession) {
       this.isSession = isSession;
       return this;
     }
 
+    /**
+     * Set local resources to be used by the AppMaster
+     *
+     * @param localResources local files for the App Master
+     * @return the files to be added to the AM
+     */
     public TezClientBuilder setLocalResources(Map<String, LocalResource> localResources) {
       this.localResourceMap = localResources;
       return this;
     }
 
+    /**
+     * Setup security credentials
+     *
+     * @param credentials
+     *          Set security credentials to be used inside the app master, if
+     *          needed. Tez App Master needs credentials to access the staging
+     *          directory and for most HDFS cases these are automatically obtained
+     *          by Tez client. If the staging directory is on a file system for
+     *          which credentials cannot be obtained or for any credentials needed
+     *          by user code running inside the App Master, credentials must be
+     *          supplied by the user. These will be used by the App Master for the
+     *          next DAG. <br>
+     *          In session mode, credentials, if needed, must be set before
+     *          calling start()
+     * @return the current builder
+     */
     public TezClientBuilder setCredentials(Credentials credentials) {
       this.credentials = credentials;
       return this;
     }
 
+    /**
+     * Specify the service plugins that will be running in the AM
+     * @param servicePluginsDescriptor the service plugin descriptor with details about the plugins running in the AM
+     * @return the current builder
+     */
     public TezClientBuilder setServicePluginDescriptor(ServicePluginsDescriptor servicePluginsDescriptor) {
       this.servicePluginsDescriptor = servicePluginsDescriptor;
       return this;
     }
 
+    /**
+     * Build the actual instance of the {@link TezClient}
+     * @return an instance of {@link TezClient}
+     */
     public TezClient build() {
       return new TezClient(name, tezConf, isSession, localResourceMap, credentials,
           servicePluginsDescriptor);

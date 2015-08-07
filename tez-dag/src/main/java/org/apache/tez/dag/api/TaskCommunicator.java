@@ -29,6 +29,19 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 
 // TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
 // TODO TEZ-2003 (post) TEZ-2664. Ideally, don't expose YARN containerId; instead expose a Tez specific construct.
+
+/**
+ * This class represents the API for a custom TaskCommunicator which can be run within the Tez AM.
+ * This is used to communicate with running services, potentially launching tasks, and getting
+ * updates from running tasks.
+ * <p/>
+ * The plugin is initialized with an instance of {@link TaskCommunicatorContext} - which provides
+ * a mechanism to notify the system about allocation decisions and resources to the Tez framework.
+ *
+ * If setting up a heartbeat between the task and the AM, the framework is responsible for error checking
+ * of this heartbeat mechanism, handling lost or duplicate responses.
+ *
+ */
 public abstract class TaskCommunicator implements ServicePluginLifecycle {
 
   // TODO TEZ-2003 (post) TEZ-2666 Enhancements to interface
@@ -45,34 +58,100 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
     this.taskCommunicatorContext = taskCommunicatorContext;
   }
 
+  /**
+   * Get the {@link TaskCommunicatorContext} associated with this instance of the scheduler, which
+   * is
+   * used to communicate with the rest of the system
+   *
+   * @return an instance of {@link TaskCommunicatorContext}
+   */
   public TaskCommunicatorContext getContext() {
     return taskCommunicatorContext;
   }
 
+  /**
+   * An entry point for initialization.
+   * Order of service setup. Constructor, initialize(), start() - when starting a service.
+   *
+   * @throws Exception
+   */
   @Override
   public void initialize() throws Exception {
   }
 
+  /**
+   * An entry point for starting the service.
+   * Order of service setup. Constructor, initialize(), start() - when starting a service.
+   *
+   * @throws Exception
+   */
   @Override
   public void start() throws Exception {
   }
 
+  /**
+   * Stop the service. This could be invoked at any point, when the service is no longer required -
+   * including in case of errors.
+   *
+   * @throws Exception
+   */
   @Override
   public void shutdown() throws Exception {
   }
 
 
+  /**
+   * Register a new container.
+   *
+   * @param containerId the associated containerId
+   * @param hostname    the hostname on which the container runs
+   * @param port        the port for the service which is running the container
+   */
   public abstract void registerRunningContainer(ContainerId containerId, String hostname, int port);
 
+  /**
+   * Register the end of a container. This can be caused by preemption, the container completing
+   * successfully, etc.
+   *
+   * @param containerId the associated containerId
+   * @param endReason   the end reason for the container completing
+   */
   public abstract void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason);
 
+  /**
+   * Register a task attempt to execute on a container
+   *
+   * @param containerId         the containerId on which this task needs to run
+   * @param taskSpec            the task specifications for the task to be executed
+   * @param additionalResources additional local resources which may be required to run this task
+   *                            on
+   *                            the container
+   * @param credentials         the credentials required to run this task
+   * @param credentialsChanged  whether the credentials are different from the original credentials
+   *                            associated with this container
+   * @param priority            the priority of the task being executed
+   */
   public abstract void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
                                                   Map<String, LocalResource> additionalResources,
                                                   Credentials credentials,
                                                   boolean credentialsChanged, int priority);
 
-  public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID, TaskAttemptEndReason endReason);
+  /**
+   * Register the completion of a task. This may be a result of preemption, the container dying,
+   * the
+   * node dying, the task completing to success
+   *
+   * @param taskAttemptID the task attempt which has completed / needs to be completed
+   * @param endReason     the endReason for the task attempt.
+   */
+  public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID,
+                                                    TaskAttemptEndReason endReason);
 
+  /**
+   * Return the address, if any, that the service listens on
+   *
+   * @return the address
+   */
   public abstract InetSocketAddress getAddress();
 
   /**
@@ -82,11 +161,13 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
    * org.apache.tez.runtime.api.InputInitializerContext#registerForVertexStateUpdates(String,
    * java.util.Set)}. Notifications will be received for all registered state changes, and not just
    * for the latest state update. They will be in order in which the state change occurred. </p>
-   *
+   * <p/>
    * Extensive processing should not be performed via this method call. Instead this should just be
    * used as a notification mechanism.
-   * <br>This method may be invoked concurrently with other invocations into the TaskCommunicator and
+   * <br>This method may be invoked concurrently with other invocations into the TaskCommunicator
+   * and
    * multi-threading/concurrency implications must be considered.
+   *
    * @param stateUpdate an event indicating the name of the vertex, and it's updated state.
    *                    Additional information may be available for specific events, Look at the
    *                    type hierarchy for {@link org.apache.tez.dag.api.event.VertexStateUpdate}
@@ -97,16 +178,18 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
   /**
    * Indicates the current running dag is complete. The TaskCommunicatorContext can be used to
    * query information about the current dag during the duration of the dagComplete invocation.
-   *
+   * <p/>
    * After this, the contents returned from querying the context may change at any point - due to
    * the next dag being submitted.
    */
   public abstract void dagComplete(String dagName);
 
   /**
-   * Share meta-information such as host:port information where the Task Communicator may be listening.
+   * Share meta-information such as host:port information where the Task Communicator may be
+   * listening.
    * Primarily for use by compatible launchers to learn this information.
-   * @return
+   *
+   * @return meta info for the task communicator
    */
   public abstract Object getMetaInfo();
 }

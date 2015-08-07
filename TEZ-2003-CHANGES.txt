@@ -44,5 +44,6 @@ ALL CHANGES:
   TEZ-2626. Fix log lines with DEBUG in messages, consolidate TEZ-2003 TODOs.
   TEZ-2126. Add unit tests for verifying multiple schedulers, launchers, communicators.
   TEZ-2698. rebase 08/05
+  TEZ-2675. Add javadocs for new pluggable components, fix problems reported by jenkins
 
 INCOMPATIBLE CHANGES:

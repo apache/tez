@@ -17,6 +17,15 @@ package org.apache.tez.common;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
+/**
+ * Defines a lifecycle for a Service. The typical implementation for services when used within the
+ * Tez framework would be
+ * 1. Construct the object.
+ * 2. initialize()
+ * 3. start()
+ * stop() - is invoked when the service is no longer required, and could be invoked while in any
+ * state, in case of failures
+ */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public interface ServicePluginLifecycle {

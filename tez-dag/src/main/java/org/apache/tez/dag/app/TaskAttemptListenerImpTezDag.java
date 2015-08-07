@@ -178,13 +178,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           taskCommClazz.getConstructor(TaskCommunicatorContext.class);
       ctor.setAccessible(true);
       return ctor.newInstance(taskCommunicatorContext);
-    } catch (NoSuchMethodException e) {
-      throw new TezUncheckedException(e);
-    } catch (InvocationTargetException e) {
-      throw new TezUncheckedException(e);
-    } catch (InstantiationException e) {
-      throw new TezUncheckedException(e);
-    } catch (IllegalAccessException e) {
+    } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
       throw new TezUncheckedException(e);
     }
   }
@@ -391,13 +385,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       throw new TezUncheckedException("Registering task attempt: "
           + amContainerTask.getTask().getTaskAttemptID() + " to unknown container: " + containerId);
     }
-    if (containerInfo.taskAttemptId != null) {
-      throw new TezUncheckedException("Registering task attempt: "
-          + amContainerTask.getTask().getTaskAttemptID() + " to container: " + containerId
-          + " with existing assignment to: " +
-          containerInfo.taskAttemptId);
-    }
-
     if (containerInfo.taskAttemptId != null) {
       throw new TezUncheckedException("Registering task attempt: "
           + amContainerTask.getTask().getTaskAttemptID() + " to container: " + containerId

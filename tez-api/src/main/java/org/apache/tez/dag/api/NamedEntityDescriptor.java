@@ -14,9 +14,14 @@
 
 package org.apache.tez.dag.api;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 
+@SuppressWarnings("unchecked")
 public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends EntityDescriptor<NamedEntityDescriptor<T>>  {
   private final String entityName;
 
@@ -34,6 +39,18 @@ public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends E
   public T setUserPayload(UserPayload userPayload) {
     super.setUserPayload(userPayload);
     return (T) this;
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    throw new UnsupportedOperationException(
+        "write is not expected to be used for a NamedEntityDescriptor");
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    throw new UnsupportedOperationException(
+        "readFields is not expected to be used for a NamedEntityDescriptor");
   }
 
   @Override

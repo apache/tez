@@ -122,7 +122,7 @@ public class TezTaskRunner2 {
    * the AM - since a task KILL is an external event, and whoever invoked it should
    * be able to track it.
    *
-   * @return
+   * @return the taskRunner result
    */
   public TaskRunner2Result run() {
     try {

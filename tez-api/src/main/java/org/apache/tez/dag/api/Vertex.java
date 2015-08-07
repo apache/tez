@@ -419,13 +419,16 @@ public class Vertex {
    *
    * @param vertexExecutionContext the execution context for the vertex.
    *
-   * @return
+   * @return this Vertex
    */
   public Vertex setExecutionContext(VertexExecutionContext vertexExecutionContext) {
     this.vertexExecutionContext = vertexExecutionContext;
     return this;
   }
 
+  /**
+   * The execution context for a running vertex.
+   */
   @Public
   @InterfaceStability.Unstable
   public static class VertexExecutionContext {
@@ -435,15 +438,39 @@ public class Vertex {
     final String containerLauncherName;
     final String taskCommName;
 
+    /**
+     * Create an execution context which specifies whether the vertex needs to be executed in the
+     * AM
+     *
+     * @param executeInAm whether to execute the vertex in the AM
+     * @return the relevant execution context
+     */
     public static VertexExecutionContext createExecuteInAm(boolean executeInAm) {
       return new VertexExecutionContext(executeInAm, false);
     }
 
+    /**
+     * Create an execution context which specifies whether the vertex needs to be executed in
+     * regular containers
+     *
+     * @param executeInContainers whether to execute the vertex in regular containers
+     * @return the relevant execution context
+     */
     public static VertexExecutionContext createExecuteInContainers(boolean executeInContainers) {
       return new VertexExecutionContext(false, executeInContainers);
     }
 
-    public static VertexExecutionContext create(String taskSchedulerName, String containerLauncherName,
+    /**
+     * @param taskSchedulerName     the task scheduler name which was setup while creating the
+     *                              {@link org.apache.tez.client.TezClient}
+     * @param containerLauncherName the container launcher name which was setup while creating the
+     *                              {@link org.apache.tez.client.TezClient}
+     * @param taskCommName          the task communicator name which was setup while creating the
+     *                              {@link org.apache.tez.client.TezClient}
+     * @return the relevant execution context
+     */
+    public static VertexExecutionContext create(String taskSchedulerName,
+                                                String containerLauncherName,
                                                 String taskCommName) {
       return new VertexExecutionContext(taskSchedulerName, containerLauncherName, taskCommName);
     }
@@ -453,12 +480,13 @@ public class Vertex {
     }
 
     private VertexExecutionContext(String taskSchedulerName, String containerLauncherName,
-                                  String taskCommName) {
+                                   String taskCommName) {
       this(false, false, taskSchedulerName, containerLauncherName, taskCommName);
     }
 
-    private VertexExecutionContext(boolean executeInAm, boolean executeInContainers, String taskSchedulerName, String containerLauncherName,
-                      String taskCommName) {
+    private VertexExecutionContext(boolean executeInAm, boolean executeInContainers,
+                                   String taskSchedulerName, String containerLauncherName,
+                                   String taskCommName) {
       if (executeInAm || executeInContainers) {
         Preconditions.checkState(!(executeInAm && executeInContainers),
             "executeInContainers and executeInAM are mutually exclusive");

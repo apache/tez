@@ -18,6 +18,10 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
+/**
+ * An {@link ServicePluginsDescriptor} describes the list of plugins running within the AM for
+ * sourcing resources, launching and executing work.
+ */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public class ServicePluginsDescriptor {
@@ -53,7 +57,7 @@ public class ServicePluginsDescriptor {
    * @param taskSchedulerDescriptor the task scheduler plugin descriptors
    * @param containerLauncherDescriptors the container launcher plugin descriptors
    * @param taskCommunicatorDescriptors the task communicator plugin descriptors
-   * @return
+   * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(TaskSchedulerDescriptor[] taskSchedulerDescriptor,
                                                 ContainerLauncherDescriptor[] containerLauncherDescriptors,
@@ -69,7 +73,7 @@ public class ServicePluginsDescriptor {
    * @param taskSchedulerDescriptor the task scheduler plugin descriptors
    * @param containerLauncherDescriptors the container launcher plugin descriptors
    * @param taskCommunicatorDescriptors the task communicator plugin descriptors
-   * @return
+   * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(boolean enableUber,
                                                 TaskSchedulerDescriptor[] taskSchedulerDescriptor,
@@ -88,7 +92,7 @@ public class ServicePluginsDescriptor {
    * @param taskSchedulerDescriptor the task scheduler plugin descriptors
    * @param containerLauncherDescriptors the container launcher plugin descriptors
    * @param taskCommunicatorDescriptors the task communicator plugin descriptors
-   * @return
+   * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(boolean enableContainers, boolean enableUber,
                                                 TaskSchedulerDescriptor[] taskSchedulerDescriptor,
@@ -103,29 +107,34 @@ public class ServicePluginsDescriptor {
    * execution is enabled by default
    *
    * @param enableUber whether to enable execution in the AM or not
-   * @return
+   * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(boolean enableUber) {
     return new ServicePluginsDescriptor(true, enableUber, null, null, null);
   }
 
 
+  @InterfaceAudience.Private
   public boolean areContainersEnabled() {
     return enableContainers;
   }
 
+  @InterfaceAudience.Private
   public boolean isUberEnabled() {
     return enableUber;
   }
 
+  @InterfaceAudience.Private
   public TaskSchedulerDescriptor[] getTaskSchedulerDescriptors() {
     return taskSchedulerDescriptors;
   }
 
+  @InterfaceAudience.Private
   public ContainerLauncherDescriptor[] getContainerLauncherDescriptors() {
     return containerLauncherDescriptors;
   }
 
+  @InterfaceAudience.Private
   public TaskCommunicatorDescriptor[] getTaskCommunicatorDescriptors() {
     return taskCommunicatorDescriptors;
   }

@@ -62,7 +62,7 @@ public class ContainerLauncherRouter extends AbstractService
     containerLaunchers = new ContainerLauncher[] {containerLauncher};
     containerLauncherContexts = new ContainerLauncherContext[] {containerLauncher.getContext()};
     containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[]{
-        new ServicePluginLifecycleAbstractService(containerLauncher)};
+        new ServicePluginLifecycleAbstractService<>(containerLauncher)};
   }
 
   // Accepting conf to setup final parameters, if required.
@@ -89,7 +89,7 @@ public class ContainerLauncherRouter extends AbstractService
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = createContainerLauncher(containerLauncherDescriptors.get(i), context,
           containerLauncherContext, taskAttemptListener, workingDirectory, i, isPureLocalMode);
-      containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService(containerLaunchers[i]);
+      containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(containerLaunchers[i]);
     }
   }
 
@@ -138,6 +138,7 @@ public class ContainerLauncherRouter extends AbstractService
   }
 
   @VisibleForTesting
+  @SuppressWarnings("unchecked")
   ContainerLauncher createCustomContainerLauncher(ContainerLauncherContext containerLauncherContext,
                                                   NamedEntityDescriptor containerLauncherDescriptor) {
     LOG.info("Creating container launcher {}:{} ", containerLauncherDescriptor.getEntityName(),
@@ -150,15 +151,10 @@ public class ContainerLauncherRouter extends AbstractService
           .getConstructor(ContainerLauncherContext.class);
       ctor.setAccessible(true);
       return ctor.newInstance(containerLauncherContext);
-    } catch (NoSuchMethodException e) {
-      throw new TezUncheckedException(e);
-    } catch (InvocationTargetException e) {
-      throw new TezUncheckedException(e);
-    } catch (InstantiationException e) {
-      throw new TezUncheckedException(e);
-    } catch (IllegalAccessException e) {
+    } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
       throw new TezUncheckedException(e);
     }
+
   }
 
   @Override

@@ -24,6 +24,11 @@ import org.apache.hadoop.yarn.api.records.Token;
 @InterfaceStability.Unstable
 public class ContainerLauncherOperationBase {
 
+  // TODO TEZ-2702 (TEZ-2003 post)
+  // - Get rid of YARN constructs.
+  // - ContainerToken may not always be required
+
+
   private final NodeId nodeId;
   private final ContainerId containerId;
   private final Token containerToken;
@@ -36,14 +41,26 @@ public class ContainerLauncherOperationBase {
     this.containerToken = containerToken;
   }
 
+  /**
+   * Get the node on whcih this container is to be launched
+   * @return
+   */
   public NodeId getNodeId() {
     return nodeId;
   }
 
+  /**
+   * Get the containerId for the container
+   * @return
+   */
   public ContainerId getContainerId() {
     return containerId;
   }
 
+  /**
+   * Get the security token for the container. Primarily for YARN
+   * @return
+   */
   public Token getContainerToken() {
     return containerToken;
   }

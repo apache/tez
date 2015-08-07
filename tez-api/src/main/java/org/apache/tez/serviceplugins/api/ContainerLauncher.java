@@ -33,22 +33,57 @@ public abstract class ContainerLauncher implements ServicePluginLifecycle {
     this.containerLauncherContext = containerLauncherContext;
   }
 
+  /**
+   * An entry point for initialization.
+   * Order of service setup. Constructor, initialize(), start() - when starting a service.
+   *
+   * @throws Exception
+   */
   @Override
   public void initialize() throws Exception {
   }
 
+  /**
+   * An entry point for starting the service.
+   * Order of service setup. Constructor, initialize(), start() - when starting a service.
+   *
+   * @throws Exception
+   */
   @Override
   public void start() throws Exception {
   }
 
+  /**
+   * Stop the service. This could be invoked at any point, when the service is no longer required -
+   * including in case of errors.
+   *
+   * @throws Exception
+   */
   @Override
   public void shutdown() throws Exception {
   }
 
+  /**
+   * Get the {@link ContainerLauncherContext} associated with this instance of the container
+   * launcher, which is used to communicate with the rest of the system
+   *
+   * @return an instance of {@link ContainerLauncherContext}
+   */
   public final ContainerLauncherContext getContext() {
     return this.containerLauncherContext;
   }
 
+  /**
+   * A request to launch the specified container
+   *
+   * @param launchRequest the actual launch request
+   */
   public abstract void launchContainer(ContainerLaunchRequest launchRequest);
+
+  /**
+   * A request to stop a specific container
+   *
+   * @param stopRequest the actual stop request
+   */
   public abstract void stopContainer(ContainerStopRequest stopRequest);
 }

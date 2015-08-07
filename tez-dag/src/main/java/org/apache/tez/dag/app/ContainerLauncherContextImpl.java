@@ -29,6 +29,7 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 
+@SuppressWarnings("unchecked")
 public class ContainerLauncherContextImpl implements ContainerLauncherContext {
 
   private final AppContext context;
