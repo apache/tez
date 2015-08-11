@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 public enum TaskAttemptEndReason {
   NODE_FAILED, // Completed because the node running the container was marked as dead
   COMMUNICATION_ERROR, // Communication error with the task
-  SERVICE_BUSY, // External service busy
+  EXECUTOR_BUSY, // External service busy
   INTERNAL_PREEMPTION, // Preempted by the AM, due to an internal decision
   EXTERNAL_PREEMPTION, // Preempted due to cluster contention
   APPLICATION_ERROR, // An error in the AM caused by user code

@@ -82,7 +82,6 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
@@ -180,6 +179,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final AppContext appContext;
   private final UserGroupInformation dagUGI;
   private final ACLManager aclManager;
+  private final org.apache.tez.dag.api.Vertex.VertexExecutionContext defaultExecutionContext;
   @VisibleForTesting
   StateChangeNotifier entityUpdateTracker;
 
@@ -538,6 +538,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     // this is only for recovery in case it does not call the init transition
     this.startDAGCpuTime = appContext.getCumulativeCPUTime();
     this.startDAGGCTime = appContext.getCumulativeGCTime();
+    if (jobPlan.hasDefaultExecutionContext()) {
+      defaultExecutionContext = DagTypeConverters.convertFromProto(jobPlan.getDefaultExecutionContext());
+    } else {
+      defaultExecutionContext = null;
+    }
     
     this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(dagConf);
     // This "this leak" is okay because the retained pointer is in an
@@ -718,11 +723,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   @Override
   public org.apache.tez.dag.api.Vertex.VertexExecutionContext getDefaultExecutionContext() {
-    if (jobPlan.hasDefaultExecutionContext()) {
-      return DagTypeConverters.convertFromProto(jobPlan.getDefaultExecutionContext());
-    } else {
-      return null;
-    }
+    return defaultExecutionContext;
   }
 
   @Override

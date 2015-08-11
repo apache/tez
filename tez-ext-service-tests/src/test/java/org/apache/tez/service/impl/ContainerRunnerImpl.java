@@ -454,7 +454,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
       try {
         shouldDie = !taskRunner.run();
         if (shouldDie) {
-          LOG.info("Got a shouldDie notification via hearbeats. Shutting down");
+          LOG.info("Got a shouldDie notification via heartbeats. Shutting down");
           return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
               "Asked to die by the AM");
         }

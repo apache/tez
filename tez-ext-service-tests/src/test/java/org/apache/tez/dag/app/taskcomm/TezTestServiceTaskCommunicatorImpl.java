@@ -98,8 +98,8 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
   }
 
   @Override
-  public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason) {
-    super.registerContainerEnd(containerId, endReason);
+  public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason, String diagnostics) {
+    super.registerContainerEnd(containerId, endReason, diagnostics);
   }
 
   @Override
@@ -154,7 +154,7 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
               String message = re.toString();
               if (message.contains(RejectedExecutionException.class.getName())) {
                 getContext().taskKilled(taskSpec.getTaskAttemptID(),
-                    TaskAttemptEndReason.SERVICE_BUSY, "Service Busy");
+                    TaskAttemptEndReason.EXECUTOR_BUSY, "Service Busy");
               } else {
                 getContext()
                     .taskFailed(taskSpec.getTaskAttemptID(), TaskAttemptEndReason.OTHER,
@@ -175,8 +175,8 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
   }
 
   @Override
-  public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID, TaskAttemptEndReason endReason) {
-    super.unregisterRunningTaskAttempt(taskAttemptID, endReason);
+  public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID, TaskAttemptEndReason endReason, String diagnostics) {
+    super.unregisterRunningTaskAttempt(taskAttemptID, endReason, diagnostics);
     // Nothing else to do for now. The push API in the test does not support termination of a running task
   }
 

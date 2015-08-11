@@ -42,8 +42,8 @@ public class ContainerLauncherOperationBase {
   }
 
   /**
-   * Get the node on whcih this container is to be launched
-   * @return
+   * Get the node on which this container is to be launched
+   * @return the node id for the container
    */
   public NodeId getNodeId() {
     return nodeId;
@@ -51,7 +51,7 @@ public class ContainerLauncherOperationBase {
 
   /**
    * Get the containerId for the container
-   * @return
+   * @return the container id for the container opeartion
    */
   public ContainerId getContainerId() {
     return containerId;
@@ -59,7 +59,7 @@ public class ContainerLauncherOperationBase {
 
   /**
    * Get the security token for the container. Primarily for YARN
-   * @return
+   * @return the token for the container launch.
    */
   public Token getContainerToken() {
     return containerToken;

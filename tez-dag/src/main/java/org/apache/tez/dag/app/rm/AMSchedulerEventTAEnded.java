@@ -29,15 +29,17 @@ public class AMSchedulerEventTAEnded extends AMSchedulerEvent {
   private final ContainerId containerId;
   private final TaskAttemptState state;
   private final TaskAttemptEndReason taskAttemptEndReason;
+  private final String diagnostics;
   private final int schedulerId;
 
   public AMSchedulerEventTAEnded(TaskAttempt attempt, ContainerId containerId,
-      TaskAttemptState state, TaskAttemptEndReason taskAttemptEndReason, int schedulerId) {
+      TaskAttemptState state, TaskAttemptEndReason taskAttemptEndReason, String diagnostics, int schedulerId) {
     super(AMSchedulerEventType.S_TA_ENDED);
     this.attempt = attempt;
     this.containerId = containerId;
     this.state = state;
     this.taskAttemptEndReason = taskAttemptEndReason;
+    this.diagnostics = diagnostics;
     this.schedulerId = schedulerId;
   }
 
@@ -63,5 +65,9 @@ public class AMSchedulerEventTAEnded extends AMSchedulerEvent {
 
   public TaskAttemptEndReason getTaskAttemptEndReason() {
     return taskAttemptEndReason;
+  }
+
+  public String getDiagnostics() {
+    return diagnostics;
   }
 }

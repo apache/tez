@@ -70,7 +70,7 @@ public class ContainerLauncherRouter extends AbstractService
                                  TaskAttemptListener taskAttemptListener,
                                  String workingDirectory,
                                  List<NamedEntityDescriptor> containerLauncherDescriptors,
-                                 boolean isPureLocalMode) throws UnknownHostException {
+                                 boolean isPureLocalMode) {
     super(ContainerLauncherRouter.class.getName());
 
     this.appContext = context;
@@ -101,8 +101,7 @@ public class ContainerLauncherRouter extends AbstractService
       TaskAttemptListener taskAttemptListener,
       String workingDirectory,
       int containerLauncherIndex,
-      boolean isPureLocalMode) throws
-      UnknownHostException {
+      boolean isPureLocalMode) {
     if (containerLauncherDescriptor.getEntityName().equals(
         TezConstants.getTezYarnServicePluginName())) {
       return createYarnContainerLauncher(containerLauncherContext);
@@ -126,15 +125,18 @@ public class ContainerLauncherRouter extends AbstractService
                                                 AppContext context,
                                                 TaskAttemptListener taskAttemptListener,
                                                 String workingDirectory,
-                                                boolean isPureLocalMode) throws
-      UnknownHostException {
+                                                boolean isPureLocalMode) {
     LOG.info("Creating LocalContainerLauncher");
     // TODO Post TEZ-2003. LocalContainerLauncher is special cased, since it makes use of
     // extensive internals which are only available at runtime. Will likely require
     // some kind of runtime binding of parameters in the payload to work correctly.
-    return
-        new LocalContainerLauncher(containerLauncherContext, context, taskAttemptListener,
-            workingDirectory, isPureLocalMode);
+    try {
+      return
+          new LocalContainerLauncher(containerLauncherContext, context, taskAttemptListener,
+              workingDirectory, isPureLocalMode);
+    } catch (UnknownHostException e) {
+      throw new TezUncheckedException(e);
+    }
   }
 
   @VisibleForTesting
@@ -149,7 +151,6 @@ public class ContainerLauncherRouter extends AbstractService
     try {
       Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
           .getConstructor(ContainerLauncherContext.class);
-      ctor.setAccessible(true);
       return ctor.newInstance(containerLauncherContext);
     } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
       throw new TezUncheckedException(e);

@@ -160,7 +160,7 @@ public interface TaskCommunicatorContext {
    *
    * @return the name of the currently executing dag
    */
-  String getCurretnDagName();
+  String getCurrentDagName();
 
   /**
    * Get the name of the Input vertices for the specified vertex.

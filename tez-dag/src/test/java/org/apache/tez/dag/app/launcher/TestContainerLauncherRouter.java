@@ -273,8 +273,7 @@ public class TestContainerLauncherRouter {
                                               TaskAttemptListener taskAttemptListener,
                                               String workingDirectory,
                                               int containerLauncherIndex,
-                                              boolean isPureLocalMode) throws
-        UnknownHostException {
+                                              boolean isPureLocalMode) {
       numContainerLaunchers.incrementAndGet();
       boolean added = containerLauncherIndices.add(containerLauncherIndex);
       assertTrue("Cannot add multiple launchers with the same index", added);
@@ -298,8 +297,7 @@ public class TestContainerLauncherRouter {
                                                   AppContext context,
                                                   TaskAttemptListener taskAttemptListener,
                                                   String workingDirectory,
-                                                  boolean isPureLocalMode) throws
-        UnknownHostException {
+                                                  boolean isPureLocalMode) {
       uberContainerLauncherCreated.set(true);
       testContainerLaunchers.add(uberContainerlauncher);
       return uberContainerlauncher;

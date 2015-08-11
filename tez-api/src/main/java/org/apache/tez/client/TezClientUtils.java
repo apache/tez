@@ -609,7 +609,7 @@ public class TezClientUtils {
     if(dag != null) {
       
       DAGPlan dagPB = prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive,
-          sessionCreds);
+          sessionCreds, servicePluginsDescriptor);
 
       // emit protobuf DAG file style
       Path binaryPath = TezCommonUtils.getTezBinPlanStagingPath(tezSysStagingPath);
@@ -685,18 +685,19 @@ public class TezClientUtils {
   
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
-      Credentials credentials) throws IOException {
+      Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor) throws IOException {
     return prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive, credentials,
-        null);
+        null, servicePluginsDescriptor);
   }
 
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
-      Credentials credentials, Map<String, String> additionalDAGConfigs) throws IOException {
+      Credentials credentials, Map<String, String> additionalDAGConfigs,
+      ServicePluginsDescriptor servicePluginsDescriptor) throws IOException {
     Credentials dagCredentials = setupDAGCredentials(dag, credentials,
         amConfig.getTezConfiguration());
     return dag.createDag(amConfig.getTezConfiguration(), dagCredentials, tezJarResources,
-        amConfig.getBinaryConfLR(), tezLrsAsArchive, additionalDAGConfigs);
+        amConfig.getBinaryConfLR(), tezLrsAsArchive, additionalDAGConfigs, servicePluginsDescriptor);
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
@@ -776,7 +777,7 @@ public class TezClientUtils {
     }
 
     AMPluginDescriptorProto pluginDescriptorProto =
-        DagTypeConverters.convertServicePluginDescriptoToProto(servicePluginsDescriptor);
+        DagTypeConverters.convertServicePluginDescriptorToProto(servicePluginsDescriptor);
     builder.setAmPluginDescriptor(pluginDescriptorProto);
 
     return builder.build();
@@ -1035,4 +1036,5 @@ public class TezClientUtils {
       }
     }
   }
+
 }

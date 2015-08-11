@@ -35,6 +35,8 @@ import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -714,14 +716,15 @@ public class DAG {
                            Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
                            boolean tezLrsAsArchive) {
     return createDag(tezConf, extraCredentials, tezJarResources, binaryConfig, tezLrsAsArchive,
-        null);
+        null, null);
   }
 
   // create protobuf message describing DAG
   @Private
   public synchronized DAGPlan createDag(Configuration tezConf, Credentials extraCredentials,
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
-      boolean tezLrsAsArchive, Map<String, String> additionalConfigs) {
+      boolean tezLrsAsArchive, Map<String, String> additionalConfigs,
+                                        ServicePluginsDescriptor servicePluginsDescriptor) {
     verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
@@ -732,6 +735,7 @@ public class DAG {
 
     // Setup default execution context.
     VertexExecutionContext defaultContext = getDefaultExecutionContext();
+    verifyExecutionContext(defaultContext, servicePluginsDescriptor, "DAGDefault");
     if (defaultContext != null) {
       DAGProtos.VertexExecutionContextProto contextProto = DagTypeConverters.convertToProto(
           defaultContext);
@@ -834,6 +838,7 @@ public class DAG {
 
       // Vertex ExecutionContext setup
       VertexExecutionContext execContext = vertex.getVertexExecutionContext();
+      verifyExecutionContext(execContext, servicePluginsDescriptor, vertex.getName());
       if (execContext != null) {
         DAGProtos.VertexExecutionContextProto contextProto =
             DagTypeConverters.convertToProto(execContext);
@@ -985,5 +990,72 @@ public class DAG {
     }
     
     return dagBuilder.build();
+  }
+
+  private void verifyExecutionContext(VertexExecutionContext executionContext,
+                                      ServicePluginsDescriptor servicePluginsDescriptor,
+                                      String context) {
+    if (executionContext != null) {
+      if (executionContext.shouldExecuteInContainers()) {
+        if (servicePluginsDescriptor == null || !servicePluginsDescriptor.areContainersEnabled()) {
+          throw new IllegalStateException("Invalid configuration. ExecutionContext for " + context +
+              " specifies container execution but this is disabled in the ServicePluginDescriptor");
+        }
+      }
+      if (executionContext.shouldExecuteInAm()) {
+        if (servicePluginsDescriptor == null || !servicePluginsDescriptor.isUberEnabled()) {
+          throw new IllegalStateException("Invalid configuration. ExecutionContext for " + context +
+              " specifies AM execution but this is disabled in the ServicePluginDescriptor");
+        }
+      }
+      if (executionContext.getTaskSchedulerName() != null) {
+        boolean found = false;
+        if (servicePluginsDescriptor != null) {
+          found = checkNamedEntityExists(executionContext.getTaskSchedulerName(),
+              servicePluginsDescriptor.getTaskSchedulerDescriptors());
+        }
+        if (!found) {
+          throw new IllegalStateException("Invalid configuration. ExecutionContext for " + context +
+              " specifies task scheduler as " + executionContext.getTaskSchedulerName() +
+              " which is not part of the ServicePluginDescriptor");
+        }
+      }
+      if (executionContext.getContainerLauncherName() != null) {
+        boolean found = false;
+        if (servicePluginsDescriptor != null) {
+          found = checkNamedEntityExists(executionContext.getContainerLauncherName(),
+              servicePluginsDescriptor.getContainerLauncherDescriptors());
+        }
+        if (!found) {
+          throw new IllegalStateException("Invalid configuration. ExecutionContext for " + context +
+              " specifies container launcher as " + executionContext.getContainerLauncherName() +
+              " which is not part of the ServicePluginDescriptor");
+        }
+      }
+      if (executionContext.getTaskCommName() != null) {
+        boolean found = false;
+        if (servicePluginsDescriptor != null) {
+          found = checkNamedEntityExists(executionContext.getTaskCommName(),
+              servicePluginsDescriptor.getTaskCommunicatorDescriptors());
+        }
+        if (!found) {
+          throw new IllegalStateException("Invalid configuration. ExecutionContext for " + context +
+              " specifies task communicator as " + executionContext.getTaskCommName() +
+              " which is not part of the ServicePluginDescriptor");
+        }
+      }
+    }
+  }
+
+  private boolean checkNamedEntityExists(String expected, NamedEntityDescriptor[] namedEntities) {
+    if (namedEntities == null) {
+      return false;
+    }
+    for (NamedEntityDescriptor named : namedEntities) {
+      if (named.getEntityName().equals(expected)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

@@ -14,6 +14,8 @@
 
 package org.apache.tez.serviceplugins.api;
 
+import java.util.Arrays;
+
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -137,5 +139,16 @@ public class ServicePluginsDescriptor {
   @InterfaceAudience.Private
   public TaskCommunicatorDescriptor[] getTaskCommunicatorDescriptors() {
     return taskCommunicatorDescriptors;
+  }
+
+  @Override
+  public String toString() {
+    return "ServicePluginsDescriptor{" +
+        "enableContainers=" + enableContainers +
+        ", enableUber=" + enableUber +
+        ", taskSchedulerDescriptors=" + Arrays.toString(taskSchedulerDescriptors) +
+        ", containerLauncherDescriptors=" + Arrays.toString(containerLauncherDescriptors) +
+        ", taskCommunicatorDescriptors=" + Arrays.toString(taskCommunicatorDescriptors) +
+        '}';
   }
 }

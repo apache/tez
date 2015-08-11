@@ -273,10 +273,10 @@ public class TezTaskRunner2 {
           isFirstError = true;
           killTaskRequested.set(true);
         } else {
-          logErrorIngored("killTask", null);
+          logErrorIgnored("killTask", null);
         }
       } else {
-        logErrorIngored("killTask", null);
+        logErrorIgnored("killTask", null);
       }
     }
     if (isFirstError) {
@@ -331,10 +331,10 @@ public class TezTaskRunner2 {
             errorReporterToAm.set(true);
             oobSignalErrorInProgress = true;
           } else {
-            logErrorIngored("signalFatalError", message);
+            logErrorIgnored("signalFatalError", message);
           }
         } else {
-          logErrorIngored("signalFatalError", message);
+          logErrorIgnored("signalFatalError", message);
         }
       }
 
@@ -394,14 +394,14 @@ public class TezTaskRunner2 {
             registerFirstException(t, null);
             isFirstError = true;
           } else {
-            logErrorIngored("umbilicalFatalError", null);
+            logErrorIgnored("umbilicalFatalError", null);
           }
           // A race is possible between a task succeeding, and a subsequent timed heartbeat failing.
           // These errors can be ignored, since a task can only succeed if the synchronous taskSucceeded
           // method does not throw an exception, in which case task success is registered with the AM.
           // Leave subsequent heartbeat errors to the next entity to communicate using the TaskReporter
         } else {
-          logErrorIngored("umbilicalFatalError", null);
+          logErrorIgnored("umbilicalFatalError", null);
         }
         // Since this error came from the taskReporter - there's no point attempting to report a failure back to it.
         // However, the task does need to be cleaned up
@@ -425,7 +425,7 @@ public class TezTaskRunner2 {
         logAborting("shutdownRequested");
         killTaskInternal();
       } else {
-        logErrorIngored("shutdownRequested", null);
+        logErrorIgnored("shutdownRequested", null);
       }
     }
   }
@@ -474,7 +474,7 @@ public class TezTaskRunner2 {
         (successReportAttempted ? "success" : "failure/killed"), t);
   }
 
-  private void logErrorIngored(String ignoredEndReason, String errorMessage) {
+  private void logErrorIgnored(String ignoredEndReason, String errorMessage) {
     LOG.info(
         "Ignoring {} request since the task with id {} has ended for reason: {}. IgnoredError: {} ",
         ignoredEndReason, task.getTaskAttemptID(),

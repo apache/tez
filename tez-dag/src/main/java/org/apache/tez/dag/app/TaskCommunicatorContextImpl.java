@@ -27,6 +27,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.TaskHeartbeatRequest;
@@ -96,7 +97,13 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public boolean isKnownContainer(ContainerId containerId) {
-    return context.getAllContainers().get(containerId) != null;
+    AMContainer amContainer = context.getAllContainers().get(containerId);
+    if (amContainer == null ||
+        amContainer.getTaskCommunicatorIdentifier() != taskCommunicatorIndex) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   @Override
@@ -106,7 +113,9 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public void containerAlive(ContainerId containerId) {
-    taskAttemptListener.containerAlive(containerId);
+    if (isKnownContainer(containerId)) {
+      taskAttemptListener.containerAlive(containerId);
+    }
   }
 
   @Override
@@ -136,7 +145,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   }
 
   @Override
-  public String getCurretnDagName() {
+  public String getCurrentDagName() {
     return getDag().getName();
   }
 

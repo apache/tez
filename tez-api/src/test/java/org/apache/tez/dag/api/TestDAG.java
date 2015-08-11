@@ -86,7 +86,7 @@ public class TestDAG {
         dummyTaskCount, dummyTaskResource);
 
     DAG dag = DAG.create("testDAG");
-    dag.createVertexGroup("group_1", v1,v2);
+    dag.createVertexGroup("group_1", v1, v2);
 
     try {
       dag.createVertexGroup("group_1", v2, v3);

@@ -286,7 +286,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     TaskAttempt attempt = event.getAttempt();
     // Propagate state and failure cause (if any) when informing the scheduler about the de-allocation.
     boolean wasContainerAllocated = taskSchedulers[event.getSchedulerId()]
-        .deallocateTask(attempt, false, event.getTaskAttemptEndReason());
+        .deallocateTask(attempt, false, event.getTaskAttemptEndReason(), event.getDiagnostics());
     // use stored value of container id in case the scheduler has removed this
     // assignment because the task has been deallocated earlier.
     // retroactive case
@@ -331,7 +331,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     }
 
     boolean wasContainerAllocated = taskSchedulers[event.getSchedulerId()].deallocateTask(attempt,
-        true, null);
+        true, null, event.getDiagnostics());
     if (!wasContainerAllocated) {
       LOG.error("De-allocated successful task: " + attempt.getID()
           + ", but TaskScheduler reported no container assigned to task");
@@ -436,7 +436,6 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     try {
       Constructor<? extends TaskScheduler> ctor = taskSchedulerClazz
           .getConstructor(TaskSchedulerContext.class);
-      ctor.setAccessible(true);
       return ctor.newInstance(taskSchedulerContext);
     } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
       throw new TezUncheckedException(e);

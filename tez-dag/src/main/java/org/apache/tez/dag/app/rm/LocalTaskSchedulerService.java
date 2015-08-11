@@ -131,7 +131,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   }
   
   @Override
-  public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason) {
+  public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason, String diagnostics) {
     return taskRequestHandler.addDeallocateTaskRequest(task);
   }
 

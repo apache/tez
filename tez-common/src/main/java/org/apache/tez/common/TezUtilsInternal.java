@@ -45,7 +45,6 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
-import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -271,7 +270,7 @@ public class TezUtilsInternal {
     switch (taskAttemptEndReason) {
       case COMMUNICATION_ERROR:
         return TaskAttemptTerminationCause.COMMUNICATION_ERROR;
-      case SERVICE_BUSY:
+      case EXECUTOR_BUSY:
         return TaskAttemptTerminationCause.SERVICE_BUSY;
       case INTERNAL_PREEMPTION:
         return TaskAttemptTerminationCause.INTERNAL_PREEMPTION;
@@ -301,7 +300,7 @@ public class TezUtilsInternal {
       case COMMUNICATION_ERROR:
         return TaskAttemptEndReason.COMMUNICATION_ERROR;
       case SERVICE_BUSY:
-        return TaskAttemptEndReason.SERVICE_BUSY;
+        return TaskAttemptEndReason.EXECUTOR_BUSY;
       case INTERNAL_PREEMPTION:
         return TaskAttemptEndReason.INTERNAL_PREEMPTION;
       case EXTERNAL_PREEMPTION:

@@ -801,7 +801,7 @@ public class DagTypeConverters {
     return builder.build();
   }
 
-  public static AMPluginDescriptorProto convertServicePluginDescriptoToProto(
+  public static AMPluginDescriptorProto convertServicePluginDescriptorToProto(
       ServicePluginsDescriptor servicePluginsDescriptor) {
     AMPluginDescriptorProto.Builder pluginDescriptorBuilder =
         AMPluginDescriptorProto.newBuilder();

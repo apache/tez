@@ -183,18 +183,26 @@ public class JoinValidate extends TezExampleBase {
     }
   }
 
+  // This is for internal use only, to use this example for external service testing.
+  // Not meant as documentation for the example.
   protected VertexExecutionContext getDefaultExecutionContext() {
     return null;
   }
 
+  // This is for internal use only, to use this example for external service testing.
+  // Not meant as documentation for the example.
   protected VertexExecutionContext getLhsExecutionContext() {
     return null;
   }
 
+  // This is for internal use only, to use this example for external service testing.
+  // Not meant as documentation for the example.
   protected VertexExecutionContext getRhsExecutionContext() {
     return null;
   }
 
+  // This is for internal use only, to use this example for external service testing.
+  // Not meant as documentation for the example.
   protected VertexExecutionContext getValidateExecutionContext() {
     return null;
   }

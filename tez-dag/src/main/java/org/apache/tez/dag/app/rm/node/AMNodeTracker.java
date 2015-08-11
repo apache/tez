@@ -53,7 +53,7 @@ public class AMNodeTracker extends AbstractService implements
 
   @SuppressWarnings("rawtypes")
   public AMNodeTracker(EventHandler eventHandler, AppContext appContext) {
-    super("AMNodeMap");
+    super("AMNodeTracker");
     this.perSourceNodeTrackers = new ConcurrentHashMap<>();
     this.eventHandler = eventHandler;
     this.appContext = appContext;

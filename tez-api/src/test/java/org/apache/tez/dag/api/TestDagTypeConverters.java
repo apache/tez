@@ -33,16 +33,13 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
-import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexExecutionContextProto;
-import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
-import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
@@ -152,7 +149,7 @@ public class TestDagTypeConverters {
 
     // Uber-execution
     servicePluginsDescriptor = ServicePluginsDescriptor.create(true);
-    proto = DagTypeConverters.convertServicePluginDescriptoToProto(servicePluginsDescriptor);
+    proto = DagTypeConverters.convertServicePluginDescriptorToProto(servicePluginsDescriptor);
     assertTrue(proto.hasUberEnabled());
     assertTrue(proto.hasContainersEnabled());
     assertTrue(proto.getUberEnabled());
@@ -168,7 +165,7 @@ public class TestDagTypeConverters {
 
     servicePluginsDescriptor = ServicePluginsDescriptor.create(taskSchedulers, containerLaunchers,
         taskComms);
-    proto = DagTypeConverters.convertServicePluginDescriptoToProto(servicePluginsDescriptor);
+    proto = DagTypeConverters.convertServicePluginDescriptorToProto(servicePluginsDescriptor);
     assertTrue(proto.hasUberEnabled());
     assertTrue(proto.hasContainersEnabled());
     assertFalse(proto.getUberEnabled());
@@ -185,7 +182,7 @@ public class TestDagTypeConverters {
 
     servicePluginsDescriptor = ServicePluginsDescriptor.create(taskSchedulers, containerLaunchers,
         taskComms);
-    proto = DagTypeConverters.convertServicePluginDescriptoToProto(servicePluginsDescriptor);
+    proto = DagTypeConverters.convertServicePluginDescriptorToProto(servicePluginsDescriptor);
     assertTrue(proto.hasUberEnabled());
     assertTrue(proto.hasContainersEnabled());
     assertFalse(proto.getUberEnabled());
@@ -201,7 +198,7 @@ public class TestDagTypeConverters {
 
     servicePluginsDescriptor = ServicePluginsDescriptor.create(false, true, taskSchedulers, containerLaunchers,
         taskComms);
-    proto = DagTypeConverters.convertServicePluginDescriptoToProto(servicePluginsDescriptor);
+    proto = DagTypeConverters.convertServicePluginDescriptorToProto(servicePluginsDescriptor);
     assertTrue(proto.hasUberEnabled());
     assertTrue(proto.hasContainersEnabled());
     assertTrue(proto.getUberEnabled());

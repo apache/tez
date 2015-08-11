@@ -57,7 +57,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
   private final ConcurrentMap<Object, ContainerId> runningTasks =
       new ConcurrentHashMap<Object, ContainerId>();
 
-  // AppIdIdentifier to avoid conflicts with other containres in the system.
+  // AppIdIdentifier to avoid conflicts with other containers in the system.
 
   // Per instance
   private final int memoryPerInstance;
@@ -181,7 +181,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
   }
 
   @Override
-  public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason) {
+  public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason, String diagnostics) {
     ContainerId containerId = runningTasks.remove(task);
     if (containerId == null) {
       LOG.error("Could not determine ContainerId for task: " + task +
@@ -235,6 +235,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
           .newInstance(appId, appAttemptId.getAttemptId());
     }
 
+    @SuppressWarnings("deprecation")
     public Container createContainer(Resource capability, Priority priority, String hostname, int port) {
       ContainerId containerId = ContainerId.newInstance(customAppAttemptId, nextId.getAndIncrement());
       NodeId nodeId = NodeId.newInstance(hostname, port);

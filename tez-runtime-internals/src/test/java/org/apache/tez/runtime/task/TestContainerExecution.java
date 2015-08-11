@@ -40,6 +40,7 @@ public class TestContainerExecution {
       executor = MoreExecutors.listeningDecorator(rawExecutor);
       ApplicationId appId = ApplicationId.newInstance(10000, 1);
       ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
+      @SuppressWarnings("deprecation")
       ContainerId containerId = ContainerId.newInstance(appAttemptId, 1);
 
       TaskExecutionTestHelpers.TezTaskUmbilicalForTest

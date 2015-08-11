@@ -437,6 +437,7 @@ public class TaskExecutionTestHelpers {
     }
   }
 
+  @SuppressWarnings("deprecation")
   public static ContainerId createContainerId(ApplicationId appId) {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     ContainerId containerId = ContainerId.newInstance(appAttemptId, 1);

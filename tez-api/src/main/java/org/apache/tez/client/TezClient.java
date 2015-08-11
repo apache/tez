@@ -473,7 +473,7 @@ public class TezClient {
 
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
-        usingTezArchiveDeploy, sessionCredentials, aclConfigs);
+        usingTezArchiveDeploy, sessionCredentials, aclConfigs, servicePluginsDescriptor);
 
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan).build();

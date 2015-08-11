@@ -631,14 +631,14 @@ public class AMContainerImpl implements AMContainer {
       SingleArcTransition<AMContainerImpl, AMContainerEvent> {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
+      AMContainerEventLaunchFailed event = (AMContainerEventLaunchFailed) cEvent;
       if (container.currentAttempt != null) {
-        AMContainerEventLaunchFailed event = (AMContainerEventLaunchFailed) cEvent;
         // for a properly setup cluster this should almost always be an app error
         // need to differentiate between launch failed due to framework/cluster or app
         container.sendTerminatingToTaskAttempt(container.currentAttempt,
             event.getMessage(), TaskAttemptTerminationCause.CONTAINER_LAUNCH_FAILED);
       }
-      container.unregisterFromTAListener(ContainerEndReason.LAUNCH_FAILED);
+      container.unregisterFromTAListener(ContainerEndReason.LAUNCH_FAILED, event.getMessage());
       container.deAllocate();
     }
   }
@@ -668,7 +668,7 @@ public class AMContainerImpl implements AMContainer {
       }
       container.containerLocalResources = null;
       container.additionalLocalResources = null;
-      container.unregisterFromTAListener(event.getContainerEndReason());
+      container.unregisterFromTAListener(event.getContainerEndReason(), event.getDiagnostics());
       String diag = event.getDiagnostics();
       if (!(diag == null || diag.equals(""))) {
         LOG.info("Container " + container.getContainerId()
@@ -694,7 +694,7 @@ public class AMContainerImpl implements AMContainer {
         container.sendTerminatingToTaskAttempt(container.currentAttempt,
             getMessage(container, cEvent), TaskAttemptTerminationCause.CONTAINER_STOPPED);
       }
-      container.unregisterFromTAListener(ContainerEndReason.OTHER);
+      container.unregisterFromTAListener(ContainerEndReason.OTHER, getMessage(container, cEvent));
       container.logStopped(container.currentAttempt == null ?
           ContainerExitStatus.SUCCESS 
           : ContainerExitStatus.INVALID);
@@ -746,7 +746,11 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.unregisterFromTAListener(ContainerEndReason.NODE_FAILED);
+      String errorMessage = "Node " + container.getContainer().getNodeId() + " failed. ";
+      if (cEvent instanceof DiagnosableEvent) {
+        errorMessage += ((DiagnosableEvent) cEvent).getDiagnosticInfo();
+      }
+      container.unregisterFromTAListener(ContainerEndReason.NODE_FAILED, errorMessage);
       container.deAllocate();
     }
   }
@@ -756,14 +760,15 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
+      String errorMessage = "Container " + container.getContainerId() +
+          " hit an invalid transition - " + cEvent.getType() + " at " +
+          container.getState();
       if (container.currentAttempt != null) {
         container.sendTerminatingToTaskAttempt(container.currentAttempt,
-            "Container " + container.getContainerId() +
-                " hit an invalid transition - " + cEvent.getType() + " at " +
-                container.getState(), TaskAttemptTerminationCause.FRAMEWORK_ERROR);
+            errorMessage, TaskAttemptTerminationCause.FRAMEWORK_ERROR);
       }
       container.logStopped(ContainerExitStatus.ABORTED);
-      container.unregisterFromTAListener(ContainerEndReason.FRAMEWORK_ERROR);
+      container.unregisterFromTAListener(ContainerEndReason.FRAMEWORK_ERROR, errorMessage);
       container.sendStopRequestToNM();
     }
   }
@@ -835,7 +840,12 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
 
       AMContainerEventAssignTA event = (AMContainerEventAssignTA) cEvent;
-      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.FRAMEWORK_ERROR);
+      String errorMessage = "AMScheduler Error: Multiple simultaneous " +
+          "taskAttempt allocations to: " + container.getContainerId() +
+          ". Attempts: " + container.getCurrentTaskAttempt() + ", " + event.getTaskAttemptId() +
+          ". Current state: " + container.getState();
+      container.unregisterAttemptFromListener(container.currentAttempt,
+          TaskAttemptEndReason.FRAMEWORK_ERROR, errorMessage);
       container.handleExtraTAAssign(event, container.currentAttempt);
     }
   }
@@ -846,7 +856,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       container.lastTaskFinishTime = System.currentTimeMillis();
       container.completedAttempts.add(container.currentAttempt);
-      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.OTHER);
+      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.OTHER, null);
       container.currentAttempt = null;
     }
   }
@@ -863,7 +873,9 @@ public class AMContainerImpl implements AMContainer {
         container.sendTerminatedToTaskAttempt(container.currentAttempt,
             getMessage(container, event), event.getTerminationCause());
       }
-      container.unregisterAttemptFromListener(container.currentAttempt, TezUtilsInternal.toTaskAttemptEndReason(event.getTerminationCause()));
+      container.unregisterAttemptFromListener(container.currentAttempt,
+          TezUtilsInternal.toTaskAttemptEndReason(event.getTerminationCause()),
+          getMessage(container, event));
       container.registerFailedAttempt(container.currentAttempt);
       container.currentAttempt= null;
       super.transition(container, cEvent);
@@ -873,7 +885,8 @@ public class AMContainerImpl implements AMContainer {
   protected static class StopRequestAtRunningTransition
       extends StopRequestAtIdleTransition {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
-      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.OTHER);
+      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.OTHER,
+          getMessage(container, cEvent));
       super.transition(container, cEvent);
     }
   }
@@ -894,7 +907,8 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.NODE_FAILED);
+      String errorMessage = "Node " + container.getContainer().getNodeId() + " failed. ";
+      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.NODE_FAILED, errorMessage);
     }
   }
 
@@ -903,11 +917,13 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
-      container.unregisterAttemptFromListener(container.currentAttempt, TaskAttemptEndReason.FRAMEWORK_ERROR);
+      String errorMessage = "Container " + container.getContainerId() +
+          " hit an invalid transition - " + cEvent.getType() + " at " +
+          container.getState();
+      container.unregisterAttemptFromListener(container.currentAttempt,
+          TaskAttemptEndReason.FRAMEWORK_ERROR, errorMessage);
       container.sendTerminatingToTaskAttempt(container.currentAttempt,
-          "Container " + container.getContainerId() +
-              " hit an invalid transition - " + cEvent.getType() + " at " +
-              container.getState(), TaskAttemptTerminationCause.FRAMEWORK_ERROR);
+          errorMessage, TaskAttemptTerminationCause.FRAMEWORK_ERROR);
     }
   }
 
@@ -1029,7 +1045,7 @@ public class AMContainerImpl implements AMContainer {
     LOG.warn(errorMessage);
     this.logStopped(ContainerExitStatus.INVALID);
     this.sendStopRequestToNM();
-    this.unregisterFromTAListener(ContainerEndReason.FRAMEWORK_ERROR);
+    this.unregisterFromTAListener(ContainerEndReason.FRAMEWORK_ERROR, errorMessage);
     this.unregisterFromContainerListener();
   }
 
@@ -1087,8 +1103,8 @@ public class AMContainerImpl implements AMContainer {
         container.getNodeId(), container.getContainerToken(), launcherId, schedulerId, taskCommId));
   }
 
-  protected void unregisterAttemptFromListener(TezTaskAttemptID attemptId, TaskAttemptEndReason endReason) {
-    taskAttemptListener.unregisterTaskAttempt(attemptId, taskCommId, endReason);
+  protected void unregisterAttemptFromListener(TezTaskAttemptID attemptId, TaskAttemptEndReason endReason, String diagnostics) {
+    taskAttemptListener.unregisterTaskAttempt(attemptId, taskCommId, endReason, diagnostics);
   }
 
   protected void registerAttemptWithListener(AMContainerTask amContainerTask) {
@@ -1099,8 +1115,8 @@ public class AMContainerImpl implements AMContainer {
     taskAttemptListener.registerRunningContainer(containerId, taskCommId);
   }
 
-  protected void unregisterFromTAListener(ContainerEndReason endReason) {
-    this.taskAttemptListener.unregisterRunningContainer(containerId, taskCommId, endReason);
+  protected void unregisterFromTAListener(ContainerEndReason endReason, String diagnostics) {
+    this.taskAttemptListener.unregisterRunningContainer(containerId, taskCommId, endReason, diagnostics);
   }
 
   protected void registerWithContainerListener() {

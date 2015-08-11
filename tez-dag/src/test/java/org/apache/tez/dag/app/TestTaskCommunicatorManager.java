@@ -328,7 +328,7 @@ public class TestTaskCommunicatorManager {
     }
 
     @Override
-    public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason) {
+    public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason, String diagnostics) {
 
     }
 
@@ -342,7 +342,7 @@ public class TestTaskCommunicatorManager {
 
     @Override
     public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID,
-                                             TaskAttemptEndReason endReason) {
+                                             TaskAttemptEndReason endReason, String diagnostics) {
 
     }
 

@@ -176,7 +176,6 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     try {
       Constructor<? extends TaskCommunicator> ctor =
           taskCommClazz.getConstructor(TaskCommunicatorContext.class);
-      ctor.setAccessible(true);
       return ctor.newInstance(taskCommunicatorContext);
     } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
       throw new TezUncheckedException(e);
@@ -366,7 +365,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
-  public void unregisterRunningContainer(ContainerId containerId, int taskCommId, ContainerEndReason endReason) {
+  public void unregisterRunningContainer(ContainerId containerId, int taskCommId, ContainerEndReason endReason, String diagnostics) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Unregistering Container from TaskAttemptListener: " + containerId);
     }
@@ -374,7 +373,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     if (containerInfo.taskAttemptId != null) {
       registeredAttempts.remove(containerInfo.taskAttemptId);
     }
-    taskCommunicators[taskCommId].registerContainerEnd(containerId, endReason);
+    taskCommunicators[taskCommId].registerContainerEnd(containerId, endReason, diagnostics);
   }
 
   @Override
@@ -408,7 +407,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   }
 
   @Override
-  public void unregisterTaskAttempt(TezTaskAttemptID attemptId, int taskCommId, TaskAttemptEndReason endReason) {
+  public void unregisterTaskAttempt(TezTaskAttemptID attemptId, int taskCommId, TaskAttemptEndReason endReason, String diagnostics) {
     ContainerId containerId = registeredAttempts.remove(attemptId);
     if (containerId == null) {
       LOG.warn("Unregister task attempt: " + attemptId + " from unknown container");
@@ -422,7 +421,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
     }
     // Explicitly putting in a new entry so that synchronization is not required on the existing element in the map.
     registeredContainers.put(containerId, NULL_CONTAINER_INFO);
-    taskCommunicators[taskCommId].unregisterRunningTaskAttempt(attemptId, endReason);
+    taskCommunicators[taskCommId].unregisterRunningTaskAttempt(attemptId, endReason, diagnostics);
   }
 
   @Override

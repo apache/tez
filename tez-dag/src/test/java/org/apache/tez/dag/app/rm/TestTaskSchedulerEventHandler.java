@@ -107,7 +107,7 @@ public class TestTaskSchedulerEventHandler {
   
   class MockTaskSchedulerEventHandler extends TaskSchedulerEventHandler {
 
-    AtomicBoolean notify = new AtomicBoolean(false);
+    final AtomicBoolean notify = new AtomicBoolean(false);
     
     public MockTaskSchedulerEventHandler(AppContext appContext,
         DAGClientServer clientService, EventHandler eventHandler,
@@ -120,7 +120,7 @@ public class TestTaskSchedulerEventHandler {
     protected void instantiateScheduelrs(String host, int port, String trackingUrl,
                                          AppContext appContext) {
       taskSchedulers[0] = mockTaskScheduler;
-      taskSchedulerServiceWrappers[0] = new ServicePluginLifecycleAbstractService(taskSchedulers[0]);
+      taskSchedulerServiceWrappers[0] = new ServicePluginLifecycleAbstractService<>(taskSchedulers[0]);
     }
     
     @Override
@@ -154,7 +154,6 @@ public class TestTaskSchedulerEventHandler {
     mockWebUIService = mock(WebUIService.class);
     when(mockAppContext.getAllContainers()).thenReturn(mockAMContainerMap);
     when(mockClientService.getBindAddress()).thenReturn(new InetSocketAddress(10000));
-    Configuration conf = new Configuration(false);
     schedulerHandler = new MockTaskSchedulerEventHandler(
         mockAppContext, mockClientService, mockEventHandler, mockSigMatcher, mockWebUIService);
   }
@@ -412,9 +411,8 @@ public class TestTaskSchedulerEventHandler {
   @Test(timeout = 5000)
   public void testNoSchedulerSpecified() throws IOException {
     try {
-      TSEHForMultipleSchedulersTest tseh =
-          new TSEHForMultipleSchedulersTest(mockAppContext, mockClientService, mockEventHandler,
-              mockSigMatcher, mockWebUIService, null, false);
+      new TSEHForMultipleSchedulersTest(mockAppContext, mockClientService, mockEventHandler,
+          mockSigMatcher, mockWebUIService, null, false);
       fail("Expecting an IllegalStateException with no schedulers specified");
     } catch (IllegalArgumentException e) {
     }
@@ -686,7 +684,8 @@ public class TestTaskSchedulerEventHandler {
 
     @Override
     public boolean deallocateTask(Object task, boolean taskSucceeded,
-                                  TaskAttemptEndReason endReason) {
+                                  TaskAttemptEndReason endReason,
+                                  String diagnostics) {
       return false;
     }
 

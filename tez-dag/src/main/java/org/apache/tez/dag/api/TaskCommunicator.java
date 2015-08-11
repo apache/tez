@@ -14,6 +14,7 @@
 
 package org.apache.tez.dag.api;
 
+import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
@@ -115,8 +116,10 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
    *
    * @param containerId the associated containerId
    * @param endReason   the end reason for the container completing
+   * @param diagnostics diagnostics associated with the container end
    */
-  public abstract void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason);
+  public abstract void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason,
+                                            @Nullable String diagnostics);
 
   /**
    * Register a task attempt to execute on a container
@@ -138,14 +141,15 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
 
   /**
    * Register the completion of a task. This may be a result of preemption, the container dying,
-   * the
-   * node dying, the task completing to success
+   * the node dying, the task completing to success
    *
    * @param taskAttemptID the task attempt which has completed / needs to be completed
    * @param endReason     the endReason for the task attempt.
+   * @param diagnostics   diagnostics associated with the task end
    */
   public abstract void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID,
-                                                    TaskAttemptEndReason endReason);
+                                                    TaskAttemptEndReason endReason,
+                                                    @Nullable String diagnostics);
 
   /**
    * Return the address, if any, that the service listens on

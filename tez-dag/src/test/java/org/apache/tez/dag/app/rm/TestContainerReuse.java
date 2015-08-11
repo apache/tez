@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -38,6 +39,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -213,10 +216,10 @@ public class TestContainerReuse {
     taskSchedulerEventHandler.handleEvent(lrTa31);
 
     taskSchedulerEventHandler.handleEvent(
-      new AMSchedulerEventTAEnded(
-        ta11, containerHost1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+        new AMSchedulerEventTAEnded(
+            ta11, containerHost1.getId(), TaskAttemptState.SUCCEEDED, null, null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta11), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta11, true, null, null);
     verify(taskSchedulerEventHandler, times(1)).taskAllocated(
       eq(0), eq(ta31), any(Object.class), eq(containerHost1));
     verify(rmClient, times(0)).releaseAssignedContainer(
@@ -226,7 +229,7 @@ public class TestContainerReuse {
 
     taskSchedulerEventHandler.handleEvent(
       new AMSchedulerEventTAEnded(ta21, containerHost2.getId(),
-        TaskAttemptState.SUCCEEDED, null, 0));
+        TaskAttemptState.SUCCEEDED, null, null, 0));
 
     long currentTs = System.currentTimeMillis();
     Throwable exception = null;
@@ -332,16 +335,17 @@ public class TestContainerReuse {
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta11), any(Object.class), eq(containerHost1));
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta21), any(Object.class), eq(containerHost2));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta21), any(Object.class),
+        eq(containerHost2));
 
     // Adding the event later so that task1 assigned to containerHost1 is deterministic.
     taskSchedulerEventHandler.handleEvent(lrTa31);
 
     taskSchedulerEventHandler.handleEvent(
         new AMSchedulerEventTAEnded(ta21, containerHost2.getId(),
-            TaskAttemptState.SUCCEEDED, null, 0));
+            TaskAttemptState.SUCCEEDED, null, null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta21), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta21, true, null, null);
     verify(taskSchedulerEventHandler, times(0)).taskAllocated(
         eq(0), eq(ta31), any(Object.class), eq(containerHost2));
     verify(rmClient, times(1)).releaseAssignedContainer(
@@ -431,12 +435,15 @@ public class TestContainerReuse {
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta11), any(Object.class), eq(container1));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta11), any(Object.class),
+        eq(container1));
 
     // Task assigned to container completed successfully. Container should be re-used.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta11, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta11, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta11), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta11, true, null, null);
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta12), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
@@ -444,19 +451,25 @@ public class TestContainerReuse {
 
     // Task assigned to container completed successfully.
     // Verify reuse across hosts.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta12, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta12, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta12), eq(true), eq((TaskAttemptEndReason)null));
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta13), any(Object.class), eq(container1));
+    verifyDeAllocateTask(taskScheduler, ta12, true, null, null);
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta13), any(Object.class),
+        eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     eventHandler.reset();
 
     // Verify no re-use if a previous task fails.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta13, container1.getId(), TaskAttemptState.FAILED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta13, container1.getId(), TaskAttemptState.FAILED, null,
+            "TIMEOUT", 0));
     drainableAppCallback.drain();
-    verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(0), eq(ta14), any(Object.class), eq(container1));
-    verify(taskScheduler).deallocateTask(eq(ta13), eq(false), eq((TaskAttemptEndReason)null));
+    verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(0), eq(ta14), any(Object.class),
+        eq(container1));
+    verifyDeAllocateTask(taskScheduler, ta13, false, null, "TIMEOUT");
     verify(rmClient).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
     eventHandler.reset();
@@ -468,12 +481,15 @@ public class TestContainerReuse {
     taskScheduler.onContainersAllocated(Collections.singletonList(container2));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta14), any(Object.class), eq(container2));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta14), any(Object.class),
+        eq(container2));
 
     // Task assigned to container completed successfully. No pending requests. Container should be released.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta14, container2.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta14, container2.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta14), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta14, true, null, null);
     verify(rmClient).releaseAssignedContainer(eq(container2.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
     eventHandler.reset();
@@ -570,13 +586,15 @@ public class TestContainerReuse {
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta11), any(Object.class), eq(container1));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta11), any(Object.class),
+        eq(container1));
 
     // First task had profiling on. This container can not be reused further.
     taskSchedulerEventHandler.handleEvent(
-        new AMSchedulerEventTAEnded(ta11, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+        new AMSchedulerEventTAEnded(ta11, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta11), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta11, true, null, null);
     verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(0), eq(ta12), any(Object.class),
         eq(container1));
     verify(rmClient, times(1)).releaseAssignedContainer(eq(container1.getId()));
@@ -620,9 +638,11 @@ public class TestContainerReuse {
 
     // Verify that the container can not be reused when profiling option is turned on
     // Even for 2 tasks having same profiling option can have container reusability.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta13, container2.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta13, container2.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta13), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta13, true, null, null);
     verify(taskSchedulerEventHandler, times(0)).taskAllocated(eq(0), eq(ta14), any(Object.class),
         eq(container2));
     verify(rmClient, times(1)).releaseAssignedContainer(eq(container2.getId()));
@@ -662,12 +682,15 @@ public class TestContainerReuse {
     taskScheduler.onContainersAllocated(Collections.singletonList(container3));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta15), any(Object.class), eq(container3));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta15), any(Object.class),
+        eq(container3));
 
     //Ensure task 6 (of vertex 1) is allocated to same container
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta15, container3.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta15, container3.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta15), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta15, true, null, null);
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta16), any(Object.class), eq(container3));
     eventHandler.reset();
 
@@ -769,10 +792,10 @@ public class TestContainerReuse {
     // Container should not be immediately assigned to task 2
     // until delay expires.
     taskSchedulerEventHandler.handleEvent(
-      new AMSchedulerEventTAEnded(ta11, container1.getId(),
-        TaskAttemptState.SUCCEEDED, null, 0));
+        new AMSchedulerEventTAEnded(ta11, container1.getId(),
+            TaskAttemptState.SUCCEEDED, null, null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta11), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta11, true, null, null);
     verify(taskSchedulerEventHandler, times(0)).taskAllocated(
         eq(0), eq(ta12), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
@@ -787,7 +810,7 @@ public class TestContainerReuse {
     // TA12 completed.
     taskSchedulerEventHandler.handleEvent(
       new AMSchedulerEventTAEnded(ta12, container1.getId(),
-        TaskAttemptState.SUCCEEDED, null, 0));
+        TaskAttemptState.SUCCEEDED, null, null, 0));
     drainableAppCallback.drain();
     LOG.info("Sleeping to ensure that the scheduling loop runs");
     Thread.sleep(3000l);
@@ -897,9 +920,9 @@ public class TestContainerReuse {
     // Container should  be assigned to task21.
     taskSchedulerEventHandler.handleEvent(
         new AMSchedulerEventTAEnded(ta11, container1.getId(),
-            TaskAttemptState.SUCCEEDED, null, 0));
+            TaskAttemptState.SUCCEEDED, null, null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta11), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta11, true, null, null);
     verify(taskSchedulerEventHandler).taskAllocated(
         eq(0), eq(ta21), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
@@ -907,7 +930,7 @@ public class TestContainerReuse {
     // Task 2 completes.
     taskSchedulerEventHandler.handleEvent(
         new AMSchedulerEventTAEnded(ta21, container1.getId(),
-            TaskAttemptState.SUCCEEDED, null, 0));
+            TaskAttemptState.SUCCEEDED, null, null, 0));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
 
     LOG.info("Sleeping to ensure that the scheduling loop runs");
@@ -1008,9 +1031,11 @@ public class TestContainerReuse {
     assertEquals(1, assignEvent.getRemoteTaskLocalResources().size());
     
     // Task assigned to container completed successfully. Container should be re-used.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta111, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta111, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta111), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta111, true, null, null);
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta112), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
@@ -1020,9 +1045,11 @@ public class TestContainerReuse {
 
     // Task assigned to container completed successfully.
     // Verify reuse across hosts.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta112, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta112, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta112), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta112, true, null, null);
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     eventHandler.reset();
@@ -1054,16 +1081,19 @@ public class TestContainerReuse {
     // TODO This is terrible, need a better way to ensure the scheduling loop has run
     LOG.info("Sleeping to ensure that the scheduling loop runs");
     Thread.sleep(6000l);
-    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta211), any(Object.class), eq(container1));
+    verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta211), any(Object.class),
+        eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     assignEvent = (AMContainerEventAssignTA) eventHandler.verifyInvocation(AMContainerEventAssignTA.class);
     assertEquals(2, assignEvent.getRemoteTaskLocalResources().size());
     eventHandler.reset();
 
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta211, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta211, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta211), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta211, true, null, null);
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta212), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
@@ -1174,9 +1204,11 @@ public class TestContainerReuse {
     assertEquals(1, assignEvent.getRemoteTaskLocalResources().size());
 
     // Task assigned to container completed successfully. Container should be re-used.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta111, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(
+        new AMSchedulerEventTAEnded(ta111, container1.getId(), TaskAttemptState.SUCCEEDED, null,
+            null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta111), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta111, true, null, null);
     verify(taskSchedulerEventHandler).taskAllocated(eq(0), eq(ta112), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
@@ -1186,9 +1218,9 @@ public class TestContainerReuse {
 
     // Task assigned to container completed successfully.
     // Verify reuse across hosts.
-    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta112, container1.getId(), TaskAttemptState.SUCCEEDED, null, 0));
+    taskSchedulerEventHandler.handleEvent(new AMSchedulerEventTAEnded(ta112, container1.getId(), TaskAttemptState.SUCCEEDED, null, null, 0));
     drainableAppCallback.drain();
-    verify(taskScheduler).deallocateTask(eq(ta112), eq(true), eq((TaskAttemptEndReason)null));
+    verifyDeAllocateTask(taskScheduler, ta112, true, null, null);
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     eventHandler.reset();
@@ -1301,6 +1333,7 @@ public class TestContainerReuse {
   }
 
   private Container createContainer(int id, String host, Resource resource, Priority priority) {
+    @SuppressWarnings("deprecation")
     ContainerId containerID = ContainerId.newInstance(
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(1, 1), 1),
         id);
@@ -1366,6 +1399,19 @@ public class TestContainerReuse {
     @Override
     public TezDAGID answer(InvocationOnMock invocation) throws Throwable {
       return this.dagID;
+    }
+  }
+
+  private void verifyDeAllocateTask(TaskScheduler taskScheduler, Object ta, boolean taskSucceeded,
+                                    TaskAttemptEndReason endReason, String diagContains) {
+    ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
+    verify(taskScheduler)
+        .deallocateTask(eq(ta), eq(taskSucceeded), eq(endReason), argumentCaptor.capture());
+    assertEquals(1, argumentCaptor.getAllValues().size());
+    if (diagContains == null) {
+      assertNull(argumentCaptor.getValue());
+    } else {
+      assertTrue(argumentCaptor.getValue().contains(diagContains));
     }
   }
 }

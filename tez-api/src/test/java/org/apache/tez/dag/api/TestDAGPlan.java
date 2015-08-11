@@ -38,7 +38,6 @@ import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
-import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
@@ -46,6 +45,10 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexExecutionContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
+import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -317,6 +320,108 @@ public class TestDAGPlan {
   }
 
   @Test(timeout = 5000)
+  public void testInvalidExecContext_1() {
+    DAG dag = DAG.create("dag1");
+    dag.setExecutionContext(VertexExecutionContext.createExecuteInAm(true));
+    Vertex v1 = Vertex.create("testvertex", ProcessorDescriptor.create("processor1"), 1);
+    dag.addVertex(v1);
+
+    try {
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null, null);
+      fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().contains("AM execution"));
+    }
+
+    dag.setExecutionContext(VertexExecutionContext.createExecuteInContainers(true));
+
+    try {
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null, null);
+      fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().contains("container execution"));
+    }
+
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidExecContext_2() {
+
+    ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor
+        .create(false,
+            new TaskSchedulerDescriptor[]{TaskSchedulerDescriptor.create("plugin", null)},
+            new ContainerLauncherDescriptor[]{ContainerLauncherDescriptor.create("plugin", null)},
+            new TaskCommunicatorDescriptor[]{TaskCommunicatorDescriptor.create("plugin", null)});
+
+    VertexExecutionContext validExecContext = VertexExecutionContext.create("plugin", "plugin",
+        "plugin");
+    VertexExecutionContext invalidExecContext1 =
+        VertexExecutionContext.create("invalidplugin", "plugin", "plugin");
+    VertexExecutionContext invalidExecContext2 =
+        VertexExecutionContext.create("plugin", "invalidplugin", "plugin");
+    VertexExecutionContext invalidExecContext3 =
+        VertexExecutionContext.create("plugin", "plugin", "invalidplugin");
+
+
+    DAG dag = DAG.create("dag1");
+    dag.setExecutionContext(VertexExecutionContext.createExecuteInContainers(true));
+    Vertex v1 = Vertex.create("testvertex", ProcessorDescriptor.create("processor1"), 1);
+    dag.addVertex(v1);
+
+    // Should succeed. Default context is containers.
+    dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+        servicePluginsDescriptor);
+
+
+    // Set execute in AM should fail
+    v1.setExecutionContext(VertexExecutionContext.createExecuteInAm(true));
+    try {
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().contains("AM execution"));
+    }
+
+    // Valid context
+    v1.setExecutionContext(validExecContext);
+    dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+
+    // Invalid task scheduler
+    v1.setExecutionContext(invalidExecContext1);
+    try {
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().contains("testvertex"));
+      assertTrue(e.getMessage().contains("task scheduler"));
+      assertTrue(e.getMessage().contains("invalidplugin"));
+    }
+
+    // Invalid ContainerLauncher
+    v1.setExecutionContext(invalidExecContext2);
+    try {
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().contains("testvertex"));
+      assertTrue(e.getMessage().contains("container launcher"));
+      assertTrue(e.getMessage().contains("invalidplugin"));
+    }
+
+    // Invalid task comm
+    v1.setExecutionContext(invalidExecContext3);
+    try {
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().contains("testvertex"));
+      assertTrue(e.getMessage().contains("task communicator"));
+      assertTrue(e.getMessage().contains("invalidplugin"));
+    }
+
+  }
+
+  @Test(timeout = 5000)
   public void testServiceDescriptorPropagation() {
     DAG dag = DAG.create("testDag");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
@@ -328,6 +433,10 @@ public class TestDAGPlan {
         VertexExecutionContext.create("plugin", "plugin", "plugin");
     VertexExecutionContext v1Context = VertexExecutionContext.createExecuteInAm(true);
 
+    ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor
+        .create(true, new TaskSchedulerDescriptor[]{TaskSchedulerDescriptor.create("plugin", null)},
+            new ContainerLauncherDescriptor[]{ContainerLauncherDescriptor.create("plugin", null)},
+            new TaskCommunicatorDescriptor[]{TaskCommunicatorDescriptor.create("plugin", null)});
 
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1)).setExecutionContext(v1Context);
     Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
@@ -347,7 +456,7 @@ public class TestDAGPlan {
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
     dag.setExecutionContext(defaultExecutionContext);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true, null, servicePluginsDescriptor);
 
     assertEquals(2, dagProto.getVertexCount());
     assertEquals(1, dagProto.getEdgeCount());

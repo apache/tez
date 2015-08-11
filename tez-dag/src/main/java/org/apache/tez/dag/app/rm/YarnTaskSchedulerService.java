@@ -989,7 +989,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
    */
   @Override
   public boolean deallocateTask(Object task, boolean taskSucceeded,
-                                TaskAttemptEndReason endReason) {
+                                TaskAttemptEndReason endReason,
+                                String diagnostics) {
     Map<CookieContainerRequest, Container> assignedContainers = null;
 
     synchronized (this) {
@@ -1207,7 +1208,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
             CookieContainerRequest request = entry.getValue();
             if (request.getPriority().equals(lowestPriNewContainer.getPriority())) {
               LOG.info("Resending request for task again: " + task);
-              deallocateTask(task, true, null);
+              deallocateTask(task, true, null, null);
               allocateTask(task, request.getCapability(), 
                   (request.getNodes() == null ? null : 
                     request.getNodes().toArray(new String[request.getNodes().size()])), 

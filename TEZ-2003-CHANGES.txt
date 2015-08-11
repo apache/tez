@@ -45,5 +45,6 @@ ALL CHANGES:
   TEZ-2126. Add unit tests for verifying multiple schedulers, launchers, communicators.
   TEZ-2698. rebase 08/05
   TEZ-2675. Add javadocs for new pluggable components, fix problems reported by jenkins
+  TEZ-2678. Fix comments from reviews - part 1.
 
 INCOMPATIBLE CHANGES:
