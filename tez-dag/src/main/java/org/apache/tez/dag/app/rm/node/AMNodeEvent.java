@@ -24,19 +24,19 @@ import org.apache.hadoop.yarn.event.AbstractEvent;
 public class AMNodeEvent extends AbstractEvent<AMNodeEventType> {
 
   private final NodeId nodeId;
-  private final int sourceId; // Effectively the schedulerId
+  private final int schedulerId;
 
-  public AMNodeEvent(NodeId nodeId, int sourceId, AMNodeEventType type) {
+  public AMNodeEvent(NodeId nodeId, int schedulerId, AMNodeEventType type) {
     super(type);
     this.nodeId = nodeId;
-    this.sourceId = sourceId;
+    this.schedulerId = schedulerId;
   }
 
   public NodeId getNodeId() {
     return this.nodeId;
   }
 
-  public int getSourceId() {
-    return sourceId;
+  public int getSchedulerId() {
+    return schedulerId;
   }
 }

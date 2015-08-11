@@ -82,14 +82,14 @@ public class AMNodeTracker extends AbstractService implements
     }
   }
 
-  public void nodeSeen(NodeId nodeId, int sourceId) {
-    PerSourceNodeTracker nodeTracker = getAndCreateIfNeededPerSourceTracker(sourceId);
+  public void nodeSeen(NodeId nodeId, int schedulerId) {
+    PerSourceNodeTracker nodeTracker = getAndCreateIfNeededPerSourceTracker(schedulerId);
     nodeTracker.nodeSeen(nodeId);
   }
 
 
-  boolean registerBadNodeAndShouldBlacklist(AMNode amNode, int sourceId) {
-    return perSourceNodeTrackers.get(sourceId).registerBadNodeAndShouldBlacklist(amNode);
+  boolean registerBadNodeAndShouldBlacklist(AMNode amNode, int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).registerBadNodeAndShouldBlacklist(amNode);
   }
 
   public void handle(AMNodeEvent rEvent) {
@@ -101,42 +101,42 @@ public class AMNodeTracker extends AbstractService implements
       case N_IGNORE_BLACKLISTING_ENABLED:
       case N_IGNORE_BLACKLISTING_DISABLED:
         // All of these will only be seen after a node has been registered.
-        perSourceNodeTrackers.get(rEvent.getSourceId()).handle(rEvent);
+        perSourceNodeTrackers.get(rEvent.getSchedulerId()).handle(rEvent);
         break;
       case N_TURNED_UNHEALTHY:
       case N_TURNED_HEALTHY:
       case N_NODE_COUNT_UPDATED:
         // These events can be seen without a node having been marked as 'seen' before
-        getAndCreateIfNeededPerSourceTracker(rEvent.getSourceId()).handle(rEvent);
+        getAndCreateIfNeededPerSourceTracker(rEvent.getSchedulerId()).handle(rEvent);
         break;
     }
   }
 
-  public AMNode get(NodeId nodeId, int sourceId) {
-    return perSourceNodeTrackers.get(sourceId).get(nodeId);
+  public AMNode get(NodeId nodeId, int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).get(nodeId);
   }
 
-  public int getNumNodes(int sourceId) {
-    return perSourceNodeTrackers.get(sourceId).getNumNodes();
+  public int getNumNodes(int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).getNumNodes();
   }
 
   @Private
   @VisibleForTesting
-  public boolean isBlacklistingIgnored(int sourceId) {
-    return perSourceNodeTrackers.get(sourceId).isBlacklistingIgnored();
+  public boolean isBlacklistingIgnored(int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).isBlacklistingIgnored();
   }
 
   public void dagComplete(DAG dag) {
     // TODO TEZ-2337 Maybe reset failures from previous DAGs
   }
 
-  private PerSourceNodeTracker getAndCreateIfNeededPerSourceTracker(int sourceId) {
-    PerSourceNodeTracker nodeTracker = perSourceNodeTrackers.get(sourceId);
+  private PerSourceNodeTracker getAndCreateIfNeededPerSourceTracker(int schedulerId) {
+    PerSourceNodeTracker nodeTracker = perSourceNodeTrackers.get(schedulerId);
     if (nodeTracker == null) {
       nodeTracker =
-          new PerSourceNodeTracker(sourceId, eventHandler, appContext, maxTaskFailuresPerNode,
+          new PerSourceNodeTracker(schedulerId, eventHandler, appContext, maxTaskFailuresPerNode,
               nodeBlacklistingEnabled, blacklistDisablePercent);
-      PerSourceNodeTracker old = perSourceNodeTrackers.putIfAbsent(sourceId, nodeTracker);
+      PerSourceNodeTracker old = perSourceNodeTrackers.putIfAbsent(schedulerId, nodeTracker);
       nodeTracker = old != null ? old : nodeTracker;
     }
     return nodeTracker;

@@ -24,36 +24,42 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
-import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
+import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
-import org.apache.tez.runtime.api.ExecutionContext;
 import org.junit.Test;
 
 /**
@@ -363,16 +369,46 @@ public class TestVertexImpl2 {
       this.vertexName = "testvertex";
       this.vertexExecutionContext = vertexExecutionContext;
       this.defaultExecutionContext = defaultDagExecitionContext;
-      if (numPlugins == 0) {
-        this.taskSchedulers.put(TezConstants.getTezYarnServicePluginName(), 0);
-        this.containerLaunchers.put(TezConstants.getTezYarnServicePluginName(), 0);
-        this.taskSchedulers.put(TezConstants.getTezYarnServicePluginName(), 0);
-      } else {
-        for (int i = 0; i < numPlugins; i++) {
-          this.taskSchedulers.put(append(TASK_SCHEDULER_NAME_BASE, i), i);
-          this.containerLaunchers.put(append(CONTAINER_LAUNCHER_NAME_BASE, i), i);
-          this.taskComms.put(append(TASK_COMM_NAME_BASE, i), i);
+      if (numPlugins == 0) { // Add default container plugins only
+        UserPayload defaultPayload;
+        try {
+          defaultPayload = TezUtils.createUserPayloadFromConf(new Configuration(false));
+        } catch (IOException e) {
+          throw new TezUncheckedException(e);
         }
+        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskSchedulers, null,
+            true, false, defaultPayload);
+        DAGAppMaster
+            .parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), containerLaunchers, null,
+                true, false, defaultPayload);
+        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskComms, null,
+            true, false, defaultPayload);
+      } else { // Add N plugins, no YARN defaults
+        List<TezNamedEntityDescriptorProto> schedulerList = new LinkedList<>();
+        List<TezNamedEntityDescriptorProto> launcherList = new LinkedList<>();
+        List<TezNamedEntityDescriptorProto> taskCommList = new LinkedList<>();
+        for (int i = 0; i < numPlugins; i++) {
+          schedulerList.add(TezNamedEntityDescriptorProto.newBuilder()
+              .setName(append(TASK_SCHEDULER_NAME_BASE, i)).setEntityDescriptor(
+                  DAGProtos.TezEntityDescriptorProto.newBuilder()
+                      .setClassName(append(TASK_SCHEDULER_NAME_BASE, i))).build());
+          launcherList.add(TezNamedEntityDescriptorProto.newBuilder()
+              .setName(append(CONTAINER_LAUNCHER_NAME_BASE, i)).setEntityDescriptor(
+                  DAGProtos.TezEntityDescriptorProto.newBuilder()
+                      .setClassName(append(CONTAINER_LAUNCHER_NAME_BASE, i))).build());
+          taskCommList.add(
+              TezNamedEntityDescriptorProto.newBuilder().setName(append(TASK_COMM_NAME_BASE, i))
+                  .setEntityDescriptor(
+                      DAGProtos.TezEntityDescriptorProto.newBuilder()
+                          .setClassName(append(TASK_COMM_NAME_BASE, i))).build());
+        }
+        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskSchedulers,
+            schedulerList, false, false, null);
+        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), containerLaunchers,
+            launcherList, false, false, null);
+        DAGAppMaster
+            .parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskComms, taskCommList,
+                false, false, null);
       }
 
       this.appContext = createDefaultMockAppContext();

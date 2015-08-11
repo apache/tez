@@ -2422,7 +2422,7 @@ public class DAGAppMaster extends AbstractService {
 
 
   @VisibleForTesting
-  static void parsePlugin(List<NamedEntityDescriptor> resultList,
+  public static void parsePlugin(List<NamedEntityDescriptor> resultList,
       BiMap<String, Integer> pluginMap, List<TezNamedEntityDescriptorProto> namedEntityDescriptorProtos,
       boolean tezYarnEnabled, boolean uberEnabled, UserPayload defaultPayload) {
 

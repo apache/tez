@@ -417,8 +417,6 @@ public class MockDAGAppMaster extends DAGAppMaster {
               events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
                   MockDAGAppMaster.this.getContext().getClock().getTime()));
-//              TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
-//                  cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
               TaskHeartbeatRequest request =
                   new TaskHeartbeatRequest(cData.cIdStr, cData.taId, events, cData.nextFromEventId, cData.nextPreRoutedFromEventId,
                       50000);

@@ -225,6 +225,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
             " events: " + (inEvents != null ? inEvents.size() : -1));
       }
 
+      long currTime = context.getClock().getTime();
       List<TezEvent> otherEvents = new ArrayList<TezEvent>();
       // route TASK_STATUS_UPDATE_EVENT directly to TaskAttempt and route other events
       // (DATA_MOVEMENT_EVENT, TASK_ATTEMPT_COMPLETED_EVENT, TASK_ATTEMPT_FAILED_EVENT)
@@ -232,6 +233,9 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
       //  1. DataMovementEvent is logged as RecoveryEvent before TaskAttemptFinishedEvent
       //  2. TaskStatusEvent is handled before TaskAttemptFinishedEvent
       for (TezEvent tezEvent : ListUtils.emptyIfNull(inEvents)) {
+        // for now, set the event time on the AM when it is received.
+        // this avoids any time disparity between machines.
+        tezEvent.setEventReceivedTime(currTime);
         final EventType eventType = tezEvent.getEventType();
         if (eventType == EventType.TASK_STATUS_UPDATE_EVENT) {
           TaskAttemptEvent taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,

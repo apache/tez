@@ -23,20 +23,14 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 public class AMSchedulerEventDeallocateContainer extends AMSchedulerEvent {
 
   private final ContainerId containerId;
-  private final int schedulerId;
-  
+
   public AMSchedulerEventDeallocateContainer(ContainerId containerId, int schedulerId) {
-    super(AMSchedulerEventType.S_CONTAINER_DEALLOCATE);
+    super(AMSchedulerEventType.S_CONTAINER_DEALLOCATE, schedulerId);
     this.containerId = containerId;
-    this.schedulerId = schedulerId;
   }
   
   public ContainerId getContainerId() {
     return this.containerId;
-  }
-
-  public int getSchedulerId() {
-    return schedulerId;
   }
 }
 

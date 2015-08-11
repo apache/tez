@@ -21,7 +21,6 @@ package org.apache.tez.dag.app.dag.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -286,10 +285,7 @@ public class TestTaskAttempt {
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler eventHandler = new MockEventHandler();
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -338,10 +334,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -441,10 +434,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = new MockEventHandler();
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -508,10 +498,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -602,10 +589,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -735,10 +719,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -829,10 +810,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -926,10 +904,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1031,10 +1006,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1133,10 +1105,7 @@ public class TestTaskAttempt {
 
     MockEventHandler mockEh = new MockEventHandler();
     MockEventHandler eventHandler = spy(mockEh);
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator taskComm = mock(TaskCommunicator.class);
-    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1280,11 +1249,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
-    TaskCommunicator mockTaskComm = mock(TaskCommunicator.class);
-    when(mockTaskComm.getAddress()).thenReturn(
-        new InetSocketAddress("localhost", 0));
-    when(taListener.getTaskCommunicator(any(int.class))).thenReturn(mockTaskComm);
+    TaskAttemptListener taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1411,5 +1376,13 @@ public class TestTaskAttempt {
   private static ContainerContext createFakeContainerContext() {
     return new ContainerContext(new HashMap<String, LocalResource>(),
         new Credentials(), new HashMap<String, String>(), "");
+  }
+
+  private TaskAttemptListener createMockTaskAttemptListener() {
+    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
+    TaskCommunicator taskComm = mock(TaskCommunicator.class);
+    doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
+    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    return taListener;
   }
 }

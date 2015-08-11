@@ -22,8 +22,14 @@ import org.apache.hadoop.yarn.event.AbstractEvent;
 
 public class AMSchedulerEvent extends AbstractEvent<AMSchedulerEventType> {
 
-  // TODO Not a very useful class...
-  public AMSchedulerEvent(AMSchedulerEventType type) {
+  private final int schedulerId;
+
+  public AMSchedulerEvent(AMSchedulerEventType type, int schedulerId) {
     super(type);
+    this.schedulerId = schedulerId;
+  }
+
+  public int getSchedulerId() {
+    return this.schedulerId;
   }
 }
