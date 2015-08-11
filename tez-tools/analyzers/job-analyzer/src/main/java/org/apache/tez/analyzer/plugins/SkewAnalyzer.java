@@ -57,6 +57,10 @@ import java.util.Map;
  */
 public class SkewAnalyzer implements Analyzer {
 
+  /**
+   * Amount of bytes that was sent as shuffle bytes from source. If it is below this threshold,
+   * it would not be considered for analysis.
+   */
   private static final String SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE = "tez.skew-analyzer.shuffle"
       + ".bytes.per.source";
   private static final long SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE_DEFAULT = 900 * 1024 * 1024l;

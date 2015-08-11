@@ -18,6 +18,7 @@
 
 package org.apache.tez.analyzer.plugins;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.analyzer.Analyzer;
@@ -43,15 +44,21 @@ import java.util.Map;
  */
 public class ShuffleTimeAnalyzer implements Analyzer {
 
-  private static final String SHUFFLE_TIME_RATIO = "tez.shuffle-time-analyzer.shuffle.ratio";
-  private static final float SHUFFLE_TIME_RATIO_DEFAULT = 0.5f;
+  /**
+   * ratio of (total time taken by task - shuffle time) / (total time taken by task)
+   */
+  private static final String REAL_WORK_DONE_RATIO = "tez.shuffle-time-analyzer.real-work.done.ratio";
+  private static final float REAL_WORK_DONE_RATIO_DEFAULT = 0.5f;
 
+  /**
+   * Number of min records that needs to get in as reduce input records.
+   */
   private static final String MIN_SHUFFLE_RECORDS = "tez.shuffle-time-analyzer.shuffle.min.records";
   private static final long MIN_SHUFFLE_RECORDS_DEFAULT = 10000;
 
   private static final String[] headers = { "vertexName", "taskAttemptId", "Node", "counterGroup",
       "Comments", "REDUCE_INPUT_GROUPS", "REDUCE_INPUT_RECORDS", "ratio", "SHUFFLE_BYTES",
-      "Time taken to receive all events", "MERGE_PHASE_TIME", "SHUFFLE_PHASE_TIME",
+      "TotalTime", "Time_taken_to_receive_all_events", "MERGE_PHASE_TIME", "SHUFFLE_PHASE_TIME",
       "TimeTaken_For_Real_Task", "FIRST_EVENT_RECEIVED", "LAST_EVENT_RECEIVED",
       "SHUFFLE_BYTES_DISK_DIRECT" };
 
@@ -59,15 +66,15 @@ public class ShuffleTimeAnalyzer implements Analyzer {
 
   private final Configuration config;
 
-  private final float shuffleTimeRatio;
+  private final float realWorkDoneRatio;
   private final long minShuffleRecords;
 
 
   public ShuffleTimeAnalyzer(Configuration config) {
     this.config = config;
 
-    shuffleTimeRatio = config.getFloat
-        (SHUFFLE_TIME_RATIO, SHUFFLE_TIME_RATIO_DEFAULT);
+    realWorkDoneRatio = config.getFloat
+        (REAL_WORK_DONE_RATIO, REAL_WORK_DONE_RATIO_DEFAULT);
     minShuffleRecords = config.getLong(MIN_SHUFFLE_RECORDS, MIN_SHUFFLE_RECORDS_DEFAULT);
   }
 
@@ -105,15 +112,20 @@ public class ShuffleTimeAnalyzer implements Analyzer {
             result.add(counterGroupName);
 
             //Real work done in the task
-            long timeTakenForRealWork = attemptInfo.getTimeTaken() -
-                Long.parseLong(getCounterValue(TaskCounter.MERGE_PHASE_TIME, counterGroupName,
-                    attemptInfo));
-
             String comments = "";
-            if ((timeTakenForRealWork * 1.0f / attemptInfo.getTimeTaken()) < shuffleTimeRatio) {
-              comments = "Time taken in shuffle is more than the actual work being done in task. "
-                  + " Check if source/destination machine is a slow node. Check if merge phase "
-                  + "time is more to understand disk bottlenecks in this node.  Check for skew";
+            String mergePhaseTime = getCounterValue(TaskCounter.MERGE_PHASE_TIME,
+                counterGroupName, attemptInfo);
+            String timeTakenForRealWork = "";
+            if (!Strings.isNullOrEmpty(mergePhaseTime)) {
+              long realWorkDone = attemptInfo.getTimeTaken() - Long.parseLong(mergePhaseTime);
+
+              if ((realWorkDone * 1.0f / attemptInfo.getTimeTaken()) < realWorkDoneRatio) {
+                comments = "Time taken in shuffle is more than the actual work being done in task. "
+                    + " Check if source/destination machine is a slow node. Check if merge phase "
+                    + "time is more to understand disk bottlenecks in this node.  Check for skew";
+              }
+
+              timeTakenForRealWork = Long.toString(realWorkDone);
             }
             result.add(comments);
 
@@ -122,13 +134,14 @@ public class ShuffleTimeAnalyzer implements Analyzer {
             result.add("" + (1.0f * reduceInputGroupsVal / reduceInputRecordsVal));
             result.add(getCounterValue(TaskCounter.SHUFFLE_BYTES, counterGroupName, attemptInfo));
 
+            result.add(Long.toString(attemptInfo.getTimeTaken()));
+
             //Total time taken for receiving all events from source tasks
             result.add(getOverheadFromSourceTasks(counterGroupName, attemptInfo));
             result.add(getCounterValue(TaskCounter.MERGE_PHASE_TIME, counterGroupName, attemptInfo));
             result.add(getCounterValue(TaskCounter.SHUFFLE_PHASE_TIME, counterGroupName, attemptInfo));
 
-
-            result.add(Long.toString(timeTakenForRealWork));
+            result.add(timeTakenForRealWork);
 
             result.add(getCounterValue(TaskCounter.FIRST_EVENT_RECEIVED, counterGroupName, attemptInfo));
             result.add(getCounterValue(TaskCounter.LAST_EVENT_RECEIVED, counterGroupName, attemptInfo));
@@ -150,11 +163,16 @@ public class ShuffleTimeAnalyzer implements Analyzer {
    * @return String
    */
   private String getOverheadFromSourceTasks(String counterGroupName, TaskAttemptInfo attemptInfo) {
-    long firstEventReceived = Long.parseLong(getCounterValue(TaskCounter.FIRST_EVENT_RECEIVED,
-        counterGroupName, attemptInfo));
-    long lastEventReceived = Long.parseLong(getCounterValue(TaskCounter.LAST_EVENT_RECEIVED,
-        counterGroupName, attemptInfo));
-    return Long.toString(lastEventReceived - firstEventReceived);
+    String firstEventReceived = getCounterValue(TaskCounter.FIRST_EVENT_RECEIVED,
+        counterGroupName, attemptInfo);
+    String lastEventReceived = getCounterValue(TaskCounter.LAST_EVENT_RECEIVED,
+        counterGroupName, attemptInfo);
+
+    if (!Strings.isNullOrEmpty(firstEventReceived) && !Strings.isNullOrEmpty(lastEventReceived)) {
+      return Long.toString(Long.parseLong(lastEventReceived) - Long.parseLong(firstEventReceived));
+    } else {
+      return "";
+    }
   }
 
   private String getCounterValue(TaskCounter counter, String counterGroupName,

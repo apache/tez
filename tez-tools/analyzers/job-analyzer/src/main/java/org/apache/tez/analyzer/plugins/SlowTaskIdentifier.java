@@ -41,7 +41,7 @@ import java.util.List;
 public class SlowTaskIdentifier implements Analyzer {
 
   private static final String[] headers = { "vertexName", "taskAttemptId",
-      "Node", "taskDuration", "Status",
+      "Node", "taskDuration", "Status", "diagnostics",
       "NoOfInputs" };
 
   private final CSVResult csvResult;
@@ -72,14 +72,21 @@ public class SlowTaskIdentifier implements Analyzer {
       }
     });
 
-    int limit = config.getInt(NO_OF_TASKS, NO_OF_TASKS_DEFAULT);
-    for(int i=0;i<limit;i++) {
+    int limit = Math.min(taskAttempts.size(),
+        Math.max(0, config.getInt(NO_OF_TASKS, NO_OF_TASKS_DEFAULT)));
+
+    if (limit == 0) {
+      return;
+    }
+
+    for (int i = 0; i < limit - 1; i++) {
       List<String> record = Lists.newLinkedList();
       record.add(taskAttempts.get(i).getTaskInfo().getVertexInfo().getVertexName());
       record.add(taskAttempts.get(i).getTaskAttemptId());
       record.add(taskAttempts.get(i).getContainer().getHost());
       record.add(taskAttempts.get(i).getTimeTaken() + "");
       record.add(taskAttempts.get(i).getStatus());
+      record.add(taskAttempts.get(i).getDiagnostics());
       record.add(taskAttempts.get(i).getTaskInfo().getVertexInfo().getInputEdges().size() + "");
 
       csvResult.addRecord(record.toArray(new String[record.size()]));

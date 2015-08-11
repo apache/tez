@@ -38,6 +38,15 @@
       <artifactId>tez-history-parser</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.plutext</groupId>
+      <artifactId>jaxb-svg11</artifactId>
+      <version>1.0.2</version>
+    </dependency>
   </dependencies>
 
   <build>

@@ -16,6 +16,7 @@ INCOMPATIBLE CHANGES
   TEZ-2699. Internalize strings in ATF parser
 
 ALL CHANGES:
+  TEZ-2692. bugfixes & enhancements related to job parser and analyzer.
   TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.
   TEZ-2630. TezChild receives IP address instead of FQDN.
   TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.

@@ -33,6 +33,7 @@ import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -164,13 +165,25 @@ public class VertexInfo extends BaseInfo {
     updateEdgeInfo();
   }
 
+  public List<AdditionalInputOutputDetails> getAdditionalInputInfoList() {
+    return Collections.unmodifiableList(additionalInputInfoList);
+  }
+
+  public List<AdditionalInputOutputDetails> getAdditionalOutputInfoList() {
+    return Collections.unmodifiableList(additionalOutputInfoList);
+  }
+
   @Override
   public final long getStartTimeInterval() {
     return startTime - (dagInfo.getStartTime());
   }
 
   public final long getFirstTaskStartTimeInterval() {
-    return getFirstTaskToStart().getStartTimeInterval();
+    TaskInfo firstTask = getFirstTaskToStart();
+    if (firstTask == null) {
+      return 0;
+    }
+    return firstTask.getStartTimeInterval();
   }
 
   public final long getLastTaskFinishTimeInterval() {
@@ -270,14 +283,32 @@ public class VertexInfo extends BaseInfo {
 
   }
 
+
+  private List<TaskInfo> getTasksInternal() {
+    return Lists.newLinkedList(taskInfoMap.values());
+  }
+
   /**
    * Get all tasks
    *
    * @return list of taskInfo
    */
   public final List<TaskInfo> getTasks() {
-    List<TaskInfo> taskInfoList = Lists.newLinkedList(taskInfoMap.values());
-    Collections.sort(taskInfoList, orderingOnStartTime());
+    return Collections.unmodifiableList(getTasksInternal());
+  }
+
+  /**
+   * Get all tasks in sorted order
+   *
+   * @param sorted
+   * @param ordering
+   * @return list of TaskInfo
+   */
+  public final List<TaskInfo> getTasks(boolean sorted, @Nullable Ordering<TaskInfo> ordering) {
+    List<TaskInfo> taskInfoList = getTasksInternal();
+    if (sorted) {
+      Collections.sort(taskInfoList, ((ordering == null) ? orderingOnStartTime() : ordering));
+    }
     return Collections.unmodifiableList(taskInfoList);
   }
 
@@ -352,12 +383,36 @@ public class VertexInfo extends BaseInfo {
     return Collections.unmodifiableList(outputVertices);
   }
 
-  public List<TaskAttemptInfo> getTaskAttempts() {
+  private List<TaskAttemptInfo> getTaskAttemptsInternal() {
     List<TaskAttemptInfo> taskAttemptInfos = Lists.newLinkedList();
     for (TaskInfo taskInfo : getTasks()) {
       taskAttemptInfos.addAll(taskInfo.getTaskAttempts());
     }
-    Collections.sort(taskAttemptInfos, orderingOnAttemptStartTime());
+    return taskAttemptInfos;
+  }
+
+  /**
+   * Get all task attempts
+   *
+   * @return List<TaskAttemptInfo> list of attempts
+   */
+  public List<TaskAttemptInfo> getTaskAttempts() {
+    return Collections.unmodifiableList(getTaskAttemptsInternal());
+  }
+
+  /**
+   * Get all task attempts in sorted order
+   *
+   * @param sorted
+   * @param ordering
+   * @return list of TaskAttemptInfo
+   */
+  public final List<TaskAttemptInfo> getTaskAttempts(boolean sorted,
+      @Nullable Ordering<TaskAttemptInfo> ordering) {
+    List<TaskAttemptInfo> taskAttemptInfos = getTaskAttemptsInternal();
+    if (sorted) {
+      Collections.sort(taskAttemptInfos, ((ordering == null) ? orderingOnAttemptStartTime() : ordering));
+    }
     return Collections.unmodifiableList(taskAttemptInfos);
   }
 

@@ -108,7 +108,8 @@ public class LocalityAnalyzer implements Analyzer {
         record.add(otherTaskResult.avgRuntime + "");
 
         //Get the number of inputs to this vertex
-        record.add(vertexInfo.getInputEdges().size() + "");
+        record.add(vertexInfo.getInputEdges().size()
+            + vertexInfo.getAdditionalInputInfoList().size() + "");
 
         //Get the avg HDFS bytes read in this vertex for different type of locality
         record.add(dataLocalResult.avgHDFSBytesRead + "");

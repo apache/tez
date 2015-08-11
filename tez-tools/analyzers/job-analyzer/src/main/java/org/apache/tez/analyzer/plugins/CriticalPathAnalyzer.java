@@ -19,6 +19,8 @@
 package org.apache.tez.analyzer.plugins;
 
 import com.google.common.base.Functions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -26,10 +28,13 @@ import com.google.common.collect.Ordering;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
+import org.apache.tez.analyzer.utils.Utils;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -43,24 +48,43 @@ public class CriticalPathAnalyzer implements Analyzer {
 
   private final CSVResult csvResult;
 
+  private static final String DOT_FILE_DIR = "tez.critical-path.analyzer.dot.output.loc";
+  private static final String DOT_FILE_DIR_DEFAULT = "."; //current directory
+
+  private final String dotFileLocation;
+
+  private static final String CONNECTOR = "-->";
+
   public CriticalPathAnalyzer(Configuration config) {
     this.config = config;
     this.csvResult = new CSVResult(headers);
+    this.dotFileLocation = config.get(DOT_FILE_DIR, DOT_FILE_DIR_DEFAULT);
   }
 
   @Override public void analyze(DagInfo dagInfo) throws TezException {
     Map<String, Long> result = Maps.newLinkedHashMap();
     getCriticalPath("", dagInfo.getVertices().get(dagInfo.getVertices().size() - 1), 0, result);
 
-    System.out.println();
-    System.out.println();
-
-    for (Map.Entry<String, Long> entry : sortByValues(result).entrySet()) {
+    Map<String, Long> sortedByValues = sortByValues(result);
+    for (Map.Entry<String, Long> entry : sortedByValues.entrySet()) {
       List<String> record = Lists.newLinkedList();
       record.add(entry.getKey());
       record.add(entry.getValue() + "");
       csvResult.addRecord(record.toArray(new String[record.size()]));
-      System.out.println(entry.getKey() + ", " + entry.getValue());
+    }
+
+    String dotFile = dotFileLocation + File.separator + dagInfo.getDagId() + ".dot";
+    try {
+      List<String> criticalVertices = null;
+      if (!sortedByValues.isEmpty()) {
+        String criticalPath = sortedByValues.keySet().iterator().next();
+        criticalVertices = getVertexNames(criticalPath);
+      } else {
+        criticalVertices = Lists.newLinkedList();
+      }
+      Utils.generateDAGVizFile(dagInfo, dotFile, criticalVertices);
+    } catch (IOException e) {
+      throw new TezException(e);
     }
   }
 
@@ -98,7 +122,7 @@ public class CriticalPathAnalyzer implements Analyzer {
 
     if (dest != null) {
       time += dest.getTimeTaken();
-      predecessor += destVertexName + "-->";
+      predecessor += destVertexName + CONNECTOR;
 
       for (VertexInfo incomingVertex : dest.getInputVertices()) {
         getCriticalPath(predecessor, incomingVertex, time, result);
@@ -106,5 +130,13 @@ public class CriticalPathAnalyzer implements Analyzer {
 
       result.put(predecessor, time);
     }
+  }
+
+  private static List<String> getVertexNames(String criticalPath) {
+    if (Strings.isNullOrEmpty(criticalPath)) {
+      return Lists.newLinkedList();
+    }
+    return Lists.newLinkedList(Splitter.on(CONNECTOR).trimResults().omitEmptyStrings().split
+        (criticalPath));
   }
 }

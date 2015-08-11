@@ -29,6 +29,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
+import org.apache.tez.history.parser.datamodel.TaskInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class SlowestVertexAnalyzer implements Analyzer {
 
   private static final String[] headers = { "vertexName", "taskAttempts", "totalTime",
       "shuffleTime", "shuffleTime_Max", "LastEventReceived", "LastEventReceivedFrom",
-      "TimeTaken_ForRealWork", "75thPercentile", "95thPercentile", "98thPercentile", "Median",
+      "75thPercentile", "95thPercentile", "98thPercentile", "Median",
       "observation", "comments" };
 
   private final CSVResult csvResult = new CSVResult(headers);
@@ -50,8 +51,27 @@ public class SlowestVertexAnalyzer implements Analyzer {
   private final MetricRegistry metrics = new MetricRegistry();
   private Histogram taskAttemptRuntimeHistorgram;
 
+  private final static String MAX_VERTEX_RUNTIME = "tez.slowest-vertex-analyzer.max.vertex.runtime";
+  private final static long MAX_VERTEX_RUNTIME_DEFAULT = 100000;
+
+  private final long vertexRuntimeThreshold;
+
   public SlowestVertexAnalyzer(Configuration config) {
     this.config = config;
+    this.vertexRuntimeThreshold = Math.max(1, config.getLong(MAX_VERTEX_RUNTIME,
+        MAX_VERTEX_RUNTIME_DEFAULT));
+
+  }
+
+  private long getTaskRuntime(VertexInfo vertexInfo) {
+    TaskInfo firstTaskToStart = vertexInfo.getFirstTaskToStart();
+    TaskInfo lastTaskToFinish = vertexInfo.getLastTaskToFinish();
+
+    DagInfo dagInfo = vertexInfo.getDagInfo();
+    long totalTime = ((lastTaskToFinish == null) ?
+        dagInfo.getFinishTime() : lastTaskToFinish.getFinishTime()) -
+        ((firstTaskToStart == null) ? dagInfo.getStartTime() : firstTaskToStart.getStartTime());
+    return totalTime;
   }
 
   @Override
@@ -59,9 +79,13 @@ public class SlowestVertexAnalyzer implements Analyzer {
 
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {
       String vertexName = vertexInfo.getVertexName();
-      long totalTime = vertexInfo.getTimeTaken();
+      if (vertexInfo.getFirstTaskToStart()  == null || vertexInfo.getLastTaskToFinish() == null) {
+        continue;
+      }
 
-      long max = Long.MIN_VALUE;
+      long totalTime = getTaskRuntime(vertexInfo);
+
+      long slowestLastEventTime = Long.MIN_VALUE;
       String maxSourceName = "";
       taskAttemptRuntimeHistorgram = metrics.histogram(vertexName);
 
@@ -81,10 +105,8 @@ public class SlowestVertexAnalyzer implements Analyzer {
             continue;
           }
           //Find the slowest last event received
-          if (entry.getValue().getValue() > max) {
-            //w.r.t vertex start time.
-            max =(attemptInfo.getStartTimeInterval() +  entry.getValue().getValue()) -
-                (vertexInfo.getStartTimeInterval());
+          if (entry.getValue().getValue() > slowestLastEventTime) {
+            slowestLastEventTime = entry.getValue().getValue();
             maxSourceName = entry.getKey();
           }
         }
@@ -104,9 +126,7 @@ public class SlowestVertexAnalyzer implements Analyzer {
           }
           //Find the slowest last event received
           if (entry.getValue().getValue() > shuffleMax) {
-            //w.r.t vertex start time.
-            shuffleMax =(attemptInfo.getStartTimeInterval() +  entry.getValue().getValue()) -
-                (vertexInfo.getStartTimeInterval());
+            shuffleMax = entry.getValue().getValue();
             shuffleMaxSource = entry.getKey();
           }
         }
@@ -120,9 +140,10 @@ public class SlowestVertexAnalyzer implements Analyzer {
       record.add(totalTime + "");
       record.add(Math.max(0, shuffleMax) + "");
       record.add(shuffleMaxSource);
-      record.add(Math.max(0, max) + "");
+      record.add(Math.max(0, slowestLastEventTime) + "");
       record.add(maxSourceName);
-      record.add(Math.max(0,(totalTime - max)) + "");
+      //Finding out real_work done at vertex level might be meaningless (as it is quite posisble
+      // that it went to starvation).
 
       StringBuilder sb = new StringBuilder();
       double percentile75 = taskAttemptRuntimeHistorgram.getSnapshot().get75thPercentile();
@@ -145,7 +166,7 @@ public class SlowestVertexAnalyzer implements Analyzer {
 
       if (totalTime > 0 && vertexInfo.getTaskAttempts().size() > 0) {
         if ((shuffleMax * 1.0f / totalTime) > 0.5) {
-          if ((max * 1.0f / totalTime) > 0.5) {
+          if ((slowestLastEventTime * 1.0f / totalTime) > 0.5) {
             comments = "This vertex is slow due to its dependency on parent. Got a lot delayed last"
                 + " event received";
           } else {
@@ -153,8 +174,9 @@ public class SlowestVertexAnalyzer implements Analyzer {
                 "Spending too much time on shuffle. Check shuffle bytes from previous vertex";
           }
         } else {
-          if (totalTime > 10000) { //greater than 10 seconds. //TODO: Configure it later.
-            comments = "Concentrate on this vertex (totalTime > 10 seconds)";
+          if (totalTime > vertexRuntimeThreshold) { //greater than X seconds.
+            comments = "Concentrate on this vertex (totalTime > " + vertexRuntimeThreshold
+                + " seconds)";
           }
         }
       }

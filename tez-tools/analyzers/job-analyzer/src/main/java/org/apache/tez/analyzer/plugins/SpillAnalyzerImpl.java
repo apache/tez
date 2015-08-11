@@ -49,12 +49,21 @@ public class SpillAnalyzerImpl implements Analyzer {
 
   private final CSVResult csvResult;
 
-  private static long OUTPUT_BYTES_THRESHOLD = 1 * 1024 * 1024 * 1024l;
+  /**
+   * Minimum output bytes that should be chunrned out by a task
+   */
+  private static final String OUTPUT_BYTES_THRESHOLD = "tez.spill-analyzer.min.output.bytes"
+      + ".threshold";
+  private static long OUTPUT_BYTES_THRESHOLD_DEFAULT = 1 * 1024 * 1024 * 1024l;
+
+  private final long minOutputBytesPerTask;
 
   private final Configuration config;
 
   public SpillAnalyzerImpl(Configuration config) {
     this.config = config;
+    minOutputBytesPerTask = Math.max(0, config.getLong(OUTPUT_BYTES_THRESHOLD,
+        OUTPUT_BYTES_THRESHOLD_DEFAULT));
     this.csvResult = new CSVResult(headers);
   }
 
@@ -83,7 +92,7 @@ public class SpillAnalyzerImpl implements Analyzer {
           long outputRecords = outputRecordsMap.get(source).getValue();
           long spilledRecords = spilledRecordsMap.get(source).getValue();
 
-          if (spillCount > 1 && outBytes > OUTPUT_BYTES_THRESHOLD) {
+          if (spillCount > 1 && outBytes > minOutputBytesPerTask) {
             List<String> recorList = Lists.newLinkedList();
             recorList.add(vertexName);
             recorList.add(attemptInfo.getTaskAttemptId());
@@ -95,7 +104,7 @@ public class SpillAnalyzerImpl implements Analyzer {
             recorList.add(outputRecords + "");
             recorList.add(spilledRecords + "");
             recorList.add("Consider increasing " + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB
-                + ", try increasing container size.");
+                + ". Try increasing container size.");
 
             csvResult.addRecord(recorList.toArray(new String[recorList.size()]));
           }
