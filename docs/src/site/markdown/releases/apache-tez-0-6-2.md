@@ -15,16 +15,15 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez Releases</title></head>
+<head><title>Apache Tez 0.6.2</title></head>
 
-Releases
-------------
--   [Apache Tez 0.7.0](./apache-tez-0-7-0.html) (May 18, 2015)
--   [Apache Tez 0.6.1](./apache-tez-0-6-2.html) (Aug 07, 2015)
--   [Apache Tez 0.6.1](./apache-tez-0-6-1.html) (May 18, 2015)
--   [Apache Tez 0.6.0](./apache-tez-0-6-0.html) (Jan 23, 2015)
--   [Apache Tez 0.5.4](./apache-tez-0-5-4.html) (Jun 26, 2015)
--   [Apache Tez 0.5.3](./apache-tez-0-5-3.html) (Dec 10, 2014)
--   [Apache Tez 0.5.2](./apache-tez-0-5-2.html) (Nov 07, 2014)
--   [Apache Tez 0.5.1](./apache-tez-0-5-1.html) (Oct 08, 2014)
--   [Apache Tez 0.5.0](./apache-tez-0-5-0.html) (Sep 04, 2014)
+Apache Tez 0.6.2
+----------------
+
+- [Release Artifacts](http://www.apache.org/dyn/closer.cgi/tez/0.6.2/)
+- [Release Notes](0.6.2/release-notes.txt)
+- Documentation
+    - [API Javadocs](0.6.2/tez-api-javadocs/index.html) : Documentation for the Tez APIs
+    - [Runtime Library Javadocs](0.6.2/tez-runtime-library-javadocs/index.html) : Documentation for built-in implementations of useful Inputs, Outputs, Processors etc. written based on the Tez APIs
+    - [Tez Mapreduce Javadocs](0.6.2/tez-mapreduce-javadocs/index.html) : Documentation for built-in implementations of Mapreduce compatible Inputs, Outputs, Processors etc. written based on the Tez APIs
+
