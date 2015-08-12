@@ -47,5 +47,6 @@ ALL CHANGES:
   TEZ-2675. Add javadocs for new pluggable components, fix problems reported by jenkins
   TEZ-2678. Fix comments from reviews - part 1.
   TEZ-2707. Fix comments from reviews - part 2.
+  TEZ-2713. Add tests for node handling when there's multiple schedulers.
 
 INCOMPATIBLE CHANGES:
