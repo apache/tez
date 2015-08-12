@@ -116,6 +116,14 @@ public class AMNodeTracker extends AbstractService implements
     return perSourceNodeTrackers.get(schedulerId).get(nodeId);
   }
 
+  /**
+   * Retrieve the number of nodes from this source on which containers may be running
+   *
+   * This number may differ from the total number of nodes available from the source
+   *
+   * @param schedulerId the schedulerId for which the node count is required
+   * @return the number of nodes from the scheduler on which containers have been allocated
+   */
   public int getNumNodes(int schedulerId) {
     return perSourceNodeTrackers.get(schedulerId).getNumNodes();
   }
