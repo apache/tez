@@ -52,7 +52,13 @@ public class TestHttpConnection {
   private static int connTimeout = 5000;
   private static int readTimeout = 5000;
 
-  private static final String NOT_HOSTED_URL = "http://10.255.255.255:10221";
+  /**
+   * Ref: https://en.wikipedia.org/wiki/Reserved_IP_addresses
+   * Using 240.0.0.1 as the intention is to connect to unhosted ip and interrupt in between.
+   * With 10.255.255.255, it is possible to get permission denied exception in some
+   * networks (ref: http://linux.die.net/man/2/connect).  192.0.2.x can be considered as well.
+   */
+  private static final String NOT_HOSTED_URL = "http://240.0.0.1:10221";
 
   private static ExecutorService executorService;
   private static URL url;
