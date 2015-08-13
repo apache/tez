@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2540. Create both tez-dist minimal and minimal.tar.gz formats as part of build
   TEZ-2630. TezChild receives IP address instead of FQDN.
   TEZ-2211. Tez UI: Allow users to configure timezone
   TEZ-2623. Fix module dependencies related to hadoop-auth.
