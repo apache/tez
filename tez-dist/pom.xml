@@ -122,7 +122,8 @@
                 <descriptor>src/main/assembly/tez-dist-minimal.xml</descriptor>
               </descriptors>
               <formats>
-                <format>${package.format}</format>
+                <format>dir</format>
+                <format>tar.gz</format>
               </formats>
             </configuration>
             <phase>prepare-package</phase>
