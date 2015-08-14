@@ -117,7 +117,7 @@ public class TestTaskSchedulerEventHandler {
     }
 
     @Override
-    protected void instantiateScheduelrs(String host, int port, String trackingUrl,
+    protected void instantiateSchedulers(String host, int port, String trackingUrl,
                                          AppContext appContext) {
       taskSchedulers[0] = mockTaskScheduler;
       taskSchedulerServiceWrappers[0] = new ServicePluginLifecycleAbstractService<>(taskSchedulers[0]);

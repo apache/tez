@@ -443,7 +443,8 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   }
 
   @VisibleForTesting
-  protected void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
+  protected void instantiateSchedulers(String host, int port, String trackingUrl,
+                                       AppContext appContext) {
     // Iterate over the list and create all the taskSchedulers
     int j = 0;
     for (int i = 0; i < taskSchedulerDescriptors.length; i++) {
@@ -472,7 +473,7 @@ public class TaskSchedulerEventHandler extends AbstractService implements
     // always try to connect to AM and proxy the response. hence it wont work if the webUIService
     // is not enabled.
     String trackingUrl = (webUI != null) ? webUI.getTrackingURL() : "";
-    instantiateScheduelrs(serviceAddr.getHostName(), serviceAddr.getPort(), trackingUrl, appContext);
+    instantiateSchedulers(serviceAddr.getHostName(), serviceAddr.getPort(), trackingUrl, appContext);
 
     for (int i = 0 ; i < taskSchedulers.length ; i++) {
       taskSchedulerServiceWrappers[i].init(getConfig());

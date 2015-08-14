@@ -147,7 +147,8 @@ class TestTaskSchedulerHelpers {
     }
 
     @Override
-    public void instantiateScheduelrs(String host, int port, String trackingUrl, AppContext appContext) {
+    public void instantiateSchedulers(String host, int port, String trackingUrl,
+                                      AppContext appContext) {
       TaskSchedulerContext taskSchedulerContext =
           new TaskSchedulerContextImpl(this, appContext, 0, trackingUrl, 1000, host, port,
               defaultPayload);
@@ -166,7 +167,7 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public void serviceStart() {
-      instantiateScheduelrs("host", 0, "", appContext);
+      instantiateSchedulers("host", 0, "", appContext);
       // Init the service so that reuse configuration is picked up.
       ((AbstractService)taskSchedulerServiceWrappers[0]).init(getConfig());
       ((AbstractService)taskSchedulerServiceWrappers[0]).start();
