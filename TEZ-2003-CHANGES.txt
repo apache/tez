@@ -48,5 +48,6 @@ ALL CHANGES:
   TEZ-2678. Fix comments from reviews - part 1.
   TEZ-2707. Fix comments from reviews - part 2.
   TEZ-2713. Add tests for node handling when there's multiple schedulers.
+  TEZ-2721. rebase 08/14
 
 INCOMPATIBLE CHANGES:

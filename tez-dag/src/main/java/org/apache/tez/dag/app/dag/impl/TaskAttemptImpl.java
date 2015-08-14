@@ -175,6 +175,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   
   private TezTaskAttemptID creationCausalTA;
   private long creationTime;
+  private long scheduledTime;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -439,7 +440,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.vertex = this.task.getVertex();
     this.creationCausalTA = schedulingCausalTA;
     this.creationTime = clock.getTime();
-    this.schedulingCausalTA = schedulingCausalTA;
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
