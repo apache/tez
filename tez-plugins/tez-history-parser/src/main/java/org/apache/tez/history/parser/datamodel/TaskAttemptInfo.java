@@ -43,14 +43,16 @@ public class TaskAttemptInfo extends BaseInfo {
   private final long endTime;
   private final String diagnostics;
 
-  private final long scheduledTime;
+  private final long creationTime;
+  private final long allocationTime;
   private final String containerId;
   private final String nodeId;
   private final String status;
   private final String logUrl;
-  private final String schedulingCausalTA;
+  private final String creationCausalTA;
   private final long lastDataEventTime;
   private final String lastDataEventSourceTA;
+  private final String terminationCause;
 
   private TaskInfo taskInfo;
 
@@ -70,10 +72,10 @@ public class TaskAttemptInfo extends BaseInfo {
     startTime = otherInfoNode.optLong(Constants.START_TIME);
     endTime = otherInfoNode.optLong(Constants.FINISH_TIME);
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
-    scheduledTime = otherInfoNode.optLong(Constants.SCHEDULED_TIME);
-    schedulingCausalTA = StringInterner.weakIntern(
-        otherInfoNode.optString(Constants.SCHEDULING_CAUSAL_ATTEMPT));
-
+    creationTime = otherInfoNode.optLong(Constants.CREATION_TIME);
+    creationCausalTA = StringInterner.weakIntern(
+        otherInfoNode.optString(Constants.CREATION_CAUSAL_ATTEMPT));
+    allocationTime = otherInfoNode.optLong(Constants.ALLOCATION_TIME);
     containerId = StringInterner.weakIntern(otherInfoNode.optString(Constants.CONTAINER_ID));
     String id = otherInfoNode.optString(Constants.NODE_ID);
     nodeId = StringInterner.weakIntern((id != null) ? (id.split(":")[0]) : "");
@@ -84,6 +86,8 @@ public class TaskAttemptInfo extends BaseInfo {
     lastDataEventTime = otherInfoNode.optLong(ATSConstants.LAST_DATA_EVENT_TIME);
     lastDataEventSourceTA = StringInterner.weakIntern(
         otherInfoNode.optString(ATSConstants.LAST_DATA_EVENT_SOURCE_TA));
+    terminationCause = StringInterner
+        .weakIntern(otherInfoNode.optString(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
   }
 
   void setTaskInfo(TaskInfo taskInfo) {
@@ -110,8 +114,8 @@ public class TaskAttemptInfo extends BaseInfo {
     return endTime;
   }
 
-  public final long getScheduledTime() {
-    return scheduledTime;
+  public final long getCreationTime() {
+    return creationTime;
   }
   
   public final long getLastDataEventTime() {
@@ -126,18 +130,25 @@ public class TaskAttemptInfo extends BaseInfo {
     return getFinishTimeInterval() - getStartTimeInterval();
   }
 
-  public final long getScheduledTimeInterval() {
-    return scheduledTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
+  public final long getCreationTimeInterval() {
+    return creationTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
   
-  public final String getSchedulingCausalTA() {
-    return schedulingCausalTA;
+  public final String getCreationCausalTA() {
+    return creationCausalTA;
   }
 
+  public final long getAllocationTime() {
+    return allocationTime;
+  }
 
   @Override
   public final String getDiagnostics() {
     return diagnostics;
+  }
+  
+  public final String getTerminationCause() {
+    return terminationCause;
   }
 
   public static TaskAttemptInfo create(JSONObject taskInfoObject) throws JSONException {
@@ -254,7 +265,7 @@ public class TaskAttemptInfo extends BaseInfo {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
     sb.append("taskAttemptId=").append(getTaskAttemptId()).append(", ");
-    sb.append("scheduledTime=").append(getScheduledTimeInterval()).append(", ");
+    sb.append("creationTime=").append(getCreationTimeInterval()).append(", ");
     sb.append("startTime=").append(getStartTimeInterval()).append(", ");
     sb.append("finishTime=").append(getFinishTimeInterval()).append(", ");
     sb.append("timeTaken=").append(getTimeTaken()).append(", ");

@@ -86,6 +86,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.dag.event.SpeculatorEventTaskAttemptStatusUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
+import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -138,6 +139,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   // TODO Can these be replaced by the container object TEZ-1037
   private Container container;
+  private long allocationTime;
   private ContainerId containerId;
   private NodeId containerNodeId;
   private String nodeHttpAddress;
@@ -170,8 +172,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final ContainerContext containerContext;
   private final boolean leafVertex;
   
-  private TezTaskAttemptID schedulingCausalTA;
-  private long scheduledTime;
+  private TezTaskAttemptID creationCausalTA;
+  private long creationTime;
 
   protected static final FailedTransitionHelper FAILED_HELPER =
       new FailedTransitionHelper();
@@ -411,8 +413,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.appContext = appContext;
     this.task = task;
     this.vertex = this.task.getVertex();
-    this.schedulingCausalTA = schedulingCausalTA;
-    this.scheduledTime = clock.getTime();
+    this.creationCausalTA = schedulingCausalTA;
+    this.creationTime = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
@@ -446,7 +448,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
   
   public TezTaskAttemptID getSchedulingCausalTA() {
-    return schedulingCausalTA;
+    return creationCausalTA;
   }
 
   TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
@@ -646,6 +648,33 @@ public class TaskAttemptImpl implements TaskAttempt,
     }
   }
 
+  public long getCreationTime() {
+    readLock.lock();
+    try {
+      return creationTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+  
+  public TezTaskAttemptID getCreationCausalAttempt() {
+    readLock.lock();
+    try {
+      return creationCausalTA;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  public long getAllocationTime() {
+    readLock.lock();
+    try {
+      return allocationTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
   @Override
   public long getFinishTime() {
     readLock.lock();
@@ -739,8 +768,9 @@ public class TaskAttemptImpl implements TaskAttempt,
         {
           TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
           this.launchTime = tEvent.getStartTime();
-          this.scheduledTime = tEvent.getScheduledTime();
-          this.schedulingCausalTA = tEvent.getSchedulingCausalTA();
+          this.creationTime = tEvent.getCreationTime();
+          this.allocationTime = tEvent.getAllocationTime();
+          this.creationCausalTA = tEvent.getCreationCausalTA();
           recoveryStartEventSeen = true;
           recoveredState = TaskAttemptState.RUNNING;
           this.containerId = tEvent.getContainerId();
@@ -963,7 +993,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getVertex().getName(),
         launchTime, containerId, containerNodeId,
-        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress, scheduledTime, schedulingCausalTA);
+        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress, creationTime, creationCausalTA, 
+        allocationTime);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), startEvt));
   }
@@ -1114,9 +1145,10 @@ public class TaskAttemptImpl implements TaskAttempt,
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent origEvent) {
       TaskAttemptEventStartedRemotely event = (TaskAttemptEventStartedRemotely) origEvent;
 
-      Container container = ta.appContext.getAllContainers()
-          .get(event.getContainerId()).getContainer();
+      AMContainer amContainer = ta.appContext.getAllContainers().get(event.getContainerId()); 
+      Container container = amContainer.getContainer();
 
+      ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
       ta.container = container;
       ta.containerId = event.getContainerId();
       ta.containerNodeId = container.getNodeId();

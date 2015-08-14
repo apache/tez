@@ -480,7 +480,7 @@ public class TestHistoryEventsProtoConversion {
             ApplicationId.newInstance(0, 1), 1), 1001), NodeId.newInstance(
         "host1", 19999), "inProgress", "Completed", "nodeHttpAddress", 1024,
         TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-            TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 0)
+            TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 0), 1024
         );
     TaskAttemptStartedEvent deserializedEvent = (TaskAttemptStartedEvent)
         testProtoConversion(event);
@@ -492,10 +492,12 @@ public class TestHistoryEventsProtoConversion {
         deserializedEvent.getNodeId());
     Assert.assertEquals(event.getStartTime(),
         deserializedEvent.getStartTime());
-    Assert.assertEquals(event.getScheduledTime(),
-        deserializedEvent.getScheduledTime());
-    Assert.assertEquals(event.getSchedulingCausalTA(),
-        deserializedEvent.getSchedulingCausalTA());
+    Assert.assertEquals(event.getCreationTime(),
+        deserializedEvent.getCreationTime());
+    Assert.assertEquals(event.getAllocationTime(),
+        deserializedEvent.getAllocationTime());
+    Assert.assertEquals(event.getCreationCausalTA(),
+        deserializedEvent.getCreationCausalTA());
     logEvents(event, deserializedEvent);
   }
 

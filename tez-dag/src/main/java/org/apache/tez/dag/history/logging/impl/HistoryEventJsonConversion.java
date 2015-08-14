@@ -577,9 +577,10 @@ public class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
     otherInfo.put(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
-    otherInfo.put(ATSConstants.SCHEDULED_TIME, event.getScheduledTime());
-    if (event.getSchedulingCausalTA() != null) {
-      otherInfo.put(ATSConstants.SCHEDULING_CAUSAL_ATTEMPT, event.getSchedulingCausalTA().toString());
+    otherInfo.put(ATSConstants.CREATION_TIME, event.getCreationTime());
+    otherInfo.put(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
+    if (event.getCreationCausalTA() != null) {
+      otherInfo.put(ATSConstants.CREATION_CAUSAL_ATTEMPT, event.getCreationCausalTA().toString());
     }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 

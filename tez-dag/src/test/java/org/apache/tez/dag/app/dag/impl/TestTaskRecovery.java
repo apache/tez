@@ -215,7 +215,7 @@ public class TestTaskRecovery {
     long taStartTime = taskStartTime + 100L;
     TaskState recoveredState =
         task.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
-            taStartTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+            taStartTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null, 0));
     assertEquals(TaskState.RUNNING, recoveredState);
     assertEquals(0, task.getFinishedAttemptsCount());
     assertEquals(taskScheduledTime, task.scheduledTime);
@@ -721,7 +721,7 @@ public class TestTaskRecovery {
     TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
     TaskState recoveredState =
         task.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
-            taStartTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+            taStartTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null, 0));
     assertEquals(TaskState.RUNNING, recoveredState);
     assertEquals(TaskAttemptStateInternal.NEW,
         ((TaskAttemptImpl) task.getAttempt(taId)).getInternalState());
@@ -774,7 +774,7 @@ public class TestTaskRecovery {
     for (int i = 0; i < maxFailedAttempts; ++i) {
       TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
       task.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName, 0L,
-          mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+          mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null, 0));
       task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName, 0,
           0, TaskAttemptState.KILLED, null, "", null, 0, null));
     }
@@ -804,7 +804,7 @@ public class TestTaskRecovery {
     for (int i = 0; i < maxFailedAttempts; ++i) {
       TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
       task.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName, 0L,
-          mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+          mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null, 0));
       task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName, 0,
           0, TaskAttemptState.FAILED, null, "", null, 0, null));
     }
@@ -834,7 +834,7 @@ public class TestTaskRecovery {
     for (int i = 0; i < maxFailedAttempts - 1; ++i) {
       TezTaskAttemptID taId = getNewTaskAttemptID(task.getTaskId());
       task.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName, 0L,
-          mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+          mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null, 0));
       task.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName, 0,
           0, TaskAttemptState.FAILED, null, "", null, 0, null));
     }
@@ -844,7 +844,7 @@ public class TestTaskRecovery {
     TezTaskAttemptID newTaskAttemptId = getNewTaskAttemptID(task.getTaskId());
     TaskState recoveredState =
         task.restoreFromEvent(new TaskAttemptStartedEvent(newTaskAttemptId,
-            vertexName, 0, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+            vertexName, 0, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null, 0));
 
     assertEquals(TaskState.RUNNING, recoveredState);
     assertEquals(TaskAttemptStateInternal.NEW,

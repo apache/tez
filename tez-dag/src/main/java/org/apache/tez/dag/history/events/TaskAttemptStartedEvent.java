@@ -40,14 +40,15 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   private ContainerId containerId;
   private NodeId nodeId;
   private String nodeHttpAddress;
-  private TezTaskAttemptID schedulingCausalTA;
-  private long scheduledTime;
+  private TezTaskAttemptID creationCausalTA;
+  private long creationTime;
+  private long allocationTime;
 
   public TaskAttemptStartedEvent(TezTaskAttemptID taId,
       String vertexName, long launchTime,
       ContainerId containerId, NodeId nodeId,
       String inProgressLogsUrl, String completedLogsUrl,
-      String nodeHttpAddress, long scheduledTime, TezTaskAttemptID schedulingCausalTA) {
+      String nodeHttpAddress, long creationTime, TezTaskAttemptID creationCausalTA, long allocationTime) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.launchTime = launchTime;
@@ -56,8 +57,9 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     this.inProgressLogsUrl = inProgressLogsUrl;
     this.completedLogsUrl = completedLogsUrl;
     this.nodeHttpAddress = nodeHttpAddress;
-    this.scheduledTime = scheduledTime;
-    this.schedulingCausalTA = schedulingCausalTA;
+    this.creationTime = creationTime;
+    this.creationCausalTA = creationCausalTA;
+    this.allocationTime = allocationTime;
   }
 
   public TaskAttemptStartedEvent() {
@@ -84,9 +86,10 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
         .setStartTime(launchTime)
         .setContainerId(containerId.toString())
         .setNodeId(nodeId.toString())
-        .setScheduledTime(scheduledTime);
-    if (schedulingCausalTA != null) {
-      builder.setSchedulingCausalTA(schedulingCausalTA.toString());
+        .setCreationTime(creationTime)
+        .setAllocationTime(allocationTime);
+    if (creationCausalTA != null) {
+      builder.setCreationCausalTA(creationCausalTA.toString());
     }
     return builder.build();
   }
@@ -96,9 +99,10 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     this.launchTime = proto.getStartTime();
     this.containerId = ConverterUtils.toContainerId(proto.getContainerId());
     this.nodeId = ConverterUtils.toNodeId(proto.getNodeId());
-    this.scheduledTime = proto.getScheduledTime();
-    if (proto.hasSchedulingCausalTA()) {
-      this.schedulingCausalTA = TezTaskAttemptID.fromString(proto.getSchedulingCausalTA());
+    this.creationTime = proto.getCreationTime();
+    this.allocationTime = proto.getAllocationTime();
+    if (proto.hasCreationCausalTA()) {
+      this.creationCausalTA = TezTaskAttemptID.fromString(proto.getCreationCausalTA());
     }
   }
 
@@ -120,7 +124,8 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   public String toString() {
     return "vertexName=" + vertexName
         + ", taskAttemptId=" + taskAttemptId
-        + ", scheduledTime=" + scheduledTime
+        + ", creationTime=" + creationTime
+        + ", allocationTime=" + allocationTime
         + ", startTime=" + launchTime
         + ", containerId=" + containerId
         + ", nodeId=" + nodeId
@@ -136,12 +141,16 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     return launchTime;
   }
   
-  public long getScheduledTime() {
-    return scheduledTime;
+  public long getCreationTime() {
+    return creationTime;
   }
   
-  public TezTaskAttemptID getSchedulingCausalTA() {
-    return schedulingCausalTA;
+  public long getAllocationTime() {
+    return allocationTime;
+  }
+  
+  public TezTaskAttemptID getCreationCausalTA() {
+    return creationCausalTA;
   }
 
   public ContainerId getContainerId() {

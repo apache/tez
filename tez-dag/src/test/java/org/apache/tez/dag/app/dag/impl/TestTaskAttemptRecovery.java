@@ -19,7 +19,6 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -71,7 +70,9 @@ public class TestTaskAttemptRecovery {
 
   private TaskAttemptImpl ta;
   private EventHandler mockEventHandler;
-  private long startTime = System.currentTimeMillis();
+  private long creationTime = System.currentTimeMillis();
+  private long allocationTime = creationTime + 5000;
+  private long startTime = allocationTime + 5000;
   private long finishTime = startTime + 5000;
 
   private TezTaskAttemptID taId;
@@ -153,9 +154,14 @@ public class TestTaskAttemptRecovery {
   }
 
   private void restoreFromTAStartEvent() {
+    TezTaskAttemptID causalId = TezTaskAttemptID.getInstance(taId.getTaskID(), taId.getId()+1);
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
-            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", 0, null));
+            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", creationTime, causalId, 
+            allocationTime));
+    assertEquals(causalId, ta.getCreationCausalAttempt());
+    assertEquals(creationTime, ta.getCreationTime());
+    assertEquals(allocationTime, ta.getAllocationTime());
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(TaskAttemptState.RUNNING, recoveredState);
   }

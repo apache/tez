@@ -8,14 +8,15 @@ INCOMPATIBLE CHANGES
   TEZ-2048. Remove VertexManagerPluginContext.getTaskContainer()
   TEZ-2565. Consider scanning unfinished tasks in VertexImpl::constructStatistics to reduce merge overhead.
   TEZ-2468. Change the minimum Java version to Java 7.
+
+ALL CHANGES:
   TEZ-2646. Add scheduling casual dependency for attempts
   TEZ-2647. Add input causality dependency for attempts
   TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
   instead of tasks
   TEZ-2650. Timing details on Vertex state changes
   TEZ-2699. Internalize strings in ATF parser
-
-ALL CHANGES:
+  TEZ-2701. Add time at which container was allocated to attempt
   TEZ-2683. TestHttpConnection::testAsyncHttpConnectionInterrupt fails in certain environments.
   TEZ-2692. bugfixes & enhancements related to job parser and analyzer.
   TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.

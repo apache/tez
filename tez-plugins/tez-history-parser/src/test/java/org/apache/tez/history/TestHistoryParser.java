@@ -77,6 +77,7 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -297,8 +298,9 @@ public class TestHistoryParser {
           }
         }
         for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
-          assertTrue(attemptInfo.getStartTimeInterval() > 0);
-          assertTrue(attemptInfo.getScheduledTimeInterval() > 0);
+          assertTrue(attemptInfo.getCreationTime() > 0);
+          assertTrue(attemptInfo.getAllocationTime() > 0);
+          assertTrue(attemptInfo.getStartTime() > 0);
         }
       }
       assertTrue(vertexInfo.getLastTaskToFinish() != null);
@@ -389,13 +391,14 @@ public class TestHistoryParser {
         "TaskCounter_Tokenizer_OUTPUT_Summation", 20); //Same as above
 
     for (TaskInfo taskInfo : summationVertex.getTasks()) {
-      String lastAttemptId = null;
+      TaskAttemptInfo lastAttempt = null;
       for (TaskAttemptInfo attemptInfo : taskInfo.getTaskAttempts()) {
-        if (lastAttemptId != null) {
+        if (lastAttempt != null) {
           // failed attempt should be causal TA of next attempt
-          assertTrue(lastAttemptId.equals(attemptInfo.getSchedulingCausalTA()));
+          assertTrue(lastAttempt.getTaskAttemptId().equals(attemptInfo.getCreationCausalTA()));
+          assertTrue(lastAttempt.getTerminationCause() != null);
         }
-        lastAttemptId = attemptInfo.getTaskAttemptId();
+        lastAttempt = attemptInfo;
       }
     }
 
@@ -769,6 +772,8 @@ public class TestHistoryParser {
         .equals(TaskAttemptState.SUCCEEDED)) {
       assertTrue(attemptInfo.getStartTimeInterval() > 0);
       assertTrue(attemptInfo.getFinishTimeInterval() > 0);
+      assertTrue(attemptInfo.getCreationTime() > 0);
+      assertTrue(attemptInfo.getAllocationTime() > 0);
       assertTrue(attemptInfo.getStartTime() > 0);
       assertTrue(attemptInfo.getFinishTime() > 0);
       assertTrue(attemptInfo.getFinishTime() > attemptInfo.getStartTime());

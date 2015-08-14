@@ -95,6 +95,7 @@ public class AMContainerImpl implements AMContainer {
   private boolean nodeFailed = false;
 
   private TezTaskAttemptID currentAttempt;
+  private long currentAttemptAllocationTime;
   private List<TezTaskAttemptID> failedAssignments;
 
   private boolean inError = false;
@@ -362,6 +363,16 @@ public class AMContainerImpl implements AMContainer {
     }
   }
 
+  @Override
+  public long getCurrentTaskAttemptAllocationTime() {
+    readLock.lock();
+    try {
+      return this.currentAttemptAllocationTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
   public boolean isInErrorState() {
     return inError;
   }
@@ -532,6 +543,7 @@ public class AMContainerImpl implements AMContainer {
       // Register the additional resources back for this container.
       container.containerLocalResources.putAll(container.additionalLocalResources);
       container.currentAttempt = event.getTaskAttemptId();
+      container.currentAttemptAllocationTime = container.appContext.getClock().getTime();
       if (LOG.isDebugEnabled()) {
         LOG.debug("AssignTA: attempt: " + event.getRemoteTaskSpec());
         LOG.debug("AdditionalLocalResources: " + container.additionalLocalResources);

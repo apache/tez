@@ -57,6 +57,8 @@ public class ATSConstants {
   public static final String VERTEX_NAME = "vertexName";
   public static final String VERTEX_NAME_ID_MAPPING = "vertexNameIdMapping";
   public static final String SCHEDULED_TIME = "scheduledTime";
+  public static final String CREATION_TIME = "creationTime";
+  public static final String ALLOCATION_TIME = "allocationTime";
   public static final String INIT_REQUESTED_TIME = "initRequestedTime";
   public static final String INIT_TIME = "initTime";
   public static final String START_REQUESTED_TIME = "startRequestedTime";
@@ -84,7 +86,7 @@ public class ATSConstants {
   public static final String LAST_DATA_EVENT_TIME = "lastDataEventTime";
   public static final String LAST_DATA_EVENT_SOURCE_TA = "lastDataEventSourceTA";
   public static final String UPDATED_EDGE_MANAGERS = "updatedEdgeManagers";
-  public static final String SCHEDULING_CAUSAL_ATTEMPT = "schedulingCausalAttempt";
+  public static final String CREATION_CAUSAL_ATTEMPT = "creationCausalAttempt";
 
   /* Counters-related keys */
   public static final String COUNTER_GROUPS = "counterGroups";
