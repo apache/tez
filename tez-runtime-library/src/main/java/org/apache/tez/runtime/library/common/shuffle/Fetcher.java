@@ -208,8 +208,6 @@ public class Fetcher implements Callable<FetchResult> {
       if (!multiplex) {
         throw new IOException("server didn't return all expected map outputs: "
             + remaining.size() + " left.");
-      } else {
-        LOG.info("Shared fetch failed to return " + remaining.size() + " inputs on this try");
       }
     }
 
@@ -355,10 +353,8 @@ public class Fetcher implements Callable<FetchResult> {
       lock = getLock();
       if (lock == null) {
         // re-queue until we get a lock
-        LOG.info("Requeuing " + host + ":" + port
-            + " downloads because we didn't get a lock");
         return new HostFetchResult(new FetchResult(host, port, partition,
-            remaining), null, false);
+            remaining, "Requeuing as we didn't get a lock"), null, false);
       } else {
         if (findInputs() == srcAttempts.size()) {
           // double checked after lock
