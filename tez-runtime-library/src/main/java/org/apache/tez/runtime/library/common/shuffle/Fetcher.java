@@ -229,8 +229,6 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       if (!multiplex) {
         throw new IOException("server didn't return all expected map outputs: "
             + srcAttemptsRemaining.size() + " left.");
-      } else {
-        LOG.info("Shared fetch failed to return " + srcAttemptsRemaining.size() + " inputs on this try");
       }
     }
 
@@ -374,10 +372,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       lock = getLock();
       if (lock == null) {
         // re-queue until we get a lock
-        LOG.info("Requeuing " + host + ":" + port
-            + " downloads because we didn't get a lock");
         return new HostFetchResult(new FetchResult(host, port, partition,
-            srcAttemptsRemaining.values()), null, false);
+            srcAttemptsRemaining.values(), "Requeuing as we didn't get a lock"), null, false);
       } else {
         if (findInputs() == srcAttemptsRemaining.size()) {
           // double checked after lock

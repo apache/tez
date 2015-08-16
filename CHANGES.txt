@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2719. Consider reducing logs in unordered fetcher with shared-fetch option
   TEZ-2646. Add scheduling casual dependency for attempts
   TEZ-2647. Add input causality dependency for attempts
   TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
