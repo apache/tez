@@ -6,6 +6,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2719. Consider reducing logs in unordered fetcher with shared-fetch option
   TEZ-2630. TezChild receives IP address instead of FQDN.
 
 Release 0.6.2: Unreleased
