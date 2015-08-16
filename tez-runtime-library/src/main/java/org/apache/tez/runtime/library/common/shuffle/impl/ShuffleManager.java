@@ -340,7 +340,6 @@ public class ShuffleManager implements FetcherCallback {
                 LOG.debug("Processing pending host: " + inputHost.toDetailedString());
               }
               if (inputHost.getNumPendingInputs() > 0 && !isShutdown.get()) {
-                LOG.info("Scheduling fetch for inputHost: " + inputHost.getIdentifier());
                 Fetcher fetcher = constructFetcherForHost(inputHost, conf);
                 runningFetchers.add(fetcher);
                 if (isShutdown.get()) {
@@ -452,6 +451,7 @@ public class ShuffleManager implements FetcherCallback {
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
         inputHost.getSrcPhysicalIndex(), pendingInputsForHost);
     LOG.info("Created Fetcher for host: " + inputHost.getHost()
+        + ", info: " + inputHost.getAdditionalInfo()
         + ", with inputs: " + pendingInputsForHost);
     return fetcherBuilder.build();
   }
@@ -948,6 +948,7 @@ public class ShuffleManager implements FetcherCallback {
           for (InputAttemptIdentifier input : pendingInputs) {
             inputHost.addKnownInput(input);
           }
+          inputHost.setAdditionalInfo(result.getAdditionalInfo());
           pendingHosts.add(inputHost);
         }
         doBookKeepingForFetcherComplete();
