@@ -208,7 +208,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     if (containerInfo != null) {
       synchronized(containerInfo) {
         if (containerInfo.taskSpec != null && containerInfo.taskSpec.getTaskAttemptID() != null) {
-          attemptToContainerMap.remove(containerInfo.taskSpec.getTaskAttemptID());
+          attemptToContainerMap.remove(new TaskAttempt(containerInfo.taskSpec.getTaskAttemptID()));
         }
       }
     }
@@ -359,11 +359,12 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         }
       }
 
-      TaskHeartbeatResponse tResponse = null;
 
 
+      TezHeartbeatResponse response = new TezHeartbeatResponse();
       TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
       if (taskAttemptID != null) {
+        TaskHeartbeatResponse tResponse;
         synchronized (containerInfo) {
           ContainerId containerIdFromMap = attemptToContainerMap.get(new TaskAttempt(taskAttemptID));
           if (containerIdFromMap == null || !containerIdFromMap.equals(containerId)) {
@@ -382,12 +383,11 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
             request.getCurrentTaskAttemptID(), request.getEvents(), request.getStartIndex(),
             request.getPreRoutedStartIndex(), request.getMaxEvents());
         tResponse = getContext().heartbeat(tRequest);
+        response.setEvents(tResponse.getEvents());
+        response.setNextFromEventId(tResponse.getNextFromEventId());
+        response.setNextPreRoutedEventId(tResponse.getNextPreRoutedEventId());
       }
-      TezHeartbeatResponse response = new TezHeartbeatResponse();
       response.setLastRequestId(requestId);
-      response.setEvents(tResponse.getEvents());
-      response.setNextFromEventId(tResponse.getNextFromEventId());
-      response.setNextPreRoutedEventId(tResponse.getNextPreRoutedEventId());
       containerInfo.lastRequestId = requestId;
       containerInfo.lastResponse = response;
       return response;

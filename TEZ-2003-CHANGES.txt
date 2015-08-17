@@ -50,5 +50,6 @@ ALL CHANGES:
   TEZ-2713. Add tests for node handling when there's multiple schedulers.
   TEZ-2721. rebase 08/14
   TEZ-2714. Fix comments from review - part 3.
+  TEZ-2727. Fix findbugs warnings
 
 INCOMPATIBLE CHANGES:

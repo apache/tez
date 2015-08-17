@@ -97,4 +97,22 @@
     <Bug pattern="EI_EXPOSE_REP"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.serviceplugins.api.ServicePluginsDescriptor" />
+    <Method name="getTaskSchedulerDescriptors" />
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.serviceplugins.api.ServicePluginsDescriptor" />
+    <Method name="getContainerLauncherDescriptors" />
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.serviceplugins.api.ServicePluginsDescriptor" />
+    <Method name="getTaskCommunicatorDescriptors" />
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
+
 </FindBugsFilter>

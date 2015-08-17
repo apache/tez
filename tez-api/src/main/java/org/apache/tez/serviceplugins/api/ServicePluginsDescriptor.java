@@ -37,14 +37,14 @@ public class ServicePluginsDescriptor {
   private TaskCommunicatorDescriptor[] taskCommunicatorDescriptors;
 
   private ServicePluginsDescriptor(boolean enableContainers, boolean enableUber,
-                                   TaskSchedulerDescriptor[] taskSchedulerDescriptor,
+                                   TaskSchedulerDescriptor[] taskSchedulerDescriptors,
                                    ContainerLauncherDescriptor[] containerLauncherDescriptors,
                                    TaskCommunicatorDescriptor[] taskCommunicatorDescriptors) {
     this.enableContainers = enableContainers;
     this.enableUber = enableUber;
     Preconditions.checkArgument(taskSchedulerDescriptors == null || taskSchedulerDescriptors.length > 0,
         "TaskSchedulerDescriptors should either not be specified or at least 1 should be provided");
-    this.taskSchedulerDescriptors = taskSchedulerDescriptor;
+    this.taskSchedulerDescriptors = taskSchedulerDescriptors;
     Preconditions.checkArgument(containerLauncherDescriptors == null || containerLauncherDescriptors.length > 0,
         "ContainerLauncherDescriptor should either not be specified or at least 1 should be provided");
     this.containerLauncherDescriptors = containerLauncherDescriptors;

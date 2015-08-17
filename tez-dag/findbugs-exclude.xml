@@ -18,6 +18,7 @@
     <Or>
       <Field name="blacklistDisablePercent" />
       <Field name="maxTaskFailuresPerNode" />
+      <Field name="nodeBlacklistingEnabled" />
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC" />
   </Match>
@@ -81,12 +82,23 @@
   </Match>
 
   <Match>
+    <Class name="org.apache.tez.dag.app.rm.node.PerSourceNodeTracker" />
+    <Bug pattern="BC_UNCONFIRMED_CAST"/>
+  </Match>
+
+  <Match>
     <Class name="~org\.apache\.tez\.dag\.app\.rm\.TaskSchedulerEventHandler"/>
     <Bug pattern="BC_UNCONFIRMED_CAST"/>
   </Match>
 
   <Match>
-    <Class name="org.apache.tez.dag.app.rm.TaskSchedulerAppCallbackWrapper"/>
+    <Class name="org.apache.tez.dag.app.launcher.ContainerLauncherRouter" />
+    <Method name="handle" params="org.apache.tez.dag.app.rm.NMCommunicatorEvent" returns="void" />
+    <Bug pattern="BC_UNCONFIRMED_CAST" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.TaskSchedulerContextImplWrapper"/>
     <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
   </Match>
 

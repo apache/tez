@@ -156,7 +156,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     Set<Vertex> sources = vertex.getInputVertices().keySet();
     return Iterables.transform(sources, new Function<Vertex, String>() {
       @Override
-      public String apply(@Nullable Vertex input) {
+      public String apply(Vertex input) {
         return input.getName();
       }
     });
