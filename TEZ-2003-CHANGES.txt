@@ -51,5 +51,6 @@ ALL CHANGES:
   TEZ-2721. rebase 08/14
   TEZ-2714. Fix comments from review - part 3.
   TEZ-2727. Fix findbugs warnings
+  TEZ-2670. Remove TaskAttempt holder used within TezTaskCommunicator.
 
 INCOMPATIBLE CHANGES:
