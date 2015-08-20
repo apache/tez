@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2719. Consider reducing logs in unordered fetcher with shared-fetch option
   TEZ-2540. Create both tez-dist minimal and minimal.tar.gz formats as part of build
   TEZ-2630. TezChild receives IP address instead of FQDN.
@@ -234,6 +235,7 @@ Release 0.6.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2311. AM can hang if kill received while recovering from previous attempt.
   TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-2560. fix tex-ui build for maven 3.3+
@@ -434,6 +436,7 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2635. Limit number of attempts being downloaded in unordered fetch.
   TEZ-2636. MRInput and MultiMRInput should work for cases when there are 0 physical inputs.
   TEZ-2600. When used with HDFS federation(viewfs) ,tez will throw a error

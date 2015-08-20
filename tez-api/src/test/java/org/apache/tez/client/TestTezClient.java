@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -46,6 +47,9 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.counters.LimitExceededException;
+import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -99,12 +103,20 @@ public class TestTezClient {
     }
   }
   
-  TezClientForTest configure() throws YarnException, IOException, ServiceException {
-    return configure(new HashMap<String, LocalResource>(), true);
+  TezClientForTest configureAndCreateTezClient() throws YarnException, IOException, ServiceException {
+    return configureAndCreateTezClient(null);
+  }
+
+  TezClientForTest configureAndCreateTezClient(TezConfiguration conf) throws YarnException, ServiceException,
+      IOException {
+    return configureAndCreateTezClient(new HashMap<String, LocalResource>(), true, conf);
   }
   
-  TezClientForTest configure(Map<String, LocalResource> lrs, boolean isSession) throws YarnException, IOException, ServiceException {
-    TezConfiguration conf = new TezConfiguration();
+  TezClientForTest configureAndCreateTezClient(Map<String, LocalResource> lrs, boolean isSession,
+                                               TezConfiguration conf) throws YarnException, IOException, ServiceException {
+    if (conf == null) {
+      conf = new TezConfiguration();
+    }
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
@@ -141,7 +153,7 @@ public class TestTezClient {
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     
-    TezClientForTest client = configure(lrs, isSession);
+    TezClientForTest client = configureAndCreateTezClient(lrs, isSession, null);
     
     ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -247,7 +259,7 @@ public class TestTezClient {
   
   @Test (timeout=5000)
   public void testPreWarm() throws Exception {
-    TezClientForTest client = configure();
+    TezClientForTest client = configureAndCreateTezClient();
     client.start();
 
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -275,7 +287,8 @@ public class TestTezClient {
   }
   
   public void testMultipleSubmissionsJob(boolean isSession) throws Exception {
-    TezClientForTest client1 = configure(new HashMap<String, LocalResource>(), isSession);
+    TezClientForTest client1 = configureAndCreateTezClient(new HashMap<String, LocalResource>(),
+        isSession, null);
     when(client1.mockYarnClient.getApplicationReport(client1.mockAppId).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
     client1.start();
@@ -295,7 +308,7 @@ public class TestTezClient {
     // the dag resource will be added to the vertex once
     client1.submitDAG(dag);
     
-    TezClientForTest client2 = configure();
+    TezClientForTest client2 = configureAndCreateTezClient();
     when(client2.mockYarnClient.getApplicationReport(client2.mockAppId).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
     client2.start();
@@ -310,7 +323,7 @@ public class TestTezClient {
   
   @Test(timeout = 5000)
   public void testWaitTillReady_Interrupt() throws Exception {
-    final TezClientForTest client = configure();
+    final TezClientForTest client = configureAndCreateTezClient();
     client.start();
 
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -330,13 +343,13 @@ public class TestTezClient {
     thread.join(250);
     thread.interrupt();
     thread.join();
-    Assert.assertThat(exceptionReference.get(),CoreMatchers. instanceOf(InterruptedException.class));
+    Assert.assertThat(exceptionReference.get(), CoreMatchers.instanceOf(InterruptedException.class));
     client.stop();
   }
   
   @Test(timeout = 5000)
   public void testWaitTillReadyAppFailed() throws Exception {
-    final TezClientForTest client = configure();
+    final TezClientForTest client = configureAndCreateTezClient();
     client.start();
     String msg = "Application Test Failed";
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -345,7 +358,7 @@ public class TestTezClient {
         msg);
     try {
       client.waitTillReady();
-      Assert.fail();
+      fail();
     } catch (SessionNotRunning e) {
       Assert.assertTrue(e.getMessage().contains(msg));
     }
@@ -354,13 +367,13 @@ public class TestTezClient {
   
   @Test(timeout = 5000)
   public void testWaitTillReadyAppFailedNoDiagnostics() throws Exception {
-    final TezClientForTest client = configure();
+    final TezClientForTest client = configureAndCreateTezClient();
     client.start();
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
         .thenReturn(YarnApplicationState.NEW).thenReturn(YarnApplicationState.FAILED);
     try {
       client.waitTillReady();
-      Assert.fail();
+      fail();
     } catch (SessionNotRunning e) {
       Assert.assertTrue(e.getMessage().contains(TezClient.NO_CLUSTER_DIAGNOSTICS_MSG));
     }
@@ -369,7 +382,7 @@ public class TestTezClient {
   
   @Test(timeout = 5000)
   public void testSubmitDAGAppFailed() throws Exception {
-    final TezClientForTest client = configure();
+    final TezClientForTest client = configureAndCreateTezClient();
     client.start();
     
     client.callRealGetSessionAMProxy = true;
@@ -385,11 +398,35 @@ public class TestTezClient {
     
     try {
       client.submitDAG(dag);
-      Assert.fail();
+      fail();
     } catch (SessionNotRunning e) {
       Assert.assertTrue(e.getMessage().contains(msg));
     }
     client.stop();
+  }
+
+  @Test(timeout = 5000)
+  public void testTezClientCounterLimits() throws YarnException, IOException, ServiceException {
+    Limits.reset();
+    int defaultCounterLimit = TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT;
+
+    int newCounterLimit = defaultCounterLimit + 500;
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX, newCounterLimit);
+
+    configureAndCreateTezClient(conf);
+
+    TezCounters counters = new TezCounters();
+    for (int i = 0 ; i < newCounterLimit ; i++) {
+      counters.findCounter("GroupName", "TestCounter" + i).setValue(i);
+    }
+
+    try {
+      counters.findCounter("GroupName", "TestCounterFail").setValue(1);
+      fail("Expecting a LimitExceedException - too many counters");
+    } catch (LimitExceededException e) {
+    }
   }
 
 }
