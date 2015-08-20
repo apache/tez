@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -149,6 +150,7 @@ public class TezClient {
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
     this.apiVersionInfo = new TezApiVersionInfo();
+    Limits.setConfiguration(tezConf);
 
     LOG.info("Tez Client Version: " + apiVersionInfo.toString());
   }
