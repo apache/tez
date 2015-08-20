@@ -228,14 +228,14 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2630. TezChild receives IP address instead of FQDN.
 
-Release 0.6.2: Unreleased
+Release 0.6.2: 2015-08-07
 
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2311. AM can hang if kill received while recovering from previous attempt.
   TEZ-2623. Fix module dependencies related to hadoop-auth.
   TEZ-2560. fix tex-ui build for maven 3.3+
