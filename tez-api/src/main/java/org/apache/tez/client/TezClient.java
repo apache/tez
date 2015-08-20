@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.tez.common.RPCUtil;
+import org.apache.tez.common.counters.Limits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -150,6 +151,7 @@ public class TezClient {
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
     this.apiVersionInfo = new TezApiVersionInfo();
+    Limits.setConfiguration(tezConf);
 
     LOG.info("Tez Client Version: " + apiVersionInfo.toString());
   }
