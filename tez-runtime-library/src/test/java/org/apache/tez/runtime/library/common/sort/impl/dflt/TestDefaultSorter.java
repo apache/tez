@@ -31,14 +31,18 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.google.protobuf.ByteString;
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -60,6 +64,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
@@ -125,11 +130,91 @@ public class TestDefaultSorter {
     }
   }
 
+
+  @Test
+  @Ignore
+  /**
+   * Disabling this, as this would need 2047 MB sort mb for testing.
+   * Set DefaultSorter.MAX_IO_SORT_MB = 20467 for running this.
+   */
+  public void testSortLimitsWithSmallRecord() throws IOException {
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, NullWritable.class.getName());
+    OutputContext context = createTezOutputContext();
+
+    doReturn(2800 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+
+    //Setting IO_SORT_MB to 2047 MB
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2047);
+    context.requestInitialMemory(
+        ExternalSorter.getInitialMemoryRequirement(conf,
+            context.getTotalMemoryAvailableToTask()), new MemoryUpdateCallbackHandler());
+
+    DefaultSorter sorter = new DefaultSorter(context, conf, 2, 2047 << 20);
+
+    //Reset key/value in conf back to Text for other test cases
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
+
+    int i = 0;
+    /**
+     * If io.sort.mb is not capped to 1800, this would end up throwing
+     * "java.lang.ArrayIndexOutOfBoundsException" after many spills.
+     * Intentionally made it as infinite loop.
+     */
+    while (true) {
+      //test for the avg record size 2 (in lower spectrum)
+      Text key = new Text(i + "");
+      sorter.write(key, NullWritable.get());
+      i = (i + 1) % 10;
+    }
+  }
+
+  @Test
+  @Ignore
+  /**
+   * Disabling this, as this would need 2047 MB io.sort.mb for testing.
+   * Provide > 2GB to JVM when running this test to avoid OOM in string generation.
+   *
+   * Set DefaultSorter.MAX_IO_SORT_MB = 2047 for running this.
+   */
+  public void testSortLimitsWithLargeRecords() throws IOException {
+    OutputContext context = createTezOutputContext();
+
+    doReturn(2800 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
+
+    //Setting IO_SORT_MB to 2047 MB
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2047);
+    context.requestInitialMemory(
+        ExternalSorter.getInitialMemoryRequirement(conf,
+            context.getTotalMemoryAvailableToTask()), new MemoryUpdateCallbackHandler());
+
+    DefaultSorter sorter = new DefaultSorter(context, conf, 2, 2047 << 20);
+
+    int i = 0;
+    /**
+     * If io.sort.mb is not capped to 1800, this would end up throwing
+     * "java.lang.ArrayIndexOutOfBoundsException" after many spills.
+     * Intentionally made it as infinite loop.
+     */
+    while (true) {
+      Text key = new Text(i + "");
+      //Generate random size between 1 MB to 100 MB.
+      int valSize = ThreadLocalRandom.current().nextInt(1 * 1024 * 1024, 100 * 1024 * 1024);
+      String val = StringInterner.weakIntern(StringUtils.repeat("v", valSize));
+      sorter.write(key, new Text(val));
+      i = (i + 1) % 10;
+    }
+  }
+
+
   @Test(timeout = 5000)
   public void testSortMBLimits() throws Exception {
 
-    assertTrue("Expected 2047", DefaultSorter.computeSortBufferSize(4096) == 2047);
-    assertTrue("Expected 2047", DefaultSorter.computeSortBufferSize(2047) == 2047);
+    assertTrue("Expected " + DefaultSorter.MAX_IO_SORT_MB,
+        DefaultSorter.computeSortBufferSize(4096) == DefaultSorter.MAX_IO_SORT_MB);
+    assertTrue("Expected " + DefaultSorter.MAX_IO_SORT_MB,
+        DefaultSorter.computeSortBufferSize(2047) == DefaultSorter.MAX_IO_SORT_MB);
     assertTrue("Expected 1024", DefaultSorter.computeSortBufferSize(1024) == 1024);
 
     try {
