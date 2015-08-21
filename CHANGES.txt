@@ -300,7 +300,6 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-2732. DefaultSorter throws ArrayIndex exceptions on 2047 Mb size sort buffers
   TEZ-2687. ATS History shutdown happens before the min-held containers are released
   TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2630. TezChild receives IP address instead of FQDN.
@@ -510,7 +509,6 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
-  TEZ-2732. DefaultSorter throws ArrayIndex exceptions on 2047 Mb size sort buffers
   TEZ-2687. ATS History shutdown happens before the min-held containers are released
   TEZ-2629. LimitExceededException in Tez client when DAG has exceeds the default max counters
   TEZ-2630. TezChild receives IP address instead of FQDN.
