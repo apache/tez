@@ -396,7 +396,11 @@ public class TaskSchedulerEventHandler extends AbstractService
   
   protected void notifyForTest() {
   }
-  
+
+  public void initiateStop() {
+    taskScheduler.initiateStop();
+  }
+
   @Override
   public void serviceStop() {
     synchronized(this) {
