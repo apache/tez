@@ -70,6 +70,8 @@ public abstract class TaskSchedulerService extends AbstractService{
 
   public abstract boolean hasUnregistered();
 
+  public abstract void initiateStop();
+
   public interface TaskSchedulerAppCallback {
     public class AppFinalStatus {
       public final FinalApplicationStatus exitStatus;

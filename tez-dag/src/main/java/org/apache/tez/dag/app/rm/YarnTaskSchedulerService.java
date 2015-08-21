@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.rm;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -133,7 +135,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   final AppContext appContext;
   private AtomicBoolean hasUnregistered = new AtomicBoolean(false);
 
-  AtomicBoolean isStopped = new AtomicBoolean(false);
+  AtomicBoolean isStopStarted = new AtomicBoolean(false);
 
   private ContainerAssigner NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
   private ContainerAssigner RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
@@ -393,7 +395,6 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // Wait for contianers to be released.
       delayedContainerManager.join(2000l);
       synchronized (this) {
-        isStopped.set(true);
         if (shouldUnregister.get()) {
           AppFinalStatus status = appClientDelegate.getFinalAppStatus();
           LOG.info("Unregistering application from RM"
@@ -426,7 +427,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   // AMRMClientAsync interface methods
   @Override
   public void onContainersCompleted(List<ContainerStatus> statuses) {
-    if (isStopped.get()) {
+    if (isStopStarted.get()) {
+      for (ContainerStatus status : statuses) {
+        LOG.info("Container " + status.getContainerId() + " is completed");
+      }
       return;
     }
     Map<Object, ContainerStatus> appContainerStatus =
@@ -483,7 +487,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   @Override
   public void onContainersAllocated(List<Container> containers) {
-    if (isStopped.get()) {
+    if (isStopStarted.get()) {
+      for (Container container : containers) {
+        LOG.info("Release container:" + container.getId() + ", because it is shutting down.");
+        releaseContainer(container.getId());
+      }
       return;
     }
     Map<CookieContainerRequest, Container> assignedContainers;
@@ -857,7 +865,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   @Override
   public void onShutdownRequest() {
-    if (isStopped.get()) {
+    if (isStopStarted.get()) {
       return;
     }
     // upcall to app must be outside locks
@@ -866,7 +874,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   @Override
   public void onNodesUpdated(List<NodeReport> updatedNodes) {
-    if (isStopped.get()) {
+    if (isStopStarted.get()) {
       return;
     }
     // ignore bad nodes for now
@@ -876,7 +884,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   @Override
   public float getProgress() {
-    if (isStopped.get()) {
+    if (isStopStarted.get()) {
       return 1;
     }
 
@@ -898,7 +906,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   @Override
   public void onError(Throwable t) {
-    if (isStopped.get()) {
+    if (isStopStarted.get()) {
+      LOG.error("Got TaskSchedulerError, " + ExceptionUtils.getStackTrace(t));
       return;
     }
     appClientDelegate.onError(t);
@@ -1062,6 +1071,34 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
     LOG.info("Ignoring dealloction of unknown container: " + containerId);
     return null;
+  }
+
+  @Override
+  public synchronized void initiateStop() {
+    LOG.info("Initiate stop to YarnTaskScheduler");
+    // release held containers
+    LOG.info("Release held containers");
+    isStopStarted.set(true);
+    // Create a new list for containerIds to iterate, otherwise it would cause ConcurrentModificationException
+    // because method releaseContainer will change heldContainers.
+    List<ContainerId> heldContainerIds = new ArrayList<ContainerId>(heldContainers.size());
+    for (ContainerId containerId : heldContainers.keySet()) {
+      heldContainerIds.add(containerId);
+    }
+    for (ContainerId containerId : heldContainerIds) {
+      releaseContainer(containerId);
+    }
+
+    // remove taskRequest from AMRMClient to avoid allocating new containers in the next heartbeat
+    LOG.info("Remove all the taskRequests");
+    // Create a new list for tasks to avoid ConcurrentModificationException
+    List<Object> tasks = new ArrayList<Object>(taskRequests.size());
+    for (Object task : taskRequests.keySet()) {
+      tasks.add(task);
+    }
+    for (Object task : tasks) {
+      removeTaskRequest(task);
+    }
   }
 
   boolean canFit(Resource arg0, Resource arg1) {
