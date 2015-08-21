@@ -188,6 +188,11 @@ public class LocalTaskSchedulerService extends TaskSchedulerService {
     return true;
   }
 
+  @Override
+  public void initiateStop() {
+
+  }
+
   static class LocalContainerFactory {
     final AppContext appContext;
     AtomicInteger nextId;
