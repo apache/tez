@@ -525,7 +525,9 @@ public class TaskSchedulerEventHandler extends AbstractService implements
   }
 
   public void initiateStop() {
-    taskScheduler.initiateStop();
+    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+      taskSchedulers[i].initiateStop();
+    }
   }
 
   @Override
