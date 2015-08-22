@@ -90,6 +90,26 @@ public class TestDefaultSorter {
     }
   }
 
+  @Test(timeout = 5000)
+  public void testSortMBLimits() throws Exception {
+
+    assertTrue("Expected 2047", DefaultSorter.computeSortBufferSize(4096) == 2047);
+    assertTrue("Expected 2047", DefaultSorter.computeSortBufferSize(2047) == 2047);
+    assertTrue("Expected 1024", DefaultSorter.computeSortBufferSize(1024) == 1024);
+
+    try {
+      DefaultSorter.computeSortBufferSize(0);
+      fail("Should have thrown error for setting buffer size to 0");
+    } catch(RuntimeException re) {
+    }
+
+    try {
+      DefaultSorter.computeSortBufferSize(-100);
+      fail("Should have thrown error for setting buffer size to negative value");
+    } catch(RuntimeException re) {
+    }
+  }
+
   private OutputContext createTezOutputContext() throws IOException {
     String[] workingDirs = { workingDir.toString() };
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
