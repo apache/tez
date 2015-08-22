@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -123,7 +124,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     final float spillper = this.conf.getFloat(
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT,
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT);
-    final int sortmb = this.availableMemoryMb;
+    final int sortmb = computeSortBufferSize((int) availableMemoryMb);
     Preconditions.checkArgument(spillper <= (float) 1.0 && spillper > (float) 0.0,
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT
             + " should be greater than 0 and less than or equal to 1");
@@ -178,6 +179,24 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           sortSpillException);
     }
   }
+
+  @VisibleForTesting
+  static int computeSortBufferSize(int availableMemoryMB) {
+
+    if (availableMemoryMB <= 0) {
+      throw new RuntimeException(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB +
+          "=" + availableMemoryMB + ". It should be > 0");
+    }
+
+    if (availableMemoryMB > 2047) {
+      LOG.warn("Scaling down " + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB +
+          "=" + availableMemoryMB + " to 2047 (max sort buffer size supported for DefaultSorter)");
+    }
+
+    //cap sort buffer to 2047 for DefaultSorter.
+    return Math.min(2047, availableMemoryMB);
+  }
+
 
   @Override
   public void write(Object key, Object value)
