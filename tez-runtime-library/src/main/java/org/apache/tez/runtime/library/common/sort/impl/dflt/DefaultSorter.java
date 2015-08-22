@@ -117,6 +117,8 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
   private long totalKeys = 0;
   private long sameKey = 0;
 
+  public static final int MAX_IO_SORT_MB = 1800;
+
   public DefaultSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
@@ -188,13 +190,15 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           "=" + availableMemoryMB + ". It should be > 0");
     }
 
-    if (availableMemoryMB > 2047) {
+    if (availableMemoryMB > MAX_IO_SORT_MB) {
       LOG.warn("Scaling down " + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB +
-          "=" + availableMemoryMB + " to 2047 (max sort buffer size supported for DefaultSorter)");
+          "=" + availableMemoryMB + " to " + MAX_IO_SORT_MB
+          + " (max sort buffer size supported forDefaultSorter)");
     }
 
-    //cap sort buffer to 2047 for DefaultSorter.
-    return Math.min(2047, availableMemoryMB);
+    // cap sort buffer to MAX_IO_SORT_MB for DefaultSorter.
+    // Not using 2047 to avoid any ArrayIndexOutofBounds in collect() phase.
+    return Math.min(MAX_IO_SORT_MB, availableMemoryMB);
   }
 
 
@@ -261,6 +265,15 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
               // leave at least half the split buffer for serialization data
               // ensure that kvindex >= bufindex
               final int distkvi = distanceTo(bufindex, kvbidx);
+              /**
+               * Reason for capping sort buffer to MAX_IO_SORT_MB
+               * E.g
+               * kvbuffer.length = 2146435072 (2047 MB)
+               * Corner case: bufIndex=2026133899, kvbidx=523629312.
+               * distkvi = mod - i + j = 2146435072 - 2026133899 + 523629312 = 643930485
+               * newPos = (2026133899 + (max(.., min(643930485/2, 271128624))) (This would
+               * overflow)
+               */
               final int newPos = (bufindex +
                 Math.max(2 * METASIZE - 1,
                         Math.min(distkvi / 2,
@@ -591,7 +604,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         }
       }
       // here, we know that we have sufficient space to write
-      if (bufindex + len > bufvoid) {
+      // int overflow possible with (bufindex + len)
+      long futureBufIndex = (long) bufindex + len;
+      if (futureBufIndex > bufvoid) {
         final int gaplen = bufvoid - bufindex;
         System.arraycopy(b, off, kvbuffer, bufindex, gaplen);
         len -= gaplen;
