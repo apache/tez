@@ -28,6 +28,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.codehaus.jettison.json.JSONException;
@@ -204,6 +205,14 @@ public class TaskInfo extends BaseInfo {
    * @return TaskAttemptInfo
    */
   public final TaskAttemptInfo getSuccessfulTaskAttempt() {
+    if (Strings.isNotEmpty(getSuccessfulAttemptId())) {
+      for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
+        if (attemptInfo.getTaskAttemptId().equals(getSuccessfulAttemptId())) {
+          return attemptInfo;
+        }
+      }
+    }
+    // fall back to checking status if successful attemt id is not available
     for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
       if (attemptInfo.getStatus().equalsIgnoreCase(TaskAttemptState.SUCCEEDED.toString())) {
         return attemptInfo;

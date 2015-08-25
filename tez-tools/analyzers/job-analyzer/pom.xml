@@ -42,15 +42,21 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.plutext</groupId>
-      <artifactId>jaxb-svg11</artifactId>
-      <version>1.0.2</version>
-    </dependency>
   </dependencies>
 
   <build>
     <plugins>
+    <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+     <artifactId>maven-jar-plugin</artifactId>
+      <configuration>
+       <archive>
+         <manifest>
+           <mainClass>org.apache.tez.analyzer.plugins.AnalyzerDriver</mainClass>
+         </manifest>
+       </archive>
+     </configuration>
+    </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>

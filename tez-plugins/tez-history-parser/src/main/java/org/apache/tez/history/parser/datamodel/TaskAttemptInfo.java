@@ -19,7 +19,9 @@
 package org.apache.tez.history.parser.datamodel;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.ATSConstants;
@@ -29,6 +31,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+import java.util.Comparator;
 import java.util.Map;
 
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -53,6 +56,7 @@ public class TaskAttemptInfo extends BaseInfo {
   private final long lastDataEventTime;
   private final String lastDataEventSourceTA;
   private final String terminationCause;
+  private final long executionTimeInterval;
 
   private TaskInfo taskInfo;
 
@@ -88,6 +92,17 @@ public class TaskAttemptInfo extends BaseInfo {
         otherInfoNode.optString(ATSConstants.LAST_DATA_EVENT_SOURCE_TA));
     terminationCause = StringInterner
         .weakIntern(otherInfoNode.optString(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
+    executionTimeInterval = (endTime > startTime) ? (endTime - startTime) : 0;
+  }
+  
+  public static Ordering<TaskAttemptInfo> orderingOnAllocationTime() {
+    return Ordering.from(new Comparator<TaskAttemptInfo>() {
+      @Override
+      public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
+        return (o1.getAllocationTime() < o2.getAllocationTime() ? -1
+            : o1.getAllocationTime() > o2.getAllocationTime() ? 1 : 0);
+      }
+    });
   }
 
   void setTaskInfo(TaskInfo taskInfo) {
@@ -104,6 +119,22 @@ public class TaskAttemptInfo extends BaseInfo {
   @Override
   public final long getFinishTimeInterval() {
     return endTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
+  }
+  
+  public final long getExecutionTimeInterval() {
+    return executionTimeInterval;
+  }
+
+  public final long getAllocationToEndTimeInterval() {
+    return (endTime - allocationTime);
+  }
+  
+  public final long getAllocationToStartTimeInterval() {
+    return (startTime - allocationTime);
+  }
+  
+  public final long getCreationToAllocationTimeInterval() {
+    return (allocationTime - creationTime);
   }
 
   public final long getStartTime() {
@@ -141,6 +172,11 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getAllocationTime() {
     return allocationTime;
   }
+  
+  public final String getShortName() {
+    return getTaskInfo().getVertexInfo().getVertexName() + " : " + 
+    taskAttemptId.substring(taskAttemptId.lastIndexOf('_', taskAttemptId.lastIndexOf('_') - 1) + 1);
+  }
 
   @Override
   public final String getDiagnostics() {
@@ -168,6 +204,13 @@ public class TaskAttemptInfo extends BaseInfo {
       return true;
     }
     return false;
+  }
+  
+  public final String getDetailedStatus() {
+    if (!Strings.isNullOrEmpty(getTerminationCause())) {
+      return getStatus() + ":" + getTerminationCause();
+    }
+    return getStatus();
   }
 
   public final TezCounter getLocalityInfo() {

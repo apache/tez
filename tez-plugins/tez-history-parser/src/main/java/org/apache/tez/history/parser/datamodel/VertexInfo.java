@@ -74,6 +74,8 @@ public class VertexInfo extends BaseInfo {
 
   private final List<AdditionalInputOutputDetails> additionalInputInfoList;
   private final List<AdditionalInputOutputDetails> additionalOutputInfoList;
+  
+  private long avgExecutionTimeInterval = -1;
 
   private DagInfo dagInfo;
 
@@ -143,7 +145,7 @@ public class VertexInfo extends BaseInfo {
     this.additionalInputInfoList.clear();
     this.additionalInputInfoList.addAll(additionalInputInfoList);
   }
-
+  
   void setAdditionalOutputInfoList(List<AdditionalInputOutputDetails> additionalOutputInfoList) {
     this.additionalOutputInfoList.clear();
     this.additionalOutputInfoList.addAll(additionalOutputInfoList);
@@ -191,6 +193,22 @@ public class VertexInfo extends BaseInfo {
         return dagInfo.getFinishTimeInterval();
     }
     return getLastTaskToFinish().getFinishTimeInterval();
+  }
+  
+  public final long getAvgExecutionTimeInterval() {
+    if (avgExecutionTimeInterval == -1) {
+      long totalExecutionTime = 0;
+      long totalAttempts = 0;
+      for (TaskInfo task : getTasks()) {
+        TaskAttemptInfo attempt = task.getSuccessfulTaskAttempt();
+        totalExecutionTime += attempt.getExecutionTimeInterval();
+        totalAttempts++;
+      }
+      if (totalAttempts > 0) {
+        avgExecutionTimeInterval = Math.round(totalExecutionTime*1.0/totalAttempts);
+      }
+    }
+    return avgExecutionTimeInterval;
   }
 
   public final long getStartTime() {
