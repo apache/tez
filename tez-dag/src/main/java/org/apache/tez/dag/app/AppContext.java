@@ -31,7 +31,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
+import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.common.security.ACLManager;
@@ -88,7 +88,7 @@ public interface AppContext {
 
   AMNodeTracker getNodeTracker();
 
-  TaskSchedulerEventHandler getTaskScheduler();
+  TaskSchedulerManager getTaskScheduler();
 
   boolean isSession();
 

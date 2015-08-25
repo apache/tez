@@ -89,9 +89,9 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import com.google.common.base.Preconditions;
 
 
-public class TaskSchedulerEventHandler extends AbstractService implements
+public class TaskSchedulerManager extends AbstractService implements
                                                EventHandler<AMSchedulerEvent> {
-  static final Logger LOG = LoggerFactory.getLogger(TaskSchedulerEventHandler.class);
+  static final Logger LOG = LoggerFactory.getLogger(TaskSchedulerManager.class);
 
   static final String APPLICATION_ID_PLACEHOLDER = "__APPLICATION_ID__";
   static final String HISTORY_URL_BASE = "__HISTORY_URL_BASE__";
@@ -147,11 +147,13 @@ public class TaskSchedulerEventHandler extends AbstractService implements
    * @param isPureLocalMode whether the AM is running in local mode
    */
   @SuppressWarnings("rawtypes")
-  public TaskSchedulerEventHandler(AppContext appContext,
-      DAGClientServer clientService, EventHandler eventHandler, 
-      ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI,
-      List<NamedEntityDescriptor> schedulerDescriptors, boolean isPureLocalMode) {
-    super(TaskSchedulerEventHandler.class.getName());
+  public TaskSchedulerManager(AppContext appContext,
+                              DAGClientServer clientService, EventHandler eventHandler,
+                              ContainerSignatureMatcher containerSignatureMatcher,
+                              WebUIService webUI,
+                              List<NamedEntityDescriptor> schedulerDescriptors,
+                              boolean isPureLocalMode) {
+    super(TaskSchedulerManager.class.getName());
     Preconditions.checkArgument(schedulerDescriptors != null && !schedulerDescriptors.isEmpty(),
         "TaskSchedulerDescriptors must be specified");
     this.appContext = appContext;
@@ -493,10 +495,10 @@ public class TaskSchedulerEventHandler extends AbstractService implements
 
         while (!stopEventHandling && !Thread.currentThread().isInterrupted()) {
           try {
-            if (TaskSchedulerEventHandler.this.eventQueue.peek() == null) {
+            if (TaskSchedulerManager.this.eventQueue.peek() == null) {
               notifyForTest();
             }
-            event = TaskSchedulerEventHandler.this.eventQueue.take();
+            event = TaskSchedulerManager.this.eventQueue.take();
           } catch (InterruptedException e) {
             if(!stopEventHandling) {
               LOG.warn("Continuing after interrupt : ", e);

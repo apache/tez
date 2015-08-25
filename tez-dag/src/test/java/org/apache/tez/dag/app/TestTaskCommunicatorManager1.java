@@ -89,8 +89,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("unchecked")
-// TODO TEZ-2003 (post) TEZ-2696 Rename to TestTezTaskCommunicator
-public class TestTaskAttemptListenerImplTezDag {
+public class TestTaskCommunicatorManager1 {
   private ApplicationId appId;
   private ApplicationAttemptId appAttemptId;
   private AppContext appContext;
@@ -98,7 +97,7 @@ public class TestTaskAttemptListenerImplTezDag {
   AMContainerMap amContainerMap;
   EventHandler eventHandler;
   DAG dag;
-  TaskAttemptListenerImpTezDag taskAttemptListener;
+  TaskCommunicatorManager taskAttemptListener;
   ContainerTask containerTask;
   AMContainerTask amContainerTask;
   TaskSpec taskSpec;
@@ -148,7 +147,7 @@ public class TestTaskAttemptListenerImplTezDag {
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
-    taskAttemptListener = new TaskAttemptListenerImplForTest(appContext,
+    taskAttemptListener = new TaskCommunicatorManagerInterfaceImplForTest(appContext,
         mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class),
         Lists.newArrayList(
             new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
@@ -314,7 +313,7 @@ public class TestTaskAttemptListenerImplTezDag {
     sessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(sessionToken, credentials);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
-    taskAttemptListener = new TaskAttemptListenerImpTezDag(appContext,
+    taskAttemptListener = new TaskCommunicatorManager(appContext,
         mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), Lists.newArrayList(
         new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
             .setUserPayload(userPayload)));
@@ -338,7 +337,7 @@ public class TestTaskAttemptListenerImplTezDag {
       conf.set(TezConfiguration.TEZ_AM_TASK_AM_PORT_RANGE, port + "-" + port);
       UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
 
-      taskAttemptListener = new TaskAttemptListenerImpTezDag(appContext,
+      taskAttemptListener = new TaskCommunicatorManager(appContext,
           mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), Lists
           .newArrayList(new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
               .setUserPayload(userPayload)));
@@ -392,12 +391,12 @@ public class TestTaskAttemptListenerImplTezDag {
     return ContainerId.newInstance(appAttemptId, containerIdx);
   }
 
-  private static class TaskAttemptListenerImplForTest extends TaskAttemptListenerImpTezDag {
+  private static class TaskCommunicatorManagerInterfaceImplForTest extends TaskCommunicatorManager {
 
-    public TaskAttemptListenerImplForTest(AppContext context,
-                                          TaskHeartbeatHandler thh,
-                                          ContainerHeartbeatHandler chh,
-                                          List<NamedEntityDescriptor> taskCommDescriptors) {
+    public TaskCommunicatorManagerInterfaceImplForTest(AppContext context,
+                                                       TaskHeartbeatHandler thh,
+                                                       ContainerHeartbeatHandler chh,
+                                                       List<NamedEntityDescriptor> taskCommDescriptors) {
       super(context, thh, chh, taskCommDescriptors);
     }
 

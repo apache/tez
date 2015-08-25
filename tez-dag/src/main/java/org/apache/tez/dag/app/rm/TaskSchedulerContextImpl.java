@@ -33,7 +33,7 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
 public class TaskSchedulerContextImpl implements TaskSchedulerContext {
 
-  private final TaskSchedulerEventHandler tseh;
+  private final TaskSchedulerManager taskSchedulerManager;
   private final AppContext appContext;
   private final int schedulerId;
   private final String trackingUrl;
@@ -42,11 +42,11 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   private final int clientPort;
   private final UserPayload initialUserPayload;
 
-  public TaskSchedulerContextImpl(TaskSchedulerEventHandler tseh, AppContext appContext,
+  public TaskSchedulerContextImpl(TaskSchedulerManager taskSchedulerManager, AppContext appContext,
                                   int schedulerId, String trackingUrl, long customClusterIdentifier,
                                   String appHostname, int clientPort,
                                   UserPayload initialUserPayload) {
-    this.tseh = tseh;
+    this.taskSchedulerManager = taskSchedulerManager;
     this.appContext = appContext;
     this.schedulerId = schedulerId;
     this.trackingUrl = trackingUrl;
@@ -62,54 +62,55 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   // taskAllocated() upcall and deallocateTask() downcall
   @Override
   public void taskAllocated(Object task, Object appCookie, Container container) {
-    tseh.taskAllocated(schedulerId, task, appCookie, container);
+    taskSchedulerManager.taskAllocated(schedulerId, task, appCookie, container);
   }
 
   @Override
   public void containerCompleted(Object taskLastAllocated, ContainerStatus containerStatus) {
-    tseh.containerCompleted(schedulerId, taskLastAllocated, containerStatus);
+    taskSchedulerManager.containerCompleted(schedulerId, taskLastAllocated, containerStatus);
   }
 
   @Override
   public void containerBeingReleased(ContainerId containerId) {
-    tseh.containerBeingReleased(schedulerId, containerId);
+    taskSchedulerManager.containerBeingReleased(schedulerId, containerId);
   }
 
   @Override
   public void nodesUpdated(List<NodeReport> updatedNodes) {
-    tseh.nodesUpdated(schedulerId, updatedNodes);
+    taskSchedulerManager.nodesUpdated(schedulerId, updatedNodes);
   }
 
   @Override
   public void appShutdownRequested() {
-    tseh.appShutdownRequested(schedulerId);
+    taskSchedulerManager.appShutdownRequested(schedulerId);
   }
 
   @Override
   public void setApplicationRegistrationData(Resource maxContainerCapability,
                                              Map<ApplicationAccessType, String> appAcls,
                                              ByteBuffer clientAMSecretKey) {
-    tseh.setApplicationRegistrationData(schedulerId, maxContainerCapability, appAcls, clientAMSecretKey);
+    taskSchedulerManager.setApplicationRegistrationData(schedulerId, maxContainerCapability, appAcls,
+        clientAMSecretKey);
   }
 
   @Override
   public void onError(Throwable t) {
-    tseh.onError(schedulerId, t);
+    taskSchedulerManager.onError(schedulerId, t);
   }
 
   @Override
   public float getProgress() {
-    return tseh.getProgress(schedulerId);
+    return taskSchedulerManager.getProgress(schedulerId);
   }
 
   @Override
   public void preemptContainer(ContainerId containerId) {
-    tseh.preemptContainer(schedulerId, containerId);
+    taskSchedulerManager.preemptContainer(schedulerId, containerId);
   }
 
   @Override
   public AppFinalStatus getFinalAppStatus() {
-    return tseh.getFinalAppStatus();
+    return taskSchedulerManager.getFinalAppStatus();
   }
 
   @Override
@@ -130,7 +131,7 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
 
   @Override
   public ContainerSignatureMatcher getContainerSignatureMatcher() {
-    return tseh.getContainerSignatureMatcher();
+    return taskSchedulerManager.getContainerSignatureMatcher();
   }
 
   @Override

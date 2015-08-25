@@ -33,10 +33,10 @@ import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
 public class ContainerLauncherContextImpl implements ContainerLauncherContext {
 
   private final AppContext context;
-  private final TaskAttemptListener tal;
+  private final TaskCommunicatorManagerInterface tal;
   private final UserPayload initialUserPayload;
 
-  public ContainerLauncherContextImpl(AppContext appContext, TaskAttemptListener tal, UserPayload initialUserPayload) {
+  public ContainerLauncherContextImpl(AppContext appContext, TaskCommunicatorManagerInterface tal, UserPayload initialUserPayload) {
     this.context = appContext;
     this.tal = tal;
     this.initialUserPayload = initialUserPayload;

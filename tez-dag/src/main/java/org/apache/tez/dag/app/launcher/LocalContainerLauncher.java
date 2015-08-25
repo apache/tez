@@ -63,7 +63,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TezTaskCommunicatorImpl;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
@@ -83,7 +83,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
   private final AppContext context;
   private final AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private final String workingDirectory;
-  private final TaskAttemptListener tal;
+  private final TaskCommunicatorManagerInterface tal;
   private final Map<String, String> localEnv;
   private final ExecutionContext executionContext;
   private final int numExecutors;
@@ -105,7 +105,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
 
   public LocalContainerLauncher(ContainerLauncherContext containerLauncherContext,
                                 AppContext context,
-                                TaskAttemptListener taskAttemptListener,
+                                TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                 String workingDirectory,
                                 boolean isPureLocalMode) throws UnknownHostException {
     // TODO Post TEZ-2003. Most of this information is dynamic and only available after the AM
@@ -114,7 +114,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
     // after the AM starts up.
     super(containerLauncherContext);
     this.context = context;
-    this.tal = taskAttemptListener;
+    this.tal = taskCommunicatorManagerInterface;
     this.workingDirectory = workingDirectory;
     this.isPureLocalMode = isPureLocalMode;
     if (isPureLocalMode) {

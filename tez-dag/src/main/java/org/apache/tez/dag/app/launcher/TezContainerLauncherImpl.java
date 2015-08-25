@@ -64,10 +64,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 /**
  * This class is responsible for launching of containers.
  */
-public class ContainerLauncherImpl extends ContainerLauncher {
+public class TezContainerLauncherImpl extends ContainerLauncher {
 
   // TODO Ensure the same thread is used to launch / stop the same container. Or - ensure event ordering.
-  static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherImpl.class);
+  static final Logger LOG = LoggerFactory.getLogger(TezContainerLauncherImpl.class);
 
   private final ConcurrentHashMap<ContainerId, Container> containers =
     new ConcurrentHashMap<>();
@@ -223,13 +223,13 @@ public class ContainerLauncherImpl extends ContainerLauncher {
     }
   }
 
-  public ContainerLauncherImpl(ContainerLauncherContext containerLauncherContext) {
+  public TezContainerLauncherImpl(ContainerLauncherContext containerLauncherContext) {
     super(containerLauncherContext);
     try {
       this.conf = TezUtils.createConfFromUserPayload(containerLauncherContext.getInitialUserPayload());
     } catch (IOException e) {
       throw new TezUncheckedException(
-          "Failed to parse user payload for " + ContainerLauncherImpl.class.getSimpleName(), e);
+          "Failed to parse user payload for " + TezContainerLauncherImpl.class.getSimpleName(), e);
     }
     conf.setInt(
         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECTION_MAXIDLETIME_KEY,

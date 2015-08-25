@@ -69,14 +69,14 @@ import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminatedBySystem;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
-import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
+import org.apache.tez.dag.app.rm.ContainerLauncherEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
@@ -288,7 +288,7 @@ public class TestAMContainer {
     // Event to NM to stop the container.
     wc.verifyCountAndGetOutgoingEvents(1);
     assertTrue(wc.verifyCountAndGetOutgoingEvents(1).get(0).getType() ==
-        NMCommunicatorEventType.CONTAINER_STOP_REQUEST);
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST);
 
     wc.nmStopSent();
     wc.verifyState(AMContainerState.STOPPING);
@@ -323,7 +323,7 @@ public class TestAMContainer {
     // Event to NM to stop the container.
     wc.verifyCountAndGetOutgoingEvents(1);
     assertTrue(wc.verifyCountAndGetOutgoingEvents(1).get(0).getType() ==
-        NMCommunicatorEventType.CONTAINER_STOP_REQUEST);
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST);
 
     wc.nmStopFailed();
     wc.verifyState(AMContainerState.STOPPING);
@@ -366,7 +366,7 @@ public class TestAMContainer {
     // 1 for NM stop request. 2 TERMINATING to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(3);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
-        NMCommunicatorEventType.CONTAINER_STOP_REQUEST,
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING);
     assertTrue(wc.amContainer.isInErrorState());
@@ -405,7 +405,7 @@ public class TestAMContainer {
     // 1 for NM stop request. 2 TERMINATING to TaskAttempt.
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(3);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
-        NMCommunicatorEventType.CONTAINER_STOP_REQUEST,
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING);
     assertTrue(wc.amContainer.isInErrorState());
@@ -443,7 +443,7 @@ public class TestAMContainer {
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING,
-        NMCommunicatorEventType.CONTAINER_STOP_REQUEST);
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST);
     // TODO Should this be an RM DE-ALLOCATE instead ?
 
     wc.containerCompleted();
@@ -478,7 +478,7 @@ public class TestAMContainer {
     outgoingEvents = wc.verifyCountAndGetOutgoingEvents(2);
     verifyUnOrderedOutgoingEventTypes(outgoingEvents,
         TaskAttemptEventType.TA_CONTAINER_TERMINATING,
-        NMCommunicatorEventType.CONTAINER_STOP_REQUEST);
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST);
     // TODO Should this be an RM DE-ALLOCATE instead ?
 
     wc.containerCompleted();
@@ -1194,7 +1194,7 @@ public class TestAMContainer {
     Priority priority;
     Container container;
     ContainerHeartbeatHandler chh;
-    TaskAttemptListener tal;
+    TaskCommunicatorManagerInterface tal;
 
     @SuppressWarnings("rawtypes")
     EventHandler eventHandler;
@@ -1226,7 +1226,7 @@ public class TestAMContainer {
 
       chh = mock(ContainerHeartbeatHandler.class);
 
-      tal = mock(TaskAttemptListener.class);
+      tal = mock(TaskCommunicatorManagerInterface.class);
       TaskCommunicator taskComm = mock(TaskCommunicator.class);
       doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
       doReturn(taskComm).when(tal).getTaskCommunicator(0);
@@ -1440,7 +1440,7 @@ public class TestAMContainer {
     return lr;
   }
 
-  private void verifyUnregisterRunningContainer(TaskAttemptListener tal, ContainerId containerId,
+  private void verifyUnregisterRunningContainer(TaskCommunicatorManagerInterface tal, ContainerId containerId,
                                                 int taskCommId,
                                                 ContainerEndReason containerEndReason,
                                                 String diagContains) {
@@ -1455,7 +1455,7 @@ public class TestAMContainer {
     }
   }
 
-  private void verifyUnregisterTaskAttempt(TaskAttemptListener tal, TezTaskAttemptID taId,
+  private void verifyUnregisterTaskAttempt(TaskCommunicatorManagerInterface tal, TezTaskAttemptID taId,
                                            int taskCommId, TaskAttemptEndReason endReason,
                                            String diagContains) {
     ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);

@@ -23,7 +23,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.event.AbstractEvent;
 
-public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> {
+public class ContainerLauncherEvent extends AbstractEvent<ContainerLauncherEventType> {
 
   private final ContainerId containerId;
   private final NodeId nodeId;
@@ -32,9 +32,10 @@ public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> 
   private final int schedulerId;
   private final int taskCommId;
 
-  public NMCommunicatorEvent(ContainerId containerId, NodeId nodeId,
-                             Token containerToken, NMCommunicatorEventType type, int launcherId,
-                             int schedulerId, int taskCommId) {
+  public ContainerLauncherEvent(ContainerId containerId, NodeId nodeId,
+                                Token containerToken, ContainerLauncherEventType type,
+                                int launcherId,
+                                int schedulerId, int taskCommId) {
     super(type);
     this.containerId = containerId;
     this.nodeId = nodeId;
@@ -94,7 +95,7 @@ public class NMCommunicatorEvent extends AbstractEvent<NMCommunicatorEventType> 
       return false;
     if (getClass() != obj.getClass())
       return false;
-    NMCommunicatorEvent other = (NMCommunicatorEvent) obj;
+    ContainerLauncherEvent other = (ContainerLauncherEvent) obj;
     if (containerId == null) {
       if (other.containerId != null)
         return false;

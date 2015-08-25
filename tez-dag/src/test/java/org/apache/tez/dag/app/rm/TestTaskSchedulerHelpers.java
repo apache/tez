@@ -125,19 +125,19 @@ class TestTaskSchedulerHelpers {
   }
   
   // Overrides start / stop. Will be controlled without the extra event handling thread.
-  static class TaskSchedulerEventHandlerForTest extends
-      TaskSchedulerEventHandler {
+  static class TaskSchedulerManagerForTest extends
+      TaskSchedulerManager {
 
     private TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync;
     private ContainerSignatureMatcher containerSignatureMatcher;
     private UserPayload defaultPayload;
 
     @SuppressWarnings("rawtypes")
-    public TaskSchedulerEventHandlerForTest(AppContext appContext,
-        EventHandler eventHandler,
-        TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
-        ContainerSignatureMatcher containerSignatureMatcher,
-        UserPayload defaultPayload) {
+    public TaskSchedulerManagerForTest(AppContext appContext,
+                                       EventHandler eventHandler,
+                                       TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
+                                       ContainerSignatureMatcher containerSignatureMatcher,
+                                       UserPayload defaultPayload) {
       super(appContext, null, eventHandler, containerSignatureMatcher, null,
           Lists.newArrayList(new NamedEntityDescriptor("FakeScheduler", null)),
           false);

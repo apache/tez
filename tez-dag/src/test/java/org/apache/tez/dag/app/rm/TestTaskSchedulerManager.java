@@ -95,7 +95,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 @SuppressWarnings("rawtypes")
-public class TestTaskSchedulerEventHandler {
+public class TestTaskSchedulerManager {
   
   class TestEventHandler implements EventHandler{
     List<Event> events = Lists.newLinkedList();
@@ -105,13 +105,14 @@ public class TestTaskSchedulerEventHandler {
     }
   }
   
-  class MockTaskSchedulerEventHandler extends TaskSchedulerEventHandler {
+  class MockTaskSchedulerManager extends TaskSchedulerManager {
 
     final AtomicBoolean notify = new AtomicBoolean(false);
     
-    public MockTaskSchedulerEventHandler(AppContext appContext,
-        DAGClientServer clientService, EventHandler eventHandler,
-        ContainerSignatureMatcher containerSignatureMatcher, WebUIService webUI) {
+    public MockTaskSchedulerManager(AppContext appContext,
+                                    DAGClientServer clientService, EventHandler eventHandler,
+                                    ContainerSignatureMatcher containerSignatureMatcher,
+                                    WebUIService webUI) {
       super(appContext, clientService, eventHandler, containerSignatureMatcher, webUI,
           Lists.newArrayList(new NamedEntityDescriptor("FakeDescriptor", null)), false);
     }
@@ -137,7 +138,7 @@ public class TestTaskSchedulerEventHandler {
   DAGClientServer mockClientService;
   TestEventHandler mockEventHandler;
   ContainerSignatureMatcher mockSigMatcher;
-  MockTaskSchedulerEventHandler schedulerHandler;
+  MockTaskSchedulerManager schedulerHandler;
   TaskScheduler mockTaskScheduler;
   AMContainerMap mockAMContainerMap;
   WebUIService mockWebUIService;
@@ -154,7 +155,7 @@ public class TestTaskSchedulerEventHandler {
     mockWebUIService = mock(WebUIService.class);
     when(mockAppContext.getAllContainers()).thenReturn(mockAMContainerMap);
     when(mockClientService.getBindAddress()).thenReturn(new InetSocketAddress(10000));
-    schedulerHandler = new MockTaskSchedulerEventHandler(
+    schedulerHandler = new MockTaskSchedulerManager(
         mockAppContext, mockClientService, mockEventHandler, mockSigMatcher, mockWebUIService);
   }
 
@@ -531,7 +532,7 @@ public class TestTaskSchedulerEventHandler {
         eq(launchRequest2));
   }
 
-  private static class TSEHForMultipleSchedulersTest extends TaskSchedulerEventHandler {
+  private static class TSEHForMultipleSchedulersTest extends TaskSchedulerManager {
 
     private final TaskScheduler yarnTaskScheduler;
     private final TaskScheduler uberTaskScheduler;

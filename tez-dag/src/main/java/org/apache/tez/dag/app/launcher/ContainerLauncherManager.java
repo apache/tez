@@ -36,17 +36,17 @@ import org.apache.tez.serviceplugins.api.ContainerStopRequest;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerLauncherContextImpl;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
+import org.apache.tez.dag.app.rm.ContainerLauncherEvent;
+import org.apache.tez.dag.app.rm.ContainerLauncherLaunchRequestEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ContainerLauncherRouter extends AbstractService
-    implements EventHandler<NMCommunicatorEvent> {
+public class ContainerLauncherManager extends AbstractService
+    implements EventHandler<ContainerLauncherEvent> {
 
-  static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherImpl.class);
+  static final Logger LOG = LoggerFactory.getLogger(TezContainerLauncherImpl.class);
 
   @VisibleForTesting
   final ContainerLauncher containerLaunchers[];
@@ -56,8 +56,8 @@ public class ContainerLauncherRouter extends AbstractService
   private final AppContext appContext;
 
   @VisibleForTesting
-  public ContainerLauncherRouter(ContainerLauncher containerLauncher, AppContext context) {
-    super(ContainerLauncherRouter.class.getName());
+  public ContainerLauncherManager(ContainerLauncher containerLauncher, AppContext context) {
+    super(ContainerLauncherManager.class.getName());
     this.appContext = context;
     containerLaunchers = new ContainerLauncher[] {containerLauncher};
     containerLauncherContexts = new ContainerLauncherContext[] {containerLauncher.getContext()};
@@ -66,12 +66,12 @@ public class ContainerLauncherRouter extends AbstractService
   }
 
   // Accepting conf to setup final parameters, if required.
-  public ContainerLauncherRouter(AppContext context,
-                                 TaskAttemptListener taskAttemptListener,
-                                 String workingDirectory,
-                                 List<NamedEntityDescriptor> containerLauncherDescriptors,
-                                 boolean isPureLocalMode) {
-    super(ContainerLauncherRouter.class.getName());
+  public ContainerLauncherManager(AppContext context,
+                                  TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
+                                  String workingDirectory,
+                                  List<NamedEntityDescriptor> containerLauncherDescriptors,
+                                  boolean isPureLocalMode) {
+    super(ContainerLauncherManager.class.getName());
 
     this.appContext = context;
     Preconditions.checkArgument(
@@ -85,10 +85,10 @@ public class ContainerLauncherRouter extends AbstractService
     for (int i = 0; i < containerLauncherDescriptors.size(); i++) {
       UserPayload userPayload = containerLauncherDescriptors.get(i).getUserPayload();
       ContainerLauncherContext containerLauncherContext =
-          new ContainerLauncherContextImpl(context, taskAttemptListener, userPayload);
+          new ContainerLauncherContextImpl(context, taskCommunicatorManagerInterface, userPayload);
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = createContainerLauncher(containerLauncherDescriptors.get(i), context,
-          containerLauncherContext, taskAttemptListener, workingDirectory, i, isPureLocalMode);
+          containerLauncherContext, taskCommunicatorManagerInterface, workingDirectory, i, isPureLocalMode);
       containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(containerLaunchers[i]);
     }
   }
@@ -98,7 +98,7 @@ public class ContainerLauncherRouter extends AbstractService
       NamedEntityDescriptor containerLauncherDescriptor,
       AppContext context,
       ContainerLauncherContext containerLauncherContext,
-      TaskAttemptListener taskAttemptListener,
+      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
       String workingDirectory,
       int containerLauncherIndex,
       boolean isPureLocalMode) {
@@ -107,7 +107,8 @@ public class ContainerLauncherRouter extends AbstractService
       return createYarnContainerLauncher(containerLauncherContext);
     } else if (containerLauncherDescriptor.getEntityName()
         .equals(TezConstants.getTezUberServicePluginName())) {
-      return createUberContainerLauncher(containerLauncherContext, context, taskAttemptListener,
+      return createUberContainerLauncher(containerLauncherContext, context,
+          taskCommunicatorManagerInterface,
           workingDirectory, isPureLocalMode);
     } else {
       return createCustomContainerLauncher(containerLauncherContext, containerLauncherDescriptor);
@@ -117,13 +118,13 @@ public class ContainerLauncherRouter extends AbstractService
   @VisibleForTesting
   ContainerLauncher createYarnContainerLauncher(ContainerLauncherContext containerLauncherContext) {
     LOG.info("Creating DefaultContainerLauncher");
-    return new ContainerLauncherImpl(containerLauncherContext);
+    return new TezContainerLauncherImpl(containerLauncherContext);
   }
 
   @VisibleForTesting
   ContainerLauncher createUberContainerLauncher(ContainerLauncherContext containerLauncherContext,
                                                 AppContext context,
-                                                TaskAttemptListener taskAttemptListener,
+                                                TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                 String workingDirectory,
                                                 boolean isPureLocalMode) {
     LOG.info("Creating LocalContainerLauncher");
@@ -132,7 +133,8 @@ public class ContainerLauncherRouter extends AbstractService
     // some kind of runtime binding of parameters in the payload to work correctly.
     try {
       return
-          new LocalContainerLauncher(containerLauncherContext, context, taskAttemptListener,
+          new LocalContainerLauncher(containerLauncherContext, context,
+              taskCommunicatorManagerInterface,
               workingDirectory, isPureLocalMode);
     } catch (UnknownHostException e) {
       throw new TezUncheckedException(e);
@@ -190,13 +192,13 @@ public class ContainerLauncherRouter extends AbstractService
 
 
   @Override
-  public void handle(NMCommunicatorEvent event) {
+  public void handle(ContainerLauncherEvent event) {
     int launcherId = event.getLauncherId();
     String schedulerName = appContext.getTaskSchedulerName(event.getSchedulerId());
     String taskCommName = appContext.getTaskCommunicatorName(event.getTaskCommId());
     switch (event.getType()) {
       case CONTAINER_LAUNCH_REQUEST:
-        NMCommunicatorLaunchRequestEvent launchEvent = (NMCommunicatorLaunchRequestEvent) event;
+        ContainerLauncherLaunchRequestEvent launchEvent = (ContainerLauncherLaunchRequestEvent) event;
         ContainerLaunchRequest launchRequest =
             new ContainerLaunchRequest(launchEvent.getNodeId(), launchEvent.getContainerId(),
                 launchEvent.getContainerToken(), launchEvent.getContainerLaunchContext(),

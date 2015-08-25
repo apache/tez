@@ -117,7 +117,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.MockClock;
 import org.apache.tez.dag.app.TaskAttemptEventInfo;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
@@ -153,7 +153,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.DAGImpl.VertexGroupInfo;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.VertexManagerWithException.VMExceptionLocation;
-import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
+import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
 import org.apache.tez.dag.history.DAGHistoryEvent;
@@ -161,7 +161,6 @@ import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.library.vertexmanager.InputReadyVertexManager;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
-import org.apache.tez.dag.records.TaskAttemptIdentifierImpl;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -228,7 +227,7 @@ public class TestVertexImpl {
   private Map<String, VertexImpl> vertices;
   private Map<TezVertexID, VertexImpl> vertexIdMap;
   private DrainDispatcher dispatcher;
-  private TaskAttemptListener taskAttemptListener;
+  private TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
   private Clock clock = new SystemClock();
   private TaskHeartbeatHandler thh;
   private AppContext appContext;
@@ -2077,16 +2076,16 @@ public class TestVertexImpl {
       if (useCustomInitializer) {
         if (customInitializer == null) {
           v = new VertexImplWithControlledInitializerManager(vertexId, vPlan, vPlan.getName(), conf,
-              dispatcher.getEventHandler(), taskAttemptListener,
+              dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
               clock, thh, appContext, locationHint, dispatcher, updateTracker);
         } else {
           v = new VertexImplWithRunningInputInitializer(vertexId, vPlan, vPlan.getName(), conf,
-              dispatcher.getEventHandler(), taskAttemptListener,
+              dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
               clock, thh, appContext, locationHint, dispatcher, customInitializer, updateTracker);
         }
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
-            dispatcher.getEventHandler(), taskAttemptListener,
+            dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
             clock, thh, true, appContext, locationHint, vertexGroups, taskSpecificLaunchCmdOption,
             updateTracker);
       }
@@ -2162,7 +2161,7 @@ public class TestVertexImpl {
     appContext = mock(AppContext.class);
     thh = mock(TaskHeartbeatHandler.class);
     historyEventHandler = mock(HistoryEventHandler.class);
-    TaskSchedulerEventHandler taskScheduler = mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskScheduler = mock(TaskSchedulerManager.class);
     UserGroupInformation ugi;
     try {
       ugi = UserGroupInformation.getCurrentUser();
@@ -3227,7 +3226,7 @@ public class TestVertexImpl {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appContext);
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
@@ -3262,7 +3261,7 @@ public class TestVertexImpl {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appContext);
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
@@ -3298,7 +3297,7 @@ public class TestVertexImpl {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appContext);
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
@@ -5179,7 +5178,7 @@ public class TestVertexImpl {
       vId = TezVertexID.getInstance(invalidDagId, 1);
       VertexPlan vPlan = invalidDagPlan.getVertex(0);
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
-          dispatcher.getEventHandler(), taskAttemptListener,
+          dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
           clock, thh, true, appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
           updateTracker);
       v.setInputVertices(new HashMap());
@@ -5208,7 +5207,7 @@ public class TestVertexImpl {
                                                  VertexPlan vertexPlan, String vertexName,
                                                  Configuration conf,
                                                  EventHandler eventHandler,
-                                                 TaskAttemptListener taskAttemptListener,
+                                                 TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                  Clock clock, TaskHeartbeatHandler thh,
                                                  AppContext appContext,
                                                  VertexLocationHint vertexLocationHint,
@@ -5216,7 +5215,7 @@ public class TestVertexImpl {
                                                  InputInitializer presetInitializer,
                                                  StateChangeNotifier updateTracker) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
-          taskAttemptListener, clock, thh, true,
+          taskCommunicatorManagerInterface, clock, thh, true,
           appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
           updateTracker);
       this.presetInitializer = presetInitializer;
@@ -5248,14 +5247,14 @@ public class TestVertexImpl {
                                                       VertexPlan vertexPlan, String vertexName,
                                                       Configuration conf,
                                                       EventHandler eventHandler,
-                                                      TaskAttemptListener taskAttemptListener,
+                                                      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                       Clock clock, TaskHeartbeatHandler thh,
                                                       AppContext appContext,
                                                       VertexLocationHint vertexLocationHint,
                                                       DrainDispatcher dispatcher,
                                                       StateChangeNotifier updateTracker) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
-          taskAttemptListener, clock, thh, true,
+          taskCommunicatorManagerInterface, clock, thh, true,
           appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
           updateTracker);
       this.dispatcher = dispatcher;

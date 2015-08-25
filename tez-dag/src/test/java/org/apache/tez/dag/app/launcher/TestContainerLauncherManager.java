@@ -41,8 +41,8 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
+import org.apache.tez.dag.app.rm.ContainerLauncherLaunchRequestEvent;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -52,7 +52,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-public class TestContainerLauncherRouter {
+public class TestContainerLauncherManager {
 
   @Before
   @After
@@ -64,7 +64,7 @@ public class TestContainerLauncherRouter {
   public void testNoLaunchersSpecified() throws IOException {
 
     AppContext appContext = mock(AppContext.class);
-    TaskAttemptListener tal = mock(TaskAttemptListener.class);
+    TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
 
     try {
 
@@ -81,7 +81,7 @@ public class TestContainerLauncherRouter {
     Configuration conf = new Configuration(false);
 
     AppContext appContext = mock(AppContext.class);
-    TaskAttemptListener tal = mock(TaskAttemptListener.class);
+    TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
 
     String customLauncherName = "customLauncher";
     List<NamedEntityDescriptor> launcherDescriptors = new LinkedList<>();
@@ -117,7 +117,7 @@ public class TestContainerLauncherRouter {
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
 
     AppContext appContext = mock(AppContext.class);
-    TaskAttemptListener tal = mock(TaskAttemptListener.class);
+    TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
 
     String customLauncherName = "customLauncher";
     List<NamedEntityDescriptor> launcherDescriptors = new LinkedList<>();
@@ -160,7 +160,7 @@ public class TestContainerLauncherRouter {
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
 
     AppContext appContext = mock(AppContext.class);
-    TaskAttemptListener tal = mock(TaskAttemptListener.class);
+    TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
 
     String customLauncherName = "customLauncher";
     List<NamedEntityDescriptor> launcherDescriptors = new LinkedList<>();
@@ -199,10 +199,10 @@ public class TestContainerLauncherRouter {
       ContainerLaunchContext clc2 = mock(ContainerLaunchContext.class);
       Container container2 = mock(Container.class);
 
-      NMCommunicatorLaunchRequestEvent launchRequestEvent1 =
-          new NMCommunicatorLaunchRequestEvent(clc1, container1, 0, 0, 0);
-      NMCommunicatorLaunchRequestEvent launchRequestEvent2 =
-          new NMCommunicatorLaunchRequestEvent(clc2, container2, 1, 0, 0);
+      ContainerLauncherLaunchRequestEvent launchRequestEvent1 =
+          new ContainerLauncherLaunchRequestEvent(clc1, container1, 0, 0, 0);
+      ContainerLauncherLaunchRequestEvent launchRequestEvent2 =
+          new ContainerLauncherLaunchRequestEvent(clc2, container2, 1, 0, 0);
 
       clr.handle(launchRequestEvent1);
 
@@ -229,7 +229,7 @@ public class TestContainerLauncherRouter {
   }
 
   private static class ContainerLaucherRouterForMultipleLauncherTest
-      extends ContainerLauncherRouter {
+      extends ContainerLauncherManager {
 
     // All variables setup as static since methods being overridden are invoked by the ContainerLauncherRouter ctor,
     // and regular variables will not be initialized at this point.
@@ -257,12 +257,12 @@ public class TestContainerLauncherRouter {
     }
 
     public ContainerLaucherRouterForMultipleLauncherTest(AppContext context,
-                                                         TaskAttemptListener taskAttemptListener,
+                                                         TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                          String workingDirectory,
                                                          List<NamedEntityDescriptor> containerLauncherDescriptors,
                                                          boolean isPureLocalMode) throws
         UnknownHostException {
-      super(context, taskAttemptListener, workingDirectory,
+      super(context, taskCommunicatorManagerInterface, workingDirectory,
           containerLauncherDescriptors, isPureLocalMode);
     }
 
@@ -270,7 +270,7 @@ public class TestContainerLauncherRouter {
     ContainerLauncher createContainerLauncher(NamedEntityDescriptor containerLauncherDescriptor,
                                               AppContext context,
                                               ContainerLauncherContext containerLauncherContext,
-                                              TaskAttemptListener taskAttemptListener,
+                                              TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                               String workingDirectory,
                                               int containerLauncherIndex,
                                               boolean isPureLocalMode) {
@@ -281,7 +281,7 @@ public class TestContainerLauncherRouter {
       containerLauncherContexts.add(containerLauncherContext);
       return super
           .createContainerLauncher(containerLauncherDescriptor, context, containerLauncherContext,
-              taskAttemptListener, workingDirectory, containerLauncherIndex, isPureLocalMode);
+              taskCommunicatorManagerInterface, workingDirectory, containerLauncherIndex, isPureLocalMode);
     }
 
     @Override
@@ -295,7 +295,7 @@ public class TestContainerLauncherRouter {
     @Override
     ContainerLauncher createUberContainerLauncher(ContainerLauncherContext containerLauncherContext,
                                                   AppContext context,
-                                                  TaskAttemptListener taskAttemptListener,
+                                                  TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                   String workingDirectory,
                                                   boolean isPureLocalMode) {
       uberContainerLauncherCreated.set(true);

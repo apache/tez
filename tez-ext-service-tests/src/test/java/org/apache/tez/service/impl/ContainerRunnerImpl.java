@@ -60,7 +60,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.task.TaskReporter;
-import org.apache.tez.runtime.task.TezTaskRunner;
+import org.apache.tez.runtime.task.TaskRunner2Result;
+import org.apache.tez.runtime.task.TezTaskRunner2;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.ExecutionContext;
@@ -378,7 +379,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     private final Credentials credentials;
     private final long memoryAvailable;
     private final ListeningExecutorService executor;
-    private volatile TezTaskRunner taskRunner;
+    private volatile TezTaskRunner2 taskRunner;
     private volatile TaskReporter taskReporter;
     private TezTaskUmbilicalProtocol umbilical;
 
@@ -443,7 +444,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           new AtomicLong(0),
           request.getContainerIdString());
 
-      taskRunner = new TezTaskRunner(conf, taskUgi, localDirs,
+      taskRunner = new TezTaskRunner2(conf, taskUgi, localDirs,
           ProtoConverters.getTaskSpecfromProto(request.getTaskSpec()),
           request.getAppAttemptNumber(),
           serviceConsumerMetadata, envMap, startedInputsMap, taskReporter, executor, objectRegistry,
@@ -452,18 +453,20 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
 
       boolean shouldDie;
       try {
-        shouldDie = !taskRunner.run();
+        TaskRunner2Result result = taskRunner.run();
+        LOG.info("TaskRunner2Result: {}", result);
+        shouldDie = result.isContainerShutdownRequested();
         if (shouldDie) {
           LOG.info("Got a shouldDie notification via heartbeats. Shutting down");
           return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
               "Asked to die by the AM");
         }
-      } catch (IOException e) {
-        return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
-            e, "TaskExecutionFailure: " + e.getMessage());
-      } catch (TezException e) {
-        return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
-            e, "TaskExecutionFailure: " + e.getMessage());
+        if (result.getError() != null) {
+          Throwable e = result.getError();
+          return new ContainerExecutionResult(
+              ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
+              e, "TaskExecutionFailure: " + e.getMessage());
+        }
       } finally {
         FileSystem.closeAllForUGI(taskUgi);
       }

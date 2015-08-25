@@ -55,8 +55,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-// TODO TEZ-2003. Rename to TestTaskAttemptListener | whatever TaskAttemptListener is renamed to.
-public class TestTaskAttemptListenerImplTezDag2 {
+public class TestTaskCommunicatorManager2 {
 
   @Test(timeout = 5000)
   public void testTaskAttemptFailedKilled() throws IOException {
@@ -83,8 +82,8 @@ public class TestTaskAttemptListenerImplTezDag2 {
 
     Configuration conf = new TezConfiguration();
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
-    TaskAttemptListenerImpTezDag taskAttemptListener =
-        new TaskAttemptListenerImpTezDag(appContext, mock(TaskHeartbeatHandler.class),
+    TaskCommunicatorManager taskAttemptListener =
+        new TaskCommunicatorManager(appContext, mock(TaskHeartbeatHandler.class),
             mock(ContainerHeartbeatHandler.class), Lists.newArrayList(new NamedEntityDescriptor(
             TezConstants.getTezYarnServicePluginName(), null).setUserPayload(userPayload)));
 

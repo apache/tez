@@ -69,11 +69,11 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 
 @SuppressWarnings("unchecked")
 @InterfaceAudience.Private
-public class TaskAttemptListenerImpTezDag extends AbstractService implements
-    TaskAttemptListener {
+public class TaskCommunicatorManager extends AbstractService implements
+    TaskCommunicatorManagerInterface {
 
   private static final Logger LOG = LoggerFactory
-      .getLogger(TaskAttemptListenerImpTezDag.class);
+      .getLogger(TaskCommunicatorManager.class);
 
   private final AppContext context;
   private final TaskCommunicator[] taskCommunicators;
@@ -101,10 +101,10 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
   private static final ContainerInfo NULL_CONTAINER_INFO = new ContainerInfo(null);
 
 
-  public TaskAttemptListenerImpTezDag(AppContext context,
-                                      TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
-                                      List<NamedEntityDescriptor> taskCommunicatorDescriptors) {
-    super(TaskAttemptListenerImpTezDag.class.getName());
+  public TaskCommunicatorManager(AppContext context,
+                                 TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
+                                 List<NamedEntityDescriptor> taskCommunicatorDescriptors) {
+    super(TaskCommunicatorManager.class.getName());
     this.context = context;
     this.taskHeartbeatHandler = thh;
     this.containerHeartbeatHandler = chh;

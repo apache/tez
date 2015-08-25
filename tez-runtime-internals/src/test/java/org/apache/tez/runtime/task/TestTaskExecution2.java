@@ -89,7 +89,7 @@ public class TestTaskExecution2 {
     try {
       localFs = FileSystem.getLocal(defaultConf);
       Path wd = new Path(System.getProperty("test.build.data", "/tmp"),
-          TestTaskExecution.class.getSimpleName());
+          TestTaskExecution2.class.getSimpleName());
       workDir = localFs.makeQualified(wd);
     } catch (IOException e) {
       throw new RuntimeException(e);

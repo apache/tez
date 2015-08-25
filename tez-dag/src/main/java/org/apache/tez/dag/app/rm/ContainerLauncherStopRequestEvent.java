@@ -18,8 +18,17 @@
 
 package org.apache.tez.dag.app.rm;
 
-// TODO - Re-use the events in ContainerLauncher..
-public enum NMCommunicatorEventType {
-  CONTAINER_LAUNCH_REQUEST,
-  CONTAINER_STOP_REQUEST
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.Token;
+
+public class ContainerLauncherStopRequestEvent extends ContainerLauncherEvent {
+
+  public ContainerLauncherStopRequestEvent(ContainerId containerId, NodeId nodeId,
+                                           Token containerToken, int launcherId, int schedulerId,
+                                           int taskCommId) {
+    super(containerId, nodeId, containerToken,
+        ContainerLauncherEventType.CONTAINER_STOP_REQUEST, launcherId, schedulerId, taskCommId);
+  }
+
 }

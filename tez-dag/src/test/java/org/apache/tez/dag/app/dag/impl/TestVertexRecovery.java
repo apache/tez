@@ -55,7 +55,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
@@ -434,7 +434,7 @@ public class TestVertexRecovery {
     DAGPlan dagPlan = createDAGPlan();
     dag =
         new DAGImpl(dagId, new Configuration(), dagPlan,
-            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            dispatcher.getEventHandler(), mock(TaskCommunicatorManagerInterface.class),
             new Credentials(), new SystemClock(), user,
             mock(TaskHeartbeatHandler.class), mockAppContext);
     when(mockAppContext.getCurrentDAG()).thenReturn(dag);
@@ -544,7 +544,7 @@ public class TestVertexRecovery {
     DAGPlan dagPlan = createDAGPlanSingleVertex();
     dag =
         new DAGImpl(dagId, new Configuration(), dagPlan,
-            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            dispatcher.getEventHandler(), mock(TaskCommunicatorManagerInterface.class),
             new Credentials(), new SystemClock(), user,
             mock(TaskHeartbeatHandler.class), mockAppContext);
     when(mockAppContext.getCurrentDAG()).thenReturn(dag);
@@ -924,7 +924,7 @@ public class TestVertexRecovery {
     DAGPlan dagPlan = createDAGPlanMR();
     dag =
         new DAGImpl(dagId, new Configuration(), dagPlan,
-            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            dispatcher.getEventHandler(), mock(TaskCommunicatorManagerInterface.class),
             new Credentials(), new SystemClock(), user,
             mock(TaskHeartbeatHandler.class), mockAppContext);
     when(mockAppContext.getCurrentDAG()).thenReturn(dag);
@@ -965,7 +965,7 @@ public class TestVertexRecovery {
     DAGPlan dagPlan = createDAGPlan();
     dag =
         new DAGImpl(dagId, new Configuration(), dagPlan,
-            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            dispatcher.getEventHandler(), mock(TaskCommunicatorManagerInterface.class),
             new Credentials(), new SystemClock(), user,
             mock(TaskHeartbeatHandler.class), mockAppContext);
     when(mockAppContext.getCurrentDAG()).thenReturn(dag);

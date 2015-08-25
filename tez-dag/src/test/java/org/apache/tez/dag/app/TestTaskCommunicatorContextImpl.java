@@ -34,7 +34,7 @@ public class TestTaskCommunicatorContextImpl {
   @Test(timeout = 5000)
   public void testIsKnownContainer() {
     AppContext appContext = mock(AppContext.class);
-    TaskAttemptListenerImpTezDag tal = mock(TaskAttemptListenerImpTezDag.class);
+    TaskCommunicatorManager tal = mock(TaskCommunicatorManager.class);
 
     AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class), tal, mock(
         ContainerSignatureMatcher.class), appContext);

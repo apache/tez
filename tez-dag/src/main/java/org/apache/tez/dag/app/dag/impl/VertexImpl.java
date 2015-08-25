@@ -94,7 +94,7 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptEventInfo;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.RootInputInitializerManager;
@@ -212,7 +212,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   private final Lock readLock;
   private final Lock writeLock;
-  private final TaskAttemptListener taskAttemptListener;
+  private final TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private final Object tasksSyncHandle = new Object();
 
@@ -890,7 +890,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   public VertexImpl(TezVertexID vertexId, VertexPlan vertexPlan,
       String vertexName, Configuration dagConf, EventHandler eventHandler,
-      TaskAttemptListener taskAttemptListener, Clock clock,
+      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface, Clock clock,
       TaskHeartbeatHandler thh, boolean commitVertexOutputs,
       AppContext appContext, VertexLocationHint vertexLocationHint,
       Map<String, VertexGroupInfo> dagVertexGroups, TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption,
@@ -911,7 +911,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     this.appContext = appContext;
     this.commitVertexOutputs = commitVertexOutputs;
 
-    this.taskAttemptListener = taskAttemptListener;
+    this.taskCommunicatorManagerInterface = taskCommunicatorManagerInterface;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -2331,7 +2331,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return new TaskImpl(this.getVertexId(), taskIndex,
         this.eventHandler,
         vertexConf,
-        this.taskAttemptListener,
+        this.taskCommunicatorManagerInterface,
         this.clock,
         this.taskHeartbeatHandler,
         this.appContext,

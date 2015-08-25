@@ -40,7 +40,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -149,10 +148,10 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
-import org.apache.tez.dag.app.launcher.ContainerLauncherRouter;
+import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
-import org.apache.tez.dag.app.rm.NMCommunicatorEventType;
-import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
+import org.apache.tez.dag.app.rm.ContainerLauncherEventType;
+import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
@@ -236,16 +235,16 @@ public class DAGAppMaster extends AbstractService {
   private AppContext context;
   private Configuration amConf;
   private AsyncDispatcher dispatcher;
-  private ContainerLauncherRouter containerLauncherRouter;
+  private ContainerLauncherManager containerLauncherManager;
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
-  private TaskAttemptListener taskAttemptListener;
+  private TaskCommunicatorManagerInterface taskCommunicatorManager;
   private JobTokenSecretManager jobTokenSecretManager =
       new JobTokenSecretManager();
   private Token<JobTokenIdentifier> sessionToken;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
-  private TaskSchedulerEventHandler taskSchedulerEventHandler;
+  private TaskSchedulerManager taskSchedulerManager;
   private WebUIService webUIService;
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
@@ -472,13 +471,13 @@ public class DAGAppMaster extends AbstractService {
 
 
     //service to handle requests to TaskUmbilicalProtocol
-    taskAttemptListener = createTaskAttemptListener(context,
+    taskCommunicatorManager = createTaskCommunicatorManager(context,
         taskHeartbeatHandler, containerHeartbeatHandler, taskCommunicatorDescriptors);
-    addIfService(taskAttemptListener, true);
+    addIfService(taskCommunicatorManager, true);
 
     containerSignatureMatcher = createContainerSignatureMatcher();
     containers = new AMContainerMap(containerHeartbeatHandler,
-        taskAttemptListener, containerSignatureMatcher, context);
+        taskCommunicatorManager, containerSignatureMatcher, context);
     addIfService(containers, true);
     dispatcher.register(AMContainerEventType.class, containers);
 
@@ -521,29 +520,30 @@ public class DAGAppMaster extends AbstractService {
 
 
 
-    this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
+    this.taskSchedulerManager = new TaskSchedulerManager(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService,
         taskSchedulerDescriptors, isLocal);
-    addIfService(taskSchedulerEventHandler, true);
+    addIfService(taskSchedulerManager, true);
 
     if (enableWebUIService()) {
-      addIfServiceDependency(taskSchedulerEventHandler, webUIService);
+      addIfServiceDependency(taskSchedulerManager, webUIService);
     }
 
     if (isLastAMRetry) {
       LOG.info("AM will unregister as this is the last attempt"
           + ", currentAttempt=" + appAttemptID.getAttemptId()
           + ", maxAttempts=" + maxAppAttempts);
-      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+      this.taskSchedulerManager.setShouldUnregisterFlag();
     }
 
     dispatcher.register(AMSchedulerEventType.class,
-        taskSchedulerEventHandler);
-    addIfServiceDependency(taskSchedulerEventHandler, clientRpcServer);
+        taskSchedulerManager);
+    addIfServiceDependency(taskSchedulerManager, clientRpcServer);
 
-    this.containerLauncherRouter = createContainerLauncherRouter(containerLauncherDescriptors, isLocal);
-    addIfService(containerLauncherRouter, true);
-    dispatcher.register(NMCommunicatorEventType.class, containerLauncherRouter);
+    this.containerLauncherManager = createContainerLauncherManager(containerLauncherDescriptors,
+        isLocal);
+    addIfService(containerLauncherManager, true);
+    dispatcher.register(ContainerLauncherEventType.class, containerLauncherManager);
 
     historyEventHandler = createHistoryEventHandler(context);
     addIfService(historyEventHandler, true);
@@ -632,8 +632,8 @@ public class DAGAppMaster extends AbstractService {
   }
   
   @VisibleForTesting
-  protected TaskSchedulerEventHandler getTaskSchedulerEventHandler() {
-    return taskSchedulerEventHandler;
+  protected TaskSchedulerManager getTaskSchedulerManager() {
+    return taskSchedulerManager;
   }
 
   @VisibleForTesting
@@ -661,7 +661,7 @@ public class DAGAppMaster extends AbstractService {
         sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.INTERNAL_ERROR));
       } else {
         LOG.info("Internal Error. Finishing directly as no dag is active.");
-        this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+        this.taskSchedulerManager.setShouldUnregisterFlag();
         shutdownHandler.shutdown();
       }
       break;
@@ -673,7 +673,7 @@ public class DAGAppMaster extends AbstractService {
       System.out.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
       if (!isSession) {
         LOG.info("Not a session, AM will unregister as DAG has completed");
-        this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+        this.taskSchedulerManager.setShouldUnregisterFlag();
         _updateLoggers(currentDAG, "_post");
         setStateOnDAGCompletion();
         LOG.info("Shutting down on completion of dag:" +
@@ -722,7 +722,7 @@ public class DAGAppMaster extends AbstractService {
               + finishEvt.getDAGState()
               + ". Error. Shutting down.");
           state = DAGAppMasterState.ERROR;
-          this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+          this.taskSchedulerManager.setShouldUnregisterFlag();
           shutdownHandler.shutdown();
           break;
         }
@@ -741,11 +741,11 @@ public class DAGAppMaster extends AbstractService {
 
             // Leaving the taskSchedulerEventHandler here for now. Doesn't generate new events.
             // However, eventually it needs to be moved out.
-            this.taskSchedulerEventHandler.dagCompleted();
+            this.taskSchedulerManager.dagCompleted();
             state = DAGAppMasterState.IDLE;
           } else {
             LOG.info("Session shutting down now.");
-            this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+            this.taskSchedulerManager.setShouldUnregisterFlag();
             if (this.historyEventHandler.hasRecoveryFailed()) {
               state = DAGAppMasterState.FAILED;
             } else {
@@ -772,8 +772,8 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventDagCleanup cleanupEvent = (DAGAppMasterEventDagCleanup) event;
       LOG.info("Cleaning up DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
           cleanupEvent.getDag().getID());
-      containerLauncherRouter.dagComplete(cleanupEvent.getDag());
-      taskAttemptListener.dagComplete(cleanupEvent.getDag());
+      containerLauncherManager.dagComplete(cleanupEvent.getDag());
+      taskCommunicatorManager.dagComplete(cleanupEvent.getDag());
       nodes.dagComplete(cleanupEvent.getDag());
       containers.dagComplete(cleanupEvent.getDag());
       TezTaskAttemptID.clearCache();
@@ -785,9 +785,9 @@ public class DAGAppMaster extends AbstractService {
       break;
     case NEW_DAG_SUBMITTED:
       // Inform sub-components that a new DAG has been submitted.
-      taskSchedulerEventHandler.dagSubmitted();
-      containerLauncherRouter.dagSubmitted();
-      taskAttemptListener.dagSubmitted();
+      taskSchedulerManager.dagSubmitted();
+      containerLauncherManager.dagSubmitted();
+      taskCommunicatorManager.dagSubmitted();
       break;
     default:
       throw new TezUncheckedException(
@@ -917,7 +917,7 @@ public class DAGAppMaster extends AbstractService {
     // create single dag
     DAGImpl newDag =
         new DAGImpl(dagId, amConf, dagPB, dispatcher.getEventHandler(),
-            taskAttemptListener, dagCredentials, clock,
+            taskCommunicatorManager, dagCredentials, clock,
             appMasterUgi.getShortUserName(),
             taskHeartbeatHandler, context);
 
@@ -1048,13 +1048,13 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  protected TaskAttemptListener createTaskAttemptListener(AppContext context,
-                                                          TaskHeartbeatHandler thh,
-                                                          ContainerHeartbeatHandler chh,
-                                                          List<NamedEntityDescriptor> entityDescriptors) {
-    TaskAttemptListener lis =
-        new TaskAttemptListenerImpTezDag(context, thh, chh, entityDescriptors);
-    return lis;
+  protected TaskCommunicatorManagerInterface createTaskCommunicatorManager(AppContext context,
+                                                                           TaskHeartbeatHandler thh,
+                                                                           ContainerHeartbeatHandler chh,
+                                                                           List<NamedEntityDescriptor> entityDescriptors) {
+    TaskCommunicatorManagerInterface tcm =
+        new TaskCommunicatorManager(context, thh, chh, entityDescriptors);
+    return tcm;
   }
 
   protected TaskHeartbeatHandler createTaskHeartbeatHandler(AppContext context,
@@ -1074,10 +1074,11 @@ public class DAGAppMaster extends AbstractService {
     return chh;
   }
 
-  protected ContainerLauncherRouter createContainerLauncherRouter(List<NamedEntityDescriptor> containerLauncherDescriptors,
-                                                                  boolean isLocal) throws
+  protected ContainerLauncherManager createContainerLauncherManager(
+      List<NamedEntityDescriptor> containerLauncherDescriptors,
+      boolean isLocal) throws
       UnknownHostException {
-    return new ContainerLauncherRouter(context, taskAttemptListener, workingDirectory,
+    return new ContainerLauncherManager(context, taskCommunicatorManager, workingDirectory,
         containerLauncherDescriptors, isLocal);
   }
 
@@ -1101,12 +1102,12 @@ public class DAGAppMaster extends AbstractService {
     return dispatcher;
   }
 
-  public ContainerLauncherRouter getContainerLauncherRouter() {
-    return containerLauncherRouter;
+  public ContainerLauncherManager getContainerLauncherManager() {
+    return containerLauncherManager;
   }
 
-  public TaskAttemptListener getTaskAttemptListener() {
-    return taskAttemptListener;
+  public TaskCommunicatorManagerInterface getTaskCommunicatorManager() {
+    return taskCommunicatorManager;
   }
 
   public ContainerId getAppContainerId() {
@@ -1213,7 +1214,7 @@ public class DAGAppMaster extends AbstractService {
   public void shutdownTezAM() throws TezException {
     sessionStopped.set(true);
     synchronized (this) {
-      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+      this.taskSchedulerManager.setShouldUnregisterFlag();
       if (currentDAG != null
           && !currentDAG.isComplete()) {
         //send a DAG_KILL message
@@ -1473,8 +1474,8 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
-    public TaskSchedulerEventHandler getTaskScheduler() {
-      return taskSchedulerEventHandler;
+    public TaskSchedulerManager getTaskScheduler() {
+      return taskSchedulerManager;
     }
 
     @Override
@@ -1574,7 +1575,7 @@ public class DAGAppMaster extends AbstractService {
         throw new TezUncheckedException(
             "Cannot get ApplicationACLs before all services have started");
       }
-      return taskSchedulerEventHandler.getApplicationAcls();
+      return taskSchedulerManager.getApplicationAcls();
     }
 
     @Override
@@ -1805,7 +1806,7 @@ public class DAGAppMaster extends AbstractService {
 
     if (versionMismatch) {
       // Short-circuit and return as no DAG should not be run
-      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+      this.taskSchedulerManager.setShouldUnregisterFlag();
       shutdownHandler.shutdown();
       return;
     }
@@ -1825,7 +1826,7 @@ public class DAGAppMaster extends AbstractService {
       LOG.error("Error occurred when trying to recover data from previous attempt."
           + " Shutting down AM", e);
       this.state = DAGAppMasterState.ERROR;
-      this.taskSchedulerEventHandler.setShouldUnregisterFlag();
+      this.taskSchedulerManager.setShouldUnregisterFlag();
       shutdownHandler.shutdown();
       return;
     }
@@ -1929,7 +1930,7 @@ public class DAGAppMaster extends AbstractService {
 
 
   private void initiateStop() {
-    taskSchedulerEventHandler.initiateStop();
+    taskSchedulerManager.initiateStop();
   }
 
   @Override
@@ -1954,8 +1955,8 @@ public class DAGAppMaster extends AbstractService {
         LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData="
             + deleteTezScratchData);
       }
-      if (deleteTezScratchData && this.taskSchedulerEventHandler != null
-          && this.taskSchedulerEventHandler.hasUnregistered()) {
+      if (deleteTezScratchData && this.taskSchedulerManager != null
+          && this.taskSchedulerManager.hasUnregistered()) {
         // Delete tez scratch data dir
         if (this.tezSystemStagingDir != null) {
           try {
@@ -2208,7 +2209,7 @@ public class DAGAppMaster extends AbstractService {
         // Notify TaskScheduler that a SIGTERM has been received so that it
         // unregisters quickly with proper status
         LOG.info("DAGAppMaster received a signal. Signaling TaskScheduler");
-        appMaster.taskSchedulerEventHandler.setSignalled(true);
+        appMaster.taskSchedulerManager.setSignalled(true);
       }
 
       if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.INITED,

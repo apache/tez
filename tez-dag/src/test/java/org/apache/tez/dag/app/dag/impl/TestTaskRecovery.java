@@ -46,7 +46,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -189,7 +189,7 @@ public class TestTaskRecovery {
     when(mockAppContext.getHistoryHandler()).thenReturn(mockHistoryEventHandler);
     task =
         new TaskImpl(vertexId, 0, dispatcher.getEventHandler(),
-            new Configuration(), mock(TaskAttemptListener.class),
+            new Configuration(), mock(TaskCommunicatorManagerInterface.class),
             new SystemClock(), mock(TaskHeartbeatHandler.class),
             mockAppContext, false, Resource.newInstance(1, 1),
             mock(ContainerContext.class), mock(StateChangeNotifier.class), vertex);

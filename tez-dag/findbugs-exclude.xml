@@ -87,13 +87,13 @@
   </Match>
 
   <Match>
-    <Class name="~org\.apache\.tez\.dag\.app\.rm\.TaskSchedulerEventHandler"/>
+    <Class name="~org\.apache\.tez\.dag\.app\.rm\.TaskSchedulerManager"/>
     <Bug pattern="BC_UNCONFIRMED_CAST"/>
   </Match>
 
   <Match>
-    <Class name="org.apache.tez.dag.app.launcher.ContainerLauncherRouter" />
-    <Method name="handle" params="org.apache.tez.dag.app.rm.NMCommunicatorEvent" returns="void" />
+    <Class name="org.apache.tez.dag.app.launcher.ContainerLauncherManager" />
+    <Method name="handle" params="org.apache.tez.dag.app.rm.ContainerLauncherEvent" returns="void" />
     <Bug pattern="BC_UNCONFIRMED_CAST" />
   </Match>
 
@@ -151,7 +151,7 @@
       <Field name="context"/>
       <Field name="currentDAG"/>
       <Field name="state"/>
-      <Field name="taskSchedulerEventHandler"/>
+      <Field name="taskSchedulerManager"/>
       <Field name="versionMismatch"/>
       <Field name="versionMismatchDiagnostics"/>
       <Field name="containers"/>
@@ -162,13 +162,6 @@
       <Field name="recoveryEnabled"/>
       <Field name="isLocal"/>
     </Or>
-    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
-  </Match>
-
-  <!-- TEZ-1955 -->
-  <Match>
-    <Class name="org.apache.tez.dag.app.rm.TaskSchedulerEventHandler"/>
-    <Field name="taskScheduler"/>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>
 

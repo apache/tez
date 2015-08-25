@@ -50,15 +50,15 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminatedBySystem;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminating;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventNodeFailed;
 import org.apache.tez.dag.app.rm.AMSchedulerEventDeallocateContainer;
-import org.apache.tez.dag.app.rm.NMCommunicatorLaunchRequestEvent;
-import org.apache.tez.dag.app.rm.NMCommunicatorStopRequestEvent;
+import org.apache.tez.dag.app.rm.ContainerLauncherLaunchRequestEvent;
+import org.apache.tez.dag.app.rm.ContainerLauncherStopRequestEvent;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.ContainerStoppedEvent;
@@ -81,7 +81,7 @@ public class AMContainerImpl implements AMContainer {
   private final Container container;
   private final AppContext appContext;
   private final ContainerHeartbeatHandler containerHeartbeatHandler;
-  private final TaskAttemptListener taskAttemptListener;
+  private final TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
   protected final EventHandler eventHandler;
   private final ContainerSignatureMatcher signatureMatcher;
   private final int schedulerId;
@@ -308,7 +308,7 @@ public class AMContainerImpl implements AMContainer {
   // Attempting to use a container based purely on reosurces required, etc needs
   // additional change - JvmID, YarnChild, etc depend on TaskType.
   public AMContainerImpl(Container container, ContainerHeartbeatHandler chh,
-      TaskAttemptListener tal, ContainerSignatureMatcher signatureMatcher,
+      TaskCommunicatorManagerInterface tal, ContainerSignatureMatcher signatureMatcher,
       AppContext appContext, int schedulerId, int launcherId, int taskCommId) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
@@ -319,7 +319,7 @@ public class AMContainerImpl implements AMContainer {
     this.signatureMatcher = signatureMatcher;
     this.appContext = appContext;
     this.containerHeartbeatHandler = chh;
-    this.taskAttemptListener = tal;
+    this.taskCommunicatorManagerInterface = tal;
     this.failedAssignments = new LinkedList<TezTaskAttemptID>();
     this.schedulerId = schedulerId;
     this.launcherId = launcherId;
@@ -466,7 +466,7 @@ public class AMContainerImpl implements AMContainer {
           containerContext.getLocalResources(),
           containerContext.getEnvironment(),
           containerContext.getJavaOpts(),
-          container.taskAttemptListener.getTaskCommunicator(container.taskCommId).getAddress(), containerContext.getCredentials(),
+          container.taskCommunicatorManagerInterface.getTaskCommunicator(container.taskCommId).getAddress(), containerContext.getCredentials(),
           container.appContext, container.container.getResource(),
           container.appContext.getAMConf());
 
@@ -1095,28 +1095,28 @@ public class AMContainerImpl implements AMContainer {
   }
 
   protected void sendStartRequestToNM(ContainerLaunchContext clc) {
-    sendEvent(new NMCommunicatorLaunchRequestEvent(clc, container, launcherId, schedulerId, taskCommId));
+    sendEvent(new ContainerLauncherLaunchRequestEvent(clc, container, launcherId, schedulerId, taskCommId));
   }
 
   protected void sendStopRequestToNM() {
-    sendEvent(new NMCommunicatorStopRequestEvent(containerId,
+    sendEvent(new ContainerLauncherStopRequestEvent(containerId,
         container.getNodeId(), container.getContainerToken(), launcherId, schedulerId, taskCommId));
   }
 
   protected void unregisterAttemptFromListener(TezTaskAttemptID attemptId, TaskAttemptEndReason endReason, String diagnostics) {
-    taskAttemptListener.unregisterTaskAttempt(attemptId, taskCommId, endReason, diagnostics);
+    taskCommunicatorManagerInterface.unregisterTaskAttempt(attemptId, taskCommId, endReason, diagnostics);
   }
 
   protected void registerAttemptWithListener(AMContainerTask amContainerTask) {
-    taskAttemptListener.registerTaskAttempt(amContainerTask, this.containerId, taskCommId);
+    taskCommunicatorManagerInterface.registerTaskAttempt(amContainerTask, this.containerId, taskCommId);
   }
 
   protected void registerWithTAListener() {
-    taskAttemptListener.registerRunningContainer(containerId, taskCommId);
+    taskCommunicatorManagerInterface.registerRunningContainer(containerId, taskCommId);
   }
 
   protected void unregisterFromTAListener(ContainerEndReason endReason, String diagnostics) {
-    this.taskAttemptListener.unregisterRunningContainer(containerId, taskCommId, endReason, diagnostics);
+    this.taskCommunicatorManagerInterface.unregisterRunningContainer(containerId, taskCommId, endReason, diagnostics);
   }
 
   protected void registerWithContainerListener() {

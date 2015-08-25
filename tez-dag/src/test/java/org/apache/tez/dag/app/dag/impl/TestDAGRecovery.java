@@ -37,7 +37,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.DAGTerminationCause;
@@ -91,7 +91,7 @@ public class TestDAGRecovery {
     DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
     dag =
         new DAGImpl(dagId, new Configuration(), dagPlan, mockEventHandler,
-            mock(TaskAttemptListener.class), new Credentials(),
+            mock(TaskCommunicatorManagerInterface.class), new Credentials(),
             new SystemClock(), user, mock(TaskHeartbeatHandler.class),
             mockAppContext);
   }

@@ -47,7 +47,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   // TODO TEZ-2003 (post) TEZ-2669 Propagate errors baack to the AM with proper error reporting
 
   private final AppContext context;
-  private final TaskAttemptListenerImpTezDag taskAttemptListener;
+  private final TaskCommunicatorManager taskCommunicatorManager;
   private final int taskCommunicatorIndex;
   private final ReentrantReadWriteLock.ReadLock dagChangedReadLock;
   private final ReentrantReadWriteLock.WriteLock dagChangedWriteLock;
@@ -56,11 +56,11 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   private DAG dag;
 
   public TaskCommunicatorContextImpl(AppContext appContext,
-                                     TaskAttemptListenerImpTezDag taskAttemptListener,
+                                     TaskCommunicatorManager taskCommunicatorManager,
                                      UserPayload userPayload,
                                      int taskCommunicatorIndex) {
     this.context = appContext;
-    this.taskAttemptListener = taskAttemptListener;
+    this.taskCommunicatorManager = taskCommunicatorManager;
     this.userPayload = userPayload;
     this.taskCommunicatorIndex = taskCommunicatorIndex;
 
@@ -86,13 +86,13 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public boolean canCommit(TezTaskAttemptID taskAttemptId) throws IOException {
-    return taskAttemptListener.canCommit(taskAttemptId);
+    return taskCommunicatorManager.canCommit(taskAttemptId);
   }
 
   @Override
   public TaskHeartbeatResponse heartbeat(TaskHeartbeatRequest request) throws IOException,
       TezException {
-    return taskAttemptListener.heartbeat(request);
+    return taskCommunicatorManager.heartbeat(request);
   }
 
   @Override
@@ -108,31 +108,31 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public void taskAlive(TezTaskAttemptID taskAttemptId) {
-    taskAttemptListener.taskAlive(taskAttemptId);
+    taskCommunicatorManager.taskAlive(taskAttemptId);
   }
 
   @Override
   public void containerAlive(ContainerId containerId) {
     if (isKnownContainer(containerId)) {
-      taskAttemptListener.containerAlive(containerId);
+      taskCommunicatorManager.containerAlive(containerId);
     }
   }
 
   @Override
   public void taskStartedRemotely(TezTaskAttemptID taskAttemptId, ContainerId containerId) {
-    taskAttemptListener.taskStartedRemotely(taskAttemptId, containerId);
+    taskCommunicatorManager.taskStartedRemotely(taskAttemptId, containerId);
   }
 
   @Override
   public void taskKilled(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,
                          @Nullable String diagnostics) {
-    taskAttemptListener.taskKilled(taskAttemptId, taskAttemptEndReason, diagnostics);
+    taskCommunicatorManager.taskKilled(taskAttemptId, taskAttemptEndReason, diagnostics);
   }
 
   @Override
   public void taskFailed(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,
                          @Nullable String diagnostics) {
-    taskAttemptListener.taskFailed(taskAttemptId, taskAttemptEndReason, diagnostics);
+    taskCommunicatorManager.taskFailed(taskAttemptId, taskAttemptEndReason, diagnostics);
 
   }
 
@@ -196,7 +196,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   @Override
   public void onStateUpdated(VertexStateUpdate event) {
     try {
-      taskAttemptListener.vertexStateUpdateNotificationReceived(event, taskCommunicatorIndex);
+      taskCommunicatorManager.vertexStateUpdateNotificationReceived(event, taskCommunicatorIndex);
     } catch (Exception e) {
       throw new TezUncheckedException(e);
     }

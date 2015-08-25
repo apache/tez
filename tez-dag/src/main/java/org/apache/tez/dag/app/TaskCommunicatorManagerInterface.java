@@ -28,7 +28,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 /**
  * This class listens for changes to the state of a Task.
  */
-public interface TaskAttemptListener {
+public interface TaskCommunicatorManagerInterface {
 
   void registerRunningContainer(ContainerId containerId, int taskCommId);
 

@@ -82,7 +82,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGReport;
@@ -160,7 +160,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final Lock readLock;
   private final Lock writeLock;
   private final String dagName;
-  private final TaskAttemptListener taskAttemptListener;
+  private final TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private final Object tasksSyncHandle = new Object();
 
@@ -489,7 +489,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       Configuration amConf,
       DAGPlan jobPlan,
       EventHandler eventHandler,
-      TaskAttemptListener taskAttemptListener,
+      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
       Credentials dagCredentials,
       Clock clock,
       String appUserName,
@@ -511,7 +511,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.clock = clock;
     this.appContext = appContext;
 
-    this.taskAttemptListener = taskAttemptListener;
+    this.taskCommunicatorManagerInterface = taskCommunicatorManagerInterface;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -1538,7 +1538,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     VertexImpl v = new VertexImpl(
         vertexId, vertexPlan, vertexName, dag.dagConf,
-        dag.eventHandler, dag.taskAttemptListener,
+        dag.eventHandler, dag.taskCommunicatorManagerInterface,
         dag.clock, dag.taskHeartbeatHandler,
         !dag.commitAllOutputsOnSuccess, dag.appContext, vertexLocationHint,
         dag.vertexGroups, dag.taskSpecificLaunchCmdOption, dag.entityUpdateTracker);

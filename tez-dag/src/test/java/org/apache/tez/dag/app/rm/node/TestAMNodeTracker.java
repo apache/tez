@@ -44,7 +44,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
-import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
+import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
@@ -186,11 +186,11 @@ public class TestAMNodeTracker {
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
-    TaskSchedulerEventHandler taskSchedulerEventHandler =
-        mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
     dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
-    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
@@ -209,11 +209,11 @@ public class TestAMNodeTracker {
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
-    TaskSchedulerEventHandler taskSchedulerEventHandler =
-        mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
     dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
-    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
@@ -232,11 +232,11 @@ public class TestAMNodeTracker {
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
-    TaskSchedulerEventHandler taskSchedulerEventHandler =
-        mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
     dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
-    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
@@ -260,11 +260,11 @@ public class TestAMNodeTracker {
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
-    TaskSchedulerEventHandler taskSchedulerEventHandler =
-        mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
     dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
-    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
     amNodeTracker.init(conf);
     amNodeTracker.start();
     try {
@@ -283,11 +283,11 @@ public class TestAMNodeTracker {
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
-    TaskSchedulerEventHandler taskSchedulerEventHandler =
-        mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
     dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
-    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
     amNodeTracker.init(conf);
     amNodeTracker.start();
     try {
@@ -306,11 +306,11 @@ public class TestAMNodeTracker {
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     AMContainerMap amContainerMap = mock(AMContainerMap.class);
-    TaskSchedulerEventHandler taskSchedulerEventHandler =
-        mock(TaskSchedulerEventHandler.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
     dispatcher.register(AMNodeEventType.class, amNodeTracker);
     dispatcher.register(AMContainerEventType.class, amContainerMap);
-    dispatcher.register(AMSchedulerEventType.class, taskSchedulerEventHandler);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
     amNodeTracker.init(conf);
     amNodeTracker.start();
     try {

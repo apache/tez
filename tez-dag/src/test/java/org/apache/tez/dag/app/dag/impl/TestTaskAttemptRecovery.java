@@ -42,7 +42,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -146,7 +146,7 @@ public class TestTaskAttemptRecovery {
         TezTaskID.fromString("task_1407371892933_0001_1_00_000000");
     ta =
         new TaskAttemptImpl(taskId, 0, mockEventHandler,
-            mock(TaskAttemptListener.class), new Configuration(),
+            mock(TaskCommunicatorManagerInterface.class), new Configuration(),
             new SystemClock(), mock(TaskHeartbeatHandler.class),
             mockAppContext, false, Resource.newInstance(1, 1),
             mock(ContainerContext.class), false, mockTask);

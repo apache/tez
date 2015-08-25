@@ -56,7 +56,7 @@ import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Task;
@@ -115,7 +115,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .getProperty("line.separator");
 
   protected final Configuration conf;
-  protected final TaskAttemptListener taskAttemptListener;
+  protected final TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
   protected final TaskHeartbeatHandler taskHeartbeatHandler;
   protected final EventHandler eventHandler;
   private final TezTaskID taskId;
@@ -341,7 +341,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   public TaskImpl(TezVertexID vertexId, int taskIndex,
       EventHandler eventHandler, Configuration conf,
-      TaskAttemptListener taskAttemptListener,
+      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
       Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
       boolean leafVertex, Resource resource,
       ContainerContext containerContext,
@@ -357,7 +357,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     maxFailedAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
                               TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
     taskId = TezTaskID.getInstance(vertexId, taskIndex);
-    this.taskAttemptListener = taskAttemptListener;
+    this.taskCommunicatorManagerInterface = taskCommunicatorManagerInterface;
     this.taskHeartbeatHandler = thh;
     this.eventHandler = eventHandler;
     this.appContext = appContext;
@@ -817,7 +817,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   
   TaskAttemptImpl createAttempt(int attemptNumber, TezTaskAttemptID schedulingCausalTA) {
     return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
-        taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
+        taskCommunicatorManagerInterface, conf, clock, taskHeartbeatHandler, appContext,
         (failedAttempts > 0), taskResource, containerContext, leafVertex, this, schedulingCausalTA);
   }
 

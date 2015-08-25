@@ -60,8 +60,8 @@ import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.app.launcher.ContainerLauncherRouter;
-import org.apache.tez.dag.app.rm.NMCommunicatorEvent;
+import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
+import org.apache.tez.dag.app.rm.ContainerLauncherEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -122,13 +122,13 @@ public class MockDAGAppMaster extends DAGAppMaster {
   // It can be used to preempt the container for a given task
   public class MockContainerLauncher extends ContainerLauncher implements Runnable {
 
-    BlockingQueue<NMCommunicatorEvent> eventQueue = new LinkedBlockingQueue<NMCommunicatorEvent>();
+    BlockingQueue<ContainerLauncherEvent> eventQueue = new LinkedBlockingQueue<ContainerLauncherEvent>();
     Thread eventHandlingThread;
     ListeningExecutorService executorService;
     
     Map<ContainerId, ContainerData> containers = Maps.newConcurrentMap();
     ArrayBlockingQueue<Worker> workers;
-    TaskAttemptListenerImpTezDag taListener;
+    TaskCommunicatorManager taskCommunicatorManager;
     TezTaskCommunicatorImpl taskCommunicator;
     
     AtomicBoolean startScheduling = new AtomicBoolean(true);
@@ -187,8 +187,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
     
     @Override
     public void start() throws Exception {
-      taListener = (TaskAttemptListenerImpTezDag) getTaskAttemptListener();
-      taskCommunicator = (TezTaskCommunicatorImpl) taListener.getTaskCommunicator(0);
+      taskCommunicatorManager = (TaskCommunicatorManager) getTaskCommunicatorManager();
+      taskCommunicator = (TezTaskCommunicatorImpl) taskCommunicatorManager.getTaskCommunicator(0);
       eventHandlingThread = new Thread(this);
       eventHandlingThread.start();
       ExecutorService rawExecutor = Executors.newFixedThreadPool(handlerConcurrency,
@@ -256,7 +256,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     }
     
     public void preemptContainer(ContainerData cData) {
-      getTaskSchedulerEventHandler().containerCompleted(0, null,
+      getTaskSchedulerManager().containerCompleted(0, null,
           ContainerStatus.newInstance(cData.cId, null, "Preempted", ContainerExitStatus.PREEMPTED));
       cData.clear();
     }
@@ -495,7 +495,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       throw new TezUncheckedException(e);
     }
     containerLauncherContext =
-        new ContainerLauncherContextImpl(getContext(), getTaskAttemptListener(), userPayload);
+        new ContainerLauncherContextImpl(getContext(), getTaskCommunicatorManager(), userPayload);
     containerLauncher = new MockContainerLauncher(launcherGoFlag, containerLauncherContext);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
     this.initFailFlag = initFailFlag;
@@ -507,10 +507,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
   // use mock container launcher for tests
   @Override
-  protected ContainerLauncherRouter createContainerLauncherRouter(List<NamedEntityDescriptor> containerLauncherDescirptors,
-                                                                  boolean isLocal)
+  protected ContainerLauncherManager createContainerLauncherManager(
+      List<NamedEntityDescriptor> containerLauncherDescirptors,
+      boolean isLocal)
       throws UnknownHostException {
-    return new ContainerLauncherRouter(containerLauncher, getContext());
+    return new ContainerLauncherManager(containerLauncher, getContext());
   }
 
   @Override

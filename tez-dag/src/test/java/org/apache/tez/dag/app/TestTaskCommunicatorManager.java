@@ -220,7 +220,7 @@ public class TestTaskCommunicatorManager {
   }
 
 
-  static class TaskCommManagerForMultipleCommTest extends TaskAttemptListenerImpTezDag {
+  static class TaskCommManagerForMultipleCommTest extends TaskCommunicatorManager {
 
     // All variables setup as static since methods being overridden are invoked by the ContainerLauncherRouter ctor,
     // and regular variables will not be initialized at this point.

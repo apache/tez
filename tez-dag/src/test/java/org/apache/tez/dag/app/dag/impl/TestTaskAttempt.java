@@ -64,7 +64,7 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -145,7 +145,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
         false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
@@ -180,12 +180,12 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
         false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     TaskAttemptImpl taImplReScheduled = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), new Configuration(), new SystemClock(),
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
         mock(TaskHeartbeatHandler.class), mock(AppContext.class),
         true, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
@@ -243,7 +243,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
-        mock(TaskAttemptListener.class), new Configuration(),
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(),
         new SystemClock(), mock(TaskHeartbeatHandler.class),
         mock(AppContext.class), false, Resource.newInstance(1024,
             1), createFakeContainerContext(), false);
@@ -285,7 +285,7 @@ public class TestTaskAttempt {
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 0);
 
     MockEventHandler eventHandler = new MockEventHandler();
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -334,7 +334,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -354,7 +354,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -434,7 +434,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = new MockEventHandler();
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -454,7 +454,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -498,7 +498,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -518,7 +518,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -589,7 +589,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -610,7 +610,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -719,7 +719,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -740,7 +740,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -810,7 +810,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -830,7 +830,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -904,7 +904,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -924,7 +924,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -1006,7 +1006,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1026,7 +1026,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -1105,7 +1105,7 @@ public class TestTaskAttempt {
 
     MockEventHandler mockEh = new MockEventHandler();
     MockEventHandler eventHandler = spy(mockEh);
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1125,7 +1125,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -1249,7 +1249,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskAttemptListener taListener = createMockTaskAttemptListener();
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -1268,7 +1268,7 @@ public class TestTaskAttempt {
 
     AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
     containers.addContainerIfNew(container, 0, 0, 0);
 
@@ -1324,7 +1324,7 @@ public class TestTaskAttempt {
     public int taskAttemptStartedEventLogged = 0;
     public int taskAttemptFinishedEventLogged = 0;
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
-        EventHandler eventHandler, TaskAttemptListener tal,
+        EventHandler eventHandler, TaskCommunicatorManagerInterface tal,
         Configuration conf, Clock clock,
         TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
         boolean isRescheduled,
@@ -1378,8 +1378,8 @@ public class TestTaskAttempt {
         new Credentials(), new HashMap<String, String>(), "");
   }
 
-  private TaskAttemptListener createMockTaskAttemptListener() {
-    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
+  private TaskCommunicatorManagerInterface createMockTaskAttemptListener() {
+    TaskCommunicatorManagerInterface taListener = mock(TaskCommunicatorManagerInterface.class);
     TaskCommunicator taskComm = mock(TaskCommunicator.class);
     doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
     doReturn(taskComm).when(taListener).getTaskCommunicator(0);

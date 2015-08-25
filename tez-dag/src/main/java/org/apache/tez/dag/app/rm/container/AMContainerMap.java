@@ -31,19 +31,19 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 
 public class AMContainerMap extends AbstractService implements EventHandler<AMContainerEvent> {
 
   private static final Logger LOG = LoggerFactory.getLogger(AMContainerMap.class);
 
   private final ContainerHeartbeatHandler chh;
-  private final TaskAttemptListener tal;
+  private final TaskCommunicatorManagerInterface tal;
   private final AppContext context;
   private final ContainerSignatureMatcher containerSignatureMatcher;
   private final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
 
-  public AMContainerMap(ContainerHeartbeatHandler chh, TaskAttemptListener tal,
+  public AMContainerMap(ContainerHeartbeatHandler chh, TaskCommunicatorManagerInterface tal,
       ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
     super("AMContainerMaps");
     this.chh = chh;

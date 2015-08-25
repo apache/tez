@@ -50,7 +50,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.TaskAttemptListener;
+import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
@@ -85,7 +85,7 @@ public class TestTaskImpl {
   private final int partition = 1;
 
   private Configuration conf;
-  private TaskAttemptListener taskAttemptListener;
+  private TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private Credentials credentials;
   private Clock clock;
@@ -122,7 +122,7 @@ public class TestTaskImpl {
   @Before
   public void setup() {
     conf = new Configuration();
-    taskAttemptListener = mock(TaskAttemptListener.class);
+    taskCommunicatorManagerInterface = mock(TaskCommunicatorManagerInterface.class);
     taskHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     credentials = new Credentials();
     clock = new SystemClock();
@@ -151,7 +151,7 @@ public class TestTaskImpl {
     eventHandler = new TestEventHandler();
     
     mockTask = new MockTaskImpl(vertexId, partition,
-        eventHandler, conf, taskAttemptListener, clock,
+        eventHandler, conf, taskCommunicatorManagerInterface, clock,
         taskHeartbeatHandler, appContext, leafVertex,
         taskResource, containerContext, vertex);
     mockTaskSpec = mock(TaskSpec.class);
@@ -698,11 +698,11 @@ public class TestTaskImpl {
 
     public MockTaskImpl(TezVertexID vertexId, int partition,
         EventHandler eventHandler, Configuration conf,
-        TaskAttemptListener taskAttemptListener, Clock clock,
+        TaskCommunicatorManagerInterface taskCommunicatorManagerInterface, Clock clock,
         TaskHeartbeatHandler thh, AppContext appContext, boolean leafVertex,
         Resource resource,
         ContainerContext containerContext, Vertex vertex) {
-      super(vertexId, partition, eventHandler, conf, taskAttemptListener,
+      super(vertexId, partition, eventHandler, conf, taskCommunicatorManagerInterface,
           clock, thh, appContext, leafVertex, resource,
           containerContext, mock(StateChangeNotifier.class), vertex);
       this.vertex = vertex;
@@ -711,7 +711,7 @@ public class TestTaskImpl {
     @Override
     protected TaskAttemptImpl createAttempt(int attemptNumber, TezTaskAttemptID schedCausalTA) {
       MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getTaskId(),
-          attemptNumber, eventHandler, taskAttemptListener,
+          attemptNumber, eventHandler, taskCommunicatorManagerInterface,
           conf, clock, taskHeartbeatHandler, appContext,
           true, taskResource, containerContext, schedCausalTA);
       taskAttempts.add(attempt);
@@ -757,7 +757,7 @@ public class TestTaskImpl {
     private TaskAttemptState state = TaskAttemptState.NEW;
 
     public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
-        EventHandler eventHandler, TaskAttemptListener tal, Configuration conf,
+        EventHandler eventHandler, TaskCommunicatorManagerInterface tal, Configuration conf,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
         boolean isRescheduled,
         Resource resource, ContainerContext containerContext, TezTaskAttemptID schedCausalTA) {

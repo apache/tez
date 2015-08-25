@@ -21,16 +21,17 @@ package org.apache.tez.dag.app.rm;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 
-public class NMCommunicatorLaunchRequestEvent extends NMCommunicatorEvent {
+public class ContainerLauncherLaunchRequestEvent extends ContainerLauncherEvent {
 
   private final ContainerLaunchContext clc;
   private final Container container;
   // The task communicator index for the specific container being launched.
 
-  public NMCommunicatorLaunchRequestEvent(ContainerLaunchContext clc,
-      Container container, int launcherId, int schedulerId, int taskCommId) {
+  public ContainerLauncherLaunchRequestEvent(ContainerLaunchContext clc,
+                                             Container container, int launcherId, int schedulerId,
+                                             int taskCommId) {
     super(container.getId(), container.getNodeId(), container
-        .getContainerToken(), NMCommunicatorEventType.CONTAINER_LAUNCH_REQUEST,
+        .getContainerToken(), ContainerLauncherEventType.CONTAINER_LAUNCH_REQUEST,
         launcherId, schedulerId, taskCommId);
     this.clc = clc;
     this.container = container;
@@ -56,7 +57,7 @@ public class NMCommunicatorLaunchRequestEvent extends NMCommunicatorEvent {
       return false;
     }
 
-    NMCommunicatorLaunchRequestEvent that = (NMCommunicatorLaunchRequestEvent) o;
+    ContainerLauncherLaunchRequestEvent that = (ContainerLauncherLaunchRequestEvent) o;
 
     if (clc != null ? !clc.equals(that.clc) : that.clc != null) {
       return false;
