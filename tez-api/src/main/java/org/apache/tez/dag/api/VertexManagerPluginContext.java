@@ -167,6 +167,43 @@ public interface VertexManagerPluginContext {
       @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate);
 
+  /**
+   * API to reconfigure a {@link Vertex} that is reading root inputs based on
+   * the data read from the root inputs. Root inputs are external data sources
+   * that provide the initial data for the DAG and are added to the
+   * {@link Vertex} using the
+   * {@link Vertex#addDataSource(String, DataSourceDescriptor)} API. Typically,
+   * the parallelism of such vertices is determined at runtime by gathering
+   * information about the data source. This API may be used to set the
+   * parallelism of the vertex at runtime based on the data sources, as well as
+   * changing the specification for those inputs. In addition, changing
+   * parallelism is often accompanied by changing the {@link EdgeProperty} of
+   * the source {@link Edge} because event routing between source and
+   * destination tasks may need to be updated to account for the new task
+   * parallelism. This method can be called to update the parallelism multiple
+   * times until any of the tasks of the vertex have been scheduled (by invoking
+   * {@link #scheduleTasks(List)}. If needed, the original source edge
+   * properties may be obtained via {@link #getInputVertexEdgeProperties()}
+   * 
+   * @param parallelism
+   *          New number of tasks in the vertex
+   * @param locationHint
+   *          the placement policy for tasks specified at
+   *          {@link VertexLocationHint}s
+   * @param sourceEdgeProperties
+   *          Map with Key=name of {@link Edge} to be updated and Value=
+   *          {@link EdgeProperty}. The name of the Edge will be the
+   *          corresponding source vertex name.
+   * @param rootInputSpecUpdate
+   *          The key of the map is the name of the data source and the value is
+   *          the updated {@link InputSpecUpdate} for that data source. If none
+   *          specified, a default value is used. See {@link InputSpecUpdate}
+   *          for details.
+   */
+  public void reconfigureVertex(int parallelism,
+      @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeProperties,
+      @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate);
   
   /**
    * API to reconfigure a {@link Vertex} by changing its task parallelism. Task

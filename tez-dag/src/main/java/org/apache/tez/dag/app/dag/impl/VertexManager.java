@@ -173,6 +173,19 @@ public class VertexManager {
     }
     
     @Override
+    public synchronized void reconfigureVertex(int parallelism, VertexLocationHint vertexLocationHint,
+        Map<String, EdgeManagerPluginDescriptor> sourceEdgeProperties,
+        Map<String, InputSpecUpdate> rootInputSpecUpdate) {
+      checkAndThrowIfDone();
+      try {
+        managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeProperties,
+            rootInputSpecUpdate, true);
+      } catch (AMUserCodeException e) {
+        throw new TezUncheckedException(e);
+      }
+    }
+    
+    @Override
     public synchronized void reconfigureVertex(int parallelism,
         @Nullable VertexLocationHint locationHint,
         @Nullable Map<String, EdgeProperty> sourceEdgeProperties) {
