@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2731. Fix Tez GenericCounter performance bottleneck
   TEZ-2752. logUnsuccessful completion in Attempt should write original finish
   time to ATS
   TEZ-2755. Fix findbugs warning in TezClient

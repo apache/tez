@@ -21,6 +21,7 @@ package org.apache.tez.common.counters;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.Text;
@@ -35,7 +36,7 @@ public class GenericCounter extends AbstractCounter {
 
   private String name;
   private String displayName;
-  private long value = 0;
+  private final AtomicLong value = new AtomicLong(0);
 
   public GenericCounter() {
     // mostly for readFields
@@ -48,7 +49,7 @@ public class GenericCounter extends AbstractCounter {
   public GenericCounter(String name, String displayName, long value) {
     this.name = StringInterner.weakIntern(name);
     this.displayName = StringInterner.weakIntern(displayName);
-    this.value = value;
+    this.value.set(value);
   }
 
   @Override @Deprecated
@@ -60,7 +61,7 @@ public class GenericCounter extends AbstractCounter {
   public synchronized void readFields(DataInput in) throws IOException {
     name = StringInterner.weakIntern(Text.readString(in));
     displayName = in.readBoolean() ? StringInterner.weakIntern(Text.readString(in)) : name;
-    value = WritableUtils.readVLong(in);
+    value.set(WritableUtils.readVLong(in));
   }
 
   /**
@@ -74,7 +75,7 @@ public class GenericCounter extends AbstractCounter {
     if (distinctDisplayName) {
       Text.writeString(out, displayName);
     }
-    WritableUtils.writeVLong(out, value);
+    WritableUtils.writeVLong(out, value.get());
   }
 
   @Override
@@ -88,18 +89,18 @@ public class GenericCounter extends AbstractCounter {
   }
 
   @Override
-  public synchronized long getValue() {
-    return value;
+  public long getValue() {
+    return value.get();
   }
 
   @Override
-  public synchronized void setValue(long value) {
-    this.value = value;
+  public void setValue(long value) {
+    this.value.set(value);
   }
 
   @Override
-  public synchronized void increment(long incr) {
-    value += incr;
+  public void increment(long incr) {
+    value.addAndGet(incr);
   }
 
   @Override
