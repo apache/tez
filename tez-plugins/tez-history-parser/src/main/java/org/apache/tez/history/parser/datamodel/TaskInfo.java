@@ -28,7 +28,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 
-import org.apache.directory.api.util.Strings;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.codehaus.jettison.json.JSONException;
@@ -177,7 +176,8 @@ public class TaskInfo extends BaseInfo {
   public final List<TaskAttemptInfo> getTaskAttempts(final TaskAttemptState state) {
     return Collections.unmodifiableList(Lists.newLinkedList(Iterables.filter(Lists.newLinkedList
                     (attemptInfoMap.values()), new Predicate<TaskAttemptInfo>() {
-                  @Override public boolean apply(TaskAttemptInfo input) {
+                  @Override
+                  public boolean apply(TaskAttemptInfo input) {
                     return input.getStatus() != null && input.getStatus().equals(state.toString());
                   }
                 }
@@ -205,7 +205,7 @@ public class TaskInfo extends BaseInfo {
    * @return TaskAttemptInfo
    */
   public final TaskAttemptInfo getSuccessfulTaskAttempt() {
-    if (Strings.isNotEmpty(getSuccessfulAttemptId())) {
+    if (isNotNullOrEmpty(getSuccessfulAttemptId())) {
       for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
         if (attemptInfo.getTaskAttemptId().equals(getSuccessfulAttemptId())) {
           return attemptInfo;
@@ -349,5 +349,9 @@ public class TaskInfo extends BaseInfo {
     sb.append("vertexName=").append(getVertexInfo().getVertexName());
     sb.append("]");
     return sb.toString();
+  }
+
+  private static boolean isNotNullOrEmpty(String str) {
+    return str != null && !str.isEmpty();
   }
 }
