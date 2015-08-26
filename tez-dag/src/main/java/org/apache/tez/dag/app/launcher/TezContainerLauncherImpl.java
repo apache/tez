@@ -350,8 +350,6 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
 
     @Override
     public void run() {
-      LOG.info("Processing operation {}", event.toString());
-
       // Load ContainerManager tokens before creating a connection.
       // TODO: Do it only once per NodeManager.
       ContainerId containerID = event.getBaseOperation().getContainerId();

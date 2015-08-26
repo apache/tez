@@ -79,8 +79,6 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
     return "ContainerLaunchRequest{" +
         "nodeId=" + getNodeId() +
         ", containerId=" + getContainerId() +
-        ", clc=" + clc +
-        ", container=" + container +
         ", schedulerName='" + schedulerName + '\'' +
         ", taskCommName='" + taskCommName + '\'' +
         '}';

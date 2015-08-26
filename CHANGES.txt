@@ -10,6 +10,8 @@ INCOMPATIBLE CHANGES
   TEZ-2468. Change the minimum Java version to Java 7.
 
 ALL CHANGES:
+  TEZ-2743. Fix TezContainerLauncher logging tokens.
+  TEZ-2708. Rename classes and variables post TEZ-2003 changes.
   TEZ-2740. Create a reconfigureVertex alias for deprecated
   setVertexParallelism API
   TEZ-2690. Add critical path analyser
