@@ -2,7 +2,7 @@ Apache Tez Change Log
 =====================
 
 
-Release 0.8.0: Unreleased
+Release 0.8.0-alpha: 2015-08-29
 
 INCOMPATIBLE CHANGES
   TEZ-2048. Remove VertexManagerPluginContext.getTaskContainer()
