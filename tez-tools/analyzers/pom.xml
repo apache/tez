@@ -25,7 +25,27 @@
   <artifactId>tez-perf-analyzer</artifactId>
   <packaging>pom</packaging>
 
-  <modules>
-    <module>job-analyzer</module>
-  </modules>
+  <profiles>
+    <profile>
+      <id>hadoop24</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>job-analyzer</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>hadoop26</id>
+      <activation>
+        <property>
+          <name>!skipATS</name>
+        </property>
+      </activation>
+      <modules>
+        <module>job-analyzer</module>
+      </modules>
+    </profile>
+  </profiles>
+
 </project>
