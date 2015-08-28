@@ -39,6 +39,7 @@ import java.util.Map.Entry;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
+import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.slf4j.Logger;
@@ -419,7 +420,7 @@ public class TezClientUtils {
       AMConfiguration amConfig, Map<String, LocalResource> tezJarResources,
       Credentials sessionCreds, boolean tezLrsAsArchive,
       TezApiVersionInfo apiVersionInfo, HistoryACLPolicyManager historyACLPolicyManager,
-      ServicePluginsDescriptor servicePluginsDescriptor)
+      ServicePluginsDescriptor servicePluginsDescriptor, JavaOptsChecker javaOptsChecker)
       throws IOException, YarnException {
 
     Preconditions.checkNotNull(sessionCreds);
@@ -609,7 +610,7 @@ public class TezClientUtils {
     if(dag != null) {
       
       DAGPlan dagPB = prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive,
-          sessionCreds, servicePluginsDescriptor);
+          sessionCreds, servicePluginsDescriptor, javaOptsChecker);
 
       // emit protobuf DAG file style
       Path binaryPath = TezCommonUtils.getTezBinPlanStagingPath(tezSysStagingPath);
@@ -685,19 +686,22 @@ public class TezClientUtils {
   
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
-      Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor) throws IOException {
+      Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor,
+      JavaOptsChecker javaOptsChecker) throws IOException {
     return prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive, credentials,
-        null, servicePluginsDescriptor);
+        null, servicePluginsDescriptor, javaOptsChecker);
   }
 
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
       Credentials credentials, Map<String, String> additionalDAGConfigs,
-      ServicePluginsDescriptor servicePluginsDescriptor) throws IOException {
+      ServicePluginsDescriptor servicePluginsDescriptor,
+      JavaOptsChecker javaOptsChecker) throws IOException {
     Credentials dagCredentials = setupDAGCredentials(dag, credentials,
         amConfig.getTezConfiguration());
     return dag.createDag(amConfig.getTezConfiguration(), dagCredentials, tezJarResources,
-        amConfig.getBinaryConfLR(), tezLrsAsArchive, additionalDAGConfigs, servicePluginsDescriptor);
+        amConfig.getBinaryConfLR(), tezLrsAsArchive, additionalDAGConfigs, servicePluginsDescriptor,
+        javaOptsChecker);
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
@@ -726,21 +730,39 @@ public class TezClientUtils {
     }
     return StringUtils.join(vargs, " ").trim();
   }
-  
+
   @Private
-  public static String addDefaultsToTaskLaunchCmdOpts(String vOpts, Configuration conf) {
+  public static String addDefaultsToTaskLaunchCmdOpts(String vOpts, Configuration conf)
+      throws TezException {
+    return addDefaultsToTaskLaunchCmdOpts(vOpts, conf, null);
+  }
+
+  @Private
+  public static String addDefaultsToTaskLaunchCmdOpts(String vOpts, Configuration conf,
+      JavaOptsChecker javaOptsChecker) throws TezException {
     String vConfigOpts = "";
     String taskDefaultOpts = conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS,
         TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT);
     if (taskDefaultOpts != null && !taskDefaultOpts.isEmpty()) {
       vConfigOpts = taskDefaultOpts + " ";
     }
+    String defaultTaskCmdOpts = TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT;
+    if (vOpts != null && !vOpts.isEmpty()) {
+      // Only use defaults if nothing is specified by the user
+      defaultTaskCmdOpts = "";
+    }
+
     vConfigOpts = vConfigOpts + conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
-        TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT);
+        defaultTaskCmdOpts);
     if (vConfigOpts != null && !vConfigOpts.isEmpty()) {
       // Add options specified in the DAG at the end.
       vOpts = vConfigOpts + " " + vOpts;
     }
+
+    if (javaOptsChecker != null) {
+      javaOptsChecker.checkOpts(vOpts);
+    }
+
     return vOpts;
   }
 
@@ -986,6 +1008,7 @@ public class TezClientUtils {
     amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
         tezConf.getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
             TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
+
     return amOpts;
   }
 

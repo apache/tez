@@ -34,6 +34,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -327,7 +328,7 @@ public class TestDAGPlan {
     dag.addVertex(v1);
 
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null, null);
+      dag.createDag(new TezConfiguration(false), null, null, null, true);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("AM execution"));
@@ -336,7 +337,7 @@ public class TestDAGPlan {
     dag.setExecutionContext(VertexExecutionContext.createExecuteInContainers(true));
 
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null, null);
+      dag.createDag(new TezConfiguration(false), null, null, null, true);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("container execution"));
@@ -370,13 +371,14 @@ public class TestDAGPlan {
 
     // Should succeed. Default context is containers.
     dag.createDag(new TezConfiguration(false), null, null, null, true, null,
-        servicePluginsDescriptor);
+        servicePluginsDescriptor, null);
 
 
     // Set execute in AM should fail
     v1.setExecutionContext(VertexExecutionContext.createExecuteInAm(true));
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+          servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("AM execution"));
@@ -384,12 +386,14 @@ public class TestDAGPlan {
 
     // Valid context
     v1.setExecutionContext(validExecContext);
-    dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+    dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+        servicePluginsDescriptor, null);
 
     // Invalid task scheduler
     v1.setExecutionContext(invalidExecContext1);
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+          servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("testvertex"));
@@ -400,7 +404,8 @@ public class TestDAGPlan {
     // Invalid ContainerLauncher
     v1.setExecutionContext(invalidExecContext2);
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+          servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("testvertex"));
@@ -411,7 +416,8 @@ public class TestDAGPlan {
     // Invalid task comm
     v1.setExecutionContext(invalidExecContext3);
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null, servicePluginsDescriptor);
+      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+          servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("testvertex"));
@@ -456,7 +462,8 @@ public class TestDAGPlan {
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
     dag.setExecutionContext(defaultExecutionContext);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true, null, servicePluginsDescriptor);
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true, null,
+        servicePluginsDescriptor, null);
 
     assertEquals(2, dagProto.getVertexCount());
     assertEquals(1, dagProto.getEdgeCount());
@@ -481,4 +488,36 @@ public class TestDAGPlan {
     VertexPlan v2Proto = dagProto.getVertex(1);
     assertFalse(v2Proto.hasExecutionContext());
   }
+
+  @Test(timeout = 5000)
+  public void testInvalidJavaOpts() {
+    DAG dag = DAG.create("testDag");
+    ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
+    Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
+    v1.setTaskLaunchCmdOpts(" -XX:+UseG1GC ");
+
+    dag.addVertex(v1);
+
+    TezConfiguration conf = new TezConfiguration(false);
+    conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
+    try {
+      DAGPlan dagProto = dag.createDag(conf, null, null, null, true, null, null,
+          new JavaOptsChecker());
+      fail("Expected dag creation to fail for invalid java opts");
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Invalid/conflicting GC options"));
+    }
+
+    // Should not fail as java opts valid
+    conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:-UseParallelGC ");
+    DAGPlan dagProto1 = dag.createDag(conf, null, null, null, true, null, null,
+        new JavaOptsChecker());
+
+    // Should not fail as no checker enabled
+    conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
+    DAGPlan dagProto2 = dag.createDag(conf, null, null, null, true, null, null, null);
+
+  }
+
 }

@@ -33,6 +33,7 @@ import java.util.Stack;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
@@ -716,7 +717,7 @@ public class DAG {
                            Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
                            boolean tezLrsAsArchive) {
     return createDag(tezConf, extraCredentials, tezJarResources, binaryConfig, tezLrsAsArchive,
-        null, null);
+        null, null, null);
   }
 
   // create protobuf message describing DAG
@@ -724,7 +725,7 @@ public class DAG {
   public synchronized DAGPlan createDag(Configuration tezConf, Credentials extraCredentials,
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
       boolean tezLrsAsArchive, Map<String, String> additionalConfigs,
-                                        ServicePluginsDescriptor servicePluginsDescriptor) {
+      ServicePluginsDescriptor servicePluginsDescriptor, JavaOptsChecker javaOptsChecker) {
     verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
@@ -873,8 +874,15 @@ public class DAG {
       taskConfigBuilder.setNumTasks(vertexParallelism);
       taskConfigBuilder.setMemoryMb(vertexTaskResource.getMemory());
       taskConfigBuilder.setVirtualCores(vertexTaskResource.getVirtualCores());
-      taskConfigBuilder.setJavaOpts(
-          TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), tezConf));
+
+      try {
+        taskConfigBuilder.setJavaOpts(
+            TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), tezConf,
+                javaOptsChecker));
+      } catch (TezException e) {
+        throw new TezUncheckedException("Invalid TaskLaunchCmdOpts defined for Vertex "
+            + vertex.getName() + " : " + e.getMessage(), e);
+      }
 
       taskConfigBuilder.setTaskModule(vertex.getName());
       if (!vertexLRs.isEmpty()) {

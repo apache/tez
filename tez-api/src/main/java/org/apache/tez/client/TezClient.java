@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.common.RPCUtil;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
@@ -122,6 +123,7 @@ public class TezClient {
   @VisibleForTesting
   final ServicePluginsDescriptor servicePluginsDescriptor;
   private HistoryACLPolicyManager historyACLPolicyManager;
+  private JavaOptsChecker javaOptsChecker = null;
 
   private int preWarmDAGCounter = 0;
 
@@ -365,6 +367,28 @@ public class TezClient {
       }
     }
 
+    if (this.amConfig.getTezConfiguration().getBoolean(
+        TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED,
+        TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED_DEFAULT)) {
+      String javaOptsCheckerClassName = this.amConfig.getTezConfiguration().get(
+          TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS, "");
+      if (!javaOptsCheckerClassName.isEmpty()) {
+        try {
+          javaOptsChecker = ReflectionUtils.createClazzInstance(javaOptsCheckerClassName);
+        } catch (Exception e) {
+          LOG.warn("Failed to initialize configured Java Opts Checker"
+              + " (" + TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS
+              + ") , checkerClass=" + javaOptsCheckerClassName
+              + ". Disabling checker.", e);
+          javaOptsChecker = null;
+        }
+      } else {
+        javaOptsChecker = new JavaOptsChecker();
+      }
+
+    }
+
+
     if (isSession) {
       LOG.info("Session mode. Starting session.");
       TezClientUtils.processTezLocalCredentialsFile(sessionCredentials,
@@ -390,7 +414,7 @@ public class TezClient {
                 sessionAppId,
                 null, clientName, amConfig,
                 tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo,
-                historyACLPolicyManager, servicePluginsDescriptor);
+                historyACLPolicyManager, servicePluginsDescriptor, javaOptsChecker);
   
         // Set Tez Sessions to not retry on AM crashes if recovery is disabled
         if (!amConfig.getTezConfiguration().getBoolean(
@@ -473,7 +497,8 @@ public class TezClient {
 
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
-        usingTezArchiveDeploy, sessionCredentials, aclConfigs, servicePluginsDescriptor);
+        usingTezArchiveDeploy, sessionCredentials, aclConfigs, servicePluginsDescriptor,
+        javaOptsChecker);
 
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan).build();
@@ -807,7 +832,7 @@ public class TezClient {
           .createApplicationSubmissionContext( 
               appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
               usingTezArchiveDeploy, apiVersionInfo, historyACLPolicyManager,
-              servicePluginsDescriptor);
+              servicePluginsDescriptor, javaOptsChecker);
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId
           + ", dagName=" + dag.getName());

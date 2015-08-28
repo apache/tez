@@ -502,4 +502,26 @@ public class TestTezClient {
         amConf.getTezConfiguration().getBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, false));
   }
 
+  public static class InvalidChecker {
+    // No-op class
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidJavaOptsChecker1() throws YarnException, IOException, ServiceException,
+      TezException {
+    TezConfiguration conf = new TezConfiguration();
+    conf.set(TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS, "InvalidClassName");
+    TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+  }
+
+  @Test(timeout = 5000)
+  public void testInvalidJavaOptsChecker2() throws YarnException, IOException, ServiceException,
+      TezException {
+    TezConfiguration conf = new TezConfiguration();
+    conf.set(TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS, InvalidChecker.class.getName());
+    TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+  }
+
 }
