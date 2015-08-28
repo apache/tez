@@ -41,6 +41,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -565,11 +566,43 @@ public class TezClient {
                 ShutdownSessionRequestProto.newBuilder().build();
             proxy.shutdownSession(null, request);
             sessionShutdownSuccessful = true;
+            boolean asynchronousStop = amConfig.getTezConfiguration().getBoolean(
+                TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP,
+                TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT);
+            if (!asynchronousStop) {
+              LOG.info("Waiting until application is in a final state");
+              long currentTimeMillis = System.currentTimeMillis();
+              long timeKillIssued = currentTimeMillis;
+              long killTimeOut = amConfig.getTezConfiguration().getLong(
+                  TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS,
+                  TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS_DEFAULT);
+              ApplicationReport appReport = frameworkClient
+                  .getApplicationReport(sessionAppId);
+              while ((currentTimeMillis < timeKillIssued + killTimeOut)
+                  && !isJobInTerminalState(appReport.getYarnApplicationState())) {
+                try {
+                  Thread.sleep(1000L);
+                } catch (InterruptedException ie) {
+                  /** interrupted, just break */
+                  break;
+                }
+                currentTimeMillis = System.currentTimeMillis();
+                appReport = frameworkClient.getApplicationReport(sessionAppId);
+              }
+
+              if (!isJobInTerminalState(appReport.getYarnApplicationState())) {
+                frameworkClient.killApplication(sessionAppId);
+              }
+            }
           }
         } catch (TezException e) {
           LOG.info("Failed to shutdown Tez Session via proxy", e);
         } catch (ServiceException e) {
           LOG.info("Failed to shutdown Tez Session via proxy", e);
+        } catch (ApplicationNotFoundException e) {
+          LOG.info("Failed to kill nonexistent application " + sessionAppId, e);
+        } catch (YarnException e) {
+          throw new TezException(e);
         }
         if (!sessionShutdownSuccessful) {
           LOG.info("Could not connect to AM, killing session via YARN"
@@ -589,6 +622,11 @@ public class TezClient {
         frameworkClient.close();
       }
     }
+  }
+  private boolean isJobInTerminalState(YarnApplicationState yarnApplicationState) {
+    return (yarnApplicationState == YarnApplicationState.FINISHED
+        || yarnApplicationState == YarnApplicationState.FAILED
+        || yarnApplicationState == YarnApplicationState.KILLED);
   }
 
   /**

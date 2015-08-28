@@ -1286,4 +1286,23 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "java.opts.checker.enabled";
   public static final boolean TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED_DEFAULT = true;
 
+  /**
+   * Long value. Time interval, in milliseconds, for client to wait during client-requested
+   * AM shutdown before issuing a hard kill to the RM for this application.
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.CLIENT)
+  public static final String TEZ_CLIENT_HARD_KILL_TIMEOUT_MS = TEZ_PREFIX + "client.timeout-ms";
+
+  public static final long TEZ_CLIENT_HARD_KILL_TIMEOUT_MS_DEFAULT = 30 * 1000L;
+
+  /**
+   * Boolean value. Backwards compatibility setting. Changes TezClient stop to be a
+   * synchronous call waiting until AM is in a final state before returning to the user.
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.CLIENT)
+  public static final String TEZ_CLIENT_ASYNCHRONOUS_STOP = TEZ_PREFIX + "client.asynchronous-stop";
+
+  public static final boolean TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT = true;
 }

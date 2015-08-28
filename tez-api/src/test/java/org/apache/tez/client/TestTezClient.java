@@ -36,6 +36,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,6 +81,7 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.RpcController;
 
 public class TestTezClient {
+  static final long HARD_KILL_TIMEOUT = 1500L;
 
   class TezClientForTest extends TezClient {
     TezYarnClient mockTezYarnClient;
@@ -125,6 +127,8 @@ public class TestTezClient {
     }
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
+    conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
+    conf.setLong(TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS, HARD_KILL_TIMEOUT);
     TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
 
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
@@ -524,4 +528,38 @@ public class TestTezClient {
     client.start();
   }
 
+  @Test(timeout = 5000)
+  public void testStopRetriesUntilTerminalState() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.NEW).thenReturn(YarnApplicationState.KILLED);
+    try {
+      client.stop();
+    } catch (Exception e) {
+      Assert.fail("Expected ApplicationNotFoundException");
+    }
+    verify(client.mockYarnClient, atLeast(2)).getApplicationReport(client.mockAppId);
+  }
+
+  @Test(timeout = 5000)
+  public void testStopRetriesUntilTimeout() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.NEW);
+    long start = System.currentTimeMillis();
+    try {
+      client.stop();
+    } catch (Exception e) {
+      Assert.fail("Stop should complete without exception: " + e);
+    }
+    long end = System.currentTimeMillis();
+    verify(client.mockYarnClient, atLeast(2)).getApplicationReport(client.mockAppId);
+    Assert.assertTrue("Stop ended before timeout", end - start > HARD_KILL_TIMEOUT);
+  }
 }
