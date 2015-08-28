@@ -1183,12 +1183,7 @@ public class DAGAppMaster extends AbstractService {
         //send a DAG_KILL message
         LOG.info("Sending a kill event to the current DAG"
             + ", dagId=" + currentDAG.getID());
-        try {
-          logDAGKillRequestEvent(currentDAG.getID(), true);
-        } catch (IOException e) {
-          throw new TezException(e);
-        }
-        sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.DAG_KILL));
+        tryKillDAG(currentDAG);
       } else {
         LOG.info("No current running DAG, shutting down the AM");
         if (isSession && !state.equals(DAGAppMasterState.ERROR)) {
