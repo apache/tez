@@ -1278,4 +1278,26 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_CLIENT_ASYNCHRONOUS_STOP = TEZ_PREFIX + "client.asynchronous-stop";
 
   public static final boolean TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT = true;
+
+  /**
+   * String value.
+   * Ability to provide a different implementation to check/verify java opts defined
+   * for vertices/tasks.
+   * Class has to be an instance of JavaOptsChecker
+   */
+  @Private
+  @ConfigurationScope(Scope.CLIENT)
+  public static final String TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS =
+      TEZ_PREFIX + "java.opts.checker.class";
+
+  /**
+   * Boolean value. Default true.
+   * Ability to disable the Java Opts Checker
+   */
+  @Private
+  @ConfigurationScope(Scope.CLIENT)
+  public static final String TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED =
+      TEZ_PREFIX + "java.opts.checker.enabled";
+  public static final boolean TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED_DEFAULT = true;
+
 }

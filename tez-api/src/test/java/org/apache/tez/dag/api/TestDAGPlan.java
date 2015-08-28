@@ -34,6 +34,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -311,4 +312,36 @@ public class TestDAGPlan {
     assertNotNull(fetchedCredentials.getToken(new Text("Token1")));
     assertNotNull(fetchedCredentials.getToken(new Text("Token2")));
   }
+
+  @Test(timeout = 5000)
+  public void testInvalidJavaOpts() {
+    DAG dag = DAG.create("testDag");
+    ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
+    Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
+    v1.setTaskLaunchCmdOpts(" -XX:+UseG1GC ");
+
+    dag.addVertex(v1);
+
+    TezConfiguration conf = new TezConfiguration(false);
+    conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
+    try {
+      DAGPlan dagProto = dag.createDag(conf, null, null, null, true, null,
+          new JavaOptsChecker());
+      fail("Expected dag creation to fail for invalid java opts");
+    } catch (TezUncheckedException e) {
+      Assert.assertTrue(e.getMessage().contains("Invalid/conflicting GC options"));
+    }
+
+    // Should not fail as java opts valid
+    conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:-UseParallelGC ");
+    DAGPlan dagProto1 = dag.createDag(conf, null, null, null, true, null,
+        new JavaOptsChecker());
+
+    // Should not fail as no checker enabled
+    conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
+    DAGPlan dagProto2 = dag.createDag(conf, null, null, null, true, null, null);
+
+  }
+
 }

@@ -32,6 +32,7 @@ import java.util.Stack;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
+import org.apache.tez.common.JavaOptsChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -692,14 +693,15 @@ public class DAG {
                            Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
                            boolean tezLrsAsArchive) {
     return createDag(tezConf, extraCredentials, tezJarResources, binaryConfig, tezLrsAsArchive,
-        null);
+        null, null);
   }
 
   // create protobuf message describing DAG
   @Private
   public synchronized DAGPlan createDag(Configuration tezConf, Credentials extraCredentials,
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
-      boolean tezLrsAsArchive, Map<String, String> additionalConfigs) {
+      boolean tezLrsAsArchive, Map<String, String> additionalConfigs,
+      JavaOptsChecker javaOptsChecker) {
     verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
@@ -828,8 +830,15 @@ public class DAG {
       taskConfigBuilder.setNumTasks(vertexParallelism);
       taskConfigBuilder.setMemoryMb(vertexTaskResource.getMemory());
       taskConfigBuilder.setVirtualCores(vertexTaskResource.getVirtualCores());
-      taskConfigBuilder.setJavaOpts(
-          TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), tezConf));
+
+      try {
+        taskConfigBuilder.setJavaOpts(
+            TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vertex.getTaskLaunchCmdOpts(), tezConf,
+                javaOptsChecker));
+      } catch (TezException e) {
+        throw new TezUncheckedException("Invalid TaskLaunchCmdOpts defined for Vertex "
+            + vertex.getName() + " : " + e.getMessage(), e);
+      }
 
       taskConfigBuilder.setTaskModule(vertex.getName());
       if (!vertexLRs.isEmpty()) {
