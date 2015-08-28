@@ -2064,10 +2064,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
 
   VertexState finished(VertexState finalState,
-      VertexTerminationCause terminationCause, String diag) {
+      VertexTerminationCause termCause, String diag) {
     if (finishTime == 0) setFinishTime();
-    if (terminationCause != null) {
-      trySetTerminationCause(terminationCause);
+    if (termCause != null) {
+      trySetTerminationCause(termCause);
     }
     if (rootInputInitializerManager != null) {
       rootInputInitializerManager.shutdown();

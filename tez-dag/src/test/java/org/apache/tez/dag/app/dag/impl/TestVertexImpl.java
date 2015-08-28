@@ -2936,6 +2936,8 @@ public class TestVertexImpl {
         StringUtils.join(v3.getDiagnostics(), ",").toLowerCase(Locale.ENGLISH);
     assertTrue(diagnostics.contains(
         "vertex received kill while in running state"));
+    Assert.assertEquals(VertexTerminationCause.DAG_KILL, v3.getTerminationCause());
+    assertTrue(diagnostics.contains(v3.getTerminationCause().name().toLowerCase(Locale.ENGLISH)));
   }
 
   @Test(timeout = 5000)
