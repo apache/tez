@@ -121,7 +121,6 @@ public class TestTezClient {
     }
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
-    conf.setLong(TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS, HARD_KILL_TIMEOUT);
     TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
 
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
@@ -436,6 +435,7 @@ public class TestTezClient {
   public void testStopRetriesUntilTerminalState() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
+    conf.setLong(TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS, HARD_KILL_TIMEOUT);
     final TezClientForTest client = configureAndCreateTezClient(conf);
     client.start();
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
@@ -452,6 +452,7 @@ public class TestTezClient {
   public void testStopRetriesUntilTimeout() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
+    conf.setLong(TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS, HARD_KILL_TIMEOUT);
     final TezClientForTest client = configureAndCreateTezClient(conf);
     client.start();
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
