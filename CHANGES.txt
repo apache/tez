@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2757. Fix download links for Tez releases.
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
   same name
   TEZ-2747. Update master to reflect 0.8.0-alpha release.
