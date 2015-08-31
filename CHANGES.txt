@@ -11,6 +11,7 @@ ALL CHANGES:
   same name
   TEZ-2747. Update master to reflect 0.8.0-alpha release.
   TEZ-2662. Provide a way to check whether AM or task opts are valid and error if not.
+  TEZ-2739. Improve handling of read errors in critical path analyzer
 
 Release 0.8.0-alpha: 2015-08-29 
 

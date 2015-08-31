@@ -20,6 +20,7 @@ package org.apache.tez.history.parser.datamodel;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -205,14 +206,14 @@ public class TaskInfo extends BaseInfo {
    * @return TaskAttemptInfo
    */
   public final TaskAttemptInfo getSuccessfulTaskAttempt() {
-    if (isNotNullOrEmpty(getSuccessfulAttemptId())) {
+    if (!Strings.isNullOrEmpty(getSuccessfulAttemptId())) {
       for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
         if (attemptInfo.getTaskAttemptId().equals(getSuccessfulAttemptId())) {
           return attemptInfo;
         }
       }
     }
-    // fall back to checking status if successful attemt id is not available
+    // fall back to checking status if successful attempt id is not available
     for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
       if (attemptInfo.getStatus().equalsIgnoreCase(TaskAttemptState.SUCCEEDED.toString())) {
         return attemptInfo;
@@ -349,9 +350,5 @@ public class TaskInfo extends BaseInfo {
     sb.append("vertexName=").append(getVertexInfo().getVertexName());
     sb.append("]");
     return sb.toString();
-  }
-
-  private static boolean isNotNullOrEmpty(String str) {
-    return str != null && !str.isEmpty();
   }
 }

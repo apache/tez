@@ -33,6 +33,7 @@ import org.apache.tez.analyzer.plugins.CriticalPathAnalyzer.CriticalPathStep.Ent
 import org.apache.tez.analyzer.utils.SVGUtils;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.history.parser.datamodel.Container;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
@@ -49,11 +50,15 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   String succeededState = StringInterner.weakIntern(TaskAttemptState.SUCCEEDED.name());
   String failedState = StringInterner.weakIntern(TaskAttemptState.FAILED.name());
 
-  private final static String DATA_DEPENDENCY = "Data-Dependency";
-  private final static String INIT_DEPENDENCY = "Init-Dependency";
-  private final static String COMMIT_DEPENDENCY = "Commit-Dependency";
-  private final static String NON_DATA_DEPENDENCY = "Non-Data-Dependency";
-  private final static String OUTPUT_LOST = "Previous version outputs lost";
+  public enum CriticalPathDependency {
+    DATA_DEPENDENCY,
+    INIT_DEPENDENCY,
+    COMMIT_DEPENDENCY,
+    RETRY_DEPENDENCY,
+    OUTPUT_RECREATE_DEPENDENCY
+  }
+
+  public static final String DRAW_SVG = "tez.critical-path-analyzer.draw-svg";
 
   public static class CriticalPathStep {
     public enum EntityType {
@@ -64,7 +69,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
 
     EntityType type;
     TaskAttemptInfo attempt;
-    String reason; // reason linking this to the previous step on the critical path
+    CriticalPathDependency reason; // reason linking this to the previous step on the critical path
     long startCriticalPathTime; // time at which attempt is on critical path
     long stopCriticalPathTime; // time at which attempt is off critical path
     List<String> notes = Lists.newLinkedList();
@@ -85,7 +90,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     public long getStopCriticalTime() {
       return stopCriticalPathTime;
     }
-    public String getReason() {
+    public CriticalPathDependency getReason() {
       return reason;
     }
     public List<String> getNotes() {
@@ -128,7 +133,13 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     
     analyzeCriticalPath(dagInfo);
 
-    saveCriticalPathAsSVG(dagInfo);
+    if (getConf().getBoolean(DRAW_SVG, true)) {
+      saveCriticalPathAsSVG(dagInfo);
+    }
+  }
+  
+  public List<CriticalPathStep> getCriticalPath() {
+    return criticalPath;
   }
   
   private void saveCriticalPathAsSVG(DagInfo dagInfo) {
@@ -212,7 +223,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       // add the commit step
       currentStep.stopCriticalPathTime = dagInfo.getFinishTime();
       currentStep.startCriticalPathTime = currentAttemptStopCriticalPathTime;
-      currentStep.reason = COMMIT_DEPENDENCY;
+      currentStep.reason = CriticalPathDependency.COMMIT_DEPENDENCY;
       tempCP.add(currentStep);
 
       while (true) {
@@ -233,7 +244,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   
         long startCriticalPathTime = 0;
         String nextAttemptId = null;
-        String reason = null;
+        CriticalPathDependency reason = null;
         if (dataDependency) {
           // last data event was produced after the attempt was scheduled. use
           // data dependency
@@ -242,7 +253,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           if (!Strings.isNullOrEmpty(currentAttempt.getLastDataEventSourceTA())) {
             // there is a valid data causal TA. Use it.
             nextAttemptId = currentAttempt.getLastDataEventSourceTA();
-            reason = DATA_DEPENDENCY;
+            reason = CriticalPathDependency.DATA_DEPENDENCY;
             startCriticalPathTime = currentAttempt.getLastDataEventTime();
             System.out.println("Using data dependency " + nextAttemptId);
           } else {
@@ -252,7 +263,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
                 "Vertex: " + vertex.getVertexId() + " has no external inputs but the last data event "
                     + "TA is null for " + currentAttempt.getTaskAttemptId());
             nextAttemptId = null;
-            reason = INIT_DEPENDENCY;
+            reason = CriticalPathDependency.INIT_DEPENDENCY;
             System.out.println("Using init dependency");
           }
         } else {
@@ -262,9 +273,9 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           if (!Strings.isNullOrEmpty(currentAttempt.getCreationCausalTA())) {
             // there is a scheduling causal TA. Use it.
             nextAttemptId = currentAttempt.getCreationCausalTA();
-            reason = NON_DATA_DEPENDENCY;
+            reason = CriticalPathDependency.RETRY_DEPENDENCY;
             TaskAttemptInfo nextAttempt = attempts.get(nextAttemptId);
-            if (nextAttempt != null) {
+            if (nextAttemptId != null) {
               VertexInfo currentVertex = currentAttempt.getTaskInfo().getVertexInfo();
               VertexInfo nextVertex = nextAttempt.getTaskInfo().getVertexInfo();
               if (!nextVertex.getVertexName().equals(currentVertex.getVertexName())){
@@ -272,7 +283,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
                 for (VertexInfo outVertex : currentVertex.getOutputVertices()) {
                   if (nextVertex.getVertexName().equals(outVertex.getVertexName())) {
                     // next vertex is an output vertex
-                    reason = OUTPUT_LOST;
+                    reason = CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY;
                     break;
                   }
                 }
@@ -286,7 +297,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
               // there is a data event going to the vertex. Count the time between data event and
               // scheduling time as Initializer/Manager overhead and follow data dependency
               nextAttemptId = currentAttempt.getLastDataEventSourceTA();
-              reason = DATA_DEPENDENCY;
+              reason = CriticalPathDependency.DATA_DEPENDENCY;
               startCriticalPathTime = currentAttempt.getLastDataEventTime();
               long overhead = currentAttempt.getCreationTime()
                   - currentAttempt.getLastDataEventTime();
@@ -299,17 +310,102 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
               // or the vertex has external input but does not use events
               // or the vertex has no external inputs or edges
               nextAttemptId = null;
-              reason = INIT_DEPENDENCY;
+              reason = CriticalPathDependency.INIT_DEPENDENCY;
               System.out.println("Using init dependency");
             }
           }
         }
-  
+
+        
+        if (!Strings.isNullOrEmpty(nextAttemptId)) {
+          TaskAttemptInfo nextAttempt = attempts.get(nextAttemptId);
+          TaskAttemptInfo attemptToCheck = nextAttempt;
+
+          // check if the next attempt is already on critical path to prevent infinite loop
+          boolean foundLoop = false;
+          CriticalPathDependency prevReason = null;
+          for (CriticalPathStep previousStep : tempCP) {
+            if (previousStep.attempt.equals(attemptToCheck)) {
+              foundLoop = true;
+              prevReason = previousStep.reason;
+            }
+          }
+
+          if (foundLoop) {
+            // found a loop - find the next step based on heuristics
+            /* only the losing outputs causes us to backtrack. There are 2 cases
+            * 1) Step N reported last data event to this step 
+            *    -> Step N+1 (current step) is the retry for read error reported
+            *    -> read error was reported by the Step N attempt and it did not exit after the 
+            *       error
+            *    -> So scheduling dependency of Step N points back to step N+1
+            * 2) Step N reported last data event to this step
+            *     -> Step N+1 is a retry for a read error reported
+            *     -> Step N+2 is the attempt that reported the read error
+            *     -> Step N+3 is the last data event of N+2 and points back to N+1
+            */
+            System.out.println("Reset " + currentAttempt.getTaskAttemptId() 
+            + " cause: " + currentAttempt.getTerminationCause() 
+            + " time: " + currentAttempt.getFinishTime()
+            + " reason: " + reason
+            + " because of: " + attemptToCheck.getTaskAttemptId());
+            TaskAttemptInfo attemptWithLostAncestor = currentAttempt;
+            if (reason != CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY) {
+              // Case 2 above. If reason == CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY
+              // then its Case 1 above
+              Preconditions.checkState(prevReason.equals(
+                  CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY), prevReason);
+              reason = CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY;
+              attemptWithLostAncestor = nextAttempt;
+            }
+            System.out.println("Reset " + currentAttempt.getTaskAttemptId() 
+            + " cause: " + currentAttempt.getTerminationCause() 
+            + " time: " + currentAttempt.getFinishTime()
+            + " reason: " + reason
+            + " because of: " + attemptToCheck.getTaskAttemptId()
+            + " looking at: " + attemptWithLostAncestor.getTaskAttemptId());
+            Preconditions.checkState(reason == CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY);
+            // we dont track all input events to the consumer. So just jump to
+            // the previous successful version of the current attempt
+            TaskAttemptInfo prevSuccAttempt = null;
+            for (TaskAttemptInfo prevAttempt : attemptWithLostAncestor.getTaskInfo().getTaskAttempts()) {
+              System.out.println("Looking at " + prevAttempt.getTaskAttemptId() 
+              + " cause: " + prevAttempt.getTerminationCause() + 
+              " time: " + prevAttempt.getFinishTime());
+              if (prevAttempt.getTerminationCause()
+                  .equals(TaskAttemptTerminationCause.OUTPUT_LOST.name())) {
+                if (prevAttempt.getFinishTime() < currentAttempt.getFinishTime()) {
+                  // attempt finished before current attempt
+                  if (prevSuccAttempt == null
+                      || prevAttempt.getFinishTime() > prevSuccAttempt.getFinishTime()) {
+                    // keep the latest attempt that had lost outputs
+                    prevSuccAttempt = prevAttempt;
+                  }
+                }
+              }
+            }
+            Preconditions.checkState(prevSuccAttempt != null,
+                attemptWithLostAncestor.getTaskAttemptId());
+            System.out
+                .println("Resetting nextAttempt to : " + prevSuccAttempt.getTaskAttemptId()
+                    + " from " + nextAttempt.getTaskAttemptId());
+            nextAttemptId = prevSuccAttempt.getTaskAttemptId();
+            if (attemptWithLostAncestor == currentAttempt) {
+              startCriticalPathTime = currentAttempt.getCreationTime();
+            } else {
+              startCriticalPathTime = prevSuccAttempt.getFinishTime();
+            }
+          }
+          
+        }
+
         currentStep.startCriticalPathTime = startCriticalPathTime;
         currentStep.reason = reason;
+        
+        Preconditions.checkState(currentStep.stopCriticalPathTime >= currentStep.startCriticalPathTime);
   
         if (Strings.isNullOrEmpty(nextAttemptId)) {
-          Preconditions.checkState(reason.equals(INIT_DEPENDENCY));
+          Preconditions.checkState(reason.equals(CriticalPathDependency.INIT_DEPENDENCY));
           Preconditions.checkState(startCriticalPathTime == 0);
           // no predecessor attempt found. this is the last step in the critical path
           // assume attempts start critical path time is when its scheduled. before that is 
@@ -321,7 +417,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           currentStep = new CriticalPathStep(currentAttempt, EntityType.VERTEX_INIT);
           currentStep.stopCriticalPathTime = initStepStopCriticalTime;
           currentStep.startCriticalPathTime = dagInfo.getStartTime();
-          currentStep.reason = INIT_DEPENDENCY;
+          currentStep.reason = CriticalPathDependency.INIT_DEPENDENCY;
           tempCP.add(currentStep);
           
           if (!tempCP.isEmpty()) {
@@ -348,7 +444,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       String entity = (step.getType() == EntityType.ATTEMPT ? step.getAttempt().getTaskAttemptId()
           : (step.getType() == EntityType.VERTEX_INIT
               ? step.attempt.getTaskInfo().getVertexInfo().getVertexName() : "DAG COMMIT"));
-      String [] record = {entity, step.getReason(), 
+      String [] record = {entity, step.getReason().name(), 
           step.getAttempt().getDetailedStatus(), String.valueOf(step.getStartCriticalTime()), 
           String.valueOf(step.getStopCriticalTime()),
           Joiner.on(";").join(step.getNotes())};

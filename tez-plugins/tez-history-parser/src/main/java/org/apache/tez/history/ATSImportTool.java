@@ -433,7 +433,7 @@ public class ATSImportTool extends Configured implements Tool {
   }
 
   @VisibleForTesting
-  static int process(String[] args) {
+  public static int process(String[] args) {
     Options options = buildOptions();
     int result = -1;
     try {
