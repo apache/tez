@@ -288,7 +288,7 @@ public abstract class ExternalSorter {
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB_DEFAULT);
     long reqBytes = ((long) initialMemRequestMb) << 20;
     //Higher bound checks are done in individual sorter implementations
-    Preconditions.checkArgument(initialMemRequestMb > 0 && reqBytes < maxAvailableTaskMemory,
+    Preconditions.checkArgument(initialMemRequestMb > 0 && reqBytes <= maxAvailableTaskMemory,
         TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + " " + initialMemRequestMb + " should be "
             + "larger than 0 and should be less than the available task memory (MB):" +
             (maxAvailableTaskMemory >> 20));
