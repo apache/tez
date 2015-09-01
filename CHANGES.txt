@@ -14,7 +14,7 @@ ALL CHANGES:
   TEZ-2662. Provide a way to check whether AM or task opts are valid and error if not.
   TEZ-2739. Improve handling of read errors in critical path analyzer
 
-Release 0.8.0-alpha: 2015-08-29 
+Release 0.8.0-alpha: 2015-09-01
 
 INCOMPATIBLE CHANGES
   TEZ-2048. Remove VertexManagerPluginContext.getTaskContainer()
