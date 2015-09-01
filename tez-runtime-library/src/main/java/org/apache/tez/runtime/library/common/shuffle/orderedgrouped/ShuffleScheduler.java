@@ -147,7 +147,7 @@ class ShuffleScheduler {
   private final HttpConnectionParams httpConnectionParams;
   private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleClientMetrics shuffleMetrics;
-  private final Shuffle shuffle;
+  private final ExceptionReporter exceptionReporter;
   private final MergeManager mergeManager;
   private final JobTokenSecretManager jobTokenSecretManager;
   private final boolean ifileReadAhead;
@@ -173,13 +173,15 @@ class ShuffleScheduler {
   private final int abortFailureLimit;
   private int maxMapRuntime = 0;
 
+  private volatile Thread shuffleSchedulerThread = null;
+
   private long totalBytesShuffledTillNow = 0;
   private DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
 
   public ShuffleScheduler(InputContext inputContext,
                           Configuration conf,
                           int numberOfInputs,
-                          Shuffle shuffle,
+                          ExceptionReporter exceptionReporter,
                           MergeManager mergeManager,
                           FetchedInputAllocatorOrderedGrouped allocator,
                           long startTime,
@@ -189,7 +191,7 @@ class ShuffleScheduler {
                           String srcNameTrimmed) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
-    this.shuffle = shuffle;
+    this.exceptionReporter = exceptionReporter;
     this.allocator = allocator;
     this.mergeManager = mergeManager;
     this.numInputs = numberOfInputs;
@@ -295,6 +297,7 @@ class ShuffleScheduler {
   }
 
   public void start() throws Exception {
+    shuffleSchedulerThread = Thread.currentThread();
     ShuffleSchedulerCallable schedulerCallable = new ShuffleSchedulerCallable();
     schedulerCallable.call();
   }
@@ -302,9 +305,17 @@ class ShuffleScheduler {
   public void close() throws InterruptedException {
     if (!isShutdown.getAndSet(true)) {
 
-      // Interrupt the waiting Scheduler thread.
+      // Notify and interrupt the waiting scheduler thread
       synchronized (this) {
         notifyAll();
+      }
+      // Interrupt the ShuffleScheduler thread only if the close is invoked by another thread.
+      // If this is invoked on the same thread, then the shuffleRunner has already complete, and there's
+      // no point interrupting it.
+      // The interrupt is needed to unblock any merges or waits which may be happening, so that the thread can
+      // exit.
+      if (shuffleSchedulerThread != null && !Thread.currentThread().equals(shuffleSchedulerThread)) {
+        shuffleSchedulerThread.interrupt();
       }
 
       // Interrupt the fetchers.
@@ -316,6 +327,11 @@ class ShuffleScheduler {
       referee.interrupt();
       referee.join();
     }
+  }
+
+  @VisibleForTesting
+  public boolean isShutdown() {
+    return isShutdown.get();
   }
 
   protected synchronized  void updateEventReceivedTime() {
@@ -503,7 +519,7 @@ class ShuffleScheduler {
   @VisibleForTesting
   void reportExceptionForInput(Exception exception) {
     LOG.error("Reporting exception for input", exception);
-    shuffle.reportException(exception);
+    exceptionReporter.reportException(exception);
   }
 
   private void logProgress() {
@@ -554,7 +570,7 @@ class ShuffleScheduler {
                 srcAttempt.getAttemptNumber()));
       ioe.fillInStackTrace();
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
-      shuffle.reportException(ioe);
+      exceptionReporter.reportException(ioe);
     }
 
     failedShuffleCounter.increment(1);
@@ -571,7 +587,7 @@ class ShuffleScheduler {
   public void reportLocalError(IOException ioe) {
     LOG.error("Shuffle failed : caused by local error", ioe);
     // Shuffle knows how to deal with failures post shutdown via the onFailure hook
-    shuffle.reportException(ioe);
+    exceptionReporter.reportException(ioe);
   }
 
   // Notify the AM  
@@ -645,7 +661,7 @@ class ShuffleScheduler {
           + reducerProgressedEnough + ", reducerStalled=" + reducerStalled);
       String errorMsg = "Exceeded MAX_FAILED_UNIQUE_FETCHES; bailing-out.";
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
-      shuffle.reportException(new IOException(errorMsg));
+      exceptionReporter.reportException(new IOException(errorMsg));
     }
 
   }
@@ -688,7 +704,7 @@ class ShuffleScheduler {
     if (shuffleInfoEventsMap.containsKey(srcAttempt.getInputIdentifier())) {
       //Pipelined shuffle case (where shuffleInfoEventsMap gets populated).
       //Fail fast here.
-      shuffle.reportException(new IOException(srcAttempt + " is marked as obsoleteInput, but it "
+      exceptionReporter.reportException(new IOException(srcAttempt + " is marked as obsoleteInput, but it "
           + "exists in shuffleInfoEventMap. Some data could have been already merged "
           + "to memory/disk outputs.  Failing the fetch early."));
       return;
@@ -902,7 +918,7 @@ class ShuffleScheduler {
         // This handles shutdown of the entire fetch / merge process.
       } catch (Throwable t) {
         // Shuffle knows how to deal with failures post shutdown via the onFailure hook
-        shuffle.reportException(t);
+        exceptionReporter.reportException(t);
       }
     }
   }
@@ -1019,7 +1035,7 @@ class ShuffleScheduler {
   @VisibleForTesting
   FetcherOrderedGrouped constructFetcherForHost(MapHost mapHost) {
     return new FetcherOrderedGrouped(httpConnectionParams, ShuffleScheduler.this, allocator,
-        shuffleMetrics, shuffle, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
+        shuffleMetrics, exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
         codec, conf, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
         connectionErrsCounter, wrongReduceErrsCounter, asyncHttp);
@@ -1060,7 +1076,7 @@ class ShuffleScheduler {
         LOG.info("Already shutdown. Ignoring fetch complete");
       } else {
         LOG.error("Fetcher failed with error", t);
-        shuffle.reportException(t);
+        exceptionReporter.reportException(t);
         doBookKeepingForFetcherComplete();
       }
     }

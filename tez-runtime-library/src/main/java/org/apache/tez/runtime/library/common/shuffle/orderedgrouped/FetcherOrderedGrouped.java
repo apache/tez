@@ -69,7 +69,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleScheduler scheduler;
   private final ShuffleClientMetrics metrics;
-  private final Shuffle shuffle;
+  private final ExceptionReporter exceptionReporter;
   private final int id;
   private final String logIdentifier;
   private final String localShuffleHostPort;
@@ -103,7 +103,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                ShuffleScheduler scheduler,
                                FetchedInputAllocatorOrderedGrouped allocator,
                                ShuffleClientMetrics metrics,
-                               Shuffle shuffle, JobTokenSecretManager jobTokenSecretMgr,
+                               ExceptionReporter exceptionReporter, JobTokenSecretManager jobTokenSecretMgr,
                                boolean ifileReadAhead, int ifileReadAheadLength,
                                CompressionCodec codec,
                                Configuration conf,
@@ -122,7 +122,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.metrics = metrics;
-    this.shuffle = shuffle;
+    this.exceptionReporter = exceptionReporter;
     this.mapHost = mapHost;
     this.currentPartition = this.mapHost.getPartitionId();
     this.id = nextId.incrementAndGet();
@@ -182,7 +182,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       Thread.currentThread().interrupt();
       return null;
     } catch (Throwable t) {
-      shuffle.reportException(t);
+      exceptionReporter.reportException(t);
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
     }
     return null;
@@ -229,7 +229,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     retryStartTime = 0;
     // Get completed maps on 'host'
     List<InputAttemptIdentifier> srcAttempts = scheduler.getMapsForHost(host);
-    // Sanity check to catch hosts with only 'OBSOLETE' maps, 
+    // Sanity check to catch hosts with only 'OBSOLETE' maps,
     // especially at the tail of large jobs
     if (srcAttempts.size() == 0) {
       return;
@@ -377,7 +377,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = -1;
     long compressedLength = -1;
-    
+
     try {
       long startTime = System.currentTimeMillis();
       int forReduce = -1;

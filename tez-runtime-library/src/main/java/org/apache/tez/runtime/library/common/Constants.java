@@ -50,7 +50,10 @@ public class Constants {
 
   public static final String TEZ_RUNTIME_JOB_CREDENTIALS =
       "tez.runtime.job.credentials";
-  
+
+  /**
+   * Parameter used to specify the memory available to runtime components, for writing unit tests.
+   */
   @Private
   public static final String TEZ_RUNTIME_TASK_MEMORY =
       "tez.runtime.task.memory";

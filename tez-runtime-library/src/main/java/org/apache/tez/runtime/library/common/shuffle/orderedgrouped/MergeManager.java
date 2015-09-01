@@ -27,6 +27,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Preconditions;
@@ -107,7 +109,9 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   private long commitMemory;
   private final int ioSortFactor;
   private final long maxSingleShuffleLimit;
-  
+
+  private final AtomicBoolean isShutdown = new AtomicBoolean(false);
+
   private final int memToMemMergeOutputsThreshold; 
   private final long mergeThreshold;
   
@@ -526,33 +530,43 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   }
 
   public TezRawKeyValueIterator close() throws Throwable {
-    // Wait for on-going merges to complete
-    if (memToMemMerger != null) {
-      memToMemMerger.close();
-    }
-    inMemoryMerger.close();
-    onDiskMerger.close();
-
-    List<MapOutput> memory =
-      new ArrayList<MapOutput>(inMemoryMergedMapOutputs);
-    inMemoryMergedMapOutputs.clear();
-    memory.addAll(inMemoryMapOutputs);
-    inMemoryMapOutputs.clear();
-    List<FileChunk> disk = new ArrayList<FileChunk>(onDiskMapOutputs);
-    onDiskMapOutputs.clear();
-    try {
-      TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
-      this.finalMergeComplete = true;
-      return kvIter;
-    } catch(InterruptedException e) {
-      //Cleanup the disk segments
-      if (cleanup) {
-        cleanup(localFS, disk);
-        cleanup(localFS, onDiskMapOutputs);
+    // TODO TEZ-2756. Don't attempt a final merge if close is invoked as a result of a previous
+    // shuffle exception / error.
+    if (!isShutdown.getAndSet(true)) {
+      // Wait for on-going merges to complete
+      if (memToMemMerger != null) {
+        memToMemMerger.close();
       }
-      Thread.currentThread().interrupt(); //reset interrupt status
-      throw e;
+      inMemoryMerger.close();
+      onDiskMerger.close();
+
+      List<MapOutput> memory =
+          new ArrayList<MapOutput>(inMemoryMergedMapOutputs);
+      inMemoryMergedMapOutputs.clear();
+      memory.addAll(inMemoryMapOutputs);
+      inMemoryMapOutputs.clear();
+      List<FileChunk> disk = new ArrayList<FileChunk>(onDiskMapOutputs);
+      onDiskMapOutputs.clear();
+      try {
+        TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
+        this.finalMergeComplete = true;
+        return kvIter;
+      } catch (InterruptedException e) {
+        //Cleanup the disk segments
+        if (cleanup) {
+          cleanup(localFS, disk);
+          cleanup(localFS, onDiskMapOutputs);
+        }
+        Thread.currentThread().interrupt(); //reset interrupt status
+        throw e;
+      }
     }
+    return null;
+  }
+
+  @VisibleForTesting
+  public boolean isShutdown() {
+    return isShutdown.get();
   }
 
 

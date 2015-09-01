@@ -277,7 +277,7 @@ public class HttpConnection extends BaseHttpConnection {
       }
       if (connection != null && (disconnect || !httpConnParams.isKeepAlive())) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Closing connection on " + logIdentifier);
+          LOG.debug("Closing connection on " + logIdentifier + ", disconnectParam=" + disconnect);
         }
         connection.disconnect();
         connection = null;
