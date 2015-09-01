@@ -444,6 +444,7 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <configuration>
             <customBundle>${project.basedir}/src/site/custom/project-info-report.properties</customBundle>
+            <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
           </configuration>
           <reportSets>
             <reportSet>

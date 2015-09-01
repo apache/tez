@@ -138,4 +138,36 @@
       </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <id>configgen</id>
+            <configuration>
+              <doclet>org.apache.tez.tools.javadoc.doclet.ConfigStandardDoclet</doclet>
+              <docletArtifacts>
+                <docletArtifact>
+                  <groupId>org.apache.tez</groupId>
+                  <artifactId>tez-javadoc-tools</artifactId>
+                  <version>${project.version}</version>
+                </docletArtifact>
+              </docletArtifacts>
+              <destDir>apidocs/configs</destDir>
+              <name>TezConfigGenerator</name>
+              <description>Tez Configuration documentation</description>
+            </configuration>
+            <reports>
+              <report>javadoc</report>
+              <report>aggregate</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+    </plugins>
+  </reporting>
+
 </project>

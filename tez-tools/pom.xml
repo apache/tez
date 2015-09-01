@@ -28,7 +28,9 @@
 
   <modules>
     <module>analyzers</module>
+    <module>tez-javadoc-tools</module>
   </modules>
+
   <build>
     <plugins>
       <plugin>

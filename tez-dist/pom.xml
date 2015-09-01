@@ -30,6 +30,11 @@
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>tez-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-dag</artifactId>
       <version>${project.version}</version>
     </dependency>

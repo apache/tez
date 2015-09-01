@@ -160,6 +160,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
+        <artifactId>tez-tools</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tez</groupId>
         <artifactId>tez-plugins</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -885,6 +890,14 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>2.7</version>
+          <configuration>
+            <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -1134,6 +1147,37 @@
       </build>
     </profile>
     <profile>
+      <id>jdk1.7</id>
+      <activation>
+        <jdk>1.7</jdk>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+          <version>1.7</version>
+          <scope>system</scope>
+          <systemPath>${java.home}/../lib/tools.jar</systemPath>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>jdk1.8</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>jdk.tools</groupId>
+          <artifactId>jdk.tools</artifactId>
+          <version>1.8</version>
+          <scope>system</scope>
+          <systemPath>${java.home}/../lib/tools.jar</systemPath>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
@@ -1187,19 +1231,10 @@
         <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
       </properties>
     </profile>
-
   </profiles>
 
   <reporting>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.7</version>
-        <configuration>
-          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -1223,14 +1258,6 @@
             </reports>
           </reportSet>
         </reportSets>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${findbugs-maven-plugin.version}</version>
-        <configuration>
-          <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
-        </configuration>
       </plugin>
     </plugins>
   </reporting>
