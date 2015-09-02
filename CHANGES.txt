@@ -158,6 +158,8 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2602. Throwing EOFException when launching MR job
+  TEZ-2575. Handle KeyValue pairs size which do not fit in a single block in PipelinedSorter
   TEZ-2198. Fix sorter spill counts
   TEZ-2440. Sorter should check for indexCacheList.size() in flush()
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
