@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2767. Make TezMxBeanResourceCalculator the default resource calculator.
   TEZ-2765. Change Xmlwriter to use defaultValue instead of value tag.
   TEZ-2750. Shuffle may not shutdown in case of a fetch failure, causing it to hang.
   TEZ-2294. Add tez-site-template.xml with description of config properties.
@@ -158,6 +159,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2767. Make TezMxBeanResourceCalculator the default resource calculator.
   TEZ-2602. Throwing EOFException when launching MR job
   TEZ-2575. Handle KeyValue pairs size which do not fit in a single block in PipelinedSorter
   TEZ-2198. Fix sorter spill counts

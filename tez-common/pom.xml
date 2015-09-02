@@ -54,8 +54,14 @@
       <artifactId>tez-api</artifactId>
     </dependency>
     <dependency>
-     <groupId>junit</groupId>
-     <artifactId>junit</artifactId>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
