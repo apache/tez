@@ -46,6 +46,7 @@ import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.Event;
@@ -256,6 +257,7 @@ public class TestDefaultSorter {
     try {
       writeData(sorter, 1000, 1000);
       assertTrue(sorter.getNumSpills() > 2);
+      verifyCounters(sorter, context);
     } catch(IOException ioe) {
       fail(ioe.getMessage());
     }
@@ -276,6 +278,7 @@ public class TestDefaultSorter {
       sorter.flush();
       sorter.close();
       assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID));
+      verifyCounters(sorter, context);
     } catch(Exception e) {
       fail();
     }
@@ -298,13 +301,13 @@ public class TestDefaultSorter {
       sorter.close();
       assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID +
           "_0"));
-      assertTrue(context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL).getValue() > 0);
+      verifyCounters(sorter, context);
     } catch(Exception e) {
       fail();
     }
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 60000)
   @SuppressWarnings("unchecked")
   public void testWithSingleSpillWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
@@ -330,10 +333,10 @@ public class TestDefaultSorter {
       }
     }
 
-    assertTrue(context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL).getValue() > 0);
+    verifyCounters(sorter, context);
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 60000)
   @SuppressWarnings("unchecked")
   public void testWithMultipleSpillsWithFinalMergeDisabled() throws IOException {
     OutputContext context = createTezOutputContext();
@@ -362,7 +365,37 @@ public class TestDefaultSorter {
       }
     }
     assertTrue(spillIndex == spillCount);
-    assertTrue(context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL).getValue() > 0);
+    verifyCounters(sorter, context);
+  }
+
+  private void verifyCounters(DefaultSorter sorter, OutputContext context) {
+    TezCounter numShuffleChunks = context.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
+    TezCounter additionalSpills = context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
+    TezCounter additionalSpillBytesWritten = context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
+    TezCounter additionalSpillBytesRead = context.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
+
+    if (sorter.isFinalMergeEnabled()) {
+      assertTrue(additionalSpills.getValue() == (sorter.getNumSpills() - 1));
+      //Number of files served by shuffle-handler
+      assertTrue(1 == numShuffleChunks.getValue());
+      if (sorter.getNumSpills() > 1) {
+        assertTrue(additionalSpillBytesRead.getValue() > 0);
+        assertTrue(additionalSpillBytesWritten.getValue() > 0);
+      }
+    } else {
+      assertTrue(0 == additionalSpills.getValue());
+      //Number of files served by shuffle-handler
+      assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
+      assertTrue(additionalSpillBytesRead.getValue() == 0);
+      assertTrue(additionalSpillBytesWritten.getValue() == 0);
+    }
+
+    TezCounter finalOutputBytes = context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
+    assertTrue(finalOutputBytes.getValue() > 0);
+
+    TezCounter outputBytesWithOverheadCounter = context.getCounters().findCounter
+        (TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
+    assertTrue(outputBytesWithOverheadCounter.getValue() > 0);
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {

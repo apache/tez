@@ -131,10 +131,19 @@ public enum TaskCounter {
   ADDITIONAL_SPILLS_BYTES_READ,
   
   /**
-   * Actual number of unnecessary spills. (lac of adequate memory)
+   * Spills that were generated & read by the same task (unnecessary spills due to lac of
+   * adequate memory).
+   *
    * Used by OnFileSortedOutput
    */
   ADDITIONAL_SPILL_COUNT,
+
+  /**
+   * Number of spill files being offered via shuffle-handler.
+   * e.g Without pipelined shuffle, this would be 1. With pipelined shuffle, this could be many
+   * as final merge is avoided.
+   */
+  SHUFFLE_CHUNK_COUNT,
   
   INPUT_GROUPS, // Not used at the moment. Will eventually replace REDUCE_INPUT_GROUPS
 

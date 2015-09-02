@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2198. Fix sorter spill counts
   TEZ-2440. Sorter should check for indexCacheList.size() in flush()
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
   same name

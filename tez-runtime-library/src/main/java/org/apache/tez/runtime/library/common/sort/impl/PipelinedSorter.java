@@ -108,8 +108,6 @@ public class PipelinedSorter extends ExternalSorter {
     new ArrayList<TezSpillRecord>();
 
   private final boolean pipelinedShuffle;
-  private final boolean finalMergeEnabled;
-  private final boolean sendEmptyPartitionDetails;
 
   // TODO Set additional countesr - total bytes written, spills etc.
 
@@ -124,20 +122,11 @@ public class PipelinedSorter extends ExternalSorter {
     
     partitionBits = bitcount(partitions)+1;
 
-    finalMergeEnabled = conf.getBoolean(
-        TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT,
-        TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT_DEFAULT);
-
     boolean confPipelinedShuffle = this.conf.getBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT);
 
-    sendEmptyPartitionDetails = conf.getBoolean(
-        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
-        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
-
-
-    pipelinedShuffle = !finalMergeEnabled && confPipelinedShuffle;
+    pipelinedShuffle = !isFinalMergeEnabled() && confPipelinedShuffle;
 
     //sanity checks
     final long sortmb = this.availableMemoryMb;
@@ -152,7 +141,7 @@ public class PipelinedSorter extends ExternalSorter {
     int numberOfBlocks = Math.max(1, (int) Math.ceil(1.0 * usage / blockSize));
     LOG.info("Number of Blocks : " + numberOfBlocks
         + ", maxMemUsage=" + maxMemUsage + ", BLOCK_SIZE=" + blockSize + ", finalMergeEnabled="
-        + finalMergeEnabled + ", pipelinedShuffle=" + pipelinedShuffle + ", "
+        + isFinalMergeEnabled() + ", pipelinedShuffle=" + pipelinedShuffle + ", "
         + "sendEmptyPartitionDetails=" + sendEmptyPartitionDetails);
     long totalCapacityWithoutMeta = 0;
     for (int i = 0; i < numberOfBlocks; i++) {
@@ -230,7 +219,7 @@ public class PipelinedSorter extends ExternalSorter {
       if (pipelinedShuffle) {
         List<Event> events = Lists.newLinkedList();
         String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
-        ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, false, outputContext,
+        ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false, outputContext,
             (numSpills - 1), indexCacheList.get(numSpills - 1), partitions, sendEmptyPartitionDetails,
             pathComponent);
         outputContext.sendEvents(events);
@@ -339,6 +328,21 @@ public class PipelinedSorter extends ExternalSorter {
     mapOutputByteCounter.increment(valend - keystart);
   }
 
+  private void adjustSpillCounters(long rawLength, long compLength) {
+    if (!isFinalMergeEnabled()) {
+      outputBytesWithOverheadCounter.increment(rawLength);
+    } else {
+      if (numSpills > 0) {
+        additionalSpillBytesWritten.increment(compLength);
+        // Reset the value will be set during the final merge.
+        outputBytesWithOverheadCounter.setValue(0);
+      } else {
+        // Set this up for the first write only. Subsequent ones will be handled in the final merge.
+        outputBytesWithOverheadCounter.increment(rawLength);
+      }
+    }
+  }
+
   public void spill() throws IOException { 
     // create spill file
     final long size = capacity +
@@ -368,6 +372,7 @@ public class PipelinedSorter extends ExternalSorter {
         }
         //close
         writer.close();
+        adjustSpillCounters(writer.getRawLength(), writer.getCompressedLength());
 
         // record offsets
         final TezIndexRecord rec = 
@@ -385,6 +390,11 @@ public class PipelinedSorter extends ExternalSorter {
       spillRec.writeToFile(indexFilename, conf);
       //TODO: honor cache limits
       indexCacheList.add(spillRec);
+      if (!isFinalMergeEnabled()) {
+        fileOutputByteCounter.increment(rfs.getFileStatus(filename).getLen());
+        //No final merge. Set the number of files offered via shuffle-handler
+        numShuffleChunks.setValue(numSpills);
+      }
       ++numSpills;
     } catch(InterruptedException ie) {
       // TODO:the combiner has been interrupted
@@ -406,14 +416,13 @@ public class PipelinedSorter extends ExternalSorter {
     //safe to clean up
     bufferList.clear();
 
-    numAdditionalSpills.increment(numSpills - 1);
 
     if(indexCacheList.isEmpty()) {
       LOG.warn("Index list is empty... returning");
       return;
     }
 
-    if (!finalMergeEnabled) {
+    if (!isFinalMergeEnabled()) {
       //Generate events for all spills
       List<Event> events = Lists.newLinkedList();
 
@@ -425,15 +434,16 @@ public class PipelinedSorter extends ExternalSorter {
         boolean isLastEvent = (i == numSpills - 1);
 
         String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
-        ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, isLastEvent,
+        ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), isLastEvent,
             outputContext, i, indexCacheList.get(i), partitions,
             sendEmptyPartitionDetails, pathComponent);
         LOG.info("Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
       }
       outputContext.sendEvents(events);
-      //No need to generate final merge
       return;
     }
+
+    numAdditionalSpills.increment(numSpills - 1);
 
     //In case final merge is required, the following code path is executed.
     if(numSpills == 1) {
@@ -451,6 +461,8 @@ public class PipelinedSorter extends ExternalSorter {
             + "finalIndexFile=" + finalIndexFile + ", filename=" + filename + ", indexFilename=" +
             indexFilename);
       }
+      numShuffleChunks.setValue(numSpills);
+      fileOutputByteCounter.increment(rfs.getFileStatus(finalOutputFile).getLen());
       return;
     }
 
@@ -497,7 +509,7 @@ public class PipelinedSorter extends ExternalSorter {
                      new Path(uniqueIdentifier),
                      (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf), 
                      nullProgressable, sortSegments, true,
-                     null, spilledRecordsCounter, null,
+                     null, spilledRecordsCounter, additionalSpillBytesRead,
                      null); // Not using any Progress in TezMerger. Should just work.
 
       //write merged output to disk
@@ -513,6 +525,7 @@ public class PipelinedSorter extends ExternalSorter {
 
       //close
       writer.close();
+      outputBytesWithOverheadCounter.increment(writer.getRawLength());
 
       // record offsets
       final TezIndexRecord rec = 
@@ -522,6 +535,9 @@ public class PipelinedSorter extends ExternalSorter {
               writer.getCompressedLength());
       spillRec.putIndex(rec, parts);
     }
+
+    numShuffleChunks.setValue(1); //final merge has happened.
+    fileOutputByteCounter.increment(rfs.getFileStatus(finalOutputFile).getLen());
 
     spillRec.writeToFile(finalIndexFile, conf);
     finalOut.close();

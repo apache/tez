@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,6 +116,9 @@ public abstract class ExternalSorter {
   protected Path finalIndexFile;
   protected int numSpills;
 
+  protected final boolean finalMergeEnabled;
+  protected final boolean sendEmptyPartitionDetails;
+
   // Counters
   // MR compatilbity layer needs to rename counters back to what MR requries.
 
@@ -138,9 +142,10 @@ public abstract class ExternalSorter {
   protected final TezCounter additionalSpillBytesWritten;
   
   protected final TezCounter additionalSpillBytesRead;
-  // Number of additional spills. (This will be 0 if there's no additional
-  // spills)
+  // Number of spills written & consumed by the same task to generate the final file
   protected final TezCounter numAdditionalSpills;
+  // Number of files offered via shuffle-handler to consumers.
+  protected final TezCounter numShuffleChunks;
 
   public ExternalSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
@@ -181,6 +186,7 @@ public abstract class ExternalSorter {
     additionalSpillBytesWritten = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_WRITTEN);
     additionalSpillBytesRead = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
     numAdditionalSpills = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
+    numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
 
     // compression
     if (ConfigUtils.shouldCompressIntermediateOutput(this.conf)) {
@@ -229,6 +235,17 @@ public abstract class ExternalSorter {
     this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.partitions);
     this.partitioner = TezRuntimeUtils.instantiatePartitioner(this.conf);
     this.combiner = TezRuntimeUtils.instantiateCombiner(this.conf, outputContext);
+    this.finalMergeEnabled = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT_DEFAULT);
+    this.sendEmptyPartitionDetails = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
+        TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED_DEFAULT);
+  }
+
+  @VisibleForTesting
+  public boolean isFinalMergeEnabled() {
+    return finalMergeEnabled;
   }
 
   /**

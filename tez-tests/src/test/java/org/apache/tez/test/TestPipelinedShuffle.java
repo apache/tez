@@ -245,7 +245,7 @@ public class TestPipelinedShuffle {
       TezCounters counters = dagStatus.getDAGCounters();
 
       //Ensure that atleast 10 spills were there in this job.
-      assertTrue(counters.findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT).getValue() > 10);
+      assertTrue(counters.findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT).getValue() > 10);
 
       if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
         System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
