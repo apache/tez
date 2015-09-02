@@ -7,6 +7,8 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2752. logUnsuccessful completion in Attempt should write original finish
+  time to ATS
   TEZ-2755. Fix findbugs warning in TezClient
   TEZ-2767. Make TezMxBeanResourceCalculator the default resource calculator.
   TEZ-2765. Change Xmlwriter to use defaultValue instead of value tag.
@@ -160,6 +162,8 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2752. logUnsuccessful completion in Attempt should write original finish
+  time to ATS
   TEZ-2755. Fix findbugs warning in TezClient
   TEZ-2767. Make TezMxBeanResourceCalculator the default resource calculator.
   TEZ-2602. Throwing EOFException when launching MR job
@@ -395,6 +399,8 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2752. logUnsuccessful completion in Attempt should write original finish
+  time to ATS
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
   same name
   TEZ-2732. DefaultSorter throws ArrayIndex exceptions on 2047 Mb size sort buffers
@@ -609,6 +615,8 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2752. logUnsuccessful completion in Attempt should write original finish
+  time to ATS
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
   same name
   TEZ-2732. DefaultSorter throws ArrayIndex exceptions on 2047 Mb size sort buffers

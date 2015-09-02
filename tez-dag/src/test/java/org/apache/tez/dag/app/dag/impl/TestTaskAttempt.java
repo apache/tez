@@ -91,6 +91,9 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEventHandler;
+import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -117,6 +120,7 @@ public class TestTaskAttempt {
     }
   }
   
+  AppContext appCtx;
   Task mockTask;
   TaskLocationHint locationHint;
 
@@ -127,7 +131,10 @@ public class TestTaskAttempt {
   
   @Before
   public void setupTest() {
+    appCtx = mock(AppContext.class);
     mockTask = mock(Task.class);
+    HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
+    doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
   }
 
   @Test(timeout = 5000)
@@ -146,7 +153,7 @@ public class TestTaskAttempt {
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
-        mock(TaskHeartbeatHandler.class), mock(AppContext.class),
+        mock(TaskHeartbeatHandler.class), appCtx,
         false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     TaskAttemptEventSchedule sEvent = mock(TaskAttemptEventSchedule.class);
@@ -181,12 +188,12 @@ public class TestTaskAttempt {
         TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
-        mock(TaskHeartbeatHandler.class), mock(AppContext.class),
+        mock(TaskHeartbeatHandler.class), appCtx,
         false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     TaskAttemptImpl taImplReScheduled = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
-        mock(TaskHeartbeatHandler.class), mock(AppContext.class),
+        mock(TaskHeartbeatHandler.class), appCtx,
         true, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
 
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
@@ -245,7 +252,7 @@ public class TestTaskAttempt {
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
         mock(TaskCommunicatorManagerInterface.class), new Configuration(),
         new SystemClock(), mock(TaskHeartbeatHandler.class),
-        mock(AppContext.class), false, Resource.newInstance(1024,
+        appCtx, false, Resource.newInstance(1024,
             1), createFakeContainerContext(), false);
 
     TaskAttemptImpl spyTa = spy(taImpl);
@@ -295,7 +302,7 @@ public class TestTaskAttempt {
         new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
     Resource resource = Resource.newInstance(1024, 1);
 
-    AppContext mockAppContext = mock(AppContext.class);
+    AppContext mockAppContext = appCtx;
     doReturn(new ClusterInfo()).when(mockAppContext).getClusterInfo();
 
     TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
@@ -352,7 +359,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -452,7 +458,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -516,7 +521,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -608,7 +612,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -738,7 +741,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -828,7 +830,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -922,7 +923,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -1024,7 +1024,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -1123,7 +1122,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -1131,6 +1129,8 @@ public class TestTaskAttempt {
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
     doReturn(containers).when(appCtx).getAllContainers();
+    HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
+    doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
 
     TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
     MockTaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
@@ -1152,7 +1152,12 @@ public class TestTaskAttempt {
 
     int expectedEventsTillSucceeded = 6;
     ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+    ArgumentCaptor<DAGHistoryEvent> histArg = ArgumentCaptor.forClass(DAGHistoryEvent.class);
     verify(eventHandler, times(expectedEventsTillSucceeded)).handle(arg.capture());
+    verify(mockHistHandler, times(2)).handle(histArg.capture()); // start and finish
+    DAGHistoryEvent histEvent = histArg.getValue();
+    TaskAttemptFinishedEvent finishEvent = (TaskAttemptFinishedEvent)histEvent.getHistoryEvent();
+    long finishTime = finishEvent.getFinishTime();
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
 
     InputReadErrorEvent mockReEvent = InputReadErrorEvent.create("", 0, 1);
@@ -1183,6 +1188,11 @@ public class TestTaskAttempt {
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl.getTerminationCause());
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
+    verify(mockHistHandler, times(3)).handle(histArg.capture());
+    histEvent = histArg.getValue();
+    finishEvent = (TaskAttemptFinishedEvent)histEvent.getHistoryEvent();
+    long newFinishTime = finishEvent.getFinishTime();
+    Assert.assertEquals(finishTime, newFinishTime);
 
     assertEquals(true, taImpl.inputFailedReported);
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
@@ -1266,7 +1276,6 @@ public class TestTaskAttempt {
     when(container.getNodeId()).thenReturn(nid);
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
-    AppContext appCtx = mock(AppContext.class);
     AMContainerMap containers = new AMContainerMap(
         mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
         new ContainerContextMatcher(), appCtx);
@@ -1353,18 +1362,21 @@ public class TestTaskAttempt {
     @Override
     protected void logJobHistoryAttemptStarted() {
       taskAttemptStartedEventLogged++;
+      super.logJobHistoryAttemptStarted();
     }
 
     @Override
     protected void logJobHistoryAttemptFinishedEvent(
         TaskAttemptStateInternal state) {
       taskAttemptFinishedEventLogged++;
+      super.logJobHistoryAttemptFinishedEvent(state);
     }
 
     @Override
     protected void logJobHistoryAttemptUnsuccesfulCompletion(
         TaskAttemptState state) {
       taskAttemptFinishedEventLogged++;
+      super.logJobHistoryAttemptUnsuccesfulCompletion(state);
     }
     
     @Override
