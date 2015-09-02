@@ -1036,9 +1036,13 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
+    long finishTime = getFinishTime();
+    if (finishTime <= 0) {
+      finishTime = clock.getTime(); // comes here in case it was terminated before launch
+    }
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getTask().getVertex().getName(), getLaunchTime(),
-        clock.getTime(), state,
+        finishTime, state,
         StringUtils.join(
             getDiagnostics(), LINE_SEPARATOR),
         getCounters());
