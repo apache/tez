@@ -408,6 +408,11 @@ public class PipelinedSorter extends ExternalSorter {
 
     numAdditionalSpills.increment(numSpills - 1);
 
+    if(indexCacheList.isEmpty()) {
+      LOG.warn("Index list is empty... returning");
+      return;
+    }
+
     if (!finalMergeEnabled) {
       //Generate events for all spills
       List<Event> events = Lists.newLinkedList();

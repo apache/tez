@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2440. Sorter should check for indexCacheList.size() in flush()
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
   same name
   TEZ-2662. Provide a way to check whether AM or task opts are valid and error if not.
