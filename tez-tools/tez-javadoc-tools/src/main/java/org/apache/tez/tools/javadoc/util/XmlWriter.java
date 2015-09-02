@@ -51,6 +51,9 @@ public class XmlWriter extends Writer {
       out.println("<?xml version=\"1.0\"?>");
       out.println("<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>");
       out.println();
+      out.println("<!-- WARNING: THIS IS A GENERATED TEMPLATE PURELY FOR DOCUMENTATION PURPOSES");
+      out.println(" AND SHOULD NOT BE USED AS A CONFIGURATION FILE FOR TEZ -->");
+      out.println();
       out.println("<configuration>");
 
       for (ConfigProperty configProperty : config.configProperties.values()) {
@@ -61,7 +64,7 @@ public class XmlWriter extends Writer {
         out.println("  <property>");
         out.println("    <name>" + configProperty.propertyName + "</name>");
         if (configProperty.defaultValue != null && !configProperty.defaultValue.isEmpty()) {
-          out.println("    <value>" + configProperty.defaultValue + "</value>");
+          out.println("    <defaultValue>" + configProperty.defaultValue + "</defaultValue>");
         }
         if (configProperty.description != null && !configProperty.description.isEmpty()) {
           out.println("    <description>" + StringEscapeUtils.escapeXml(configProperty.description)

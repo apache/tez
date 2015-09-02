@@ -37,6 +37,7 @@ public class ConfigProperty {
         + ", defaultValue=" + defaultValue
         + ", description=" + description
         + ", type=" + type
+        + ", inferredType=" + inferredType
         + ", private=" + isPrivate
         + ", validValues=" + (validValues == null ? "null" : validValues)
         + ", isConfigProp=" + isValidConfigProp;
