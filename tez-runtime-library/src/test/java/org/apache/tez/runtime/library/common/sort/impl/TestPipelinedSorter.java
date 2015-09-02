@@ -138,15 +138,8 @@ public class TestPipelinedSorter {
 
   @Test
   public void basicTestWithSmallBlockSize() throws IOException {
-    try {
-      //3 MB key & 3 MB value, whereas block size is just 3 MB
-      basicTest(1, 5, (3 << 20), (10 * 1024l * 1024l), 3 << 20);
-      fail();
-    } catch (IOException ioe) {
-      Assert.assertTrue(
-          ioe.getMessage().contains("Record too large for in-memory buffer."
-              + " Exceeded buffer overflow limit"));
-    }
+    //3 MB key & 3 MB value, whereas block size is just 3 MB
+    basicTest(1, 5, (3 << 20), (10 * 1024l * 1024l), 3 << 20);
   }
 
   @Test
@@ -154,6 +147,77 @@ public class TestPipelinedSorter {
     //15 MB key & 15 MB value, 48 MB sort buffer.  block size is 48MB (or 1 block)
     //meta would be 16 MB
     basicTest(1, 5, (15 << 20), (48 * 1024l * 1024l), 48 << 20);
+  }
+
+  @Test
+  public void testKVExceedsBuffer() throws IOException {
+    // a single block of 1mb, 2KV pair, key 1mb, value 1mb
+    basicTest(1, 2, (1 << 20), (1 * 1024l * 1024l), 1<<20);
+  }
+
+  @Test
+  public void testKVExceedsBuffer2() throws IOException {
+    // a list of 4 blocks each 256kb, 2KV pair, key 1mb, value 1mb
+    basicTest(1, 2, (1 << 20), (1 * 1024l * 1024l), 256<<10);
+  }
+
+  @Test
+  public void testExceedsKVWithMultiplePartitions() throws IOException {
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    this.numOutputs = 5;
+    this.initialAvailableMem = 1 * 1024 * 1024;
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 0);
+
+    writeData(sorter, 100, 1<<20);
+    verifyCounters(sorter, outputContext);
+  }
+
+  @Test
+  public void testExceedsKVWithPipelinedShuffle() throws IOException {
+    this.numOutputs = 1;
+    this.initialAvailableMem = 1 *1024 * 1024;
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 1 << 20);
+
+    writeData(sorter, 5, 1<<20);
+
+    // final merge is disabled. Final output file would not be populated in this case.
+    assertTrue(sorter.finalOutputFile == null);
+    TezCounter numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
+    assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+  }
+
+  @Test
+  // first write a KV which dosnt fit into span, this will spill to disk
+  // next write smaller keys, which will update the hint
+  public void testWithVariableKVLength1() throws IOException {
+    int numkeys[] = {2, 2};
+    int keylens[] = {32 << 20, 7 << 20};
+    basicTest2(1, numkeys, keylens, 64 << 20, 32 << 20);
+  }
+
+  @Test
+  // first write a kv pair which fits into buffer,
+  // next try to write a kv pair which doesnt fit into remaining buffer
+  public void testWithVariableKVLength() throws IOException {
+    //2 KVpairs of 2X2mb, 2 KV of 2X7mb
+    int numkeys[] = {2, 2};
+    int keylens[] = {2 << 20, 7<<20};
+    basicTest2(1, numkeys, keylens, 64 << 20, 32 << 20);
+  }
+
+  @Test
+  // first write KV which fits into span
+  // then write KV which doesnot fit in buffer. this will be spilled to disk
+  // all keys should be merged properly
+  public void testWithVariableKVLength2() throws IOException {
+    // 20 KVpairs of 2X10kb, 10 KV of 2X200kb, 20KV of 2X10kb
+    int numkeys[] = {20, 10, 20};
+    int keylens[] = {10<<10, 200<<10, 10<<10};
+    basicTest2(1, numkeys, keylens, (1 * 1024l * 1024l), 1 << 18);
   }
 
   @Test
@@ -177,7 +241,34 @@ public class TestPipelinedSorter {
 
     //final merge is disabled. Final output file would not be populated in this case.
     assertTrue(sorter.finalOutputFile == null);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
     verify(outputContext, times(1)).sendEvents(anyListOf(Event.class));
+  }
+
+  public void basicTest2(int partitions, int[] numkeys, int[] keysize,
+      long initialAvailableMem, int  blockSize) throws IOException {
+    this.numOutputs = partitions; // single output
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, blockSize);
+    writeData2(sorter, numkeys, keysize);
+    verifyCounters(sorter, outputContext);
+  }
+
+  private void writeData2(ExternalSorter sorter,
+      int[] numKeys, int[] keyLen) throws IOException {
+    sortedDataMap.clear();
+    int counter = 0;
+    for (int numkey : numKeys) {
+      int curKeyLen = keyLen[counter];
+      for (int i = 0; i < numkey; i++) {
+        Text key = new Text(RandomStringUtils.randomAlphanumeric(curKeyLen));
+        Text value = new Text(RandomStringUtils.randomAlphanumeric(curKeyLen));
+        sorter.write(key, value);
+      }
+      counter++;
+    }
+    sorter.flush();
+    sorter.close();
   }
 
   public void basicTest(int partitions, int numKeys, int keySize,
@@ -188,10 +279,10 @@ public class TestPipelinedSorter {
 
     writeData(sorter, numKeys, keySize);
 
+
     verifyCounters(sorter, outputContext);
     Path outputFile = sorter.finalOutputFile;
     FileSystem fs = outputFile.getFileSystem(conf);
-
     IFile.Reader reader = new IFile.Reader(fs, outputFile, null, null, null, false, -1, 4096);
     //Verify dataset
     verifyData(reader);
