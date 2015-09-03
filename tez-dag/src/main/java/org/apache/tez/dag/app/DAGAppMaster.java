@@ -165,6 +165,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
+import org.apache.tez.util.TezMxBeanResourceCalculator;
 import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,7 +338,8 @@ public class DAGAppMaster extends AbstractService {
   
   private void initResourceCalculatorPlugins() {
     Class<? extends ResourceCalculatorProcessTree> clazz = amConf.getClass(
-        TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS, null,
+        TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS,
+        TezMxBeanResourceCalculator.class,
         ResourceCalculatorProcessTree.class);
 
     // this is set by YARN NM

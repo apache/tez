@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2767. Make TezMxBeanResourceCalculator the default resource calculator.
   TEZ-2755. Fix findbugs warning in TezClient
   TEZ-2602. Throwing EOFException when launching MR job
   TEZ-2575. Handle KeyValue pairs size which do not fit in a single block in PipelinedSorter
