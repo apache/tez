@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2754. Tez UI: StartTime & EndTime is not displayed with right format in Graphical View
   TEZ-2752. logUnsuccessful completion in Attempt should write original finish
   time to ATS
   TEZ-2755. Fix findbugs warning in TezClient
