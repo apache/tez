@@ -403,11 +403,14 @@ App.DagViewComponent.graphView = (function (){
         _component.get('vertexProperties').forEach(function (property) {
           var value = {};
 
-          if(property.contentPath) {
-            value = d.get('data.' + property.contentPath);
-          }
-          else if(property.getCellContent && !property.tableCellViewClass) {
+          if(property.getCellContent && !property.tableCellViewClass) {
             value = property.getCellContent(d.get('data'));
+            if(value && value.displayText != undefined) {
+              value = value.displayText;
+            }
+          }
+          else if(property.contentPath) {
+            value = d.get('data.' + property.contentPath);
           }
 
           value = App.Helpers.number.formatNumThousands(value);
