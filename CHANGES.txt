@@ -6,6 +6,8 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2768. Log a useful error message when the summary stream cannot be closed when shutting
+  down an AM.
   TEZ-2745. ClassNotFoundException of user code should fail dag
   TEZ-2752. logUnsuccessful completion in Attempt should write original finish
   time to ATS
@@ -233,6 +235,8 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2768. Log a useful error message when the summary stream cannot be closed when shutting
+  down an AM.
   TEZ-2745. ClassNotFoundException of user code should fail dag
   TEZ-2752. logUnsuccessful completion in Attempt should write original finish
   time to ATS

@@ -37,6 +37,9 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
 import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -46,8 +49,6 @@ import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /*
  *  TimelineReaderFactory getTimelineReaderStrategy returns a Strategy class, which is used to
@@ -63,7 +64,7 @@ import org.slf4j.LoggerFactory;
 @InterfaceAudience.Private
 public class TimelineReaderFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TimelineReaderFactory.class);
+  private static final Log LOG = LogFactory.getLog(TimelineReaderFactory.class);
 
   private static final String KERBEROS_DELEGATION_TOKEN_AUTHENTICATOR_CLAZZ_NAME =
       "org.apache.hadoop.security.token.delegation.web.KerberosDelegationTokenAuthenticator";
