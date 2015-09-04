@@ -215,7 +215,12 @@ public class RecoveryService extends AbstractService {
           summaryStream.hflush();
           summaryStream.close();
         } catch (IOException ioe) {
-          LOG.warn("Error when closing summary stream", ioe);
+          if (!recoveryDirFS.exists(recoveryPath)) {
+            LOG.warn("Ignoring error while closing summary stream."
+                + " The recovery directory at {} has already been deleted externally", recoveryPath);
+          } else {
+            LOG.warn("Error when closing summary stream", ioe);
+          }
         }
       }
       for (Entry<TezDAGID, FSDataOutputStream> entry : outputStreamMap.entrySet()) {
@@ -224,7 +229,14 @@ public class RecoveryService extends AbstractService {
           entry.getValue().hflush();
           entry.getValue().close();
         } catch (IOException ioe) {
-          LOG.warn("Error when closing output stream", ioe);
+          if (!recoveryDirFS.exists(recoveryPath)) {
+            LOG.warn("Ignoring error while closing output stream."
+                + " The recovery directory at {} has already been deleted externally", recoveryPath);
+            // avoid closing other outputStream as the recovery directory has already been deleted.
+            break;
+          } else {
+            LOG.warn("Error when closing output stream", ioe);
+          }
         }
       }
     }
