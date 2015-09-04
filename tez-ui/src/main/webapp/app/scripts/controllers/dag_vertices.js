@@ -47,7 +47,9 @@ App.DagVerticesController = App.TablePageController.extend({
       });
     }
 
-    this._loadProgress(data);
+    if (this.get('controllers.dag.amWebServiceVersion') == 'v1') {
+      this._loadProgress(data);
+    }
 
     return this._super();
   },
@@ -70,24 +72,45 @@ App.DagVerticesController = App.TablePageController.extend({
           vertexIds: runningVerticesIdx.join(',')
         }
       }).then(function(vertexProgressInfo) {
-        vertexProgressInfo.forEach(function(item) {
-          var model = vertices.findBy('id', item.get('id')) || Em.Object.create();
-          model.set('progress', item.get('progress'));
-        });
+        that.set('controllers.dag.amVertexInfo', vertexProgressInfo);
       }).catch(function(error) {
         Em.Logger.debug("failed to fetch vertex progress")
       });
     }
   },
 
+  overlayVertexInfo: function(vertex, amVertexInfo) {
+    if (Em.isNone(amVertexInfo) || Em.isNone(vertex)) return;
+    amVertexInfo.set('_amInfoLastUpdatedTime', moment());
+    vertex.setProperties(amVertexInfo.getProperties('status', 'progress', '_amInfoLastUpdatedTime'));
+  },
+
+  updateVertexInfo: function() {
+    var amVertexInfo = this.get('controllers.dag.amVertexInfo');
+    var vertices = this.get('data');
+    var that = this;
+    if (amVertexInfo && vertices) {
+      amVertexInfo.forEach(function(item) {
+        that.overlayVertexInfo(vertices.findBy('id', item.get('id')), item);
+      });
+    }
+  }.observes('controllers.dag.amVertexInfo', 'data'),
+
   defaultColumnConfigs: function() {
     function onProgressChange() {
       var progress = this.get('vertex.progress'),
-          pct;
-      if (Ember.typeOf(progress) === 'number') {
+          pct,
+          status;
+      status = this.get('vertex.status');
+      if (Ember.typeOf(progress) === 'number' && status == 'RUNNING') {
         pct = App.Helpers.number.fractionToPercentage(progress);
-        this.set('progress', pct);
       }
+      this.setProperties({
+        progress: pct,
+        status: status,
+        statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+          this.get('vertex.hasFailedTaskAttempts'))
+      });
     }
 
     return [
@@ -118,14 +141,13 @@ App.DagVerticesController = App.TablePageController.extend({
           var status = row.get('status'),
               content = Ember.Object.create({
                 vertex: row,
-                status: status,
-                statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
-                  row.get('hasFailedTaskAttempts'))
               });
-
           if(status == 'RUNNING') {
+            row.addObserver('_amInfoLastUpdatedTime', content, onProgressChange);
             row.addObserver('progress', content, onProgressChange);
+            row.addObserver('status', content, onProgressChange);
           }
+          onProgressChange.call(content);
           return content;
         }
       },

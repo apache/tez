@@ -31,6 +31,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.app.web.AMWebController;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -182,6 +183,7 @@ public class HistoryEventTimelineConversion {
       atsEntity.addOtherInfo(ATSConstants.TEZ_VERSION,
           DAGUtils.convertTezVersionToATSMap(event.getVersion()));
     }
+    atsEntity.addOtherInfo(ATSConstants.DAG_AM_WEB_SERVICE_VERSION, AMWebController.VERSION);
 
     return atsEntity;
   }
@@ -398,6 +400,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.APPLICATION_ATTEMPT_ID,
             event.getApplicationAttemptId().toString());
     atsEntity.addOtherInfo(ATSConstants.USER, event.getUser());
+    atsEntity.addOtherInfo(ATSConstants.DAG_AM_WEB_SERVICE_VERSION, AMWebController.VERSION);
 
     return atsEntity;
   }

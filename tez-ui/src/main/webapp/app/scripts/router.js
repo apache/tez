@@ -148,7 +148,10 @@ App.DagRoute = Em.Route.extend({
   afterModel: function(model) {
     return this.controllerFor('dag').loadAdditional(model);
   },
-  setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id')
+  setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id'),
+  resetController: function() {
+    this.controller.dostopAMInfoUpdateService();
+  }
 });
 
 App.DagViewRoute = Em.Route.extend({

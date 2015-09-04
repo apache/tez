@@ -352,6 +352,14 @@ App.Helpers.misc = {
     return appId;
   },  
 
+  /* Gets the dag index from the dag id
+   * @param dagId {String}
+   * @return dag index for the given dagId {String}
+   */
+  getDagIndexFromDagId: function(dagId) {
+    return dagId.split('_').splice(-1).pop();
+  },
+
   /**
    * Remove the specific record from store
    * @param store {DS.Store}

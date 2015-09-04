@@ -26,19 +26,6 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     var loaders = [];
     var applicationId = dag.get('applicationId');
 
-    if (dag.get('status') === 'RUNNING') {
-      // update the progress info if available. this need not block the UI
-      App.Helpers.misc.removeRecord(this.store, 'dagProgress', dag.get('id'));
-      var aminfoLoader = that.store.find('dagProgress', dag.get('id'), {
-        appId: applicationId,
-        dagIdx: dag.get('idx')
-      }).then(function(dagProgressInfo) {
-        dag.set('progress', dagProgressInfo.get('progress'));
-      }).catch(function (error) {
-        Em.Logger.error("Failed to fetch dagProgress")
-      });
-      loaders.push(aminfoLoader);
-    }
     App.Helpers.misc.removeRecord(this.store, 'appDetail', applicationId);
     var appDetailLoader = this.store.find('appDetail', applicationId)
       .then(function(app){
@@ -79,7 +66,111 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       }
     }
 
-    return Em.RSVP.all(loaders);
+    var allLoaders = Em.RSVP.all(loaders);
+    allLoaders.then(function(){
+      ['dagProgress', 'dagInfo', 'vertexInfo'].forEach(function(itemType){
+        that.store.unloadAll(itemType);
+      });
+      if (dag.get('status') === 'RUNNING') {
+        // update the progress info if available. this need not block the UI
+        if (dag.get('amWebServiceVersion') == 'v1') {
+          that.updateInfoFromAM(dag);
+        } else {
+          // if AM version is v2 we keep updating the status, progress etc live.
+          ["loading", "id", "model.status"].forEach(function(item) {
+            Em.addObserver(that, item, that.startAMInfoUpdateService);
+          });
+        }
+      }
+    });
+
+    return allLoaders;
+  },
+
+  updateAMDagInfo: function() {
+    var dagId = this.get('id')
+        that = this,
+        dagInfoLoader = null;
+
+    if (!dagId) return;
+
+    if (this.store.recordIsLoaded("dagInfo", dagId)) {
+      var dagInfoRecord = this.store.recordForId("dagInfo", dagId);
+      if (dagInfoRecord.get('isLoading')) return;
+      dagInfoLoader = dagInfoRecord.reload();
+    } else {
+      dagInfoLoader = this.store.find("dagInfo", dagId, {
+        appId: that.get('applicationId'),
+        dagIdx: that.get('idx')
+      })
+    }
+
+    dagInfoLoader.then(function(dagInfo){
+      that.set('amDagInfo', dagInfo);
+      //TODO: find another way to trigger notification
+      that.set('amDagInfo._amInfoLastUpdatedTime', moment());
+    }).catch(function(e){
+      // do nothing.
+    });
+  },
+
+  updateAMVerticesInfo: function() {
+    var dagId = this.get('id')
+        that = this,
+        verticesInfoLoader = null;
+
+    if (!dagId) return;
+
+    verticesInfoLoader = this.store.find('vertexInfo', {
+      appId: that.get('applicationId'),
+      dagIdx: that.get('idx')
+    });
+
+    verticesInfoLoader.then(function(verticesInfo) {
+      that.set('amVertexInfo', verticesInfo);
+    }).catch(function(e){
+      // do nothing
+    });
+
+  },
+
+  startAMInfoUpdateService: function() {
+    if (this.get('loading') || !this.get('model.id') || this.get('model.status') != 'RUNNING') {
+      return;
+    }
+
+    var amInfoUpdateService = this.get('amInfoUpdateService')
+        that = this;
+
+    if (Em.isNone(amInfoUpdateService)) {
+      amInfoUpdateService = App.Helpers.pollster.create({
+        onPoll: function() {
+          that.updateAMDagInfo();
+          that.updateAMVerticesInfo();
+        }
+      });
+      that.set('amInfoUpdateService', amInfoUpdateService);
+      amInfoUpdateService.start(true);
+
+      ["loading", "id", "model.status"].forEach(function(item) {
+        Em.addObserver(that, item, that.stopAMInfoUpdateService);
+      });
+    }
+  },
+
+  dostopAMInfoUpdateService: function() {
+      var amInfoUpdateService = this.get('amInfoUpdateService');
+      if (!Em.isNone(amInfoUpdateService)) {
+        amInfoUpdateService.stop();
+        this.set('amInfoUpdateService', undefined);
+      }
+  },
+
+  // stop the update service if the status changes. see startAMInfoUpdateService
+  stopAMInfoUpdateService: function() {
+    if (this.get('loading') || this.get('model.status') != 'RUNNING') {
+      this.dostopAMInfoUpdateService();
+    }
   },
 
   enableAppIdLink: function() {

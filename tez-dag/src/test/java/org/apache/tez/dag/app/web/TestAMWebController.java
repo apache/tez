@@ -32,16 +32,23 @@ import static org.mockito.Mockito.when;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Assert;
@@ -204,5 +211,160 @@ public class TestAMWebController {
     Assert.assertEquals(true, AMWebController._hasAccess(testUser, mockAppContext));
   }
 
+
+  // AM Webservice Version 2
+  //ArgumentCaptor<Map<String, Object>> returnResultCaptor;
+  @Captor
+  ArgumentCaptor<Map<String,Object>> returnResultCaptor;
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetDagInfo() {
+    AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
+        "TEST_HISTORY_URL");
+    AMWebController spy = spy(amWebController);
+    DAG mockDAG = mock(DAG.class);
+
+
+    doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
+    doReturn(66.0f).when(mockDAG).getProgress();
+    doReturn(DAGState.RUNNING).when(mockDAG).getState();
+
+    doReturn(true).when(spy).setupResponse();
+    doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
+    doNothing().when(spy).renderJSON(any());
+
+    spy.getDagInfo();
+    verify(spy).renderJSON(returnResultCaptor.capture());
+
+    final Map<String, Object> result = returnResultCaptor.getValue();
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("dag"));
+    Map<String, String> dagInfo = (Map<String, String>) result.get("dag");
+
+    Assert.assertEquals(3, dagInfo.size());
+    Assert.assertTrue("dag_1422960590892_0007_42".equals(dagInfo.get("id")));
+    Assert.assertEquals("66.0", dagInfo.get("progress"));
+    Assert.assertEquals("RUNNING", dagInfo.get("status"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetVerticesInfoGetAll() {
+    Vertex mockVertex1 = createMockVertex("vertex_1422960590892_0007_42_00", VertexState.RUNNING,
+        0.33f, 3);
+    Vertex mockVertex2 = createMockVertex("vertex_1422960590892_0007_42_01", VertexState.SUCCEEDED,
+        1.0f, 5);
+
+    final Map<String, Object> result = getVerticesTestHelper(0, mockVertex1, mockVertex2);
+
+    Assert.assertEquals(1, result.size());
+
+    Assert.assertTrue(result.containsKey("vertices"));
+    ArrayList<Map<String, String>> verticesInfo = (ArrayList<Map<String, String>>) result.get("vertices");
+    Assert.assertEquals(2, verticesInfo.size());
+
+    Map<String, String> vertex1Result = verticesInfo.get(0);
+    Map<String, String> vertex2Result = verticesInfo.get(1);
+
+    verifySingleVertexResult(mockVertex1, vertex1Result);
+    verifySingleVertexResult(mockVertex2, vertex2Result);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetVerticesInfoGetPartial() {
+    Vertex mockVertex1 = createMockVertex("vertex_1422960590892_0007_42_00", VertexState.RUNNING,
+        0.33f, 3);
+    Vertex mockVertex2 = createMockVertex("vertex_1422960590892_0007_42_01", VertexState.SUCCEEDED,
+        1.0f, 5);
+
+    final Map<String, Object> result = getVerticesTestHelper(1, mockVertex1, mockVertex2);
+
+    Assert.assertEquals(1, result.size());
+
+    Assert.assertTrue(result.containsKey("vertices"));
+    List<Map<String, String>> verticesInfo = (List<Map<String, String>>) result.get("vertices");
+    Assert.assertEquals(1, verticesInfo.size());
+
+    Map<String, String> vertex1Result = verticesInfo.get(0);
+
+    verifySingleVertexResult(mockVertex1, vertex1Result);
+  }
+
+  Map<String, Object> getVerticesTestHelper(int numVerticesRequested, Vertex mockVertex1,
+                                            Vertex mockVertex2) {
+    DAG mockDAG = mock(DAG.class);
+    doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
+
+    TezVertexID vertexId1 = mockVertex1.getVertexId();
+    doReturn(mockVertex1).when(mockDAG).getVertex(vertexId1);
+    TezVertexID vertexId2 = mockVertex2.getVertexId();
+    doReturn(mockVertex2).when(mockDAG).getVertex(vertexId2);
+
+    AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
+        "TEST_HISTORY_URL");
+    AMWebController spy = spy(amWebController);
+
+    doReturn(ImmutableMap.of(
+        mockVertex1.getVertexId(), mockVertex1,
+        mockVertex2.getVertexId(), mockVertex2
+    )).when(mockDAG).getVertices();
+
+    doReturn(true).when(spy).setupResponse();
+    doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
+
+    List<Integer> requested;
+    if (numVerticesRequested == 0) {
+      requested = ImmutableList.of();
+    } else {
+      requested = ImmutableList.of(mockVertex1.getVertexId().getId());
+    }
+
+    doReturn(requested).when(spy).getVertexIDsFromRequest();
+    doNothing().when(spy).renderJSON(any());
+
+    spy.getVerticesInfo();
+    verify(spy).renderJSON(returnResultCaptor.capture());
+
+    return returnResultCaptor.getValue();
+  }
+
+  private Vertex createMockVertex(String vertexIDStr, VertexState status, float progress,
+                                  int taskCounts) {
+    ProgressBuilder pb = new ProgressBuilder();
+    pb.setTotalTaskCount(taskCounts);
+    pb.setSucceededTaskCount(taskCounts * 2);
+    pb.setFailedTaskAttemptCount(taskCounts * 3);
+    pb.setKilledTaskAttemptCount(taskCounts * 4);
+    pb.setRunningTaskCount(taskCounts * 5);
+
+    Vertex mockVertex = mock(Vertex.class);
+    doReturn(TezVertexID.fromString(vertexIDStr)).when(mockVertex).getVertexId();
+    doReturn(status).when(mockVertex).getState();
+    doReturn(progress).when(mockVertex).getProgress();
+    doReturn(pb).when(mockVertex).getVertexProgress();
+
+    return mockVertex;
+  }
+
+
+  private void verifySingleVertexResult(Vertex mockVertex2, Map<String, String> vertex2Result) {
+    ProgressBuilder progress;
+    Assert.assertEquals(mockVertex2.getVertexId().toString(), vertex2Result.get("id"));
+    Assert.assertEquals(mockVertex2.getState().toString(), vertex2Result.get("status"));
+    Assert.assertEquals(Float.toString(mockVertex2.getProgress()), vertex2Result.get("progress"));
+    progress = mockVertex2.getVertexProgress();
+    Assert.assertEquals(Integer.toString(progress.getTotalTaskCount()),
+        vertex2Result.get("totalTasks"));
+    Assert.assertEquals(Integer.toString(progress.getRunningTaskCount()),
+        vertex2Result.get("runningTasks"));
+    Assert.assertEquals(Integer.toString(progress.getSucceededTaskCount()),
+        vertex2Result.get("succeededTasks"));
+    Assert.assertEquals(Integer.toString(progress.getKilledTaskAttemptCount()),
+        vertex2Result.get("killedTaskAttempts"));
+    Assert.assertEquals(Integer.toString(progress.getFailedTaskAttemptCount()),
+        vertex2Result.get("failedTaskAttempts"));
+  }
 
 }

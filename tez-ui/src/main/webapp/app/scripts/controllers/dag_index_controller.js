@@ -81,7 +81,7 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   progressStr: function() {
     var pct;
-    if (Ember.typeOf(this.get('progress')) === 'number') {
+    if (Ember.typeOf(this.get('progress')) === 'number' && this.get('status') == 'RUNNING') {
       pct = App.Helpers.number.fractionToPercentage(this.get('progress'));
     }
     return pct;
@@ -135,4 +135,11 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
     }
   }.property('appContextInfo.appType'),
 
+  updateAMInfo: function() {
+    var status = this.get('amDagInfo.status');
+    if (!Em.isNone(status)) {
+      this.set('status', status);
+      this.set('progress', this.get('amDagInfo.progress'));
+    }
+  }.observes('amDagInfo', 'amDagInfo._amInfoLastUpdatedTime')
 });

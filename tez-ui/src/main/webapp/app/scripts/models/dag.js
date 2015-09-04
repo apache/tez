@@ -18,11 +18,11 @@
 App.Dag = App.AbstractEntity.extend({
 
   idx: function() {
-    return this.get('id').split('_').splice(-1).pop();
+    return App.Helpers.misc.getDagIndexFromDagId(this.get('id'));
   }.property('id'),
 
   submittedTime: DS.attr('number'),
-  
+
   // start time of the entity
   startTime: DS.attr('number'),
 
@@ -72,6 +72,7 @@ App.Dag = App.AbstractEntity.extend({
   vertexIdToNameMap: DS.attr('array'),
 
   counterGroups: DS.attr('array'),
+  amWebServiceVersion: DS.attr('string')
 });
 
 App.CounterGroup = DS.Model.extend({
@@ -389,6 +390,40 @@ App.VertexProgress = DS.Model.extend({
   progress: DS.attr('number'),
   appId: DS.attr('string'),
   dagIdx: DS.attr('string')
+});
+
+App.DagInfo = DS.Model.extend({
+  // we need appId and dagIdx as they are used for querying with AM
+  appId: function() {
+    return App.Helpers.misc.getAppIdFromDagId(this.get('id'));
+  }.property('id'),
+  dagIdx: function() {
+    return App.Helpers.misc.getDagIndexFromDagId(this.get('id'));
+  }.property('id'),
+
+  progress: DS.attr('number'),
+  status: DS.attr('string'),
+});
+
+App.VertexInfo = DS.Model.extend({
+  // we need appId and dagIdx as they are used for querying with AM
+  appId: function() {
+    return App.Helpers.misc.getAppIdFromDagId(this.get('id'));
+  }.property('id'),
+  dagIdx: function() {
+    return App.Helpers.misc.getDagIndexFromDagId(this.get('id'));
+  }.property('id'),
+
+  progress: DS.attr('number'),
+  status: DS.attr('string'),
+  totalTasks: DS.attr('number'),
+  runningTasks: DS.attr('number'),
+  succeededTasks: DS.attr('number'),
+  failedTaskAttempts: DS.attr('number'),
+  killedTaskAttempts: DS.attr('number'),
+  pendingTasks: function() {
+    return this.get('totalTasks') - this.get('runningTasks') - this.get('succeededTasks');
+  }.property('totalTasks', 'runningTasks', 'succeededTasks')
 });
 
 App.KVDatum = DS.Model.extend({

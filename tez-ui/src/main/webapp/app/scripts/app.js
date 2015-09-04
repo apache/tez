@@ -190,6 +190,34 @@ App.ready = function () {
       return typeName + '?dagID=%@&vertexID=%@';
     }
   });
+
+  // v2 version of am web services
+  App.DagInfoAdapter = App.AMInfoAdapter.extend({
+    namespace: App.Configs.restNamespace.aminfoV2,
+    buildURL: function(type, id, record) {
+      var url = this._super(type, null, record);
+      return url.replace('__app_id__', record.get('appId'))
+        .fmt(record.get('dagIdx'));
+    },
+    pathForType: function() {
+      return 'dagInfo?dagID=%@';
+    }
+  });
+
+  App.VertexInfoAdapter = App.AMInfoAdapter.extend({
+    namespace: App.Configs.restNamespace.aminfoV2,
+    ajax: function(url, method, hash) {
+      var options = hash.data || {};
+      url = url.replace('__app_id__', options.appId)
+        .fmt(options.dagIdx);
+      delete options['dagIdx'];
+      delete options['appId'];
+      return this._super(url, method, hash);
+    },
+    pathForType: function() {
+      return 'verticesInfo?dagID=%@';
+    }
+  });
 };
 
 $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
