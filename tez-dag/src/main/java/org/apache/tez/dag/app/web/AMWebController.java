@@ -21,10 +21,8 @@ package org.apache.tez.dag.app.web;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,8 +30,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -68,6 +68,7 @@ public class AMWebController extends Controller {
   static final String VERTEX_PROGRESSES = "vertexProgresses";
 
   static final int MAX_VERTICES_QUERIED = 100;
+  public static final String VERSION = "2";
 
   private AppContext appContext;
   private String historyUrl;
@@ -294,6 +295,139 @@ public class AMWebController extends Controller {
     Map<String, Collection<ProgressInfo>> result = new HashMap<String, Collection<ProgressInfo>>();
     result.put(VERTEX_PROGRESSES, progresses);
     renderJSON(result);
+  }
+
+  // AM WebApi V2.
+  @VisibleForTesting
+  protected boolean setupResponse() {
+    setCorsHeaders();
+
+    if (!hasAccess()) {
+      sendErrorResponse(HttpServletResponse.SC_UNAUTHORIZED, "Access denied for user: " +
+          request().getRemoteUser(), null);
+      return false;
+    }
+
+    return true;
+  }
+
+  DAG checkAndGetDAGFromRequest() {
+    DAG dag = null;
+    int errorCode = HttpServletResponse.SC_OK;
+    String message = null;
+    Exception ex = null;
+    try {
+      int dagID = getQueryParamInt(WebUIService.DAG_ID);
+      dag = appContext.getCurrentDAG();
+      if (dag == null || dag.getID().getId() != dagID) {
+        errorCode = HttpServletResponse.SC_NOT_FOUND;
+        message = "Not current Dag: " + dagID;
+      }
+    } catch (NumberFormatException e) {
+      errorCode = HttpServletResponse.SC_BAD_REQUEST;
+      message = "Invalid dag id";
+      ex = e;
+    }
+
+    if (errorCode != HttpServletResponse.SC_OK) {
+      dag = null;
+      sendErrorResponse(errorCode, message, ex);
+    }
+
+    return dag;
+  }
+
+  Collection<Integer> getVertexIDsFromRequest() {
+    final String valueStr = $(WebUIService.VERTEX_ID).trim();
+
+    List<Integer> vertexIDs = new ArrayList<>();
+    if (!valueStr.equals("")) {
+      String[] vertexIdsStr = valueStr.split(",", MAX_VERTICES_QUERIED);
+
+      try {
+        for (String vertexIdStr : vertexIdsStr) {
+          int vertexId = Integer.parseInt(vertexIdStr);
+          vertexIDs.add(vertexId);
+        }
+      } catch (NumberFormatException nfe) {
+        sendErrorResponse(HttpServletResponse.SC_BAD_REQUEST,
+            "invalid vertex ID passed in as parameter", nfe);
+        vertexIDs = null;
+      }
+    }
+
+    return vertexIDs;
+  }
+
+  public void getDagInfo() {
+    if (!setupResponse()) {
+      return;
+    }
+
+    DAG dag = checkAndGetDAGFromRequest();
+    if (dag == null) {
+      return;
+    }
+
+    Map<String, String> dagInfo = new HashMap<>();
+    dagInfo.put("id", dag.getID().toString());
+    dagInfo.put("progress", Float.toString(dag.getProgress()));
+    dagInfo.put("status", dag.getState().toString());
+
+    renderJSON(ImmutableMap.of(
+        "dag", dagInfo
+    ));
+  }
+
+  private Map<String,String> getVertexInfoMap(Vertex vertex) {
+    Map<String, String> vertexInfo = new HashMap<>();
+    vertexInfo.put("id", vertex.getVertexId().toString());
+    vertexInfo.put("status", vertex.getState().toString());
+    vertexInfo.put("progress", Float.toString(vertex.getProgress()));
+
+    ProgressBuilder vertexProgress = vertex.getVertexProgress();
+    vertexInfo.put("totalTasks", Integer.toString(vertexProgress.getTotalTaskCount()));
+    vertexInfo.put("runningTasks", Integer.toString(vertexProgress.getRunningTaskCount()));
+    vertexInfo.put("succeededTasks", Integer.toString(vertexProgress.getSucceededTaskCount()));
+
+    vertexInfo.put("failedTaskAttempts", Integer.toString(vertexProgress.getFailedTaskAttemptCount()));
+    vertexInfo.put("killedTaskAttempts", Integer.toString(vertexProgress.getKilledTaskAttemptCount()));
+
+    return vertexInfo;
+  }
+
+  public void getVerticesInfo() {
+    if (!setupResponse()) {
+      return;
+    }
+
+    DAG dag = checkAndGetDAGFromRequest();
+    if (dag == null) {
+      return;
+    }
+
+    Collection<Integer> requestedIDs = getVertexIDsFromRequest();
+
+    if (requestedIDs == null) {
+      return;
+    }
+
+    Collection<Vertex> vertexList;
+    if (requestedIDs.size() == 0) {
+      // no ids specified return all.
+      vertexList = dag.getVertices().values();
+    } else {
+      vertexList = getVerticesByIdx(dag, requestedIDs);
+    }
+
+    ArrayList<Map<String, String>> verticesInfo = new ArrayList<>();
+    for(Vertex v : vertexList) {
+      verticesInfo.add(getVertexInfoMap(v));
+    }
+
+    renderJSON(ImmutableMap.of(
+        "vertices", verticesInfo
+    ));
   }
 
   @Override

@@ -37,6 +37,7 @@ import org.apache.tez.dag.app.AppContext;
 
 public class WebUIService extends AbstractService {
   private static final String WS_PREFIX = "/ui/ws/v1/tez/";
+  private static final String WS_PREFIX_V2 = "/ui/ws/v2/tez/";
   public static final String VERTEX_ID = "vertexID";
   public static final String DAG_ID = "dagID";
 
@@ -150,6 +151,10 @@ public class WebUIService extends AbstractService {
           "getVertexProgress");
       route(WS_PREFIX + pajoin("vertexProgresses", VERTEX_ID, DAG_ID), AMWebController.class,
           "getVertexProgresses");
+
+      // v2 api
+      route(WS_PREFIX_V2 + pajoin("dagInfo", DAG_ID), AMWebController.class, "getDagInfo");
+      route(WS_PREFIX_V2 + pajoin("verticesInfo", VERTEX_ID, DAG_ID), AMWebController.class, "getVerticesInfo");
     }
   }
 }

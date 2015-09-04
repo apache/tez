@@ -46,6 +46,7 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
+import org.apache.tez.dag.app.web.AMWebController;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -242,12 +243,14 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(1, timelineEntity.getPrimaryFilters().size());
     Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
 
-    Assert.assertEquals(4, timelineEntity.getOtherInfo().size());
+    Assert.assertEquals(5, timelineEntity.getOtherInfo().size());
     Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.CONFIG));
     Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.TEZ_VERSION));
     Assert.assertEquals(user, timelineEntity.getOtherInfo().get(ATSConstants.USER));
     Assert.assertEquals(applicationId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ID));
+    Assert.assertEquals(AMWebController.VERSION,
+        timelineEntity.getOtherInfo().get(ATSConstants.DAG_AM_WEB_SERVICE_VERSION));
 
     Map<String, String> config =
         (Map<String, String>) timelineEntity.getOtherInfo().get(ATSConstants.CONFIG);
@@ -428,6 +431,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.USER).contains(user));
 
+    Assert.assertEquals(5, timelineEntity.getOtherInfo().size());
     Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.DAG_PLAN));
     Assert.assertEquals(applicationId.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ID));
@@ -435,6 +439,8 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ATTEMPT_ID));
     Assert.assertEquals(applicationAttemptId.getApplicationId().toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.APPLICATION_ID));
+    Assert.assertEquals(AMWebController.VERSION,
+        timelineEntity.getOtherInfo().get(ATSConstants.DAG_AM_WEB_SERVICE_VERSION));
     Assert.assertEquals(user,
         timelineEntity.getOtherInfo().get(ATSConstants.USER));
   }

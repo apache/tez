@@ -109,6 +109,11 @@ var timelineJsonToDagMap = {
 
   planName: 'otherinfo.dagPlan.dagName',
   planVersion: 'otherinfo.dagPlan.version',
+  amWebServiceVersion: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.amWebServiceVersion') || '1';
+    }
+  },
   appContextInfo: {
     custom: function (source) {
       var appType = undefined,
@@ -522,3 +527,19 @@ App.HiveQuerySerializer = App.TimelineSerializer.extend({
 
 App.VertexProgressSerializer = App.DagProgressSerializer = DS.RESTSerializer.extend({});
 
+// v2 version of am web services
+App.DagInfoSerializer = DS.RESTSerializer.extend({
+  normalizePayload: function(rawPayload) {
+    return {
+      dagInfo : rawPayload.dag
+    }
+  }
+});
+
+App.VertexInfoSerializer = DS.RESTSerializer.extend({
+  normalizePayload: function(rawPayload) {
+    return {
+      vertexInfo : rawPayload.vertices
+    }
+  }
+});
