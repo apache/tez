@@ -107,7 +107,7 @@ public class TestTaskCommunicatorManager1 {
   TezTaskAttemptID taskAttemptID;
 
   @Before
-  public void setUp() {
+  public void setUp() throws TezException {
     appId = ApplicationId.newInstance(1000, 1);
     appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     dag = mock(DAG.class);
@@ -304,7 +304,7 @@ public class TestTaskCommunicatorManager1 {
 
   // TODO TEZ-2003 Move this into TestTezTaskCommunicator. Potentially other tests as well.
   @Test (timeout= 5000)
-  public void testPortRange_NotSpecified() throws IOException {
+  public void testPortRange_NotSpecified() throws IOException, TezException {
     Configuration conf = new Configuration();
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
         "fakeIdentifier"));
@@ -396,7 +396,7 @@ public class TestTaskCommunicatorManager1 {
     public TaskCommunicatorManagerInterfaceImplForTest(AppContext context,
                                                        TaskHeartbeatHandler thh,
                                                        ContainerHeartbeatHandler chh,
-                                                       List<NamedEntityDescriptor> taskCommDescriptors) {
+                                                       List<NamedEntityDescriptor> taskCommDescriptors) throws TezException {
       super(context, thh, chh, taskCommDescriptors);
     }
 

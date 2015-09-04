@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -41,6 +42,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.dag.DAG;
@@ -58,7 +60,7 @@ import org.mockito.ArgumentCaptor;
 public class TestTaskCommunicatorManager2 {
 
   @Test(timeout = 5000)
-  public void testTaskAttemptFailedKilled() throws IOException {
+  public void testTaskAttemptFailedKilled() throws IOException, TezException {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     Credentials credentials = new Credentials();

@@ -63,6 +63,7 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.app.AppContext;
@@ -532,7 +533,7 @@ public class TestTaskSchedulerManager {
         eq(launchRequest2));
   }
 
-  private static class TSEHForMultipleSchedulersTest extends TaskSchedulerManager {
+  public static class TSEHForMultipleSchedulersTest extends TaskSchedulerManager {
 
     private final TaskScheduler yarnTaskScheduler;
     private final TaskScheduler uberTaskScheduler;
@@ -562,7 +563,7 @@ public class TestTaskSchedulerManager {
                                       AppContext appContext,
                                       NamedEntityDescriptor taskSchedulerDescriptor,
                                       long customAppIdIdentifier,
-                                      int schedulerId) {
+                                      int schedulerId) throws TezException {
 
       numCreateInvocations.incrementAndGet();
       boolean added = seenSchedulers.add(schedulerId);
@@ -596,7 +597,8 @@ public class TestTaskSchedulerManager {
 
     @Override
     TaskScheduler createCustomTaskScheduler(TaskSchedulerContext taskSchedulerContext,
-                                            NamedEntityDescriptor taskSchedulerDescriptor, int schedulerId) {
+                                            NamedEntityDescriptor taskSchedulerDescriptor, int schedulerId)
+                                                throws TezException {
       taskSchedulerContexts.add(taskSchedulerContext);
       TaskScheduler taskScheduler = spy(super.createCustomTaskScheduler(taskSchedulerContext, taskSchedulerDescriptor, schedulerId));
       testTaskSchedulers.add(taskScheduler);

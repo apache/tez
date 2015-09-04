@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -83,7 +84,7 @@ public class TestHistoryEventsProtoConversion {
       TestHistoryEventsProtoConversion.class);
 
 
-  private HistoryEvent testProtoConversion(HistoryEvent event) throws IOException {
+  private HistoryEvent testProtoConversion(HistoryEvent event) throws IOException, TezException {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     HistoryEvent deserializedEvent = null;
     event.toProtoStream(os);
@@ -100,7 +101,7 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private HistoryEvent testSummaryProtoConversion(HistoryEvent historyEvent)
-      throws IOException {
+      throws IOException, TezException {
     SummaryEvent event = (SummaryEvent) historyEvent;
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     HistoryEvent deserializedEvent = null;
@@ -757,7 +758,7 @@ public class TestHistoryEventsProtoConversion {
       }
     }
 
-  private void testDAGRecoveredEvent() {
+  private void testDAGRecoveredEvent() throws TezException {
     DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(0, 1), 1),
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),

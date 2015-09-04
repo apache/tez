@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+
 import org.apache.commons.collections4.ListUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
@@ -103,7 +104,7 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   public TaskCommunicatorManager(AppContext context,
                                  TaskHeartbeatHandler thh, ContainerHeartbeatHandler chh,
-                                 List<NamedEntityDescriptor> taskCommunicatorDescriptors) {
+                                 List<NamedEntityDescriptor> taskCommunicatorDescriptors) throws TezException {
     super(TaskCommunicatorManager.class.getName());
     this.context = context;
     this.taskHeartbeatHandler = thh;
@@ -141,7 +142,7 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   @VisibleForTesting
   TaskCommunicator createTaskCommunicator(NamedEntityDescriptor taskCommDescriptor,
-                                          int taskCommIndex) {
+                                          int taskCommIndex) throws TezException {
     if (taskCommDescriptor.getEntityName().equals(TezConstants.getTezYarnServicePluginName())) {
       return createDefaultTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
     } else if (taskCommDescriptor.getEntityName()
@@ -167,7 +168,8 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   @VisibleForTesting
   TaskCommunicator createCustomTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext,
-                                                NamedEntityDescriptor taskCommDescriptor) {
+                                                NamedEntityDescriptor taskCommDescriptor)
+                                                    throws TezException {
     LOG.info("Using TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(),
         taskCommDescriptor.getClassName());
     Class<? extends TaskCommunicator> taskCommClazz =

@@ -59,6 +59,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
@@ -1053,7 +1054,8 @@ public class DAGAppMaster extends AbstractService {
   protected TaskCommunicatorManagerInterface createTaskCommunicatorManager(AppContext context,
                                                                            TaskHeartbeatHandler thh,
                                                                            ContainerHeartbeatHandler chh,
-                                                                           List<NamedEntityDescriptor> entityDescriptors) {
+                                                                           List<NamedEntityDescriptor> entityDescriptors)
+                                                                               throws TezException {
     TaskCommunicatorManagerInterface tcm =
         new TaskCommunicatorManager(context, thh, chh, entityDescriptors);
     return tcm;
@@ -1079,7 +1081,7 @@ public class DAGAppMaster extends AbstractService {
   protected ContainerLauncherManager createContainerLauncherManager(
       List<NamedEntityDescriptor> containerLauncherDescriptors,
       boolean isLocal) throws
-      UnknownHostException {
+      UnknownHostException, TezException {
     return new ContainerLauncherManager(context, taskCommunicatorManager, workingDirectory,
         containerLauncherDescriptors, isLocal);
   }

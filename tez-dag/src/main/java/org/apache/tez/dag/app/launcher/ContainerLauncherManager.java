@@ -14,19 +14,19 @@
 
 package org.apache.tez.dag.app.launcher;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
@@ -70,7 +70,7 @@ public class ContainerLauncherManager extends AbstractService
                                   TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                   String workingDirectory,
                                   List<NamedEntityDescriptor> containerLauncherDescriptors,
-                                  boolean isPureLocalMode) {
+                                  boolean isPureLocalMode) throws TezException {
     super(ContainerLauncherManager.class.getName());
 
     this.appContext = context;
@@ -101,7 +101,7 @@ public class ContainerLauncherManager extends AbstractService
       TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
       String workingDirectory,
       int containerLauncherIndex,
-      boolean isPureLocalMode) {
+      boolean isPureLocalMode) throws TezException {
     if (containerLauncherDescriptor.getEntityName().equals(
         TezConstants.getTezYarnServicePluginName())) {
       return createYarnContainerLauncher(containerLauncherContext);
@@ -144,20 +144,13 @@ public class ContainerLauncherManager extends AbstractService
   @VisibleForTesting
   @SuppressWarnings("unchecked")
   ContainerLauncher createCustomContainerLauncher(ContainerLauncherContext containerLauncherContext,
-                                                  NamedEntityDescriptor containerLauncherDescriptor) {
+                                                  NamedEntityDescriptor containerLauncherDescriptor)
+                                                      throws TezException {
     LOG.info("Creating container launcher {}:{} ", containerLauncherDescriptor.getEntityName(),
         containerLauncherDescriptor.getClassName());
-    Class<? extends ContainerLauncher> containerLauncherClazz =
-        (Class<? extends ContainerLauncher>) ReflectionUtils.getClazz(
-            containerLauncherDescriptor.getClassName());
-    try {
-      Constructor<? extends ContainerLauncher> ctor = containerLauncherClazz
-          .getConstructor(ContainerLauncherContext.class);
-      return ctor.newInstance(containerLauncherContext);
-    } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-      throw new TezUncheckedException(e);
-    }
-
+    return ReflectionUtils.createClazzInstance(containerLauncherDescriptor.getClassName(),
+        new Class[]{ContainerLauncherContext.class},
+        new Object[]{containerLauncherContext});
   }
 
   @Override

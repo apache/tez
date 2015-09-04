@@ -18,8 +18,6 @@
 
 package org.apache.tez.dag.app.rm;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -33,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
@@ -56,6 +55,7 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TaskLocationHint.TaskBasedLocationAffinity;
@@ -392,7 +392,7 @@ public class TaskSchedulerManager extends AbstractService implements
                                                    AppContext appContext,
                                                    NamedEntityDescriptor taskSchedulerDescriptor,
                                                    long customAppIdIdentifier,
-                                                   int schedulerId) {
+                                                   int schedulerId) throws TezException {
     TaskSchedulerContext rawContext =
         new TaskSchedulerContextImpl(this, appContext, schedulerId, trackingUrl,
             customAppIdIdentifier, host, port, taskSchedulerDescriptor.getUserPayload());
@@ -429,24 +429,17 @@ public class TaskSchedulerManager extends AbstractService implements
   @SuppressWarnings("unchecked")
   TaskScheduler createCustomTaskScheduler(TaskSchedulerContext taskSchedulerContext,
                                           NamedEntityDescriptor taskSchedulerDescriptor,
-                                          int schedulerId) {
+                                          int schedulerId) throws TezException {
     LOG.info("Creating custom TaskScheduler {}:{}", taskSchedulerDescriptor.getEntityName(),
         taskSchedulerDescriptor.getClassName());
-    Class<? extends TaskScheduler> taskSchedulerClazz =
-        (Class<? extends TaskScheduler>) ReflectionUtils
-            .getClazz(taskSchedulerDescriptor.getClassName());
-    try {
-      Constructor<? extends TaskScheduler> ctor = taskSchedulerClazz
-          .getConstructor(TaskSchedulerContext.class);
-      return ctor.newInstance(taskSchedulerContext);
-    } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-      throw new TezUncheckedException(e);
-    }
+    return ReflectionUtils.createClazzInstance(taskSchedulerDescriptor.getClassName(),
+        new Class[]{TaskSchedulerContext.class},
+        new Object[]{taskSchedulerContext});
   }
 
   @VisibleForTesting
   protected void instantiateSchedulers(String host, int port, String trackingUrl,
-                                       AppContext appContext) {
+                                       AppContext appContext) throws TezException {
     // Iterate over the list and create all the taskSchedulers
     int j = 0;
     for (int i = 0; i < taskSchedulerDescriptors.length; i++) {
@@ -467,7 +460,7 @@ public class TaskSchedulerManager extends AbstractService implements
 
   
   @Override
-  public synchronized void serviceStart() {
+  public synchronized void serviceStart() throws Exception {
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     dagAppMaster = appContext.getAppMaster();
     // if web service is enabled then set tracking url. else disable it (value = "").

@@ -47,6 +47,7 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -66,7 +67,7 @@ public class TestTaskCommunicatorManager {
   }
 
   @Test(timeout = 5000)
-  public void testNoTaskCommSpecified() throws IOException {
+  public void testNoTaskCommSpecified() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
     TaskHeartbeatHandler thh = mock(TaskHeartbeatHandler.class);
@@ -83,7 +84,7 @@ public class TestTaskCommunicatorManager {
   }
 
   @Test(timeout = 5000)
-  public void testCustomTaskCommSpecified() throws IOException {
+  public void testCustomTaskCommSpecified() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
     TaskHeartbeatHandler thh = mock(TaskHeartbeatHandler.class);
@@ -118,7 +119,7 @@ public class TestTaskCommunicatorManager {
   }
 
   @Test(timeout = 5000)
-  public void testMultipleTaskComms() throws IOException {
+  public void testMultipleTaskComms() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
     TaskHeartbeatHandler thh = mock(TaskHeartbeatHandler.class);
@@ -250,13 +251,13 @@ public class TestTaskCommunicatorManager {
     public TaskCommManagerForMultipleCommTest(AppContext context,
                                               TaskHeartbeatHandler thh,
                                               ContainerHeartbeatHandler chh,
-                                              List<NamedEntityDescriptor> taskCommunicatorDescriptors) {
+                                              List<NamedEntityDescriptor> taskCommunicatorDescriptors) throws TezException {
       super(context, thh, chh, taskCommunicatorDescriptors);
     }
 
     @Override
     TaskCommunicator createTaskCommunicator(NamedEntityDescriptor taskCommDescriptor,
-                                            int taskCommIndex) {
+                                            int taskCommIndex) throws TezException {
       numTaskComms.incrementAndGet();
       boolean added = taskCommIndices.add(taskCommIndex);
       assertTrue("Cannot add multiple taskComms with the same index", added);
@@ -283,7 +284,7 @@ public class TestTaskCommunicatorManager {
 
     @Override
     TaskCommunicator createCustomTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext,
-                                                  NamedEntityDescriptor taskCommDescriptor) {
+                                                  NamedEntityDescriptor taskCommDescriptor) throws TezException {
       taskCommContexts.add(taskCommunicatorContext);
       TaskCommunicator spyComm =
           spy(super.createCustomTaskCommunicator(taskCommunicatorContext, taskCommDescriptor));

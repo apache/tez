@@ -39,6 +39,8 @@ import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezReflectionException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
@@ -61,7 +63,7 @@ public class TestContainerLauncherManager {
   }
 
   @Test(timeout = 5000)
-  public void testNoLaunchersSpecified() throws IOException {
+  public void testNoLaunchersSpecified() throws IOException, TezException {
 
     AppContext appContext = mock(AppContext.class);
     TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
@@ -77,7 +79,7 @@ public class TestContainerLauncherManager {
   }
 
   @Test(timeout = 5000)
-  public void testCustomLauncherSpecified() throws IOException {
+  public void testCustomLauncherSpecified() throws IOException, TezException {
     Configuration conf = new Configuration(false);
 
     AppContext appContext = mock(AppContext.class);
@@ -111,7 +113,7 @@ public class TestContainerLauncherManager {
   }
 
   @Test(timeout = 5000)
-  public void testMultipleContainerLaunchers() throws IOException {
+  public void testMultipleContainerLaunchers() throws IOException, TezException {
     Configuration conf = new Configuration(false);
     conf.set("testkey", "testvalue");
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
@@ -261,7 +263,7 @@ public class TestContainerLauncherManager {
                                                          String workingDirectory,
                                                          List<NamedEntityDescriptor> containerLauncherDescriptors,
                                                          boolean isPureLocalMode) throws
-        UnknownHostException {
+        UnknownHostException, TezException {
       super(context, taskCommunicatorManagerInterface, workingDirectory,
           containerLauncherDescriptors, isPureLocalMode);
     }
@@ -273,7 +275,7 @@ public class TestContainerLauncherManager {
                                               TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                               String workingDirectory,
                                               int containerLauncherIndex,
-                                              boolean isPureLocalMode) {
+                                              boolean isPureLocalMode) throws TezException {
       numContainerLaunchers.incrementAndGet();
       boolean added = containerLauncherIndices.add(containerLauncherIndex);
       assertTrue("Cannot add multiple launchers with the same index", added);
@@ -306,7 +308,7 @@ public class TestContainerLauncherManager {
     @Override
     ContainerLauncher createCustomContainerLauncher(
         ContainerLauncherContext containerLauncherContext,
-        NamedEntityDescriptor containerLauncherDescriptor) {
+        NamedEntityDescriptor containerLauncherDescriptor) throws TezException {
       ContainerLauncher spyLauncher = spy(super.createCustomContainerLauncher(
           containerLauncherContext, containerLauncherDescriptor));
       testContainerLaunchers.add(spyLauncher);
@@ -338,7 +340,7 @@ public class TestContainerLauncherManager {
     }
   }
 
-  private static class FakeContainerLauncher extends ContainerLauncher {
+  public static class FakeContainerLauncher extends ContainerLauncher {
 
     public FakeContainerLauncher(
         ContainerLauncherContext containerLauncherContext) {

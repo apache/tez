@@ -43,6 +43,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -51,7 +52,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.TezReflectionException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -237,11 +238,11 @@ public class TestTaskExecution2 {
 
       TaskRunner2Result result = taskRunnerFuture.get();
       verifyTaskRunnerResult(result, EndReason.TASK_ERROR,
-          new TezUncheckedException("Unchecked exception"), false);
+          new TezReflectionException("TezReflectionException"), false);
 
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskFailedEvent("Failure while running task",
-          ":org.apache.tez.dag.api.TezUncheckedException: "
+          ":org.apache.tez.dag.api.TezReflectionException: "
               + "Unable to load class: NotExitedProcessor");
       // Failure detected as a result of fall off from the run method. abort isn't required.
       assertFalse(TestProcessor.wasAborted());

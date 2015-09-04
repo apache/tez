@@ -54,6 +54,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -158,7 +159,7 @@ public class TestEdge {
 
   @SuppressWarnings({ "rawtypes" })
   @Test (timeout = 5000)
-  public void testCompositeEventHandling() throws AMUserCodeException {
+  public void testCompositeEventHandling() throws TezException {
     EventHandler eventHandler = mock(EventHandler.class);
     EdgeProperty edgeProp = EdgeProperty.create(DataMovementType.SCATTER_GATHER,
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, mock(OutputDescriptor.class),

@@ -56,6 +56,7 @@ import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezReflectionException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
@@ -356,7 +357,7 @@ public class TezClient {
         historyACLPolicyManager = ReflectionUtils.createClazzInstance(
             atsHistoryACLManagerClassName);
         historyACLPolicyManager.setConf(this.amConfig.getYarnConfiguration());
-      } catch (TezUncheckedException e) {
+      } catch (TezReflectionException e) {
         if (!amConfig.getTezConfiguration().getBoolean(
             TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
             TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
