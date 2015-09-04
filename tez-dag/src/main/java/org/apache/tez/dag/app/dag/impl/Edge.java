@@ -31,6 +31,7 @@ import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.Task;
@@ -106,13 +107,13 @@ public class Edge {
   private EventMetaData destinationMetaInfo;
 
   @SuppressWarnings("rawtypes")
-  public Edge(EdgeProperty edgeProperty, EventHandler eventHandler) {
+  public Edge(EdgeProperty edgeProperty, EventHandler eventHandler) throws TezException {
     this.edgeProperty = edgeProperty;
     this.eventHandler = eventHandler;
     createEdgeManager();
   }
 
-  private void createEdgeManager() {
+  private void createEdgeManager() throws TezException {
     switch (edgeProperty.getDataMovementType()) {
       case ONE_TO_ONE:
         edgeManagerContext = new EdgeManagerPluginContextImpl(null);
@@ -142,7 +143,7 @@ public class Edge {
       default:
         String message = "Unknown edge data movement type: "
             + edgeProperty.getDataMovementType();
-        throw new TezUncheckedException(message);
+        throw new TezException(message);
     }
   }
 
@@ -171,7 +172,11 @@ public class Edge {
             edgeProperty.getEdgeDestination());
     this.edgeProperty = modifiedEdgeProperty;
     boolean wasUnInitialized = (edgeManager == null);
-    createEdgeManager();
+    try {
+      createEdgeManager();
+    } catch (TezException e) {
+      throw new AMUserCodeException(Source.EdgeManager, e);
+    }
     initialize();
     if (wasUnInitialized) {
       sendEvent(new VertexEventNullEdgeInitialized(sourceVertex.getVertexId(), this, destinationVertex));

@@ -46,7 +46,6 @@ import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,7 +166,7 @@ public class TimelineReaderFactory {
       try {
         authenticator = getTokenAuthenticator();
         authenticator.setConnectionConfigurator(connectionConfigurator);
-      } catch (TezUncheckedException e) {
+      } catch (TezException e) {
         throw new IOException("Failed to get authenticator", e);
       }
 
@@ -179,13 +178,17 @@ public class TimelineReaderFactory {
         doAsUser = null;
       }
 
-      HttpURLConnectionFactory connectionFactory =
-          new TokenAuthenticatedURLConnectionFactory(connectionConfigurator, authenticator,
-              authUgi, doAsUser);
+      HttpURLConnectionFactory connectionFactory;
+      try {
+        connectionFactory = new TokenAuthenticatedURLConnectionFactory(connectionConfigurator, authenticator,
+            authUgi, doAsUser);
+      } catch (TezException e) {
+        throw new IOException("Fail to create TokenAuthenticatedURLConnectionFactory", e);
+      }
       return new Client(new URLConnectionClientHandler(connectionFactory), clientConfig);
     }
 
-    private static Authenticator getTokenAuthenticator() {
+    private static Authenticator getTokenAuthenticator() throws TezException {
       String authenticatorClazzName;
 
       if (UserGroupInformation.isSecurityEnabled()) {
@@ -208,7 +211,7 @@ public class TimelineReaderFactory {
       public TokenAuthenticatedURLConnectionFactory(ConnectionConfigurator connConfigurator,
                                                     Authenticator authenticator,
                                                     UserGroupInformation authUgi,
-                                                    String doAsUser) {
+                                                    String doAsUser) throws TezException {
         this.connConfigurator = connConfigurator;
         this.authenticator = authenticator;
         this.authUgi = authUgi;
@@ -377,7 +380,7 @@ public class TimelineReaderFactory {
 
         isTokenDelegationClassesPresent = true;
 
-      } catch (TezUncheckedException e) {
+      } catch (TezException e) {
         LOG.info("Could not find class required for token delegation, will fallback to pseudo auth");
       }
     }
