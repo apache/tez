@@ -324,7 +324,7 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
   
   @Override
-  public synchronized void serviceStart() {
+  public synchronized void serviceStart() throws Exception {
     InetSocketAddress serviceAddr = clientService.getBindAddress();
     dagAppMaster = appContext.getAppMaster();
     taskScheduler = createTaskScheduler(serviceAddr.getHostName(),

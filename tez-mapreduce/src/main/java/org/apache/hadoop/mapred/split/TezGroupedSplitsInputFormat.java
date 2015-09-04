@@ -32,7 +32,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.TezException;
 
 import com.google.common.base.Preconditions;
 
@@ -82,24 +82,28 @@ public class TezGroupedSplitsInputFormat<K, V>
   public RecordReader<K, V> getRecordReader(InputSplit split, JobConf job,
       Reporter reporter) throws IOException {
     TezGroupedSplit groupedSplit = (TezGroupedSplit) split;
-    initInputFormatFromSplit(groupedSplit);
+    try {
+      initInputFormatFromSplit(groupedSplit);
+    } catch (TezException e) {
+      throw new IOException(e);
+    }
     return new TezGroupedSplitsRecordReader(groupedSplit, job, reporter);
   }
   
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  void initInputFormatFromSplit(TezGroupedSplit split) {
+  void initInputFormatFromSplit(TezGroupedSplit split) throws TezException {
     if (wrappedInputFormat == null) {
       Class<? extends InputFormat> clazz = (Class<? extends InputFormat>) 
           getClassFromName(split.wrappedInputFormatName);
       try {
         wrappedInputFormat = org.apache.hadoop.util.ReflectionUtils.newInstance(clazz, conf);
       } catch (Exception e) {
-        throw new TezUncheckedException(e);
+        throw new TezException(e);
       }
     }
   }
 
-  static Class<?> getClassFromName(String name) {
+  static Class<?> getClassFromName(String name) throws TezException {
     return ReflectionUtils.getClazz(name);
   }
 

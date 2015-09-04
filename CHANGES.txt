@@ -8,6 +8,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2745. ClassNotFoundException of user code should fail dag
   TEZ-2752. logUnsuccessful completion in Attempt should write original finish
   time to ATS
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
@@ -235,6 +236,7 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2745. ClassNotFoundException of user code should fail dag
   TEZ-2752. logUnsuccessful completion in Attempt should write original finish
   time to ATS
   TEZ-2742. VertexImpl.finished() terminationCause hides member var of the
