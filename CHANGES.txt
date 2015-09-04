@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2761. addendum fix build failure for java 6
   TEZ-2761. Tez UI: update the progress on the dag and vertices pages with info from AM
   TEZ-2754. Tez UI: StartTime & EndTime is not displayed with right format in Graphical View
   TEZ-2731. Fix Tez GenericCounter performance bottleneck

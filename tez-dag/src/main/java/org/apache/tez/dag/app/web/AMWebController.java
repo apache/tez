@@ -340,7 +340,7 @@ public class AMWebController extends Controller {
   Collection<Integer> getVertexIDsFromRequest() {
     final String valueStr = $(WebUIService.VERTEX_ID).trim();
 
-    List<Integer> vertexIDs = new ArrayList<>();
+    List<Integer> vertexIDs = new ArrayList<Integer>();
     if (!valueStr.equals("")) {
       String[] vertexIdsStr = valueStr.split(",", MAX_VERTICES_QUERIED);
 
@@ -369,7 +369,7 @@ public class AMWebController extends Controller {
       return;
     }
 
-    Map<String, String> dagInfo = new HashMap<>();
+    Map<String, String> dagInfo = new HashMap<String, String>();
     dagInfo.put("id", dag.getID().toString());
     dagInfo.put("progress", Float.toString(dag.getProgress()));
     dagInfo.put("status", dag.getState().toString());
@@ -380,7 +380,7 @@ public class AMWebController extends Controller {
   }
 
   private Map<String,String> getVertexInfoMap(Vertex vertex) {
-    Map<String, String> vertexInfo = new HashMap<>();
+    Map<String, String> vertexInfo = new HashMap<String, String>();
     vertexInfo.put("id", vertex.getVertexId().toString());
     vertexInfo.put("status", vertex.getState().toString());
     vertexInfo.put("progress", Float.toString(vertex.getProgress()));
@@ -420,7 +420,7 @@ public class AMWebController extends Controller {
       vertexList = getVerticesByIdx(dag, requestedIDs);
     }
 
-    ArrayList<Map<String, String>> verticesInfo = new ArrayList<>();
+    ArrayList<Map<String, String>> verticesInfo = new ArrayList<Map<String, String>>();
     for(Vertex v : vertexList) {
       verticesInfo.add(getVertexInfoMap(v));
     }
