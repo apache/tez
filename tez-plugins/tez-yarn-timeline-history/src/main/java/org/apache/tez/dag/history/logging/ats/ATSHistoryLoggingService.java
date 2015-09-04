@@ -40,6 +40,7 @@ import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezReflectionException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -128,7 +129,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       historyACLPolicyManager = ReflectionUtils.createClazzInstance(
           atsHistoryACLManagerClassName);
       historyACLPolicyManager.setConf(conf);
-    } catch (TezUncheckedException e) {
+    } catch (TezReflectionException e) {
       LOG.warn("Could not instantiate object for " + atsHistoryACLManagerClassName
           + ". ACLs cannot be enforced correctly for history data in Timeline", e);
       if (!conf.getBoolean(TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,

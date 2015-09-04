@@ -1440,7 +1440,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
     }
 
-    createDAGEdges(this);
+    try {
+      createDAGEdges(this);
+    } catch (TezException e2) {
+      String msg = "Fail to create edges, " + ExceptionUtils.getStackTrace(e2);
+      addDiagnostic(msg);
+      LOG.error(msg);
+      trySetTerminationCause(DAGTerminationCause.INIT_FAILURE);
+      finished(DAGState.FAILED);
+      return DAGState.FAILED;
+    }
     Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(getJobPlan().getEdgeList());
 
     // setup the dag
@@ -1462,7 +1471,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
     }
 
-    assignDAGScheduler(this);
+    try {
+      assignDAGScheduler(this);
+    } catch (TezException e1) {
+      String msg = "Fail to assign DAGScheduler for dag:" + dagName + " due to "
+          + ExceptionUtils.getStackTrace(e1);
+      LOG.error(msg);
+      addDiagnostic(msg);
+      trySetTerminationCause(DAGTerminationCause.INIT_FAILURE);
+      finished(DAGState.FAILED);
+      return DAGState.FAILED;
+    }
 
     for (Map.Entry<String, VertexGroupInfo> entry : vertexGroups.entrySet()) {
       String groupName = entry.getKey();
@@ -1483,7 +1502,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return DAGState.INITED;
   }
 
-  private void createDAGEdges(DAGImpl dag) {
+  private void createDAGEdges(DAGImpl dag) throws TezException {
     for (EdgePlan edgePlan : dag.getJobPlan().getEdgeList()) {
       EdgeProperty edgeProperty = DagTypeConverters
           .createEdgePropertyMapFromDAGPlan(edgePlan);
@@ -1494,7 +1513,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  private static void assignDAGScheduler(DAGImpl dag) {
+  private static void assignDAGScheduler(DAGImpl dag) throws TezException {
     String dagSchedulerClassName = dag.dagConf.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS,
         TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT);
     LOG.info("Using DAG Scheduler: " + dagSchedulerClassName);

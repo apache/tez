@@ -44,6 +44,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -360,7 +361,7 @@ public class VertexManager {
   }
 
   public VertexManager(VertexManagerPluginDescriptor pluginDesc, UserGroupInformation dagUgi,
-      Vertex managedVertex, AppContext appContext, StateChangeNotifier stateChangeNotifier) {
+      Vertex managedVertex, AppContext appContext, StateChangeNotifier stateChangeNotifier) throws TezException {
     checkNotNull(pluginDesc, "pluginDesc is null");
     checkNotNull(managedVertex, "managedVertex is null");
     checkNotNull(appContext, "appContext is null");

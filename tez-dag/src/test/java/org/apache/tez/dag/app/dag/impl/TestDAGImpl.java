@@ -744,6 +744,76 @@ public class TestDAGImpl {
     return dag;
   }
 
+  // v1 -> v2
+  private DAGPlan createDAGWithNonExistEdgeManager() {
+    LOG.info("Setting up dag plan with non-exist edgemanager");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("testverteximpl")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host1")
+                        .addRack("rack1")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .addOutEdgeId("e1")
+                .build()
+        )
+          .addVertex(
+              VertexPlan.newBuilder()
+                  .setName("vertex2")
+                  .setType(PlanVertexType.NORMAL)
+                  .setProcessorDescriptor(
+                      TezEntityDescriptorProto.newBuilder().setClassName("x2.y2"))
+                  .addTaskLocationHint(
+                      PlanTaskLocationHint.newBuilder()
+                          .addHost("host2")
+                          .addRack("rack2")
+                          .build()
+                  )
+                  .setTaskConfig(
+                      PlanTaskConfiguration.newBuilder()
+                          .setNumTasks(2)
+                          .setVirtualCores(4)
+                          .setMemoryMb(1024)
+                          .setJavaOpts("foo")
+                          .setTaskModule("x2.y2")
+                          .build()
+                  )
+                  .addInEdgeId("e1")
+                  .build()
+          )
+         .addEdge(
+             EdgePlan.newBuilder()
+                 .setEdgeManager(TezEntityDescriptorProto.newBuilder()
+                         .setClassName("non-exist-edge-manager")
+                 )
+                 .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
+                 .setInputVertexName("vertex1")
+                 .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                 .setOutputVertexName("vertex2")
+                 .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
+                 .setId("e1")
+                 .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                 .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                 .build()
+         )
+          .build();
+    return dag;
+  }
+
   @BeforeClass
   public static void beforeClass() {
     MockDNSToSwitchMapping.initializeMockRackResolver();
@@ -967,6 +1037,39 @@ public class TestDAGImpl {
       LOG.info("Distance from root: v" + i + ":"
           + dag.getVertex(vId).getDistanceFromRoot());
     }
+  }
+
+  @Test(timeout = 5000)
+  public void testNonExistEdgeManagerPlugin() {
+    dagPlan = createDAGWithNonExistEdgeManager();
+    dag = new DAGImpl(dagId, conf, dagPlan,
+        dispatcher.getEventHandler(),  taskAttemptListener,
+        fsTokens, clock, "user", thh, appContext);
+    dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
+    doReturn(dag).when(appContext).getCurrentDAG();
+
+    dag.handle(new DAGEvent(dagId, DAGEventType.DAG_INIT));
+    Assert.assertEquals(DAGState.FAILED, dag.getState());
+    Assert.assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
+    Assert.assertTrue(StringUtils.join(dag.getDiagnostics(), "")
+        .contains("java.lang.ClassNotFoundException: non-exist-edge-manager"));
+  }
+
+  @Test (timeout = 5000)
+  public void testNonExistDAGScheduler() {
+    conf.set(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, "non-exist-dag-scheduler");
+    dag = new DAGImpl(dagId, conf, dagPlan,
+        dispatcher.getEventHandler(),  taskAttemptListener,
+        fsTokens, clock, "user", thh, appContext);
+    dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
+    doReturn(dag).when(appContext).getCurrentDAG();
+
+    dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
+    Assert.assertEquals(DAGState.FAILED, dag.getState());
+    Assert.assertEquals(DAGState.FAILED, dag.getState());
+    Assert.assertEquals(DAGTerminationCause.INIT_FAILURE, dag.getTerminationCause());
+    Assert.assertTrue(StringUtils.join(dag.getDiagnostics(), "")
+        .contains("java.lang.ClassNotFoundException: non-exist-dag-scheduler"));
   }
 
   @SuppressWarnings("unchecked")

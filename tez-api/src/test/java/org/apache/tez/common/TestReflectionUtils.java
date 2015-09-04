@@ -31,6 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.TezReflectionException;
 import org.junit.Test;
 
 public class TestReflectionUtils {
@@ -45,7 +46,7 @@ public class TestReflectionUtils {
   }
 
   @Test(timeout = 5000)
-  public void testConstructorWithParameters()
+  public void testConstructorWithParameters() throws TezReflectionException
   {
     Class<?>[] parameterTypes = new Class[] { String.class, Integer.TYPE };
     Object[] parameters = new Object[] { new String("test"), 1 };

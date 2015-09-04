@@ -81,6 +81,7 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -563,6 +564,100 @@ public class TestVertexImpl {
         )
         .build();
     return dag;
+  }
+
+  private DAGPlan createDAGPlanWithNonExistInputInitializer() {
+    LOG.info("Setting up dag plan with non exist inputinitializer");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("initializerWith0Tasks")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addInputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                "non-exist-input-initializer"))
+                        .setName("input1")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                                .setClassName("InputClazz")
+                                .build()
+                        )
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .build()
+        ).build();
+    return dag;
+  }
+
+  private DAGPlan createDAGPlanWithNonExistOutputCommitter() {
+    LOG.info("Setting up dag plan with non exist output committer");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("initializerWith0Tasks")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addOutputs(
+                    RootInputLeafOutputProto.newBuilder()
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                "non-exist-output-committer"))
+                        .setName("output1")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder()
+                                .setClassName("OutputClazz")
+                                .build()
+                        )
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .build()
+        ).build();
+    return dag;
+  }
+
+  private DAGPlan createDAGPlanWithNonExistVertexManager() {
+    LOG.info("Setting up dag plan with non-exist VertexManager");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("initializerWith0Tasks")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName("non-exist-vertexmanager"))
+                .build()
+        ).build();
+     return dag;
   }
 
   private DAGPlan createDAGPlanWithMixedEdges() {
@@ -2141,7 +2236,7 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public void setupPostDagCreation() throws AMUserCodeException {
+  public void setupPostDagCreation() throws TezException {
     String dagName = "dag0";
     // dispatcher may be created multiple times (setupPostDagCreation may be called multiples)
     if (dispatcher != null) {
@@ -2253,7 +2348,7 @@ public class TestVertexImpl {
   }
 
   @Before
-  public void setup() throws AMUserCodeException {
+  public void setup() throws TezException {
     useCustomInitializer = false;
     customInitializer = null;
     setupPreDagCreation();
@@ -2370,6 +2465,45 @@ public class TestVertexImpl {
         .getOutputDescriptor().getClassName())
         || "o3_v5".equals(v3.getOutputSpecList(0).get(1)
         .getOutputDescriptor().getClassName()));
+  }
+
+  @Test(timeout=5000)
+  public void testNonExistVertexManager() throws TezException {
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithNonExistVertexManager();
+    setupPostDagCreation();
+    VertexImpl v1 = vertices.get("vertex1");
+    v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
+    Assert.assertEquals(VertexTerminationCause.INIT_FAILURE, v1.getTerminationCause());
+    Assert.assertTrue(StringUtils.join(v1.getDiagnostics(),"")
+        .contains("java.lang.ClassNotFoundException: non-exist-vertexmanager"));
+  }
+
+  @Test(timeout=5000)
+  public void testNonExistInputInitializer() throws TezException {
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithNonExistInputInitializer();
+    setupPostDagCreation();
+    VertexImpl v1 = vertices.get("vertex1");
+    v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
+    Assert.assertEquals(VertexTerminationCause.INIT_FAILURE, v1.getTerminationCause());
+    Assert.assertTrue(StringUtils.join(v1.getDiagnostics(),"")
+        .contains("java.lang.ClassNotFoundException: non-exist-input-initializer"));
+  }
+
+  @Test(timeout=5000)
+  public void testNonExistOutputCommitter() throws TezException {
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithNonExistOutputCommitter();
+    setupPostDagCreation();
+    VertexImpl v1 = vertices.get("vertex1");
+    v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    Assert.assertEquals(VertexState.FAILED, v1.getState());
+    Assert.assertEquals(VertexTerminationCause.INIT_FAILURE, v1.getTerminationCause());
+    Assert.assertTrue(StringUtils.join(v1.getDiagnostics(),"")
+        .contains("java.lang.ClassNotFoundException: non-exist-output-committer"));
   }
 
   class TestUpdateListener implements VertexStateUpdateListener {
@@ -3565,7 +3699,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testVertexManagerHeuristic() throws AMUserCodeException {
+  public void testVertexManagerHeuristic() throws TezException {
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMixedEdges();
     setupPostDagCreation();
@@ -3822,7 +3956,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 10000)
-  public void testVertexWithInitializerParallelismSetTo0() throws InterruptedException, AMUserCodeException {
+  public void testVertexWithInitializerParallelismSetTo0() throws InterruptedException, TezException {
     useCustomInitializer = true;
     customInitializer = new RootInitializerSettingParallelismTo0(null);
     RootInitializerSettingParallelismTo0 initializer =
@@ -4364,7 +4498,7 @@ public class TestVertexImpl {
    * If broadcast, one-to-one or custom edges are present in source, tasks should not start until
    * 1 task from each source vertex is complete.
    */
-  public void testTaskSchedulingWithCustomEdges() throws AMUserCodeException {
+  public void testTaskSchedulingWithCustomEdges() throws TezException {
     setupPreDagCreation();
     dagPlan = createCustomDAGWithCustomEdges();
     setupPostDagCreation();
@@ -5190,7 +5324,7 @@ public class TestVertexImpl {
       hasShutDown = true;
     }
 
-    public void failInputInitialization() {
+    public void failInputInitialization() throws TezException {
       super.runInputInitializers(inputs);
       eventHandler.handle(new VertexEventRootInputFailed(vertexID, inputs
           .get(0).getName(),
@@ -5239,7 +5373,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout=5000)
-  public void testVertexGroupInput() throws AMUserCodeException {
+  public void testVertexGroupInput() throws TezException {
     setupPreDagCreation();
     dagPlan = createVertexGroupDAGPlan();
     setupPostDagCreation();
@@ -5389,7 +5523,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testInitStartRace() throws AMUserCodeException {
+  public void testInitStartRace() throws TezException {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized
     setupPreDagCreation();
@@ -5412,7 +5546,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testInitStartRace2() throws AMUserCodeException {
+  public void testInitStartRace2() throws TezException {
     // Race when a source vertex manages to start before the target vertex has
     // been initialized
     setupPreDagCreation();
@@ -5439,7 +5573,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testExceptionFromVM_Initialize() throws AMUserCodeException {
+  public void testExceptionFromVM_Initialize() throws TezException {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.Initialize);
@@ -5597,7 +5731,7 @@ public class TestVertexImpl {
   }
   
   @Test(timeout = 5000)
-  public void testExceptionFromII_Initialize() throws AMUserCodeException, InterruptedException {
+  public void testExceptionFromII_Initialize() throws InterruptedException, TezException {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.Initialize);
     EventHandlingRootInputInitializer initializer =
@@ -5720,7 +5854,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testExceptionFromII_OnVertexStateUpdated() throws AMUserCodeException, InterruptedException {
+  public void testExceptionFromII_OnVertexStateUpdated() throws InterruptedException, TezException {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.OnVertexStateUpdated);
     EventHandlingRootInputInitializer initializer =
@@ -5749,7 +5883,7 @@ public class TestVertexImpl {
   }
 
   @Test(timeout = 5000)
-  public void testExceptionFromII_InitSucceededAfterInitFailure() throws AMUserCodeException, InterruptedException {
+  public void testExceptionFromII_InitSucceededAfterInitFailure() throws InterruptedException, TezException {
     useCustomInitializer = true;
     customInitializer = new EventHandlingRootInputInitializer(null, IIExceptionLocation.OnVertexStateUpdated);
     EventHandlingRootInputInitializer initializer =
