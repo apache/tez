@@ -22,6 +22,47 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   needs: 'dag',
 
+  liveData: null,
+
+  succeededTasks: null,
+  totalTasks: null,
+  completedVertices: null,
+
+  liveDataObserver: function () {
+    var vertexInfoContent = this.get('amVertexInfo.content'),
+        liveData = null,
+        succeededTasks = null,
+        totalTasks = null,
+        completedVertices = null;
+
+    if(vertexInfoContent && vertexInfoContent.length) {
+      liveData = vertexInfoContent,
+      succeededTasks = 0,
+      totalTasks = 0,
+      completedVertices = 0;
+
+      liveData.forEach(function (vertex) {
+        succeededTasks += parseInt(vertex.get('succeededTasks'));
+        totalTasks += parseInt(vertex.get('totalTasks'));
+        if(vertex.get('progress') >= 1) {
+          completedVertices++;
+        }
+      });
+    }
+
+    this.setProperties({
+      liveData: liveData,
+      succeededTasks: succeededTasks,
+      totalTasks: totalTasks,
+      completedVertices: completedVertices
+    });
+  }.observes('amVertexInfo'),
+
+  dagRunning: function () {
+    var progress = this.get('dagProgress');
+    return progress != null && progress < 1;
+  }.property('dagProgress'),
+
   actions: {
     downloadDagJson: function() {
       var dagID = this.get('id');
@@ -58,6 +99,76 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
     }
 
   },
+
+  liveColumns: function () {
+    var vertexIdToNameMap = this.get('vertexIdToNameMap');
+
+    return App.Helpers.misc.createColumnDescription([
+      {
+        id: 'vertexName',
+        headerCellName: 'Vertex Name',
+        templateName: 'components/basic-table/linked-cell',
+        contentPath: 'name',
+        getCellContent: function(row) {
+          return {
+            linkTo: 'vertex',
+            entityId: row.get('id'),
+            displayText: vertexIdToNameMap[row.get('id')]
+          };
+        }
+      },
+      {
+        id: 'progress',
+        headerCellName: 'Progress',
+        contentPath: 'progress',
+        templateName: 'components/basic-table/progress-cell'
+      },
+      {
+        id: 'status',
+        headerCellName: 'Status',
+        templateName: 'components/basic-table/status-cell',
+        contentPath: 'status',
+        getCellContent: function(row) {
+          var status = row.get('status');
+          return {
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status,
+              row.get('hasFailedTaskAttempts'))
+          };
+        }
+      },
+      {
+        id: 'totalTasks',
+        headerCellName: 'Total Tasks',
+        contentPath: 'totalTasks',
+      },
+      {
+        id: 'succeededTasks',
+        headerCellName: 'Succeeded Tasks',
+        contentPath: 'succeededTasks',
+      },
+      {
+        id: 'runningTasks',
+        headerCellName: 'Running Tasks',
+        contentPath: 'runningTasks',
+      },
+      {
+        id: 'pendingTasks',
+        headerCellName: 'Pending Tasks',
+        contentPath: 'pendingTasks',
+      },
+      {
+        id: 'failedTasks',
+        headerCellName: 'Failed Task Attempts',
+        contentPath: 'failedTaskAttempts',
+      },
+      {
+        id: 'killedTasks',
+        headerCellName: 'Killed Task Attempts',
+        contentPath: 'killedTaskAttempts',
+      }
+    ]);
+  }.property('id'),
 
   load: function () {
     var dag = this.get('controllers.dag.model'),

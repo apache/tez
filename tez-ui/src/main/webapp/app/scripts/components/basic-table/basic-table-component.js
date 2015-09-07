@@ -36,14 +36,14 @@ App.BasicTableComponent = Em.Component.extend({
   rowCountOptions: [5, 10, 25, 50, 100],
   pageNavOnFooterAt: 25,
 
+  _sortedRows: null,
+
   init: function () {
-    if(this.get('sortColumnId')) {
-      this._sortObserver();
-    }
+    this._super();
     if(this.get('searchText')) {
       this._searchObserver();
     }
-    this._super();
+    this._sortObserver();
   },
 
   totalPages: function () {
@@ -62,6 +62,9 @@ App.BasicTableComponent = Em.Component.extend({
   }.property('enableSearch', 'enablePagination', 'extraHeaderItem', '_statusMessage'),
 
   _statusMessage: function() {
+    if(this.get('enableStatus') == false) {
+      return null;
+    }
     if(this.get('isSorting')) {
       return "Sorting...";
     }
@@ -69,7 +72,7 @@ App.BasicTableComponent = Em.Component.extend({
       return "Searching...";
     }
     return this.get('statusMessage');
-  }.property('isSearching', 'isSorting', 'statusMessage'),
+  }.property('isSearching', 'isSorting', 'statusMessage', 'enableStatus'),
 
   _pageNumResetObserver: function () {
     this.set('pageNum', 1);
@@ -77,7 +80,7 @@ App.BasicTableComponent = Em.Component.extend({
 
   _searchedRows: function () {
     var regex = this.get('searchRegEx'),
-        rows = this.get('rows') || [],
+        rows = this.get('_sortedRows') || [],
         searchColumnNames,
         columns;
 
@@ -105,7 +108,7 @@ App.BasicTableComponent = Em.Component.extend({
         return columns.some(checkRow, row);
       });
     }
-  }.property('columns.@each', 'rows.@each', 'searchRegEx'),
+  }.property('columns.@each', '_sortedRows.@each', 'searchRegEx'),
 
   _columns: function () {
     var columns = this.get('columns'),
@@ -183,7 +186,7 @@ App.BasicTableComponent = Em.Component.extend({
         ascending = this.get('sortOrder') == 'asc',
         that = this;
 
-    if(rows.length > 0 && column) {
+    if(rows && rows.get('length') > 0 && column) {
       this.set('isSorting', true);
 
       Ember.run.later(function () {
@@ -209,7 +212,7 @@ App.BasicTableComponent = Em.Component.extend({
         });
 
         that.setProperties({
-          rows: sortArray.map(function (record) {
+          _sortedRows: sortArray.map(function (record) {
             return record.row;
           }),
           isSorting: false
@@ -217,7 +220,10 @@ App.BasicTableComponent = Em.Component.extend({
 
       }, 400);
     }
-  }.observes('sortColumnId', 'sortOrder'),
+    else {
+      this.set('_sortedRows', rows);
+    }
+  }.observes('sortColumnId', 'sortOrder', 'rows.@each'),
 
   actions: {
     search: function (searchText) {
