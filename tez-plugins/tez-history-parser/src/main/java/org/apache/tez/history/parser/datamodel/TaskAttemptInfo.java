@@ -20,6 +20,7 @@ package org.apache.tez.history.parser.datamodel;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
@@ -28,10 +29,13 @@ import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.history.parser.utils.Utils;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -53,14 +57,29 @@ public class TaskAttemptInfo extends BaseInfo {
   private final String status;
   private final String logUrl;
   private final String creationCausalTA;
-  private final long lastDataEventTime;
-  private final String lastDataEventSourceTA;
   private final String terminationCause;
   private final long executionTimeInterval;
+  // this list is in time order - array list for easy walking
+  private final ArrayList<DataDependencyEvent> lastDataEvents = Lists.newArrayList();
 
   private TaskInfo taskInfo;
 
   private Container container;
+  
+  public static class DataDependencyEvent {
+    String taId;
+    long timestamp;
+    public DataDependencyEvent(String id, long time) {
+      taId = id;
+      timestamp = time;
+    }
+    public long getTimestamp() {
+      return timestamp;
+    }
+    public String getTaskAttemptId() {
+      return taId;
+    }
+  }
 
   TaskAttemptInfo(JSONObject jsonObject) throws JSONException {
     super(jsonObject);
@@ -87,9 +106,17 @@ public class TaskAttemptInfo extends BaseInfo {
 
     status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
     container = new Container(containerId, nodeId);
-    lastDataEventTime = otherInfoNode.optLong(ATSConstants.LAST_DATA_EVENT_TIME);
-    lastDataEventSourceTA = StringInterner.weakIntern(
-        otherInfoNode.optString(ATSConstants.LAST_DATA_EVENT_SOURCE_TA));
+    if (otherInfoNode.has(Constants.LAST_DATA_EVENTS)) {
+      List<DataDependencyEvent> eventInfo = Utils.parseDataEventDependencyFromJSON(
+          otherInfoNode.optJSONObject(Constants.LAST_DATA_EVENTS));
+      long lastTime = 0;
+      for (DataDependencyEvent item : eventInfo) {
+        // check these are in time order
+        Preconditions.checkState(lastTime < item.getTimestamp());
+        lastTime = item.getTimestamp();
+        lastDataEvents.add(item);
+      }
+    }
     terminationCause = StringInterner
         .weakIntern(otherInfoNode.optString(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
     executionTimeInterval = (endTime > startTime) ? (endTime - startTime) : 0;
@@ -121,6 +148,10 @@ public class TaskAttemptInfo extends BaseInfo {
     return endTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
   }
   
+  public final List<DataDependencyEvent> getLastDataEvents() {
+    return lastDataEvents;
+  }
+  
   public final long getExecutionTimeInterval() {
     return executionTimeInterval;
   }
@@ -149,14 +180,17 @@ public class TaskAttemptInfo extends BaseInfo {
     return creationTime;
   }
   
-  public final long getLastDataEventTime() {
-    return lastDataEventTime;
+  public final DataDependencyEvent getLastDataEventInfo(long timeThreshold) {
+    for (int i=lastDataEvents.size()-1; i>=0; i--) {
+      // walk back in time until we get first event that happened before the threshold
+      DataDependencyEvent item = lastDataEvents.get(i);
+      if (item.getTimestamp() < timeThreshold) {
+        return item;
+      }
+    }
+    return null;
   }
   
-  public final String getLastDataEventSourceTA() {
-    return lastDataEventSourceTA;
-  }
-
   public final long getTimeTaken() {
     return getFinishTimeInterval() - getStartTimeInterval();
   }

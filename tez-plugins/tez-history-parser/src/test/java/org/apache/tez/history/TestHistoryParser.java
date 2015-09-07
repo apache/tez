@@ -63,6 +63,7 @@ import org.apache.tez.history.parser.datamodel.BaseInfo;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.EdgeInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
+import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEvent;
 import org.apache.tez.history.parser.datamodel.TaskInfo;
 import org.apache.tez.history.parser.datamodel.VersionInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
@@ -77,7 +78,6 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -288,12 +288,14 @@ public class TestHistoryParser {
           }
         } else {
           for (TaskAttemptInfo attempt : attempts) {
-            assertTrue(attempt.getLastDataEventTime() > 0);
+            DataDependencyEvent item = attempt.getLastDataEvents().get(0);
+            assertTrue(item.getTimestamp() > 0);
+            
             if (lastDataEventSourceTA == null) {
-              lastDataEventSourceTA = attempt.getLastDataEventSourceTA();
+              lastDataEventSourceTA = item.getTaskAttemptId();
             } else {
               // all attempts should have the same last data event source TA
-              assertTrue(lastDataEventSourceTA.equals(attempt.getLastDataEventSourceTA()));
+              assertTrue(lastDataEventSourceTA.equals(item.getTaskAttemptId()));
             }
           }
         }

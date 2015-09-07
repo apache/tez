@@ -33,11 +33,11 @@ import org.apache.tez.analyzer.plugins.CriticalPathAnalyzer.CriticalPathStep.Ent
 import org.apache.tez.analyzer.utils.SVGUtils;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.history.parser.datamodel.Container;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
+import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEvent;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -165,8 +165,10 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
               .getAvgExecutionTimeInterval();
           if (avgExecutionTime * 1.25 < attempt.getExecutionTimeInterval()) {
             step.notes
-                .add("Potential straggler. Execution time " + attempt.getExecutionTimeInterval()
-                    + " compared to vertex average of " + avgExecutionTime);
+                .add("Potential straggler. Execution time " + 
+                    SVGUtils.getTimeStr(attempt.getExecutionTimeInterval())
+                    + " compared to vertex average of " + 
+                    SVGUtils.getTimeStr(avgExecutionTime));
           }
           
           if (attempt.getStartTime() > step.startCriticalPathTime) {
@@ -231,14 +233,44 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         Preconditions.checkState(currentAttemptStopCriticalPathTime > 0);
         System.out.println(
             "Step: " + tempCP.size() + " Attempt: " + currentAttempt.getTaskAttemptId());
+        
         currentStep = new CriticalPathStep(currentAttempt, EntityType.ATTEMPT);
         currentStep.stopCriticalPathTime = currentAttemptStopCriticalPathTime;
+
+        // consider the last data event seen immediately preceding the current critical path 
+        // stop time for this attempt
+        long currentStepLastDataEventTime = 0;
+        String currentStepLastDataTA = null;
+        DataDependencyEvent item = currentAttempt.getLastDataEventInfo(currentStep.stopCriticalPathTime);
+        if (item!=null) {
+          currentStepLastDataEventTime = item.getTimestamp();
+          currentStepLastDataTA = item.getTaskAttemptId();
+        }
+
+        // sanity check
+        for (CriticalPathStep previousStep : tempCP) {
+          if (previousStep.type == EntityType.ATTEMPT) {
+            if (previousStep.attempt.getTaskAttemptId().equals(currentAttempt.getTaskAttemptId())) {
+              // found loop.
+              // this should only happen for read errors in currentAttempt
+              List<DataDependencyEvent> dataEvents = currentAttempt.getLastDataEvents();
+              Preconditions.checkState(dataEvents.size() > 1); // received
+                                                               // original and
+                                                               // retry data events
+              Preconditions.checkState(currentStepLastDataEventTime < dataEvents
+                  .get(dataEvents.size() - 1).getTimestamp()); // new event is
+                                                               // earlier than
+                                                               // last
+            }
+          }
+        }
+
         tempCP.add(currentStep);
   
         // find the next attempt on the critical path
         boolean dataDependency = false;
         // find out predecessor dependency
-        if (currentAttempt.getLastDataEventTime() > currentAttempt.getCreationTime()) {
+        if (currentStepLastDataEventTime > currentAttempt.getCreationTime()) {
           dataDependency = true;
         }
   
@@ -248,13 +280,13 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         if (dataDependency) {
           // last data event was produced after the attempt was scheduled. use
           // data dependency
-          // typically case when scheduling ahead of time
+          // typically the case when scheduling ahead of time
           System.out.println("Has data dependency");
-          if (!Strings.isNullOrEmpty(currentAttempt.getLastDataEventSourceTA())) {
+          if (!Strings.isNullOrEmpty(currentStepLastDataTA)) {
             // there is a valid data causal TA. Use it.
-            nextAttemptId = currentAttempt.getLastDataEventSourceTA();
+            nextAttemptId = currentStepLastDataTA;
             reason = CriticalPathDependency.DATA_DEPENDENCY;
-            startCriticalPathTime = currentAttempt.getLastDataEventTime();
+            startCriticalPathTime = currentStepLastDataEventTime;
             System.out.println("Using data dependency " + nextAttemptId);
           } else {
             // there is no valid data causal TA. This means data event came from the same vertex
@@ -289,20 +321,30 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
                 }
               }
             }
-            startCriticalPathTime = currentAttempt.getCreationTime();
+            if (reason == CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY) {
+              // rescheduled due to read error. start critical at read error report time.
+              // for now proxy own creation time for read error report time
+              startCriticalPathTime = currentAttempt.getCreationTime();
+            } else {
+              // rescheduled due to own previous attempt failure
+              // we are critical when the previous attempt fails
+              Preconditions.checkState(nextAttempt != null);
+              Preconditions.checkState(nextAttempt.getTaskInfo().getTaskId().equals(
+                  currentAttempt.getTaskInfo().getTaskId()));
+              startCriticalPathTime = nextAttempt.getFinishTime();
+            }
             System.out.println("Using scheduling dependency " + nextAttemptId);
           } else {
             // there is no scheduling causal TA.
-            if (!Strings.isNullOrEmpty(currentAttempt.getLastDataEventSourceTA())) {
+            if (!Strings.isNullOrEmpty(currentStepLastDataTA)) {
               // there is a data event going to the vertex. Count the time between data event and
-              // scheduling time as Initializer/Manager overhead and follow data dependency
-              nextAttemptId = currentAttempt.getLastDataEventSourceTA();
+              // creation time as Initializer/Manager overhead and follow data dependency
+              nextAttemptId = currentStepLastDataTA;
               reason = CriticalPathDependency.DATA_DEPENDENCY;
-              startCriticalPathTime = currentAttempt.getLastDataEventTime();
-              long overhead = currentAttempt.getCreationTime()
-                  - currentAttempt.getLastDataEventTime();
+              startCriticalPathTime = currentStepLastDataEventTime;
+              long overhead = currentAttempt.getCreationTime() - currentStepLastDataEventTime;
               currentStep.notes
-                  .add("Initializer/VertexManager scheduling overhead " + overhead + " ms");
+                  .add("Initializer/VertexManager scheduling overhead " + SVGUtils.getTimeStr(overhead));
               System.out.println("Using data dependency " + nextAttemptId);
             } else {
               // there is no scheduling causal TA and no data event casual TA.
@@ -314,89 +356,6 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
               System.out.println("Using init dependency");
             }
           }
-        }
-
-        
-        if (!Strings.isNullOrEmpty(nextAttemptId)) {
-          TaskAttemptInfo nextAttempt = attempts.get(nextAttemptId);
-          TaskAttemptInfo attemptToCheck = nextAttempt;
-
-          // check if the next attempt is already on critical path to prevent infinite loop
-          boolean foundLoop = false;
-          CriticalPathDependency prevReason = null;
-          for (CriticalPathStep previousStep : tempCP) {
-            if (previousStep.attempt.equals(attemptToCheck)) {
-              foundLoop = true;
-              prevReason = previousStep.reason;
-            }
-          }
-
-          if (foundLoop) {
-            // found a loop - find the next step based on heuristics
-            /* only the losing outputs causes us to backtrack. There are 2 cases
-            * 1) Step N reported last data event to this step 
-            *    -> Step N+1 (current step) is the retry for read error reported
-            *    -> read error was reported by the Step N attempt and it did not exit after the 
-            *       error
-            *    -> So scheduling dependency of Step N points back to step N+1
-            * 2) Step N reported last data event to this step
-            *     -> Step N+1 is a retry for a read error reported
-            *     -> Step N+2 is the attempt that reported the read error
-            *     -> Step N+3 is the last data event of N+2 and points back to N+1
-            */
-            System.out.println("Reset " + currentAttempt.getTaskAttemptId() 
-            + " cause: " + currentAttempt.getTerminationCause() 
-            + " time: " + currentAttempt.getFinishTime()
-            + " reason: " + reason
-            + " because of: " + attemptToCheck.getTaskAttemptId());
-            TaskAttemptInfo attemptWithLostAncestor = currentAttempt;
-            if (reason != CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY) {
-              // Case 2 above. If reason == CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY
-              // then its Case 1 above
-              Preconditions.checkState(prevReason.equals(
-                  CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY), prevReason);
-              reason = CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY;
-              attemptWithLostAncestor = nextAttempt;
-            }
-            System.out.println("Reset " + currentAttempt.getTaskAttemptId() 
-            + " cause: " + currentAttempt.getTerminationCause() 
-            + " time: " + currentAttempt.getFinishTime()
-            + " reason: " + reason
-            + " because of: " + attemptToCheck.getTaskAttemptId()
-            + " looking at: " + attemptWithLostAncestor.getTaskAttemptId());
-            Preconditions.checkState(reason == CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY);
-            // we dont track all input events to the consumer. So just jump to
-            // the previous successful version of the current attempt
-            TaskAttemptInfo prevSuccAttempt = null;
-            for (TaskAttemptInfo prevAttempt : attemptWithLostAncestor.getTaskInfo().getTaskAttempts()) {
-              System.out.println("Looking at " + prevAttempt.getTaskAttemptId() 
-              + " cause: " + prevAttempt.getTerminationCause() + 
-              " time: " + prevAttempt.getFinishTime());
-              if (prevAttempt.getTerminationCause()
-                  .equals(TaskAttemptTerminationCause.OUTPUT_LOST.name())) {
-                if (prevAttempt.getFinishTime() < currentAttempt.getFinishTime()) {
-                  // attempt finished before current attempt
-                  if (prevSuccAttempt == null
-                      || prevAttempt.getFinishTime() > prevSuccAttempt.getFinishTime()) {
-                    // keep the latest attempt that had lost outputs
-                    prevSuccAttempt = prevAttempt;
-                  }
-                }
-              }
-            }
-            Preconditions.checkState(prevSuccAttempt != null,
-                attemptWithLostAncestor.getTaskAttemptId());
-            System.out
-                .println("Resetting nextAttempt to : " + prevSuccAttempt.getTaskAttemptId()
-                    + " from " + nextAttempt.getTaskAttemptId());
-            nextAttemptId = prevSuccAttempt.getTaskAttemptId();
-            if (attemptWithLostAncestor == currentAttempt) {
-              startCriticalPathTime = currentAttempt.getCreationTime();
-            } else {
-              startCriticalPathTime = prevSuccAttempt.getFinishTime();
-            }
-          }
-          
         }
 
         currentStep.startCriticalPathTime = startCriticalPathTime;

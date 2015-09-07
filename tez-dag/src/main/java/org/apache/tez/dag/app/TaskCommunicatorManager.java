@@ -35,7 +35,6 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventType;
@@ -234,18 +233,26 @@ public class TaskCommunicatorManager extends AbstractService implements
       // to VertexImpl to ensure the events ordering
       //  1. DataMovementEvent is logged as RecoveryEvent before TaskAttemptFinishedEvent
       //  2. TaskStatusEvent is handled before TaskAttemptFinishedEvent
+      TaskAttemptEventStatusUpdate taskAttemptEvent = null;
+      boolean readErrorReported = false;
       for (TezEvent tezEvent : ListUtils.emptyIfNull(inEvents)) {
         // for now, set the event time on the AM when it is received.
         // this avoids any time disparity between machines.
         tezEvent.setEventReceivedTime(currTime);
         final EventType eventType = tezEvent.getEventType();
         if (eventType == EventType.TASK_STATUS_UPDATE_EVENT) {
-          TaskAttemptEvent taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
+          taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
               (TaskStatusUpdateEvent) tezEvent.getEvent());
-          context.getEventHandler().handle(taskAttemptEvent);
         } else {
+          if (eventType == EventType.INPUT_READ_ERROR_EVENT) {
+            readErrorReported = true;
+          }
           otherEvents.add(tezEvent);
         }
+      }
+      if (taskAttemptEvent != null) {
+        taskAttemptEvent.setReadErrorReported(readErrorReported);
+        context.getEventHandler().handle(taskAttemptEvent);
       }
       if(!otherEvents.isEmpty()) {
         TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();

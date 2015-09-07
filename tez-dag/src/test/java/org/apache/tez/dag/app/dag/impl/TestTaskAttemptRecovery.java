@@ -51,6 +51,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
+import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -64,6 +65,8 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+
+import com.google.common.collect.Lists;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttemptRecovery {
@@ -177,9 +180,12 @@ public class TestTaskAttemptRecovery {
 
     long lastDataEventTime = 1024;
     TezTaskAttemptID lastDataEventTA = mock(TezTaskAttemptID.class);
+    List<DataEventDependencyInfo> events = Lists.newLinkedList();
+    events.add(new DataEventDependencyInfo(lastDataEventTime, lastDataEventTA));
+    events.add(new DataEventDependencyInfo(lastDataEventTime, lastDataEventTA));
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
-            startTime, finishTime, state, errorEnum, diag, counters, lastDataEventTime, lastDataEventTA));
+            startTime, finishTime, state, errorEnum, diag, counters, events));
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(finishTime, ta.getFinishTime());
     assertEquals(counters, ta.reportedStatus.counters);
@@ -188,8 +194,9 @@ public class TestTaskAttemptRecovery {
     assertEquals(1, ta.getDiagnostics().size());
     assertEquals(diag, ta.getDiagnostics().get(0));
     assertEquals(state, recoveredState);
-    assertEquals(lastDataEventTime, ta.lastDataEventTime);
-    assertEquals(lastDataEventTA, ta.lastDataEventSourceTA);
+    assertEquals(events.size(), ta.lastDataEvents.size());
+    assertEquals(lastDataEventTime, ta.lastDataEvents.get(0).getTimestamp());
+    assertEquals(lastDataEventTA, ta.lastDataEvents.get(0).getTaskAttemptId());
     if (state != TaskAttemptState.SUCCEEDED) {
       assertEquals(errorEnum, ta.getTerminationCause());
     } else {
@@ -314,7 +321,7 @@ public class TestTaskAttemptRecovery {
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
             startTime, finishTime, TaskAttemptState.KILLED,
-            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters(), 0, null));
+            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters(), null));
     assertEquals(TaskAttemptState.KILLED, recoveredState);
   }
 }

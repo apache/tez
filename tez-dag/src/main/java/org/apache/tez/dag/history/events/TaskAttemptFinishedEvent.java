@@ -21,16 +21,22 @@ package org.apache.tez.dag.history.events;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.DataEventDependencyInfoProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptFinishedProto;
 
 public class TaskAttemptFinishedEvent implements HistoryEvent {
@@ -45,9 +51,8 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   private String diagnostics;
   private TezCounters tezCounters;
   private TaskAttemptTerminationCause error;
-  private TezTaskAttemptID lastDataEventSourceTA;
-  private long lastDataEventTime;
-
+  private List<DataEventDependencyInfo> dataEvents;
+  
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
       String vertexName,
       long startTime,
@@ -55,8 +60,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       TaskAttemptState state,
       TaskAttemptTerminationCause error,
       String diagnostics, TezCounters counters, 
-      long lastDataEventTime, 
-      TezTaskAttemptID lastDataEventSourceTA) {
+      List<DataEventDependencyInfo> dataEvents) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.startTime = startTime;
@@ -65,8 +69,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     this.diagnostics = diagnostics;
     this.tezCounters = counters;
     this.error = error;
-    this.lastDataEventTime = lastDataEventTime;
-    this.lastDataEventSourceTA = lastDataEventSourceTA;
+    this.dataEvents = dataEvents;
   }
 
   public TaskAttemptFinishedEvent() {
@@ -87,14 +90,10 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     return true;
   }
   
-  public long getLastDataEventTime() {
-    return lastDataEventTime;
+  public List<DataEventDependencyInfo> getDataEvents() {
+    return dataEvents;
   }
   
-  public TezTaskAttemptID getLastDataEventSourceTA() {
-    return lastDataEventSourceTA;
-  }
-
   public TaskAttemptFinishedProto toProto() {
     TaskAttemptFinishedProto.Builder builder =
         TaskAttemptFinishedProto.newBuilder();
@@ -110,9 +109,10 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     if (tezCounters != null) {
       builder.setCounters(DagTypeConverters.convertTezCountersToProto(tezCounters));
     }
-    if (lastDataEventSourceTA != null) {
-      builder.setLastDataEventSourceTA(lastDataEventSourceTA.toString());
-      builder.setLastDataEventTime(lastDataEventTime);
+    if (dataEvents != null && !dataEvents.isEmpty()) {
+      for (DataEventDependencyInfo info : dataEvents) {
+        builder.addDataEvents(DataEventDependencyInfo.toProto(info));
+      }
     }
     return builder.build();
   }
@@ -131,9 +131,11 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
         proto.getCounters());
     }
-    if (proto.hasLastDataEventSourceTA()) {
-      this.lastDataEventSourceTA = TezTaskAttemptID.fromString(proto.getLastDataEventSourceTA());
-      this.lastDataEventTime = proto.getLastDataEventTime();
+    if (proto.getDataEventsCount() > 0) {
+      this.dataEvents = Lists.newArrayListWithCapacity(proto.getDataEventsCount());
+      for (DataEventDependencyInfoProto protoEvent : proto.getDataEventsList()) {
+        this.dataEvents.add(DataEventDependencyInfo.fromProto(protoEvent));
+      }
     }
   }
 
@@ -163,8 +165,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         + ", errorEnum=" + (error != null ? error.name() : "")
         + ", diagnostics=" + diagnostics
         + ", lastDataEventSourceTA=" + 
-              ((lastDataEventSourceTA==null) ? null:lastDataEventSourceTA.toString())
-        + ", lastDataEventTime=" + lastDataEventTime
+              ((dataEvents==null) ? 0:dataEvents.size())
         + ", counters=" + (tezCounters == null ? "null" :
           tezCounters.toString()
             .replaceAll("\\n", ", ").replaceAll("\\s+", " "));

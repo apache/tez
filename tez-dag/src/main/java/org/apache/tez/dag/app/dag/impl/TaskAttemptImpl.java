@@ -97,6 +97,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.DataEventDependencyInfoProto;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -119,6 +120,37 @@ public class TaskAttemptImpl implements TaskAttempt,
   private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptImpl.class);
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
+  
+  public static class DataEventDependencyInfo {
+    long timestamp;
+    TezTaskAttemptID taId;
+    public DataEventDependencyInfo(long time, TezTaskAttemptID id) {
+      this.timestamp = time;
+      this.taId = id;
+    }
+    public long getTimestamp() {
+      return timestamp;
+    }
+    public TezTaskAttemptID getTaskAttemptId() {
+      return taId;
+    }
+    public static DataEventDependencyInfoProto toProto(DataEventDependencyInfo info) {
+      DataEventDependencyInfoProto.Builder builder = DataEventDependencyInfoProto.newBuilder();
+      builder.setTimestamp(info.timestamp);
+      if (info.taId != null) {
+        builder.setTaskAttemptId(info.taId.toString());
+      }
+      return builder.build();
+    }
+    
+    public static DataEventDependencyInfo fromProto(DataEventDependencyInfoProto proto) {
+      TezTaskAttemptID taId = null;
+      if(proto.hasTaskAttemptId()) {
+        taId = TezTaskAttemptID.fromString(proto.getTaskAttemptId());
+      }
+      return new DataEventDependencyInfo(proto.getTimestamp(), taId);
+    }
+  }
 
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
 
@@ -150,8 +182,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Vertex vertex;
 
   @VisibleForTesting
-  long lastDataEventTime;
-  TezTaskAttemptID lastDataEventSourceTA = null;
+  boolean appendNextDataEvent = true;
+  ArrayList<DataEventDependencyInfo> lastDataEvents = Lists.newArrayList();
   
   @VisibleForTesting
   TaskAttemptStatus reportedStatus;
@@ -822,8 +854,9 @@ public class TaskAttemptImpl implements TaskAttempt,
               : TaskAttemptTerminationCause.UNKNOWN_ERROR;
           this.diagnostics.add(tEvent.getDiagnostics());
           this.recoveredState = tEvent.getState();
-          this.lastDataEventTime = tEvent.getLastDataEventTime();
-          this.lastDataEventSourceTA = tEvent.getLastDataEventSourceTA();
+          if (tEvent.getDataEvents() != null) {
+            this.lastDataEvents.addAll(tEvent.getDataEvents());
+          }
           sendEvent(createDAGCounterUpdateEventTAFinished(this, tEvent.getState()));
           return recoveredState;
         }
@@ -1040,7 +1073,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, null,
-        "", getCounters(), lastDataEventTime, lastDataEventSourceTA);
+        "", getCounters(), lastDataEvents);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1057,8 +1090,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         finishTime, state,
         terminationCause,
         StringUtils.join(
-            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEventTime, 
-        lastDataEventSourceTA);
+            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1324,12 +1356,16 @@ public class TaskAttemptImpl implements TaskAttempt,
       SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
     @Override
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      TaskStatusUpdateEvent statusEvent = ((TaskAttemptEventStatusUpdate) event)
-          .getStatusEvent();
+      TaskAttemptEventStatusUpdate sEvent = (TaskAttemptEventStatusUpdate) event; 
+      TaskStatusUpdateEvent statusEvent = sEvent.getStatusEvent();
       ta.reportedStatus.state = ta.getState();
       ta.reportedStatus.progress = statusEvent.getProgress();
       ta.reportedStatus.counters = statusEvent.getCounters();
       ta.statistics = statusEvent.getStatistics();
+      if (sEvent.getReadErrorReported()) {
+        // if there is a read error then track the next last data event
+        ta.appendNextDataEvent = true;
+      }
 
       ta.updateProgressSplits();
 
@@ -1655,8 +1691,20 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   @Override
   public void setLastEventSent(TezEvent lastEventSent) {
-    // task attempt id may be null for input data information events
-    this.lastDataEventSourceTA = lastEventSent.getSourceInfo().getTaskAttemptID();
-    this.lastDataEventTime = lastEventSent.getEventReceivedTime();
+    writeLock.lock();
+    try {
+      DataEventDependencyInfo info = new DataEventDependencyInfo(
+          lastEventSent.getEventReceivedTime(), lastEventSent.getSourceInfo().getTaskAttemptID());
+      // task attempt id may be null for input data information events
+      if (appendNextDataEvent) {
+        appendNextDataEvent = false;
+        lastDataEvents.add(info);
+      } else {
+        // over-write last event - array list makes it quick
+        lastDataEvents.set(lastDataEvents.size() - 1, info);
+      }
+    } finally {
+      writeLock.unlock();
+    }
   }
 }

@@ -182,7 +182,7 @@ public class TestAnalyzer {
   DagInfo runDAGAndVerify(DAG dag, DAGStatus.State finalState, List<StepCheck[]> steps) throws Exception {
     tezSession.waitTillReady();
     numDAGs++;
-    LOG.info("XXX Running DAG name: " + dag.getName());
+    LOG.info("ABC Running DAG name: " + dag.getName());
     DAGClient dagClient = tezSession.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
@@ -230,13 +230,13 @@ public class TestAnalyzer {
     List<CriticalPathStep> criticalPath = cp.getCriticalPath();
 
     for (CriticalPathStep step : criticalPath) {
-      LOG.info("XXX Step: " + step.getType());
+      LOG.info("ABC Step: " + step.getType());
       if (step.getType() == EntityType.ATTEMPT) {
-        LOG.info("XXX Attempt: " + step.getAttempt().getShortName() + " " + step.getAttempt().getDetailedStatus());
+        LOG.info("ABC Attempt: " + step.getAttempt().getShortName() + " " + step.getAttempt().getDetailedStatus());
       }
-      LOG.info("XXX Reason: " + step.getReason());
+      LOG.info("ABC Reason: " + step.getReason());
       String notes = Joiner.on(";").join(step.getNotes());
-      LOG.info("XXX Notes: " + notes);
+      LOG.info("ABC Notes: " + notes);
     }
 
     boolean foundMatchingLength = false;
@@ -361,6 +361,7 @@ public class TestAnalyzer {
 
     StepCheck[] check = {
         createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
+        createStep("v2 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v2 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
       };
@@ -416,7 +417,9 @@ public class TestAnalyzer {
 
     StepCheck[] check = {
         createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
+        createStep("v2 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+        createStep("v2 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v1 : 000000_2", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v2 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
       };
@@ -484,6 +487,9 @@ public class TestAnalyzer {
 
     StepCheck[] check = {
         createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
+        createStep("v2 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v2 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v2 : 000000_1", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
@@ -553,7 +559,13 @@ public class TestAnalyzer {
     StepCheck[] check = {
         // use regex for either vertices being possible on the path
         createStep("v[12] : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
-        createStep("v[12] : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+        createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v[12] : 000000_[01]", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+        createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v[12] : 000000_[012]", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+        createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v[12] : 000000_[12]", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+        createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v[12] : 000000_2", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
       };
@@ -643,17 +655,11 @@ public class TestAnalyzer {
     StepCheck[] check1 = {
         // use regex for either vertices being possible on the path
       createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
-      createStep("v[23] : 000000_0", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+      createStep("v[23] : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
       createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
       createStep("v[23] : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
     };
-    StepCheck[] check2 = {
-        createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
-        createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
-        createStep("v[23] : 000000_0", CriticalPathDependency.DATA_DEPENDENCY),
-    };
     stepsOptions.add(check1);
-    stepsOptions.add(check2);
     DAG dag = SimpleReverseVTestDAG.createDAG(
             "testInputFailureRerunCanSendOutputToTwoDownstreamVertices", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, stepsOptions);

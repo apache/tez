@@ -19,7 +19,10 @@
 package org.apache.tez.history.parser.utils;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.util.StringInterner;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -27,8 +30,10 @@ import org.apache.log4j.PatternLayout;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.history.parser.datamodel.Constants;
 import org.apache.tez.history.parser.datamodel.Event;
+import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEvent;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -82,6 +87,19 @@ public class Utils {
       }
     }
     return counters;
+  }
+  
+  public static List<DataDependencyEvent> parseDataEventDependencyFromJSON(JSONObject jsonObject) 
+      throws JSONException {
+    List<DataDependencyEvent> events = Lists.newArrayList();
+    JSONArray fields = jsonObject.optJSONArray(Constants.LAST_DATA_EVENTS);
+    for (int i=0; i<fields.length(); i++) {
+      JSONObject eventMap = fields.getJSONObject(i);
+      events.add(new DataDependencyEvent(
+          StringInterner.weakIntern(eventMap.optString(EntityTypes.TEZ_TASK_ATTEMPT_ID.name())),
+          eventMap.optLong(Constants.TIMESTAMP)));
+    }
+    return events;
   }
 
   /**

@@ -169,6 +169,11 @@ message TaskAttemptStartedProto {
   optional int64 allocation_time = 7;
 }
 
+message DataEventDependencyInfoProto {
+  optional string task_attempt_id = 1;
+  optional int64 timestamp = 2;
+}
+
 message TaskAttemptFinishedProto {
   optional string task_attempt_id = 1;
   optional int64 finish_time = 2;
@@ -176,8 +181,7 @@ message TaskAttemptFinishedProto {
   optional string diagnostics = 4;
   optional TezCountersProto counters = 5;
   optional string error_enum = 6;
-  optional int64 last_data_event_time = 7;
-  optional string last_data_event_source_t_a = 8;
+  repeated DataEventDependencyInfoProto data_events = 7;
 }
 
 message EventMetaDataProto {
