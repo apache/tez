@@ -85,6 +85,28 @@
   </div>
 </div>
 
+{{#if liveData}}
+  <br/>
+  <h4>DAG Progress
+    ( Vertices {{completedVertices}}/{{liveData.length}} )
+    {{#if totalTasks}}
+      ( Tasks {{succeededTasks}}/{{totalTasks}} )
+    {{/if}}
+    :
+    {{progressStr}}
+  </h4>
+  {{bs-progress-animated progressDecimal=progress}}
+
+  {{basic-table-component
+    columns=liveColumns
+    rows=liveData
+    rowCount=liveData.length
+
+    enableStatus=false
+    enableSort=true
+  }}
+{{/if}}
+
 {{#if diagnostics}}
   <div class="margin-small-vertical">
     {{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger'}}

@@ -751,6 +751,13 @@ body, html {
           padding: 5px;
           position: relative;
 
+          .progress {
+            height: 15px;
+            .sr-only {
+              top: -2px;
+            }
+          }
+
           .cell-content {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -926,5 +933,20 @@ body, html {
 .code-mirror-container {
   .panel-body {
     padding: 0px;
+  }
+}
+
+.progress {
+  .sr-only {
+    text-shadow:
+        -1px -1px 1px #337ab7,
+        1px -1px  1px #337ab7,
+        -1px 1px 1px #337ab7,
+        1px 1px 1px #337ab7;
+
+    position: relative;
+    overflow: visible;
+    clip: auto;
+    left: 5px;
   }
 }
