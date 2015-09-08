@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2782. VertexInfo.getAvgExecutionTimeInterval throws NPE when task does not have any valid attempts info
   TEZ-2778. Improvements to handle multiple read errors with complex DAGs
   TEZ-2768. Log a useful error message when the summary stream cannot be closed when shutting
   down an AM.
