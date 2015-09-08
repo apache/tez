@@ -29,6 +29,7 @@ import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.history.parser.utils.Utils;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -44,6 +45,8 @@ import static org.apache.hadoop.classification.InterfaceAudience.Public;
 @Public
 @Evolving
 public class TaskAttemptInfo extends BaseInfo {
+
+  private static final String SUCCEEDED = StringInterner.weakIntern(TaskAttemptState.SUCCEEDED.name());
 
   private final String taskAttemptId;
   private final long startTime;
@@ -146,6 +149,10 @@ public class TaskAttemptInfo extends BaseInfo {
   @Override
   public final long getFinishTimeInterval() {
     return endTime - (getTaskInfo().getVertexInfo().getDagInfo().getStartTime());
+  }
+  
+  public final boolean isSucceeded() {
+    return status.equals(SUCCEEDED);
   }
   
   public final List<DataDependencyEvent> getLastDataEvents() {

@@ -104,8 +104,9 @@ public class SVGUtils {
     svgLines.add(rectStr);    
   }
   
-  private void addTextStr(int x, int y, String text, String anchor, int size, String title) {
-    String textStyle = "text-anchor: " + anchor + "; font-size: " + size + "px;";
+  private void addTextStr(int x, int y, String text, String anchor, int size, String title, boolean italic) {
+    String textStyle = "text-anchor: " + anchor + "; font-style: " + (italic?"italic":"normal") +
+        "; font-size: " + size + "px;";
     String textStr = "<text x=\"" + addOffsetX(scaleDown(x)) + "\" "
         + "y=\"" + addOffsetY(y) + "\" "
         + "style=\"" + textStyle + "\" transform=\"\">"
@@ -155,7 +156,7 @@ public class SVGUtils {
       addTextStr((stopTimeInterval + startTimeInterval) / 2,
           (yOffset * STEP_GAP + STEP_GAP / 2),
           text, "middle",
-          TEXT_SIZE, titleStr);
+          TEXT_SIZE, titleStr, false);
     } else {
       TaskAttemptInfo attempt = step.getAttempt();
       int startCriticalTimeInterval = (int) (step.getStartCriticalTime() - dagStartTime);
@@ -195,7 +196,8 @@ public class SVGUtils {
           STEP_GAP, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
 
       addTextStr((finishTimeInterval + creationTimeInterval) / 2,
-          (yOffset * STEP_GAP + STEP_GAP / 2),   attempt.getShortName(), "middle", TEXT_SIZE, titleStr);
+          (yOffset * STEP_GAP + STEP_GAP / 2),   attempt.getShortName(), "middle", TEXT_SIZE, 
+          titleStr, !attempt.isSucceeded());
     }
   }
 
@@ -212,12 +214,12 @@ public class SVGUtils {
     for (int i=0; i<11; ++i) {
       int x = Math.round(((dagFinishTimeInterval - dagStartTimeInterval)/10.0f)*i);
       addLineStr(x, 0, x, yGrid, BORDER_COLOR, "", TICK);  
-      addTextStr(x, 0, getTimeStr(x), "left", TEXT_SIZE, "");
+      addTextStr(x, 0, getTimeStr(x), "left", TEXT_SIZE, "", false);
     }
     addLineStr(dagStartTimeInterval, yGrid, dagFinishTimeInterval, yGrid, BORDER_COLOR, "", TICK);
     addTextStr((dagFinishTimeInterval + dagStartTimeInterval) / 2, yGrid + STEP_GAP,
         "Critical Path for " + dagInfo.getName() + " (" + dagInfo.getDagId() + ")", "middle",
-        TEXT_SIZE, "");
+        TEXT_SIZE, "", false);
 
     // draw steps
     for (int i=1; i<=criticalPath.size(); ++i) {
@@ -255,16 +257,16 @@ public class SVGUtils {
     int legendWidth = dagFinishTimeInterval/5;
     
     addRectStr(legendX, legendWidth, legendY, STEP_GAP/2, VERTEX_INIT_COMMIT_COLOR, BORDER_COLOR, RECT_OPACITY, "");
-    addTextStr(legendX, legendY + STEP_GAP/3, "Vertex Init/Commit Overhead", "left", TEXT_SIZE, "");
+    addTextStr(legendX, legendY + STEP_GAP/3, "Vertex Init/Commit Overhead", "left", TEXT_SIZE, "", false);
     legendY += STEP_GAP/2;
     addRectStr(legendX, legendWidth, legendY, STEP_GAP/2, ALLOCATION_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, "");
-    addTextStr(legendX, legendY + STEP_GAP/3, "Task Allocation Overhead", "left", TEXT_SIZE, "");
+    addTextStr(legendX, legendY + STEP_GAP/3, "Task Allocation Overhead", "left", TEXT_SIZE, "", false);
     legendY += STEP_GAP/2;
     addRectStr(legendX, legendWidth, legendY, STEP_GAP/2, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, "");
-    addTextStr(legendX, legendY + STEP_GAP/3, "Task Launch Overhead", "left", TEXT_SIZE, "");
+    addTextStr(legendX, legendY + STEP_GAP/3, "Task Launch Overhead", "left", TEXT_SIZE, "", false);
     legendY += STEP_GAP/2;
     addRectStr(legendX, legendWidth, legendY, STEP_GAP/2, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, "");
-    addTextStr(legendX, legendY + STEP_GAP/3, "Task Execution Time", "left", TEXT_SIZE, "");
+    addTextStr(legendX, legendY + STEP_GAP/3, "Task Execution Time", "left", TEXT_SIZE, "", false);
     
     Y_MAX += Y_BASE*2;
     X_MAX += X_BASE*2;

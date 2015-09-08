@@ -201,8 +201,10 @@ public class VertexInfo extends BaseInfo {
       long totalAttempts = 0;
       for (TaskInfo task : getTasks()) {
         TaskAttemptInfo attempt = task.getSuccessfulTaskAttempt();
-        totalExecutionTime += attempt.getExecutionTimeInterval();
-        totalAttempts++;
+        if (attempt != null) {
+          totalExecutionTime += attempt.getExecutionTimeInterval();
+          totalAttempts++;
+        }
       }
       if (totalAttempts > 0) {
         avgExecutionTimeInterval = Math.round(totalExecutionTime*1.0/totalAttempts);
