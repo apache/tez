@@ -147,6 +147,24 @@ public class TestPipelinedSorter {
   }
 
   @Test
+  public void testEmptyDataWithPipelinedShuffle() throws IOException {
+    this.numOutputs = 1;
+    this.initialAvailableMem = 1 *1024 * 1024;
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem, 1 << 20);
+
+    writeData(sorter, 0, 1<<20);
+
+    // final merge is disabled. Final output file would not be populated in this case.
+    assertTrue(sorter.finalOutputFile == null);
+    TezCounter numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
+    assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+
+  }
+
+  @Test
   public void basicTestWithSmallBlockSize() throws IOException {
     //3 MB key & 3 MB value, whereas block size is just 3 MB
     basicTest(1, 5, (3 << 20), (10 * 1024l * 1024l), 3 << 20);

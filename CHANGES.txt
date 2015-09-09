@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2643. Minimize number of empty spills in Pipelined Sorter
   TEZ-2783. Refactor analyzers to extend TezAnalyzerBase
   TEZ-2784. optimize TaskImpl.isFinished()
   TEZ-2788. Allow TezAnalyzerBase to parse SimpleHistory logs

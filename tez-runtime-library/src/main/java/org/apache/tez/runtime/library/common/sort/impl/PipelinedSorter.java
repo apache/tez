@@ -215,10 +215,10 @@ public class PipelinedSorter extends ExternalSorter {
       stopWatch.start();
       // sort in the same thread, do not wait for the thread pool
       merger.add(span.sort(sorter));
-      spill();
+      boolean ret = spill(true);
       stopWatch.stop();
       LOG.info("Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
-      if (pipelinedShuffle) {
+      if (pipelinedShuffle && ret) {
         sendPipelinedShuffleEvents();
       }
       //safe to reset the iterator
@@ -425,28 +425,34 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-  public void spill() throws IOException {
-    // create spill file
-    final long size = capacity +
-        + (partitions * APPROX_HEADER_LENGTH);
-    final TezSpillRecord spillRec = new TezSpillRecord(partitions);
-    final Path filename =
-      mapOutputFile.getSpillFileForWrite(numSpills, size);
-    spillFilePaths.put(numSpills, filename);
-    FSDataOutputStream out = rfs.create(filename, true, 4096);
-
+  public boolean spill(boolean ignoreEmptySpills) throws IOException {
+    FSDataOutputStream out = null;
     try {
       try {
-        merger.ready(); // wait for all the future results from sort threads
+        boolean ret = merger.ready();
+        // if merger returned false and ignore merge is true,
+        // then return directly without spilling
+        if (!ret && ignoreEmptySpills){
+          return false;
+        }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         LOG.info("Interrupted while waiting for mergers to complete");
         throw new IOInterruptedException("Interrupted while waiting for mergers to complete", e);
       }
+
+      // create spill file
+      final long size = capacity +
+          + (partitions * APPROX_HEADER_LENGTH);
+      final TezSpillRecord spillRec = new TezSpillRecord(partitions);
+      final Path filename =
+        mapOutputFile.getSpillFileForWrite(numSpills, size);
+      spillFilePaths.put(numSpills, filename);
+      out = rfs.create(filename, true, 4096);
       LOG.info("Spilling to " + filename.toString());
       for (int i = 0; i < partitions; ++i) {
         if (isThreadInterrupted()) {
-          return;
+          return false;
         }
         TezRawKeyValueIterator kvIter = merger.filter(i);
         //write merged output to disk
@@ -489,8 +495,11 @@ public class PipelinedSorter extends ExternalSorter {
         //No final merge. Set the number of files offered via shuffle-handler
         numShuffleChunks.setValue(numSpills);
       }
+      return true;
     } finally {
-      out.close();
+      if (out != null) {
+        out.close();
+      }
     }
   }
 
@@ -524,7 +533,15 @@ public class PipelinedSorter extends ExternalSorter {
       LOG.info("Starting flush of map output");
       span.end();
       merger.add(span.sort(sorter));
-      spill();
+      // force a spill in flush()
+      // case 1: we want to force because of following scenarios:
+      // we have no keys written, and flush got called
+      // we want atleast one spill(be it empty)
+      // case 2: in pipeline shuffle case, we have no way of
+      // knowing the last key being written until flush is called
+      // so for flush()->spill() we want to force spill so that
+      // we can send pipeline shuffle event with last event true.
+      spill(false);
       sortmaster.shutdown();
 
       //safe to clean up
@@ -1158,6 +1175,9 @@ public class PipelinedSorter extends ExternalSorter {
         }
 
         StringBuilder sb = new StringBuilder();
+        if (heap.size() == 0) {
+          return false;
+        }
         for(SpanIterator sp: heap) {
             sb.append(sp.toString());
             sb.append(",");
