@@ -19,6 +19,7 @@
 package org.apache.tez.dag.history.logging.ats;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -45,6 +46,7 @@ import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.app.web.AMWebController;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -84,6 +86,8 @@ import org.codehaus.jettison.json.JSONException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class TestHistoryEventTimelineConversion {
 
@@ -166,11 +170,11 @@ public class TestHistoryEventTimelineConversion {
           break;
         case TASK_ATTEMPT_STARTED:
           event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1", random.nextInt(), containerId,
-              nodeId, null, null, "nodeHttpAddress");
+              nodeId, null, null, "nodeHttpAddress", 0, null, 0);
           break;
         case TASK_ATTEMPT_FINISHED:
           event = new TaskAttemptFinishedEvent(tezTaskAttemptID, "v1", random.nextInt(),
-              random.nextInt(), TaskAttemptState.FAILED, TaskAttemptTerminationCause.OUTPUT_LOST, null, null);
+              random.nextInt(), TaskAttemptState.FAILED, TaskAttemptTerminationCause.OUTPUT_LOST, null, null, null);
           break;
         case CONTAINER_LAUNCHED:
           event = new ContainerLaunchedEvent(containerId, random.nextInt(),
@@ -445,6 +449,7 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.USER));
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testConvertTaskAttemptFinishedEvent() {
     String vertexName = "testVertex";
@@ -456,9 +461,13 @@ public class TestHistoryEventTimelineConversion {
         .values()[random.nextInt(TaskAttemptTerminationCause.values().length)];
     String diagnostics = "random diagnostics message";
     TezCounters counters = new TezCounters();
+    long lastDataEventTime = finishTime - 1;
+    List<DataEventDependencyInfo> events = Lists.newArrayList();
+    events.add(new DataEventDependencyInfo(lastDataEventTime, tezTaskAttemptID));
+    events.add(new DataEventDependencyInfo(lastDataEventTime, tezTaskAttemptID));
 
     TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(tezTaskAttemptID, vertexName,
-        startTime, finishTime, state, error, diagnostics, counters);
+        startTime, finishTime, state, error, diagnostics, counters, events);
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
     Assert.assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
@@ -481,12 +490,17 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(finishTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(6, otherInfo.size());
+    Assert.assertEquals(7, otherInfo.size());
     Assert.assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
     Assert.assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
     Assert.assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
     Assert.assertEquals(error.name(), otherInfo.get(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
     Assert.assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
+    Map<String, Object> obj1 = (Map<String, Object>)otherInfo.get(ATSConstants.LAST_DATA_EVENTS);
+    List<Object> obj2 = (List<Object>) obj1.get(ATSConstants.LAST_DATA_EVENTS);
+    Assert.assertEquals(2, obj2.size());
+    Map<String, Object> obj3 = (Map<String, Object>) obj2.get(0);
+    Assert.assertEquals(events.get(0).getTimestamp(), obj3.get(ATSConstants.TIMESTAMP));
     Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
   }
 
@@ -730,8 +744,11 @@ public class TestHistoryEventTimelineConversion {
   @Test(timeout = 5000)
   public void testConvertTaskAttemptStartedEvent() {
     long startTime = random.nextLong();
+    long creationTime = 1024;
+    long allocationTime = 1024;
     TaskAttemptStartedEvent event = new TaskAttemptStartedEvent(tezTaskAttemptID, "v1",
-        startTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress");
+        startTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress", 
+        creationTime, tezTaskAttemptID, allocationTime);
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
@@ -776,6 +793,10 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.NODE_HTTP_ADDRESS));
     Assert.assertTrue(TaskAttemptState.RUNNING.name()
         .equals(timelineEntity.getOtherInfo().get(ATSConstants.STATUS)));
+    Assert.assertEquals(tezTaskAttemptID.toString(), 
+        timelineEntity.getOtherInfo().get(ATSConstants.CREATION_CAUSAL_ATTEMPT));
+    Assert.assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
+    Assert.assertEquals(allocationTime, timelineEntity.getOtherInfo().get(ATSConstants.ALLOCATION_TIME));
   }
 
   @Test(timeout = 5000)

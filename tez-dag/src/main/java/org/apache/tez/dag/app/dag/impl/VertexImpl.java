@@ -3446,6 +3446,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         vertex.distanceFromRoot = distanceFromRoot;
       }
       vertex.numStartedSourceVertices++;
+      vertex.startTimeRequested = vertex.clock.getTime();
       LOG.info("Source vertex started: " + startEvent.getSourceVertexId() +
           " for vertex: " + vertex.logIdentifier + " numStartedSources: " +
           vertex.numStartedSourceVertices + " numSources: " + vertex.sourceVertices.size());
@@ -3504,12 +3505,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       Preconditions.checkState(
           (vertex.sourceVertices == null || vertex.sourceVertices.isEmpty()),
           "Vertex: " + vertex.logIdentifier + " got invalid start event");
-      vertex.startTimeRequested = vertex.clock.getTime();
       vertex.startSignalPending = true;
+      vertex.startTimeRequested = vertex.clock.getTime();
     }
 
   }
-
+  
   public static class StartTransition implements
     MultipleArcTransition<VertexImpl, VertexEvent, VertexState> {
 
@@ -3517,7 +3518,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   public VertexState transition(VertexImpl vertex, VertexEvent event) {
       Preconditions.checkState(vertex.getState() == VertexState.INITED,
           "Unexpected state " + vertex.getState() + " for " + vertex.logIdentifier);
-      vertex.startTimeRequested = vertex.clock.getTime();
+      // if the start signal is pending this event is a fake start event to trigger this transition
+      if (!vertex.startSignalPending) {
+        vertex.startTimeRequested = vertex.clock.getTime();
+      }
       return vertex.startVertex();
     }
   }
@@ -4083,7 +4087,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Override
   public TaskAttemptEventInfo getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int preRoutedFromEventId, int maxEvents) {
-    ArrayList<TezEvent> events = getTask(attemptID.getTaskID()).getTaskAttemptTezEvents(
+    Task task = getTask(attemptID.getTaskID());
+    ArrayList<TezEvent> events = task.getTaskAttemptTezEvents(
         attemptID, preRoutedFromEventId, maxEvents);
     int nextPreRoutedFromEventId = preRoutedFromEventId + events.size();
     int nextFromEventId = fromEventId;
@@ -4168,6 +4173,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
     } finally {
       onDemandRouteEventsReadLock.unlock();
+    }
+    if (!events.isEmpty()) {
+      for (int i=(events.size() - 1); i>=0; --i) {
+        TezEvent lastEvent = events.get(i);
+              // record the last event sent by the AM to the task
+        EventType lastEventType = lastEvent.getEventType();
+        // if the following changes then critical path logic/recording may need revision
+        if (lastEventType == EventType.COMPOSITE_DATA_MOVEMENT_EVENT ||
+            lastEventType == EventType.DATA_MOVEMENT_EVENT ||
+            lastEventType == EventType.ROOT_INPUT_DATA_INFORMATION_EVENT) {
+          task.getAttempt(attemptID).setLastEventSent(lastEvent);
+          break;
+        }
+      }
     }
     return new TaskAttemptEventInfo(nextFromEventId, events, nextPreRoutedFromEventId);
   }

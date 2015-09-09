@@ -435,7 +435,10 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     atsEntity.addOtherInfo(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToATSMap(event.getCounters()));
-
+    if (event.getDataEvents() != null && !event.getDataEvents().isEmpty()) {
+      atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENTS, 
+          DAGUtils.convertDataEventDependecyInfoToATS(event.getDataEvents()));
+    }
     return atsEntity;
   }
 
@@ -470,6 +473,12 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
     atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
     atsEntity.addOtherInfo(ATSConstants.STATUS, TaskAttemptState.RUNNING.name());
+    atsEntity.addOtherInfo(ATSConstants.CREATION_TIME, event.getCreationTime());
+    atsEntity.addOtherInfo(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
+    if (event.getCreationCausalTA() != null) {
+      atsEntity.addOtherInfo(ATSConstants.CREATION_CAUSAL_ATTEMPT,
+          event.getCreationCausalTA().toString());
+    }
 
     return atsEntity;
   }

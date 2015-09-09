@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -584,6 +585,94 @@ public class TestTaskAttempt {
     // captured - TA already succeeded. Error cause is the default value.
     assertEquals(0, taImpl.getDiagnostics().size());
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
+  }
+  
+  @Test(timeout = 5000)
+  public void testLastDataEventRecording() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
+        appId, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+
+    MockEventHandler eventHandler = spy(new MockEventHandler());
+    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
+    when(taListener.getAddress()).thenReturn(
+        new InetSocketAddress("localhost", 0));
+
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
+    taskConf.setBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, true);
+
+    locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
+    Resource resource = Resource.newInstance(1024, 1);
+
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    @SuppressWarnings("deprecation")
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
+        new ContainerContextMatcher(), appCtx);
+    containers.addContainerIfNew(container);
+
+    doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
+    doReturn(containers).when(appCtx).getAllContainers();
+
+    TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
+    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        taListener, taskConf, new SystemClock(),
+        mockHeartbeatHandler, appCtx, false,
+        resource, createFakeContainerContext(), false);
+    TezTaskAttemptID taskAttemptID = taImpl.getID();
+
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
+    // At state STARTING.
+    taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
+        null));
+    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
+        TaskAttemptState.RUNNING);
+    
+    long ts1 = 1024;
+    long ts2 = 2048;
+    TezTaskAttemptID mockId1 = mock(TezTaskAttemptID.class);
+    TezTaskAttemptID mockId2 = mock(TezTaskAttemptID.class);
+    TezEvent mockTezEvent1 = mock(TezEvent.class, RETURNS_DEEP_STUBS);
+    when(mockTezEvent1.getEventReceivedTime()).thenReturn(ts1);
+    when(mockTezEvent1.getSourceInfo().getTaskAttemptID()).thenReturn(mockId1);
+    TezEvent mockTezEvent2 = mock(TezEvent.class, RETURNS_DEEP_STUBS);
+    when(mockTezEvent2.getEventReceivedTime()).thenReturn(ts2);
+    when(mockTezEvent2.getSourceInfo().getTaskAttemptID()).thenReturn(mockId2);
+    TaskAttemptEventStatusUpdate statusEvent =
+        new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null));
+
+    assertEquals(0, taImpl.lastDataEvents.size());
+    taImpl.setLastEventSent(mockTezEvent1);
+    assertEquals(1, taImpl.lastDataEvents.size());
+    assertEquals(ts1, taImpl.lastDataEvents.get(0).getTimestamp());
+    assertEquals(mockId1, taImpl.lastDataEvents.get(0).getTaskAttemptId());
+    taImpl.handle(statusEvent);
+    taImpl.setLastEventSent(mockTezEvent2);
+    assertEquals(1, taImpl.lastDataEvents.size());
+    assertEquals(ts2, taImpl.lastDataEvents.get(0).getTimestamp());
+    assertEquals(mockId2, taImpl.lastDataEvents.get(0).getTaskAttemptId()); // over-write earlier value
+    statusEvent.setReadErrorReported(true);
+    taImpl.handle(statusEvent);
+    taImpl.setLastEventSent(mockTezEvent1);
+    assertEquals(2, taImpl.lastDataEvents.size());
+    assertEquals(ts1, taImpl.lastDataEvents.get(1).getTimestamp());
+    assertEquals(mockId1, taImpl.lastDataEvents.get(1).getTaskAttemptId()); // add new event
+    taImpl.setLastEventSent(mockTezEvent2);
+    assertEquals(2, taImpl.lastDataEvents.size());
+    assertEquals(ts2, taImpl.lastDataEvents.get(1).getTimestamp());
+    assertEquals(mockId2, taImpl.lastDataEvents.get(1).getTaskAttemptId()); // over-write earlier value
   }
   
   @Test(timeout = 5000)

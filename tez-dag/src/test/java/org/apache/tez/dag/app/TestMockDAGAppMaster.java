@@ -126,17 +126,17 @@ public class TestMockDAGAppMaster {
   
   static class TestEventsDelegate implements EventsDelegate {
     @Override
-    public void getEvents(TaskSpec taskSpec, List<TezEvent> events) {
+    public void getEvents(TaskSpec taskSpec, List<TezEvent> events, long time) {
       for (OutputSpec output : taskSpec.getOutputs()) {
         if (output.getPhysicalEdgeCount() == 1) {
           events.add(new TezEvent(DataMovementEvent.create(0, 0, 0, null), new EventMetaData(
               EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(), output
-                  .getDestinationVertexName(), taskSpec.getTaskAttemptID())));
+                  .getDestinationVertexName(), taskSpec.getTaskAttemptID()), time));
         } else {
           events.add(new TezEvent(CompositeDataMovementEvent.create(0,
               output.getPhysicalEdgeCount(), null), new EventMetaData(
               EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(), output
-                  .getDestinationVertexName(), taskSpec.getTaskAttemptID())));
+                  .getDestinationVertexName(), taskSpec.getTaskAttemptID()), time));
         }
       }
     }    

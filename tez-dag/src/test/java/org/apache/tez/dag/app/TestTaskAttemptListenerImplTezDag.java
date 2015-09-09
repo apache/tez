@@ -47,6 +47,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
@@ -58,6 +59,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventType;
@@ -99,12 +101,15 @@ public class TestTaskAttemptListenerImplTezDag {
 
     eventHandler = mock(EventHandler.class);
 
+    MockClock clock = new MockClock();
+    
     appContext = mock(AppContext.class);
     doReturn(eventHandler).when(appContext).getEventHandler();
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(appAcls).when(appContext).getApplicationACLs();
     doReturn(amContainerMap).when(appContext).getAllContainers();
-
+    doReturn(clock).when(appContext).getClock();
+    
     taskAttemptListener = new TaskAttemptListenerImplForTest(appContext,
         mock(TaskHeartbeatHandler.class), mock(ContainerHeartbeatHandler.class), null);
 
@@ -198,6 +203,7 @@ public class TestTaskAttemptListenerImplTezDag {
     final Event statusUpdateEvent = argAllValues.get(0);
     assertEquals("First event should be status update", TaskAttemptEventType.TA_STATUS_UPDATE,
         statusUpdateEvent.getType());
+    assertEquals(false, ((TaskAttemptEventStatusUpdate)statusUpdateEvent).getReadErrorReported());
 
     final Event vertexEvent = argAllValues.get(1);
     final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)vertexEvent;
@@ -207,8 +213,38 @@ public class TestTaskAttemptListenerImplTezDag {
         vertexRouteEvent.getEvents().get(0).getEventType());
     assertEquals(EventType.TASK_ATTEMPT_COMPLETED_EVENT,
         vertexRouteEvent.getEvents().get(1).getEventType());
+  }
+  
+  @Test (timeout = 5000)
+  public void testTaskEventRoutingWithReadError() throws Exception {
+    List<TezEvent> events =  Arrays.asList(
+      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null), null),
+      new TezEvent(InputReadErrorEvent.create("", 0, 0), null),
+      new TezEvent(new TaskAttemptCompletedEvent(), null)
+    );
+
+    generateHeartbeat(events, 0, 1, 0, new ArrayList<TezEvent>());
+
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+    verify(eventHandler, times(2)).handle(arg.capture());
+    final List<Event> argAllValues = arg.getAllValues();
+
+    final Event statusUpdateEvent = argAllValues.get(0);
+    assertEquals("First event should be status update", TaskAttemptEventType.TA_STATUS_UPDATE,
+        statusUpdateEvent.getType());
+    assertEquals(true, ((TaskAttemptEventStatusUpdate)statusUpdateEvent).getReadErrorReported());
+
+    final Event vertexEvent = argAllValues.get(1);
+    final VertexEventRouteEvent vertexRouteEvent = (VertexEventRouteEvent)vertexEvent;
+    assertEquals("First event should be routed to vertex", VertexEventType.V_ROUTE_EVENT,
+        vertexEvent.getType());
+    assertEquals(EventType.INPUT_READ_ERROR_EVENT,
+        vertexRouteEvent.getEvents().get(0).getEventType());
+    assertEquals(EventType.TASK_ATTEMPT_COMPLETED_EVENT,
+        vertexRouteEvent.getEvents().get(1).getEventType());
 
   }
+
 
   @Test (timeout = 5000)
   public void testTaskEventRoutingTaskAttemptOnly() throws Exception {

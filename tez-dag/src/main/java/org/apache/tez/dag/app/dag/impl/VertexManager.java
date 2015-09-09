@@ -231,11 +231,12 @@ public class VertexManager {
         Collection<InputDataInformationEvent> events) {
       checkAndThrowIfDone();
       verifyIsRootInput(inputName);
+      final long currTime = appContext.getClock().getTime();
       Collection<TezEvent> tezEvents = Collections2.transform(events,
           new Function<InputDataInformationEvent, TezEvent>() {
             @Override
             public TezEvent apply(InputDataInformationEvent riEvent) {
-              TezEvent tezEvent = new TezEvent(riEvent, rootEventSourceMetadata);
+              TezEvent tezEvent = new TezEvent(riEvent, rootEventSourceMetadata, currTime);
               tezEvent.setDestinationInfo(getDestinationMetaData(inputName));
               return tezEvent;
             }

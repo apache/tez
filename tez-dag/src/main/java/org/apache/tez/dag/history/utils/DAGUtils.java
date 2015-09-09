@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -42,6 +43,8 @@ import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
+import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
+import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.dag.records.TezTaskID;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -98,6 +101,27 @@ public class DAGUtils {
       throw new TezUncheckedException(e);
     }
     return dagJson;
+  }
+  
+  public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info) {
+    return new JSONObject(convertDataEventDependecyInfoToATS(info));
+  }
+  
+  public static Map<String, Object> convertDataEventDependecyInfoToATS(List<DataEventDependencyInfo> info) {
+    ArrayList<Object> infoList = new ArrayList<Object>();
+    for (DataEventDependencyInfo event : info) {
+      Map<String, Object> eventObj = new LinkedHashMap<String, Object>();
+      String id = "";
+      if (event.getTaskAttemptId() != null) {
+        id = event.getTaskAttemptId().toString();
+      }
+      eventObj.put(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), id);
+      eventObj.put(ATSConstants.TIMESTAMP, event.getTimestamp());
+      infoList.add(eventObj);
+    }
+    Map<String,Object> object = new LinkedHashMap<String, Object>();
+    putInto(object, ATSConstants.LAST_DATA_EVENTS, infoList);
+    return object;
   }
 
   public static JSONObject convertCountersToJSON(TezCounters counters)

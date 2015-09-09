@@ -145,6 +145,7 @@ public class VertexRecoverableEventsGeneratedEvent implements HistoryEvent {
         if (event.getDestinationInfo() != null) {
           evtBuilder.setDestinationInfo(convertEventMetaDataToProto(event.getDestinationInfo()));
         }
+        evtBuilder.setEventTime(event.getEventReceivedTime());
         tezEventProtos.add(evtBuilder.build());
       }
     }
@@ -184,7 +185,7 @@ public class VertexRecoverableEventsGeneratedEvent implements HistoryEvent {
       if (eventProto.hasDestinationInfo()) {
         destinationInfo = convertEventMetaDataFromProto(eventProto.getDestinationInfo());
       }
-      TezEvent tezEvent = new TezEvent(evt, sourceInfo);
+      TezEvent tezEvent = new TezEvent(evt, sourceInfo, eventProto.getEventTime());
       tezEvent.setDestinationInfo(destinationInfo);
       this.events.add(tezEvent);
     }

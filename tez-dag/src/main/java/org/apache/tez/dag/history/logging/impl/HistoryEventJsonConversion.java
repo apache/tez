@@ -530,6 +530,10 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getCounters()));
+    if (event.getDataEvents() != null && !event.getDataEvents().isEmpty()) {
+      otherInfo.put(ATSConstants.LAST_DATA_EVENTS, 
+          DAGUtils.convertDataEventDependencyInfoToJSON(event.getDataEvents()));
+    }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
@@ -573,6 +577,11 @@ public class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
     otherInfo.put(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
+    otherInfo.put(ATSConstants.CREATION_TIME, event.getCreationTime());
+    otherInfo.put(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
+    if (event.getCreationCausalTA() != null) {
+      otherInfo.put(ATSConstants.CREATION_CAUSAL_ATTEMPT, event.getCreationCausalTA().toString());
+    }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;

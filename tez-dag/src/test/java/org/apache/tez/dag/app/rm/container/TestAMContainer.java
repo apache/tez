@@ -108,11 +108,14 @@ public class TestAMContainer {
     assertNull(wc.amContainer.getCurrentTaskAttempt());
 
     // Assign task.
+    long currTime = wc.appContext.getClock().getTime();
     wc.assignTaskAttempt(wc.taskAttemptID);
     wc.verifyState(AMContainerState.LAUNCHING);
     wc.verifyNoOutgoingEvents();
     assertEquals(wc.taskAttemptID, wc.amContainer.getCurrentTaskAttempt());
-
+    assertTrue(wc.amContainer.getCurrentTaskAttemptAllocationTime() > 0);
+    assertTrue(wc.amContainer.getCurrentTaskAttemptAllocationTime() >= currTime);
+    
     // Container Launched
     wc.containerLaunched();
     wc.verifyState(AMContainerState.RUNNING);

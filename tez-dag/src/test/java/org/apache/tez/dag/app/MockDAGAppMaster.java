@@ -114,7 +114,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   }
   
   public static interface EventsDelegate {
-    public void getEvents(TaskSpec taskSpec, List<TezEvent> events);
+    public void getEvents(TaskSpec taskSpec, List<TezEvent> events, long time);
   }
 
   // mock container launcher does not launch real tasks.
@@ -408,7 +408,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               List<TezEvent> events = Lists.newArrayListWithCapacity(
                                       cData.taskSpec.getOutputs().size() + 1);
               if (cData.numUpdates == 0 && eventsDelegate != null) {
-                eventsDelegate.getEvents(cData.taskSpec, events);
+                eventsDelegate.getEvents(cData.taskSpec, events, getContext().getClock().getTime());
               }
               TezCounters counters = null;
               if (countersDelegate != null) {
@@ -422,7 +422,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
               float maxUpdates = (updatesToMake != null) ? updatesToMake.intValue() : 1;
               float progress = updateProgress ? cData.numUpdates/maxUpdates : 0f;
               events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
-                  EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)));
+                  EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
+                  getContext().getClock().getTime()));
               TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
                   cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 50000);
               doHeartbeat(request, cData);
@@ -433,7 +434,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
               cData.completed = true;
               List<TezEvent> events = Collections.singletonList(new TezEvent(
                   new TaskAttemptCompletedEvent(), new EventMetaData(
-                      EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId)));
+                      EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
+                  getContext().getClock().getTime()));
               TezHeartbeatRequest request = new TezHeartbeatRequest(++cData.numUpdates, events,
                   cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 10000);
               doHeartbeat(request, cData);

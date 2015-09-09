@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.slf4j.Logger;
@@ -428,21 +427,33 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
               " events: " + (inEvents != null? inEvents.size() : -1));
         }
 
+        long currTime = context.getClock().getTime();
         List<TezEvent> otherEvents = new ArrayList<TezEvent>();
         // route TASK_STATUS_UPDATE_EVENT directly to TaskAttempt and route other events
         // (DATA_MOVEMENT_EVENT, TASK_ATTEMPT_COMPLETED_EVENT, TASK_ATTEMPT_FAILED_EVENT)
         // to VertexImpl to ensure the events ordering
         //  1. DataMovementEvent is logged as RecoveryEvent before TaskAttemptFinishedEvent
         //  2. TaskStatusEvent is handled before TaskAttemptFinishedEvent
+        TaskAttemptEventStatusUpdate taskAttemptEvent = null;
+        boolean readErrorReported = false;
         for (TezEvent tezEvent : ListUtils.emptyIfNull(inEvents)) {
+          // for now, set the event time on the AM when it is received.
+          // this avoids any time disparity between machines.
+          tezEvent.setEventReceivedTime(currTime);
           final EventType eventType = tezEvent.getEventType();
           if (eventType == EventType.TASK_STATUS_UPDATE_EVENT) {
-            TaskAttemptEvent taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
-                    (TaskStatusUpdateEvent) tezEvent.getEvent());
-            context.getEventHandler().handle(taskAttemptEvent);
+            taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
+                (TaskStatusUpdateEvent) tezEvent.getEvent());
           } else {
+            if (eventType == EventType.INPUT_READ_ERROR_EVENT) {
+              readErrorReported = true;
+            }
             otherEvents.add(tezEvent);
           }
+        }
+        if (taskAttemptEvent != null) {
+          taskAttemptEvent.setReadErrorReported(readErrorReported);
+          context.getEventHandler().handle(taskAttemptEvent);
         }
         if(!otherEvents.isEmpty()) {
           TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();

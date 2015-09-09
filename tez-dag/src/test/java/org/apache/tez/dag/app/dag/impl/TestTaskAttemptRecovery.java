@@ -19,7 +19,6 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -52,6 +51,7 @@ import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
+import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -66,12 +66,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.google.common.collect.Lists;
+
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttemptRecovery {
 
   private TaskAttemptImpl ta;
   private EventHandler mockEventHandler;
-  private long startTime = System.currentTimeMillis();
+  private long creationTime = System.currentTimeMillis();
+  private long allocationTime = creationTime + 5000;
+  private long startTime = allocationTime + 5000;
   private long finishTime = startTime + 5000;
 
   private TezTaskAttemptID taId;
@@ -153,9 +157,14 @@ public class TestTaskAttemptRecovery {
   }
 
   private void restoreFromTAStartEvent() {
+    TezTaskAttemptID causalId = TezTaskAttemptID.getInstance(taId.getTaskID(), taId.getId()+1);
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
-            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", ""));
+            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", creationTime, causalId, 
+            allocationTime));
+    assertEquals(causalId, ta.getCreationCausalAttempt());
+    assertEquals(creationTime, ta.getCreationTime());
+    assertEquals(allocationTime, ta.getAllocationTime());
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(TaskAttemptState.RUNNING, recoveredState);
   }
@@ -169,9 +178,14 @@ public class TestTaskAttemptRecovery {
       errorEnum = TaskAttemptTerminationCause.APPLICATION_ERROR;
     }
 
+    long lastDataEventTime = 1024;
+    TezTaskAttemptID lastDataEventTA = mock(TezTaskAttemptID.class);
+    List<DataEventDependencyInfo> events = Lists.newLinkedList();
+    events.add(new DataEventDependencyInfo(lastDataEventTime, lastDataEventTA));
+    events.add(new DataEventDependencyInfo(lastDataEventTime, lastDataEventTA));
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
-            startTime, finishTime, state, errorEnum, diag, counters));
+            startTime, finishTime, state, errorEnum, diag, counters, events));
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(finishTime, ta.getFinishTime());
     assertEquals(counters, ta.reportedStatus.counters);
@@ -180,6 +194,9 @@ public class TestTaskAttemptRecovery {
     assertEquals(1, ta.getDiagnostics().size());
     assertEquals(diag, ta.getDiagnostics().get(0));
     assertEquals(state, recoveredState);
+    assertEquals(events.size(), ta.lastDataEvents.size());
+    assertEquals(lastDataEventTime, ta.lastDataEvents.get(0).getTimestamp());
+    assertEquals(lastDataEventTA, ta.lastDataEvents.get(0).getTaskAttemptId());
     if (state != TaskAttemptState.SUCCEEDED) {
       assertEquals(errorEnum, ta.getTerminationCause());
     } else {
@@ -304,7 +321,7 @@ public class TestTaskAttemptRecovery {
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
             startTime, finishTime, TaskAttemptState.KILLED,
-            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters()));
+            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters(), null));
     assertEquals(TaskAttemptState.KILLED, recoveredState);
   }
 }

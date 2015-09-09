@@ -110,6 +110,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
+import org.apache.tez.dag.app.MockClock;
 import org.apache.tez.dag.app.TaskAttemptEventInfo;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
@@ -2271,6 +2272,8 @@ public class TestVertexImpl {
       }})
     .when(execService).submit((Callable<Void>) any());
     
+    MockClock clock = new MockClock();
+    
     doReturn(execService).when(appContext).getExecService();
     doReturn(conf).when(appContext).getAMConf();
     doReturn(new Credentials()).when(dag).getCredentials();
@@ -2281,7 +2284,8 @@ public class TestVertexImpl {
     doReturn(Resource.newInstance(102400, 60)).when(taskScheduler).getTotalResources();
     doReturn(historyEventHandler).when(appContext).getHistoryHandler();
     doReturn(dispatcher.getEventHandler()).when(appContext).getEventHandler();
-
+    doReturn(clock).when(appContext).getClock();
+    
     vertexGroups = Maps.newHashMap();
     for (PlanVertexGroupInfo groupInfo : dagPlan.getVertexGroupsList()) {
       vertexGroups.put(groupInfo.getGroupName(), new VertexGroupInfo(groupInfo));
@@ -2997,6 +3001,11 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(2, v.getCompletedTasks());
+    Assert.assertTrue(v.initTimeRequested > 0);
+    Assert.assertTrue(v.initedTime > 0);
+    Assert.assertTrue(v.startTimeRequested > 0);
+    Assert.assertTrue(v.startedTime > 0);
+    Assert.assertTrue(v.finishTime > 0);
   }
 
   @Test(timeout = 5000)
@@ -3307,10 +3316,25 @@ public class TestVertexImpl {
     initAllVertices(VertexState.INITED);
 
     VertexImpl v6 = vertices.get("vertex6");
+    VertexImpl v3 = vertices.get("vertex3");
 
     startVertex(vertices.get("vertex1"));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITED, v3.getState());
+    long v3StartTimeRequested = v3.startTimeRequested;
+    Assert.assertEquals(1, v3.numStartedSourceVertices);
+    Assert.assertTrue(v3StartTimeRequested > 0);
+    try {
+      Thread.sleep(100);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
     startVertex(vertices.get("vertex2"));
     dispatcher.await();
+    // start request from second source vertex overrides the value from the first source vertex
+    Assert.assertEquals(VertexState.RUNNING, v3.getState());
+    Assert.assertEquals(2, v3.numStartedSourceVertices);
+    Assert.assertTrue(v3.startTimeRequested > v3StartTimeRequested);
     LOG.info("Verifying v6 state " + v6.getState());
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
     Assert.assertEquals(3, v6.getDistanceFromRoot());
@@ -3692,10 +3716,15 @@ public class TestVertexImpl {
     // v3 still initializing with source vertex started. So should start running
     // once num tasks is defined
     Assert.assertEquals(VertexState.INITIALIZING, v3.getState());
+    Assert.assertTrue(v3.numStartedSourceVertices > 0);
+    long v3StartTimeRequested = v3.startTimeRequested;
+    Assert.assertTrue(v3StartTimeRequested > 0);
     v3.reconfigureVertex(numTasks, null, null);
     dispatcher.await();
     Assert.assertEquals(numTasks, v3.getTotalTasks());
     Assert.assertEquals(VertexState.RUNNING, v3.getState());
+    // the start time requested should remain at its original value
+    Assert.assertEquals(v3StartTimeRequested, v3.startTimeRequested);
   }
 
   @Test(timeout = 5000)
