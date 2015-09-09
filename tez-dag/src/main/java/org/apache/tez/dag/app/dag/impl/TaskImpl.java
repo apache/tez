@@ -412,15 +412,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public boolean isFinished() {
-    readLock.lock();
-    try {
-      return (getInternalState() == TaskStateInternal.SUCCEEDED ||
-              getInternalState() == TaskStateInternal.FAILED ||
-              getInternalState() == TaskStateInternal.KILLED ||
-              getInternalState() == TaskStateInternal.KILL_WAIT);
-    } finally {
-      readLock.unlock();
-    }
+    TaskStateInternal internalState = getInternalState();
+    return (internalState == TaskStateInternal.SUCCEEDED ||
+        internalState == TaskStateInternal.FAILED ||
+        internalState == TaskStateInternal.KILLED ||
+        internalState == TaskStateInternal.KILL_WAIT);
   }
 
   @Override

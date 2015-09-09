@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2784. optimize TaskImpl.isFinished()
   TEZ-2788. Allow TezAnalyzerBase to parse SimpleHistory logs
   TEZ-2782. VertexInfo.getAvgExecutionTimeInterval throws NPE when task does not have any valid attempts info
   TEZ-2778. Improvements to handle multiple read errors with complex DAGs
