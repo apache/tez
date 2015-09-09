@@ -19,7 +19,9 @@
 package org.apache.tez.analyzer.plugins;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.common.counters.TaskCounter;
@@ -39,7 +41,7 @@ import java.util.Map;
  * <p/>
  * Accompany this with OUTPUT_BYTES (> 1 GB data written)
  */
-public class SpillAnalyzerImpl implements Analyzer {
+public class SpillAnalyzerImpl extends TezAnalyzerBase implements Analyzer {
 
   private static final String[] headers = { "vertexName", "taskAttemptId",
       "Node", "counterGroupName",
@@ -131,5 +133,13 @@ public class SpillAnalyzerImpl implements Analyzer {
   @Override
   public Configuration getConfiguration() {
     return config;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    SpillAnalyzerImpl analyzer = new SpillAnalyzerImpl(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

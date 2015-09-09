@@ -21,7 +21,9 @@ package org.apache.tez.analyzer.plugins;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.common.counters.TaskCounter;
@@ -38,7 +40,7 @@ import java.util.Map;
 /**
  * Identify the slowest vertex in the DAG.
  */
-public class SlowestVertexAnalyzer implements Analyzer {
+public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final String[] headers = { "vertexName", "taskAttempts", "totalTime",
       "shuffleTime", "shuffleTime_Max", "LastEventReceived", "LastEventReceivedFrom",
@@ -207,4 +209,11 @@ public class SlowestVertexAnalyzer implements Analyzer {
     return config;
   }
 
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    SlowestVertexAnalyzer analyzer = new SlowestVertexAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
+  }
 }

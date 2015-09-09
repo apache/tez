@@ -20,7 +20,9 @@ package org.apache.tez.analyzer.plugins;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.dag.api.TezException;
@@ -35,7 +37,7 @@ import java.util.List;
 /**
  * Get container reuse information at a per vertex level basis.
  */
-public class ContainerReuseAnalyzer implements Analyzer {
+public class ContainerReuseAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private final Configuration config;
 
@@ -83,5 +85,13 @@ public class ContainerReuseAnalyzer implements Analyzer {
   @Override
   public Configuration getConfiguration() {
     return config;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    ContainerReuseAnalyzer analyzer = new ContainerReuseAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

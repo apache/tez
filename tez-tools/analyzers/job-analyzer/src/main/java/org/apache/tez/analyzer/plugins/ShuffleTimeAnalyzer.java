@@ -20,7 +20,9 @@ package org.apache.tez.analyzer.plugins;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.common.counters.TaskCounter;
@@ -42,7 +44,7 @@ import java.util.Map;
  * grouped by vertices. Provide time taken as well.  Just render it as a table for now.
  *
  */
-public class ShuffleTimeAnalyzer implements Analyzer {
+public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   /**
    * ratio of (total time taken by task - shuffle time) / (total time taken by task)
@@ -209,5 +211,13 @@ public class ShuffleTimeAnalyzer implements Analyzer {
   @Override
   public Configuration getConfiguration() {
     return config;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    ShuffleTimeAnalyzer analyzer = new ShuffleTimeAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

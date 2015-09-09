@@ -18,6 +18,7 @@
 
 package org.apache.tez.analyzer;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
@@ -40,23 +41,23 @@ import java.util.List;
  */
 public class CSVResult implements Result {
 
-  private final String[] header;
+  private final String[] headers;
   private final List<String[]> recordsList;
   private String comments;
 
   public CSVResult(String[] header) {
-    this.header = header;
+    this.headers = header;
     recordsList = Lists.newLinkedList();
   }
 
   public String[] getHeaders() {
-    return header;
+    return headers;
   }
 
   public void addRecord(String[] record) {
     Preconditions.checkArgument(record != null, "Record can't be null");
-    Preconditions.checkArgument(record.length == header.length, "Record length" + record.length +
-        " does not match header length " + header.length);
+    Preconditions.checkArgument(record.length == headers.length, "Record length" + record.length +
+        " does not match headers length " + headers.length);
     recordsList.add(record);
   }
 
@@ -79,7 +80,7 @@ public class CSVResult implements Result {
 
   @Override public String toString() {
     return "CSVResult{" +
-        "header=" + Arrays.toString(header) +
+        "headers=" + Arrays.toString(headers) +
         ", recordsList=" + recordsList +
         '}';
   }
@@ -90,9 +91,11 @@ public class CSVResult implements Result {
         new FileOutputStream(new File(fileName)),
         Charset.forName("UTF-8").newEncoder());
     BufferedWriter bw = new BufferedWriter(writer);
+    bw.write(Joiner.on(",").join(headers));
+    bw.newLine();
     for (String[] record : recordsList) {
 
-      if (record.length != header.length) {
+      if (record.length != headers.length) {
         continue; //LOG error msg?
       }
 

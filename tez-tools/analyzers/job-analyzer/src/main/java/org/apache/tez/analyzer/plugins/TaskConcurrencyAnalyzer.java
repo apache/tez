@@ -20,7 +20,9 @@ package org.apache.tez.analyzer.plugins;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.TreeMultiset;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.dag.api.TezException;
@@ -34,7 +36,7 @@ import java.util.List;
 /**
  * Analyze concurrent tasks running in every vertex at regular intervals.
  */
-public class TaskConcurrencyAnalyzer implements Analyzer {
+public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final String[] headers = { "time", "vertexName", "concurrentTasksRunning" };
 
@@ -134,5 +136,13 @@ public class TaskConcurrencyAnalyzer implements Analyzer {
   @Override
   public Configuration getConfiguration() {
     return config;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    TaskConcurrencyAnalyzer analyzer = new TaskConcurrencyAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

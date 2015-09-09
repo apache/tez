@@ -19,6 +19,7 @@
 package org.apache.tez.analyzer.plugins;
 
 import java.io.File;
+import java.util.Iterator;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -30,6 +31,9 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
 import org.apache.tez.analyzer.Analyzer;
+import org.apache.tez.analyzer.CSVResult;
+import org.apache.tez.analyzer.Result;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.ATSImportTool;
 import org.apache.tez.history.parser.ATSFileParser;
 import org.apache.tez.history.parser.SimpleHistoryParser;
@@ -42,11 +46,16 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
   
   private static final String EVENT_FILE_NAME = "eventFileName";
   private static final String OUTPUT_DIR = "outputDir";
+  private static final String SAVE_RESULTS = "saveResults";
   private static final String DAG_ID = "dagId";
   private static final String FROM_SIMPLE_HISTORY = "fromSimpleHistory";
   private static final String HELP = "help";
 
+  private static final int SEPARATOR_WIDTH = 80;
+  private static final int MIN_COL_WIDTH = 12;
+
   private String outputDir;
+  private boolean saveResults = false;
   
   @SuppressWarnings("static-access")
   private static Options buildOptions() {
@@ -55,6 +64,10 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
 
     Option outputDirOption = OptionBuilder.withArgName(OUTPUT_DIR).withLongOpt(OUTPUT_DIR)
         .withDescription("Directory to write outputs to.").hasArg().isRequired(false).create();
+
+    Option saveResults = OptionBuilder.withArgName(SAVE_RESULTS).withLongOpt(SAVE_RESULTS)
+        .withDescription("Saves results to output directory (optional)")
+        .hasArg(false).isRequired(false).create();
 
     Option eventFileNameOption = OptionBuilder.withArgName(EVENT_FILE_NAME).withLongOpt
         (EVENT_FILE_NAME)
@@ -74,6 +87,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     Options opts = new Options();
     opts.addOption(dagIdOption);
     opts.addOption(outputDirOption);
+    opts.addOption(saveResults);
     opts.addOption(eventFileNameOption);
     opts.addOption(fromSimpleHistoryOption);
     opts.addOption(help);
@@ -104,6 +118,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       printUsage();
       return -1;
     }
+    saveResults = cmdLine.hasOption(SAVE_RESULTS);
     
     if(cmdLine.hasOption(HELP)) {
       printUsage();
@@ -156,7 +171,43 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     }
     Preconditions.checkState(dagInfo.getDagId().equals(dagId));
     analyze(dagInfo);
+    Result result = getResult();
+    if (saveResults && (result instanceof CSVResult)) {
+      String fileName = outputDir + File.separator
+          + this.getClass().getName() + "_" + dagInfo.getDagId() + ".csv";
+      ((CSVResult) result).dumpToFile(fileName);
+      System.out.println("Saved results in " + fileName);
+    }
     return 0;
   }
 
+  public void printResults() throws TezException {
+    Result result = getResult();
+    if (result instanceof CSVResult) {
+      String[] headers = ((CSVResult) result).getHeaders();
+
+      StringBuilder formatBuilder = new StringBuilder();
+      int size = Math.max(MIN_COL_WIDTH, SEPARATOR_WIDTH / headers.length);
+      for (int i = 0; i < headers.length; i++) {
+        formatBuilder.append("%-").append(size).append("s ");
+      }
+      String format = formatBuilder.toString();
+
+      StringBuilder separator = new StringBuilder();
+      for (int i = 0; i < SEPARATOR_WIDTH; i++) {
+        separator.append("-");
+      }
+
+      System.out.println(separator);
+      System.out.println(String.format(format.toString(), headers));
+      System.out.println(separator);
+
+      Iterator<String[]> recordsIterator = ((CSVResult) result).getRecordsIterator();
+      while (recordsIterator.hasNext()) {
+        String line = String.format(format, recordsIterator.next());
+        System.out.println(line);
+      }
+      System.out.println(separator);
+    }
+  }
 }

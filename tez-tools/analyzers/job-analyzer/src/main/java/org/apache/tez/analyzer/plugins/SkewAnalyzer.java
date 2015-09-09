@@ -20,7 +20,9 @@ package org.apache.tez.analyzer.plugins;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.common.counters.TaskCounter;
@@ -55,7 +57,7 @@ import java.util.Map;
  * source. This means, may be consider increasing parallelism based on the task attempt runtime.
  * <p/>
  */
-public class SkewAnalyzer implements Analyzer {
+public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   /**
    * Amount of bytes that was sent as shuffle bytes from source. If it is below this threshold,
@@ -309,5 +311,13 @@ public class SkewAnalyzer implements Analyzer {
   @Override
   public Configuration getConfiguration() {
     return null;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    SkewAnalyzer analyzer = new SkewAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

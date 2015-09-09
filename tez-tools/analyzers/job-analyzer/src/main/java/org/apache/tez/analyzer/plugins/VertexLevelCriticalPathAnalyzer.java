@@ -25,7 +25,9 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.analyzer.utils.Utils;
@@ -41,7 +43,7 @@ import java.util.Map;
 /**
  * Identify a set of vertices which fall in the critical path in a DAG.
  */
-public class VertexLevelCriticalPathAnalyzer implements Analyzer {
+public class VertexLevelCriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   private final Configuration config;
 
   private static final String[] headers = { "CriticalPath", "Score" };
@@ -138,5 +140,13 @@ public class VertexLevelCriticalPathAnalyzer implements Analyzer {
     }
     return Lists.newLinkedList(Splitter.on(CONNECTOR).trimResults().omitEmptyStrings().split
         (criticalPath));
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    VertexLevelCriticalPathAnalyzer analyzer = new VertexLevelCriticalPathAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

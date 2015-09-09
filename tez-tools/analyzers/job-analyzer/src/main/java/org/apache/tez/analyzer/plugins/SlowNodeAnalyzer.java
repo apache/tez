@@ -22,9 +22,11 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.common.counters.FileSystemCounter;
@@ -46,7 +48,7 @@ import java.util.List;
  * <p/>
  * Combine it with other counters to understand slow nodes better.
  */
-public class SlowNodeAnalyzer implements Analyzer {
+public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final Log LOG = LogFactory.getLog(SlowNodeAnalyzer.class);
 
@@ -185,4 +187,11 @@ public class SlowNodeAnalyzer implements Analyzer {
     return config;
   }
 
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    SlowNodeAnalyzer analyzer = new SlowNodeAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
+  }
 }

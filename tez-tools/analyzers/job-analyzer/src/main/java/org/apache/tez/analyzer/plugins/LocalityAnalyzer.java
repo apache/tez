@@ -19,7 +19,9 @@
 package org.apache.tez.analyzer.plugins;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.common.counters.DAGCounter;
@@ -40,7 +42,7 @@ import java.util.Map;
  * This would be helpeful to co-relate if the vertex runtime is anyways related to the data
  * locality.
  */
-public class LocalityAnalyzer implements Analyzer {
+public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private final String[] headers = { "vertexName", "numTasks", "dataLocalRatio", "rackLocalRatio",
       "otherRatio", "avgDataLocalTaskRuntime", "avgRackLocalTaskRuntime",
@@ -190,5 +192,13 @@ public class LocalityAnalyzer implements Analyzer {
   static class TaskAttemptDetails {
     float avgHDFSBytesRead;
     float avgRuntime;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    LocalityAnalyzer analyzer = new LocalityAnalyzer(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }

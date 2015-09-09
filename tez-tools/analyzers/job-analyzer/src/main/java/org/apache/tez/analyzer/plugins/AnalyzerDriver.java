@@ -28,6 +28,26 @@ public class AnalyzerDriver {
     try {
       pgd.addClass("CriticalPath", CriticalPathAnalyzer.class,
           "Find the critical path of a DAG");
+      pgd.addClass("ContainerReuseAnalyzer", ContainerReuseAnalyzer.class,
+          "Print container reuse details in a DAG");
+      pgd.addClass("LocalityAnalyzer", LocalityAnalyzer.class,
+          "Print locality details in a DAG");
+      pgd.addClass("ShuffleTimeAnalyzer", ShuffleTimeAnalyzer.class,
+          "Analyze the shuffle time details in a DAG");
+      pgd.addClass("SkewAnalyzer", SkewAnalyzer.class,
+          "Analyze the skew details in a DAG");
+      pgd.addClass("SlowestVertexAnalyzer", SlowestVertexAnalyzer.class,
+          "Print slowest vertex details in a DAG");
+      pgd.addClass("SlowNodeAnalyzer", SlowNodeAnalyzer.class,
+          "Print node details in a DAG");
+      pgd.addClass("SlowTaskIdentifier", SlowTaskIdentifier.class,
+          "Print slow task details in a DAG");
+      pgd.addClass("SpillAnalyzer", SpillAnalyzerImpl.class,
+          "Print spill details in a DAG");
+      pgd.addClass("TaskConcurrencyAnalyzer", TaskConcurrencyAnalyzer.class,
+          "Print the task concurrency details in a DAG");
+      pgd.addClass("VertexLevelCriticalPathAnalyzer", VertexLevelCriticalPathAnalyzer.class,
+          "Find critical path at vertex level in a DAG");
       exitCode = pgd.run(argv);
     } catch(Throwable e){
       e.printStackTrace();

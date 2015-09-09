@@ -19,7 +19,9 @@
 package org.apache.tez.analyzer.plugins;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.dag.api.TezException;
@@ -38,7 +40,7 @@ import java.util.List;
  * <p/>
  * //TODO: We do not get counters for killed task attempts yet.
  */
-public class SlowTaskIdentifier implements Analyzer {
+public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
 
   private static final String[] headers = { "vertexName", "taskAttemptId",
       "Node", "taskDuration", "Status", "diagnostics",
@@ -112,5 +114,13 @@ public class SlowTaskIdentifier implements Analyzer {
   @Override
   public Configuration getConfiguration() {
     return config;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Configuration config = new Configuration();
+    SlowTaskIdentifier analyzer = new SlowTaskIdentifier(config);
+    int res = ToolRunner.run(config, analyzer, args);
+    analyzer.printResults();
+    System.exit(res);
   }
 }
