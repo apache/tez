@@ -32,6 +32,7 @@ import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.TaskInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -204,30 +205,36 @@ public class SimpleHistoryParser extends BaseParser {
        * "entitytype":"containerId"} and populate it in otherInfo object so that in-memory
        * representation can parse it correctly
        */
-    JSONObject subJsonObject = jsonObject.optJSONArray(Constants.RELATED_ENTITIES)
-        .optJSONObject(0);
-      if (subJsonObject != null) {
-        String nodeId = subJsonObject.optString(Constants.ENTITY_TYPE);
-        if (!Strings.isNullOrEmpty(nodeId) && nodeId.equalsIgnoreCase(Constants.NODE_ID)) {
-          //populate it in otherInfo
-          JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
-          String nodeIdVal = subJsonObject.optString(Constants.ENTITY);
-          if (otherInfo != null && nodeIdVal != null) {
-            otherInfo.put(Constants.NODE_ID, nodeIdVal);
+      JSONArray relatedEntities = jsonObject.optJSONArray(Constants.RELATED_ENTITIES);
+      if (relatedEntities == null) {
+        //This can happen when CONTAINER_EXITED abruptly. (e.g Container failed, exitCode=1)
+        LOG.debug("entity {} did not have related entities",
+            jsonObject.optJSONObject(Constants.ENTITY));
+      } else {
+        JSONObject subJsonObject = relatedEntities.optJSONObject(0);
+        if (subJsonObject != null) {
+          String nodeId = subJsonObject.optString(Constants.ENTITY_TYPE);
+          if (!Strings.isNullOrEmpty(nodeId) && nodeId.equalsIgnoreCase(Constants.NODE_ID)) {
+            //populate it in otherInfo
+            JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
+            String nodeIdVal = subJsonObject.optString(Constants.ENTITY);
+            if (otherInfo != null && nodeIdVal != null) {
+              otherInfo.put(Constants.NODE_ID, nodeIdVal);
+            }
           }
         }
-      }
 
-      subJsonObject = jsonObject.optJSONArray(Constants.RELATED_ENTITIES)
-          .optJSONObject(1);
-      if (subJsonObject != null) {
-        String containerId = subJsonObject.optString(Constants.ENTITY_TYPE);
-        if (!Strings.isNullOrEmpty(containerId) && containerId.equalsIgnoreCase(Constants.CONTAINER_ID)) {
-          //populate it in otherInfo
-          JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
-          String containerIdVal = subJsonObject.optString(Constants.ENTITY);
-          if (otherInfo != null && containerIdVal != null) {
-            otherInfo.put(Constants.CONTAINER_ID, containerIdVal);
+        subJsonObject = relatedEntities.optJSONObject(1);
+        if (subJsonObject != null) {
+          String containerId = subJsonObject.optString(Constants.ENTITY_TYPE);
+          if (!Strings.isNullOrEmpty(containerId) && containerId
+              .equalsIgnoreCase(Constants.CONTAINER_ID)) {
+            //populate it in otherInfo
+            JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
+            String containerIdVal = subJsonObject.optString(Constants.ENTITY);
+            if (otherInfo != null && containerIdVal != null) {
+              otherInfo.put(Constants.CONTAINER_ID, containerIdVal);
+            }
           }
         }
       }
