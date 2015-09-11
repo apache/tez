@@ -2016,15 +2016,15 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         long currentTs = System.currentTimeMillis();
         long nextScheduleTs = delayedContainer.getNextScheduleTime();
         if (currentTs >= nextScheduleTs) {
-          // Remove the container and try scheduling it.
-          // TEZ-587 what if container is released by RM after this
-          // in onContainerCompleted()
-          delayedContainer = delayedContainers.poll();
-          if (delayedContainer == null) {
-            continue;
-          }
           Map<CookieContainerRequest, Container> assignedContainers = null;
           synchronized(YarnTaskSchedulerService.this) {
+            // Remove the container and try scheduling it.
+            // TEZ-587 what if container is released by RM after this
+            // in onContainerCompleted()
+            delayedContainer = delayedContainers.poll();
+            if (delayedContainer == null) {
+              continue;
+            }
             if (null !=
                 heldContainers.get(delayedContainer.getContainer().getId())) {
               assignedContainers = assignDelayedContainer(delayedContainer);
