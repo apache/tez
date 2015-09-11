@@ -332,9 +332,12 @@ App.TezApp = App.AbstractEntity.extend({
   appDetail: DS.belongsTo('appDetail', { async: true }),
   dags: DS.hasMany('dag', { async: true }),
 
-  configs: DS.hasMany('kVData', { async: false })
-});
+  configs: DS.hasMany('kVData', { async: false }),
 
+  tezBuildTime: DS.attr('string'),
+  tezRevision: DS.attr('string'),
+  tezVersion: DS.attr('string'),
+});
 
 App.Task = App.AbstractEntity.extend({
   status: DS.attr('string'),

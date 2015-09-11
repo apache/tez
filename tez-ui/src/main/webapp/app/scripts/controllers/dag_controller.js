@@ -174,8 +174,8 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   },
 
   enableAppIdLink: function() {
-    return !!(this.get('tezApp') && this.get('appDetail'));
-  }.property('applicationId', 'appDetail', 'tezApp'),
+    return !!this.get('tezApp');
+  }.property('applicationId', 'tezApp'),
 
   childDisplayViews: [
     Ember.Object.create({title: 'DAG Details', linkTo: 'dag.index'}),
