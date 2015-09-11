@@ -28,12 +28,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.records.TezTaskID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -67,7 +70,7 @@ public class AMWebController extends Controller {
   static final String VERTEX_PROGRESS = "vertexProgress";
   static final String VERTEX_PROGRESSES = "vertexProgresses";
 
-  static final int MAX_VERTICES_QUERIED = 100;
+  static final int MAX_QUERIED = 100;
   public static final String VERSION = "2";
 
   private AppContext appContext;
@@ -266,7 +269,7 @@ public class AMWebController extends Controller {
     List<Integer> vertexIDs = new ArrayList<Integer>();
     try {
       dagID = getQueryParamInt(WebUIService.DAG_ID);
-      for (String vertexIDStr : $(WebUIService.VERTEX_ID).trim().split(",", MAX_VERTICES_QUERIED)) {
+      for (String vertexIDStr : $(WebUIService.VERTEX_ID).trim().split(",", MAX_QUERIED)) {
         vertexIDs.add(Integer.parseInt(vertexIDStr));
       }
     } catch (NumberFormatException e) {
@@ -342,7 +345,7 @@ public class AMWebController extends Controller {
 
     List<Integer> vertexIDs = new ArrayList<Integer>();
     if (!valueStr.equals("")) {
-      String[] vertexIdsStr = valueStr.split(",", MAX_VERTICES_QUERIED);
+      String[] vertexIdsStr = valueStr.split(",", MAX_QUERIED);
 
       try {
         for (String vertexIdStr : vertexIdsStr) {
@@ -357,6 +360,86 @@ public class AMWebController extends Controller {
     }
 
     return vertexIDs;
+  }
+
+  List<String> splitString(String str, String delimiter, Integer limit) {
+    List<String> items = new ArrayList<>();
+
+    StringTokenizer tokenizer = new StringTokenizer(str, delimiter);
+    for(int count = 0; tokenizer.hasMoreElements() && count < limit; count ++) {
+      items.add(tokenizer.nextToken());
+    }
+
+    return items;
+  }
+
+  /**
+   * getIntegersFromRequest
+   * Parses a query parameter with comma separated values and returns an array of integers.
+   * The function returns null if any of the value is not an integer
+   *
+   * @param paramName {String}
+   * @param limit {Integer} Maximum number of values to be taken
+   *
+   * @return {List<Integer>} List of parsed values
+   */
+  List<Integer> getIntegersFromRequest(String paramName, Integer limit) {
+    String valuesStr = $(paramName).trim();
+
+    List<Integer> values = new ArrayList<>();
+    if (!valuesStr.equals("")) {
+      try {
+        for (String valueStr : splitString(valuesStr, ",", limit)) {
+          int value = Integer.parseInt(valueStr);
+          values.add(value);
+        }
+      } catch (NumberFormatException nfe) {
+        sendErrorResponse(HttpServletResponse.SC_BAD_REQUEST,
+            String.format("invalid %s passed in as parameter", paramName), nfe);
+        values = null;
+      }
+    }
+
+    return values;
+  }
+
+  /**
+   * getIDsFromRequest
+   * Takes in "1_0,1_3" and returns [[1,0],[1,3]]
+   * Mainly to parse a query parameter with comma separated indexes. For vertex its the index,
+   * for task its vertexIndex_taskIndex and for attempts its vertexIndex_taskIndex_attemptNo
+   * The function returns null if any of the value is not an integer
+   *
+   * @param paramName {String}
+   * @param limit {Integer} Maximum number of values to be taken
+   *
+   * @return {List<List<Integer>>} List of parsed values
+   */
+  List<List<Integer>> getIDsFromRequest(String paramName, Integer limit) {
+    String valuesStr = $(paramName).trim();
+
+    List<List<Integer>> values = new ArrayList<>();
+    if (!valuesStr.equals("")) {
+      try {
+        for (String valueStr : splitString(valuesStr, ",", limit)) {
+          List<Integer> innerValues = new ArrayList<>();
+          String innerValueStrs[] = valueStr.split("_");
+          if(innerValueStrs.length == 2) {
+            for (String innerValueStr : innerValueStrs) {
+              int value = Integer.parseInt(innerValueStr);
+              innerValues.add(value);
+            }
+            values.add(innerValues);
+          }
+        }
+      } catch (NumberFormatException nfe) {
+        sendErrorResponse(HttpServletResponse.SC_BAD_REQUEST,
+            String.format("invalid %s passed in as parameter", paramName), nfe);
+        values = null;
+      }
+    }
+
+    return values;
   }
 
   public void getDagInfo() {
@@ -413,7 +496,7 @@ public class AMWebController extends Controller {
     }
 
     Collection<Vertex> vertexList;
-    if (requestedIDs.size() == 0) {
+    if (requestedIDs.isEmpty()) {
       // no ids specified return all.
       vertexList = dag.getVertices().values();
     } else {
@@ -427,6 +510,121 @@ public class AMWebController extends Controller {
 
     renderJSON(ImmutableMap.of(
         "vertices", verticesInfo
+    ));
+  }
+
+  Vertex getVertexFromIndex(DAG dag, Integer vertexIndex) {
+    final TezVertexID tezVertexID = TezVertexID.getInstance(dag.getID(), vertexIndex);
+    Vertex vertex = dag.getVertex(tezVertexID);
+    return vertex;
+  }
+
+  /**
+   * getRequestedTasks
+   * Heart of getTasksInfo. Given a dag and a limit, based on the incoming query parameters
+   * returns a list of task instances
+   *
+   * @param dag {DAG}
+   * @param limit {Integer}
+   */
+  List<Task> getRequestedTasks(DAG dag, Integer limit) {
+    List<Task> tasks = new ArrayList<>();
+
+    List<List<Integer>> taskIDs = getIDsFromRequest(WebUIService.TASK_ID, limit);
+    if(taskIDs == null) {
+      return null;
+    }
+    else if(!taskIDs.isEmpty()) {
+      for (List<Integer> indexes : taskIDs) {
+        Vertex vertex = getVertexFromIndex(dag, indexes.get(0));
+        if(vertex == null) {
+          continue;
+        }
+        Task task = vertex.getTask(indexes.get(1));
+        if(task == null) {
+          continue;
+        }
+        else {
+          tasks.add(task);
+        }
+
+        if(tasks.size() >= limit) {
+          break;
+        }
+      }
+    }
+    else {
+      List<Integer> vertexIDs = getIntegersFromRequest(WebUIService.VERTEX_ID, limit);
+      if(vertexIDs == null) {
+        return null;
+      }
+      else if(!vertexIDs.isEmpty()) {
+        for (Integer vertexID : vertexIDs) {
+          Vertex vertex = getVertexFromIndex(dag, vertexID);
+          if(vertex == null) {
+            continue;
+          }
+          List<Task> vertexTasks = new ArrayList<>(vertex.getTasks().values());
+          tasks.addAll(vertexTasks.subList(0, Math.min(vertexTasks.size(), limit - tasks.size())));
+
+          if(tasks.size() >= limit) {
+            break;
+          }
+        }
+      }
+      else {
+        Collection<Vertex> vertices = dag.getVertices().values();
+        for (Vertex vertex : vertices) {
+          List<Task> vertexTasks = new ArrayList<>(vertex.getTasks().values());
+          tasks.addAll(vertexTasks.subList(0, Math.min(vertexTasks.size(), limit - tasks.size())));
+
+          if(tasks.size() >= limit) {
+            break;
+          }
+        }
+      }
+    }
+
+    return tasks;
+  }
+
+  /**
+   * Renders the response JSON for tasksInfo API
+   * The JSON will have an array of task objects under the key tasks.
+   */
+  public void getTasksInfo() {
+    if (!setupResponse()) {
+      return;
+    }
+
+    DAG dag = checkAndGetDAGFromRequest();
+    if (dag == null) {
+      return;
+    }
+
+    int limit = MAX_QUERIED;
+    try {
+      limit = getQueryParamInt(WebUIService.LIMIT);
+    } catch (NumberFormatException e) {
+      //Ignore
+    }
+
+    List<Task> tasks = getRequestedTasks(dag, limit);
+    if(tasks == null) {
+      return;
+    }
+
+    ArrayList<Map<String, String>> tasksInfo = new ArrayList<>();
+    for(Task t : tasks) {
+      Map<String, String> taskInfo = new HashMap<>();
+      taskInfo.put("id", t.getTaskId().toString());
+      taskInfo.put("progress", Float.toString(t.getProgress()));
+      taskInfo.put("status", t.getState().toString());
+      tasksInfo.add(taskInfo);
+    }
+
+    renderJSON(ImmutableMap.of(
+      "tasks", tasksInfo
     ));
   }
 
