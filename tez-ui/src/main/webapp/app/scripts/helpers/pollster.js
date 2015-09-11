@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-App.Helpers.pollster = Ember.Object.extend({
+App.Helpers.Pollster = Ember.Object.extend({
   interval: function() {
     return this.get('_interval') || 10000; // Time between polls (in ms)
   }.property().readOnly(),

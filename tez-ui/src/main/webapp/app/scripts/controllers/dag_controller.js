@@ -143,7 +143,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
         that = this;
 
     if (Em.isNone(amInfoUpdateService)) {
-      amInfoUpdateService = App.Helpers.pollster.create({
+      amInfoUpdateService = App.Helpers.Pollster.create({
         onPoll: function() {
           that.updateAMDagInfo();
           that.updateAMVerticesInfo();

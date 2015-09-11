@@ -28,8 +28,19 @@ App.TablePageController = Em.ObjectController.extend(
       rowCount: 25,
 
       searchText: '',
+      rowsDisplayed: [],
 
       isRefreshable: true,
+
+      // -- TODO: TEZ-2785 : Following 3 must be moved to a parent class
+      isActive: false,
+
+      setup: function () {
+        this.set('isActive', true);
+      },
+      reset: function () {
+        this.set('isActive', false);
+      },
 
       statusMessage: function () {
         return this.get('loading') ? "Loading all records..." : null;
@@ -38,6 +49,9 @@ App.TablePageController = Em.ObjectController.extend(
       actions: {
         refresh: function () {
           this.loadData(true);
+        },
+        tableRowsChanged: function (rows) {
+          this.set('rowsDisplayed', rows);
         }
       }
     }

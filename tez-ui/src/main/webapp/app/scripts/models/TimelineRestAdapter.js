@@ -192,6 +192,11 @@ var timelineJsonToTaskMap = {
   vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
   endTime: 'otherinfo.endTime',
   status: 'otherinfo.status',
+  progress: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 1 : null;
+    }
+  },
   numFailedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
   diagnostics: 'otherinfo.diagnostics',
   counterGroups: 'otherinfo.counters.counterGroups',
@@ -540,6 +545,14 @@ App.VertexInfoSerializer = DS.RESTSerializer.extend({
   normalizePayload: function(rawPayload) {
     return {
       vertexInfo : rawPayload.vertices
+    }
+  }
+});
+
+App.TaskInfoSerializer = DS.RESTSerializer.extend({
+  normalizePayload: function(rawPayload) {
+    return {
+      taskInfo : rawPayload.tasks
     }
   }
 });

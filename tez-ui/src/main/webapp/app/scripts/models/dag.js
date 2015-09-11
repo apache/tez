@@ -337,7 +337,7 @@ App.TezApp = App.AbstractEntity.extend({
 
 
 App.Task = App.AbstractEntity.extend({
-  status: DS.attr('status'),
+  status: DS.attr('string'),
 
   index: function () {
     var id = this.get('id'),
@@ -346,6 +346,8 @@ App.Task = App.AbstractEntity.extend({
   }.property('id'),
 
   dagID: DS.attr('string'),
+
+  progress: DS.attr('number'),
 
   successfulAttemptId: DS.attr('string'),
 
@@ -424,6 +426,11 @@ App.VertexInfo = DS.Model.extend({
   pendingTasks: function() {
     return this.get('totalTasks') - this.get('runningTasks') - this.get('succeededTasks');
   }.property('totalTasks', 'runningTasks', 'succeededTasks')
+});
+
+App.TaskInfo = DS.Model.extend({
+  progress: DS.attr('number'),
+  status: DS.attr('string'),
 });
 
 App.KVDatum = DS.Model.extend({
