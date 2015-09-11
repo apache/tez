@@ -27,6 +27,57 @@ App.DagTasksController = App.TablePageController.extend({
 
   cacheDomain: Ember.computed.alias('controllers.dag.id'),
 
+  pollster: App.Helpers.EntityArrayPollster.create(),
+
+  init: function () {
+    this._super();
+    this.get('pollster').setProperties({
+      entityType: 'taskInfo',
+      mergeProperties: ['status', 'progress'],
+      store: this.get('store')
+    });
+  },
+
+  pollsterControl: function () {
+    if(this.get('controllers.dag.status') == 'RUNNING' &&
+        this.get('controllers.dag.amWebServiceVersion') != '1' &&
+        !this.get('loading') &&
+        this.get('isActive') &&
+        this. get('rowsDisplayed.length') > 0) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('controllers.dag.status',
+      'controllers.dag.amWebServiceVersion',
+      'rowsDisplayed',
+      'loading',
+      'isActive'),
+
+  reset: function () {
+    this.set('pollster.options', null);
+  },
+
+  pollsterOptionsObserver: function () {
+    var rows = this.get('rowsDisplayed');
+    this.set('pollster.targetRecords', rows);
+
+    rows = rows.filter(function (row) {
+      return row.get('status') != 'SUCCEEDED';
+    });
+
+    this.set('pollster.options', (rows && rows.length) ? {
+      appID: this.get('controllers.dag.model.applicationId'),
+      dagID: this.get('controllers.dag.model.idx'),
+      taskID: rows.map(function (row) {
+          var taskIndex = App.Helpers.misc.getIndexFromId(row.get('id')),
+          vertexIndex = App.Helpers.misc.getIndexFromId(row.get('vertexID'));
+          return '%@_%@'.fmt(vertexIndex, taskIndex);
+        }).join(',')
+    } : null);
+  }.observes('controllers.dag.model.applicationId', 'controllers.dag.model.idx', 'rowsDisplayed'),
+
   beforeLoad: function () {
     var dagController = this.get('controllers.dag'),
         model = dagController.get('model');
@@ -113,6 +164,7 @@ App.DagTasksController = App.TablePageController.extend({
         headerCellName: 'Status',
         templateName: 'components/basic-table/status-cell',
         contentPath: 'status',
+        observePath: true,
         getCellContent: function(row) {
           var status = row.get('status');
           return {
@@ -121,6 +173,13 @@ App.DagTasksController = App.TablePageController.extend({
               row.get('hasFailedTaskAttempts'))
           };
         }
+      },
+      {
+        id: 'progress',
+        headerCellName: 'Progress',
+        contentPath: 'progress',
+        observePath: true,
+        templateName: 'components/basic-table/progress-cell'
       },
       {
         id: 'startTime',

@@ -360,6 +360,15 @@ App.Helpers.misc = {
     return dagId.split('_').splice(-1).pop();
   },
 
+  /*
+   * Return index for the given id
+   * @param id {string}
+   * @return index {Number}
+   */
+  getIndexFromId: function (id) {
+    return parseInt(id.split('_').splice(-1).pop());
+  },
+
   /**
    * Remove the specific record from store
    * @param store {DS.Store}

@@ -106,6 +106,10 @@ function setupControllerFactory(format) {
     }
 
     this._super(controller, model);
+    if(controller.setup) {
+      controller.setup();
+    }
+
     if(controller.loadData) {
       controller.loadData();
     }
@@ -274,13 +278,17 @@ App.TezAppConfigsRoute = Em.Route.extend({
 });
 
 /* --- Shared routes --- */
-
 App.DagTasksRoute =
     App.DagVerticesRoute =
     App.DagTaskAttemptsRoute =
     App.VertexTasksRoute =
     App.VertexTaskAttemptsRoute =
     Em.Route.extend({
+      resetController: function () {
+        if(this.controller.reset) {
+          this.controller.reset();
+        }
+      },
       renderTemplate: renderTable,
       setupController: setupControllerFactory()
     });

@@ -175,6 +175,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2780. Tez UI: Update All Tasks page while in progress
   TEZ-2792. Add AM web service API for tasks
   TEZ-2807. Log data in the finish event instead of the start event
   TEZ-2766. Tez UI: Add vertex in-progress info in DAG details

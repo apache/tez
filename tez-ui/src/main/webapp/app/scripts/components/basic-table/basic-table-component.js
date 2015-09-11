@@ -138,8 +138,10 @@ App.BasicTableComponent = Em.Component.extend({
   }.property('columns'),
 
   _rows: function () {
-    var startIndex = (this.get('pageNum') - 1) * this.get('rowCount');
-    return this.get('_searchedRows').slice(startIndex, startIndex + this.get('rowCount'));
+    var startIndex = (this.get('pageNum') - 1) * this.get('rowCount'),
+        rows = this.get('_searchedRows').slice(startIndex, startIndex + this.get('rowCount'));
+    this.sendAction('rowsChanged', rows);
+    return rows;
   }.property('_searchedRows.@each', 'rowCount', 'pageNum'),
 
   _searchObserver: function () {

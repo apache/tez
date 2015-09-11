@@ -218,6 +218,25 @@ App.ready = function () {
       return 'verticesInfo?dagID=%@';
     }
   });
+
+  App.TaskInfoAdapter = App.AMInfoAdapter.extend({
+    namespace: App.Configs.restNamespace.aminfoV2,
+    findQuery: function(store, type, query) {
+      var record = query.metadata;
+      delete query.metadata;
+      return this.ajax(
+        this.buildURL(Ember.String.pluralize(type.typeKey),
+          record.taskID, Em.Object.create(record)), 'GET', { data: query});
+    },
+    buildURL: function(type, id, record) {
+      var url = this._super(type, undefined, record);
+      return url.replace('__app_id__', record.get('appID'))
+        .fmt(record.get('dagID'), id);
+    },
+    pathForType: function(typeName) {
+      return 'tasksInfo?dagID=%@&taskID=%@';
+    }
+  });
 };
 
 $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
@@ -232,8 +251,9 @@ $.ajaxSetup({
 require('scripts/default-configs');
 
 require('scripts/translations');
-require('scripts/mixins/*');
+require('scripts/helpers/pollster');
 require('scripts/helpers/*');
+require('scripts/mixins/*');
 
 require('scripts/router');
 require('scripts/views/**/*');

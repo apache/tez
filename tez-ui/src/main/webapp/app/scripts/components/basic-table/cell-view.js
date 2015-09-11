@@ -27,14 +27,45 @@ function stringifyNumbers(content) {
 }
 
 App.BasicTableComponent.CellView = Ember.View.extend({
-  templateName: 'components/basic-table/basic-cell',
+  templateName: function () {
+    var template = this.get('column.observePath') ? 'bounded-basic-cell' : 'basic-cell';
+    return 'components/basic-table/' + template;
+  }.property('column.observePath'),
 
   classNames: ['cell-content'],
+
+  value: null,
+  observedPath: null,
+
+  _addObserver: function (path) {
+    this._removeObserver();
+    this.get('row').addObserver(path, this, this._onValueChange);
+    this.set('observedPath', path);
+  },
+
+  _removeObserver: function (path) {
+    var path = this.get('observedPath');
+    if(path) {
+      this.get('row').removeObserver(path, this, this._onValueChange);
+      this.set('observedPath', null);
+    }
+  },
 
   _normalizeContent: function (content) {
     return stringifyNumbers(content && typeof content == 'object' ? content : {
       displayText: content
     });
+  },
+
+  _pathObserver: function () {
+    var path = this.get('column.contentPath');
+    if(path && this.get('column.observePath')) {
+      this._addObserver(path);
+    }
+  }.observes('row', 'column.contentPath', 'column.observePath').on('init'),
+
+  _onValueChange: function (row, path) {
+    this.set('value', row.get(path));
   },
 
   cellContent: function () {
@@ -47,5 +78,9 @@ App.BasicTableComponent.CellView = Ember.View.extend({
     }
 
     return this._normalizeContent(cellContent);
-  }.property('row', 'column')
+  }.property('row', 'column', 'value'),
+
+  willDestroy: function () {
+    this._removeObserver();
+  }
 });
