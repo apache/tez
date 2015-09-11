@@ -6,6 +6,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2808. Race condition between preemption and container assignment
   TEZ-2203. Intern strings in tez counters
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
