@@ -174,6 +174,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2807. Log data in the finish event instead of the start event
   TEZ-2766. Tez UI: Add vertex in-progress info in DAG details
   TEZ-2768. Log a useful error message when the summary stream cannot be closed when shutting
   down an AM.
