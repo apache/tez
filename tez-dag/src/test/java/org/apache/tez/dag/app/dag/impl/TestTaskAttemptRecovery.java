@@ -157,14 +157,9 @@ public class TestTaskAttemptRecovery {
   }
 
   private void restoreFromTAStartEvent() {
-    TezTaskAttemptID causalId = TezTaskAttemptID.getInstance(taId.getTaskID(), taId.getId()+1);
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptStartedEvent(taId, vertexName,
-            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", "", creationTime, causalId, 
-            allocationTime));
-    assertEquals(causalId, ta.getCreationCausalAttempt());
-    assertEquals(creationTime, ta.getCreationTime());
-    assertEquals(allocationTime, ta.getAllocationTime());
+            startTime, mock(ContainerId.class), mock(NodeId.class), "", "", ""));
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(TaskAttemptState.RUNNING, recoveredState);
   }
@@ -172,6 +167,7 @@ public class TestTaskAttemptRecovery {
   private void restoreFromTAFinishedEvent(TaskAttemptState state) {
     String diag = "test_diag";
     TezCounters counters = mock(TezCounters.class);
+    TezTaskAttemptID causalId = TezTaskAttemptID.getInstance(taId.getTaskID(), taId.getId()+1);
     
     TaskAttemptTerminationCause errorEnum = null;
     if (state != TaskAttemptState.SUCCEEDED) {
@@ -185,7 +181,11 @@ public class TestTaskAttemptRecovery {
     events.add(new DataEventDependencyInfo(lastDataEventTime, lastDataEventTA));
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
-            startTime, finishTime, state, errorEnum, diag, counters, events));
+            startTime, finishTime, state, errorEnum, diag, counters, events, creationTime,
+            causalId, allocationTime));
+    assertEquals(causalId, ta.getCreationCausalAttempt());
+    assertEquals(creationTime, ta.getCreationTime());
+    assertEquals(allocationTime, ta.getAllocationTime());
     assertEquals(startTime, ta.getLaunchTime());
     assertEquals(finishTime, ta.getFinishTime());
     assertEquals(counters, ta.reportedStatus.counters);
@@ -321,7 +321,7 @@ public class TestTaskAttemptRecovery {
     TaskAttemptState recoveredState =
         ta.restoreFromEvent(new TaskAttemptFinishedEvent(taId, vertexName,
             startTime, finishTime, TaskAttemptState.KILLED,
-            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters(), null));
+            TaskAttemptTerminationCause.APPLICATION_ERROR, "", new TezCounters(), null, 0, null, 0));
     assertEquals(TaskAttemptState.KILLED, recoveredState);
   }
 }

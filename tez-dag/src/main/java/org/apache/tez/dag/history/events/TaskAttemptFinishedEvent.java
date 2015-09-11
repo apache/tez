@@ -45,8 +45,11 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   private TezTaskAttemptID taskAttemptId;
   private String vertexName;
+  private long creationTime;
+  private long allocationTime;
   private long startTime;
   private long finishTime;
+  private TezTaskAttemptID creationCausalTA;
   private TaskAttemptState state;
   private String diagnostics;
   private TezCounters tezCounters;
@@ -60,9 +63,15 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       TaskAttemptState state,
       TaskAttemptTerminationCause error,
       String diagnostics, TezCounters counters, 
-      List<DataEventDependencyInfo> dataEvents) {
+      List<DataEventDependencyInfo> dataEvents, 
+      long creationTime, 
+      TezTaskAttemptID creationCausalTA, 
+      long allocationTime) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
+    this.creationCausalTA = creationCausalTA;
+    this.creationTime = creationTime;
+    this.allocationTime = allocationTime;
     this.startTime = startTime;
     this.finishTime = finishTime;
     this.state = state;
@@ -99,7 +108,13 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         TaskAttemptFinishedProto.newBuilder();
     builder.setTaskAttemptId(taskAttemptId.toString())
         .setState(state.ordinal())
+        .setCreationTime(creationTime)
+        .setAllocationTime(allocationTime)
+        .setStartTime(startTime)
         .setFinishTime(finishTime);
+    if (creationCausalTA != null) {
+      builder.setCreationCausalTA(creationCausalTA.toString());
+    }
     if (diagnostics != null) {
       builder.setDiagnostics(diagnostics);
     }
@@ -119,8 +134,14 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   public void fromProto(TaskAttemptFinishedProto proto) {
     this.taskAttemptId = TezTaskAttemptID.fromString(proto.getTaskAttemptId());
-    this.finishTime = proto.getFinishTime();
     this.state = TaskAttemptState.values()[proto.getState()];
+    this.creationTime = proto.getCreationTime();
+    this.allocationTime = proto.getAllocationTime();
+    this.startTime = proto.getStartTime();
+    this.finishTime = proto.getFinishTime();
+    if (proto.hasCreationCausalTA()) {
+      this.creationCausalTA = TezTaskAttemptID.fromString(proto.getCreationCausalTA());
+    }
     if (proto.hasDiagnostics()) {
       this.diagnostics = proto.getDiagnostics();
     }
@@ -158,6 +179,8 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   public String toString() {
     return "vertexName=" + vertexName
         + ", taskAttemptId=" + taskAttemptId
+        + ", creationTime=" + creationTime
+        + ", allocationTime=" + allocationTime
         + ", startTime=" + startTime
         + ", finishTime=" + finishTime
         + ", timeTaken=" + (finishTime - startTime)
@@ -197,6 +220,18 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   public long getStartTime() {
     return startTime;
+  }
+  
+  public long getCreationTime() {
+    return creationTime;
+  }
+  
+  public long getAllocationTime() {
+    return allocationTime;
+  }
+  
+  public TezTaskAttemptID getCreationCausalTA() {
+    return creationCausalTA;
   }
 
 }

@@ -40,15 +40,12 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   private ContainerId containerId;
   private NodeId nodeId;
   private String nodeHttpAddress;
-  private TezTaskAttemptID creationCausalTA;
-  private long creationTime;
-  private long allocationTime;
 
   public TaskAttemptStartedEvent(TezTaskAttemptID taId,
       String vertexName, long launchTime,
       ContainerId containerId, NodeId nodeId,
       String inProgressLogsUrl, String completedLogsUrl,
-      String nodeHttpAddress, long creationTime, TezTaskAttemptID creationCausalTA, long allocationTime) {
+      String nodeHttpAddress) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.launchTime = launchTime;
@@ -57,9 +54,6 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     this.inProgressLogsUrl = inProgressLogsUrl;
     this.completedLogsUrl = completedLogsUrl;
     this.nodeHttpAddress = nodeHttpAddress;
-    this.creationTime = creationTime;
-    this.creationCausalTA = creationCausalTA;
-    this.allocationTime = allocationTime;
   }
 
   public TaskAttemptStartedEvent() {
@@ -85,12 +79,7 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     builder.setTaskAttemptId(taskAttemptId.toString())
         .setStartTime(launchTime)
         .setContainerId(containerId.toString())
-        .setNodeId(nodeId.toString())
-        .setCreationTime(creationTime)
-        .setAllocationTime(allocationTime);
-    if (creationCausalTA != null) {
-      builder.setCreationCausalTA(creationCausalTA.toString());
-    }
+        .setNodeId(nodeId.toString());
     return builder.build();
   }
 
@@ -99,11 +88,6 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     this.launchTime = proto.getStartTime();
     this.containerId = ConverterUtils.toContainerId(proto.getContainerId());
     this.nodeId = ConverterUtils.toNodeId(proto.getNodeId());
-    this.creationTime = proto.getCreationTime();
-    this.allocationTime = proto.getAllocationTime();
-    if (proto.hasCreationCausalTA()) {
-      this.creationCausalTA = TezTaskAttemptID.fromString(proto.getCreationCausalTA());
-    }
   }
 
   @Override
@@ -124,8 +108,6 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   public String toString() {
     return "vertexName=" + vertexName
         + ", taskAttemptId=" + taskAttemptId
-        + ", creationTime=" + creationTime
-        + ", allocationTime=" + allocationTime
         + ", startTime=" + launchTime
         + ", containerId=" + containerId
         + ", nodeId=" + nodeId
@@ -141,18 +123,6 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
     return launchTime;
   }
   
-  public long getCreationTime() {
-    return creationTime;
-  }
-  
-  public long getAllocationTime() {
-    return allocationTime;
-  }
-  
-  public TezTaskAttemptID getCreationCausalTA() {
-    return creationCausalTA;
-  }
-
   public ContainerId getContainerId() {
     return containerId;
   }

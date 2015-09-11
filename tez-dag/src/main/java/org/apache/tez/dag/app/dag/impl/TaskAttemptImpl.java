@@ -834,9 +834,6 @@ public class TaskAttemptImpl implements TaskAttempt,
         {
           TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
           this.launchTime = tEvent.getStartTime();
-          this.creationTime = tEvent.getCreationTime();
-          this.allocationTime = tEvent.getAllocationTime();
-          this.creationCausalTA = tEvent.getCreationCausalTA();
           recoveryStartEventSeen = true;
           recoveredState = TaskAttemptState.RUNNING;
           this.containerId = tEvent.getContainerId();
@@ -846,7 +843,11 @@ public class TaskAttemptImpl implements TaskAttempt,
         case TASK_ATTEMPT_FINISHED:
         {
           TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) historyEvent;
+          this.creationTime = tEvent.getCreationTime();
+          this.allocationTime = tEvent.getAllocationTime();
+          this.launchTime = tEvent.getStartTime();
           this.finishTime = tEvent.getFinishTime();
+          this.creationCausalTA = tEvent.getCreationCausalTA();
           this.reportedStatus.counters = tEvent.getCounters();
           this.reportedStatus.progress = 1f;
           this.reportedStatus.state = tEvent.getState();
@@ -1060,8 +1061,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getVertex().getName(),
         launchTime, containerId, containerNodeId,
-        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress, creationTime, creationCausalTA, 
-        allocationTime);
+        inProgressLogsUrl, completedLogsUrl, nodeHttpAddress);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), startEvt));
   }
@@ -1073,7 +1073,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, null,
-        "", getCounters(), lastDataEvents);
+        "", getCounters(), lastDataEvents, creationTime, creationCausalTA, allocationTime);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1090,7 +1090,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         finishTime, state,
         terminationCause,
         StringUtils.join(
-            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents);
+            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents, 
+        creationTime, creationCausalTA, allocationTime);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
