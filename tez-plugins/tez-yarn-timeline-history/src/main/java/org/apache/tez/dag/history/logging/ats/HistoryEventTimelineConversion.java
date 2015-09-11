@@ -426,7 +426,14 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
+    atsEntity.addOtherInfo(ATSConstants.CREATION_TIME, event.getCreationTime());
+    atsEntity.addOtherInfo(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
+    atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());
+    if (event.getCreationCausalTA() != null) {
+      atsEntity.addOtherInfo(ATSConstants.CREATION_CAUSAL_ATTEMPT,
+          event.getCreationCausalTA().toString());
+    }
     atsEntity.addOtherInfo(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
     atsEntity.addOtherInfo(ATSConstants.STATUS, event.getState().name());
     if (event.getTaskAttemptError() != null) {
@@ -473,12 +480,6 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
     atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
     atsEntity.addOtherInfo(ATSConstants.STATUS, TaskAttemptState.RUNNING.name());
-    atsEntity.addOtherInfo(ATSConstants.CREATION_TIME, event.getCreationTime());
-    atsEntity.addOtherInfo(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
-    if (event.getCreationCausalTA() != null) {
-      atsEntity.addOtherInfo(ATSConstants.CREATION_CAUSAL_ATTEMPT,
-          event.getCreationCausalTA().toString());
-    }
 
     return atsEntity;
   }

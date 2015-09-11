@@ -520,9 +520,14 @@ public class HistoryEventJsonConversion {
     jsonObject.put(ATSConstants.EVENTS, events);
 
     JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.CREATION_TIME, event.getCreationTime());
+    otherInfo.put(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
     otherInfo.put(ATSConstants.START_TIME, event.getStartTime());
     otherInfo.put(ATSConstants.FINISH_TIME, event.getFinishTime());
     otherInfo.put(ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
+    if (event.getCreationCausalTA() != null) {
+      otherInfo.put(ATSConstants.CREATION_CAUSAL_ATTEMPT, event.getCreationCausalTA().toString());
+    }
     otherInfo.put(ATSConstants.STATUS, event.getState().name());
     if (event.getTaskAttemptError() != null) {
       otherInfo.put(ATSConstants.TASK_ATTEMPT_ERROR_ENUM, event.getTaskAttemptError().name());
@@ -577,11 +582,6 @@ public class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
     otherInfo.put(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
-    otherInfo.put(ATSConstants.CREATION_TIME, event.getCreationTime());
-    otherInfo.put(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
-    if (event.getCreationCausalTA() != null) {
-      otherInfo.put(ATSConstants.CREATION_CAUSAL_ATTEMPT, event.getCreationCausalTA().toString());
-    }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;
