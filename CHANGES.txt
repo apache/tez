@@ -175,6 +175,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2660. Tez UI: need to show application page even if system metrics publish is disabled.
   TEZ-2787. Tez AM should have java.io.tmpdir=./tmp to be consistent with tasks
   TEZ-2780. Tez UI: Update All Tasks page while in progress
   TEZ-2792. Add AM web service API for tasks

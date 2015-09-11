@@ -262,6 +262,8 @@ App.TezAppRoute = Em.Route.extend({
       return store.find('appDetail', tezApp.get('appId')).then(function (appDetails){
         tezApp.set('appDetail', appDetails);
         return tezApp;
+      }).catch(function() {
+        return tezApp;
       });
     });
   },

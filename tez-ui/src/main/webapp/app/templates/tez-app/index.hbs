@@ -36,6 +36,7 @@
           <td>Application Tracking URL</td>
           <td><a target="_blank" {{bind-attr href=rmTrackingURL}}>{{unbound appId}}</a></td>
         </tr>
+        {{#if appDetail}}
         <tr>
           <td>Application Name</td>
           <td>
@@ -53,51 +54,96 @@
           </td>
         </tr>
         <tr>
-          <td>User</td>
-          <td>{{appDetail.user}}</td>
-        </tr>
-        <tr>
           <td>Application Type</td>
           <td>{{appDetail.type}}</td>
         </tr>
-      </tbody>
-    </table>
-  </div>
-  <div style="padding-top: 20px;">
-    <table class='detail-list'>
-      <thead>
-         <tr>
-            <th colspan=2>Tez Application Details</th>
-         </tr>
-      </thead>
-      <tbody>
+        {{/if}}
         <tr>
-          <td>Application State</td>
-          <td>
-            {{appDetail.appState}}
-          </td>
-        </tr>
-        <tr>
-          <td>Final Application Status</td>
-          <td>
-            <i {{bind-attr class=':task-status iconStatus'}}></i> {{appDetail.finalAppStatus}}
-          </td>
-        </tr>
-        <tr>
-          <td>{{t 'common.time.start'}}</td>
-          <td>{{formatUnixTimestamp appDetail.startedTime}}</td>
-        </tr>
-        <tr>
-          <td>{{t 'common.time.end'}}</td>
-          <td>{{formatUnixTimestamp appDetail.finishedTime}}</td>
-        </tr>
-        <tr>
-          <td>{{t 'common.time.duration'}}</td>
-          <td>{{formatDuration appDetail.startedTime appDetail.finishedTime}}</td>
+          <td>User</td>
+          <td>{{appUser}}</td>
         </tr>
       </tbody>
     </table>
   </div>
+
+  {{#if appDetail}}
+    <div style="padding-top: 20px;">
+      <table class='detail-list'>
+        <thead>
+           <tr>
+              <th colspan=2>Tez Application Details</th>
+           </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Application State</td>
+            <td>
+              {{appDetail.appState}}
+            </td>
+          </tr>
+          <tr>
+            <td>Final Application Status</td>
+            <td>
+              {{#if appDetail.appState}}
+              <i {{bind-attr class=':task-status iconStatus'}}></i> {{appDetail.finalAppStatus}}
+              {{/if}}
+            </td>
+          </tr>
+          <tr>
+            <td>{{t 'common.time.start'}}</td>
+            <td>{{formatUnixTimestamp appDetail.startedTime}}</td>
+          </tr>
+          <tr>
+            <td>{{t 'common.time.end'}}</td>
+            <td>{{formatUnixTimestamp appDetail.finishedTime}}</td>
+          </tr>
+          <tr>
+            <td>{{t 'common.time.duration'}}</td>
+            <td>{{formatDuration appDetail.startedTime appDetail.finishedTime}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {{/if}}
+
+  {{#if tezVersion}}
+    <div style="padding-top: 20px;">
+      <table class='detail-list'>
+        <thead>
+           <tr>
+              <th colspan=2>Tez Version Details</th>
+           </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tez Version</td>
+            <td>
+              {{tezVersion}}
+            </td>
+          </tr>
+          <tr>
+            <td>Build Revision</td>
+            <td>
+              {{tezRevision}}
+            </td>
+          </tr>
+          <tr>
+            <td>Build Time</td>
+            <td>
+              {{tezBuildTime}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  {{/if}}
+
+  {{#unless appDetail}}
+    <div class="alert alert-info margin-medium-vertical">
+      <strong>Info!</strong> Could not fetch application info from RM (yarn system metrics publishing might be disabled), some details might be missing
+    </div>
+  {{/unless}}
+
 </div>
 
 {{#if diagnostics}}

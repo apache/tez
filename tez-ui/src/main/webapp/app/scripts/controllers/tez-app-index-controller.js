@@ -45,6 +45,10 @@ App.TezAppIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
       });
   },
 
+  appUser: function() {
+    return this.get('appDetail.user') || this.get('user');
+  }.property('appDetail.user', 'user'),
+
   iconStatus: function() {
     return App.Helpers.misc.getStatusClassForEntity(this.get('model.appDetail.finalAppStatus'));
   }.property('id', 'appDetail.finalAppStatus'),

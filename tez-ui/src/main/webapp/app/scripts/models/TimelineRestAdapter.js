@@ -457,7 +457,11 @@ var timelineJsonToTezAppMap = {
   user: 'primaryfilters.user.0',
 
   dags: 'relatedentities.TEZ_DAG_ID',
-  configs: 'configs'
+  configs: 'configs',
+
+  tezBuildTime: 'otherinfo.tezVersion.buildTime',
+  tezRevision: 'otherinfo.tezVersion.revision',
+  tezVersion: 'otherinfo.tezVersion.version'
 };
 
 App.TezAppSerializer = App.TimelineSerializer.extend({
