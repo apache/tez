@@ -363,7 +363,7 @@ public class AMWebController extends Controller {
   }
 
   List<String> splitString(String str, String delimiter, Integer limit) {
-    List<String> items = new ArrayList<>();
+    List<String> items = new ArrayList<String>();
 
     StringTokenizer tokenizer = new StringTokenizer(str, delimiter);
     for(int count = 0; tokenizer.hasMoreElements() && count < limit; count ++) {
@@ -386,7 +386,7 @@ public class AMWebController extends Controller {
   List<Integer> getIntegersFromRequest(String paramName, Integer limit) {
     String valuesStr = $(paramName).trim();
 
-    List<Integer> values = new ArrayList<>();
+    List<Integer> values = new ArrayList<Integer>();
     if (!valuesStr.equals("")) {
       try {
         for (String valueStr : splitString(valuesStr, ",", limit)) {
@@ -418,11 +418,11 @@ public class AMWebController extends Controller {
   List<List<Integer>> getIDsFromRequest(String paramName, Integer limit) {
     String valuesStr = $(paramName).trim();
 
-    List<List<Integer>> values = new ArrayList<>();
+    List<List<Integer>> values = new ArrayList<List<Integer>>();
     if (!valuesStr.equals("")) {
       try {
         for (String valueStr : splitString(valuesStr, ",", limit)) {
-          List<Integer> innerValues = new ArrayList<>();
+          List<Integer> innerValues = new ArrayList<Integer>();
           String innerValueStrs[] = valueStr.split("_");
           if(innerValueStrs.length == 2) {
             for (String innerValueStr : innerValueStrs) {
@@ -528,7 +528,7 @@ public class AMWebController extends Controller {
    * @param limit {Integer}
    */
   List<Task> getRequestedTasks(DAG dag, Integer limit) {
-    List<Task> tasks = new ArrayList<>();
+    List<Task> tasks = new ArrayList<Task>();
 
     List<List<Integer>> taskIDs = getIDsFromRequest(WebUIService.TASK_ID, limit);
     if(taskIDs == null) {
@@ -564,7 +564,7 @@ public class AMWebController extends Controller {
           if(vertex == null) {
             continue;
           }
-          List<Task> vertexTasks = new ArrayList<>(vertex.getTasks().values());
+          List<Task> vertexTasks = new ArrayList<Task>(vertex.getTasks().values());
           tasks.addAll(vertexTasks.subList(0, Math.min(vertexTasks.size(), limit - tasks.size())));
 
           if(tasks.size() >= limit) {
@@ -575,7 +575,7 @@ public class AMWebController extends Controller {
       else {
         Collection<Vertex> vertices = dag.getVertices().values();
         for (Vertex vertex : vertices) {
-          List<Task> vertexTasks = new ArrayList<>(vertex.getTasks().values());
+          List<Task> vertexTasks = new ArrayList<Task>(vertex.getTasks().values());
           tasks.addAll(vertexTasks.subList(0, Math.min(vertexTasks.size(), limit - tasks.size())));
 
           if(tasks.size() >= limit) {
@@ -614,9 +614,9 @@ public class AMWebController extends Controller {
       return;
     }
 
-    ArrayList<Map<String, String>> tasksInfo = new ArrayList<>();
+    ArrayList<Map<String, String>> tasksInfo = new ArrayList<Map<String, String>>();
     for(Task t : tasks) {
-      Map<String, String> taskInfo = new HashMap<>();
+      Map<String, String> taskInfo = new HashMap<String, String>();
       taskInfo.put("id", t.getTaskId().toString());
       taskInfo.put("progress", Float.toString(t.getProgress()));
       taskInfo.put("status", t.getState().toString());

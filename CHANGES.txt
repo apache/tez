@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2792. addendum fix build failure for java 6
   TEZ-2792. Add AM web service API for tasks
   TEZ-2807. Log data in the finish event instead of the start event
   TEZ-2789. Backport events added in TEZ-2612 to branch-0.7
