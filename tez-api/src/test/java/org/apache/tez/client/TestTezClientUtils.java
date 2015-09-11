@@ -49,6 +49,7 @@ import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -323,6 +324,9 @@ public class TestTezClientUtils {
 
   @Test(timeout = 5000)
   public void testAMCommandOpts() {
+    Path tmpDir = new Path(Environment.PWD.$(),
+        YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
+    String tmpOpts = "-Djava.io.tmpdir=" + tmpDir;
     TezConfiguration tezConf = new TezConfiguration();
     String amCommandOpts = "-Xmx 200m -Dtest.property";
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, amCommandOpts);
@@ -330,8 +334,9 @@ public class TestTezClientUtils {
     // Test1: Rely on defaults for cluster-default opts
     String amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(
-        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " " + amCommandOpts,
+    assertEquals(tmpOpts + " "
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
+        + amCommandOpts,
         amOptsConstructed);
 
     // Test2: Setup cluster-default command opts explicitly
@@ -340,7 +345,7 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
 
 
     // Test3: Don't setup Xmx explicitly
@@ -351,7 +356,7 @@ public class TestTezClientUtils {
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
     // It's OK for the Xmx value to show up before cluster default options, since Xmx will not be replaced if it already exists.
     assertEquals(
-        " -Xmx" + ((int) (1024 * factor)) + "m" + " " + clusterDefaultCommandOpts + " " +
+        " -Xmx" + ((int) (1024 * factor)) + "m" + " " + tmpOpts + " " + clusterDefaultCommandOpts + " " +
             amCommandOpts,
         amOptsConstructed);
 
@@ -361,7 +366,7 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
   }
 
   @Test(timeout = 5000)

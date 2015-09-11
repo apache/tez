@@ -987,9 +987,12 @@ public class TezClientUtils {
   static String constructAMLaunchOpts(TezConfiguration tezConf, Resource capability) {
     String defaultOpts = tezConf.get(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS,
         TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT);
-    String amOpts = "";
+    Path tmpDir = new Path(Environment.PWD.$(),
+        YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
+    String amOpts = "-Djava.io.tmpdir=" + tmpDir + " ";
+
     if (defaultOpts != null && !defaultOpts.isEmpty()) {
-      amOpts = defaultOpts + " ";
+      amOpts = amOpts + defaultOpts + " ";
     }
     amOpts = amOpts + tezConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
