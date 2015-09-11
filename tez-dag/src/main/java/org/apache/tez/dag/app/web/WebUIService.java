@@ -40,6 +40,9 @@ public class WebUIService extends AbstractService {
   private static final String WS_PREFIX_V2 = "/ui/ws/v2/tez/";
   public static final String VERTEX_ID = "vertexID";
   public static final String DAG_ID = "dagID";
+  public static final String TASK_ID = "taskID";
+
+  public static final String LIMIT = "limit";
 
   private static final Logger LOG = LoggerFactory.getLogger(WebUIService.class);
 
@@ -152,9 +155,53 @@ public class WebUIService extends AbstractService {
       route(WS_PREFIX + pajoin("vertexProgresses", VERTEX_ID, DAG_ID), AMWebController.class,
           "getVertexProgresses");
 
-      // v2 api
+      /**
+       *  AM Web Service API V2
+       *  The API facilitates end points that would serve the user with real-time data on dag,
+       *  vertex and tasks.
+       *
+       *  Query Params:
+       *    dagID    - Same as dagIndex. Expects one single value. (Its mandatory in all APIs)
+       *    vertexID - Same as vertex index. Can be a list of comma separated values
+       *    taskID   - Should be of the format <vertexIndex>_<taskIndex>. For instance task with
+       *               index 5 in vertex 3 can be referenced using the id 3_5
+       *    limit    - The max number of records returned. Currently supported only in tasksInfo.
+       *               If not passed, limit would be taken as 100
+       *
+       *  APIs:
+       *    /ui/ws/v2/tez/dagInfo
+       *      Query param:
+       *        - Accepts one single parameter, dagID
+       *      Data returned:
+       *        - Full id, progress, status
+       *
+       *    /ui/ws/v2/tez/verticesInfo
+       *      Query params:
+       *        - Accepts dagID and vertexID
+       *        - vertexID is optional
+       *        - If specified the respective vertices will be returned, else all vertices
+       *          in the DAG will be returned
+       *      Data returned:
+       *        - Full id, progress, status, totalTasks, runningTasks, succeededTasks
+       *          failedTaskAttempts, killedTaskAttempts
+       *
+       *    /ui/ws/v2/tez/tasksInfo
+       *      Query params:
+       *        - Accepts dagID, vertexID, taskID & limit
+       *        - vertex and task IDs are optional
+       *        - If taskID is passed: All (capped by limit) the specified tasks will be
+       *          returned. vertexID if present wont be considered
+       *        - IF vertexID is passed: All (capped by limit) tasks under the vertices
+       *          will be returned
+       *        - If just dagID is passed: All (capped by limit) tasks under the DAG
+       *          will be returned
+       *      Data returned:
+       *        - Full id, progress, status
+       */
       route(WS_PREFIX_V2 + pajoin("dagInfo", DAG_ID), AMWebController.class, "getDagInfo");
       route(WS_PREFIX_V2 + pajoin("verticesInfo", VERTEX_ID, DAG_ID), AMWebController.class, "getVerticesInfo");
+      route(WS_PREFIX_V2 + pajoin("tasksInfo", TASK_ID, VERTEX_ID, DAG_ID), AMWebController.class,
+          "getTasksInfo");
     }
   }
 }

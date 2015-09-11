@@ -33,23 +33,30 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Assert;
 import org.junit.Before;
@@ -367,4 +374,228 @@ public class TestAMWebController {
         vertex2Result.get("failedTaskAttempts"));
   }
 
+  //-- Get Tasks Info Tests -----------------------------------------------------------------------
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetTasksInfoWithTaskIds() {
+    List <Task> tasks = createMockTasks();
+    List <Integer> vertexMinIds = Arrays.asList();
+    List <List <Integer>> taskMinIds = Arrays.asList(Arrays.asList(0, 0),
+        Arrays.asList(0, 3),
+        Arrays.asList(0, 1));
+
+    // Fetch All
+    Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
+        AMWebController.MAX_QUERIED);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
+        get("tasks");
+    Assert.assertEquals(3, tasksInfo.size());
+
+    verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
+    verifySingleTaskResult(tasks.get(3), tasksInfo.get(1));
+    verifySingleTaskResult(tasks.get(1), tasksInfo.get(2));
+
+    // With limit
+    result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds, 2);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    tasksInfo = (ArrayList<Map<String, String>>) result.get("tasks");
+    Assert.assertEquals(2, tasksInfo.size());
+
+    verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
+    verifySingleTaskResult(tasks.get(3), tasksInfo.get(1));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetTasksInfoGracefulTaskFetch() {
+    List <Task> tasks = createMockTasks();
+    List <Integer> vertexMinIds = Arrays.asList();
+    List <List <Integer>> taskMinIds = Arrays.asList(Arrays.asList(0, 0),
+        Arrays.asList(0, 6),
+        Arrays.asList(0, 1));
+
+    // Fetch All
+    Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
+        AMWebController.MAX_QUERIED);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
+        get("tasks");
+    Assert.assertEquals(2, tasksInfo.size());
+
+    verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
+    verifySingleTaskResult(tasks.get(1), tasksInfo.get(1));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetTasksInfoWithVertexId() {
+    List <Task> tasks = createMockTasks();
+    List <Integer> vertexMinIds = Arrays.asList(0);
+    List <List <Integer>> taskMinIds = Arrays.asList();
+
+    Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
+        AMWebController.MAX_QUERIED);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
+        get("tasks");
+    Assert.assertEquals(4, tasksInfo.size());
+
+    sortMapList(tasksInfo, "id");
+    verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
+    verifySingleTaskResult(tasks.get(1), tasksInfo.get(1));
+    verifySingleTaskResult(tasks.get(2), tasksInfo.get(2));
+    verifySingleTaskResult(tasks.get(3), tasksInfo.get(3));
+
+    // With limit
+    result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds, 2);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    tasksInfo = (ArrayList<Map<String, String>>) result.get("tasks");
+    Assert.assertEquals(2, tasksInfo.size());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetTasksInfoWithJustDAGId() {
+    List <Task> tasks = createMockTasks();
+    List <Integer> vertexMinIds = Arrays.asList();
+    List <List <Integer>> taskMinIds = Arrays.asList();
+
+    Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
+        AMWebController.MAX_QUERIED);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    ArrayList<Map<String, String>> tasksInfo = (ArrayList<Map<String, String>>) result.
+        get("tasks");
+    Assert.assertEquals(4, tasksInfo.size());
+
+    sortMapList(tasksInfo, "id");
+    verifySingleTaskResult(tasks.get(0), tasksInfo.get(0));
+    verifySingleTaskResult(tasks.get(1), tasksInfo.get(1));
+    verifySingleTaskResult(tasks.get(2), tasksInfo.get(2));
+    verifySingleTaskResult(tasks.get(3), tasksInfo.get(3));
+
+    // With limit
+    result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds, 2);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("tasks"));
+
+    tasksInfo = (ArrayList<Map<String, String>>) result.get("tasks");
+    Assert.assertEquals(2, tasksInfo.size());
+  }
+
+  private void sortMapList(ArrayList<Map<String, String>> list, String propertyName) {
+    class MapComparator implements Comparator<Map<String, String>> {
+      private final String key;
+
+      public MapComparator(String key) {
+        this.key = key;
+      }
+
+      public int compare(Map<String, String> first, Map<String, String> second) {
+        String firstValue = first.get(key);
+        String secondValue = second.get(key);
+        return firstValue.compareTo(secondValue);
+      }
+    }
+
+    Collections.sort(list, new MapComparator(propertyName));
+  }
+
+  Map<String, Object> getTasksTestHelper(List<Task> tasks, List <List <Integer>> taskMinIds,
+                                         List<Integer> vertexMinIds, Integer limit) {
+    //Creating mock DAG
+    DAG mockDAG = mock(DAG.class);
+    doReturn(TezDAGID.fromString("dag_1441301219877_0109_1")).when(mockDAG).getID();
+
+    //Creating mock vertex and attaching to mock DAG
+    TezVertexID vertexID = TezVertexID.fromString("vertex_1441301219877_0109_1_00");
+    Vertex mockVertex = mock(Vertex.class);
+    doReturn(vertexID).when(mockVertex).getVertexId();
+
+    doReturn(mockVertex).when(mockDAG).getVertex(vertexID);
+    doReturn(ImmutableMap.of(
+        vertexID, mockVertex
+    )).when(mockDAG).getVertices();
+
+    //Creating mock tasks and attaching to mock vertex
+    Map<TezTaskID, Task> taskMap = Maps.newHashMap();
+    for(Task task : tasks) {
+      TezTaskID taskId = task.getTaskId();
+      int taskIndex = taskId.getId();
+      doReturn(task).when(mockVertex).getTask(taskIndex);
+      taskMap.put(taskId, task);
+    }
+    doReturn(taskMap).when(mockVertex).getTasks();
+
+    //Creates & setup controller spy
+    AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
+        "TEST_HISTORY_URL");
+    AMWebController spy = spy(amWebController);
+    doReturn(true).when(spy).setupResponse();
+    doNothing().when(spy).renderJSON(any());
+
+    // Set mock query params
+    doReturn(limit).when(spy).getQueryParamInt(WebUIService.LIMIT);
+    doReturn(vertexMinIds).when(spy).getIntegersFromRequest(WebUIService.VERTEX_ID, limit);
+    doReturn(taskMinIds).when(spy).getIDsFromRequest(WebUIService.TASK_ID, limit);
+
+    // Set function mocks
+    doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
+
+    spy.getTasksInfo();
+    verify(spy).renderJSON(returnResultCaptor.capture());
+
+    return returnResultCaptor.getValue();
+  }
+
+  private List<Task> createMockTasks() {
+    Task mockTask1 = createMockTask("task_1441301219877_0109_1_00_000000", TaskState.RUNNING,
+        0.33f);
+    Task mockTask2 = createMockTask("task_1441301219877_0109_1_00_000001", TaskState.SUCCEEDED,
+        1.0f);
+    Task mockTask3 = createMockTask("task_1441301219877_0109_1_00_000002", TaskState.SUCCEEDED,
+        .8f);
+    Task mockTask4 = createMockTask("task_1441301219877_0109_1_00_000003", TaskState.SUCCEEDED,
+        .8f);
+
+    List <Task> tasks = Arrays.asList(mockTask1, mockTask2, mockTask3, mockTask4);
+    return tasks;
+  }
+
+  private Task createMockTask(String taskIDStr, TaskState status, float progress) {
+    Task mockTask = mock(Task.class);
+
+    doReturn(TezTaskID.fromString(taskIDStr)).when(mockTask).getTaskId();
+    doReturn(status).when(mockTask).getState();
+    doReturn(progress).when(mockTask).getProgress();
+
+    return mockTask;
+  }
+
+  private void verifySingleTaskResult(Task mockTask, Map<String, String> taskResult) {
+    Assert.assertEquals(3, taskResult.size());
+    Assert.assertEquals(mockTask.getTaskId().toString(), taskResult.get("id"));
+    Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
+    Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
+  }
 }
