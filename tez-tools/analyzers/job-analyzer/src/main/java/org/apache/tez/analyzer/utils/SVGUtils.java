@@ -50,10 +50,11 @@ public class SVGUtils {
   private static final int STEP_GAP = 50;
   private static final int TEXT_SIZE = 20;
   private static final String RUNTIME_COLOR = "LightGreen";
+  private static final String ERROR_COLOR = "Tomato";
   private static final String ALLOCATION_OVERHEAD_COLOR = "GoldenRod";
   private static final String LAUNCH_OVERHEAD_COLOR = "DarkSalmon";
   private static final String BORDER_COLOR = "Sienna";
-  private static final String VERTEX_INIT_COMMIT_COLOR = "orange";
+  private static final String VERTEX_INIT_COMMIT_COLOR = "LightSalmon";
   private static final String CRITICAL_COLOR = "IndianRed";
   private static final float RECT_OPACITY = 1.0f;
   private static final String TITLE_BR = "&#13;";
@@ -162,8 +163,10 @@ public class SVGUtils {
       int startCriticalTimeInterval = (int) (step.getStartCriticalTime() - dagStartTime);
       int stopCriticalTimeInterval = (int) (step.getStopCriticalTime() - dagStartTime);
       int creationTimeInterval = (int) (attempt.getCreationTime() - dagStartTime);
-      int allocationTimeInterval = (int) (attempt.getAllocationTime() - dagStartTime);
-      int launchTimeInterval = (int) (attempt.getStartTime() - dagStartTime);
+      int allocationTimeInterval = attempt.getAllocationTime() > 0 ? 
+          (int) (attempt.getAllocationTime() - dagStartTime) : 0;
+      int launchTimeInterval = attempt.getStartTime() > 0 ? 
+          (int) (attempt.getStartTime() - dagStartTime) : 0;
       int finishTimeInterval = (int) (attempt.getFinishTime() - dagStartTime);
       System.out.println(attempt.getTaskAttemptId() + " " + creationTimeInterval + " "
           + allocationTimeInterval + " " + launchTimeInterval + " " + finishTimeInterval);
@@ -178,22 +181,37 @@ public class SVGUtils {
       title.append("Critical start at: " + getTimeStr(startCriticalTimeInterval)).append(TITLE_BR);
       title.append("Critical stop at: " + getTimeStr(stopCriticalTimeInterval)).append(TITLE_BR);
       title.append("Created at: " + getTimeStr(creationTimeInterval)).append(TITLE_BR);
-      title.append("Allocated at: " + getTimeStr(allocationTimeInterval)).append(TITLE_BR);
-      title.append("Launched at: " + getTimeStr(launchTimeInterval)).append(TITLE_BR);
+      if (allocationTimeInterval > 0) {
+        title.append("Allocated at: " + getTimeStr(allocationTimeInterval)).append(TITLE_BR);
+      }
+      if (launchTimeInterval > 0) {
+        title.append("Launched at: " + getTimeStr(launchTimeInterval)).append(TITLE_BR);
+      }
       title.append("Finished at: " + getTimeStr(finishTimeInterval)).append(TITLE_BR);
       title.append(Joiner.on(TITLE_BR).join(step.getNotes()));
       String titleStr = title.toString();
 
-      addRectStr(creationTimeInterval, allocationTimeInterval - creationTimeInterval,
-          yOffset * STEP_GAP, STEP_GAP, ALLOCATION_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY,
-          titleStr);
-
-      addRectStr(allocationTimeInterval, launchTimeInterval - allocationTimeInterval,
-          yOffset * STEP_GAP, STEP_GAP, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY,
-          titleStr);
-
-      addRectStr(launchTimeInterval, finishTimeInterval - launchTimeInterval, yOffset * STEP_GAP,
-          STEP_GAP, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
+      // handle cases when attempt fails before allocation or launch
+      if (allocationTimeInterval > 0) {
+        addRectStr(creationTimeInterval, allocationTimeInterval - creationTimeInterval,
+            yOffset * STEP_GAP, STEP_GAP, ALLOCATION_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY,
+            titleStr);
+        if (launchTimeInterval > 0) {
+          addRectStr(allocationTimeInterval, launchTimeInterval - allocationTimeInterval,
+              yOffset * STEP_GAP, STEP_GAP, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY,
+              titleStr);          
+          addRectStr(launchTimeInterval, finishTimeInterval - launchTimeInterval, yOffset * STEP_GAP,
+              STEP_GAP, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
+        } else {
+          // no launch - so allocate to finish drawn
+          addRectStr(allocationTimeInterval, finishTimeInterval - allocationTimeInterval, yOffset * STEP_GAP,
+              STEP_GAP, ERROR_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
+        }
+      } else {
+        // no allocation - so create to finish drawn
+        addRectStr(creationTimeInterval, finishTimeInterval - creationTimeInterval, yOffset * STEP_GAP,
+            STEP_GAP, ERROR_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
+      }
 
       addTextStr((finishTimeInterval + creationTimeInterval) / 2,
           (yOffset * STEP_GAP + STEP_GAP / 2),   attempt.getShortName(), "middle", TEXT_SIZE, 

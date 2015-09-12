@@ -42,6 +42,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.history.ATSImportTool;
 import org.apache.tez.history.parser.ATSFileParser;
@@ -136,7 +137,7 @@ public class TestAnalyzer {
     conf.set(TezConfiguration.TEZ_SIMPLE_HISTORY_LOGGING_DIR, SIMPLE_HISTORY_DIR);
 
     miniTezCluster =
-        new MiniTezClusterWithTimeline(TestAnalyzer.class.getName(), 4, 1, 1, true);
+        new MiniTezClusterWithTimeline(TestAnalyzer.class.getName(), 1, 1, 1, true);
 
     miniTezCluster.init(conf);
     miniTezCluster.start();
@@ -161,21 +162,38 @@ public class TestAnalyzer {
   }
   
   StepCheck createStep(String attempt, CriticalPathDependency reason) {
-    return new StepCheck(attempt, reason);
+    return createStep(attempt, reason, null, null);
+  }
+  
+  StepCheck createStep(String attempt, CriticalPathDependency reason, 
+      TaskAttemptTerminationCause errCause, List<String> notes) {
+    return new StepCheck(attempt, reason, errCause, notes);
   }
   
   class StepCheck {
     String attempt; // attempt is the TaskAttemptInfo short name with regex
     CriticalPathDependency reason;
-    StepCheck(String attempt, CriticalPathDependency reason) {
+    TaskAttemptTerminationCause errCause;
+    List<String> notesStr;
+
+    StepCheck(String attempt, CriticalPathDependency reason, 
+        TaskAttemptTerminationCause cause, List<String> notes) {
       this.attempt = attempt;
       this.reason = reason;
+      this.errCause = cause;
+      this.notesStr = notes;
     }
     String getAttemptDetail() {
       return attempt;
     }
     CriticalPathDependency getReason() {
       return reason;
+    }
+    TaskAttemptTerminationCause getErrCause() {
+      return errCause;
+    }
+    List<String> getNotesStr() {
+      return notesStr;
     }
   }
 
@@ -232,7 +250,8 @@ public class TestAnalyzer {
     for (CriticalPathStep step : criticalPath) {
       LOG.info("ABC Step: " + step.getType());
       if (step.getType() == EntityType.ATTEMPT) {
-        LOG.info("ABC Attempt: " + step.getAttempt().getShortName() + " " + step.getAttempt().getDetailedStatus());
+        LOG.info("ABC Attempt: " + step.getAttempt().getShortName() 
+            + " " + step.getAttempt().getDetailedStatus());
       }
       LOG.info("ABC Reason: " + step.getReason());
       String notes = Joiner.on(";").join(step.getNotes());
@@ -248,12 +267,22 @@ public class TestAnalyzer {
             criticalPath.get(0).getAttempt().getShortName());
 
         for (int i=1; i<criticalPath.size() - 1; ++i) {
+          StepCheck check = steps[i-1];
           CriticalPathStep step = criticalPath.get(i);
           Assert.assertEquals(CriticalPathStep.EntityType.ATTEMPT, step.getType());
-          Assert.assertTrue(steps[i-1].getAttemptDetail(), 
-              step.getAttempt().getShortName().matches(steps[i-1].getAttemptDetail()));
-          //Assert.assertEquals(steps[i-1].getAttemptDetail(), step.getAttempt().getShortName());
+          Assert.assertTrue(check.getAttemptDetail(), 
+              step.getAttempt().getShortName().matches(check.getAttemptDetail()));
           Assert.assertEquals(steps[i-1].getReason(), step.getReason());
+          if (check.getErrCause() != null) {
+            Assert.assertEquals(check.getErrCause(),
+                TaskAttemptTerminationCause.valueOf(step.getAttempt().getTerminationCause()));
+          }
+          if (check.getNotesStr() != null) {
+            String notes = Joiner.on("#").join(step.getNotes());
+            for (String note : check.getNotesStr()) {
+              Assert.assertTrue(note, notes.contains(notes));
+            }
+          }
         }
     
         Assert.assertEquals(CriticalPathStep.EntityType.DAG_COMMIT,
@@ -435,16 +464,17 @@ public class TestAnalyzer {
    * @param failAndExit whether input failure should trigger attempt exit 
    */
   private void setCascadingInputFailureConfig(Configuration testConf, 
-                                              boolean failAndExit) {
+                                              boolean failAndExit,
+                                              int numTasks) {
     // v2 attempt0 succeeds.
-    // v2 task0 attempt1 input0 fails up to version 0.
-    testConf.setInt(SimpleTestDAG3Vertices.TEZ_SIMPLE_DAG_NUM_TASKS, 1);
+    // v2 all tasks attempt1 input0 fail up to version 0.
+    testConf.setInt(SimpleTestDAG3Vertices.TEZ_SIMPLE_DAG_NUM_TASKS, numTasks);
     testConf.setBoolean(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
     testConf.setBoolean(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v2"), failAndExit);
     testConf.set(TestInput.getVertexConfName(
-            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "0");
+            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "-1");
     testConf.set(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "1");
     testConf.set(TestInput.getVertexConfName(
@@ -453,17 +483,17 @@ public class TestAnalyzer {
             TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v2"),
             0);
 
-    //v3 all-tasks attempt0 input0 fails up to version 0.
+    //v3 task0 attempt0 all inputs fails up to version 0.
     testConf.setBoolean(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v3"), true);
     testConf.setBoolean(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, "v3"), failAndExit);
     testConf.set(TestInput.getVertexConfName(
-            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v3"), "-1");
+            TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v3"), "0");
     testConf.set(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v3"), "0");
     testConf.set(TestInput.getVertexConfName(
-            TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), "0");
+            TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), "-1");
     testConf.setInt(TestInput.getVertexConfName(
             TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"),
             0);
@@ -483,7 +513,7 @@ public class TestAnalyzer {
   @Test (timeout=60000)
   public void testCascadingInputFailureWithoutExitSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
-    setCascadingInputFailureConfig(testConf, false);
+    setCascadingInputFailureConfig(testConf, false, 1);
 
     StepCheck[] check = {
         createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
@@ -514,7 +544,7 @@ public class TestAnalyzer {
   @Test (timeout=60000)
   public void testCascadingInputFailureWithExitSuccess() throws Exception {
     Configuration testConf = new Configuration(false);
-    setCascadingInputFailureConfig(testConf, true);
+    setCascadingInputFailureConfig(testConf, true, 1);
     
     StepCheck[] check = {
         createStep("v1 : 000000_0", CriticalPathDependency.INIT_DEPENDENCY),
@@ -528,6 +558,39 @@ public class TestAnalyzer {
 
     DAG dag = SimpleTestDAG3Vertices.createDAG(
               "testCascadingInputFailureWithExitSuccess", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, Collections.singletonList(check));
+  }
+  
+  /**
+   * 1 NM is running and can run 4 containers based on YARN mini cluster defaults and 
+   * Tez defaults for AM/task memory
+   * v3 task0 reports read errors against both tasks of v2. This re-starts both of them.
+   * Now all 4 slots are occupied 1 AM + 3 tasks
+   * Now retries of v2 report read error against 1 task of v1. That re-starts.
+   * Retry of v1 task has no space - so it preempts the least priority task (current tez logic)
+   * v3 is preempted and re-run. Shows up on critical path as preempted failure.
+   * Also v1 retry attempts note show that it caused preemption of v3
+   * @throws Exception
+   */
+  @Test (timeout=60000)
+  public void testInternalPreemption() throws Exception {
+    Configuration testConf = new Configuration(false);
+    setCascadingInputFailureConfig(testConf, false, 2);
+
+    StepCheck[] check = {
+        createStep("v1 : 00000[01]_0", CriticalPathDependency.INIT_DEPENDENCY),
+        createStep("v2 : 00000[01]_0", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v3 : 000000_0", CriticalPathDependency.DATA_DEPENDENCY, 
+            TaskAttemptTerminationCause.INTERNAL_PREEMPTION, null),
+        createStep("v2 : 00000[01]_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
+        createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY,
+            null, Collections.singletonList("preemption of v3")),
+        createStep("v2 : 00000[01]_1", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v3 : 000000_1", CriticalPathDependency.DATA_DEPENDENCY)
+    };
+    
+    DAG dag = SimpleTestDAG3Vertices.createDAG(
+              "testInternalPreemption", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED, Collections.singletonList(check));
   }
   

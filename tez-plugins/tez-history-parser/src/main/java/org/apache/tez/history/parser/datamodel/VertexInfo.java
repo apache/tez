@@ -403,6 +403,7 @@ public class VertexInfo extends BaseInfo {
     return Collections.unmodifiableList(outputVertices);
   }
 
+  // expensive method to call for large DAGs as it creates big lists on every call
   private List<TaskAttemptInfo> getTaskAttemptsInternal() {
     List<TaskAttemptInfo> taskAttemptInfos = Lists.newLinkedList();
     for (TaskInfo taskInfo : getTasks()) {

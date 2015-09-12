@@ -33,11 +33,13 @@ import org.apache.tez.analyzer.plugins.CriticalPathAnalyzer.CriticalPathStep.Ent
 import org.apache.tez.analyzer.utils.SVGUtils;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.history.parser.datamodel.Container;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEvent;
+import org.apache.tez.history.parser.datamodel.TaskInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -112,13 +114,15 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     TaskAttemptInfo lastAttempt = null;
     long lastAttemptFinishTime = 0;
     for (VertexInfo vertex : dagInfo.getVertices()) {
-      for (TaskAttemptInfo attempt : vertex.getTaskAttempts()) {
-        attempts.put(attempt.getTaskAttemptId(), attempt);
-        if (attempt.getStatus().equals(succeededState) ||
-            attempt.getStatus().equals(failedState)) {
-          if (lastAttemptFinishTime < attempt.getFinishTime()) {
-            lastAttempt = attempt;
-            lastAttemptFinishTime = attempt.getFinishTime();
+      for (TaskInfo task : vertex.getTasks()) {
+        for (TaskAttemptInfo attempt : task.getTaskAttempts()) { 
+          attempts.put(attempt.getTaskAttemptId(), attempt);
+          if (attempt.getStatus().equals(succeededState) ||
+              attempt.getStatus().equals(failedState)) {
+            if (lastAttemptFinishTime < attempt.getFinishTime()) {
+              lastAttempt = attempt;
+              lastAttemptFinishTime = attempt.getFinishTime();
+            }
           }
         }
       }
@@ -149,68 +153,112 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     svg.saveCriticalPathAsSVG(dagInfo, outputFileName, criticalPath);
   }
   
-  private void analyzeCriticalPath(DagInfo dag) {
-    if (!criticalPath.isEmpty()) {
-      System.out.println("Walking critical path for dag " + dag.getDagId());
-      long dagStartTime = dag.getStartTime();
-      long dagTime = dag.getFinishTime() - dagStartTime;
-      long totalAttemptCriticalTime = 0;
-      for (int i = 0; i < criticalPath.size(); ++i) {
-        CriticalPathStep step = criticalPath.get(i);
-        totalAttemptCriticalTime += (step.stopCriticalPathTime - step.startCriticalPathTime);
-        TaskAttemptInfo attempt = step.attempt;
-        if (step.getType() == EntityType.ATTEMPT) {
-          // analyze execution overhead
-          long avgExecutionTime = attempt.getTaskInfo().getVertexInfo()
-              .getAvgExecutionTimeInterval();
-          if (avgExecutionTime * 1.25 < attempt.getExecutionTimeInterval()) {
-            step.notes
-                .add("Potential straggler. Execution time " + 
-                    SVGUtils.getTimeStr(attempt.getExecutionTimeInterval())
-                    + " compared to vertex average of " + 
-                    SVGUtils.getTimeStr(avgExecutionTime));
-          }
-          
-          if (attempt.getStartTime() > step.startCriticalPathTime) {
-            // the attempt is critical before launching. So allocation overhead needs analysis
-            // analyzer allocation overhead
-            Container container = attempt.getContainer();
-            if (container != null) {
-              Collection<TaskAttemptInfo> attempts = dag.getContainerMapping().get(container);
-              if (attempts != null && !attempts.isEmpty()) {
-                // arrange attempts by allocation time
-                List<TaskAttemptInfo> attemptsList = Lists.newArrayList(attempts);
-                Collections.sort(attemptsList, TaskAttemptInfo.orderingOnAllocationTime());
-                // walk the list to record allocation time before the current attempt
-                long containerPreviousAllocatedTime = 0;
-                for (TaskAttemptInfo containerAttempt : attemptsList) {
-                  if (containerAttempt.getTaskAttemptId().equals(attempt.getTaskAttemptId())) {
-                    break;
-                  }
-                  System.out.println("Container: " + container.getId() + " running att: " + 
-                  containerAttempt.getTaskAttemptId() + " wait att: " + attempt.getTaskAttemptId());
-                  containerPreviousAllocatedTime += containerAttempt.getAllocationToEndTimeInterval();
-                }
-                if (containerPreviousAllocatedTime == 0) {
-                  step.notes.add("Container " + container.getId() + " newly allocated.");
-                } else {
-                  if (containerPreviousAllocatedTime >= attempt.getCreationToAllocationTimeInterval()) {
-                    step.notes.add("Container " + container.getId() + " was fully allocated");
-                  } else {
-                    step.notes.add("Container " + container.getId() + " allocated for " + 
-                    SVGUtils.getTimeStr(containerPreviousAllocatedTime) + " out of " +
-                        SVGUtils.getTimeStr(attempt.getCreationToAllocationTimeInterval()) + 
-                        " of allocation wait time");
-                  }
-                }
-              }
-            }
+  private void analyzeAllocationOverhead(DagInfo dag) {
+    List<TaskAttemptInfo> preemptedAttempts = Lists.newArrayList();
+    for (VertexInfo v : dag.getVertices()) {
+      for (TaskInfo t : v.getTasks()) {
+        for (TaskAttemptInfo a : t.getTaskAttempts()) {
+          if (a.getTerminationCause().equals(
+              TaskAttemptTerminationCause.INTERNAL_PREEMPTION.name())) {
+            System.out.println("Found preempted attempt " + a.getTaskAttemptId());
+            preemptedAttempts.add(a);
           }
         }
       }
-      System.out
-          .println("DAG time taken: " + dagTime + " TotalAttemptTime: " + totalAttemptCriticalTime
-              + " DAG finish time: " + dag.getFinishTime() + " DAG start time: " + dagStartTime);
+    }
+    for (int i = 0; i < criticalPath.size(); ++i) {
+      CriticalPathStep step = criticalPath.get(i);
+      TaskAttemptInfo attempt = step.attempt;
+      if (step.getType() != EntityType.ATTEMPT) {
+        continue;
+      }
+      
+      long creationTime = attempt.getCreationTime();
+      long allocationTime = attempt.getAllocationTime();
+      if (allocationTime < step.startCriticalPathTime) {
+        // allocated before it became critical
+        continue;
+      }
+
+      // the attempt is critical before allocation. So allocation overhead needs analysis
+      Container container = attempt.getContainer();
+      if (container != null) {
+        Collection<TaskAttemptInfo> attempts = dag.getContainerMapping().get(container);
+        if (attempts != null && !attempts.isEmpty()) {
+          // arrange attempts by allocation time
+          List<TaskAttemptInfo> attemptsList = Lists.newArrayList(attempts);
+          Collections.sort(attemptsList, TaskAttemptInfo.orderingOnAllocationTime());
+          // walk the list to record allocation time before the current attempt
+          long containerPreviousAllocatedTime = 0;
+          for (TaskAttemptInfo containerAttempt : attemptsList) {
+            if (containerAttempt.getTaskAttemptId().equals(attempt.getTaskAttemptId())) {
+              break;
+            }
+            System.out.println("Container: " + container.getId() + " running att: " + 
+            containerAttempt.getTaskAttemptId() + " wait att: " + attempt.getTaskAttemptId());
+            containerPreviousAllocatedTime += containerAttempt.getAllocationToEndTimeInterval();
+          }
+          if (containerPreviousAllocatedTime == 0) {
+            step.notes.add("Container " + container.getId() + " newly allocated.");
+          } else {
+            if (containerPreviousAllocatedTime >= attempt.getCreationToAllocationTimeInterval()) {
+              step.notes.add("Container " + container.getId() + " was fully allocated");
+            } else {
+              step.notes.add("Container " + container.getId() + " allocated for " + 
+              SVGUtils.getTimeStr(containerPreviousAllocatedTime) + " out of " +
+                  SVGUtils.getTimeStr(attempt.getCreationToAllocationTimeInterval()) + 
+                  " of allocation wait time");
+            }
+          }
+        }
+        // look for internal preemptions while attempt was waiting for allocation
+        for (TaskAttemptInfo a : preemptedAttempts) {
+          if (a.getFinishTime() > creationTime && a.getFinishTime() < allocationTime){
+            // found an attempt that was preempted within this time interval
+            step.notes.add("Potentially waited for preemption of " + a.getShortName());
+          }
+        }
+      }
+    }
+  }
+  
+  private void analyzeStragglers(DagInfo dag) {
+    long dagStartTime = dag.getStartTime();
+    long dagTime = dag.getFinishTime() - dagStartTime;
+    long totalAttemptCriticalTime = 0;
+    for (int i = 0; i < criticalPath.size(); ++i) {
+      CriticalPathStep step = criticalPath.get(i);
+      totalAttemptCriticalTime += (step.stopCriticalPathTime - step.startCriticalPathTime);
+      TaskAttemptInfo attempt = step.attempt;
+      if (step.getType() == EntityType.ATTEMPT) {
+        // analyze execution overhead
+        if (attempt.getLastDataEvents().size() > 1) {
+          // there were read errors. that could have delayed the attempt. ignore this
+          continue;
+        }
+        long avgExecutionTime = attempt.getTaskInfo().getVertexInfo()
+            .getAvgExecutionTimeInterval();
+        if (avgExecutionTime <= 0) {
+          continue;
+        }
+        if (avgExecutionTime * 1.25 < attempt.getExecutionTimeInterval()) {
+          step.notes
+              .add("Potential straggler. Execution time " + 
+                  SVGUtils.getTimeStr(attempt.getExecutionTimeInterval())
+                  + " compared to vertex average of " + 
+                  SVGUtils.getTimeStr(avgExecutionTime));
+        }
+      }
+    }
+    System.out
+        .println("DAG time taken: " + dagTime + " TotalAttemptTime: " + totalAttemptCriticalTime
+            + " DAG finish time: " + dag.getFinishTime() + " DAG start time: " + dagStartTime);
+  }
+  
+  private void analyzeCriticalPath(DagInfo dag) {
+    if (!criticalPath.isEmpty()) {
+      analyzeStragglers(dag);
+      analyzeAllocationOverhead(dag);
     }
   }
   
