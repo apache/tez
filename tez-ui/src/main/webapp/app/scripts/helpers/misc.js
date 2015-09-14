@@ -47,6 +47,8 @@ App.Helpers.misc = {
         return 'success';
       case 'UNDEFINED':
         return 'unknown';
+      case 'SCHEDULED':
+        return 'schedule';
       default:
         return 'submitted';
     }
@@ -158,7 +160,7 @@ App.Helpers.misc = {
    * @param counterConfigs Array
    * @return Normalized configurations
    */
-  normalizeCounterConfigs: function (counterConfigs) {
+  normalizeCounterConfigs: function (counterConfigs, inProgress) {
     return counterConfigs.map(function (configuration) {
       var groupName = configuration.counterGroupName || configuration.groupId,
           counterName = configuration.counterName || configuration.counterId;
@@ -169,11 +171,82 @@ App.Helpers.misc = {
       );
       configuration.id = '%@/%@'.fmt(groupName, counterName),
 
+      configuration.observePath = true;
+      configuration.contentPath = 'counterGroups';
+      configuration.counterGroupName = groupName;
+      configuration.counterName = counterName;
+      configuration.searchAndSortable = !inProgress;
+
       configuration.getSortValue = App.Helpers.misc.getCounterCellContent;
       configuration.getCellContent =
           configuration.getSearchValue = App.Helpers.misc.getCounterCellContentFormatted;
       return configuration;
     });
+  },
+
+  getCounterQueryParam: function (columns) {
+    var counterHash = {},
+        counters = [];
+
+    columns.forEach(function (column) {
+      var groupName = column.get('counterGroupName'),
+          counterName = column.get('counterName');
+      if(column.get('contentPath') == 'counterGroups') {
+        counterHash[groupName] = counterHash[groupName] || [];
+        counterHash[groupName].push(counterName);
+      }
+    });
+    for(var groupName in counterHash) {
+      counters.push('%@/%@'.fmt(groupName, counterHash[groupName].join(',')));
+    }
+
+    return counters.join(';');
+  },
+
+  /*
+   * Merges counter information from AM counter object into ATS counters array
+   */
+  mergeCounterInfo: function (targetATSCounters, sourceAMCounters) {
+    var atsCounters, atsCounter,
+        counters;
+
+    targetATSCounters = targetATSCounters || [];
+
+    try{
+      for(var counterGroupName in sourceAMCounters) {
+        counters = sourceAMCounters[counterGroupName],
+        atsCounters = targetATSCounters.findBy('counterGroupName', counterGroupName);
+        if(!atsCounters) {
+          atsCounters = [];
+          targetATSCounters.push({
+            counterGroupName: counterGroupName,
+            counterGroupDisplayName: counterGroupName,
+            counters: atsCounters
+          });
+        }
+        else {
+          atsCounters = atsCounters.counters;
+        }
+        for(var counterName in counters) {
+          atsCounter = atsCounters.findBy('counterName', counterName);
+          if(atsCounter) {
+            Em.set(atsCounter, 'counterValue', counters[counterName]);
+          }
+          else {
+            atsCounters.push({
+              "counterName": counterName,
+              "counterDisplayName": counterName,
+              "counterValue": counters[counterName]
+            });
+          }
+        }
+      }
+    }
+    catch(e){
+      Em.Logger.info("Counter merge failed", e);
+    }
+
+    return targetATSCounters;
   },
 
   /*

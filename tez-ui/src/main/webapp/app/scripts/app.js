@@ -206,16 +206,20 @@ App.ready = function () {
 
   App.VertexInfoAdapter = App.AMInfoAdapter.extend({
     namespace: App.Configs.restNamespace.aminfoV2,
-    ajax: function(url, method, hash) {
-      var options = hash.data || {};
-      url = url.replace('__app_id__', options.appId)
-        .fmt(options.dagIdx);
-      delete options['dagIdx'];
-      delete options['appId'];
-      return this._super(url, method, hash);
+    findQuery: function(store, type, query) {
+      var record = query.metadata;
+      delete query.metadata;
+      return this.ajax(
+        this.buildURL(Ember.String.pluralize(type.typeKey),
+          record.vertexID, Em.Object.create(record)), 'GET', { data: query});
     },
-    pathForType: function() {
-      return 'verticesInfo?dagID=%@';
+    buildURL: function(type, id, record) {
+      var url = this._super(type, undefined, record);
+      return url.replace('__app_id__', record.get('appID'))
+        .fmt(record.get('dagID'), id, record.get('counters'));
+    },
+    pathForType: function(typeName) {
+      return 'verticesInfo?dagID=%@&vertexID=%@&counters=%@';
     }
   });
 
@@ -231,12 +235,13 @@ App.ready = function () {
     buildURL: function(type, id, record) {
       var url = this._super(type, undefined, record);
       return url.replace('__app_id__', record.get('appID'))
-        .fmt(record.get('dagID'), id);
+        .fmt(record.get('dagID'), id, record.get('counters'));
     },
     pathForType: function(typeName) {
-      return 'tasksInfo?dagID=%@&taskID=%@';
+      return 'tasksInfo?dagID=%@&taskID=%@&counters=%@';
     }
   });
+
 };
 
 $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
