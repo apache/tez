@@ -25,18 +25,29 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.client.ProgressBuilder;
 import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -362,6 +373,44 @@ public class AMWebController extends Controller {
     return vertexIDs;
   }
 
+  /**
+   * Parse a params list in the format: CtrGroup/CtrName1,CtrName2;CtrGroup2;
+   * @return nested structure of counter groups and names. Null if nothing specified.
+   */
+  Map<String, Set<String>> getCounterListFromRequest() {
+    final String counterStr = $(WebUIService.COUNTERS).trim();
+    if (counterStr == null || counterStr.isEmpty()) {
+      return null;
+    }
+
+    String delimiter = ";";
+    String groupDelimiter = "/";
+    String counterDelimiter = ",";
+
+    StringTokenizer tokenizer = new StringTokenizer(counterStr, delimiter);
+
+    Map<String, Set<String>> counterList = new TreeMap<String, Set<String>>();
+    while (tokenizer.hasMoreElements()) {
+      String token = tokenizer.nextToken().trim();
+      int pos = token.indexOf(groupDelimiter);
+      if (pos == -1) {
+        counterList.put(token, Collections.<String>emptySet());
+        continue;
+      }
+      String counterGroup = token.substring(0, pos);
+      Set<String> counters = Collections.<String>emptySet();
+      if (pos < token.length() - 1) {
+        String counterNames = token.substring(pos+1, token.length());
+        counters = Sets.newHashSet(
+            Splitter.on(counterDelimiter).omitEmptyStrings()
+                .trimResults().split(counterNames));
+      }
+      counterList.put(counterGroup, counters);
+    }
+    return counterList;
+  }
+
+
   List<String> splitString(String str, String delimiter, Integer limit) {
     List<String> items = new ArrayList<String>();
 
@@ -404,7 +453,7 @@ public class AMWebController extends Controller {
   }
 
   /**
-   * getIDsFromRequest
+   * getTaskIDsFromRequest
    * Takes in "1_0,1_3" and returns [[1,0],[1,3]]
    * Mainly to parse a query parameter with comma separated indexes. For vertex its the index,
    * for task its vertexIndex_taskIndex and for attempts its vertexIndex_taskIndex_attemptNo
@@ -415,7 +464,7 @@ public class AMWebController extends Controller {
    *
    * @return {List<List<Integer>>} List of parsed values
    */
-  List<List<Integer>> getIDsFromRequest(String paramName, Integer limit) {
+  List<List<Integer>> getIDsFromRequest(String paramName, Integer limit, Integer count) {
     String valuesStr = $(paramName).trim();
 
     List<List<Integer>> values = new ArrayList<List<Integer>>();
@@ -424,7 +473,7 @@ public class AMWebController extends Controller {
         for (String valueStr : splitString(valuesStr, ",", limit)) {
           List<Integer> innerValues = new ArrayList<Integer>();
           String innerValueStrs[] = valueStr.split("_");
-          if(innerValueStrs.length == 2) {
+          if(innerValueStrs.length == count) {
             for (String innerValueStr : innerValueStrs) {
               int value = Integer.parseInt(innerValueStr);
               innerValues.add(value);
@@ -462,8 +511,33 @@ public class AMWebController extends Controller {
     ));
   }
 
-  private Map<String,String> getVertexInfoMap(Vertex vertex) {
-    Map<String, String> vertexInfo = new HashMap<String, String>();
+  Map<String, Map<String, Long>> constructCounterMapInfo(TezCounters counters,
+      Map<String, Set<String>> counterNames) {
+    if (counterNames == null || counterNames.isEmpty()) {
+      return null;
+    }
+    LOG.info("Requested counter names=" + counterNames.entrySet());
+    LOG.info("actual counters=" + counters);
+
+    Map<String, Map<String, Long>> counterInfo = new TreeMap<String, Map<String, Long>>();
+
+    for (Entry<String, Set<String>> entry : counterNames.entrySet()) {
+      Map<String, Long> matchedCounters = new HashMap<String, Long>();
+      CounterGroup grpCounters = counters.getGroup(entry.getKey());
+      for (TezCounter counter : grpCounters) {
+        if (entry.getValue().isEmpty() || entry.getValue().contains(counter.getName())) {
+          matchedCounters.put(counter.getName(), counter.getValue());
+        }
+      }
+      counterInfo.put(entry.getKey(), matchedCounters);
+    }
+
+    return counterInfo;
+  }
+
+  private Map<String, Object> getVertexInfoMap(Vertex vertex,
+                                               Map<String, Set<String>> counterNames) {
+    Map<String, Object> vertexInfo = new HashMap<String, Object>();
     vertexInfo.put("id", vertex.getVertexId().toString());
     vertexInfo.put("status", vertex.getState().toString());
     vertexInfo.put("progress", Float.toString(vertex.getProgress()));
@@ -473,8 +547,18 @@ public class AMWebController extends Controller {
     vertexInfo.put("runningTasks", Integer.toString(vertexProgress.getRunningTaskCount()));
     vertexInfo.put("succeededTasks", Integer.toString(vertexProgress.getSucceededTaskCount()));
 
-    vertexInfo.put("failedTaskAttempts", Integer.toString(vertexProgress.getFailedTaskAttemptCount()));
-    vertexInfo.put("killedTaskAttempts", Integer.toString(vertexProgress.getKilledTaskAttemptCount()));
+    vertexInfo.put("failedTaskAttempts",
+        Integer.toString(vertexProgress.getFailedTaskAttemptCount()));
+    vertexInfo.put("killedTaskAttempts",
+        Integer.toString(vertexProgress.getKilledTaskAttemptCount()));
+
+    if (counterNames != null && !counterNames.isEmpty()) {
+      TezCounters counters = vertex.getCachedCounters();
+      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+      if (counterMap != null && !counterMap.isEmpty()) {
+        vertexInfo.put("counters", counterMap);
+      }
+    }
 
     return vertexInfo;
   }
@@ -495,6 +579,8 @@ public class AMWebController extends Controller {
       return;
     }
 
+    Map<String, Set<String>> counterNames = getCounterListFromRequest();
+
     Collection<Vertex> vertexList;
     if (requestedIDs.isEmpty()) {
       // no ids specified return all.
@@ -503,9 +589,9 @@ public class AMWebController extends Controller {
       vertexList = getVerticesByIdx(dag, requestedIDs);
     }
 
-    ArrayList<Map<String, String>> verticesInfo = new ArrayList<Map<String, String>>();
+    ArrayList<Map<String, Object>> verticesInfo = new ArrayList<Map<String, Object>>();
     for(Vertex v : vertexList) {
-      verticesInfo.add(getVertexInfoMap(v));
+      verticesInfo.add(getVertexInfoMap(v, counterNames));
     }
 
     renderJSON(ImmutableMap.of(
@@ -530,7 +616,7 @@ public class AMWebController extends Controller {
   List<Task> getRequestedTasks(DAG dag, Integer limit) {
     List<Task> tasks = new ArrayList<Task>();
 
-    List<List<Integer>> taskIDs = getIDsFromRequest(WebUIService.TASK_ID, limit);
+    List<List<Integer>> taskIDs = getIDsFromRequest(WebUIService.TASK_ID, limit, 2);
     if(taskIDs == null) {
       return null;
     }
@@ -614,18 +700,116 @@ public class AMWebController extends Controller {
       return;
     }
 
-    ArrayList<Map<String, String>> tasksInfo = new ArrayList<Map<String, String>>();
+    Map<String, Set<String>> counterNames = getCounterListFromRequest();
+
+    ArrayList<Map<String, Object>> tasksInfo = new ArrayList<Map<String, Object>>();
     for(Task t : tasks) {
-      Map<String, String> taskInfo = new HashMap<String, String>();
+      Map<String, Object> taskInfo = new HashMap<String, Object>();
       taskInfo.put("id", t.getTaskId().toString());
       taskInfo.put("progress", Float.toString(t.getProgress()));
       taskInfo.put("status", t.getState().toString());
+
+      TezCounters counters = t.getCounters();
+      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+      if (counterMap != null && !counterMap.isEmpty()) {
+        taskInfo.put("counters", counterMap);
+      }
       tasksInfo.add(taskInfo);
     }
 
     renderJSON(ImmutableMap.of(
       "tasks", tasksInfo
     ));
+  }
+
+  /**
+   * getRequestedAttempts
+   * Given a dag and a limit, based on the incoming query parameters. Used by getAttemptsInfo
+   * returns a list of task instances
+   *
+   * @param dag {DAG}
+   * @param limit {Integer}
+   */
+  List<TaskAttempt> getRequestedAttempts(DAG dag, Integer limit) {
+    List<TaskAttempt> attempts = new ArrayList<TaskAttempt>();
+
+    List<List<Integer>> attemptIDs = getIDsFromRequest(WebUIService.ATTEMPT_ID, limit, 3);
+    if(attemptIDs == null) {
+      return null;
+    }
+    else if(!attemptIDs.isEmpty()) {
+      for (List<Integer> indexes : attemptIDs) {
+        Vertex vertex = getVertexFromIndex(dag, indexes.get(0));
+        if(vertex == null) {
+          continue;
+        }
+        Task task = vertex.getTask(indexes.get(1));
+        if(task == null) {
+          continue;
+        }
+
+        TaskAttempt attempt = task.
+            getAttempt(TezTaskAttemptID.getInstance(task.getTaskId(), indexes.get(2)));
+        if(attempt == null) {
+          continue;
+        }
+        else {
+          attempts.add(attempt);
+        }
+
+        if(attempts.size() >= limit) {
+          break;
+        }
+      }
+    }
+
+    return attempts;
+  }
+
+  /**
+   * Renders the response JSON for attemptsInfo API
+   * The JSON will have an array of attempt objects under the key attempts.
+   */
+  public void getAttemptsInfo() {
+    if (!setupResponse()) {
+      return;
+    }
+
+    DAG dag = checkAndGetDAGFromRequest();
+    if (dag == null) {
+      return;
+    }
+
+    int limit = MAX_QUERIED;
+    try {
+      limit = getQueryParamInt(WebUIService.LIMIT);
+    } catch (NumberFormatException e) {
+      //Ignore
+    }
+
+    List<TaskAttempt> attempts = getRequestedAttempts(dag, limit);
+    if(attempts == null) {
+      return;
+    }
+
+    Map<String, Set<String>> counterNames = getCounterListFromRequest();
+
+    ArrayList<Map<String, Object>> attemptsInfo = new ArrayList<Map<String, Object>>();
+    for(TaskAttempt a : attempts) {
+      Map<String, Object> attemptInfo = new HashMap<String, Object>();
+      attemptInfo.put("id", a.getID().toString());
+      attemptInfo.put("progress", Float.toString(a.getProgress()));
+      attemptInfo.put("status", a.getState().toString());
+
+      TezCounters counters = a.getCounters();
+      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+      if (counterMap != null && !counterMap.isEmpty()) {
+        attemptInfo.put("counters", counterMap);
+      }
+      attemptsInfo.add(attemptInfo);
+    }
+
+    renderJSON(ImmutableMap.of("attempts", attemptsInfo));
   }
 
   @Override
