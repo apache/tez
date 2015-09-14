@@ -38,6 +38,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,17 +47,21 @@ import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.webapp.Controller;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Assert;
@@ -321,6 +327,9 @@ public class TestAMWebController {
     doReturn(true).when(spy).setupResponse();
     doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
 
+    Map<String, Set<String>> counterList = new TreeMap<String, Set<String>>();
+    doReturn(counterList).when(spy).getCounterListFromRequest();
+
     List<Integer> requested;
     if (numVerticesRequested == 0) {
       requested = ImmutableList.of();
@@ -351,6 +360,21 @@ public class TestAMWebController {
     doReturn(status).when(mockVertex).getState();
     doReturn(progress).when(mockVertex).getProgress();
     doReturn(pb).when(mockVertex).getVertexProgress();
+
+    TezCounters counters = new TezCounters();
+    counters.addGroup("g1", "g1");
+    counters.addGroup("g2", "g2");
+    counters.addGroup("g3", "g3");
+    counters.addGroup("g4", "g4");
+    counters.findCounter("g1", "g1_c1").setValue(100);
+    counters.findCounter("g1", "g1_c2").setValue(100);
+    counters.findCounter("g2", "g2_c3").setValue(100);
+    counters.findCounter("g2", "g2_c4").setValue(100);
+    counters.findCounter("g3", "g3_c5").setValue(100);
+    counters.findCounter("g3", "g3_c6").setValue(100);
+
+    doReturn(counters).when(mockVertex).getAllCounters();
+    doReturn(counters).when(mockVertex).getCachedCounters();
 
     return mockVertex;
   }
@@ -557,10 +581,13 @@ public class TestAMWebController {
     // Set mock query params
     doReturn(limit).when(spy).getQueryParamInt(WebUIService.LIMIT);
     doReturn(vertexMinIds).when(spy).getIntegersFromRequest(WebUIService.VERTEX_ID, limit);
-    doReturn(taskMinIds).when(spy).getIDsFromRequest(WebUIService.TASK_ID, limit);
+    doReturn(taskMinIds).when(spy).getIDsFromRequest(WebUIService.TASK_ID, limit, 2);
 
     // Set function mocks
     doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
+
+    Map<String, Set<String>> counterList = new TreeMap<String, Set<String>>();
+    doReturn(counterList).when(spy).getCounterListFromRequest();
 
     spy.getTasksInfo();
     verify(spy).renderJSON(returnResultCaptor.capture());
@@ -589,6 +616,20 @@ public class TestAMWebController {
     doReturn(status).when(mockTask).getState();
     doReturn(progress).when(mockTask).getProgress();
 
+    TezCounters counters = new TezCounters();
+    counters.addGroup("g1", "g1");
+    counters.addGroup("g2", "g2");
+    counters.addGroup("g3", "g3");
+    counters.addGroup("g4", "g4");
+    counters.findCounter("g1", "g1_c1").setValue(101);
+    counters.findCounter("g1", "g1_c2").setValue(102);
+    counters.findCounter("g2", "g2_c3").setValue(103);
+    counters.findCounter("g2", "g2_c4").setValue(104);
+    counters.findCounter("g3", "g3_c5").setValue(105);
+    counters.findCounter("g3", "g3_c6").setValue(106);
+
+    doReturn(counters).when(mockTask).getCounters();
+
     return mockTask;
   }
 
@@ -598,4 +639,152 @@ public class TestAMWebController {
     Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
     Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }
+
+  //-- Get Attempts Info Tests -----------------------------------------------------------------------
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testGetAttemptsInfoWithIds() {
+    List <TaskAttempt> attempts = createMockAttempts();
+    List <Integer> vertexMinIds = Arrays.asList();
+    List <Integer> taskMinIds = Arrays.asList();
+    List <List <Integer>> attemptMinIds = Arrays.asList(Arrays.asList(0, 0, 0),
+        Arrays.asList(0, 0, 1),
+        Arrays.asList(0, 0, 2),
+        Arrays.asList(0, 0, 3));
+
+    // Fetch All
+    Map<String, Object> result = getAttemptsTestHelper(attempts, attemptMinIds, vertexMinIds,
+        taskMinIds, AMWebController.MAX_QUERIED);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("attempts"));
+
+    ArrayList<Map<String, String>> attemptsInfo = (ArrayList<Map<String, String>>) result.
+        get("attempts");
+    Assert.assertEquals(4, attemptsInfo.size());
+
+    verifySingleAttemptResult(attempts.get(0), attemptsInfo.get(0));
+    verifySingleAttemptResult(attempts.get(1), attemptsInfo.get(1));
+    verifySingleAttemptResult(attempts.get(2), attemptsInfo.get(2));
+    verifySingleAttemptResult(attempts.get(3), attemptsInfo.get(3));
+
+    // With limit
+    result = getAttemptsTestHelper(attempts, attemptMinIds, vertexMinIds, taskMinIds, 2);
+
+    Assert.assertEquals(1, result.size());
+    Assert.assertTrue(result.containsKey("attempts"));
+
+    attemptsInfo = (ArrayList<Map<String, String>>) result.get("attempts");
+    Assert.assertEquals(2, attemptsInfo.size());
+
+    verifySingleAttemptResult(attempts.get(0), attemptsInfo.get(0));
+    verifySingleAttemptResult(attempts.get(1), attemptsInfo.get(1));
+  }
+
+  Map<String, Object> getAttemptsTestHelper(List<TaskAttempt> attempts, List <List <Integer>> attemptMinIds,
+                                         List<Integer> vertexMinIds, List<Integer> taskMinIds, Integer limit) {
+    //Creating mock DAG
+    DAG mockDAG = mock(DAG.class);
+    doReturn(TezDAGID.fromString("dag_1441301219877_0109_1")).when(mockDAG).getID();
+
+    //Creating mock vertex and attaching to mock DAG
+    TezVertexID vertexID = TezVertexID.fromString("vertex_1441301219877_0109_1_00");
+    Vertex mockVertex = mock(Vertex.class);
+    doReturn(vertexID).when(mockVertex).getVertexId();
+
+    doReturn(mockVertex).when(mockDAG).getVertex(vertexID);
+    doReturn(ImmutableMap.of(
+        vertexID, mockVertex
+    )).when(mockDAG).getVertices();
+
+    //Creating mock task and attaching to mock Vertex
+    TezTaskID taskID = TezTaskID.fromString("task_1441301219877_0109_1_00_000000");
+    Task mockTask = mock(Task.class);
+    doReturn(taskID).when(mockTask).getTaskId();
+    int taskIndex = taskID.getId();
+    doReturn(mockTask).when(mockVertex).getTask(taskIndex);
+    doReturn(ImmutableMap.of(
+        taskID, mockTask
+    )).when(mockVertex).getTasks();
+
+    //Creating mock tasks and attaching to mock vertex
+    Map<TezTaskAttemptID, TaskAttempt> attemptsMap = Maps.newHashMap();
+    for(TaskAttempt attempt : attempts) {
+      TezTaskAttemptID attemptId = attempt.getID();
+      doReturn(attempt).when(mockTask).getAttempt(attemptId);
+      attemptsMap.put(attemptId, attempt);
+    }
+    doReturn(attemptsMap).when(mockTask).getAttempts();
+
+    //Creates & setup controller spy
+    AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
+        "TEST_HISTORY_URL");
+    AMWebController spy = spy(amWebController);
+    doReturn(true).when(spy).setupResponse();
+    doNothing().when(spy).renderJSON(any());
+
+    // Set mock query params
+    doReturn(limit).when(spy).getQueryParamInt(WebUIService.LIMIT);
+    doReturn(vertexMinIds).when(spy).getIntegersFromRequest(WebUIService.VERTEX_ID, limit);
+    doReturn(taskMinIds).when(spy).getIDsFromRequest(WebUIService.TASK_ID, limit, 2);
+    doReturn(attemptMinIds).when(spy).getIDsFromRequest(WebUIService.ATTEMPT_ID, limit, 3);
+
+    // Set function mocks
+    doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
+
+    Map<String, Set<String>> counterList = new TreeMap<String, Set<String>>();
+    doReturn(counterList).when(spy).getCounterListFromRequest();
+
+    spy.getAttemptsInfo();
+    verify(spy).renderJSON(returnResultCaptor.capture());
+
+    return returnResultCaptor.getValue();
+  }
+
+  private List<TaskAttempt> createMockAttempts() {
+    TaskAttempt mockAttempt1 = createMockAttempt("attempt_1441301219877_0109_1_00_000000_0", TaskAttemptState.RUNNING,
+        0.33f);
+    TaskAttempt mockAttempt2 = createMockAttempt("attempt_1441301219877_0109_1_00_000000_1", TaskAttemptState.SUCCEEDED,
+        1.0f);
+    TaskAttempt mockAttempt3 = createMockAttempt("attempt_1441301219877_0109_1_00_000000_2", TaskAttemptState.FAILED,
+        .8f);
+    TaskAttempt mockAttempt4 = createMockAttempt("attempt_1441301219877_0109_1_00_000000_3", TaskAttemptState.SUCCEEDED,
+        .8f);
+
+    List <TaskAttempt> attempts = Arrays.asList(mockAttempt1, mockAttempt2, mockAttempt3, mockAttempt4);
+    return attempts;
+  }
+
+  private TaskAttempt createMockAttempt(String attemptIDStr, TaskAttemptState status, float progress) {
+    TaskAttempt mockAttempt = mock(TaskAttempt.class);
+
+    doReturn(TezTaskAttemptID.fromString(attemptIDStr)).when(mockAttempt).getID();
+    doReturn(status).when(mockAttempt).getState();
+    doReturn(progress).when(mockAttempt).getProgress();
+
+    TezCounters counters = new TezCounters();
+    counters.addGroup("g1", "g1");
+    counters.addGroup("g2", "g2");
+    counters.addGroup("g3", "g3");
+    counters.addGroup("g4", "g4");
+    counters.findCounter("g1", "g1_c1").setValue(101);
+    counters.findCounter("g1", "g1_c2").setValue(102);
+    counters.findCounter("g2", "g2_c3").setValue(103);
+    counters.findCounter("g2", "g2_c4").setValue(104);
+    counters.findCounter("g3", "g3_c5").setValue(105);
+    counters.findCounter("g3", "g3_c6").setValue(106);
+
+    doReturn(counters).when(mockAttempt).getCounters();
+
+    return mockAttempt;
+  }
+
+  private void verifySingleAttemptResult(TaskAttempt mockTask, Map<String, String> taskResult) {
+    Assert.assertEquals(3, taskResult.size());
+    Assert.assertEquals(mockTask.getID().toString(), taskResult.get("id"));
+    Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
+    Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
+  }
+
 }

@@ -80,6 +80,13 @@ public interface Vertex extends Comparable<Vertex> {
    */
   TezCounters getAllCounters();
 
+  /**
+   * Get all the counters of this vertex.
+   * @return aggregate task-counters
+   */
+  TezCounters getCachedCounters();
+
+
   Map<TezTaskID, Task> getTasks();
   Task getTask(TezTaskID taskID);
   Task getTask(int taskIndex);

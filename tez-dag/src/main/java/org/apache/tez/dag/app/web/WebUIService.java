@@ -41,6 +41,8 @@ public class WebUIService extends AbstractService {
   public static final String VERTEX_ID = "vertexID";
   public static final String DAG_ID = "dagID";
   public static final String TASK_ID = "taskID";
+  public static final String ATTEMPT_ID = "attemptID";
+  public static final String COUNTERS = "counters";
 
   public static final String LIMIT = "limit";
 
@@ -202,6 +204,8 @@ public class WebUIService extends AbstractService {
       route(WS_PREFIX_V2 + pajoin("verticesInfo", VERTEX_ID, DAG_ID), AMWebController.class, "getVerticesInfo");
       route(WS_PREFIX_V2 + pajoin("tasksInfo", TASK_ID, VERTEX_ID, DAG_ID), AMWebController.class,
           "getTasksInfo");
+      route(WS_PREFIX_V2 + pajoin("attemptsInfo", ATTEMPT_ID, DAG_ID), AMWebController.class,
+          "getAttemptsInfo");
     }
   }
 }
