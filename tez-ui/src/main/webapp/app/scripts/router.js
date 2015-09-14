@@ -155,6 +155,9 @@ App.DagRoute = Em.Route.extend({
   setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id'),
   resetController: function() {
     this.controller.dostopAMInfoUpdateService();
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
   }
 });
 
@@ -182,6 +185,11 @@ App.TaskRoute = Em.Route.extend({
   afterModel: function(model) {
     return this.controllerFor('task').loadAdditional(model);
   },
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
   setupController: setupControllerFactory('Task: %@', 'id')
 });
 
@@ -194,6 +202,11 @@ App.TasksRoute = Em.Route.extend({
 App.VertexRoute = Em.Route.extend({
   model: function(params) {
     return this.store.find('vertex', params.vertex_id);
+  },
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
   },
   afterModel: function(model) {
     return this.controllerFor('vertex').loadAdditional(model);
@@ -244,11 +257,21 @@ App.TaskAttemptRoute = Em.Route.extend({
   afterModel: function(model) {
     return this.controllerFor('task_attempt').loadAdditional(model);
   },
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
   setupController: setupControllerFactory('Task Attempt: %@', 'id')
 });
 
 App.TaskAttemptsRoute = Em.Route.extend({
   renderTemplate: renderTable,
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
   setupController: setupControllerFactory('Task Attempt: %@', 'id')
 });
 
@@ -267,11 +290,21 @@ App.TezAppRoute = Em.Route.extend({
       });
     });
   },
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
   setupController: setupControllerFactory('Application: %@', 'id')
 });
 
 App.TezAppDagsRoute = Em.Route.extend({
   renderTemplate: renderTable,
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
   setupController: setupControllerFactory()
 });
 
@@ -300,6 +333,11 @@ App.DagCountersRoute =
     App.TaskCountersRoute =
     App.TaskAttemptCountersRoute =
     Em.Route.extend({
+      resetController: function () {
+        if(this.controller.reset) {
+          this.controller.reset();
+        }
+      },
       renderTemplate: function() {
         this.render('common/counters');
       }

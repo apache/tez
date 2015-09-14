@@ -165,6 +165,12 @@ var timelineJsonToTaskAttemptMap = {
   diagnostics: 'otherinfo.diagnostics',
   counterGroups: 'otherinfo.counters.counterGroups',
 
+  progress: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 1 : null;
+    }
+  },
+
   inProgressLog: 'otherinfo.inProgressLogsURL',
   completedLog: 'otherinfo.completedLogsURL',
 
@@ -224,6 +230,12 @@ var timelineJsonToVertexMap = {
 
   startTime: 'otherinfo.startTime',
   endTime: 'otherinfo.endTime',
+
+  progress: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 1 : null;
+    }
+  },
 
   status: 'otherinfo.status',
   hasFailedTaskAttempts: {
@@ -557,6 +569,14 @@ App.TaskInfoSerializer = DS.RESTSerializer.extend({
   normalizePayload: function(rawPayload) {
     return {
       taskInfo : rawPayload.tasks
+    }
+  }
+});
+
+App.AttemptInfoSerializer = DS.RESTSerializer.extend({
+  normalizePayload: function(rawPayload) {
+    return {
+      attemptInfo : rawPayload.attempts
     }
   }
 });

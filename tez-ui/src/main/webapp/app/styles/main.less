@@ -358,6 +358,10 @@ body, html {
   table-layout: fixed;
   white-space: nowrap;
 
+  .progress {
+    margin-bottom: 0px;
+  }
+
   tr {
     margin: 0px 0px 0px 15px;
     overflow: hidden;
@@ -391,6 +395,12 @@ body, html {
   &.success {
     .fa-icon(check-circle);
     color: @success-color;
+  }
+
+  &.schedule {
+    .fa-icon(history);
+    .fa-flip-horizontal;
+    color: @warning-color;
   }
 
   &.running {
