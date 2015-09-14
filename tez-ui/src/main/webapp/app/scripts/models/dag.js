@@ -441,6 +441,12 @@ App.TaskInfo = DS.Model.extend({
   counters: DS.attr('object')
 });
 
+App.AttemptInfo = DS.Model.extend({
+  progress: DS.attr('number'),
+  status: DS.attr('string'),
+  counters: DS.attr('object')
+});
+
 App.KVDatum = DS.Model.extend({
   key: DS.attr('string'),
   value: DS.attr('string'),

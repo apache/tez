@@ -22,12 +22,59 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
   pageTitle: 'Vertex',
 
   loading: true,
+  isActive: false,
+
+  pollster: App.Helpers.EntityArrayPollster.create(),
+
+  init: function () {
+    this._super();
+    this.get('pollster').setProperties({
+      entityType: 'vertexInfo',
+      mergeProperties: ['status', 'progress'],
+      store: this.get('store')
+    });
+  },
+
+  setup: function () {
+    this.set('isActive', true);
+  },
+  reset: function () {
+    this.set('isActive', false);
+  },
+
+  pollsterControl: function () {
+    if(this.get('dag.status') == 'RUNNING' &&
+        this.get('dag.amWebServiceVersion') != '1' &&
+        this.get('isActive')) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('dag.status', 'dag.amWebServiceVersion', 'isActive'),
+
+  pollsterOptionsObserver: function () {
+    var model = this.get('model');
+
+    this.get('pollster').setProperties( (model && model.get('status') != 'SUCCEEDED') ? {
+      targetRecords: [model],
+      options: {
+        appID: this.get('applicationId'),
+        dagID: App.Helpers.misc.getIndexFromId(this.get('dagID')),
+        vertexID: App.Helpers.misc.getIndexFromId(this.get('id'))
+      }
+    } : {
+      targetRecords: [],
+      options: null
+    });
+  }.observes('applicationId', 'status', 'dagID', 'id'),
 
   loadAdditional: function(vertex) {
     var loaders = [],
       that = this,
       applicationId = vertex.get('applicationId');
 
+    // Irrespective of am version this will get the progress first.
     if (vertex.get('status') == 'RUNNING') {
       var vertexIdx = vertex.get('id').split('_').splice(-1).pop();
       App.Helpers.misc.removeRecord(this.store, 'vertexProgress', vertexIdx);

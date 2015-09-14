@@ -22,6 +22,8 @@ App.TaskAttempt = App.AbstractEntity.extend({
     return id.indexOf(idPrefix) == 0 ? id.substr(idPrefix.length) : id;
   }.property('id'),
 
+  progress: DS.attr('number'),
+
   // start time of the entity
   startTime: DS.attr('number'),
 

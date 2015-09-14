@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2786. Tez UI: Update vertex, task & attempt details page while in progress.
   TEZ-2612. Support for showing allocation delays due to internal preemption
   TEZ-2808. Race condition between preemption and container assignment
   TEZ-2807. Log data in the finish event instead of the start event
@@ -176,6 +177,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2786. Tez UI: Update vertex, task & attempt details page while in progress.
   TEZ-2817. Tez UI: update in progress counter data for the dag vertices and tasks table
   TEZ-2813. Tez UI: add counter data for rest api calls to AM Web Services v2
   TEZ-2660. Tez UI: need to show application page even if system metrics publish is disabled.

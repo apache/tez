@@ -242,6 +242,25 @@ App.ready = function () {
     }
   });
 
+  App.AttemptInfoAdapter = App.AMInfoAdapter.extend({
+    namespace: App.Configs.restNamespace.aminfoV2,
+    findQuery: function(store, type, query) {
+      var record = query.metadata;
+      delete query.metadata;
+      return this.ajax(
+        this.buildURL(Ember.String.pluralize(type.typeKey),
+          record.attemptID, Em.Object.create(record)), 'GET', { data: query});
+    },
+    buildURL: function(type, id, record) {
+      var url = this._super(type, undefined, record);
+      return url.replace('__app_id__', record.get('appID'))
+        .fmt(record.get('dagID'), record.get('taskID'), id, record.get('counters'));
+    },
+    pathForType: function(typeName) {
+      return 'attemptsInfo?dagID=%@&taskID=%@&attemptID=%@&counters=%@';
+    }
+  });
+
 };
 
 $.ajaxPrefilter(function(options, originalOptions, jqXHR) {

@@ -23,6 +23,57 @@ App.TaskAttemptController = Em.ObjectController.extend(App.Helpers.DisplayHelper
 
   loading: true,
 
+  isActive: false,
+
+  pollster: App.Helpers.EntityArrayPollster.create(),
+
+  init: function () {
+    this._super();
+    this.get('pollster').setProperties({
+      entityType: 'attemptInfo',
+      mergeProperties: ['status', 'progress'],
+      store: this.get('store')
+    });
+  },
+
+  setup: function () {
+    this.set('isActive', true);
+  },
+  reset: function () {
+    this.set('isActive', false);
+  },
+
+  pollsterControl: function () {
+    if(this.get('task.vertex.dag.status') == 'RUNNING' &&
+        this.get('task.vertex.dag.amWebServiceVersion') != '1' &&
+        this.get('isActive')) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('task.vertex.dag.status', 'task.vertex.dag.amWebServiceVersion', 'isActive'),
+
+  pollsterOptionsObserver: function () {
+    var model = this.get('model');
+
+    this.get('pollster').setProperties( (model && model.get('status') != 'SUCCEEDED') ? {
+      targetRecords: [model],
+      options: {
+        appID: this.get('task.vertex.dag.applicationId'),
+        dagID: App.Helpers.misc.getIndexFromId(this.get('dagID')),
+        attemptID: '%@_%@_%@'.fmt(
+          App.Helpers.misc.getIndexFromId(this.get('vertexID')),
+          App.Helpers.misc.getIndexFromId(this.get('taskID')),
+          App.Helpers.misc.getIndexFromId(this.get('id'))
+        )
+      }
+    } : {
+      targetRecords: [],
+      options: null
+    });
+  }.observes('task.vertex.dag.applicationId', 'status', 'dagID', 'vertexID', 'id'),
+
   loadAdditional: function(attempt) {
     var that = this;
 
