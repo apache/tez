@@ -138,6 +138,8 @@ App.Vertex = App.AbstractEntity.extend({
     return !!f && f > 0;
   }.property('failedTasks'),
 
+  progress: DS.attr('number'),
+
   /**
    * Vertex type has to be one of the types defined in 'App.VertexType'
    * @return {string}
@@ -428,12 +430,15 @@ App.VertexInfo = DS.Model.extend({
   killedTaskAttempts: DS.attr('number'),
   pendingTasks: function() {
     return this.get('totalTasks') - this.get('runningTasks') - this.get('succeededTasks');
-  }.property('totalTasks', 'runningTasks', 'succeededTasks')
+  }.property('totalTasks', 'runningTasks', 'succeededTasks'),
+
+  counters: DS.attr('object')
 });
 
 App.TaskInfo = DS.Model.extend({
   progress: DS.attr('number'),
   status: DS.attr('string'),
+  counters: DS.attr('object')
 });
 
 App.KVDatum = DS.Model.extend({

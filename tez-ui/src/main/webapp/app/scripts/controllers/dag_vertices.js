@@ -26,6 +26,11 @@ App.DagVerticesController = App.TablePageController.extend({
 
   cacheDomain: Ember.computed.alias('controllers.dag.id'),
 
+  pollster: {},
+  amInfoUpdateServiceObserver: function () {
+    this.set('pollster.isRunning', !!this.get('amInfoUpdateService'));
+  }.observes('amInfoUpdateService').on('init'),
+
   beforeLoad: function () {
     var dagController = this.get('controllers.dag'),
         model = dagController.get('model');
@@ -69,7 +74,8 @@ App.DagVerticesController = App.TablePageController.extend({
         metadata: {
           appId: that.get('applicationId'),
           dagIdx: that.get('idx'),
-          vertexIds: runningVerticesIdx.join(',')
+          vertexIds: runningVerticesIdx.join(','),
+          counters: counters
         }
       }).then(function(vertexProgressInfo) {
         that.set('controllers.dag.amVertexInfo', vertexProgressInfo);
@@ -79,10 +85,18 @@ App.DagVerticesController = App.TablePageController.extend({
     }
   },
 
+  _onColumnChange: function () {
+    App.set('vertexCounters', App.Helpers.misc.getCounterQueryParam(this.get('columns')));
+  }.observes('columns').on('init'),
+
   overlayVertexInfo: function(vertex, amVertexInfo) {
     if (Em.isNone(amVertexInfo) || Em.isNone(vertex)) return;
     amVertexInfo.set('_amInfoLastUpdatedTime', moment());
     vertex.setProperties(amVertexInfo.getProperties('status', 'progress', '_amInfoLastUpdatedTime'));
+
+    vertex.set('counterGroups',
+      App.Helpers.misc.mergeCounterInfo(vertex.get('counterGroups'), amVertexInfo.get('counters')).slice(0)
+    );
   },
 
   updateVertexInfo: function() {
@@ -150,6 +164,13 @@ App.DagVerticesController = App.TablePageController.extend({
           onProgressChange.call(content);
           return content;
         }
+      },
+      {
+        id: 'progress',
+        headerCellName: 'Progress',
+        contentPath: 'progress',
+        observePath: true,
+        templateName: 'components/basic-table/progress-cell'
       },
       {
         id: 'startTime',

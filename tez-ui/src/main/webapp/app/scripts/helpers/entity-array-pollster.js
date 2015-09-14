@@ -64,6 +64,10 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
     }
   },
 
+  _optionObserver: function () {
+    Em.run.later(this, this.onPoll, 10);
+  }.observes('options'),
+
   _callIfRunning: function (that, funName) {
     return function (data) {
       var fun = that.get(funName);
@@ -93,9 +97,27 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
 
     if(polledRecords && targetRecords) {
       targetRecords.forEach(function (row) {
-        var info = polledRecords.findBy('id', row.get('id'));
-        if(info) {
+        var info = polledRecords.findBy('id', row.get('id')),
+             merge = !!info;
+
+        if(merge && row.get('progress') && info.get('progress')) {
+          if(row.get('progress') >= info.get('progress')) {
+            merge = false;
+          }
+        }
+
+        if(merge) {
           row.setProperties(info.getProperties.apply(info, mergeProperties));
+
+          if(info.get('counters')) {
+            row.set('counterGroups',
+              App.Helpers.misc.mergeCounterInfo(
+                row.get('counterGroups'),
+                info.get('counters')
+              ).slice(0)
+            );
+          }
+
         }
       });
     }

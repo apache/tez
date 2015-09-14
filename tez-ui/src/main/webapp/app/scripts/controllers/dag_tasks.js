@@ -39,8 +39,8 @@ App.DagTasksController = App.TablePageController.extend({
   },
 
   pollsterControl: function () {
-    if(this.get('controllers.dag.status') == 'RUNNING' &&
-        this.get('controllers.dag.amWebServiceVersion') != '1' &&
+    if(this.get('status') == 'RUNNING' &&
+        this.get('amWebServiceVersion') != '1' &&
         !this.get('loading') &&
         this.get('isActive') &&
         this. get('rowsDisplayed.length') > 0) {
@@ -49,34 +49,27 @@ App.DagTasksController = App.TablePageController.extend({
     else {
       this.get('pollster').stop();
     }
-  }.observes('controllers.dag.status',
-      'controllers.dag.amWebServiceVersion',
-      'rowsDisplayed',
-      'loading',
-      'isActive'),
-
-  reset: function () {
-    this.set('pollster.options', null);
-  },
+  }.observes('status', 'amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
 
   pollsterOptionsObserver: function () {
     var rows = this.get('rowsDisplayed');
     this.set('pollster.targetRecords', rows);
 
-    rows = rows.filter(function (row) {
-      return row.get('status') != 'SUCCEEDED';
-    });
-
     this.set('pollster.options', (rows && rows.length) ? {
-      appID: this.get('controllers.dag.model.applicationId'),
-      dagID: this.get('controllers.dag.model.idx'),
+      appID: this.get('applicationId'),
+      dagID: this.get('idx'),
+      counters: this.get('countersDisplayed'),
       taskID: rows.map(function (row) {
           var taskIndex = App.Helpers.misc.getIndexFromId(row.get('id')),
           vertexIndex = App.Helpers.misc.getIndexFromId(row.get('vertexID'));
           return '%@_%@'.fmt(vertexIndex, taskIndex);
         }).join(',')
     } : null);
-  }.observes('controllers.dag.model.applicationId', 'controllers.dag.model.idx', 'rowsDisplayed'),
+  }.observes('applicationId', 'idx', 'rowsDisplayed', 'counters'),
+
+  countersDisplayed: function () {
+    return App.Helpers.misc.getCounterQueryParam(this.get('columns'));
+  }.property('columns'),
 
   beforeLoad: function () {
     var dagController = this.get('controllers.dag'),

@@ -80,6 +80,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
           ["loading", "id", "model.status"].forEach(function(item) {
             Em.addObserver(that, item, that.startAMInfoUpdateService);
           });
+          that.startAMInfoUpdateService();
         }
       }
     });
@@ -121,9 +122,12 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
     if (!dagId) return;
 
-    verticesInfoLoader = this.store.find('vertexInfo', {
-      appId: that.get('applicationId'),
-      dagIdx: that.get('idx')
+    verticesInfoLoader = this.store.findQuery('vertexInfo', {
+      metadata: {
+        appID: that.get('applicationId'),
+        dagID: that.get('idx'),
+        counters: App.get('vertexCounters')
+      }
     });
 
     verticesInfoLoader.then(function(verticesInfo) {
@@ -155,6 +159,10 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       ["loading", "id", "model.status"].forEach(function(item) {
         Em.addObserver(that, item, that.stopAMInfoUpdateService);
       });
+    }
+    else {
+      that.updateAMDagInfo();
+      that.updateAMVerticesInfo();
     }
   },
 
