@@ -95,7 +95,6 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
           + TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED + " set to false");
       return;
     }
-    LOG.info("Initializing ATSService");
 
     if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
       YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
@@ -124,7 +123,12 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     }
     sessionDomainId = conf.get(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID);
 
-    LOG.info("Using " + atsHistoryACLManagerClassName + " to manage Timeline ACLs");
+    LOG.info("Initializing " + ATSHistoryLoggingService.class.getSimpleName() + " with "
+      + "maxEventsPerBatch=" + maxEventsPerBatch
+      + ", maxPollingTime(ms)=" + maxPollingTimeMillis
+      + ", waitTimeForShutdown(ms)=" + maxTimeToWaitOnShutdown
+      + ", TimelineACLManagerClass=" + atsHistoryACLManagerClassName);
+
     try {
       historyACLPolicyManager = ReflectionUtils.createClazzInstance(
           atsHistoryACLManagerClassName);
@@ -146,7 +150,6 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     if (!historyLoggingEnabled || timelineClient == null) {
       return;
     }
-    LOG.info("Starting ATSService");
     timelineClient.start();
 
     eventHandlingThread = new Thread(new Runnable() {

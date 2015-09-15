@@ -155,13 +155,13 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   @VisibleForTesting
   TaskCommunicator createDefaultTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext) {
-    LOG.info("Using Default Task Communicator");
+    LOG.info("Creating Default Task Communicator");
     return new TezTaskCommunicatorImpl(taskCommunicatorContext);
   }
 
   @VisibleForTesting
   TaskCommunicator createUberTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext) {
-    LOG.info("Using Default Local Task Communicator");
+    LOG.info("Creating Default Local Task Communicator");
     return new TezLocalTaskCommunicatorImpl(taskCommunicatorContext);
   }
 
@@ -169,7 +169,7 @@ public class TaskCommunicatorManager extends AbstractService implements
   TaskCommunicator createCustomTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext,
                                                 NamedEntityDescriptor taskCommDescriptor)
                                                     throws TezException {
-    LOG.info("Using TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(),
+    LOG.info("Creating TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(),
         taskCommDescriptor.getClassName());
     Class<? extends TaskCommunicator> taskCommClazz =
         (Class<? extends TaskCommunicator>) ReflectionUtils
@@ -322,7 +322,6 @@ public class TaskCommunicatorManager extends AbstractService implements
    */
 //  @Override
   public boolean canCommit(TezTaskAttemptID taskAttemptId) throws IOException {
-    LOG.info("Commit go/no-go request from " + taskAttemptId.toString());
     // An attempt is asking if it can commit its output. This can be decided
     // only by the task which is managing the multiple attempts. So redirect the
     // request there.

@@ -136,7 +136,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
   @Override
   protected void serviceStart() throws Exception {
     execService = Executors.newFixedThreadPool(numThreads, new ThreadFactoryBuilder().setDaemon(true)
-        .setNameFormat("Dispatcher [" + this.name + "] #%d").build());
+        .setNameFormat("Dispatcher {" + this.name + "} #%d").build());
     for (int i=0; i<numThreads; ++i) {
       eventQueues.add(new LinkedBlockingQueue<Event>());
     }
@@ -215,7 +215,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
   private void checkForExistingDispatcher(Class<? extends Enum> eventType) {
     AsyncDispatcherConcurrent registeredDispatcher = eventDispatchers.get(eventType);
-    Preconditions.checkState(registeredDispatcher == null, 
+    Preconditions.checkState(registeredDispatcher == null,
         "Multiple dispatchers cannot be registered for: " + eventType.getName());
   }
 
@@ -263,7 +263,8 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
-    LOG.info("Registering " + eventType + " for independent dispatch using: " + handler.getClass());
+    LOG.info(
+          "Registering " + eventType + " for independent dispatch using: " + handler.getClass());
     AsyncDispatcherConcurrent dispatcher = new AsyncDispatcherConcurrent(dispatcherName, numThreads);
     dispatcher.register(eventType, handler);
     eventDispatchers.put(eventType, dispatcher);
@@ -278,7 +279,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info("Registering " + eventType + " wit existing concurrent dispatch using: "
-        + handler.getClass());
+          + handler.getClass());
     dispatcher.register(eventType, handler);
     eventDispatchers.put(eventType, dispatcher);
   }

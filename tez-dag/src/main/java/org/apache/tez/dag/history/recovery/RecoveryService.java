@@ -106,7 +106,6 @@ public class RecoveryService extends AbstractService {
 
   @Override
   public void serviceInit(Configuration conf) throws Exception {
-    LOG.info("Initializing RecoveryService");
     recoveryPath = appContext.getCurrentRecoveryDir();
     recoveryDirFS = FileSystem.get(recoveryPath.toUri(), conf);
     bufferSize = conf.getInt(TezConfiguration.DAG_RECOVERY_FILE_IO_BUFFER_SIZE,
@@ -120,11 +119,16 @@ public class RecoveryService extends AbstractService {
     drainEventsFlag = conf.getBoolean(
         TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED,
         TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED_DEFAULT);
+
+    LOG.info("RecoveryService initialized with "
+      + "recoveryPath=" + recoveryPath
+      + ", bufferSize(bytes)=" + bufferSize
+      + ", flushInterval(s)=" + flushInterval
+      + ", maxUnflushedEvents=" + maxUnflushedEvents);
   }
 
   @Override
   public void serviceStart() {
-    LOG.info("Starting RecoveryService");
     lastFlushTime = appContext.getClock().getTime();
     eventHandlingThread = new Thread(new Runnable() {
       @Override

@@ -47,14 +47,16 @@ public class HistoryEventHandler extends CompositeService {
 
   @Override
   public void serviceInit(Configuration conf) throws Exception {
-    LOG.info("Initializing HistoryEventHandler");
-
     this.recoveryEnabled = context.getAMConf().getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
         TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
 
     String historyServiceClassName = context.getAMConf().get(
         TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
         TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT);
+
+    LOG.info("Initializing HistoryEventHandler with"
+        + "recoveryEnabled=" + recoveryEnabled
+        + ", historyServiceClassName=" + historyServiceClassName);
 
     historyLoggingService =
         ReflectionUtils.createClazzInstance(historyServiceClassName);
@@ -66,11 +68,11 @@ public class HistoryEventHandler extends CompositeService {
       addService(recoveryService);
     }
     super.serviceInit(conf);
+
   }
 
   @Override
   public void serviceStart() throws Exception {
-    LOG.info("Starting HistoryEventHandler");
     super.serviceStart();
   }
 

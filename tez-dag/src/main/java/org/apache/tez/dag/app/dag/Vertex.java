@@ -182,6 +182,8 @@ public interface Vertex extends Comparable<Vertex> {
 
   public Configuration getConf();
 
+  public boolean isSpeculationEnabled();
+
   public int getTaskSchedulerIdentifier();
   public int getContainerLauncherIdentifier();
   public int getTaskCommunicatorIdentifier();

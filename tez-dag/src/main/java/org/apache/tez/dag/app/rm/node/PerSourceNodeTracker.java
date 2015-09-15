@@ -95,6 +95,8 @@ public class PerSourceNodeTracker {
         AMNode amNode = nodeMap.get(nodeId);
         if (amNode == null) {
           LOG.info("Ignoring RM Health Update for unknown node: " + nodeId);
+          // This implies that the node exists on the cluster, but is not running a container for
+          // this application.
         } else {
           amNode.handle(rEvent);
         }

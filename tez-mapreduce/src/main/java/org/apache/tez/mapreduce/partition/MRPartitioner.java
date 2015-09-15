@@ -51,11 +51,13 @@ public class MRPartitioner implements org.apache.tez.runtime.library.api.Partiti
     if (useNewApi) {
       oldPartitioner = null;
       if (partitions > 1) {
+        Class<? extends org.apache.hadoop.mapreduce.Partitioner<?, ?>> clazz =
+            (Class<? extends org.apache.hadoop.mapreduce.Partitioner<?, ?>>) conf
+                .getClass(MRJobConfig.PARTITIONER_CLASS_ATTR,
+                    org.apache.hadoop.mapreduce.lib.partition.HashPartitioner.class);
+        LOG.info("Using newApi, MRpartitionerClass=" + clazz.getName());
         newPartitioner = (org.apache.hadoop.mapreduce.Partitioner) ReflectionUtils
-            .newInstance(
-                (Class<? extends org.apache.hadoop.mapreduce.Partitioner<?, ?>>) conf
-                    .getClass(MRJobConfig.PARTITIONER_CLASS_ATTR,
-                        org.apache.hadoop.mapreduce.lib.partition.HashPartitioner.class), conf);
+            .newInstance(clazz, conf);
       } else {
         newPartitioner = new org.apache.hadoop.mapreduce.Partitioner() {
           @Override
@@ -67,10 +69,12 @@ public class MRPartitioner implements org.apache.tez.runtime.library.api.Partiti
     } else {
       newPartitioner = null;
       if (partitions > 1) {
-        oldPartitioner = (org.apache.hadoop.mapred.Partitioner) ReflectionUtils.newInstance(
+        Class<? extends org.apache.hadoop.mapred.Partitioner> clazz =
             (Class<? extends org.apache.hadoop.mapred.Partitioner>) conf.getClass(
-                "mapred.partitioner.class", org.apache.hadoop.mapred.lib.HashPartitioner.class),
-            new JobConf(conf));
+                "mapred.partitioner.class", org.apache.hadoop.mapred.lib.HashPartitioner.class);
+        LOG.info("Using oldApi, MRpartitionerClass=" + clazz.getName());
+        oldPartitioner = (org.apache.hadoop.mapred.Partitioner) ReflectionUtils.newInstance(
+            clazz, new JobConf(conf));
       } else {
         oldPartitioner = new org.apache.hadoop.mapred.Partitioner() {
           @Override

@@ -127,7 +127,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
 
     @SuppressWarnings("unchecked")
     public synchronized void launch(ContainerLaunchRequest event) {
-      LOG.info("Launching Container with Id: " + event.getContainerId());
+      LOG.info("Launching " + event.getContainerId());
       if(this.state == ContainerState.KILLED_BEFORE_LAUNCH) {
         state = ContainerState.DONE;
         sendContainerLaunchFailedMsg(event.getContainerId(),
@@ -185,8 +185,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
       if(this.state == ContainerState.PREP) {
         this.state = ContainerState.KILLED_BEFORE_LAUNCH;
       } else {
-        LOG.info("Sending a stop request to the NM for ContainerId: "
-            + containerID);
+        LOG.info("Stopping " + containerID);
 
         ContainerManagementProtocolProxyData proxy = null;
         try {
@@ -353,6 +352,9 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
       // Load ContainerManager tokens before creating a connection.
       // TODO: Do it only once per NodeManager.
       ContainerId containerID = event.getBaseOperation().getContainerId();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Processing ContainerOperation {}", event);
+      }
 
       Container c = getContainer(event);
       switch(event.getOpType()) {

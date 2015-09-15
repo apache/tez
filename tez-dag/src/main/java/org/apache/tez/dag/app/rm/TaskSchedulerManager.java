@@ -203,7 +203,9 @@ public class TaskSchedulerManager extends AbstractService implements
   }
 
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
-    LOG.info("Processing the event " + sEvent.toString());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Processing the event " + sEvent.toString());
+    }
     switch (sEvent.getType()) {
     case S_TA_LAUNCH_REQUEST:
       handleTaLaunchRequest((AMSchedulerEventTALaunchRequest) sEvent);
@@ -219,7 +221,7 @@ public class TaskSchedulerManager extends AbstractService implements
         handleTASucceeded(event);
         break;
       default:
-        throw new TezUncheckedException("Unexecpted TA_ENDED state: " + event.getState());
+        throw new TezUncheckedException("Unexpected TA_ENDED state: " + event.getState());
       }
       break;
     case S_CONTAINER_DEALLOCATE:
@@ -366,8 +368,8 @@ public class TaskSchedulerManager extends AbstractService implements
               event);
           return;
         }
-        LOG.info("Attempt: " + taskAttempt.getID() + " has task based affinity to " + taskAffinity 
-            + " but no locality information exists for it. Ignoring hint.");
+        LOG.info("No attempt for task affinity to " + taskAffinity + " for attempt "
+            + taskAttempt.getID() + " Ignoring.");
         // fall through with null hosts/racks
       } else {
         hosts = (locationHint.getHosts() != null) ? locationHint
@@ -422,7 +424,8 @@ public class TaskSchedulerManager extends AbstractService implements
   @VisibleForTesting
   TaskScheduler createUberTaskScheduler(TaskSchedulerContext taskSchedulerContext,
                                         int schedulerId) {
-    LOG.info("Creating TaskScheduler: Local TaskScheduler");
+    LOG.info("Creating TaskScheduler: Local TaskScheduler with clusterIdentifier={}",
+        taskSchedulerContext.getCustomClusterIdentifier());
     return new LocalTaskSchedulerService(taskSchedulerContext);
   }
 
@@ -430,8 +433,8 @@ public class TaskSchedulerManager extends AbstractService implements
   TaskScheduler createCustomTaskScheduler(TaskSchedulerContext taskSchedulerContext,
                                           NamedEntityDescriptor taskSchedulerDescriptor,
                                           int schedulerId) throws TezException {
-    LOG.info("Creating custom TaskScheduler {}:{}", taskSchedulerDescriptor.getEntityName(),
-        taskSchedulerDescriptor.getClassName());
+    LOG.info("Creating custom TaskScheduler {}:{} with clusterIdentifier={}", taskSchedulerDescriptor.getEntityName(),
+        taskSchedulerDescriptor.getClassName(), taskSchedulerContext.getCustomClusterIdentifier());
     return ReflectionUtils.createClazzInstance(taskSchedulerDescriptor.getClassName(),
         new Class[]{TaskSchedulerContext.class},
         new Object[]{taskSchedulerContext});
@@ -450,8 +453,6 @@ public class TaskSchedulerManager extends AbstractService implements
       } else {
         customAppIdIdentifier = SCHEDULER_APP_ID_BASE + (j++ * SCHEDULER_APP_ID_INCREMENT);
       }
-      LOG.info("ClusterIdentifier for TaskScheduler [" + i + ":" + taskSchedulerDescriptors[i].getEntityName() + "]=" +
-          customAppIdIdentifier);
       taskSchedulers[i] = createTaskScheduler(host, port,
           trackingUrl, appContext, taskSchedulerDescriptors[i], customAppIdIdentifier, i);
       taskSchedulerServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(taskSchedulers[i]);

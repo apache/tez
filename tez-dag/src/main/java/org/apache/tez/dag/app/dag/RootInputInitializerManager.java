@@ -100,7 +100,7 @@ public class RootInputInitializerManager {
     this.vertex = vertex;
     this.eventHandler = appContext.getEventHandler();
     this.rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-        .setDaemon(true).setNameFormat("InputInitializer [" + this.vertex.getName() + "] #%d").build());
+        .setDaemon(true).setNameFormat("InputInitializer {" + this.vertex.getName() + "} #%d").build());
     this.executor = MoreExecutors.listeningDecorator(rawExecutor);
     this.dagUgi = dagUgi;
     this.entityStateTracker = stateTracker;

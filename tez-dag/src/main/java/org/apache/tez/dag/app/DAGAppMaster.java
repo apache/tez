@@ -467,7 +467,6 @@ public class DAGAppMaster extends AbstractService {
 
     // Prepare the TaskAttemptListener server for authentication of Containers
     // TaskAttemptListener gets the information via jobTokenSecretManager.
-    LOG.info("Adding session token to jobTokenSecretManager for application");
     jobTokenSecretManager.addTokenForJob(
         appAttemptID.getApplicationId().toString(), sessionToken);
 
@@ -495,8 +494,11 @@ public class DAGAppMaster extends AbstractService {
     dispatcher.register(DAGAppMasterEventType.class, new DAGAppMasterEventHandler());
     dispatcher.register(DAGEventType.class, dagEventDispatcher);
     dispatcher.register(VertexEventType.class, vertexEventDispatcher);
-    if (!conf.getBoolean(TezConfiguration.TEZ_AM_USE_CONCURRENT_DISPATCHER,
-        TezConfiguration.TEZ_AM_USE_CONCURRENT_DISPATCHER_DEFAULT)) {
+    boolean useConcurrentDispatcher =
+        conf.getBoolean(TezConfiguration.TEZ_AM_USE_CONCURRENT_DISPATCHER,
+            TezConfiguration.TEZ_AM_USE_CONCURRENT_DISPATCHER_DEFAULT);
+    LOG.info("Using concurrent dispatcher: " + useConcurrentDispatcher);
+    if (!useConcurrentDispatcher) {
       dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
       dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDispatcher());
     } else {
@@ -560,7 +562,7 @@ public class DAGAppMaster extends AbstractService {
     currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
         appAttemptID.getAttemptId());
     if (LOG.isDebugEnabled()) {
-      LOG.info("Stage directory information for AppAttemptId :" + this.appAttemptID
+      LOG.debug("Stage directory information for AppAttemptId :" + this.appAttemptID
           + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
           + " recoveryAttemptDir :" + currentRecoveryDataDir);
     }
@@ -926,7 +928,7 @@ public class DAGAppMaster extends AbstractService {
 
     try {
       if (LOG.isDebugEnabled()) {
-        LOG.info("JSON dump for submitted DAG, dagId=" + dagId.toString()
+        LOG.debug("JSON dump for submitted DAG, dagId=" + dagId.toString()
             + ", json="
             + DAGUtils.generateSimpleJSONPlan(dagPB).toString());
       }
@@ -2102,6 +2104,7 @@ public class DAGAppMaster extends AbstractService {
   public static void main(String[] args) {
     try {
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
+      final String pid = System.getenv().get("JVM_PID");
       String containerIdStr =
           System.getenv(Environment.CONTAINER_ID.name());
       String nodeHostString = System.getenv(Environment.NM_HOST.name());
@@ -2141,6 +2144,18 @@ public class DAGAppMaster extends AbstractService {
           false, "Run Tez Application Master in Session mode");
 
       CommandLine cliParser = new GnuParser().parse(opts, args);
+      boolean sessionModeCliOption = cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION);
+
+      LOG.info("Creating DAGAppMaster for "
+          + "applicationId=" + applicationAttemptId.getApplicationId()
+          + ", attemptNum=" + applicationAttemptId.getAttemptId()
+          + ", AMContainerId=" + containerId
+          + ", jvmPid=" + pid
+          + ", userFromEnv=" + jobUserName
+          + ", cliSessionOption=" + sessionModeCliOption
+          + ", pwd=" + System.getenv(Environment.PWD.name())
+          + ", localDirs=" + System.getenv(Environment.LOCAL_DIRS.name())
+          + ", logDirs=" + System.getenv(Environment.LOG_DIRS.name()));
 
       // TODO Does this really need to be a YarnConfiguration ?
       Configuration conf = new Configuration(new YarnConfiguration());
@@ -2161,7 +2176,7 @@ public class DAGAppMaster extends AbstractService {
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
               Integer.parseInt(nodeHttpPortString), new SystemClock(), appSubmitTime,
-              cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION),
+              sessionModeCliOption,
               System.getenv(Environment.PWD.name()),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name())),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOG_DIRS.name())),
