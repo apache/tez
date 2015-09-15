@@ -27,6 +27,51 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
 
   cacheDomain: Ember.computed.alias('controllers.dag.id'),
 
+  pollster: App.Helpers.EntityArrayPollster.create(),
+
+  init: function () {
+    this._super();
+    this.get('pollster').setProperties({
+      entityType: 'attemptInfo',
+      mergeProperties: ['status', 'progress'],
+      store: this.get('store')
+    });
+  },
+
+  pollsterControl: function () {
+    if(this.get('status') == 'RUNNING' &&
+        this.get('amWebServiceVersion') != '1' &&
+        !this.get('loading') &&
+        this.get('isActive') &&
+        this. get('rowsDisplayed.length') > 0) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('status', 'amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
+
+  pollsterOptionsObserver: function () {
+    var rows = this.get('rowsDisplayed');
+    this.set('pollster.targetRecords', rows);
+
+    this.set('pollster.options', (rows && rows.length) ? {
+      appID: this.get('applicationId'),
+      dagID: this.get('idx'),
+      counters: this.get('countersDisplayed'),
+      attemptID: rows.map(function (row) {
+          var attemptIndex = App.Helpers.misc.getIndexFromId(row.get('id')),
+              taskIndex = App.Helpers.misc.getIndexFromId(row.get('taskID')),
+              vertexIndex = App.Helpers.misc.getIndexFromId(row.get('vertexID'));
+          return '%@_%@_%@'.fmt(vertexIndex, taskIndex, attemptIndex);
+        }).join(',')
+    } : null);
+  }.observes('applicationId', 'idx', 'rowsDisplayed', 'counters'),
+
+  countersDisplayed: function () {
+    return App.Helpers.misc.getCounterQueryParam(this.get('columns'));
+  }.property('columns'),
+
   beforeLoad: function () {
     var dagController = this.get('controllers.dag'),
         model = dagController.get('model');
@@ -106,6 +151,7 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         headerCellName: 'Status',
         templateName: 'components/basic-table/status-cell',
         contentPath: 'status',
+        observePath: true,
         getCellContent: function(row) {
           var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
           return {
@@ -113,6 +159,13 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
             statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
           };
         }
+      },
+      {
+        id: 'progress',
+        headerCellName: 'Progress',
+        contentPath: 'progress',
+        observePath: true,
+        templateName: 'components/basic-table/progress-cell'
       },
       {
         id: 'vertexName',
