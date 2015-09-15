@@ -70,6 +70,7 @@ public interface DAG {
   int getTotalVertices();
   int getSuccessfulVertices();
   float getProgress();
+  float getCompletedTaskProgress();
   boolean isUber();
   String getUserName();
 

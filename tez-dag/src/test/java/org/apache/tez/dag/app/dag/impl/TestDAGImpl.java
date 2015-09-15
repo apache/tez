@@ -1076,7 +1076,9 @@ public class TestDAGImpl {
   @Test(timeout = 5000)
   public void testVertexCompletion() {
     initDAG(dag);
+    Assert.assertTrue(0.0f == dag.getCompletedTaskProgress());
     startDAG(dag);
+    Assert.assertTrue(0.0f == dag.getCompletedTaskProgress());
     dispatcher.await();
 
     TezVertexID vId = TezVertexID.getInstance(dagId, 1);
@@ -1089,6 +1091,10 @@ public class TestDAGImpl {
 
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
+
+    // 2 tasks completed, total plan has 11 vertices
+    Assert.assertEquals((float)2/11,
+        dag.getCompletedTaskProgress(), 0.05);
   }
   
   @SuppressWarnings("unchecked")
@@ -1295,6 +1301,7 @@ public class TestDAGImpl {
     }
     
     Assert.assertEquals(3, groupDag.getSuccessfulVertices());
+    Assert.assertTrue(1.0f == groupDag.getCompletedTaskProgress());
     Assert.assertEquals(DAGState.SUCCEEDED, groupDag.getState());
     Assert.assertEquals(2, TotalCountingOutputCommitter.totalCommitCounter);
   }  

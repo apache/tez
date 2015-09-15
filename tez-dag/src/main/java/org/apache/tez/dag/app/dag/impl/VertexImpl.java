@@ -1180,6 +1180,29 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
 
   @Override
+  public float getCompletedTaskProgress() {
+    this.readLock.lock();
+    try {
+      int totalTasks = getTotalTasks();
+      if (totalTasks < 0) {
+        return 0.0f;
+      }
+      if (totalTasks == 0) {
+        VertexState state = getStateMachine().getCurrentState();
+        if (state == VertexState.ERROR || state == VertexState.FAILED
+            || state == VertexState.KILLED || state == VertexState.SUCCEEDED) {
+          return 1.0f;
+        } else {
+          return 0.0f;
+        }
+      }
+      return ((float)this.succeededTaskCount/totalTasks);
+    } finally {
+      this.readLock.unlock();
+    }
+  }
+
+  @Override
   public ProgressBuilder getVertexProgress() {
     this.readLock.lock();
     try {
