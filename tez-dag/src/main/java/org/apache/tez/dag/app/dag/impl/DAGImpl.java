@@ -815,6 +815,35 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   @Override
+  public float getCompletedTaskProgress() {
+    this.readLock.lock();
+    try {
+      int totalTasks = 0;
+      int completedTasks = 0;
+      for (Vertex v : getVertices().values()) {
+        int vTotalTasks = v.getTotalTasks();
+        int vCompletedTasks = v.getSucceededTasks();
+        if (vTotalTasks > 0) {
+          totalTasks += vTotalTasks;
+          completedTasks += vCompletedTasks;
+        }
+      }
+      if (totalTasks == 0) {
+        DAGState state = getStateMachine().getCurrentState();
+        if (state == DAGState.ERROR || state == DAGState.FAILED
+            || state == DAGState.KILLED || state == DAGState.SUCCEEDED) {
+          return 1.0f;
+        } else {
+          return 0.0f;
+        }
+      }
+      return ((float)completedTasks/totalTasks);
+    } finally {
+      this.readLock.unlock();
+    }
+  }
+
+  @Override
   public Map<TezVertexID, Vertex> getVertices() {
     synchronized (tasksSyncHandle) {
       return Collections.unmodifiableMap(vertices);

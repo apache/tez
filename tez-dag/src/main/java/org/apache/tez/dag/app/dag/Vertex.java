@@ -96,6 +96,7 @@ public interface Vertex extends Comparable<Vertex> {
   int getSucceededTasks();
   int getRunningTasks();
   float getProgress();
+  float getCompletedTaskProgress();
   ProgressBuilder getVertexProgress();
   VertexStatusBuilder getVertexStatus(Set<StatusGetOpts> statusOptions);
 

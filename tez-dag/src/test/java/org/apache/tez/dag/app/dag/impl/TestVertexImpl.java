@@ -3135,12 +3135,14 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
     Assert.assertEquals(1, v.getCompletedTasks());
+    Assert.assertTrue((0.5f) == v.getCompletedTaskProgress());
 
     dispatcher.getEventHandler().handle(
         new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(2, v.getCompletedTasks());
+    Assert.assertTrue((1.0f) == v.getCompletedTaskProgress());
     Assert.assertTrue(v.initTimeRequested > 0);
     Assert.assertTrue(v.initedTime > 0);
     Assert.assertTrue(v.startTimeRequested > 0);
@@ -3829,6 +3831,7 @@ public class TestVertexImpl {
     dispatcher.await();
     // vertex should be in initializing state since parallelism is not set
     Assert.assertEquals(-1, v1.getTotalTasks());
+    Assert.assertTrue(0.0f == v1.getCompletedTaskProgress());
     Assert.assertEquals(VertexState.INITIALIZING, v1.getState());
     Assert.assertEquals(-1, v2.getTotalTasks());
     Assert.assertEquals(VertexState.INITIALIZING, v2.getState());
@@ -5323,9 +5326,11 @@ public class TestVertexImpl {
       v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
       dispatcher.await();
       Assert.assertEquals(VertexState.INITED, v.getState());
+      Assert.assertTrue(0.0f == v.getCompletedTaskProgress());
       v.handle(new VertexEvent(vId, VertexEventType.V_START));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertTrue(1.0f == v.getCompletedTaskProgress());
     } finally {
       if (vId != null) {
         vertexIdMap.remove(vId);
@@ -6503,4 +6508,6 @@ public class TestVertexImpl {
   private interface ContextSettableInputInitialzier {
     void setContext(InputInitializerContext context);
   }
+
+
 }

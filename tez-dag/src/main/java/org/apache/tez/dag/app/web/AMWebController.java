@@ -199,7 +199,8 @@ public class AMWebController extends Controller {
 
     Map<String, ProgressInfo> result = new HashMap<String, ProgressInfo>();
     result.put(DAG_PROGRESS,
-        new ProgressInfo(currentDAG.getID().toString(), currentDAG.getProgress()));
+        new ProgressInfo(currentDAG.getID().toString(),
+            currentDAG.getCompletedTaskProgress()));
     renderJSON(result);
   }
 
@@ -238,7 +239,8 @@ public class AMWebController extends Controller {
     }
 
     Map<String, ProgressInfo> result = new HashMap<String, ProgressInfo>();
-    result.put(VERTEX_PROGRESS, new ProgressInfo(tezVertexID.toString(), vertex.getProgress()));
+    result.put(VERTEX_PROGRESS, new ProgressInfo(tezVertexID.toString(),
+        vertex.getCompletedTaskProgress()));
     renderJSON(result);
   }
 
@@ -303,7 +305,8 @@ public class AMWebController extends Controller {
 
     Collection<ProgressInfo> progresses = new ArrayList<ProgressInfo>(vertices.size());
     for(Vertex vertex : vertices) {
-      progresses.add(new ProgressInfo(vertex.getVertexId().toString(), vertex.getProgress()));
+      progresses.add(new ProgressInfo(vertex.getVertexId().toString(),
+          vertex.getCompletedTaskProgress()));
     }
 
     Map<String, Collection<ProgressInfo>> result = new HashMap<String, Collection<ProgressInfo>>();
@@ -503,7 +506,7 @@ public class AMWebController extends Controller {
 
     Map<String, String> dagInfo = new HashMap<String, String>();
     dagInfo.put("id", dag.getID().toString());
-    dagInfo.put("progress", Float.toString(dag.getProgress()));
+    dagInfo.put("progress", Float.toString(dag.getCompletedTaskProgress()));
     dagInfo.put("status", dag.getState().toString());
 
     renderJSON(ImmutableMap.of(
@@ -540,7 +543,7 @@ public class AMWebController extends Controller {
     Map<String, Object> vertexInfo = new HashMap<String, Object>();
     vertexInfo.put("id", vertex.getVertexId().toString());
     vertexInfo.put("status", vertex.getState().toString());
-    vertexInfo.put("progress", Float.toString(vertex.getProgress()));
+    vertexInfo.put("progress", Float.toString(vertex.getCompletedTaskProgress()));
 
     ProgressBuilder vertexProgress = vertex.getVertexProgress();
     vertexInfo.put("totalTasks", Integer.toString(vertexProgress.getTotalTaskCount()));

@@ -145,7 +145,7 @@ public class TestAMWebController {
     doReturn("42").when(spy).$(WebUIService.DAG_ID);
     doReturn(mockResponse).when(spy).response();
     doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
-    doReturn(66.0f).when(mockDAG).getProgress();
+    doReturn(66.0f).when(mockDAG).getCompletedTaskProgress();
     doReturn(mockDAG).when(mockAppContext).getCurrentDAG();
     doNothing().when(spy).renderJSON(any());
     spy.getDagProgress();
@@ -175,7 +175,7 @@ public class TestAMWebController {
     doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
     doReturn(mockDAG).when(mockAppContext).getCurrentDAG();
     doReturn(mockVertex).when(mockDAG).getVertex(any(TezVertexID.class));
-    doReturn(66.0f).when(mockVertex).getProgress();
+    doReturn(66.0f).when(mockVertex).getCompletedTaskProgress();
     doNothing().when(spy).renderJSON(any());
     doNothing().when(spy).setCorsHeaders();
 
@@ -240,7 +240,7 @@ public class TestAMWebController {
 
 
     doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
-    doReturn(66.0f).when(mockDAG).getProgress();
+    doReturn(66.0f).when(mockDAG).getCompletedTaskProgress();
     doReturn(DAGState.RUNNING).when(mockDAG).getState();
 
     doReturn(true).when(spy).setupResponse();
@@ -384,7 +384,7 @@ public class TestAMWebController {
     ProgressBuilder progress;
     Assert.assertEquals(mockVertex2.getVertexId().toString(), vertex2Result.get("id"));
     Assert.assertEquals(mockVertex2.getState().toString(), vertex2Result.get("status"));
-    Assert.assertEquals(Float.toString(mockVertex2.getProgress()), vertex2Result.get("progress"));
+    Assert.assertEquals(Float.toString(mockVertex2.getCompletedTaskProgress()), vertex2Result.get("progress"));
     progress = mockVertex2.getVertexProgress();
     Assert.assertEquals(Integer.toString(progress.getTotalTaskCount()),
         vertex2Result.get("totalTasks"));
