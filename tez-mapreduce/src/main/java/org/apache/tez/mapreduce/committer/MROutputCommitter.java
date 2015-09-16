@@ -117,8 +117,9 @@ public class MROutputCommitter extends OutputCommitter {
     if (jobConf.getBoolean("mapred.reducer.new-api", false)
         || jobConf.getBoolean("mapred.mapper.new-api", false))  {
       newApiCommitter = true;
-      LOG.info("Using mapred newApiCommitter.");
     }
+    LOG.info("Committer for " + getContext().getVertexName() + ":" + getContext().getOutputName() +
+        " using " + (newApiCommitter ? "new" : "old") + "mapred API");
 
     if (newApiCommitter) {
       TaskAttemptID taskAttemptID = new TaskAttemptID(

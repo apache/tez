@@ -148,7 +148,9 @@ public class SimpleHistoryLoggingService extends HistoryLoggingService {
     if (loggingDisabled) {
       return;
     }
-    LOG.info("Writing event " + event.getHistoryEvent().getEventType() + " to history file");
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Writing event " + event.getHistoryEvent().getEventType() + " to history file");
+    }
     try {
       try {
         JSONObject eventJson = HistoryEventJsonConversion.convertToJson(event.getHistoryEvent());

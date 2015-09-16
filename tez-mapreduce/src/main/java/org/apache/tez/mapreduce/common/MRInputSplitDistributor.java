@@ -69,14 +69,11 @@ public class MRInputSplitDistributor extends InputInitializer {
 
   @Override
   public List<Event> initialize() throws IOException {
-    Stopwatch sw = null;
-    if (LOG.isDebugEnabled()) {
-      sw = new Stopwatch().start();
-    }
+    Stopwatch sw = new Stopwatch().start();
     MRInputUserPayloadProto userPayloadProto = MRInputHelpers
         .parseMRInputPayload(getContext().getInputUserPayload());
+    sw.stop();
     if (LOG.isDebugEnabled()) {
-      sw.stop();
       LOG.debug("Time to parse MRInput payload into prot: "
           + sw.elapsedMillis());  
     }

@@ -287,10 +287,10 @@ public class TezChild {
     Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
     if (containerTask.haveCredentialsChanged()) {
-      LOG.info("Refreshing UGI since Credentials have changed");
       Credentials taskCreds = containerTask.getCredentials();
       if (taskCreds != null) {
-        LOG.info("Credentials : #Tokens=" + taskCreds.numberOfTokens() + ", #SecretKeys="
+        LOG.info("Refreshing UGI since Credentials have changed. Credentials : #Tokens=" +
+            taskCreds.numberOfTokens() + ", #SecretKeys="
             + taskCreds.numberOfSecretKeys());
         childUGI = UserGroupInformation.createRemoteUser(user);
         childUGI.addCredentials(containerTask.getCredentials());
@@ -315,20 +315,20 @@ public class TezChild {
       LOG.debug("Additional Resources added to container: " + additionalResources);
     }
 
-    LOG.info("Localizing additional local resources for Task : " + additionalResources);
-    List<URL> downloadedUrls = RelocalizationUtils.processAdditionalResources(
-        Maps.transformValues(additionalResources, new Function<TezLocalResource, URI>() {
-          @Override
-          public URI apply(TezLocalResource input) {
-            return input.getUri();
-          }
-        }), defaultConf, workingDir);
-    RelocalizationUtils.addUrlsToClassPath(downloadedUrls);
 
-    LOG.info("Done localizing additional resources");
-    final TaskSpec taskSpec = containerTask.getTaskSpec();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("New container task context:" + taskSpec.toString());
+    if (additionalResources != null && !additionalResources.isEmpty()) {
+      LOG.info("Localizing additional local resources for Task : " + additionalResources);
+
+      List<URL> downloadedUrls = RelocalizationUtils.processAdditionalResources(
+          Maps.transformValues(additionalResources, new Function<TezLocalResource, URI>() {
+            @Override
+            public URI apply(TezLocalResource input) {
+              return input.getUri();
+            }
+          }), defaultConf, workingDir);
+      RelocalizationUtils.addUrlsToClassPath(downloadedUrls);
+
+      LOG.info("Done localizing additional resources");
     }
   }
 
@@ -456,7 +456,8 @@ public class TezChild {
     final Configuration defaultConf = new Configuration();
 
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
-    LOG.info("TezChild starting");
+    final String pid = System.getenv().get("JVM_PID");
+
 
     assert args.length == 5;
     String host = args[0];
@@ -466,8 +467,7 @@ public class TezChild {
     final int attemptNumber = Integer.parseInt(args[4]);
     final String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
         .name()));
-    final String pid = System.getenv().get("JVM_PID");
-    LOG.info("PID, containerIdentifier:  " + pid + ", " + containerIdentifier);
+    LOG.info("TezChild starting with PID=" + pid + ", containerIdentifier=" + containerIdentifier);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
           + " containerIdentifier: " + containerIdentifier + " appAttemptNumber: " + attemptNumber

@@ -132,6 +132,8 @@ public class AMNodeTracker extends AbstractService implements
       AMNode amNode = nodeMap.get(nodeId);
       if (amNode == null) {
         LOG.info("Ignoring RM Health Update for unknown node: " + nodeId);
+        // This implies the node exists on the cluster, but is not running a container for
+        // this application
       } else {
         amNode.handle(rEvent);
       }

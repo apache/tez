@@ -877,6 +877,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     this.clock = clock;
     this.appContext = appContext;
     this.commitVertexOutputs = commitVertexOutputs;
+    this.logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
 
     this.taskAttemptListener = taskAttemptListener;
     this.taskHeartbeatHandler = thh;
@@ -935,6 +936,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     this.containerContext = new ContainerContext(this.localResources,
         appContext.getCurrentDAG().getCredentials(), this.environment, this.javaOpts, this);
+    LOG.info("Default container context for " + logIdentifier + "=" + containerContext + ", Default Resources=" + this.taskResource);
 
     if (vertexPlan.getInputsCount() > 0) {
       setAdditionalInputs(vertexPlan.getInputsList());
@@ -957,7 +959,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       speculator = new LegacySpeculator(vertexConf, getAppContext(), this);
     }
     
-    logIdentifier =  this.getVertexId() + " [" + this.getName() + "]";
+
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
 
@@ -971,7 +973,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return vertexConf;
   }
 
-  private boolean isSpeculationEnabled() {
+  @Override
+  public boolean isSpeculationEnabled() {
     return isSpeculationEnabled;
   }
 
@@ -2005,29 +2008,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
 
+  private static String constructCheckTasksForCompletionLog(VertexImpl vertex) {
+    String logLine = vertex.logIdentifier
+        + ", tasks=" + vertex.numTasks
+        + ", failed=" + vertex.failedTaskCount
+        + ", killed=" + vertex.killedTaskCount
+        + ", success=" + vertex.succeededTaskCount
+        + ", completed=" + vertex.completedTaskCount
+        + ", commits=" + vertex.commitFutures.size()
+        + ", err=" + vertex.terminationCause;
+    return logLine;
+  }
+
   // triggered by task_complete
   static VertexState checkTasksForCompletion(final VertexImpl vertex) {
-
-    LOG.info("Checking tasks for vertex completion for "
-        + vertex.logIdentifier
-        + ", numTasks=" + vertex.numTasks
-        + ", failedTaskCount=" + vertex.failedTaskCount
-        + ", killedTaskCount=" + vertex.killedTaskCount
-        + ", successfulTaskCount=" + vertex.succeededTaskCount
-        + ", completedTaskCount=" + vertex.completedTaskCount
-        + ", commitInProgress=" + vertex.commitFutures.size()
-        + ", terminationCause=" + vertex.terminationCause);
-
+    // this log helps quickly count the completion count for a vertex.
+    // grepping and counting for attempts and handling re-tries is time consuming
+    LOG.info("Task Completion: " + constructCheckTasksForCompletionLog(vertex));
     //check for vertex failure first
     if (vertex.completedTaskCount > vertex.tasks.size()) {
       LOG.error("task completion accounting issue: completedTaskCount > nTasks:"
-          + " for vertex " + vertex.logIdentifier
-          + ", numTasks=" + vertex.numTasks
-          + ", failedTaskCount=" + vertex.failedTaskCount
-          + ", killedTaskCount=" + vertex.killedTaskCount
-          + ", successfulTaskCount=" + vertex.succeededTaskCount
-          + ", completedTaskCount=" + vertex.completedTaskCount
-          + ", terminationCause=" + vertex.terminationCause);
+          + constructCheckTasksForCompletionLog(vertex));
     }
 
     if (vertex.completedTaskCount == vertex.tasks.size()) {
@@ -2036,7 +2037,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       
       //Only succeed if tasks complete successfully and no terminationCause is registered.
       if(vertex.succeededTaskCount == vertex.tasks.size() && vertex.terminationCause == null) {
-        LOG.info("All tasks are succeeded, vertex:" + vertex.logIdentifier);
+        LOG.info("All tasks have succeeded, vertex:" + vertex.logIdentifier);
         if (vertex.commitVertexOutputs && !vertex.committed.getAndSet(true)) {
           // start commit if there're commits or just finish if no commits
           return commitOrFinish(vertex);
@@ -2054,16 +2055,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   //triggered by commit_complete
   static VertexState checkCommitsForCompletion(final VertexImpl vertex) {
-    LOG.info("Checking commits for vertex completion for "
-        + vertex.logIdentifier
-        + ", numTasks=" + vertex.numTasks
-        + ", failedTaskCount=" + vertex.failedTaskCount
-        + ", killedTaskCount=" + vertex.killedTaskCount
-        + ", successfulTaskCount=" + vertex.succeededTaskCount
-        + ", completedTaskCount=" + vertex.completedTaskCount
-        + ", commitInProgress=" + vertex.commitFutures.size()
-        + ", terminationCause=" + vertex.terminationCause);
-
+    LOG.info("Commits completion: "
+            + constructCheckTasksForCompletionLog(vertex));
     // terminationCause is null mean commit is succeeded, otherwise terminationCause will be set.
     if (vertex.terminationCause == null) {
       Preconditions.checkState(vertex.getState() == VertexState.COMMITTING,
@@ -2184,20 +2177,23 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   private void initializeCommitters() throws Exception {
     if (!this.additionalOutputSpecs.isEmpty()) {
-      LOG.info("Invoking committer inits for vertex, vertexId=" + logIdentifier);
+      LOG.info("Setting up committers for vertex " + logIdentifier + ", numAdditionalOutputs=" +
+          additionalOutputs.size());
       for (Entry<String, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>> entry:
           additionalOutputs.entrySet())  {
         final String outputName = entry.getKey();
         final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> od = entry.getValue();
         if (od.getControllerDescriptor() == null
             || od.getControllerDescriptor().getClassName() == null) {
-          LOG.info("Ignoring committer as none specified for output="
-              + outputName
-              + ", vertexId=" + logIdentifier);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Ignoring committer as none specified for output="
+                + outputName
+                + ", vertexId=" + logIdentifier);
+          }
           continue;
         }
         LOG.info("Instantiating committer for output=" + outputName
-            + ", vertexId=" + logIdentifier
+            + ", vertex=" + logIdentifier
             + ", committerClass=" + od.getControllerDescriptor().getClassName());
 
         dagUgi.doAs(new PrivilegedExceptionAction<Void>() {
@@ -2214,12 +2210,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                 .createClazzInstance(od.getControllerDescriptor().getClassName(),
                     new Class[]{OutputCommitterContext.class},
                     new Object[]{outputCommitterContext});
-            LOG.info("Invoking committer init for output=" + outputName
-                + ", vertexId=" + logIdentifier);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Invoking committer init for output=" + outputName
+                  + ", vertex=" + logIdentifier);
+            }
             outputCommitter.initialize();
             outputCommitters.put(outputName, outputCommitter);
-            LOG.info("Invoking committer setup for output=" + outputName
-                + ", vertexId=" + logIdentifier);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Invoking committer setup for output=" + outputName
+                  + ", vertex=" + logIdentifier);
+            }
             outputCommitter.setupOutput();
             return null;
           }
@@ -3913,8 +3913,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     public VertexState transition(VertexImpl vertex, VertexEvent event) {
       boolean forceTransitionToKillWait = false;
       vertex.completedTaskCount++;
-      LOG.info("Num completed Tasks for " + vertex.logIdentifier + " : "
-          + vertex.completedTaskCount);
       VertexEventTaskCompleted taskEvent = (VertexEventTaskCompleted) event;
       Task task = vertex.tasks.get(taskEvent.getTaskID());
       if (taskEvent.getState() == TaskState.SUCCEEDED) {
@@ -4210,10 +4208,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           int numEventsSent = events.size() - numPreRoutedEvents;
           if (numEventsSent > 0) {
             StringBuilder builder = new StringBuilder();
-            builder.append("Sending ").append(attemptID).append(" numEvents: ").append(numEventsSent)
-            .append(" from: ").append(fromEventId).append(" to: ").append(nextFromEventId)
-            .append(" out of ").append(currEventCount).append(" on-demand events in vertex: ")
-            .append(getLogIdentifier());
+            builder.append("Sending ").append(attemptID).append(" ")
+                .append(numEventsSent)
+                .append(" events [").append(fromEventId).append(",").append(nextFromEventId)
+                .append(") total ").append(currEventCount).append(" ")
+                .append(getLogIdentifier());
             LOG.info(builder.toString());
           }
         }
@@ -4478,9 +4477,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     for (String inputName : inputsWithInitializers) {
       inputList.add(rootInputDescriptors.get(inputName));
     }
-    LOG.info("Vertex will initialize via inputInitializers "
-        + logIdentifier + ". Starting root input initializers: "
-        + inputsWithInitializers.size());
+    LOG.info("Starting " + inputsWithInitializers.size() + " inputInitializers for vertex " +
+        logIdentifier);
     initWaitsForRootInitializers = true;
     rootInputInitializerManager.runInputInitializers(inputList);
     // Send pending rootInputInitializerEvents
@@ -4564,6 +4562,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   @Override
   public void setAdditionalInputs(List<RootInputLeafOutputProto> inputs) {
+    LOG.info("Setting " + inputs.size() + " additional inputs for vertex" + this.logIdentifier);
     this.rootInputDescriptors = Maps.newHashMapWithExpectedSize(inputs.size());
     for (RootInputLeafOutputProto input : inputs) {
       addIO(input.getName());
@@ -4608,7 +4607,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   @Override
   public void setAdditionalOutputs(List<RootInputLeafOutputProto> outputs) {
-    LOG.info("setting additional outputs for vertex " + this.vertexName);
+    LOG.info("Setting " + outputs.size() + " additional outputs for vertex " + this.logIdentifier);
     this.additionalOutputs = Maps.newHashMapWithExpectedSize(outputs.size());
     this.outputCommitters = Maps.newHashMapWithExpectedSize(outputs.size());
     for (RootInputLeafOutputProto output : outputs) {

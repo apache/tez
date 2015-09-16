@@ -44,7 +44,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 public class TaskCounterUpdater {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskCounterUpdater.class);
-  
+
   private final TezCounters tezCounters;
   private final Configuration conf;
 
@@ -149,6 +149,6 @@ public class TaskCounterUpdater {
 
     pTree = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, clazz, conf);
 
-    LOG.info(" Using ResourceCalculatorProcessTree : " + pTree);
+    LOG.info("Using ResourceCalculatorProcessTree : " + clazz.getName());
   }
 }

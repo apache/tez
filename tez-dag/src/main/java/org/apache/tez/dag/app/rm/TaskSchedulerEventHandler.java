@@ -144,7 +144,9 @@ public class TaskSchedulerEventHandler extends AbstractService
   }
 
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
-    LOG.info("Processing the event " + sEvent.toString());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Processing the event " + sEvent.toString());
+    }
     switch (sEvent.getType()) {
     case S_TA_LAUNCH_REQUEST:
       handleTaLaunchRequest((AMSchedulerEventTALaunchRequest) sEvent);
@@ -160,7 +162,7 @@ public class TaskSchedulerEventHandler extends AbstractService
         handleTASucceeded(event);
         break;
       default:
-        throw new TezUncheckedException("Unexecpted TA_ENDED state: " + event.getState());
+        throw new TezUncheckedException("Unexpected TA_ENDED state: " + event.getState());
       }
       break;
     case S_CONTAINER_DEALLOCATE:
@@ -302,8 +304,8 @@ public class TaskSchedulerEventHandler extends AbstractService
               event);
           return;
         }
-        LOG.info("Attempt: " + taskAttempt.getID() + " has task based affinity to " + taskAffinity 
-            + " but no locality information exists for it. Ignoring hint.");
+        LOG.info("No attempt for task affinity to " + taskAffinity + " for attempt "
+            + taskAttempt.getID() + " Ignoring.");
         // fall through with null hosts/racks
       } else {
         hosts = (locationHint.getHosts() != null) ? locationHint

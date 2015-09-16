@@ -151,9 +151,7 @@ public class RPCLoadGen extends TezExampleBase {
       random.nextBytes(diskPayload);
       fs = FileSystem.get(conf);
       resourcePath = new Path(Path.SEPARATOR + "tmp", DISK_PAYLOAD_NAME);
-      System.err.println("ZZZ: HDFSPath: " + resourcePath);
       resourcePath = fs.makeQualified(resourcePath);
-      System.err.println("ZZZ: HDFSPathResolved: " + resourcePath);
       FSDataOutputStream dataOut = fs.create(resourcePath, true);
       dataOut.write(diskPayload);
       dataOut.close();

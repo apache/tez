@@ -181,4 +181,6 @@ public interface Vertex extends Comparable<Vertex> {
   public int getKilledTaskAttemptCount();
 
   public Configuration getConf();
+
+  public boolean isSpeculationEnabled();
 }

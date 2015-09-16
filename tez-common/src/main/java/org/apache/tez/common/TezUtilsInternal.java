@@ -81,13 +81,10 @@ public class TezUtilsInternal {
 
 
   public static byte[] compressBytes(byte[] inBytes) throws IOException {
-    Stopwatch sw = null;
-    if (LOG.isDebugEnabled()) {
-      sw = new Stopwatch().start();
-    }
+    Stopwatch sw = new Stopwatch().start();
     byte[] compressed = compressBytesInflateDeflate(inBytes);
+    sw.stop();
     if (LOG.isDebugEnabled()) {
-      sw.stop();
       LOG.debug("UncompressedSize: " + inBytes.length + ", CompressedSize: " + compressed.length
           + ", CompressTime: " + sw.elapsedMillis());
     }
@@ -95,13 +92,10 @@ public class TezUtilsInternal {
   }
 
   public static byte[] uncompressBytes(byte[] inBytes) throws IOException {
-    Stopwatch sw = null;
-    if (LOG.isDebugEnabled()) {
-      sw = new Stopwatch().start();
-    }
+    Stopwatch sw = new Stopwatch().start();
     byte[] uncompressed = uncompressBytesInflateDeflate(inBytes);
+    sw.stop();
     if (LOG.isDebugEnabled()) {
-      sw.stop();
       LOG.debug("CompressedSize: " + inBytes.length + ", UncompressedSize: " + uncompressed.length
           + ", UncompressTimeTaken: " + sw.elapsedMillis());
     }

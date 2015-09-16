@@ -397,9 +397,11 @@ public class AMContainerImpl implements AMContainer {
         // TODO Can't set state to COMPLETED. Add a default error state.
       }
       if (oldState != getState()) {
-        LOG.info("AMContainer " + this.containerId + " transitioned from "
-            + oldState + " to " + getState()
-            + " via event " + event.getType());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("AMContainer " + this.containerId + " transitioned from "
+              + oldState + " to " + getState()
+              + " via event " + event.getType());
+        }
       }
     } finally {
       writeLock.unlock();
@@ -450,8 +452,10 @@ public class AMContainerImpl implements AMContainer {
       // task is not told to die since the TAL does not know about the container.
       container.registerWithTAListener();
       container.sendStartRequestToNM(clc);
-      LOG.info("Sending Launch Request for Container with id: " +
-          container.container.getId());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Sending Launch Request for Container with id: " +
+            container.container.getId());
+      }
     }
   }
 
@@ -509,7 +513,7 @@ public class AMContainerImpl implements AMContainer {
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       super.transition(container, cEvent);
       container.deAllocate();
-      LOG.info(
+      LOG.warn(
           "Unexpected event type: " + cEvent.getType() + " while in state: " +
               container.getState() + ". Event: " + cEvent);
 
@@ -573,8 +577,6 @@ public class AMContainerImpl implements AMContainer {
         }
       }
 
-      LOG.info("Assigned taskAttempt + [" + container.currentAttempt +
-          "] to container: [" + container.getContainerId() + "]");
       AMContainerTask amContainerTask = new AMContainerTask(
           event.getRemoteTaskSpec(), container.additionalLocalResources,
           container.credentialsChanged ? container.credentials : null, container.credentialsChanged,

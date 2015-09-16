@@ -130,7 +130,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
   @Override
   protected void serviceStart() throws Exception {
     eventHandlingThread = new Thread(createThread());
-    eventHandlingThread.setName("Dispatcher thread: " + name);
+    eventHandlingThread.setName("Dispatcher thread {" + name + "}");
     eventHandlingThread.start();
     
     //start all the components
@@ -211,7 +211,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
 
   private void checkForExistingConcurrentDispatcher(Class<? extends Enum> eventType) {
     AsyncDispatcherConcurrent concurrentDispatcher = concurrentEventDispatchers.get(eventType);
-    Preconditions.checkState(concurrentDispatcher == null, 
+    Preconditions.checkState(concurrentDispatcher == null,
         "Multiple concurrent dispatchers cannot be registered for: " + eventType.getName());
   }
   
@@ -259,7 +259,8 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
-    LOG.info("Registering " + eventType + " for independent dispatch using: " + handler.getClass());
+    LOG.info(
+          "Registering " + eventType + " for independent dispatch using: " + handler.getClass());
     AsyncDispatcher dispatcher = new AsyncDispatcher(dispatcherName);
     dispatcher.register(eventType, handler);
     eventDispatchers.put(eventType, dispatcher);
@@ -272,7 +273,8 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
-    LOG.info("Registering " + eventType + " for concurrent dispatch using: " + handler.getClass());
+    LOG.info(
+          "Registering " + eventType + " for concurrent dispatch using: " + handler.getClass());
     AsyncDispatcherConcurrent dispatcher = new AsyncDispatcherConcurrent(dispatcherName, numThreads);
     dispatcher.register(eventType, handler);
     concurrentEventDispatchers.put(eventType, dispatcher);
@@ -286,8 +288,8 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
-    LOG.info("Registering " + eventType + " wit existing concurrent dispatch using: "
-        + handler.getClass());
+    LOG.info("Registering " + eventType + " with existing concurrent dispatch using: "
+          + handler.getClass());
     dispatcher.register(eventType, handler);
     concurrentEventDispatchers.put(eventType, dispatcher);
   }

@@ -348,7 +348,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         "Heartbeats between preemptions should be >=1");
 
     delayedContainerManager = new DelayedContainerManager();
-    LOG.info("TaskScheduler initialized with configuration: " +
+    LOG.info("YarnTaskScheduler initialized with configuration: " +
             "maxRMHeartbeatInterval: " + heartbeatIntervalMax +
             ", containerReuseEnabled: " + shouldReuseContainers +
             ", reuseRackLocal: " + reuseRackLocal +
@@ -428,8 +428,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   @Override
   public void onContainersCompleted(List<ContainerStatus> statuses) {
     if (isStopStarted.get()) {
-      for (ContainerStatus status : statuses) {
-        LOG.info("Container " + status.getContainerId() + " is completed");
+      if (LOG.isDebugEnabled()) {
+        for (ContainerStatus status : statuses) {
+          LOG.debug("Container " + status.getContainerId() + " is completed with ContainerStatus=" +
+              status);
+        }
       }
       return;
     }
@@ -450,8 +453,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           // being released
           // completion of a container we had released earlier
           // an allocated container completed. notify app
-          LOG.info("Released container completed:" + completedId +
-                   " last allocated to task: " + task);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Released container completed:" + completedId +
+                " last allocated to task: " + task);
+          }
           appContainerStatus.put(task, containerStatus);
           continue;
         }
@@ -467,9 +472,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         }
         if(task != null) {
           // completion of a container we have allocated currently
-          // an allocated container completed. notify app
-          LOG.info("Allocated container completed:" + completedId +
-                   " last allocated to task: " + task);
+          // an allocated container completed. notify app. This will cause attempt to get killed
+          LOG.info(
+              "Allocated container completed:" + completedId + " last allocated to task: " + task);
           appContainerStatus.put(task, containerStatus);
           continue;
         }
@@ -488,9 +493,13 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   @Override
   public void onContainersAllocated(List<Container> containers) {
     if (isStopStarted.get()) {
-      for (Container container : containers) {
-        LOG.info("Release container:" + container.getId() + ", because it is shutting down.");
-        releaseContainer(container.getId());
+      LOG.info("Ignoring container allocations because application is shutting down. Num " + 
+          containers.size());
+      if (LOG.isDebugEnabled()) {
+        for (Container container : containers) {
+          LOG.debug("Release container:" + container.getId() + ", because App is shutting down.");
+          releaseContainer(container.getId());
+        }
       }
       return;
     }
@@ -549,6 +558,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     }
 
     // Release any unassigned containers given by the RM
+    if (containers.iterator().hasNext()) {
+      LOG.info("Releasing newly assigned containers which could not be allocated");
+    }
     releaseUnassignedContainers(containers);
 
     return assignedContainers;
@@ -602,15 +614,15 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     boolean isNew = heldContainer.isNew();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Trying to assign a delayed container"
-        + ", containerId=" + heldContainer.getContainer().getId()
-        + ", nextScheduleTime=" + heldContainer.getNextScheduleTime()
-        + ", containerExpiryTime=" + heldContainer.getContainerExpiryTime()
-        + ", AMState=" + state
-        + ", matchLevel=" + heldContainer.getLocalityMatchLevel()
-        + ", taskRequestsCount=" + taskRequests.size()
-        + ", heldContainers=" + heldContainers.size()
-        + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
-        + ", isNew=" + isNew);
+          + ", containerId=" + heldContainer.getContainer().getId()
+          + ", nextScheduleTime=" + heldContainer.getNextScheduleTime()
+          + ", containerExpiryTime=" + heldContainer.getContainerExpiryTime()
+          + ", AMState=" + state
+          + ", matchLevel=" + heldContainer.getLocalityMatchLevel()
+          + ", taskRequestsCount=" + taskRequests.size()
+          + ", heldContainers=" + heldContainers.size()
+          + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
+          + ", isNew=" + isNew);
     }
 
     if (state.equals(DAGAppMasterState.IDLE) || taskRequests.isEmpty()) {
@@ -658,7 +670,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
             + ", isNew=" + isNew);
           releaseUnassignedContainers(
-              Lists.newArrayList(heldContainer.getContainer()));        
+              Collections.singletonList((heldContainer.getContainer())));        
       } else {
         // no outstanding work and container idle timeout not expired
         if (LOG.isDebugEnabled()) {
@@ -711,7 +723,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         assignReUsedContainerWithLocation(containerToAssign,
             NODE_LOCAL_ASSIGNER, assignedContainers, true);
         if (LOG.isDebugEnabled() && assignedContainers.isEmpty()) {
-          LOG.info("Failed to assign tasks to delayed container using node"
+          LOG.debug("Failed to assign tasks to delayed container using node"
             + ", containerId=" + heldContainer.getContainer().getId());
         }
       }
@@ -727,7 +739,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           assignReUsedContainerWithLocation(containerToAssign,
               RACK_LOCAL_ASSIGNER, assignedContainers, false);
           if (LOG.isDebugEnabled() && assignedContainers.isEmpty()) {
-            LOG.info("Failed to assign tasks to delayed container using rack"
+            LOG.debug("Failed to assign tasks to delayed container using rack"
               + ", containerId=" + heldContainer.getContainer().getId());
           }
         }
@@ -743,7 +755,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
          assignReUsedContainerWithLocation(containerToAssign,
               NON_LOCAL_ASSIGNER, assignedContainers, false);
           if (LOG.isDebugEnabled() && assignedContainers.isEmpty()) {
-            LOG.info("Failed to assign tasks to delayed container using non-local"
+            LOG.debug("Failed to assign tasks to delayed container using non-local"
                 + ", containerId=" + heldContainer.getContainer().getId());
           }
         }
@@ -765,10 +777,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         if (!isNew && heldContainer.getContainerExpiryTime() <= currentTime
           && idleContainerTimeoutMin != -1) {
           LOG.info("Container's idle timeout expired. Releasing container"
-            + ", containerId=" + heldContainer.container.getId()
-            + ", containerExpiryTime="
-            + heldContainer.getContainerExpiryTime()
-            + ", idleTimeoutMin=" + idleContainerTimeoutMin);
+              + ", containerId=" + heldContainer.container.getId()
+              + ", containerExpiryTime="
+              + heldContainer.getContainerExpiryTime()
+              + ", idleTimeoutMin=" + idleContainerTimeoutMin);
           releaseUnassignedContainers(
             Lists.newArrayList(heldContainer.container));
         } else {
@@ -815,11 +827,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             if (safeToRelease && 
                 (!taskRequests.isEmpty() || !appContext.isSession())) {
               LOG.info("Releasing held container as either there are pending but "
-                + " unmatched requests or this is not a session"
-                + ", containerId=" + heldContainer.container.getId()
-                + ", pendingTasks=" + taskRequests.size()
-                + ", isSession=" + appContext.isSession()
-                + ". isNew=" + isNew);
+                  + " unmatched requests or this is not a session"
+                  + ", containerId=" + heldContainer.container.getId()
+                  + ", pendingTasks=" + taskRequests.size()
+                  + ", isSession=" + appContext.isSession()
+                  + ". isNew=" + isNew);
               releaseUnassignedContainers(
                 Lists.newArrayList(heldContainer.container));
             } else {
@@ -894,8 +906,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // TODO this will not handle dynamic changes in resources
       totalResources = Resources.clone(getAvailableResources());
       LOG.info("App total resource memory: " + totalResources.getMemory() +
-               " cpu: " + totalResources.getVirtualCores() +
-               " taskAllocations: " + taskAllocations.size());
+          " cpu: " + totalResources.getVirtualCores() +
+          " taskAllocations: " + taskAllocations.size());
     }
 
     numHeartbeats++;
@@ -994,9 +1006,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     // See if any of the delayedContainers can be used for this task.
     delayedContainerManager.triggerScheduling(true);
     LOG.info("Allocation request for task: " + task +
-      " with request: " + request + 
-      " host: " + ((hosts!=null&&hosts.length>0)?hosts[0]:"null") +
-      " rack: " + ((racks!=null&&racks.length>0)?racks[0]:"null"));
+          " with request: " + request +
+          " host: " + ((hosts != null && hosts.length > 0) ? hosts[0] : "null") +
+          " rack: " + ((racks != null && racks.length > 0) ? racks[0] : "null"));
   }
 
   /**
@@ -1025,8 +1037,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         LOG.info("Ignoring removal of unknown task: " + task);
         return false;
       } else {
-        LOG.info("Deallocated task: " + task + " from container: "
-            + container.getId());
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Deallocated task: " + task + " from container: "
+              + container.getId());
+        }
 
         if (!taskSucceeded || !shouldReuseContainers) {
           if (LOG.isDebugEnabled()) {
@@ -1046,6 +1060,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             }
             assignedContainers = assignDelayedContainer(heldContainer);
           } else {
+            // this is a non standard situation
             LOG.info("Skipping container after task deallocate as container is"
                 + " no longer running, containerId=" + container.getId());
           }
@@ -1064,8 +1079,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   public synchronized Object deallocateContainer(ContainerId containerId) {
     Object task = unAssignContainer(containerId, true);
     if(task != null) {
+      // non-standard case for the app layer to deallocate container
       LOG.info("Deallocated container: " + containerId +
-        " from task: " + task);
+          " from task: " + task);
       return task;
     }
 
@@ -1075,9 +1091,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   @Override
   public synchronized void initiateStop() {
-    LOG.info("Initiate stop to YarnTaskScheduler");
+    LOG.info("Initiating stop of YarnTaskScheduler");
     // release held containers
-    LOG.info("Release held containers");
+    LOG.info("Releasing held containers");
     isStopStarted.set(true);
     // Create a new list for containerIds to iterate, otherwise it would cause ConcurrentModificationException
     // because method releaseContainer will change heldContainers.
@@ -1090,7 +1106,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     }
 
     // remove taskRequest from AMRMClient to avoid allocating new containers in the next heartbeat
-    LOG.info("Remove all the taskRequests");
+    LOG.info("Removing all pending taskRequests");
     // Create a new list for tasks to avoid ConcurrentModificationException
     List<Object> tasks = new ArrayList<Object>(taskRequests.size());
     for (Object task : taskRequests.keySet()) {
@@ -1117,6 +1133,14 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     return (int) Math.ceil((original * percent)/100.f);
   }
   
+  private String constructPreemptionPeriodicLog(Resource freeResource) {
+    return "Allocated: " + allocatedResources +
+      " Free: " + freeResource +
+      " pendingRequests: " + taskRequests.size() +
+      " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
+      " heartbeats: " + numHeartbeats + " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption;
+  }
+  
   void preemptIfNeeded() {
     if (preemptionPercentage == 0) {
       // turned off
@@ -1127,10 +1151,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     synchronized (this) {
       Resource freeResources = amRmClient.getAvailableResources();
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Allocated resource memory: " + allocatedResources.getMemory() +
-          " cpu:" + allocatedResources.getVirtualCores() + 
-          " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
-          " heartbeats: " + numHeartbeats + " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption);
+        LOG.debug(constructPreemptionPeriodicLog(freeResources));
+      } else {
+        if (numHeartbeats % 50 == 1) {
+          LOG.info(constructPreemptionPeriodicLog(freeResources));
+        }
       }
       assert freeResources.getMemory() >= 0;
   
@@ -1156,8 +1181,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       
       if(fitsIn(highestPriRequest.getCapability(), freeResources)) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Highest pri request: " + highestPriRequest + " fits in available resources "
-              + freeResources);
+          LOG.debug(highestPriRequest + " fits in free resources");
+        } else {
+          if (numHeartbeats % 50 == 1) {
+            LOG.info(highestPriRequest + " fits in free resources");
+          }
         }
         return;
       }
@@ -1651,8 +1679,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
 
   private void releaseUnassignedContainers(Iterable<Container> containers) {
     for (Container container : containers) {
-      LOG.info("Releasing unused container: "
-          + container.getId());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Releasing unused container: " + container.getId());
+      }
       releaseContainer(container.getId());
     }
   }
@@ -1721,19 +1750,17 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       Object task = getTask(assigned);
       assert task != null;
 
-      LOG.info("Assigning container to task"
-        + ", container=" + container
+      LOG.info("Assigning container to task: "
+        + "containerId=" + container.getId()
         + ", task=" + task
-        + ", containerHost=" + container.getNodeId().getHost()
+        + ", containerHost=" + container.getNodeId()
+        + ", containerPriority= " + container.getPriority()
+        + ", containerResources=" + container.getResource()
         + ", localityMatchType=" + locality
         + ", matchedLocation=" + matchedLocation
         + ", honorLocalityFlags=" + honorLocalityFlags
-        + ", reusedContainer="
-        + containerAssignments.containsKey(container.getId())
-        + ", delayedContainers=" + delayedContainerManager.delayedContainers.size()
-        + ", containerResourceMemory=" + container.getResource().getMemory()
-        + ", containerResourceVCores="
-        + container.getResource().getVirtualCores());
+        + ", reusedContainer=" + containerAssignments.containsKey(container.getId())
+        + ", delayedContainers=" + delayedContainerManager.delayedContainers.size());
 
       assignContainer(task, container, assigned);
     }
@@ -1921,6 +1948,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
                 heldContainers.get(delayedContainer.getContainer().getId())) {
               assignedContainers = assignDelayedContainer(delayedContainer);
             } else {
+              // non standard scenario
               LOG.info("Skipping delayed container as container is no longer"
                   + " running, containerId="
                   + delayedContainer.getContainer().getId());
@@ -1975,9 +2003,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           HeldContainer delayedContainer = iter.next();
           if (!heldContainers.containsKey(delayedContainer.getContainer().getId())) {
             // this container is no longer held by us
+            // non standard scenario
             LOG.info("AssignAll - Skipping delayed container as container is no longer"
-                + " running, containerId="
-                + delayedContainer.getContainer().getId());
+                  + " running, containerId="
+                  + delayedContainer.getContainer().getId());
             iter.remove();
           }
         }
