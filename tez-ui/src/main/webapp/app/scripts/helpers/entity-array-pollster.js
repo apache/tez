@@ -100,6 +100,8 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
         var info = polledRecords.findBy('id', row.get('id')),
              merge = !!info;
 
+        row.didLoad();
+
         if(merge && row.get('progress') && info.get('progress')) {
           if(row.get('progress') >= info.get('progress')) {
             merge = false;

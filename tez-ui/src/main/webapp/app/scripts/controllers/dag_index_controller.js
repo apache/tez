@@ -248,9 +248,20 @@ App.DagIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
 
   updateAMInfo: function() {
     var status = this.get('amDagInfo.status');
+        progress = this.get('amDagInfo.progress'),
+        infoUpdated = false;
     if (!Em.isNone(status)) {
       this.set('status', status);
-      this.set('progress', this.get('amDagInfo.progress'));
+      infoUpdated = true;
+    }
+
+    if (!Em.isNone(progress)) {
+      this.set('progress', progress);
+      infoUpdated = true;
+    }
+
+    if (infoUpdated) {
+      Em.tryInvoke(this.get('model'), 'didLoad');
     }
   }.observes('amDagInfo', 'amDagInfo._amInfoLastUpdatedTime')
 });

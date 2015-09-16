@@ -73,7 +73,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       });
       if (dag.get('status') === 'RUNNING') {
         // update the progress info if available. this need not block the UI
-        if (dag.get('amWebServiceVersion') == 'v1') {
+        if (dag.get('amWebServiceVersion') == '1') {
           that.updateInfoFromAM(dag);
         } else {
           // if AM version is v2 we keep updating the status, progress etc live.
@@ -86,6 +86,19 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
     });
 
     return allLoaders;
+  },
+
+  // called only for v1 version of am api.
+  updateInfoFromAM: function(dag) {
+    var that = this;
+    var aminfoLoader = this.store.find('dagProgress', dag.get('id'), {
+      appId: dag.get('applicationId'),
+      dagIdx: dag.get('idx')
+    }).then(function(dagProgressInfo) {
+      that.set('amDagInfo', dagProgressInfo);
+    }).catch(function (error) {
+      Em.Logger.error("Failed to fetch dagProgress" + e);
+    });
   },
 
   updateAMDagInfo: function() {

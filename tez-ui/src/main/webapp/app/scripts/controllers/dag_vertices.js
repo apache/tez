@@ -52,14 +52,14 @@ App.DagVerticesController = App.TablePageController.extend({
       });
     }
 
-    if (this.get('controllers.dag.amWebServiceVersion') == 'v1') {
+    if (this.get('controllers.dag.amWebServiceVersion') == '1') {
       this._loadProgress(data);
     }
 
     return this._super();
   },
 
-  // Load progress in parallel
+  // Load progress in parallel for v1 version of the api
   _loadProgress: function (vertices) {
     var that = this,
         runningVerticesIdx = vertices
@@ -74,8 +74,7 @@ App.DagVerticesController = App.TablePageController.extend({
         metadata: {
           appId: that.get('applicationId'),
           dagIdx: that.get('idx'),
-          vertexIds: runningVerticesIdx.join(','),
-          counters: counters
+          vertexIds: runningVerticesIdx.join(',')
         }
       }).then(function(vertexProgressInfo) {
         that.set('controllers.dag.amVertexInfo', vertexProgressInfo);
@@ -92,11 +91,18 @@ App.DagVerticesController = App.TablePageController.extend({
   overlayVertexInfo: function(vertex, amVertexInfo) {
     if (Em.isNone(amVertexInfo) || Em.isNone(vertex)) return;
     amVertexInfo.set('_amInfoLastUpdatedTime', moment());
-    vertex.setProperties(amVertexInfo.getProperties('status', 'progress', '_amInfoLastUpdatedTime'));
 
-    vertex.set('counterGroups',
-      App.Helpers.misc.mergeCounterInfo(vertex.get('counterGroups'), amVertexInfo.get('counters')).slice(0)
-    );
+    var props = ['progress', '_amInfoLastUpdatedTime']; 
+    if (this.get('controllers.dag.amWebServiceVersion') != '1') {
+      // status is not available for v1 version.
+      props.push('status')
+    }
+    var propValues = amVertexInfo.getProperties(props);
+    propValues['counterGroups'] = App.Helpers.misc.mergeCounterInfo(vertex.get('counterGroups'),
+                                    amVertexInfo.get('counters')).slice(0);
+    vertex.setProperties(propValues);
+
+    Em.tryInvoke(vertex, 'didLoad');
   },
 
   updateVertexInfo: function() {
