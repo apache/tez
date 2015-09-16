@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2827. Increase timeout for TestFetcher testInputAttemptIdentifierMap
   TEZ-2774. Improvements and cleanup of logging for the AM and parts of the runtme.
   TEZ-2825. Report progress in terms of completed tasks to reduce load on AM for Tez UI
   TEZ-2812. Tez UI: Update task & attempt tables while in progress.

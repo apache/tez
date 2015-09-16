@@ -481,7 +481,7 @@ public class TestFetcher {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test(timeout = 5000)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
       new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",

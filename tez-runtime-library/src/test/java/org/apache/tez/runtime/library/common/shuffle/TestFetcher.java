@@ -233,7 +233,7 @@ public class TestFetcher {
     Assert.assertEquals("success callback type", f.getType(), FetchedInput.Type.DISK_DIRECT);
   }
 
-  @Test(timeout=1000)
+  @Test(timeout=5000)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
         new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
