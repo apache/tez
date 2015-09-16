@@ -1117,6 +1117,14 @@ public class YarnTaskSchedulerService extends TaskScheduler
     return (int) Math.ceil((original * percent)/100.f);
   }
   
+  private String constructPreemptionPeriodicLog(Resource freeResource) {
+    return "Allocated: " + allocatedResources +
+      " Free: " + freeResource +
+      " pendingRequests: " + taskRequests.size() +
+      " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
+      " heartbeats: " + numHeartbeats + " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption;
+  }
+  
   void preemptIfNeeded() {
     if (preemptionPercentage == 0) {
       // turned off
@@ -1127,10 +1135,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
     synchronized (this) {
       Resource freeResources = amRmClient.getAvailableResources();
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Allocated resource memory: " + allocatedResources.getMemory() +
-          " cpu:" + allocatedResources.getVirtualCores() + 
-          " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
-          " heartbeats: " + numHeartbeats + " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption);
+        LOG.debug(constructPreemptionPeriodicLog(freeResources));
+      } else {
+        if (numHeartbeats % 50 == 1) {
+          LOG.info(constructPreemptionPeriodicLog(freeResources));
+        }
       }
       assert freeResources.getMemory() >= 0;
   
@@ -1156,8 +1165,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
       
       if(fitsIn(highestPriRequest.getCapability(), freeResources)) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Highest pri request: " + highestPriRequest + " fits in available resources "
-              + freeResources);
+          LOG.debug(highestPriRequest + " fits in free resources");
+        } else {
+          if (numHeartbeats % 50 == 1) {
+            LOG.info(highestPriRequest + " fits in free resources");
+          }
         }
         return;
       }
