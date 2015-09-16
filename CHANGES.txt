@@ -180,6 +180,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.
   TEZ-2825. Report progress in terms of completed tasks to reduce load on AM for Tez UI
   TEZ-2812. Tez UI: Update task & attempt tables while in progress.
   TEZ-2786. Tez UI: Update vertex, task & attempt details page while in progress.
