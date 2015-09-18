@@ -110,6 +110,7 @@ import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class TaskAttemptImpl implements TaskAttempt,
     EventHandler<TaskAttemptEvent> {
@@ -195,10 +196,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   Set<String> taskHosts = new HashSet<String>();
   Set<String> taskRacks = new HashSet<String>();
 
-  private Set<TezTaskAttemptID> uniquefailedOutputReports = 
-      new HashSet<TezTaskAttemptID>();
+  private Map<TezTaskAttemptID, Long> uniquefailedOutputReports = Maps.newHashMap();
   private static double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION;
   private static int MAX_ALLOWED_OUTPUT_FAILURES;
+  private static int MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
 
   protected final boolean isRescheduled;
   private final Resource taskResource;
@@ -470,6 +471,10 @@ public class TaskAttemptImpl implements TaskAttempt,
     MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = conf.getDouble(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT);
+    
+    MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC = conf.getInt(
+        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
+        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT);
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -1569,7 +1574,17 @@ public class TaskAttemptImpl implements TaskAttempt,
       LOG.info(attempt.getID()
             + " blamed for read error from " + failedDestTaId
             + " at inputIndex " + failedInputIndexOnDestTa);
-      attempt.uniquefailedOutputReports.add(failedDestTaId);
+      long time = attempt.clock.getTime();
+      Long firstErrReportTime = attempt.uniquefailedOutputReports.get(failedDestTaId);
+      if (firstErrReportTime == null) {
+        attempt.uniquefailedOutputReports.put(failedDestTaId, time);
+        firstErrReportTime = time;
+      }
+      
+      int readErrorTimespanSec = (int)((time - firstErrReportTime)/1000);
+      boolean crossTimeDeadline = readErrorTimespanSec >=
+      MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC ? true : false;
+
       float failureFraction = ((float) attempt.uniquefailedOutputReports.size())
           / outputFailedEvent.getConsumerTaskNumber();
 
@@ -1581,14 +1596,16 @@ public class TaskAttemptImpl implements TaskAttempt,
       // If needed we can launch a background task without failing this task
       // to generate a copy of the output just in case.
       // If needed we can consider only running consumer tasks
-      if (withinFailureFractionLimits && withinOutputFailureLimits) {
+      if (!crossTimeDeadline && withinFailureFractionLimits && withinOutputFailureLimits) {
         return attempt.getInternalState();
       }
       String message = attempt.getID() + " being failed for too many output errors. "
-          + "failureFraction=" + failureFraction + ", "
-          + "MAX_ALLOWED_OUTPUT_FAILURES_FRACTION=" + MAX_ALLOWED_OUTPUT_FAILURES_FRACTION + ", "
-          + "uniquefailedOutputReports=" + attempt.uniquefailedOutputReports.size() + ", "
-          + "MAX_ALLOWED_OUTPUT_FAILURES=" + MAX_ALLOWED_OUTPUT_FAILURES;
+          + "failureFraction=" + failureFraction
+          + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION=" + MAX_ALLOWED_OUTPUT_FAILURES_FRACTION
+          + ", uniquefailedOutputReports=" + attempt.uniquefailedOutputReports.size()
+          + ", MAX_ALLOWED_OUTPUT_FAILURES=" + MAX_ALLOWED_OUTPUT_FAILURES
+          + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC=" + MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC
+          + ", readErrorTimespan=" + readErrorTimespanSec;
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
       // send input failed event

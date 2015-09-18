@@ -232,6 +232,21 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT = 10;
 
   /**
+   * int value. Represents the maximum time in seconds for which a consumer attempt can report 
+   * a read error against its producer attempt, after which the producer attempt will be re-run 
+   * to re-generate the output. There are other heuristics which determine the retry and mainly 
+   * try to guard against a flurry of re-runs due to intermittent read errors 
+   * (due to network issues). This configuration puts a time limit on those heuristics to ensure
+   * jobs dont hang indefinitely due to lack of closure in those heuristics 
+   *
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC =
+      TEZ_AM_PREFIX + "max.allowed.time-sec.for-read-error";
+  public static final int TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT = 300;
+
+  /**
    * Boolean value. Determines when the final outputs to data sinks are committed. Commit is an
    * output specific operation and typically involves making the output visible for consumption. 
    * If the config is true, then the outputs are committed at the end of DAG completion after all 

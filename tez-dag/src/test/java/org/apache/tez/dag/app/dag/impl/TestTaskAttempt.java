@@ -1188,7 +1188,7 @@ public class TestTaskAttempt {
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
-  @Test(timeout = 5000)
+  @Test//(timeout = 5000)
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
   public void testMultipleOutputFailed() throws Exception {
@@ -1335,15 +1335,54 @@ public class TestTaskAttempt {
     //This should fail even when MAX_ALLOWED_OUTPUT_FAILURES_FRACTION is within limits, as
     // MAX_ALLOWED_OUTPUT_FAILURES has crossed the limit.
     taImpl2.handle(new TaskAttemptEventOutputFailed(taskAttemptID2, tzEvent, 8));
-    assertEquals("Task attempt is not in succeeded state", taImpl2.getState(),
-        TaskAttemptState.FAILED);
-
-    assertEquals("Task attempt is not in FAILED state", taImpl2.getState(),
+    assertEquals("Task attempt is not in failed state", taImpl2.getState(),
         TaskAttemptState.FAILED);
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl2.getTerminationCause());
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID2);
 
+    Clock mockClock = mock(Clock.class); 
+    int readErrorTimespanSec = 1;
+    taskConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, 10);
+    taskConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, readErrorTimespanSec);
+    TezTaskID taskID3 = TezTaskID.getInstance(vertexID, 3);
+    MockTaskAttemptImpl taImpl3 = new MockTaskAttemptImpl(taskID3, 1, eventHandler,
+        taListener, taskConf, mockClock,
+        mockHeartbeatHandler, appCtx, false,
+        resource, createFakeContainerContext(), false);
+    TezTaskAttemptID taskAttemptID3 = taImpl3.getID();
+
+    taImpl3.handle(new TaskAttemptEventSchedule(taskAttemptID3, 0, 0));
+    // At state STARTING.
+    taImpl3.handle(new TaskAttemptEventStartedRemotely(taskAttemptID3, contId, null));
+    verify(mockHeartbeatHandler).register(taskAttemptID3);
+    taImpl3.handle(new TaskAttemptEvent(taskAttemptID3, TaskAttemptEventType.TA_DONE));
+    assertEquals("Task attempt is not in succeeded state", taImpl3.getState(),
+        TaskAttemptState.SUCCEEDED);
+    verify(mockHeartbeatHandler).unregister(taskAttemptID3);
+
+    mockReEvent = InputReadErrorEvent.create("", 1, 1);
+    mockMeta = mock(EventMetaData.class);
+    mockDestId1 = mock(TezTaskAttemptID.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
+    tzEvent = new TezEvent(mockReEvent, mockMeta);
+    when(mockClock.getTime()).thenReturn(1000L);
+    // time deadline not exceeded for a couple of read error events
+    taImpl3.handle(new TaskAttemptEventOutputFailed(taskAttemptID3, tzEvent, 1000));
+    assertEquals("Task attempt is not in succeeded state", taImpl3.getState(),
+        TaskAttemptState.SUCCEEDED);
+    when(mockClock.getTime()).thenReturn(1500L);
+    taImpl3.handle(new TaskAttemptEventOutputFailed(taskAttemptID3, tzEvent, 1000));
+    assertEquals("Task attempt is not in succeeded state", taImpl3.getState(),
+        TaskAttemptState.SUCCEEDED);
+    // exceed the time threshold
+    when(mockClock.getTime()).thenReturn(2001L);
+    taImpl3.handle(new TaskAttemptEventOutputFailed(taskAttemptID3, tzEvent, 1000));
+    assertEquals("Task attempt is not in FAILED state", taImpl3.getState(),
+        TaskAttemptState.FAILED);
+    assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl3.getTerminationCause());
+    // verify unregister is not invoked again
+    verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID3);
   }
 
   @SuppressWarnings("deprecation")
