@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2840. MRInputLegacy.init should set splitInfoViaEvents.
   TEZ-2830. Backport TEZ-2774 to branch-0.7. Improvements to logging in the AM and part of the runtime.
   TEZ-2829. Tez UI: minor fixes to in-progress update of UI from AM
   TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.
