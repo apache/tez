@@ -50,7 +50,6 @@ public class SVGUtils {
   private static final int STEP_GAP = 50;
   private static final int TEXT_SIZE = 20;
   private static final String RUNTIME_COLOR = "LightGreen";
-  private static final String ERROR_COLOR = "Tomato";
   private static final String ALLOCATION_OVERHEAD_COLOR = "GoldenRod";
   private static final String LAUNCH_OVERHEAD_COLOR = "DarkSalmon";
   private static final String BORDER_COLOR = "Sienna";
@@ -203,14 +202,14 @@ public class SVGUtils {
           addRectStr(launchTimeInterval, finishTimeInterval - launchTimeInterval, yOffset * STEP_GAP,
               STEP_GAP, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
         } else {
-          // no launch - so allocate to finish drawn
+          // no launch - so allocate to finish drawn - ended while launching
           addRectStr(allocationTimeInterval, finishTimeInterval - allocationTimeInterval, yOffset * STEP_GAP,
-              STEP_GAP, ERROR_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
+              STEP_GAP, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
         }
       } else {
-        // no allocation - so create to finish drawn
+        // no allocation - so create to finish drawn - ended while allocating
         addRectStr(creationTimeInterval, finishTimeInterval - creationTimeInterval, yOffset * STEP_GAP,
-            STEP_GAP, ERROR_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
+            STEP_GAP, ALLOCATION_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
       }
 
       addTextStr((finishTimeInterval + creationTimeInterval) / 2,

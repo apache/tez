@@ -190,21 +190,31 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           Collections.sort(attemptsList, TaskAttemptInfo.orderingOnAllocationTime());
           // walk the list to record allocation time before the current attempt
           long containerPreviousAllocatedTime = 0;
+          int wavesForVertex = 1;
           for (TaskAttemptInfo containerAttempt : attemptsList) {
             if (containerAttempt.getTaskAttemptId().equals(attempt.getTaskAttemptId())) {
               break;
+            }
+            if (containerAttempt.getTaskInfo().getVertexInfo().getVertexId().equals(
+                attempt.getTaskInfo().getVertexInfo().getVertexId())) {
+              // another task from the same vertex ran in this container. So there are multiple 
+              // waves for this vertex on this container.
+              wavesForVertex++;
             }
             System.out.println("Container: " + container.getId() + " running att: " + 
             containerAttempt.getTaskAttemptId() + " wait att: " + attempt.getTaskAttemptId());
             containerPreviousAllocatedTime += containerAttempt.getAllocationToEndTimeInterval();
           }
+          if (wavesForVertex > 1) {
+            step.notes.add("Container ran multiple waves for this vertex.");
+          }
           if (containerPreviousAllocatedTime == 0) {
-            step.notes.add("Container " + container.getId() + " newly allocated.");
+            step.notes.add("Container newly allocated.");
           } else {
             if (containerPreviousAllocatedTime >= attempt.getCreationToAllocationTimeInterval()) {
-              step.notes.add("Container " + container.getId() + " was fully allocated");
+              step.notes.add("Container was fully allocated");
             } else {
-              step.notes.add("Container " + container.getId() + " allocated for " + 
+              step.notes.add("Container in use for " + 
               SVGUtils.getTimeStr(containerPreviousAllocatedTime) + " out of " +
                   SVGUtils.getTimeStr(attempt.getCreationToAllocationTimeInterval()) + 
                   " of allocation wait time");

@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2832. Support tests for both SimpleHistory logging and ATS logging
   TEZ-2840. MRInputLegacy.init should set splitInfoViaEvents.
   TEZ-2827. Increase timeout for TestFetcher testInputAttemptIdentifierMap
   TEZ-2774. Improvements and cleanup of logging for the AM and parts of the runtme.
