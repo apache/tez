@@ -890,8 +890,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
           " taskAllocations: " + taskAllocations.size());
     }
 
-    numHeartbeats++;
-    preemptIfNeeded();
+    synchronized (this) {
+      numHeartbeats++;
+      preemptIfNeeded();      
+    }
 
     return getContext().getProgress();
   }
