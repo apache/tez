@@ -897,8 +897,12 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
                " taskAllocations: " + taskAllocations.size());
     }
 
-    numHeartbeats++;
-    preemptIfNeeded();
+    synchronized (this) {
+      numHeartbeats++;
+      if (preemptIfNeeded()) {
+        heartbeatAtLastPreemption = numHeartbeats;
+      }
+    }
 
     return appClientDelegate.getProgress();
   }
@@ -1116,10 +1120,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     return (int) Math.ceil((original * percent)/100.f);
   }
   
-  void preemptIfNeeded() {
+  boolean preemptIfNeeded() {
     if (preemptionPercentage == 0) {
       // turned off
-      return;
+      return true;
     }
     ContainerId[] preemptedContainers = null;
     int numPendingRequestsToService = 0;
@@ -1150,7 +1154,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       
       if (highestPriRequest == null) {
         // nothing pending
-        return;
+        return true;
       }
       
       if(fitsIn(highestPriRequest.getCapability(), freeResources)) {
@@ -1158,7 +1162,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           LOG.debug("Highest pri request: " + highestPriRequest + " fits in available resources "
               + freeResources);
         }
-        return;
+        return true;
       }
       // highest priority request will not fit in existing free resources
       // free up some more
@@ -1168,7 +1172,8 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
           preemptionPercentage);
 
       if (numPendingRequestsToService < 1) {
-        return;
+        // nothing to preempt - reset preemption last heartbeat
+        return true;
       }
 
       if (LOG.isDebugEnabled()) {
@@ -1176,7 +1181,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             + numHighestPriRequests + " pending requests at pri: "
             + highestPriRequest.getPriority());
       }
-      
+
       for (int i=0; i<numPendingRequestsToService; ++i) {
         // This request must have been considered for matching with all existing 
         // containers when request was made.
@@ -1189,7 +1194,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
               LOG.debug("Reused container exists. Wait for assignment loop to release it. "
                   + heldContainer.getContainer().getId());
             }
-            return;
+            return true;
           }
           if (heldContainer.geNumAssignmentAttempts() < 3) {
             // we havent tried to assign this container at node/rack/ANY
@@ -1197,7 +1202,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
               LOG.debug("Brand new container. Wait for assignment loop to match it. "
                   + heldContainer.getContainer().getId());
             }
-            return;
+            return true;
           }
           Container container = heldContainer.getContainer();
           if (lowestPriNewContainer == null ||
@@ -1242,18 +1247,14 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       }
       
       if (numPendingRequestsToService < 1) {
-        return;
+        return true;
       }
 
       // there are no reused or new containers to release. try to preempt running containers
       // this assert will be a no-op in production but can help identify 
       // invalid assumptions during testing
       assert delayedContainerManager.delayedContainers.isEmpty();
-      
-      if ((numHeartbeats - heartbeatAtLastPreemption) <= numHeartbeatsBetweenPreemptions) {
-        return;
-      }
-        
+              
       Priority preemptedTaskPriority = null;
       int numEntriesAtPreemptedPriority = 0;
       for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
@@ -1289,7 +1290,12 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         numPendingRequestsToService = Math.min(newNumPendingRequestsToService,
             numPendingRequestsToService);
         if (numPendingRequestsToService < 1) {
-          return;
+          return true;
+        }
+        // wait for enough heartbeats since this request became active for preemption
+        if ((numHeartbeats - heartbeatAtLastPreemption) < numHeartbeatsBetweenPreemptions) {
+          // stop incrementing lastpreemption heartbeat count
+          return false;
         }
         LOG.info("Trying to service " + numPendingRequestsToService + " out of total "
             + numHighestPriRequests + " pending requests at pri: "
@@ -1316,7 +1322,6 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
     
     // upcall outside locks
     if (preemptedContainers != null) {
-      heartbeatAtLastPreemption = numHeartbeats;
       for(int i=0; i<numPendingRequestsToService; ++i) {
         ContainerId cId = preemptedContainers[i];
         if (cId != null) {
@@ -1325,6 +1330,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         }
       }
     }
+    return true;
   }
 
   private boolean fitsIn(Resource toFit, Resource resource) {
