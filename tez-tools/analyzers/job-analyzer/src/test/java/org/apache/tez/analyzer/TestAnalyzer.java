@@ -168,7 +168,7 @@ public class TestAnalyzer {
         remoteStagingDir.toString());
     tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
 
-    tezSession = TezClient.create("TestFaultTolerance", tezConf, true);
+    tezSession = TezClient.create("TestAnalyzer", tezConf, true);
     tezSession.start();
   }
   

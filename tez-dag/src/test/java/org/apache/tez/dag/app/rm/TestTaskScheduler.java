@@ -1508,6 +1508,7 @@ public class TestTaskScheduler {
 
     Configuration conf = new Configuration();
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
+    conf.setInt(TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS, 3);
 
     TaskSchedulerContext mockApp = setupMockTaskSchedulerContext(appHost, appPort, appUrl, false,
         null, null, new PreemptionMatcher(), conf);
@@ -1692,7 +1693,10 @@ public class TestTaskScheduler {
     scheduler.getProgress();
     drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    // no need for task preemption until now - so they should match
+    Assert.assertEquals(scheduler.numHeartbeats, scheduler.heartbeatAtLastPreemption);
 
+    // add a pending request that cannot be allocated until resources free up
     Object mockTask3WaitCookie = new Object();
     scheduler.allocateTask(mockTask3Wait, taskAsk, null,
                            null, pri6, obj3, mockTask3WaitCookie);
@@ -1711,6 +1715,7 @@ public class TestTaskScheduler {
     containers.clear();
     containers.add(mockContainer4);
     
+    // new lower pri container added that wont be matched and eventually preempted
     // Fudge new container being present in delayed allocation list due to race
     HeldContainer heldContainer = new HeldContainer(mockContainer4, -1, -1, null,
         containerSignatureMatcher);
@@ -1719,6 +1724,9 @@ public class TestTaskScheduler {
     scheduler.getProgress();
     drainableAppCallback.drain();
     verify(mockRMClient, times(0)).releaseAssignedContainer((ContainerId)any());
+    // no need for task preemption until now - so they should match
+    Assert.assertEquals(scheduler.numHeartbeats, scheduler.heartbeatAtLastPreemption);
+
     heldContainer.incrementAssignmentAttempts();
     // no preemption - container assignment attempts < 3
     scheduler.getProgress();
@@ -1740,12 +1748,18 @@ public class TestTaskScheduler {
     
     // remove fudging.
     scheduler.delayedContainerManager.delayedContainers.clear();
-    
+
+    // no need for task preemption until now - so they should match
+    Assert.assertEquals(scheduler.numHeartbeats, scheduler.heartbeatAtLastPreemption);
+
     scheduler.allocateTask(mockTask3Retry, taskAsk, null,
                            null, pri5, obj3, null);
     // no preemption - higher pri. exact match
     scheduler.getProgress();
+    // no need for task preemption until now - so they should match
     drainableAppCallback.drain();
+    // no need for task preemption until now - so they should match
+    Assert.assertEquals(scheduler.numHeartbeats, scheduler.heartbeatAtLastPreemption);
     verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
 
     for (int i=0; i<11; ++i) {
@@ -1758,16 +1772,22 @@ public class TestTaskScheduler {
     // this is also a higher priority container than the pending task priority but was running a 
     // lower priority task. Task priority is relevant for preemption and not container priority as
     // containers can run tasks of different priorities
-    scheduler.getProgress();
+    scheduler.getProgress(); // first heartbeat
+    Assert.assertTrue(scheduler.numHeartbeats > scheduler.heartbeatAtLastPreemption);
+    drainableAppCallback.drain();
+    scheduler.getProgress(); // second heartbeat
+    drainableAppCallback.drain();
+    verify(mockRMClient, times(1)).releaseAssignedContainer((ContainerId)any());
+    scheduler.getProgress(); // third heartbeat
     drainableAppCallback.drain();
     verify(mockRMClient, times(2)).releaseAssignedContainer((ContainerId)any());
     verify(mockRMClient, times(1)).releaseAssignedContainer(mockCId3B);
-    // next 3 heartbeats do nothing, waiting for the RM to act on the last released resources
-    scheduler.getProgress();
-    scheduler.getProgress();
-    scheduler.getProgress();
+    Assert.assertEquals(scheduler.numHeartbeats, scheduler.heartbeatAtLastPreemption);
+    // there are pending preemptions.
+    scheduler.getProgress(); // first heartbeat
+    scheduler.getProgress(); // second heartbeat
     verify(mockRMClient, times(2)).releaseAssignedContainer((ContainerId) any());
-    scheduler.getProgress();
+    scheduler.getProgress(); // third heartbeat
     drainableAppCallback.drain();
     // Next oldest mockTaskPri3KillA gets preempted to clear 10% of outstanding running preemptable tasks
     verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId)any());
