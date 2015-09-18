@@ -11,7 +11,6 @@ ALL CHANGES:
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
   TEZ-814.  Improve heuristic for determining a task has failed outputs
   TEZ-2832. Support tests for both SimpleHistory logging and ATS logging
-  TEZ-2840. MRInputLegacy.init should set splitInfoViaEvents.
   TEZ-2827. Increase timeout for TestFetcher testInputAttemptIdentifierMap
   TEZ-2774. Improvements and cleanup of logging for the AM and parts of the runtme.
   TEZ-2825. Report progress in terms of completed tasks to reduce load on AM for Tez UI
@@ -189,7 +188,6 @@ ALL CHANGES:
   TEZ-2097. TEZ-UI Add dag logs backend support
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
   TEZ-814.  Improve heuristic for determining a task has failed outputs
-  TEZ-2840. MRInputLegacy.init should set splitInfoViaEvents.
   TEZ-2829. Tez UI: minor fixes to in-progress update of UI from AM
   TEZ-2663. SessionNotRunning exceptions are wrapped in a ServiceException from a dying AM.
   TEZ-2825. Report progress in terms of completed tasks to reduce load on AM for Tez UI
