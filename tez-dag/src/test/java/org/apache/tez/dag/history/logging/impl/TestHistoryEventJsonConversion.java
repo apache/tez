@@ -124,7 +124,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case DAG_SUBMITTED:
           event = new DAGSubmittedEvent(tezDAGID, random.nextInt(), dagPlan, applicationAttemptId,
-              null, user, null);
+              null, user, null, null);
           break;
         case DAG_INITIALIZED:
           event = new DAGInitializedEvent(tezDAGID, random.nextInt(), user, dagPlan.getName(), null);
@@ -190,7 +190,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case DAG_RECOVERED:
           event = new DAGRecoveredEvent(applicationAttemptId, tezDAGID, dagPlan.getName(), user,
-              1l);
+              1l, null);
           break;
         case DAG_KILL_REQUEST:
           event = new DAGKillRequestEvent();
