@@ -1178,7 +1178,7 @@ public class TestTaskAttempt {
     assertEquals(TaskAttemptTerminationCause.UNKNOWN_ERROR, taImpl.getTerminationCause());
   }
 
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   // Verifies that multiple TooManyFetchFailures are handled correctly by the
   // TaskAttempt.
   public void testMultipleOutputFailed() throws Exception {
