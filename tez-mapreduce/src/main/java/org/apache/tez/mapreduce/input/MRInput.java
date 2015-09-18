@@ -435,10 +435,6 @@ public class MRInput extends MRInputBase {
   public List<Event> initialize() throws IOException {
     super.initialize();
     getContext().inputIsReady();
-    this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
-        MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT);
-    LOG.info("Using New mapreduce API: " + useNewApi
-        + ", split information via event: " + splitInfoViaEvents);
     initializeInternal();
     return null;
   }
@@ -452,6 +448,10 @@ public class MRInput extends MRInputBase {
 
   @Private
   void initializeInternal() throws IOException {
+    this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
+        MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT);
+    LOG.info("Using New mapreduce API: " + useNewApi
+        + ", split information via event: " + splitInfoViaEvents);
     // Primarily for visibility
     rrLock.lock();
     try {
