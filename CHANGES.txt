@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2097. TEZ-UI Add dag logs backend support
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
   TEZ-814.  Improve heuristic for determining a task has failed outputs
   TEZ-2832. Support tests for both SimpleHistory logging and ATS logging
@@ -185,6 +186,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2097. TEZ-UI Add dag logs backend support
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
   TEZ-814.  Improve heuristic for determining a task has failed outputs
   TEZ-2840. MRInputLegacy.init should set splitInfoViaEvents.
@@ -443,6 +445,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2097. TEZ-UI Add dag logs backend support
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
   TEZ-814.  Improve heuristic for determining a task has failed outputs
   TEZ-2809. Minimal distribution compiled on 2.6 fails to run on 2.7
