@@ -168,7 +168,7 @@ public class TestHistoryEventsProtoConversion {
         ApplicationId.newInstance(0, 1), 1), 1001l,
         DAGPlan.newBuilder().setName("foo").build(),
         ApplicationAttemptId.newInstance(
-            ApplicationId.newInstance(0, 1), 1), null, "", null);
+            ApplicationId.newInstance(0, 1), 1), null, "", null, null);
     DAGSubmittedEvent deserializedEvent = (DAGSubmittedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
@@ -733,7 +733,7 @@ public class TestHistoryEventsProtoConversion {
     DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(
         ApplicationAttemptId.newInstance(ApplicationId.newInstance(0, 1), 1),
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
-        "mockDagname", "mockuser", 100334l);
+        "mockDagname", "mockuser", 100334l, null);
     try {
       testProtoConversion(dagRecoveredEvent);
       Assert.fail("Proto conversion should have failed");

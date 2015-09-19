@@ -137,7 +137,7 @@ public class TestRecoveryParser {
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration())));
+            null, "user", new Configuration(), null)));
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     // only for testing, DAGCommitStartedEvent is not supposed to happen at this time.
@@ -183,7 +183,7 @@ public class TestRecoveryParser {
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration())));
+            null, "user", new Configuration(), null)));
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     rService.handle(new DAGHistoryEvent(dagID,
@@ -230,7 +230,7 @@ public class TestRecoveryParser {
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration())));
+            null, "user", new Configuration(), null)));
     // wait until DAGSubmittedEvent is handled in the RecoveryEventHandling thread
     rService.await();
     rService.outputStreamMap.get(dagID).writeUTF("INVALID_DATA");
@@ -276,7 +276,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration())));
+            null, "user", new Configuration(), null)));
     // write an corrupted SummaryEvent
     rService.summaryStream.writeChars("INVALID_DATA");
     rService.stop();

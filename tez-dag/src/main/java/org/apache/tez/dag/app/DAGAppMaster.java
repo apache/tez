@@ -165,6 +165,7 @@ import org.codehaus.jettison.json.JSONException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 
 /**
@@ -194,6 +195,7 @@ public class DAGAppMaster extends AbstractService {
    * Priority of the DAGAppMaster shutdown hook.
    */
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
+  private static final Joiner PATH_JOINER = Joiner.on('/');
 
   private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
 
@@ -230,6 +232,7 @@ public class DAGAppMaster extends AbstractService {
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
+  private String containerLogs;
 
   private boolean isLocal = false; //Local mode flag
 
@@ -309,6 +312,18 @@ public class DAGAppMaster extends AbstractService {
         + ", versionInfo=" + dagVersionInfo.toString());
   }
 
+  // Pull this WebAppUtils function into Tez until YARN-4186
+  public static String getRunningLogURL(String nodeHttpAddress,
+      String containerId, String user) {
+    if (nodeHttpAddress == null || nodeHttpAddress.isEmpty()
+        || containerId == null || containerId.isEmpty() || user == null
+        || user.isEmpty()) {
+      return null;
+    }
+    return PATH_JOINER.join(nodeHttpAddress, "node", "containerlogs",
+        containerId, user);
+  }
+
   @Override
   public synchronized void serviceInit(final Configuration conf) throws Exception {
 
@@ -356,6 +371,8 @@ public class DAGAppMaster extends AbstractService {
     conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, !isLocal);
     String strAppId = this.appAttemptID.getApplicationId().toString();
     this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
+    this.containerLogs = getRunningLogURL(this.nmHost + ":" + this.nmHttpPort,
+        this.containerID.toString(), this.appMasterUgi.getShortUserName());
 
     dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
@@ -1676,7 +1693,8 @@ public class DAGAppMaster extends AbstractService {
           DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
               recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
               recoveredDAGData.recoveredDAG.getUserName(),
-              this.clock.getTime(), DAGState.FAILED, recoveredDAGData.reason);
+              this.clock.getTime(), DAGState.FAILED, recoveredDAGData.reason,
+              this.containerLogs);
           dagRecoveredEvent.setHistoryLoggingEnabled(
               recoveredDAGData.recoveredDAG.getConf().getBoolean(
                   TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
@@ -1692,7 +1710,7 @@ public class DAGAppMaster extends AbstractService {
           DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
               recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
               recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime(),
-              recoveredDAGData.dagState, null);
+              recoveredDAGData.dagState, null, this.containerLogs);
           this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
               dagRecoveredEvent));
           dagEventDispatcher.handle(recoverDAGEvent);
@@ -1703,7 +1721,7 @@ public class DAGAppMaster extends AbstractService {
         _updateLoggers(recoveredDAGData.recoveredDAG, "");
         DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
             recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
-            recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime());
+            recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime(), this.containerLogs);
         this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
             dagRecoveredEvent));
         DAGEventRecoverEvent recoverDAGEvent = new DAGEventRecoverEvent(
@@ -2057,11 +2075,12 @@ public class DAGAppMaster extends AbstractService {
     String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
     System.err.println(timeStamp + " Running Dag: "+ newDAG.getID());
     System.out.println(timeStamp + " Running Dag: "+ newDAG.getID());
+
     // Job name is the same as the app name until we support multiple dags
     // for an app later
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
-        newDAG.getUserName(), newDAG.getConf());
+        newDAG.getUserName(), newDAG.getConf(), containerLogs);
     boolean dagLoggingEnabled = newDAG.getConf().getBoolean(
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT);
