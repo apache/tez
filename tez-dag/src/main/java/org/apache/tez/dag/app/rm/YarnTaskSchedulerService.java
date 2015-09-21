@@ -98,8 +98,9 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   private boolean reuseRackLocal;
   private boolean reuseNonLocal;
 
+  // type is linked hash map to maintain order of incoming requests
   Map<Object, CookieContainerRequest> taskRequests =
-                  new HashMap<Object, CookieContainerRequest>();
+                  new LinkedHashMap<Object, CookieContainerRequest>();
   // LinkedHashMap is need in getProgress()
   LinkedHashMap<Object, Container> taskAllocations =
                   new LinkedHashMap<Object, Container>();
@@ -146,7 +147,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
   long idleContainerTimeoutMin;
   long idleContainerTimeoutMax = 0;
   int sessionNumMinHeldContainers = 0;
-  int preemptionPercentage = 0; 
+  int preemptionPercentage = 0;
+  long preemptionMaxWaitTime = 0;
+  
+  long highestWaitingRequestWaitStartTime = 0;
+  Priority highestWaitingRequestPriority = null;
   
   Set<ContainerId> sessionMinHeldContainers = Sets.newHashSet();
   
@@ -346,6 +351,10 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT);
     Preconditions.checkArgument(numHeartbeatsBetweenPreemptions >= 1, 
         "Heartbeats between preemptions should be >=1");
+    
+    preemptionMaxWaitTime = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS, 
+        TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS_DEFAULT);
+    Preconditions.checkArgument(preemptionMaxWaitTime >=0, "Preemption max wait time must be >=0");
 
     delayedContainerManager = new DelayedContainerManager();
     LOG.info("YarnTaskScheduler initialized with configuration: " +
@@ -355,6 +364,7 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
             ", reuseNonLocal: " + reuseNonLocal + 
             ", localitySchedulingDelay: " + localitySchedulingDelay +
             ", preemptionPercentage: " + preemptionPercentage +
+            ", preemptionMaxWaitTime: " + preemptionMaxWaitTime +
             ", numHeartbeatsBetweenPreemptions: " + numHeartbeatsBetweenPreemptions +
             ", idleContainerMinTimeout: " + idleContainerTimeoutMin +
             ", idleContainerMaxTimeout: " + idleContainerTimeoutMax +
@@ -1142,7 +1152,16 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       " Free: " + freeResource +
       " pendingRequests: " + taskRequests.size() +
       " delayedContainers: " + delayedContainerManager.delayedContainers.size() +
-      " heartbeats: " + numHeartbeats + " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption;
+      " heartbeats: " + numHeartbeats + 
+      " lastPreemptionHeartbeat: " + heartbeatAtLastPreemption +
+      ((highestWaitingRequestPriority != null) ? 
+      (" highestWaitingRequestWaitStartTime: " + highestWaitingRequestWaitStartTime +
+      " highestWaitingRequestPriority: " + highestWaitingRequestPriority.toString()) : "");
+  }
+  
+  private void resetHighestWaitingPriority(Priority newPri) {
+    highestWaitingRequestPriority = newPri;
+    highestWaitingRequestWaitStartTime = 0;
   }
   
   boolean preemptIfNeeded() {
@@ -1180,10 +1199,26 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       
       if (highestPriRequest == null) {
         // nothing pending
+        resetHighestWaitingPriority(null);
         return true;
       }
       
-      if(fitsIn(highestPriRequest.getCapability(), freeResources)) {
+      // reset the wait time when waiting priority changes to prevent carry over of the value
+      if (highestWaitingRequestPriority == null ||
+          !highestPriRequest.getPriority().equals(highestWaitingRequestPriority)) {
+        resetHighestWaitingPriority(highestPriRequest.getPriority());
+      }
+      
+      long currTime = System.currentTimeMillis();
+      if (highestWaitingRequestWaitStartTime == 0) {
+        highestWaitingRequestWaitStartTime = currTime;
+      }
+
+      boolean preemptionWaitDeadlineCrossed = 
+          (currTime - highestWaitingRequestWaitStartTime) > preemptionMaxWaitTime ? true : false;
+
+      if(!preemptionWaitDeadlineCrossed && 
+          fitsIn(highestPriRequest.getCapability(), freeResources)) {
         if (LOG.isDebugEnabled()) {
           LOG.debug(highestPriRequest + " fits in free resources");
         } else {
@@ -1193,6 +1228,42 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
         }
         return true;
       }
+      
+      if (preemptionWaitDeadlineCrossed) {
+        // check if anything lower priority is running - priority inversion
+        // this check could have been done earlier but in the common case
+        // this would be unnecessary since there are usually requests pending
+        // in the normal case without priority inversion. So do this expensive
+        // iteration now
+        boolean lowerPriRunning = false;
+        for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
+          HeldContainer heldContainer = heldContainers.get(entry.getValue().getId());
+          CookieContainerRequest lastTaskInfo = heldContainer.getLastTaskInfo();
+          Priority taskPriority = lastTaskInfo.getPriority();
+          Object signature = lastTaskInfo.getCookie().getContainerSignature();
+          if(isHigherPriority(highestPriRequest.getPriority(), taskPriority)) {
+            // lower priority task is running
+            if (containerSignatureMatcher.isExactMatch(
+                highestPriRequest.getCookie().getContainerSignature(),
+                signature)) {
+              // exact match with different priorities
+              continue;
+            }
+            lowerPriRunning = true;
+            break;
+          }
+        }
+        if (!lowerPriRunning) {
+          // nothing lower priority running
+          // normal case of many pending request without priority inversion
+          resetHighestWaitingPriority(null);
+          return true;
+        }
+        LOG.info("Preemption deadline crossed at pri: " + highestPriRequest.getPriority()
+            + " numRequests: " + numHighestPriRequests + ". "
+            + constructPreemptionPeriodicLog(freeResources));
+      }
+      
       // highest priority request will not fit in existing free resources
       // free up some more
       // TODO this is subject to error wrt RM resource normalization
@@ -1283,7 +1354,11 @@ public class YarnTaskSchedulerService extends TaskSchedulerService
       // this assert will be a no-op in production but can help identify 
       // invalid assumptions during testing
       assert delayedContainerManager.delayedContainers.isEmpty();
-              
+      if (!delayedContainerManager.delayedContainers.isEmpty()) {
+        LOG.warn("Expected delayed containers to be empty. "
+            + constructPreemptionPeriodicLog(freeResources));
+      }
+      
       Priority preemptedTaskPriority = null;
       int numEntriesAtPreemptedPriority = 0;
       for(Map.Entry<Object, Container> entry : taskAllocations.entrySet()) {
