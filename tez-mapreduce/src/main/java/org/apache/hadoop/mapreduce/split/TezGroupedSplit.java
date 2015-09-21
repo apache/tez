@@ -22,6 +22,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -184,5 +185,16 @@ public class TezGroupedSplit extends InputSplit
   
   public String getRack() {
     return rack;
+  }
+
+  @Override
+  public String toString() {
+    return "TezGroupedSplit{" +
+        "wrappedSplits=" + wrappedSplits +
+        ", wrappedInputFormatName='" + wrappedInputFormatName + '\'' +
+        ", locations=" + Arrays.toString(locations) +
+        ", rack='" + rack + '\'' +
+        ", length=" + length +
+        '}';
   }
 }

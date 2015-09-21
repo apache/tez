@@ -45,7 +45,6 @@ import com.google.common.base.Preconditions;
 
 @Private
 public class ValuesIterator<KEY,VALUE> {
-  private static final Logger LOG = LoggerFactory.getLogger(ValuesIterator.class.getName());
   protected TezRawKeyValueIterator in; //input iterator
   private KEY key;               // current key
   private KEY nextKey;
@@ -82,7 +81,6 @@ public class ValuesIterator<KEY,VALUE> {
     this.keyDeserializer.open(keyIn);
     this.valDeserializer = serializationFactory.getDeserializer(valClass);
     this.valDeserializer.open(this.valueIn);
-    LOG.info("keyDeserializer=" + keyDeserializer + "; valueDeserializer=" + valDeserializer);
   }
 
   TezRawKeyValueIterator getRawIterator() { return in; }

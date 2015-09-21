@@ -266,7 +266,9 @@ public class HttpConnection extends BaseHttpConnection {
     stopWatch.reset().start();
     try {
       if (input != null) {
-        LOG.info("Closing input on " + logIdentifier);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Closing input on " + logIdentifier);
+        }
         input.close();
         input = null;
       }

@@ -108,8 +108,8 @@ public class MultiMRInput extends MRInputBase {
   @Override
   public List<Event> initialize() throws IOException {
     super.initialize();
-    LOG.info("Using New mapreduce API: " + useNewApi + ", numPhysicalInputs: "
-        + getNumPhysicalInputs());
+    LOG.info(getContext().getSourceVertexName() + " using newmapreduce API=" + useNewApi +
+        ", numPhysicalInputs=" + getNumPhysicalInputs());
     if (getNumPhysicalInputs() == 0) {
       getContext().inputIsReady();
     }
@@ -164,7 +164,9 @@ public class MultiMRInput extends MRInputBase {
 
   private MRReader initFromEvent(InputDataInformationEvent event) throws IOException {
     Preconditions.checkState(event != null, "Event must be specified");
-    LOG.info("Initializing Reader: " + eventCount.get());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(getContext().getSourceVertexName() + " initializing Reader: " + eventCount.get());
+    }
     MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(event.getUserPayload()));
     Object split = null;
     MRReader reader = null;
@@ -176,17 +178,21 @@ public class MultiMRInput extends MRInputBase {
           .getClusterTimestamp(), getContext().getTaskVertexIndex(), getContext()
           .getApplicationId().getId(), getContext().getTaskIndex(), getContext()
           .getTaskAttemptNumber());
-      LOG.info("Split Details -> SplitClass: " + split.getClass().getName() + ", NewSplit: "
-          + split);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
+            split.getClass().getName() + ", NewSplit: " + split);
+      }
 
     } else {
       split = MRInputUtils.getOldSplitDetailsFromEvent(splitProto, localJobConf);
       reader = new MRReaderMapred(localJobConf, (org.apache.hadoop.mapred.InputSplit) split,
           getContext().getCounters(), inputRecordCounter);
-      LOG.info("Split Details -> SplitClass: " + split.getClass().getName() + ", OldSplit: "
-          + split);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
+            split.getClass().getName() + ", OldSplit: " + split);
+      }
     }
-    LOG.info("Initialized RecordReader from event");
+    LOG.info(getContext().getSourceVertexName() + " initialized RecordReader from event");
     return reader;
   }
 

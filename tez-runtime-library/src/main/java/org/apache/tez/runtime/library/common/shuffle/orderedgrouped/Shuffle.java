@@ -144,7 +144,7 @@ public class Shuffle implements ExceptionReporter {
     TezCounter mergedMapOutputsCounter =
         inputContext.getCounters().findCounter(TaskCounter.MERGED_MAP_OUTPUTS);
 
-    LOG.info("Shuffle assigned with " + numInputs + " inputs" + ", codec: "
+    LOG.info(srcNameTrimmed + ": " + "Shuffle assigned with " + numInputs + " inputs" + ", codec: "
         + (codec == null ? "None" : codec.getClass().getName()) + 
         "ifileReadAhead: " + ifileReadAhead);
 
@@ -190,7 +190,7 @@ public class Shuffle implements ExceptionReporter {
         sslShuffle);
     
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
-        .setDaemon(true).setNameFormat("ShuffleAndMergeRunner [" + srcNameTrimmed + "]").build());
+        .setDaemon(true).setNameFormat("ShuffleAndMergeRunner {" + srcNameTrimmed + "}").build());
 
 
     executor = MoreExecutors.listeningDecorator(rawExecutor);
@@ -201,7 +201,7 @@ public class Shuffle implements ExceptionReporter {
     if (!isShutDown.get()) {
       eventHandler.handleEvents(events);
     } else {
-      LOG.info("Ignoring events since already shutdown. EventCount: " + events.size());
+      LOG.info(srcNameTrimmed + ": " + "Ignoring events since already shutdown. EventCount: " + events.size());
     }
 
   }
@@ -327,7 +327,7 @@ public class Shuffle implements ExceptionReporter {
       }
 
       inputContext.inputIsReady();
-      LOG.info("merge complete for input vertex : " + inputContext.getSourceVertexName());
+      LOG.info("merge complete for input vertex : " + srcNameTrimmed);
       return kvIter;
     }
   }
@@ -337,7 +337,7 @@ public class Shuffle implements ExceptionReporter {
       cleanupShuffleScheduler();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      LOG.info("Interrupted while attempting to close the scheduler during cleanup. Ignoring");
+      LOG.info(srcNameTrimmed + ": " + "Interrupted while attempting to close the scheduler during cleanup. Ignoring");
     }
   }
 
@@ -355,13 +355,13 @@ public class Shuffle implements ExceptionReporter {
         if (ignoreErrors) {
           //Reset the status
           Thread.currentThread().interrupt();
-          LOG.info("Interrupted while attempting to close the merger during cleanup. Ignoring");
+          LOG.info(srcNameTrimmed + ": " + "Interrupted while attempting to close the merger during cleanup. Ignoring");
         } else {
           throw e;
         }
       } catch (Throwable e) {
         if (ignoreErrors) {
-          LOG.info("Exception while trying to shutdown merger, Ignoring", e);
+          LOG.info(srcNameTrimmed + ": " + "Exception while trying to shutdown merger, Ignoring", e);
         } else {
           throw e;
         }
@@ -371,10 +371,13 @@ public class Shuffle implements ExceptionReporter {
 
   private void cleanupIgnoreErrors() {
     try {
+      if (eventHandler != null) {
+        eventHandler.logProgress(true);
+      }
       cleanupShuffleSchedulerIgnoreErrors();
       cleanupMerger(true);
     } catch (Throwable t) {
-      LOG.info("Error in cleaning up.., ", t);
+      LOG.info(srcNameTrimmed + ": " + "Error in cleaning up.., ", t);
     }
   }
 
@@ -383,7 +386,7 @@ public class Shuffle implements ExceptionReporter {
   public synchronized void reportException(Throwable t) {
     // RunShuffleCallable onFailure deals with ignoring errors on shutdown.
     if (throwable.get() == null) {
-      LOG.info("Setting throwable in reportException with message [" + t.getMessage() +
+      LOG.info(srcNameTrimmed + ": " + "Setting throwable in reportException with message [" + t.getMessage() +
           "] from thread [" + Thread.currentThread().getName());
       throwable.set(t);
       throwingThreadName = Thread.currentThread().getName();
@@ -409,15 +412,15 @@ public class Shuffle implements ExceptionReporter {
   private class ShuffleRunnerFutureCallback implements FutureCallback<TezRawKeyValueIterator> {
     @Override
     public void onSuccess(TezRawKeyValueIterator result) {
-      LOG.info("Shuffle Runner thread complete");
+      LOG.info(srcNameTrimmed + ": " + "Shuffle Runner thread complete");
     }
 
     @Override
     public void onFailure(Throwable t) {
       if (isShutDown.get()) {
-        LOG.info("Already shutdown. Ignoring error");
+        LOG.info(srcNameTrimmed + ": " + "Already shutdown. Ignoring error");
       } else {
-        LOG.error("ShuffleRunner failed with error", t);
+        LOG.error(srcNameTrimmed + ": " + "ShuffleRunner failed with error", t);
         // In case of an abort / Interrupt - the runtime makes sure that this is ignored.
         inputContext.fatalError(t, "Shuffle Runner Failed");
         cleanupIgnoreErrors();

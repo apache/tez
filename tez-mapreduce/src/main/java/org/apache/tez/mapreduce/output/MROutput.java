@@ -344,7 +344,6 @@ public class MROutput extends AbstractLogicalOutput {
 
   @Override
   public List<Event> initialize() throws IOException, InterruptedException {
-    LOG.info("Initializing Simple Output");
     getContext().requestInitialMemory(0l, null); //mandatory call
     taskNumberFormat.setMinimumIntegerDigits(5);
     taskNumberFormat.setGroupingUsed(false);
@@ -381,6 +380,8 @@ public class MROutput extends AbstractLogicalOutput {
       }
     }
 
+    String outputFormatClassName;
+
     outputRecordCounter = getContext().getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);    
 
     if (useNewApi) {
@@ -389,6 +390,7 @@ public class MROutput extends AbstractLogicalOutput {
         newOutputFormat =
             org.apache.hadoop.util.ReflectionUtils.newInstance(
                 newApiTaskAttemptContext.getOutputFormatClass(), jobConf);
+        outputFormatClassName = newOutputFormat.getClass().getName();
       } catch (ClassNotFoundException cnfe) {
         throw new IOException(cnfe);
       }
@@ -405,6 +407,7 @@ public class MROutput extends AbstractLogicalOutput {
               jobConf, taskAttemptId,
               new MRTaskReporter(getContext()));
       oldOutputFormat = jobConf.getOutputFormat();
+      outputFormatClassName = oldOutputFormat.getClass().getName();
 
       FileSystem fs = FileSystem.get(jobConf);
       String finalName = getOutputName();
@@ -415,8 +418,9 @@ public class MROutput extends AbstractLogicalOutput {
     }
     initCommitter(jobConf, useNewApi);
 
-    LOG.info("Initialized Simple Output"
-        + ", using_new_api: " + useNewApi);
+    LOG.info(getContext().getDestinationVertexName() + ": "
+        + "outputFormat=" + outputFormatClassName
+        + ", using newmapreduce API=" + useNewApi);
     return null;
   }
 
@@ -518,6 +522,7 @@ public class MROutput extends AbstractLogicalOutput {
   @Override
   public synchronized List<Event> close() throws IOException {
     flush();
+    LOG.info(getContext().getDestinationVertexName() + " closed");
     long outputRecords = getContext().getCounters()
         .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
     getContext().getStatisticsReporter().reportItemsProcessed(outputRecords);
@@ -535,7 +540,6 @@ public class MROutput extends AbstractLogicalOutput {
       return;
     }
 
-    LOG.info("Flushing Simple Output");
     if (useNewApi) {
       try {
         newRecordWriter.close(newApiTaskAttemptContext);
@@ -545,7 +549,6 @@ public class MROutput extends AbstractLogicalOutput {
     } else {
       oldRecordWriter.close(null);
     }
-    LOG.info("Flushed Simple Output");
   }
 
   /**
