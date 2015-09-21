@@ -126,10 +126,10 @@ public class ATSImportTool extends Configured implements Tool {
   private final Client httpClient;
   private final TezDAGID tezDAGID;
 
-  public ATSImportTool(String baseUri, String dagId, File baseDownloadDir, int batchSize)
+  public ATSImportTool(String baseUri, String dagId, File downloadDir, int batchSize)
       throws TezException {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(dagId), "dagId can not be null or empty");
-    Preconditions.checkArgument(baseDownloadDir != null, "downloadDir can not be null");
+    Preconditions.checkArgument(downloadDir != null, "downloadDir can not be null");
     tezDAGID = TezDAGID.fromString(dagId);
 
     this.baseUri = baseUri;
@@ -138,7 +138,7 @@ public class ATSImportTool extends Configured implements Tool {
 
     this.httpClient = getHttpClient();
 
-    this.downloadDir = new File(baseDownloadDir, dagId);
+    this.downloadDir = downloadDir;
     this.zipFile = new File(downloadDir, this.dagId + ".zip");
 
     boolean result = downloadDir.mkdirs();

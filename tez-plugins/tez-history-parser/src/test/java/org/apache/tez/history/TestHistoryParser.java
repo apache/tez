@@ -577,7 +577,6 @@ public class TestHistoryParser {
   private DagInfo getDagInfo(String dagId) throws TezException {
     //Parse downloaded contents
     File downloadedFile = new File(DOWNLOAD_DIR
-        + Path.SEPARATOR + dagId
         + Path.SEPARATOR + dagId + ".zip");
     ATSFileParser parser = new ATSFileParser(downloadedFile);
     DagInfo dagInfo = parser.getDAGData(dagId);

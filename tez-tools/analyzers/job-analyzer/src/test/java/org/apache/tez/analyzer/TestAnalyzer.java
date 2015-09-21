@@ -263,7 +263,6 @@ public class TestAnalyzer {
       //Parse ATS data and verify results
       //Parse downloaded contents
       File downloadedFile = new File(DOWNLOAD_DIR
-          + Path.SEPARATOR + dagId
           + Path.SEPARATOR + dagId + ".zip");
       ATSFileParser parser = new ATSFileParser(downloadedFile);
       dagInfo = parser.getDAGData(dagId);
