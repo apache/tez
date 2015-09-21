@@ -75,6 +75,7 @@ public class TestInput extends AbstractLogicalInput {
   Set<Integer> failingInputIndices = Sets.newHashSet();
   Integer failAll = new Integer(-1);
   int[] inputValues;
+  AtomicInteger numEventsReceived = new AtomicInteger(0);
   
   /**
    * Enable failure for this logical input
@@ -192,12 +193,22 @@ public class TestInput extends AbstractLogicalInput {
                 LOG.info("Failing input: " + msg);
               }
             }
+            int numEvents = numEventsReceived.get();
             getContext().sendEvents(events);
             if (doFailAndExit) {
               String msg = "FailingInput exiting: " + getContext().getUniqueIdentifier();
               LOG.info(msg);
               throwException(msg);
             } else {
+              try {
+                while (numEvents == numEventsReceived.get()) {
+                  // keep sending events
+                  Thread.sleep(500);
+                  getContext().sendEvents(events);
+                }
+              } catch (InterruptedException e) {
+                LOG.info("Interrupted while sending events", e);
+              }
               done = false;
             }
           } else if ((failingTaskIndices.contains(failAll) ||
@@ -330,6 +341,7 @@ public class TestInput extends AbstractLogicalInput {
   @Override
   public void handleEvents(List<Event> inputEvents) throws Exception {
     for (Event event : inputEvents) {
+      numEventsReceived.incrementAndGet();
       if (event instanceof DataMovementEvent) {
         DataMovementEvent dmEvent = (DataMovementEvent) event;
         numCompletedInputs++;

@@ -890,6 +890,18 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT = 3;
 
   /**
+   * Int value. Time (in millisecs) that an unsatisfied request will wait before preempting other
+   * resources. In rare cases, the cluster says there are enough free resources but does not end 
+   * up getting enough on a node to actually assign it to the job. This configuration tries to put 
+   * a deadline on such wait to prevent indefinite job hangs.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS =
+      TEZ_AM_PREFIX + "preemption.max.wait-time-ms";
+  public static final int TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS_DEFAULT = 60*1000; // 60s
+
+  /**
    * String value to a file path.
    * The location of the Tez libraries which will be localized for DAGs.
    * This follows the following semantics
