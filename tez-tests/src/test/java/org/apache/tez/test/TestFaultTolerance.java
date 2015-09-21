@@ -88,6 +88,8 @@ public class TestFaultTolerance {
       tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           remoteStagingDir.toString());
       tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+      tezConf.setDouble(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, 0.4);
+      tezConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, 3);
 
       tezSession = TezClient.create("TestFaultTolerance", tezConf, true);
       tezSession.start();
@@ -269,6 +271,24 @@ public class TestFaultTolerance {
     DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithoutExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
+  
+  @Test (timeout=60000)
+  public void testBasicInputFailureWithoutExitDeadline() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setInt(SimpleTestDAG.TEZ_SIMPLE_DAG_NUM_TASKS, 3); // 1 error < 0.4 fail fraction
+    testConf.setBoolean(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v2"), true);
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v2"), "2");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v2"), "0");
+    testConf.set(TestInput.getVertexConfName(
+        TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v2"), "0");
+    
+    DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithoutExitDeadline", testConf);
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+
   
   @Test (timeout=60000)
   public void testMultipleInputFailureWithoutExit() throws Exception {
