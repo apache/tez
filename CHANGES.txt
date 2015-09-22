@@ -189,6 +189,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2842. Tez UI: Update Tez App details page while in-progress
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2775. Improve and consolidate logging in Runtime components.
