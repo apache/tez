@@ -27,6 +27,52 @@ App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
     this.set('loading', false);
   }.observes('content'),
 
+  pollster: App.Helpers.Pollster.create(),
+
+  init: function () {
+    this._super();
+    this.get('pollster').setProperties({
+      onPoll: this.load.bind(this)
+    });
+  },
+
+  setup: function () {
+    this.set('isActive', true);
+  },
+  reset: function () {
+    this.set('isActive', false);
+  },
+
+  pollsterControl: function () {
+    if(this.get('appDetail.finalAppStatus') == 'UNDEFINED' &&
+        this.get('isActive')) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('appDetail.finalAppStatus', 'isActive'),
+
+  load: function () {
+    var tezApp = this.get('content'),
+        store  = this.get('store');
+
+      tezApp.reload().then(function (tezApp) {
+        var appId = tezApp.get('appId');
+        if(!appId) return tezApp;
+        App.Helpers.misc.removeRecord(store, 'appDetail', appId);
+        return store.find('appDetail', appId).then(function (appDetails){
+          tezApp.set('appDetail', appDetails);
+          return tezApp;
+        });
+      }).catch(function (error) {
+        Em.Logger.error(error);
+        var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+        var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
+        App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+      });
+  },
+
   childDisplayViews: [
     Ember.Object.create({title: 'App Details', linkTo: 'tez-app.index'}),
     Ember.Object.create({title: 'DAGs', linkTo: 'tez-app.dags'}),
