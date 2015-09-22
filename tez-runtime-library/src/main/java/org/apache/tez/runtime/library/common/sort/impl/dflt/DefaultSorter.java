@@ -59,7 +59,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import com.google.common.base.Preconditions;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class DefaultSorter extends ExternalSorter implements IndexedSortable {
+public final class DefaultSorter extends ExternalSorter implements IndexedSortable {
   
   private static final Logger LOG = LoggerFactory.getLogger(DefaultSorter.class);
 
@@ -663,7 +663,13 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
                   + ", length = " + (distanceTo(kvend, kvstart, kvmeta.capacity()) + 1) + "/" +
                   maxRec);
         }
-        sortAndSpill();
+        long sameKeyCount = 0;
+        long totalKeysCount = 0;
+        synchronized (this) {
+          sameKeyCount = sameKey;
+          totalKeysCount = totalKeys;
+        }
+        sortAndSpill(sameKeyCount, totalKeysCount);
       }
     } catch (InterruptedException e) {
       throw new IOException("Interrupted while waiting for the writer", e);
@@ -698,6 +704,9 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
   protected class SpillThread extends Thread {
 
+    volatile long totalKeysCount;
+    volatile long sameKeyCount;
+
     @Override
     public void run() {
       spillLock.lock();
@@ -710,7 +719,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           }
           try {
             spillLock.unlock();
-            sortAndSpill();
+            sortAndSpill(sameKeyCount, totalKeysCount);
           } catch (Throwable t) {
             LOG.warn(outputContext.getDestinationVertexName() + ": " + "Got an exception in sortAndSpill", t);
             sortSpillException = t;
@@ -730,6 +739,11 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         spillLock.unlock();
         spillThreadRunning = false;
       }
+    }
+
+    public void setTotalKeysProcessed(long sameKeyCount, long totalKeysCount) {
+      this.sameKeyCount = sameKeyCount;
+      this.totalKeysCount = totalKeysCount;
     }
   }
 
@@ -757,6 +771,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
           +", kvend = " + kvend + "(" + (kvend * 4) + ")"
           + ", length = " + (distanceTo(kvend, kvstart, kvmeta.capacity()) + 1) + "/" + maxRec);
     }
+    spillThread.setTotalKeysProcessed(sameKey, totalKeys);
     spillReady.signal();
   }
 
@@ -771,16 +786,16 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
         : kvmeta.capacity() + kvstart) / NMETA;
   }
 
-  private boolean isRLENeeded() {
-    return (sameKey > (0.1 * totalKeys)) || (sameKey < 0);
+  private boolean isRLENeeded(long sameKeyCount, long totalKeysCount) {
+    return (sameKeyCount > (0.1 * totalKeysCount)) || (sameKeyCount < 0);
   }
 
-  protected void sortAndSpill()
+  protected void sortAndSpill(long sameKeyCount, long totalKeysCount)
       throws IOException, InterruptedException {
     final int mstart = getMetaStart();
     final int mend = getMetaEnd();
     sorter.sort(this, mstart, mend, nullProgressable);
-    spill(mstart, mend);
+    spill(mstart, mend, sameKeyCount, totalKeysCount);
   }
 
   private void adjustSpillCounters(long rawLen, long compLength) {
@@ -799,7 +814,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
     }
   }
 
-  protected void spill(int mstart, int mend)
+  protected void spill(int mstart, int mend, long sameKeyCount, long totalKeysCount)
       throws IOException, InterruptedException {
 
     //approximate the length of the output file to be the length of the
@@ -819,7 +834,7 @@ public class DefaultSorter extends ExternalSorter implements IndexedSortable {
 
       int spindex = mstart;
       final InMemValBytes value = createInMemValBytes();
-      boolean rle = isRLENeeded();
+      boolean rle = isRLENeeded(sameKeyCount, totalKeysCount);
       for (int i = 0; i < partitions; ++i) {
         IFile.Writer writer = null;
         try {
