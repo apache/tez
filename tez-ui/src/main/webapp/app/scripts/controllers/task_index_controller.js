@@ -29,4 +29,15 @@ App.TaskIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
       this.get('hasFailedTaskAttempts'));
   }.property('id', 'taskStatus', 'hasFailedTaskAttempts'),
 
+  load: function () {
+    var model = this.get('content');
+    if(model && $.isFunction(model.reload)) {
+      model.reload().then(function(record) {
+        if(record.get('isDirty')) {
+          record.rollback();
+        }
+      });
+    }
+  },
+
 });

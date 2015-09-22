@@ -241,4 +241,15 @@ App.TaskAttemptIndexController = Em.ObjectController.extend(App.ModelRefreshMixi
     return App.Helpers.misc.getStatusClassForEntity(this.get('taskAttemptStatus'));
   }.property('id', 'status', 'counterGroups'),
 
+  load: function () {
+    var model = this.get('content');
+    if(model && $.isFunction(model.reload)) {
+      model.reload().then(function(record) {
+        if(record.get('isDirty')) {
+          record.rollback();
+        }
+      });
+    }
+  },
+
 });
