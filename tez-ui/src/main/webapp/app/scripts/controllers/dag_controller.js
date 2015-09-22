@@ -123,8 +123,14 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
       that.set('amDagInfo', dagInfo);
       //TODO: find another way to trigger notification
       that.set('amDagInfo._amInfoLastUpdatedTime', moment());
+      that.set('amProgressInfoSucceededOnce', true);
     }).catch(function(e){
-      // do nothing.
+      if (that.get('amProgressInfoSucceededOnce') === true) {
+        that.set('amProgressInfoSucceededOnce', false);
+        App.Helpers.ErrorBar.getInstance().show(
+          "Failed to get in-progress status. Manually refresh to get the updated status",
+          "Application Manager either exited or is not running.");
+      }
     });
   },
 
@@ -189,6 +195,7 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
   // stop the update service if the status changes. see startAMInfoUpdateService
   stopAMInfoUpdateService: function() {
+    that.set('amProgressInfoSucceededOnce', false);
     if (this.get('loading') || this.get('model.status') != 'RUNNING') {
       this.dostopAMInfoUpdateService();
     }

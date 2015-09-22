@@ -28,6 +28,7 @@ App.ModelRefreshMixin = Em.Mixin.create({
 
   actions: {
     refresh: function () {
+      App.Helpers.ErrorBar.getInstance().hide();
       this.load();
     }
   }

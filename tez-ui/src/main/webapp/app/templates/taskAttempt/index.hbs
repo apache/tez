@@ -54,10 +54,12 @@
 						<i {{bind-attr class=':task-status taskAttemptIconStatus'}}></i> {{taskAttemptStatus}}
 					</td>
 				</tr>
-				<tr>
-					<td>Progress</td>
-					<td>{{bs-progress-animated progressDecimal=progress}}</td>
-				</tr>
+        {{#if}}
+        <tr>
+          <td>Progress</td>
+          <td>{{bs-progress-animated progressDecimal=progress}}</td>
+        </tr>
+        {{/if}}
 				<tr>
 					<td>{{t 'common.time.start'}}</td>
 					<td>{{formatUnixTimestamp startTime}}</td>
