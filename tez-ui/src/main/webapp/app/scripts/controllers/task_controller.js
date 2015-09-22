@@ -81,6 +81,7 @@ App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.M
     var vertexLoader = this.store.find('vertex', task.get('vertexID'));
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId);
 
+    task.set('progress', undefined);
     var allLoaders = Em.RSVP.hash({
       dag: dagLoader,
       vertex: vertexLoader,

@@ -73,10 +73,12 @@
             {{/if}}
           </td>
         </tr>
+        {{#if progress}}
         <tr>
           <td>Progress</td>
           <td>{{bs-progress-animated progressDecimal=progress}}</td>
         </tr>
+        {{/if}}
         <tr>
           <td>{{t 'common.time.start'}}</td>
           <td>{{formatUnixTimestamp startTime}}</td>

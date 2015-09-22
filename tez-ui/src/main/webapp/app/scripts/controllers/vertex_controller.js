@@ -74,6 +74,8 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
       that = this,
       applicationId = vertex.get('applicationId');
 
+    vertex.set('progress', undefined);
+
     // Irrespective of am version this will get the progress first.
     if (vertex.get('status') == 'RUNNING') {
       var vertexIdx = vertex.get('id').split('_').splice(-1).pop();

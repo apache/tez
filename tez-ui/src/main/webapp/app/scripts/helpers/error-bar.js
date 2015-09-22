@@ -46,8 +46,9 @@ App.Helpers.ErrorBar = (function () {
 
       if(details) {
         messageElement = $('<a class="expander" href="#">' + message + '</a>');
-        messageElement.click(function () {
+        messageElement.click(function (event) {
           errorBar.find('.details').toggleClass('visible');
+          event.preventDefault();
         });
 
         errorBar.find('.details').html(details.replace(/\n/g, "<br />"));
