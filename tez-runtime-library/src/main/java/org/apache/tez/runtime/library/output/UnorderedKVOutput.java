@@ -104,7 +104,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
       this.kvWriter = new UnorderedPartitionedKVWriter(getContext(), conf, 1,
           memoryUpdateCallbackHandler.getMemoryAssigned());
       isStarted.set(true);
-      LOG.info(this.getClass().getSimpleName() + " started. MemoryAssigned="
+      LOG.info(getContext().getDestinationVertexName() + " started. MemoryAssigned="
           + memoryUpdateCallbackHandler.getMemoryAssigned());
     }
   }
@@ -127,8 +127,8 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
       //TODO: Do we need to support sending payloads via events?
       returnEvents = kvWriter.close();
     } else {
-      LOG.warn(
-          "Attempting to close output {} of type {} before it was started. Generating empty events",
+      LOG.warn(getContext().getDestinationVertexName() +
+          ": Attempting to close output {} of type {} before it was started. Generating empty events",
           getContext().getDestinationVertexName(), this.getClass().getSimpleName());
       returnEvents = new LinkedList<Event>();
       ShuffleUtils

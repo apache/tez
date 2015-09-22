@@ -60,11 +60,14 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
 
   private final long maxAvailableTaskMemory;
   private final long initialMemoryAvailable;
+
+  private final String srcNameTrimmed;
   
   private volatile long usedMemory = 0;
 
-  public SimpleFetchedInputAllocator(String uniqueIdentifier, Configuration conf,
+  public SimpleFetchedInputAllocator(String srcNameTrimmed, String uniqueIdentifier, Configuration conf,
       long maxTaskAvailableMemory, long memoryAvailable) {
+    this.srcNameTrimmed = srcNameTrimmed;
     this.conf = conf;    
     this.maxAvailableTaskMemory = maxTaskAvailableMemory;
     this.initialMemoryAvailable = memoryAvailable;
@@ -92,8 +95,6 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
       this.memoryLimit = initialMemoryAvailable;
     }
 
-    LOG.info("RequestedMem=" + memReq + ", Allocated: " + this.memoryLimit);
-    
     final float singleShuffleMemoryLimitPercent = conf.getFloat(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT_DEFAULT);
@@ -107,9 +108,13 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
     //TODO: cap it to MAX_VALUE until MemoryFetchedInput can handle > 2 GB
     this.maxSingleShuffleLimit = (long) Math.min((memoryLimit * singleShuffleMemoryLimitPercent),
         Integer.MAX_VALUE);
-    
-    LOG.info("SimpleInputManager -> " + "MemoryLimit: " + 
-        this.memoryLimit + ", maxSingleMemLimit: " + this.maxSingleShuffleLimit);
+
+    LOG.info(srcNameTrimmed + ": "
+        + "RequestedMemory=" + memReq
+        + ", AssignedMemorty=" + this.memoryLimit
+        + ", maxSingleShuffleLimit=" + this.maxSingleShuffleLimit
+    );
+
   }
 
   @Private
@@ -137,7 +142,10 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
           fileNameAllocator);
     } else {
       this.usedMemory += actualSize;
-      LOG.info("Used memory after allocating " + actualSize  + " : " + usedMemory);
+      if (LOG.isDebugEnabled()) {
+        LOG.info(srcNameTrimmed + ": " + "Used memory after allocating " + actualSize + " : " +
+            usedMemory);
+      }
       return new MemoryFetchedInput(actualSize, compressedSize, inputAttemptIdentifier, this);
     }
   }
@@ -196,7 +204,9 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
 
   private synchronized void unreserve(long size) {
     this.usedMemory -= size;
-    LOG.info("Used memory after freeing " + size  + " : " + usedMemory);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(srcNameTrimmed + ": " + "Used memory after freeing " + size  + " : " + usedMemory);
+    }
   }
 
 }

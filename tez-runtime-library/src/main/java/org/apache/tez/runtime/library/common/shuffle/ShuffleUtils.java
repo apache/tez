@@ -107,12 +107,16 @@ public class ShuffleUtils {
       Logger LOG, String identifier) throws IOException {
     try {
       IFile.Reader.readToMemory(shuffleData, input, compressedLength, codec,
-        ifileReadAhead, ifileReadAheadLength);
+          ifileReadAhead, ifileReadAheadLength);
       // metrics.inputBytes(shuffleData.length);
-      LOG.info("Read " + shuffleData.length + " bytes from input for "
-          + identifier);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Read " + shuffleData.length + " bytes from input for "
+            + identifier);
+      }
     } catch (IOException ioe) {
       // Close the streams
+      LOG.info("Failed to read data to memory for " + identifier + ". len=" + compressedLength +
+          ", decomp=" + decompressedLength + ". ExceptionMessage=" + ioe.getMessage());
       ioCleanup(input);
       // Re-throw
       throw ioe;
@@ -120,7 +124,7 @@ public class ShuffleUtils {
   }
   
   public static void shuffleToDisk(OutputStream output, String hostIdentifier,
-      InputStream input, long compressedLength, Logger LOG, String identifier)
+      InputStream input, long compressedLength, long decompressedLength, Logger LOG, String identifier)
       throws IOException {
     // Copy data to local-disk
     long bytesLeft = compressedLength;
@@ -138,12 +142,16 @@ public class ShuffleUtils {
         // metrics.inputBytes(n);
       }
 
-      LOG.info("Read " + (compressedLength - bytesLeft)
-          + " bytes from input for " + identifier);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Read " + (compressedLength - bytesLeft)
+            + " bytes from input for " + identifier);
+      }
 
       output.close();
     } catch (IOException ioe) {
       // Close the streams
+      LOG.info("Failed to read data to disk for " + identifier + ". len=" + compressedLength +
+          ", decomp=" + decompressedLength + ". ExceptionMessage=" + ioe.getMessage());
       ioCleanup(input, output);
       // Re-throw
       throw ioe;
@@ -468,10 +476,26 @@ public class ShuffleUtils {
     }
     log.info(
         "Completed fetch for attempt: "
-            + srcAttemptIdentifier + " to " + outputType +
-            ", CompressedSize=" + bytesCompressed + ", DecompressedSize=" + bytesDecompressed +
+            + toShortString(srcAttemptIdentifier)
+            +" to " + outputType +
+            ", csize=" + bytesCompressed + ", dsize=" + bytesDecompressed +
             ", EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
             MBPS_FORMAT.get().format(rate) + " MB/s");
+  }
+
+  private static String toShortString(InputAttemptIdentifier inputAttemptIdentifier) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{");
+    sb.append(inputAttemptIdentifier.getInputIdentifier().getInputIndex());
+    sb.append(", ").append(inputAttemptIdentifier.getAttemptNumber());
+    sb.append(", ").append(inputAttemptIdentifier.getPathComponent());
+    if (inputAttemptIdentifier.getFetchTypeInfo()
+        != InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED) {
+      sb.append(", ").append(inputAttemptIdentifier.getFetchTypeInfo().ordinal());
+      sb.append(", ").append(inputAttemptIdentifier.getSpillEventId());
+    }
+    sb.append("}");
+    return sb.toString();
   }
 }
 

@@ -155,7 +155,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
         bytesShuffedToDisk,
         bytesShuffedToDiskDirect,
         bytesShuffedToMem,
-        System.currentTimeMillis());
+        System.currentTimeMillis(),
+        "srcNameTrimmed");
     scheduler = spy(realScheduler);
     handler = new ShuffleInputEventHandlerOrderedGrouped(inputContext, scheduler, false);
     mergeManager = mock(MergeManager.class);

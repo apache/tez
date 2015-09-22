@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -71,6 +72,7 @@ class ShuffleScheduler {
 
   private boolean[] finishedMaps;
   private final int numInputs;
+  private final String srcNameTrimmed;
   private int remainingMaps;
   private int numFetchedSpills;
   private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
@@ -128,12 +130,14 @@ class ShuffleScheduler {
                           TezCounter failedShuffleCounter,
                           TezCounter bytesShuffledToDisk,
                           TezCounter bytesShuffledToDiskDirect,
-                          TezCounter bytesShuffledToMem, long startTime) {
+                          TezCounter bytesShuffledToMem, long startTime,
+                          String srcNameTrimmed) {
     this.inputContext = inputContext;
     this.numInputs = numberOfInputs;
     abortFailureLimit = Math.max(30, numberOfInputs / 10);
     remainingMaps = numberOfInputs;
     finishedMaps = new boolean[remainingMaps]; // default init to false
+    this.srcNameTrimmed = srcNameTrimmed;
     this.referee = new Referee();
     this.shuffle = shuffle;
     this.shuffledInputsCounter = shuffledInputsCounter;
@@ -312,7 +316,7 @@ class ShuffleScheduler {
       }
 
       if (remainingMaps == 0) {
-        LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
+        LOG.info(srcNameTrimmed + ": " + "All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
         notifyAll();
       }
 
@@ -330,7 +334,7 @@ class ShuffleScheduler {
       }
     } else {
       // input is already finished. duplicate fetch.
-      LOG.warn("Duplicate fetch of input no longer needs to be fetched: " + srcAttemptIdentifier);
+      LOG.warn(srcNameTrimmed + ": " + "Duplicate fetch of input no longer needs to be fetched: " + srcAttemptIdentifier);
       // free the resource - specially memory
       
       // If the src does not generate data, output will be null.
@@ -364,19 +368,24 @@ class ShuffleScheduler {
 
   @VisibleForTesting
   void reportExceptionForInput(Exception exception) {
-    LOG.error("Reporting exception for input", exception);
+    LOG.error(srcNameTrimmed + ": " + "Reporting exception for input", exception);
     shuffle.reportException(exception);
   }
 
-  private void logProgress() {
-    double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);
-    int inputsDone = numInputs - remainingMaps;
-    long secsSinceStart = (System.currentTimeMillis() - startTime) / 1000 + 1;
+  private final AtomicInteger nextProgressLineEventCount = new AtomicInteger(0);
 
-    double transferRate = mbs / secsSinceStart;
-    LOG.info("copy(" + inputsDone + " (spillsFetched=" + numFetchedSpills +  ") of " + numInputs +
-        ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
-        + mbpsFormat.format(transferRate) + " MB/s)");
+  private void logProgress() {
+    int inputsDone = numInputs - remainingMaps;
+    if (inputsDone > nextProgressLineEventCount.get() || inputsDone == numInputs) {
+      nextProgressLineEventCount.addAndGet(50);
+      double mbs = (double) totalBytesShuffledTillNow / (1024 * 1024);
+      long secsSinceStart = (System.currentTimeMillis() - startTime) / 1000 + 1;
+
+      double transferRate = mbs / secsSinceStart;
+      LOG.info("copy(" + inputsDone + " (spillsFetched=" + numFetchedSpills + ") of " + numInputs +
+          ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
+          + mbpsFormat.format(transferRate) + " MB/s)");
+    }
   }
 
   public synchronized void copyFailed(InputAttemptIdentifier srcAttempt,
@@ -431,7 +440,7 @@ class ShuffleScheduler {
   }
 
   public void reportLocalError(IOException ioe) {
-    LOG.error("Shuffle failed : caused by local error", ioe);
+    LOG.error(srcNameTrimmed + ": " + "Shuffle failed : caused by local error", ioe);
     // Shuffle knows how to deal with failures post shutdown via the onFailure hook
     shuffle.reportException(ioe);
   }
@@ -444,7 +453,7 @@ class ShuffleScheduler {
       boolean connectError) {
     if ((reportReadErrorImmediately && (readError || connectError))
         || ((failures % maxFetchFailuresBeforeReporting) == 0)) {
-      LOG.info("Reporting fetch failure for InputIdentifier: "
+      LOG.info(srcNameTrimmed + ": " + "Reporting fetch failure for InputIdentifier: "
           + srcAttempt + " taskAttemptIdentifier: "
           + TezRuntimeUtils.getTaskAttemptIdentifier(
           inputContext.getSourceVertexName(), srcAttempt.getInputIdentifier().getInputIndex(),
@@ -501,7 +510,8 @@ class ShuffleScheduler {
         failureCounts.size() == (numInputs - doneMaps))
         && !reducerHealthy
         && (!reducerProgressedEnough || reducerStalled)) {
-      LOG.error("Shuffle failed with too many fetch failures " + "and insufficient progress!"
+      LOG.error(srcNameTrimmed + ": " + "Shuffle failed with too many fetch failures " +
+          "and insufficient progress!"
           + "failureCounts=" + failureCounts.size() + ", pendingInputs=" + (numInputs - doneMaps)
           + ", reducerHealthy=" + reducerHealthy + ", reducerProgressedEnough="
           + reducerProgressedEnough + ", reducerStalled=" + reducerStalled);
@@ -546,7 +556,7 @@ class ShuffleScheduler {
   
   public synchronized void obsoleteInput(InputAttemptIdentifier srcAttempt) {
     // The incoming srcAttempt does not contain a path component.
-    LOG.info("Adding obsolete input: " + srcAttempt);
+    LOG.info(srcNameTrimmed + ": " + "Adding obsolete input: " + srcAttempt);
     if (shuffleInfoEventsMap.containsKey(srcAttempt.getInputIdentifier())) {
       //Pipelined shuffle case (where shuffleInfoEventsMap gets populated).
       //Fail fast here.
@@ -565,6 +575,9 @@ class ShuffleScheduler {
 
   public synchronized MapHost getHost() throws InterruptedException {
       while(pendingHosts.isEmpty()) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("PendingHosts=" + pendingHosts);
+        }
         wait();
       }
       
@@ -578,7 +591,7 @@ class ShuffleScheduler {
       pendingHosts.remove(host);     
       host.markBusy();
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Assigning " + host + " with " + host.getNumKnownMapOutputs() +
+        LOG.debug(srcNameTrimmed + ": " + "Assigning " + host + " with " + host.getNumKnownMapOutputs() +
             " to " + Thread.currentThread().getName());
       }
       shuffleStart.set(System.currentTimeMillis());
@@ -685,8 +698,10 @@ class ShuffleScheduler {
         notifyAll();
       }
     }
-    LOG.info(host + " freed by " + Thread.currentThread().getName() + " in " + 
-             (System.currentTimeMillis()-shuffleStart.get()) + "ms");
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(host + " freed by " + Thread.currentThread().getName() + " in " +
+          (System.currentTimeMillis() - shuffleStart.get()) + "ms");
+    }
   }
 
   public synchronized void resetKnownMaps() {
@@ -752,8 +767,8 @@ class ShuffleScheduler {
    */
   private class Referee extends Thread {
     public Referee() {
-      setName("ShufflePenaltyReferee ["
-          + TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + "]");
+      setName("ShufflePenaltyReferee {"
+          + TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + "}");
       setDaemon(true);
     }
 
@@ -780,6 +795,7 @@ class ShuffleScheduler {
   }
   
   public void close() throws InterruptedException {
+    logProgress();
     referee.interrupt();
     referee.join();
   }

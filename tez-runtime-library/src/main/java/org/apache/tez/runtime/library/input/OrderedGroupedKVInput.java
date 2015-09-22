@@ -129,8 +129,10 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
       List<Event> pending = new LinkedList<Event>();
       pendingEvents.drainTo(pending);
       if (pending.size() > 0) {
-        LOG.info("NoAutoStart delay in processing first event: "
-            + (System.currentTimeMillis() - firstEventReceivedTime));
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("NoAutoStart delay in processing first event: "
+              + (System.currentTimeMillis() - firstEventReceivedTime));
+        }
         shuffle.handleEvents(pending);
       }
       isStarted.set(true);
@@ -274,10 +276,16 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
   protected synchronized void createValuesIterator()
       throws IOException {
     // Not used by ReduceProcessor
-    vIter = new ValuesIterator(rawIter,
-        (RawComparator) ConfigUtils.getIntermediateInputKeyComparator(conf),
-        ConfigUtils.getIntermediateInputKeyClass(conf),
-        ConfigUtils.getIntermediateInputValueClass(conf), conf, inputKeyCounter, inputValueCounter);
+    RawComparator rawComparator = ConfigUtils.getIntermediateInputKeyComparator(conf);
+    Class<?> keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
+    Class<?> valClass = ConfigUtils.getIntermediateInputValueClass(conf);
+    LOG.info(getContext().getSourceVertexName() + ": " + "creating ValuesIterator with "
+        + "comparator=" + rawComparator.getClass().getName()
+        + ", keyClass=" + keyClass.getName()
+        + ", valClass=" + valClass.getName());
+
+    vIter = new ValuesIterator(rawIter, rawComparator, keyClass, valClass,
+        conf, inputKeyCounter, inputValueCounter);
 
   }
 

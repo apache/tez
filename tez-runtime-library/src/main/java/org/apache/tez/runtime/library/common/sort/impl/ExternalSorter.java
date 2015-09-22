@@ -155,7 +155,10 @@ public abstract class ExternalSorter {
 
     rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
-    LOG.info("Initial Mem : " + initialMemoryAvailable + ", assignedMb=" + ((initialMemoryAvailable >> 20)));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(outputContext.getDestinationVertexName() + ": Initial Mem bytes : " +
+          initialMemoryAvailable + ", in MB=" + ((initialMemoryAvailable >> 20)));
+    }
     int assignedMb = (int) (initialMemoryAvailable >> 20);
     //Let the overflow checks happen in appropriate sorter impls
     this.availableMemoryMb = assignedMb;
@@ -173,9 +176,13 @@ public abstract class ExternalSorter {
     serializationFactory = new SerializationFactory(this.conf);
     keySerializer = serializationFactory.getSerializer(keyClass);
     valSerializer = serializationFactory.getSerializer(valClass);
-    LOG.info("keySerializer=" + keySerializer + "; valueSerializer=" + valSerializer
-        + "; comparator=" + (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf)
-        + "; conf=" + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
+    LOG.info(outputContext.getDestinationVertexName() + " using: "
+        + "memoryMb=" + assignedMb
+        + ", keySerializerClass=" + keyClass
+        + ", valueSerializerClass=" + valSerializer
+        + ", comparator=" + (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf)
+        + ", partitioner=" + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS)
+        + ", serialization=" + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
 
     //    counters    
     mapOutputByteCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
@@ -230,8 +237,7 @@ public abstract class ExternalSorter {
     
     // Task outputs
     mapOutputFile = TezRuntimeUtils.instantiateTaskOutputManager(conf, outputContext);
-    
-    LOG.info("Instantiating Partitioner: [" + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS) + "]");
+
     this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS, this.partitions);
     this.partitioner = TezRuntimeUtils.instantiatePartitioner(this.conf);
     this.combiner = TezRuntimeUtils.instantiateCombiner(this.conf, outputContext);
@@ -322,9 +328,11 @@ public abstract class ExternalSorter {
         TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + " " + initialMemRequestMb + " should be "
             + "larger than 0 and should be less than the available task memory (MB):" +
             (maxAvailableTaskMemory >> 20));
-    LOG.info("Requested SortBufferSize ("
-        + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + "): "
-        + initialMemRequestMb);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Requested SortBufferSize ("
+          + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB + "): "
+          + initialMemRequestMb);
+    }
     return reqBytes;
   }
 

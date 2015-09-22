@@ -127,7 +127,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
       if (pipelinedShuffle) {
         if (finalMergeEnabled) {
-          LOG.info("Disabling final merge as "
+          LOG.info(getContext().getDestinationVertexName() + " disabling final merge as "
               + TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " is enabled.");
           finalMergeEnabled = false;
           conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
@@ -185,8 +185,8 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       this.endTime = System.nanoTime();
       returnEvents = generateEvents();
     } else {
-      LOG.warn(
-          "Attempting to close output {} of type {} before it was started. Generating empty events",
+      LOG.warn(getContext().getDestinationVertexName() +
+          ": Attempting to close output {} of type {} before it was started. Generating empty events",
           getContext().getDestinationVertexName(), this.getClass().getSimpleName());
       returnEvents = generateEmptyEvents();
     }

@@ -22,6 +22,7 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.protobuf.ByteString;
 
@@ -32,20 +33,15 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputIdentifier;
-import org.apache.tez.runtime.library.common.shuffle.DiskFetchedInput;
-import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
-import org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
-import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -57,16 +53,24 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleInputEventHandlerImpl.class);
   
   private final ShuffleManager shuffleManager;
+  //TODO: unused. Consider removing later?
   private final FetchedInputAllocator inputAllocator;
   private final CompressionCodec codec;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private final boolean useSharedInputs;
+  private final InputContext inputContext;
+
+  private final AtomicInteger nextToLogEventCount = new AtomicInteger(0);
+  private final AtomicInteger numDmeEvents = new AtomicInteger(0);
+  private final AtomicInteger numObsoletionEvents = new AtomicInteger(0);
+  private final AtomicInteger numDmeEventsNoData = new AtomicInteger(0);
 
   public ShuffleInputEventHandlerImpl(InputContext inputContext,
                                       ShuffleManager shuffleManager,
                                       FetchedInputAllocator inputAllocator, CompressionCodec codec,
                                       boolean ifileReadAhead, int ifileReadAheadLength) {
+    this.inputContext = inputContext;
     this.shuffleManager = shuffleManager;
     this.inputAllocator = inputAllocator;
     this.codec = codec;
@@ -86,13 +90,29 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   
   private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
+      numDmeEvents.incrementAndGet();
       processDataMovementEvent((DataMovementEvent)event);
       shuffleManager.updateEventReceivedTime();
     } else if (event instanceof InputFailedEvent) {
-      processInputFailedEvent((InputFailedEvent)event);
+      numObsoletionEvents.incrementAndGet();
+      processInputFailedEvent((InputFailedEvent) event);
     } else {
       throw new TezUncheckedException("Unexpected event type: " + event.getClass().getName());
     }
+    if (numDmeEvents.get() + numObsoletionEvents.get() > nextToLogEventCount.get()) {
+      logProgress(false);
+      // Log every 50 events seen.
+      nextToLogEventCount.addAndGet(50);
+    }
+  }
+
+  @Override
+  public void logProgress(boolean updateOnClose) {
+    LOG.info(inputContext.getSourceVertexName() + ": "
+        + "numDmeEventsSeen=" + numDmeEvents.get()
+        + ", numDmeEventsSeenWithNoData=" + numDmeEventsNoData.get()
+        + ", numObsoletionEventsSeen=" + numObsoletionEvents.get()
+        + (updateOnClose == true ? ", updateOnClose" : ""));
   }
 
   private void processDataMovementEvent(DataMovementEvent dme) throws IOException {
@@ -104,9 +124,11 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
     }
     int srcIndex = dme.getSourceIndex();
-    LOG.info("DME srcIdx: " + srcIndex + ", targetIndex: " + dme.getTargetIndex()
-        + ", attemptNum: " + dme.getVersion() + ", payload: " + ShuffleUtils
-        .stringify(shufflePayload));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("DME srcIdx: " + srcIndex + ", targetIndex: " + dme.getTargetIndex()
+          + ", attemptNum: " + dme.getVersion() + ", payload: " + ShuffleUtils
+          .stringify(shufflePayload));
+    }
 
     if (shufflePayload.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload
@@ -119,6 +141,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
           LOG.debug("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
               + srcAttemptIdentifier + "]. Not fetching.");
         }
+        numDmeEventsNoData.incrementAndGet();
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         return;
       }

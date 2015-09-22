@@ -404,6 +404,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     @Override
     protected Void callInternal() throws Exception {
+      String oldThreadName = Thread.currentThread().getName();
+      try {
+        Thread.currentThread().setName(oldThreadName + "{" + inputSpec.getSourceVertexName() + "}");
+        return _callInternal();
+      } finally {
+        Thread.currentThread().setName(oldThreadName);
+      }
+    }
+
+    protected Void _callInternal() throws Exception {
+
       if (LOG.isDebugEnabled()) {
         LOG.debug("Initializing Input using InputSpec: " + inputSpec);
       }
@@ -437,6 +448,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     @Override
     protected Void callInternal() throws Exception {
+      String oldThreadName = Thread.currentThread().getName();
+      try {
+        Thread.currentThread().setName(oldThreadName + " Start: {" + srcVertexName + "}");
+        return _callInternal();
+      } finally {
+        Thread.currentThread().setName(oldThreadName);
+      }
+    }
+
+    protected Void _callInternal() throws Exception {
+      Thread.currentThread().setName("InitializerStart {" + srcVertexName + "}");
       if (LOG.isDebugEnabled()) {
         LOG.debug("Starting Input with src edge: " + srcVertexName);
       }
@@ -459,6 +481,17 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     @Override
     protected Void callInternal() throws Exception {
+      String oldThreadName = Thread.currentThread().getName();
+      try {
+        Thread.currentThread().setName(oldThreadName + "{" + outputSpec.getDestinationVertexName() + "}");
+        return _callInternal();
+      } finally {
+        Thread.currentThread().setName(oldThreadName);
+      }
+    }
+
+    protected Void _callInternal() throws Exception {
+      Thread.currentThread().setName("Initializer {" + outputSpec.getDestinationVertexName() + "}");
       if (LOG.isDebugEnabled()) {
         LOG.debug("Initializing Output using OutputSpec: " + outputSpec);
       }
@@ -727,8 +760,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     });
 
-    eventRouterThread.setName("TezTaskEventRouter["
-        + taskSpec.getTaskAttemptID().toString() + "]");
+    eventRouterThread.setName("TezTaskEventRouter{"
+        + taskSpec.getTaskAttemptID().toString() + "}");
     eventRouterThread.start();
   }
 
@@ -756,7 +789,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   }
 
   public void cleanup() throws InterruptedException {
-    LOG.info("Final Counters : " + getCounters().toShortString());
+    LOG.info("Final Counters for " + taskSpec.getTaskAttemptID() + ": " + getCounters().toShortString());
     setTaskDone();
     if (eventRouterThread != null) {
       eventRouterThread.interrupt();

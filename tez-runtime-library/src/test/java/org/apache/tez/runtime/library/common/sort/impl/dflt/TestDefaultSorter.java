@@ -213,19 +213,19 @@ public class TestDefaultSorter {
   public void testSortMBLimits() throws Exception {
 
     assertTrue("Expected " + DefaultSorter.MAX_IO_SORT_MB,
-        DefaultSorter.computeSortBufferSize(4096) == DefaultSorter.MAX_IO_SORT_MB);
+        DefaultSorter.computeSortBufferSize(4096, "") == DefaultSorter.MAX_IO_SORT_MB);
     assertTrue("Expected " + DefaultSorter.MAX_IO_SORT_MB,
-        DefaultSorter.computeSortBufferSize(2047) == DefaultSorter.MAX_IO_SORT_MB);
-    assertTrue("Expected 1024", DefaultSorter.computeSortBufferSize(1024) == 1024);
+        DefaultSorter.computeSortBufferSize(2047, "") == DefaultSorter.MAX_IO_SORT_MB);
+    assertTrue("Expected 1024", DefaultSorter.computeSortBufferSize(1024, "") == 1024);
 
     try {
-      DefaultSorter.computeSortBufferSize(0);
+      DefaultSorter.computeSortBufferSize(0, "");
       fail("Should have thrown error for setting buffer size to 0");
     } catch(RuntimeException re) {
     }
 
     try {
-      DefaultSorter.computeSortBufferSize(-100);
+      DefaultSorter.computeSortBufferSize(-100, "");
       fail("Should have thrown error for setting buffer size to negative value");
     } catch(RuntimeException re) {
     }
