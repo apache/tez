@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2847. Tez UI: Task details doesn't gets updated on manual refresh after job complete
   TEZ-2844. Backport TEZ-2775 to branch-0.7. Improve and consolidate logging in Runtime components.
   TEZ-2843. Tez UI: Show error if in progress fails due to AM not reachable
   TEZ-2842. Tez UI: Update Tez App details page while in-progress
