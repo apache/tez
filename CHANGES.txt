@@ -189,6 +189,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2853. Tez UI: task attempt page is coming empty
   TEZ-2716. DefaultSorter.isRleNeeded not thread safe
   TEZ-2847. Tez UI: Task details doesn't gets updated on manual refresh after job complete
   TEZ-2843. Tez UI: Show error if in progress fails due to AM not reachable

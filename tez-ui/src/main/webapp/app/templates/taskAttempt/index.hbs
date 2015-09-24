@@ -54,7 +54,7 @@
 						<i {{bind-attr class=':task-status taskAttemptIconStatus'}}></i> {{taskAttemptStatus}}
 					</td>
 				</tr>
-        {{#if}}
+        {{#if progress}}
         <tr>
           <td>Progress</td>
           <td>{{bs-progress-animated progressDecimal=progress}}</td>
