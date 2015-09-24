@@ -189,6 +189,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2808. Race condition between preemption and container assignment
   TEZ-2853. Tez UI: task attempt page is coming empty
   TEZ-2716. DefaultSorter.isRleNeeded not thread safe
   TEZ-2847. Tez UI: Task details doesn't gets updated on manual refresh after job complete
@@ -455,6 +456,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2808. Race condition between preemption and container assignment
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2097. TEZ-UI Add dag logs backend support
@@ -680,6 +682,7 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2808. Race condition between preemption and container assignment
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
