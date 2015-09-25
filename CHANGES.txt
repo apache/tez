@@ -279,14 +279,13 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-<<<<<<< HEAD
-=======
+  TEZ-2398. Flaky test: TestFaultTolerance
+  TEZ-2808. Race condition between preemption and container assignment
+  TEZ-2203. Intern strings in tez counters
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2097. TEZ-UI Add dag logs backend support
->>>>>>> 62d9853... TEZ-2834. Make Tez preemption resilient to incorrect free resource reported by YARN (bikas)
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
-  TEZ-2097. TEZ-UI Add dag logs backend support
   TEZ-814.  Improve heuristic for determining a task has failed outputs
   TEZ-2809. Minimal distribution compiled on 2.6 fails to run on 2.7
   TEZ-2768. Log a useful error message when the summary stream cannot be closed when shutting
@@ -508,6 +507,7 @@ INCOMPATIBLE CHANGES
   TEZ-2552. CRC errors can cause job to run for very long time in large jobs.
 
 ALL CHANGES:
+  TEZ-2398. Flaky test: TestFaultTolerance
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2812. Preemption sometimes does not respect heartbeats between preemptions
