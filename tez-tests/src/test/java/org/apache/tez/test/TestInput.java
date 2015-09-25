@@ -75,7 +75,6 @@ public class TestInput extends AbstractLogicalInput {
   Set<Integer> failingInputIndices = Sets.newHashSet();
   Integer failAll = new Integer(-1);
   int[] inputValues;
-  AtomicInteger numEventsReceived = new AtomicInteger(0);
   
   /**
    * Enable failure for this logical input
@@ -193,7 +192,6 @@ public class TestInput extends AbstractLogicalInput {
                 LOG.info("Failing input: " + msg);
               }
             }
-            int numEvents = numEventsReceived.get();
             getContext().sendEvents(events);
             if (doFailAndExit) {
               String msg = "FailingInput exiting: " + getContext().getUniqueIdentifier();
@@ -201,7 +199,15 @@ public class TestInput extends AbstractLogicalInput {
               throwException(msg);
             } else {
               try {
-                while (numEvents == numEventsReceived.get()) {
+                // keep sending input read error until we receive the new input
+                // this check breaks the loop when we see a new input version
+                // thus, when multiple input versions arrive, this methods gets triggered
+                // for each version via wait-notify. But all events may have been processed in 
+                // handleEvents() before the code reaches this point. Having this loop, makes 
+                // it quickly exit for an older version if a newer version has been seen. 
+                // however, if a newer version is not seen then it keeps sending input error 
+                // indefinitely, by design.
+                while (lastInputReadyValue == inputReady.get()) {
                   // keep sending events
                   Thread.sleep(500);
                   getContext().sendEvents(events);
@@ -341,7 +347,6 @@ public class TestInput extends AbstractLogicalInput {
   @Override
   public void handleEvents(List<Event> inputEvents) throws Exception {
     for (Event event : inputEvents) {
-      numEventsReceived.incrementAndGet();
       if (event instanceof DataMovementEvent) {
         DataMovementEvent dmEvent = (DataMovementEvent) event;
         numCompletedInputs++;
