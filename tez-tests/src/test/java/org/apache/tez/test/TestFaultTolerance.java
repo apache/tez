@@ -74,7 +74,7 @@ public class TestFaultTolerance {
     }
     if (miniTezCluster == null) {
       miniTezCluster = new MiniTezCluster(TestFaultTolerance.class.getName(),
-          4, 1, 1);
+          3, 1, 1);
       Configuration miniTezconf = new Configuration(conf);
       miniTezconf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       miniTezCluster.init(miniTezconf);
@@ -242,9 +242,6 @@ public class TestFaultTolerance {
             TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v2"), "0,1");
     testConf.setInt(TestProcessor.getVertexConfName(
             TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 1), 5);
-    //v2 task0 attempt 0 succeeds instantly.
-    testConf.setInt(TestProcessor.getVertexConfName(
-            TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v2", 0), 3);
     
     DAG dag = SimpleTestDAG.createDAG("testBasicInputFailureWithExit", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
