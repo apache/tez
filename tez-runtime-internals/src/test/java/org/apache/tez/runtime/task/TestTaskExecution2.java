@@ -39,6 +39,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -49,6 +50,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.FileSystemCounter;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -58,6 +64,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
@@ -150,7 +157,8 @@ public class TestTaskExecution2 {
       TaskReporter taskReporter = createTaskReporter(appId, umbilical);
 
       TezTaskRunner2 taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
-          TestProcessor.CONF_EMPTY);
+          TestProcessor.CONF_EMPTY, true);
+      LogicalIOProcessorRuntimeTask runtimeTask = taskRunner.task;
       // Setup the executor
       Future<TaskRunner2Result> taskRunnerFuture = taskExecutor.submit(
           new TaskRunnerCallable2ForTest(taskRunner));
@@ -162,9 +170,12 @@ public class TestTaskExecution2 {
       umbilical.verifyTaskSuccessEvent();
       assertFalse(TestProcessor.wasAborted());
       umbilical.resetTrackedEvents();
+      TezCounters tezCounters = runtimeTask.getCounters();
+      verifySysCounters(tezCounters, 5, 5);
 
       taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
-          TestProcessor.CONF_EMPTY);
+          TestProcessor.CONF_EMPTY, false);
+      runtimeTask = taskRunner.task;
       // Setup the executor
       taskRunnerFuture = taskExecutor.submit(new TaskRunnerCallable2ForTest(taskRunner));
       // Signal the processor to go through
@@ -174,10 +185,13 @@ public class TestTaskExecution2 {
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskSuccessEvent();
       assertFalse(TestProcessor.wasAborted());
+      tezCounters = runtimeTask.getCounters();
+      verifySysCounters(tezCounters, -1, -1);
     } finally {
       executor.shutdownNow();
     }
   }
+
 
   // test task failed due to exception in Processor
   @Test(timeout = 5000)
@@ -231,7 +245,7 @@ public class TestTaskExecution2 {
       TaskReporter taskReporter = createTaskReporter(appId, umbilical);
 
       TezTaskRunner2 taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
-          "NotExitedProcessor", TestProcessor.CONF_EMPTY, false);
+          "NotExitedProcessor", TestProcessor.CONF_EMPTY, false, true);
       // Setup the executor
       Future<TaskRunner2Result> taskRunnerFuture =
           taskExecutor.submit(new TaskRunnerCallable2ForTest(taskRunner));
@@ -484,6 +498,35 @@ public class TestTaskExecution2 {
     }
   }
 
+  private void verifySysCounters(TezCounters tezCounters, int minTaskCounterCount, int minFsCounterCount) {
+
+    Preconditions.checkArgument((minTaskCounterCount > 0 && minFsCounterCount > 0) ||
+        (minTaskCounterCount <= 0 && minFsCounterCount <= 0),
+        "Both targetCounter counts should be postitive or negative. A mix is not expected");
+
+    int numTaskCounters = 0;
+    int numFsCounters = 0;
+    for (CounterGroup counterGroup : tezCounters) {
+      if (counterGroup.getName().equals(TaskCounter.class.getName())) {
+        for (TezCounter ignored : counterGroup) {
+          numTaskCounters++;
+        }
+      } else if (counterGroup.getName().equals(FileSystemCounter.class.getName())) {
+        for (TezCounter ignored : counterGroup) {
+          numFsCounters++;
+        }
+      }
+    }
+
+    // If Target <=0, assert counter count is exactly 0
+    if (minTaskCounterCount <= 0) {
+      assertEquals(0, numTaskCounters);
+      assertEquals(0, numFsCounters);
+    } else {
+      assertTrue(numTaskCounters >= minTaskCounterCount);
+      assertTrue(numFsCounters >= minFsCounterCount);
+    }
+  }
 
   private void verifyTaskRunnerResult(TaskRunner2Result taskRunner2Result,
                                       EndReason expectedEndReason, Throwable expectedThrowable,
@@ -530,10 +573,20 @@ public class TestTaskExecution2 {
   private TezTaskRunner2 createTaskRunner(ApplicationId appId,
                                           TaskExecutionTestHelpers.TezTaskUmbilicalForTest umbilical,
                                           TaskReporter taskReporter,
-                                          ListeningExecutorService executor, byte[] processorConf)
+                                          ListeningExecutorService executor, byte[] processorConf) throws
+      IOException {
+    return createTaskRunner(appId, umbilical, taskReporter, executor, processorConf, true);
+
+  }
+
+  private TezTaskRunner2 createTaskRunner(ApplicationId appId,
+                                          TaskExecutionTestHelpers.TezTaskUmbilicalForTest umbilical,
+                                          TaskReporter taskReporter,
+                                          ListeningExecutorService executor, byte[] processorConf,
+                                          boolean updateSysCounters)
       throws IOException {
     return createTaskRunner(appId, umbilical, taskReporter, executor, TestProcessor.class.getName(),
-        processorConf, false);
+        processorConf, false, updateSysCounters);
   }
 
   private TezTaskRunner2ForTest createTaskRunnerForTest(ApplicationId appId,
@@ -544,14 +597,15 @@ public class TestTaskExecution2 {
       throws IOException {
     return (TezTaskRunner2ForTest) createTaskRunner(appId, umbilical, taskReporter, executor,
         TestProcessor.class.getName(),
-        processorConf, true);
+        processorConf, true, true);
   }
 
   private TezTaskRunner2 createTaskRunner(ApplicationId appId,
                                           TaskExecutionTestHelpers.TezTaskUmbilicalForTest umbilical,
                                           TaskReporter taskReporter,
                                           ListeningExecutorService executor, String processorClass,
-                                          byte[] processorConf, boolean testRunner) throws
+                                          byte[] processorConf, boolean testRunner,
+                                          boolean updateSysCounters) throws
       IOException {
     TezConfiguration tezConf = new TezConfiguration(defaultConf);
     UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
@@ -574,13 +628,13 @@ public class TestTaskExecution2 {
           new HashMap<String, ByteBuffer>(), new HashMap<String, String>(),
           HashMultimap.<String, String>create(), taskReporter,
           executor, null, "", new ExecutionContextImpl("localhost"),
-          Runtime.getRuntime().maxMemory());
+          Runtime.getRuntime().maxMemory(), updateSysCounters);
     } else {
       taskRunner = new TezTaskRunner2(tezConf, ugi, localDirs, taskSpec, 1,
           new HashMap<String, ByteBuffer>(), new HashMap<String, String>(),
           HashMultimap.<String, String>create(), taskReporter,
           executor, null, "", new ExecutionContextImpl("localhost"),
-          Runtime.getRuntime().maxMemory());
+          Runtime.getRuntime().maxMemory(), updateSysCounters);
     }
 
     return taskRunner;
@@ -604,10 +658,11 @@ public class TestTaskExecution2 {
                                  ObjectRegistry objectRegistry,
                                  String pid,
                                  ExecutionContext executionContext,
-                                 long memAvailable) throws IOException {
+                                 long memAvailable,
+                                 boolean updateSysCounters) throws IOException {
       super(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
           serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry, pid,
-          executionContext, memAvailable);
+          executionContext, memAvailable, updateSysCounters);
     }
 
 

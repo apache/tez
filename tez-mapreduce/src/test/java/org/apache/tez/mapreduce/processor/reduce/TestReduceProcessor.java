@@ -224,7 +224,7 @@ public class TestReduceProcessor {
         serviceConsumerMetadata,
         serviceProviderEnvMap,
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory());
+        Runtime.getRuntime().maxMemory(), true);
 
     List<Event> destEvents = new LinkedList<Event>();
     destEvents.add(dme);

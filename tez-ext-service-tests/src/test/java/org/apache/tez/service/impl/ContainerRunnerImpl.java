@@ -305,7 +305,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
               request.getContainerIdString(),
               request.getTokenIdentifier(), request.getAppAttemptNumber(), workingDir, localDirs,
               envMap, objectRegistry, pid,
-              executionContext, credentials, memoryAvailable, request.getUser(), null);
+              executionContext, credentials, memoryAvailable, request.getUser(), null, false);
       ContainerExecutionResult result = tezChild.run();
       LOG.info("ExecutionTime for Container: " + request.getContainerIdString() + "=" +
           sw.stop().elapsedMillis());
@@ -449,7 +449,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           request.getAppAttemptNumber(),
           serviceConsumerMetadata, envMap, startedInputsMap, taskReporter, executor, objectRegistry,
           pid,
-          executionContext, memoryAvailable);
+          executionContext, memoryAvailable, false);
 
       boolean shouldDie;
       try {

@@ -56,7 +56,7 @@ public abstract class RuntimeTask {
   private final TaskStatistics statistics;
 
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
-      TezUmbilical tezUmbilical, String pid) {
+      TezUmbilical tezUmbilical, String pid, boolean setupSysCounterUpdater) {
     this.taskSpec = taskSpec;
     this.tezConf = tezConf;
     this.tezUmbilical = tezUmbilical;
@@ -67,7 +67,11 @@ public abstract class RuntimeTask {
     this.progress = 0.0f;
     this.taskDone = new AtomicBoolean(false);
     this.statistics = new TaskStatistics();
-    this.counterUpdater = new TaskCounterUpdater(tezCounters, tezConf, pid);
+    if (setupSysCounterUpdater) {
+      this.counterUpdater = new TaskCounterUpdater(tezCounters, tezConf, pid);
+    } else {
+      this.counterUpdater = null;
+    }
   }
 
   protected enum State {
@@ -160,7 +164,9 @@ public abstract class RuntimeTask {
   }
   
   public void setFrameworkCounters() {
-    this.counterUpdater.updateCounters();
+    if (counterUpdater != null) {
+      this.counterUpdater.updateCounters();
+    }
   }
 
   protected void setTaskDone() {

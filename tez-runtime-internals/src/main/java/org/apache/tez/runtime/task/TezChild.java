@@ -109,6 +109,7 @@ public class TezChild {
   private final long memAvailable;
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   private final String user;
+  private final boolean updateSysCounters;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
   private final boolean ownUmbilical;
@@ -123,8 +124,8 @@ public class TezChild {
       Map<String, String> serviceProviderEnvMap,
       ObjectRegistryImpl objectRegistry, String pid,
       ExecutionContext executionContext,
-      Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical)
-      throws IOException, InterruptedException {
+      Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical,
+      boolean updateSysCounters) throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -136,6 +137,7 @@ public class TezChild {
     this.credentials = credentials;
     this.memAvailable = memAvailable;
     this.user = user;
+    this.updateSysCounters = updateSysCounters;
 
     getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
@@ -248,7 +250,7 @@ public class TezChild {
         TezTaskRunner2 taskRunner = new TezTaskRunner2(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
-            executor, objectRegistry, pid, executionContext, memAvailable);
+            executor, objectRegistry, pid, executionContext, memAvailable, updateSysCounters);
         boolean shouldDie;
         try {
           TaskRunner2Result result = taskRunner.run();
@@ -433,7 +435,7 @@ public class TezChild {
       String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
       Map<String, String> serviceProviderEnvMap, @Nullable String pid,
       ExecutionContext executionContext, Credentials credentials, long memAvailable, String user,
-      TezTaskUmbilicalProtocol tezUmbilical)
+      TezTaskUmbilicalProtocol tezUmbilical, boolean updateSysCounters)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -446,7 +448,7 @@ public class TezChild {
 
     return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
         attemptNumber, workingDirectory, localDirs, serviceProviderEnvMap, objectRegistry, pid,
-        executionContext, credentials, memAvailable, user, tezUmbilical);
+        executionContext, credentials, memAvailable, user, tezUmbilical, updateSysCounters);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
@@ -482,7 +484,7 @@ public class TezChild {
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
         credentials, Runtime.getRuntime().maxMemory(), System
-            .getenv(ApplicationConstants.Environment.USER.toString()), null);
+            .getenv(ApplicationConstants.Environment.USER.toString()), null, true);
     tezChild.run();
   }
 

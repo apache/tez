@@ -156,10 +156,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> envMap,
       Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry,
-      String pid, ExecutionContext ExecutionContext, long memAvailable) throws IOException {
+      String pid, ExecutionContext ExecutionContext, long memAvailable,
+      boolean updateSysCounters) throws IOException {
     // Note: If adding any fields here, make sure they're cleaned up in the cleanupContext method.
     // TODO Remove jobToken from here post TEZ-421
-    super(taskSpec, tezConf, tezUmbilical, pid);
+    super(taskSpec, tezConf, tezUmbilical, pid, updateSysCounters);
     LOG.info("Initializing LogicalIOProcessorRuntimeTask with TaskSpec: "
         + taskSpec);
     int numInputs = taskSpec.getInputs().size();

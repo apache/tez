@@ -232,7 +232,7 @@ public class MapUtils {
         serviceConsumerMetadata,
         envMap,
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory());
+        Runtime.getRuntime().maxMemory(), true);
     return task;
   }
 }

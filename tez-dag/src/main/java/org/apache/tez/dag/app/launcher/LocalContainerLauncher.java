@@ -356,7 +356,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
             attemptNumber, localDirs, workingDirectory, containerEnv, "", executionContext, credentials,
-            memAvailable, context.getUser(), tezTaskUmbilicalProtocol);
+            memAvailable, context.getUser(), tezTaskUmbilicalProtocol, false);
     return tezChild;
   }
 

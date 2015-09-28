@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2836. Avoid setting framework/system counters for tasks running in threads.
   TEZ-2398. Flaky test: TestFaultTolerance
   TEZ-2833. Dont create extra directory during ATS file download
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported

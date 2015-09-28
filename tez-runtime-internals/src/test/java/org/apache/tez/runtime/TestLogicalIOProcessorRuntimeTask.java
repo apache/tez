@@ -25,7 +25,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,7 +34,6 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -44,7 +42,6 @@ import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Reader;
@@ -85,7 +82,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
-        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
+        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true);
 
     try {
       lio1.initialize();
@@ -113,7 +110,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
-        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory());
+        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true);
     try {
       lio2.initialize();
       lio2.run();

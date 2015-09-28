@@ -55,7 +55,8 @@ public class TezTaskRunner2 {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezTaskRunner2.class);
 
-  private final LogicalIOProcessorRuntimeTask task;
+  @VisibleForTesting
+  final LogicalIOProcessorRuntimeTask task;
   private final UserGroupInformation ugi;
 
   private final TaskReporterInterface taskReporter;
@@ -100,7 +101,8 @@ public class TezTaskRunner2 {
                         Multimap<String, String> startedInputsMap,
                         TaskReporterInterface taskReporter, ListeningExecutorService executor,
                         ObjectRegistry objectRegistry, String pid,
-                        ExecutionContext executionContext, long memAvailable) throws
+                        ExecutionContext executionContext, long memAvailable,
+                        boolean updateSysCounters) throws
       IOException {
     this.ugi = ugi;
     this.taskReporter = taskReporter;
@@ -108,7 +110,7 @@ public class TezTaskRunner2 {
     this.umbilicalAndErrorHandler = new UmbilicalAndErrorHandler();
     this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
-        objectRegistry, pid, executionContext, memAvailable);
+        objectRegistry, pid, executionContext, memAvailable, updateSysCounters);
   }
 
   /**
