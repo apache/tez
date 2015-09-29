@@ -156,6 +156,13 @@ message ConfigurationProto {
   repeated PlanKeyValuePair confKeyValues = 1;
 }
 
+message CallerContextProto {
+  optional string context = 1;
+  optional string callerType = 2;
+  optional string callerId = 3;
+  optional string blob = 4;
+}
+
 message DAGPlan {
   required string name = 1;
   repeated VertexPlan vertex = 2;
@@ -165,6 +172,7 @@ message DAGPlan {
   repeated PlanVertexGroupInfo vertex_groups = 6;
   repeated PlanLocalResource local_resource = 7;
   optional string dag_info = 8;
+  optional CallerContextProto caller_context = 10;
 }
 
 // DAG monitoring messages

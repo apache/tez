@@ -44,6 +44,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.impl.pb.LocalResourcePBImpl;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.CounterGroup;
@@ -55,6 +56,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezSessionStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.CallerContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.EdgePlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeDataMovementType;
@@ -476,7 +478,7 @@ public class DagTypeConverters {
       PlanLocalResourcesProto.newBuilder();
     for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
       PlanLocalResource plr = convertLocalResourceToPlanLocalResource(
-        entry.getKey(), entry.getValue());
+          entry.getKey(), entry.getValue());
       builder.addLocalResources(plr);
     }
     return builder.build();
@@ -684,6 +686,30 @@ public class DagTypeConverters {
       return null;
     }
     return payload.getPayload();
+  }
+
+  public static CallerContextProto convertCallerContextToProto(CallerContext callerContext) {
+    CallerContextProto.Builder callerContextBuilder = CallerContextProto.newBuilder();
+    callerContextBuilder.setContext(callerContext.getContext());
+    if (callerContext.getCallerId() != null) {
+      callerContextBuilder.setCallerId(callerContext.getCallerId());
+    }
+    if (callerContext.getCallerType() != null) {
+      callerContextBuilder.setCallerType(callerContext.getCallerType());
+    }
+    if (callerContext.getBlob() != null) {
+      callerContextBuilder.setBlob(callerContext.getBlob());
+    }
+    return callerContextBuilder.build();
+  }
+
+  public static CallerContext convertCallerContextFromProto(CallerContextProto proto) {
+    CallerContext callerContext = CallerContext.create(proto.getContext(),
+        (proto.hasBlob() ? proto.getBlob() : null));
+    if (proto.hasCallerType() && proto.hasCallerId()) {
+      callerContext.setCallerIdAndType(proto.getCallerId(), proto.getCallerType());
+    }
+    return callerContext;
   }
 
 }
