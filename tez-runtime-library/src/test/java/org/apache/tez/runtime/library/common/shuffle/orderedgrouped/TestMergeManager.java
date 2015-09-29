@@ -21,6 +21,8 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -32,6 +34,8 @@ import java.util.List;
 import java.util.UUID;
 
 import com.google.common.collect.Sets;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -416,6 +420,14 @@ public class TestMergeManager {
       t0mergeManager.onDiskMerger.merge(t0MergeFiles);
       Assert.assertEquals(1, t0mergeManager.onDiskMapOutputs.size());
     } else {
+
+      doAnswer(new Answer() {
+        @Override public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+          //Simulate artificial delay so that interrupting thread can get a chance
+          Thread.sleep(2000);
+          return invocationOnMock.callRealMethod();
+        }
+      }).when(t0mergeManager).closeOnDiskFile(any(FileChunk.class));
 
       //Start Interrupting thread
       Thread interruptingThread = new Thread(new InterruptingThread(t0mergeManager.onDiskMerger));
