@@ -49,6 +49,7 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.TezUtils;
@@ -276,7 +277,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     vertices.add(finalReduceVertex);
 
     DAG dag = DAG.create("OrderedWordCount" + dagIndex);
-    dag.setDAGInfo("{ \"context\": \"Tez\", \"description\": \"TestOrderedWordCount Job\" }");
+    dag.setCallerContext(CallerContext.create("Tez", "TestOrderedWordCount Job"));
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
     }

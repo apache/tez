@@ -248,7 +248,7 @@ public class HistoryEventTimelineConversion {
         event.getApplicationAttemptId().getApplicationId().toString());
 
     atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID,
-            event.getContainerId().toString());
+        event.getContainerId().toString());
     atsEntity.setStartTime(event.getLaunchTime());
 
     TimelineEvent launchEvt = new TimelineEvent();
@@ -391,6 +391,15 @@ public class HistoryEventTimelineConversion {
     atsEntity.addPrimaryFilter(ATSConstants.APPLICATION_ID,
         event.getDagID().getApplicationId().toString());
 
+    if (event.getDAGPlan().hasCallerContext()
+        && event.getDAGPlan().getCallerContext().hasCallerId()
+        && event.getDAGPlan().getCallerContext().hasCallerType()) {
+      atsEntity.addPrimaryFilter(ATSConstants.CALLER_CONTEXT_ID,
+          event.getDAGPlan().getCallerContext().getCallerId());
+      atsEntity.addPrimaryFilter(ATSConstants.CALLER_CONTEXT_TYPE,
+          event.getDAGPlan().getCallerContext().getCallerType());
+    }
+
     try {
       atsEntity.addOtherInfo(ATSConstants.DAG_PLAN,
           DAGUtils.convertDAGPlanToATSMap(event.getDAGPlan()));
@@ -405,6 +414,14 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.DAG_AM_WEB_SERVICE_VERSION, AMWebController.VERSION);
     atsEntity.addOtherInfo(ATSConstants.IN_PROGRESS_LOGS_URL + "_"
         + event.getApplicationAttemptId().getAttemptId(), event.getContainerLogs());
+    if (event.getDAGPlan().hasCallerContext()
+        && event.getDAGPlan().getCallerContext().hasCallerId()
+        && event.getDAGPlan().getCallerContext().hasCallerType()) {
+      atsEntity.addOtherInfo(ATSConstants.CALLER_CONTEXT_ID,
+          event.getDAGPlan().getCallerContext().getCallerId());
+      atsEntity.addOtherInfo(ATSConstants.CALLER_CONTEXT_TYPE,
+          event.getDAGPlan().getCallerContext().getCallerType());
+    }
 
     return atsEntity;
   }

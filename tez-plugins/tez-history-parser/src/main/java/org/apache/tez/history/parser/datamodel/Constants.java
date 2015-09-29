@@ -50,10 +50,15 @@ public class Constants extends ATSConstants {
   public static final String INITIALIZER = "initializer";
   public static final String USER_PAYLOAD_TEXT = "userPayloadAsText";
 
+  public static final String DAG_CONTEXT = "dagContext";
+
   //constants for ATS data export
   public static final String DAG = "dag";
   public static final String VERTICES = "vertices";
   public static final String TASKS = "tasks";
   public static final String TASK_ATTEMPTS = "task_attempts";
   public static final String APPLICATION = "application";
+
+
+
 }

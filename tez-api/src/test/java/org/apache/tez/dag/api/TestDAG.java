@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api;
 
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
@@ -306,6 +307,29 @@ public class TestDAG {
     } catch (IllegalArgumentException e) {
       Assert.assertEquals("Duplicated output:output_1, vertexName=v1", e.getMessage());
     }
+  }
+
+  @Test
+  public void testCallerContext() {
+    DAG dag = DAG.create("dag1");
+    try {
+      CallerContext callerContext = CallerContext.create("ctxt", "", "", "desc");
+      Assert.fail("Expected failure for invalid args");
+    } catch (Exception e) {
+      // Expected
+    }
+    try {
+      CallerContext callerContext = CallerContext.create("", "desc");
+      Assert.fail("Expected failure for invalid args");
+    } catch (Exception e) {
+      // Expected
+    }
+
+    CallerContext callerContext;
+    callerContext = CallerContext.create("ctxt", "a", "a", "desc");
+    callerContext = CallerContext.create("ctxt", "desc");
+    callerContext = CallerContext.create("ctxt", null);
+
   }
 
 }

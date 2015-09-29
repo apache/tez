@@ -483,6 +483,15 @@ public class HistoryEventJsonConversion {
     JSONObject primaryFilters = new JSONObject();
     primaryFilters.put(ATSConstants.DAG_NAME,
         event.getDAGName());
+    if (event.getDAGPlan().hasCallerContext()
+        && event.getDAGPlan().getCallerContext().hasCallerId()
+        && event.getDAGPlan().getCallerContext().hasCallerType()) {
+      primaryFilters.put(ATSConstants.CALLER_CONTEXT_ID,
+          event.getDAGPlan().getCallerContext().getCallerId());
+      primaryFilters.put(ATSConstants.CALLER_CONTEXT_TYPE,
+          event.getDAGPlan().getCallerContext().getCallerType());
+    }
+
     jsonObject.put(ATSConstants.PRIMARY_FILTERS, primaryFilters);
 
     // TODO decide whether this goes into different events,
@@ -499,6 +508,14 @@ public class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.DAG_PLAN,
         DAGUtils.generateSimpleJSONPlan(event.getDAGPlan()));
+    if (event.getDAGPlan().hasCallerContext()
+        && event.getDAGPlan().getCallerContext().hasCallerId()
+        && event.getDAGPlan().getCallerContext().hasCallerType()) {
+      otherInfo.put(ATSConstants.CALLER_CONTEXT_ID,
+          event.getDAGPlan().getCallerContext().getCallerId());
+      otherInfo.put(ATSConstants.CALLER_CONTEXT_TYPE,
+          event.getDAGPlan().getCallerContext().getCallerType());
+    }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;

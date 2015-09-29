@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
   TEZ-2859. TestMergeManager.testLocalDiskMergeMultipleTasks failing
   TEZ-2858. Stop using System.currentTimeMillis in TestInputReadyTracker.
   TEZ-2857. Fix flakey tests in TestDAGImpl.
@@ -194,6 +195,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
   TEZ-2858. Stop using System.currentTimeMillis in TestInputReadyTracker.
   TEZ-2857. Fix flakey tests in TestDAGImpl.
   TEZ-2398. Flaky test: TestFaultTolerance
@@ -464,6 +466,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
   TEZ-2398. Flaky test: TestFaultTolerance
   TEZ-2808. Race condition between preemption and container assignment
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported

@@ -190,6 +190,13 @@ message ConfigurationProto {
   optional AMPluginDescriptorProto am_plugin_descriptor = 2;
 }
 
+message CallerContextProto {
+  optional string context = 1;
+  optional string callerType = 2;
+  optional string callerId = 3;
+  optional string blob = 4;
+}
+
 message DAGPlan {
   required string name = 1;
   repeated VertexPlan vertex = 2;
@@ -200,6 +207,7 @@ message DAGPlan {
   repeated PlanLocalResource local_resource = 7;
   optional string dag_info = 8;
   optional VertexExecutionContextProto default_execution_context = 9;
+  optional CallerContextProto caller_context = 10;
 }
 
 // DAG monitoring messages

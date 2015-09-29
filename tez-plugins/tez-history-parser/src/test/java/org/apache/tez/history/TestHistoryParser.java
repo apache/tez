@@ -33,7 +33,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
@@ -645,6 +647,16 @@ public class TestHistoryParser {
         Edge.create(tokenizerVertex, summationVertex, edgeConf.createDefaultEdgeProperty()));
 
     TezClient tezClient = getTezClient(withTimeline);
+
+    // Update Caller Context
+    CallerContext callerContext = CallerContext.create("TezExamples", "Tez WordCount Example Job");
+    ApplicationId appId = tezClient.getAppMasterApplicationId();
+    if (appId == null) {
+      appId = ApplicationId.newInstance(1001l, 1);
+    }
+    callerContext.setCallerIdAndType(appId.toString(), "TezApplication");
+    dag.setCallerContext(callerContext);
+
     DAGClient client = tezClient.submitDAG(dag);
     client.waitForCompletionWithStatusUpdates(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
     TezDAGID tezDAGID = TezDAGID.getInstance(tezClient.getAppMasterApplicationId(), 1);
@@ -689,6 +701,12 @@ public class TestHistoryParser {
 
     assertTrue(dagInfo.getStartTime() > dagInfo.getSubmitTime());
     assertTrue(dagInfo.getTimeTaken() > 0);
+
+    assertNotNull(dagInfo.getCallerContext());
+    assertEquals("TezExamples", dagInfo.getCallerContext().getContext());
+    assertEquals("Tez WordCount Example Job", dagInfo.getCallerContext().getBlob());
+    assertNotNull(dagInfo.getCallerContext().getCallerId());
+    assertEquals("TezApplication", dagInfo.getCallerContext().getCallerType());
 
     //Verify all vertices
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {

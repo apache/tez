@@ -28,6 +28,8 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.client.CallerContext;
+import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -53,6 +55,7 @@ import com.google.common.collect.Sets;
 
 public class TestDAGUtils {
 
+  @SuppressWarnings("deprecation")
   private DAGPlan createDAG() {
     // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
     Configuration conf = new Configuration(false);
@@ -71,6 +74,7 @@ public class TestDAGUtils {
         dummyTaskCount, dummyTaskResource);
 
     DAG dag = DAG.create("testDag");
+    dag.setCallerContext(CallerContext.create("context1", "callerId1", "callerType1", "desc1"));
     dag.setDAGInfo("dagInfo");
     String groupName1 = "uv12";
     org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
@@ -113,10 +117,17 @@ public class TestDAGUtils {
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
     Assert.assertEquals("testDag", atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
+    Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_CONTEXT_KEY));
+    Map<String, String> contextMap = (Map<String, String>)atsMap.get(DAGUtils.DAG_CONTEXT_KEY);
+    Assert.assertEquals("context1", contextMap.get(ATSConstants.CONTEXT));
+    Assert.assertEquals("callerId1", contextMap.get(ATSConstants.CALLER_ID));
+    Assert.assertEquals("callerType1", contextMap.get(ATSConstants.CALLER_TYPE));
+    Assert.assertEquals("desc1", contextMap.get(ATSConstants.DESCRIPTION));
+
     Assert.assertEquals("dagInfo", atsMap.get(DAGUtils.DAG_INFO_KEY));
     Assert.assertEquals(dagPlan.getName(), atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey("version"));
-    Assert.assertEquals(1, atsMap.get("version"));
+    Assert.assertEquals(2, atsMap.get("version"));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.VERTICES_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.EDGES_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.VERTEX_GROUPS_KEY));
