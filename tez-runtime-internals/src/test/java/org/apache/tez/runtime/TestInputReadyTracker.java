@@ -64,10 +64,10 @@ public class TestInputReadyTracker {
     assertFalse(input2.isReady);
     assertEquals(input1, readyInput);
     
-    startTime = System.currentTimeMillis();
+    startTime = System.nanoTime();
     setDelayedInputReady(input2);
     inputReadyTracker.waitForAllInputsReady(requestList);
-    readyTime = System.currentTimeMillis();
+    readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
     // Ensure the method returned only after the specific Input was told it is ready
     assertTrue(input2.isReady);
@@ -93,11 +93,11 @@ public class TestInputReadyTracker {
     requestList.add(input2);
     requestList.add(input3);
     
-    startTime = System.currentTimeMillis();
+    startTime = System.nanoTime();
     setDelayedInputReady(input2);
     Input readyInput = inputReadyTracker.waitForAnyInputReady(requestList);
     assertEquals(input2, readyInput);
-    readyTime = System.currentTimeMillis();
+    readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
     // Ensure the method returned only after the specific Input was told it is ready
     assertTrue(input2.isReady);
@@ -108,11 +108,11 @@ public class TestInputReadyTracker {
     requestList = new ArrayList<Input>();
     requestList.add(input1);
     requestList.add(input3);
-    startTime = System.currentTimeMillis();
+    startTime = System.nanoTime();
     setDelayedInputReady(input1);
     readyInput = inputReadyTracker.waitForAnyInputReady(requestList);
     assertEquals(input1, readyInput);
-    readyTime = System.currentTimeMillis();
+    readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
     // Ensure the method returned only after the specific Input was told it is ready
     assertTrue(input1.isReady);
@@ -122,11 +122,11 @@ public class TestInputReadyTracker {
     
     requestList = new ArrayList<Input>();
     requestList.add(input3);
-    startTime = System.currentTimeMillis();
+    startTime = System.nanoTime();
     setDelayedInputReady(input3);
     readyInput = inputReadyTracker.waitForAnyInputReady(requestList);
     assertEquals(input3, readyInput);
-    readyTime = System.currentTimeMillis();
+    readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
     // Ensure the method returned only after the specific Input was told it is ready
     assertTrue(input3.isReady);
@@ -185,10 +185,10 @@ public class TestInputReadyTracker {
     requestList.add(group2);
     
     
-    startTime = System.currentTimeMillis();
+    startTime = System.nanoTime();
     setDelayedInputReady(input4);
     inputReadyTracker.waitForAllInputsReady(requestList);
-    readyTime = System.currentTimeMillis();
+    readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
     // Ensure the method returned only after the specific Input was told it is ready
     assertTrue(group2.isReady);
@@ -199,7 +199,7 @@ public class TestInputReadyTracker {
   }
   
   private long setDelayedInputReady(final ControlledReadyInputForTest input) {
-    long startTime = System.currentTimeMillis();
+    long startTime = System.nanoTime();
     new Thread() {
       public void run() {
         try {
