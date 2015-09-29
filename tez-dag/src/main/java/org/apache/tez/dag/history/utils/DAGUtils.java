@@ -49,10 +49,13 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+import com.google.common.base.Preconditions;
+
 public class DAGUtils {
 
   public static final String DAG_NAME_KEY = "dagName";
   public static final String DAG_INFO_KEY = "dagInfo";
+  public static final String DAG_CONTEXT_KEY = "dagContext";
   public static final String VERTICES_KEY = "vertices";
   public static final String EDGES_KEY = "edges";
   public static final String VERTEX_GROUPS_KEY = "vertexGroups";
@@ -165,14 +168,33 @@ public class DAGUtils {
     return object;
   }
 
+  static Map<String, String> createDagInfoMap(DAGPlan dagPlan) {
+    Preconditions.checkArgument(dagPlan.hasCallerContext());
+    Map<String, String> dagInfo = new TreeMap<String, String>();
+    dagInfo.put(ATSConstants.CONTEXT, dagPlan.getCallerContext().getContext());
+    if (dagPlan.getCallerContext().hasCallerId()) {
+      dagInfo.put(ATSConstants.CALLER_ID, dagPlan.getCallerContext().getCallerId());
+    }
+    if (dagPlan.getCallerContext().hasCallerType()) {
+      dagInfo.put(ATSConstants.CALLER_TYPE, dagPlan.getCallerContext().getCallerType());
+    }
+    if (dagPlan.getCallerContext().hasBlob()) {
+      dagInfo.put(ATSConstants.DESCRIPTION, dagPlan.getCallerContext().getBlob());
+    }
+    return dagInfo;
+  }
+
   public static Map<String,Object> convertDAGPlanToATSMap(DAGPlan dagPlan) throws IOException {
 
     final String VERSION_KEY = "version";
-    final int version = 1;
+    final int version = 2;
     Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
     dagMap.put(DAG_NAME_KEY, dagPlan.getName());
     if (dagPlan.hasDagInfo()) {
       dagMap.put(DAG_INFO_KEY, dagPlan.getDagInfo());
+    }
+    if (dagPlan.hasCallerContext()) {
+      dagMap.put(DAG_CONTEXT_KEY, createDagInfoMap(dagPlan));
     }
     dagMap.put(VERSION_KEY, version);
     ArrayList<Object> verticesList = new ArrayList<Object>();

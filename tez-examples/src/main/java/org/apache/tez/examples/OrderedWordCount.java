@@ -20,6 +20,7 @@ package org.apache.tez.examples;
 
 import java.io.IOException;
 
+import org.apache.tez.client.CallerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;

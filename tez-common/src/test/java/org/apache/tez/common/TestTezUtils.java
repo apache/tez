@@ -168,7 +168,7 @@ public class TestTezUtils {
 
     JSONObject jsonObject = new JSONObject(confToJson);
 
-    Assert.assertFalse(jsonObject.has(ATSConstants.DESCRIPTION));
+    Assert.assertFalse(jsonObject.has(ATSConstants.DESC));
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
 
     JSONObject confObject = jsonObject.getJSONObject(ATSConstants.CONFIG);
@@ -178,8 +178,8 @@ public class TestTezUtils {
     confToJson = TezUtils.convertToHistoryText(desc, conf);
     jsonObject = new JSONObject(confToJson);
 
-    Assert.assertTrue(jsonObject.has(ATSConstants.DESCRIPTION));
-    String descFromJson = jsonObject.getString(ATSConstants.DESCRIPTION);
+    Assert.assertTrue(jsonObject.has(ATSConstants.DESC));
+    String descFromJson = jsonObject.getString(ATSConstants.DESC);
     Assert.assertEquals(desc, descFromJson);
 
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
@@ -201,7 +201,7 @@ public class TestTezUtils {
 
     JSONObject jsonObject = new JSONObject(confToJson);
 
-    Assert.assertFalse(jsonObject.has(ATSConstants.DESCRIPTION));
+    Assert.assertFalse(jsonObject.has(ATSConstants.DESC));
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
 
     JSONObject confObject = jsonObject.getJSONObject(ATSConstants.CONFIG);
@@ -213,8 +213,8 @@ public class TestTezUtils {
     confToJson = TezUtils.convertToHistoryText(desc, conf);
     jsonObject = new JSONObject(confToJson);
 
-    Assert.assertTrue(jsonObject.has(ATSConstants.DESCRIPTION));
-    String descFromJson = jsonObject.getString(ATSConstants.DESCRIPTION);
+    Assert.assertTrue(jsonObject.has(ATSConstants.DESC));
+    String descFromJson = jsonObject.getString(ATSConstants.DESC);
     Assert.assertEquals(desc, descFromJson);
 
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));

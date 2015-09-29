@@ -45,6 +45,8 @@ public class ATSConstants {
   public static final String NODE_ID = "nodeId";
   public static final String NODE_HTTP_ADDRESS = "nodeHttpAddress";
   public static final String USER = "user";
+  public static final String CALLER_CONTEXT_ID = "callerId";
+  public static final String CALLER_CONTEXT_TYPE = "callerType";
 
   /* Keys used in other info */
   public static final String APP_SUBMIT_TIME = "appSubmitTime";
@@ -108,12 +110,18 @@ public class ATSConstants {
       "yarn.timeline-service.webapp.https.address";
 
   /* History text related Keys */
-  public static final String DESCRIPTION = "desc";
+  public static final String DESC = "desc";
   public static final String CONFIG = "config";
 
   public static final String TEZ_VERSION = "tezVersion";
   public static final String VERSION = "version";
   public static final String REVISION = "revision";
   public static final String BUILD_TIME = "buildTime";
+
+  /* Caller Context Related Keys */
+  public static final String CONTEXT = "context";
+  public static final String CALLER_ID = "callerId";
+  public static final String CALLER_TYPE = "callerType";
+  public static final String DESCRIPTION = "description";
 
 }

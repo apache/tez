@@ -58,6 +58,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
 import org.apache.tez.dag.history.events.DAGRecoveredEvent;
@@ -2219,7 +2220,14 @@ public class DAGAppMaster extends AbstractService {
       cumulativeAdditionalResources.putAll(lrDiff);
     }
 
-    LOG.info("Running DAG: " + dagPlan.getName());
+    String callerContextStr = "";
+    if (dagPlan.hasCallerContext()) {
+      CallerContext callerContext = DagTypeConverters.convertCallerContextFromProto(
+          dagPlan.getCallerContext());
+      callerContextStr = ", callerContext=" + callerContext.toString();
+    }
+    LOG.info("Running DAG: " + dagPlan.getName() + callerContextStr);
+
     String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
     System.err.println(timeStamp + " Running Dag: "+ newDAG.getID());
     System.out.println(timeStamp + " Running Dag: "+ newDAG.getID());
