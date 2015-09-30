@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
   TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
   TEZ-2859. TestMergeManager.testLocalDiskMergeMultipleTasks failing
   TEZ-2858. Stop using System.currentTimeMillis in TestInputReadyTracker.
@@ -195,6 +196,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
   TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
   TEZ-2858. Stop using System.currentTimeMillis in TestInputReadyTracker.
   TEZ-2857. Fix flakey tests in TestDAGImpl.
