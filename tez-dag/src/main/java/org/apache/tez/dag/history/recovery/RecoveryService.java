@@ -306,11 +306,13 @@ public class RecoveryService extends AbstractService {
         try {
           SummaryEvent summaryEvent = (SummaryEvent) event.getHistoryEvent();
           handleSummaryEvent(dagId, eventType, summaryEvent);
-          summaryStream.hflush();
           if (summaryEvent.writeToRecoveryImmediately()) {
             handleRecoveryEvent(event);
-            doFlush(outputStreamMap.get(event.getDagID()),
-                appContext.getClock().getTime());
+            // outputStream may already be closed and removed
+            if (outputStreamMap.containsKey(event.getDagID())) {
+              doFlush(outputStreamMap.get(event.getDagID()),
+                  appContext.getClock().getTime());
+            }
           } else {
             if (LOG.isDebugEnabled()) {
               LOG.debug("Queueing Non-immediate Summary/Recovery event of type"
@@ -336,23 +338,7 @@ public class RecoveryService extends AbstractService {
         } catch (IOException ioe) {
           LOG.error("Error handling summary event"
               + ", eventType=" + event.getHistoryEvent().getEventType(), ioe);
-          Path fatalErrorDir = new Path(recoveryPath, RECOVERY_FATAL_OCCURRED_DIR);
-          try {
-            LOG.error("Adding a flag to ensure next AM attempt does not start up"
-                + ", flagFile=" + fatalErrorDir.toString());
-            recoveryFatalErrorOccurred.set(true);
-            recoveryDirFS.mkdirs(fatalErrorDir);
-            if (recoveryDirFS.exists(fatalErrorDir)) {
-              LOG.error("Recovery failure occurred. Skipping all events");
-            } else {
-              // throw error if fatal error flag could not be set
-              throw ioe;
-            }
-          } catch (IOException e) {
-            LOG.error("Failed to create fatal error flag dir "
-                + fatalErrorDir.toString(), e);
-            throw ioe;
-          }
+          createFatalErrorFlagDir();
           if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
             // Throw error to tell client that dag submission failed
             throw ioe;
@@ -365,6 +351,26 @@ public class RecoveryService extends AbstractService {
         LOG.debug("Queueing Non-Summary Recovery event of type " + eventType.name());
       }
       addToEventQueue(event);
+    }
+  }
+
+  private void createFatalErrorFlagDir() throws IOException {
+    Path fatalErrorDir = new Path(recoveryPath, RECOVERY_FATAL_OCCURRED_DIR);
+    try {
+      LOG.error("Adding a flag to ensure next AM attempt does not start up"
+          + ", flagFile=" + fatalErrorDir.toString());
+      recoveryFatalErrorOccurred.set(true);
+      recoveryDirFS.mkdirs(fatalErrorDir);
+      if (recoveryDirFS.exists(fatalErrorDir)) {
+        LOG.error("Recovery failure occurred. Skipping all events");
+      } else {
+        // throw error if fatal error flag could not be set
+        throw new IOException("Failed to create fatal error flag dir "
+            + fatalErrorDir.toString());
+      }
+    } catch (IOException e) {
+      LOG.error("Failed to create fatal error flag dir "
+          + fatalErrorDir.toString(), e);
     }
   }
 
@@ -385,7 +391,8 @@ public class RecoveryService extends AbstractService {
         summaryStream = recoveryDirFS.create(summaryPath, false,
             bufferSize);
       } else {
-        summaryStream = recoveryDirFS.append(summaryPath, bufferSize);
+        createFatalErrorFlagDir();
+        return;
       }
     }
     if (LOG.isDebugEnabled()) {
@@ -394,6 +401,7 @@ public class RecoveryService extends AbstractService {
           + ", eventType=" + eventType);
     }
     summaryEvent.toSummaryProtoStream(summaryStream);
+    summaryStream.hflush();
   }
 
   @VisibleForTesting
@@ -421,11 +429,8 @@ public class RecoveryService extends AbstractService {
       Path dagFilePath = TezCommonUtils.getDAGRecoveryPath(recoveryPath, dagID.toString());
       FSDataOutputStream outputStream;
       if (recoveryDirFS.exists(dagFilePath)) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Opening DAG recovery file in append mode"
-              + ", filePath=" + dagFilePath);
-        }
-        outputStream = recoveryDirFS.append(dagFilePath, bufferSize);
+        createFatalErrorFlagDir();
+        return;
       } else {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Opening DAG recovery file in create mode"
