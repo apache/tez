@@ -285,7 +285,6 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-  TEZ-2860. NPE in DAGClientImpl.
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2716. DefaultSorter.isRleNeeded not thread safe
   TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
