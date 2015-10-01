@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.dag.impl;
 
 import java.nio.ByteBuffer;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -406,7 +408,92 @@ public class TestVertexImpl {
         .build();
     return dag;
   }
-  
+
+  // Simple dag with a CountingVM on v3 (which has v1, v2 as inputs)
+  // v1, v2 -> v3
+  private DAGPlan createDAGPlanWithCountingVM() {
+    LOG.info("Setting up dag plan with coutning VertexManager");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("dagWithCountingVM")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .addOutEdgeId("e1")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
+                .addOutEdgeId("e2")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .addInEdgeId("e1")
+                .addInEdgeId("e2")
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(InvocationCountingVertexManager.class.getName()))
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.BROADCAST)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v3"))
+                .setInputVertexName("vertex2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.BROADCAST)
+                .setId("e2")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
+    return dag;
+  }
+
   /**
    * v1 -> v2
    */
@@ -5218,6 +5305,64 @@ public class TestVertexImpl {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
+  public void testVMEventBeforeVertexInitialized() throws Exception {
+    useCustomInitializer = true;
+    setupPreDagCreation();
+    dagPlan = createDAGPlanWithCountingVM();
+    setupPostDagCreation();
+
+    VertexImpl v1 = vertices.get("vertex1");
+    VertexImpl v2 = vertices.get("vertex2");
+    VertexImpl v3 = vertices.get("vertex3");
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.await();
+    assertEquals(VertexState.INITED, v1.getState());
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_START));
+    dispatcher.await();
+    assertEquals(VertexState.RUNNING, v1.getState());
+
+    assertEquals(VertexState.NEW, v3.getState());
+    // Generate a VM event for v1, targeted at v3
+    VertexManagerEvent vmEvent = VertexManagerEvent.create("vertex3", ByteBuffer.wrap(new byte[0]));
+    TezEvent tezVmEvent = new TezEvent(vmEvent,
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", null,
+            TezTaskAttemptID.getInstance(
+                TezTaskID.getInstance(v1.getVertexId(), 1), 1)));
+    dispatcher.getEventHandler()
+        .handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezVmEvent)));
+    dispatcher.await();
+
+    assertEquals(1, v3.pendingVmEvents.size());
+    assertEquals(0, InvocationCountingVertexManager.numVmEventsReceived.get());
+
+    // Initialize v2, which will trigger initialization of v3
+    dispatcher.getEventHandler().handle(new VertexEvent(v2.getVertexId(),
+        VertexEventType.V_INIT));
+    dispatcher.await();
+
+    assertEquals(VertexState.INITED, v3.getState());
+
+    // The VM event should have been processed.
+    assertEquals(0, v3.pendingVmEvents.size());
+    assertEquals(1, InvocationCountingVertexManager.numVmEventsReceived.get());
+
+    // Send another VM event - make sure it's processed without additional events.
+    vmEvent = VertexManagerEvent.create("vertex3", ByteBuffer.wrap(new byte[0]));
+    tezVmEvent = new TezEvent(vmEvent,
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", null,
+            TezTaskAttemptID.getInstance(
+                TezTaskID.getInstance(v1.getVertexId(), 1), 2)));
+    dispatcher.getEventHandler()
+        .handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezVmEvent)));
+    dispatcher.await();
+
+    assertEquals(0, v3.pendingVmEvents.size());
+    assertEquals(2, InvocationCountingVertexManager.numVmEventsReceived.get());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
   public void testExceptionFromVM_Initialize() throws AMUserCodeException {
     useCustomInitializer = true;
     setupPreDagCreation();
@@ -5690,6 +5835,40 @@ public class TestVertexImpl {
 
     @Override
     public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
+    }
+  }
+
+  public static class InvocationCountingVertexManager extends VertexManagerPlugin {
+
+    static final AtomicInteger numVmEventsReceived = new AtomicInteger(0);
+    static final AtomicInteger numInitializedInputs = new AtomicInteger(0);
+
+    public InvocationCountingVertexManager(VertexManagerPluginContext context) {
+      super(context);
+    }
+
+    @Override
+    public void initialize() throws Exception {
+    }
+
+    @Override
+    public void onVertexStarted(Map<String, List<Integer>> completions) throws Exception {
+    }
+
+    @Override
+    public void onSourceTaskCompleted(String srcVertexName, Integer taskId) throws Exception {
+
+    }
+
+    @Override
+    public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws Exception {
+      numVmEventsReceived.incrementAndGet();
+    }
+
+    @Override
+    public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
+                                        List<Event> events) throws Exception {
+      numInitializedInputs.incrementAndGet();
     }
   }
 

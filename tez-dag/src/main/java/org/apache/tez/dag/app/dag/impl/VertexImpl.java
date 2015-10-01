@@ -256,6 +256,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
 
   @VisibleForTesting
   final List<TezEvent> pendingInitializerEvents = new LinkedList<TezEvent>();
+
+  @VisibleForTesting
+  final List<VertexManagerEvent> pendingVmEvents = new LinkedList<VertexManagerEvent>();
   
   LegacySpeculator speculator;
 
@@ -643,8 +646,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
   private final ProcessorDescriptor processorDescriptor;
   
   private boolean vertexToBeReconfiguredByManager = false;
-  AtomicBoolean vmIsInitialized = new AtomicBoolean(false);
-  AtomicBoolean completelyConfiguredSent = new AtomicBoolean(false);
+  final AtomicBoolean vmIsInitialized = new AtomicBoolean(false);
+  final AtomicBoolean completelyConfiguredSent = new AtomicBoolean(false);
 
   @VisibleForTesting
   Map<Vertex, Edge> sourceVertices;
@@ -2114,6 +2117,16 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
     try {
       vertexManager.initialize();
       vmIsInitialized.set(true);
+      if (!pendingVmEvents.isEmpty()) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Processing: " + pendingVmEvents.size() + " pending VMEvents for Vertex: " +
+              logIdentifier);
+        }
+        for (VertexManagerEvent vmEvent : pendingVmEvents) {
+          vertexManager.onVertexManagerEventReceived(vmEvent);
+        }
+        pendingVmEvents.clear();
+      }
     } catch (AMUserCodeException e) {
       String msg = "Exception in " + e.getSource()+ ", vertex:" + logIdentifier;
       LOG.error(msg, e);
@@ -3820,7 +3833,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex,
         Preconditions.checkArgument(target != null,
             "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
         if (target == vertex) {
-          vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
+          if (!vertex.vmIsInitialized.get()) {
+            // The VM hasn't been setup yet, defer event consumption
+            vertex.pendingVmEvents.add(vmEvent);
+          } else {
+            vertex.vertexManager.onVertexManagerEventReceived(vmEvent);
+          }
         } else {
           checkEventSourceMetadata(vertex, sourceMeta);
           vertex.eventHandler.handle(new VertexEventRouteEvent(target
