@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2860. NPE in DAGClientImpl.
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
   TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
@@ -197,6 +198,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2860. NPE in DAGClientImpl.
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
   TEZ-2851. Support a way for upstream applications to pass in a caller context to Tez.
@@ -470,6 +472,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2860. NPE in DAGClientImpl.
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2716. DefaultSorter.isRleNeeded not thread safe
   TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
