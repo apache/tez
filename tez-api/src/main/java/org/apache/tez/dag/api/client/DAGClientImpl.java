@@ -467,8 +467,9 @@ public class DAGClientImpl extends DAGClient {
         }
       }
     }
-
-    builder.addAllDiagnostics(Collections.singleton(appReport.getDiagnostics()));
+    if (appReport.getDiagnostics() != null) {
+      builder.addAllDiagnostics(Collections.singleton(appReport.getDiagnostics()));
+    }
     return dagStatus;
   }
 
