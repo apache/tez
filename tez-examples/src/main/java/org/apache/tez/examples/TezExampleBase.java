@@ -147,6 +147,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     if (appId != null) {
       callerContext.setCallerIdAndType(appId.toString(), "TezExampleApplication");
     }
+    dag.setCallerContext(callerContext);
 
     DAGClient dagClient = tezClientInternal.submitDAG(dag);
     Set<StatusGetOpts> getOpts = Sets.newHashSet();

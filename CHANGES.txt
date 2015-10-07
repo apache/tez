@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2868. Fix setting Caller Context in Tez Examples.
   TEZ-2860. NPE in DAGClientImpl.
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2758. Remove append API in RecoveryService after TEZ-1909.
@@ -198,6 +199,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2868. Fix setting Caller Context in Tez Examples.
   TEZ-2860. NPE in DAGClientImpl.
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2758. Remove append API in RecoveryService after TEZ-1909.

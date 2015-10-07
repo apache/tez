@@ -277,7 +277,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
     vertices.add(finalReduceVertex);
 
     DAG dag = DAG.create("OrderedWordCount" + dagIndex);
-    dag.setCallerContext(CallerContext.create("Tez", "TestOrderedWordCount Job"));
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
     }
@@ -447,6 +446,12 @@ public class TestOrderedWordCount extends Configured implements Tool {
         DAG dag = instance.createDAG(fs, tezConf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient, useMRSettings, intermediateNumReduceTasks);
+        String callerType = "TestOrderedWordCount";
+        String callerId = tezSession.getAppMasterApplicationId() == null ?
+            ( "UnknownApp_" + System.currentTimeMillis() + dagIndex ) :
+            ( tezSession.getAppMasterApplicationId().toString() + "_" + dagIndex);
+        dag.setCallerContext(CallerContext.create("Tez", callerId, callerType,
+            "TestOrderedWordCount Job"));
 
         boolean doPreWarm = dagIndex == 1 && useTezSession
             && conf.getBoolean("PRE_WARM_SESSION", true);
