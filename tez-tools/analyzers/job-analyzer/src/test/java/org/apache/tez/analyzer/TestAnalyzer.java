@@ -363,18 +363,18 @@ public class TestAnalyzer {
     List<List<StepCheck[]>> stepsOptions = Lists.newArrayList();
     // run all test dags
     stepsOptions.add(testAttemptOfDownstreamVertexConnectedWithTwoUpstreamVerticesFailure());
-    testInputFailureCausesRerunOfTwoVerticesWithoutExit();
-    testMultiVersionInputFailureWithoutExit();
-    testCascadingInputFailureWithoutExitSuccess();
-    testTaskMultipleFailures();
-    testBasicInputFailureWithoutExit();
-    testBasicTaskFailure();
-    testBasicSuccessScatterGather();
-    testMultiVersionInputFailureWithExit();
-    testBasicInputFailureWithExit();
-    testInputFailureRerunCanSendOutputToTwoDownstreamVertices();
-    testCascadingInputFailureWithExitSuccess();
-    testInternalPreemption();
+    stepsOptions.add(testInputFailureCausesRerunOfTwoVerticesWithoutExit());
+    stepsOptions.add(testMultiVersionInputFailureWithoutExit());
+    stepsOptions.add(testCascadingInputFailureWithoutExitSuccess());
+    stepsOptions.add(testTaskMultipleFailures());
+    stepsOptions.add(testBasicInputFailureWithoutExit());
+    stepsOptions.add(testBasicTaskFailure());
+    stepsOptions.add(testBasicSuccessScatterGather());
+    stepsOptions.add(testMultiVersionInputFailureWithExit());
+    stepsOptions.add(testBasicInputFailureWithExit());
+    stepsOptions.add(testInputFailureRerunCanSendOutputToTwoDownstreamVertices());
+    stepsOptions.add(testCascadingInputFailureWithExitSuccess());
+    stepsOptions.add(testInternalPreemption());
     
     // close session to flush
     if (tezSession != null) {
