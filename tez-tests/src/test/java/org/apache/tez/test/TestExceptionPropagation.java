@@ -223,7 +223,11 @@ public class TestExceptionPropagation {
         DAGStatus dagStatus = dagClient.waitForCompletion();
         String diagnostics = StringUtils.join(dagStatus.getDiagnostics(), ",");
         LOG.info("Diagnostics:" + diagnostics);
-        assertTrue(diagnostics.contains(exLocation.name()));
+        if (exLocation == ExceptionLocation.PROCESSOR_COUNTER_EXCEEDED) {
+          assertTrue(diagnostics.contains("Too many counters"));
+        } else {
+          assertTrue(diagnostics.contains(exLocation.name()));
+        }
       }
     } finally {
       stopSessionClient();
@@ -300,6 +304,7 @@ public class TestExceptionPropagation {
     // PROCESSOR_HANDLE_EVENTS
     PROCESSOR_RUN_ERROR, PROCESSOR_CLOSE_ERROR, PROCESSOR_INITIALIZE_ERROR,
     PROCESSOR_RUN_EXCEPTION, PROCESSOR_CLOSE_EXCEPTION, PROCESSOR_INITIALIZE_EXCEPTION,
+    PROCESSOR_COUNTER_EXCEEDED,
 
     // VM
     VM_INITIALIZE, VM_ON_ROOTVERTEX_INITIALIZE,VM_ON_SOURCETASK_COMPLETED, VM_ON_VERTEX_STARTED,
@@ -624,6 +629,11 @@ public class TestExceptionPropagation {
         throw new Error(this.exLocation.name());
       } else if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_EXCEPTION) {
         throw new Exception(this.exLocation.name());
+      } else if (this.exLocation == ExceptionLocation.PROCESSOR_COUNTER_EXCEEDED) {
+        // simulate the counter limitation exceeded
+        for (int i=0;i< TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT+1; ++i) {
+          getContext().getCounters().findCounter("mycounter", "counter_"+i).increment(1);
+        }
       }
     }
 
