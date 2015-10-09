@@ -441,6 +441,7 @@ public class TaskAttemptListenerImpTezDag extends AbstractService implements
           // this avoids any time disparity between machines.
           tezEvent.setEventReceivedTime(currTime);
           final EventType eventType = tezEvent.getEventType();
+          // send TA_STATUS_UPDATE before TA_DONE/TA_FAILED/TA_KILLED otherwise Status may be missed
           if (eventType == EventType.TASK_STATUS_UPDATE_EVENT) {
             taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
                 (TaskStatusUpdateEvent) tezEvent.getEvent());

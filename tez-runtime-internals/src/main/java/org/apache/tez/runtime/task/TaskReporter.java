@@ -370,15 +370,21 @@ public class TaskReporter {
         EventMetaData srcMeta) throws IOException, TezException {
       // Ensure only one final event is ever sent.
       if (!finalEventQueued.getAndSet(true)) {
-        TezEvent statusUpdateEvent = new TezEvent(getStatusUpdateEvent(true), updateEventMetadata);
+        List<TezEvent> tezEvents = new ArrayList<TezEvent>();
         if (diagnostics == null) {
           diagnostics = ExceptionUtils.getStackTrace(t);
         } else {
           diagnostics = diagnostics + ":" + ExceptionUtils.getStackTrace(t);
         }
-        TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
-            srcMeta == null ? updateEventMetadata : srcMeta);
-        return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent)).shouldDie;
+        tezEvents.add(new TezEvent(new TaskAttemptFailedEvent(diagnostics),
+            srcMeta == null ? updateEventMetadata : srcMeta));
+        try {
+          tezEvents.add(new TezEvent(getStatusUpdateEvent(true), updateEventMetadata));
+        } catch (Exception e) {
+          // Counter may exceed limitation
+          LOG.warn("Error when get constructing TaskStatusUpdateEvent");
+        }
+        return !heartbeat(tezEvents).shouldDie;
       } else {
         LOG.warn("A final task state event has already been sent. Not sending again");
         return askedToDie.get();
