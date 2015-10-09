@@ -332,8 +332,15 @@ public class TaskReporter {
      */
     private boolean taskFailed(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
         EventMetaData srcMeta) throws IOException, TezException {
-      TezEvent statusUpdateEvent = new TezEvent(new TaskStatusUpdateEvent(task.getCounters(),
-          task.getProgress()), updateEventMetadata);
+      List<TezEvent> tezEvents = new ArrayList<TezEvent>();
+      try {
+        TezEvent statusUpdateEvent = new TezEvent(new TaskStatusUpdateEvent(task.getCounters(),
+            task.getProgress()), updateEventMetadata);
+        tezEvents.add(statusUpdateEvent);
+      } catch (Exception e) {
+        // Counter may exceed limitation
+        LOG.warn("Error when get constructing TaskStatusUpdateEvent");
+      }
       if (diagnostics == null) {
         diagnostics = ExceptionUtils.getStackTrace(t);
       } else {
@@ -341,7 +348,8 @@ public class TaskReporter {
       }
       TezEvent taskAttemptFailedEvent = new TezEvent(new TaskAttemptFailedEvent(diagnostics),
           srcMeta == null ? updateEventMetadata : srcMeta);
-      return !heartbeat(Lists.newArrayList(statusUpdateEvent, taskAttemptFailedEvent)).shouldDie;
+      tezEvents.add(taskAttemptFailedEvent);
+      return !heartbeat(tezEvents).shouldDie;
     }
 
     private void addEvents(TezTaskAttemptID taskAttemptID, Collection<TezEvent> events) {
