@@ -975,4 +975,10 @@ public class DAG {
     
     return dagBuilder.build();
   }
+
+
+  public synchronized CallerContext getCallerContext() {
+    return this.callerContext;
+  }
+
 }

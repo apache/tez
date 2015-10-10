@@ -162,10 +162,19 @@ public class CallerContext {
 
   @Override
   public String toString() {
-    return "context=" + context
+    return "{ context=" + context
         + ", callerType=" + callerType
         + ", callerId=" + callerId
-        + ", blob=" + blob;
+        + ", blob=" + blob
+        + " }";
   }
+
+  public String contextAsSimpleString() {
+    return "{ context=" + context
+        + ", callerType=" + callerType
+        + ", callerId=" + callerId
+        + " }";
+  }
+
 
 }
