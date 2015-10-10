@@ -2308,7 +2308,7 @@ public class DAGAppMaster extends AbstractService {
     if (dagPlan.hasCallerContext()) {
       CallerContext callerContext = DagTypeConverters.convertCallerContextFromProto(
           dagPlan.getCallerContext());
-      callerContextStr = ", callerContext=" + callerContext.toString();
+      callerContextStr = ", callerContext=" + callerContext.contextAsSimpleString();
     }
     LOG.info("Running DAG: " + dagPlan.getName() + callerContextStr);
 

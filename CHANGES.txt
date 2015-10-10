@@ -7,6 +7,7 @@ Release 0.8.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2874. Improved logging for caller context.
   TEZ-2875. Enable missing tests in TestAnalyzer
   TEZ-2781. Fallback to send only TaskAttemptFailedEvent if taskFailed heartbeat fails
   TEZ-1788. Allow vertex level disabling of speculation
@@ -202,6 +203,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2874. Improved logging for caller context.
   TEZ-2781. Fallback to send only TaskAttemptFailedEvent if taskFailed heartbeat fails
   TEZ-2868. Fix setting Caller Context in Tez Examples.
   TEZ-2860. NPE in DAGClientImpl.

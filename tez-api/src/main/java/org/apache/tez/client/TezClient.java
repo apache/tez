@@ -57,7 +57,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezReflectionException;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
@@ -464,10 +463,15 @@ public class TezClient {
     verifySessionStateForSubmission();
 
     String dagId = null;
+    String callerContextStr = "";
+    if (dag.getCallerContext() != null) {
+      callerContextStr = ", callerContext=" + dag.getCallerContext().contextAsSimpleString();
+    }
     LOG.info("Submitting dag to TezSession"
       + ", sessionName=" + clientName
       + ", applicationId=" + sessionAppId
-      + ", dagName=" + dag.getName());
+      + ", dagName=" + dag.getName()
+      + callerContextStr);
     
     if (!additionalLocalResources.isEmpty()) {
       for (LocalResource lr : additionalLocalResources.values()) {
@@ -868,13 +872,18 @@ public class TezClient {
       // Add credentials for tez-local resources.
       Map<String, LocalResource> tezJarResources = getTezJarResources(credentials);
       ApplicationSubmissionContext appContext = TezClientUtils
-          .createApplicationSubmissionContext( 
+          .createApplicationSubmissionContext(
               appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
               usingTezArchiveDeploy, apiVersionInfo, historyACLPolicyManager,
               servicePluginsDescriptor, javaOptsChecker);
+      String callerContextStr = "";
+      if (dag.getCallerContext() != null) {
+        callerContextStr = ", callerContext=" + dag.getCallerContext().contextAsSimpleString();
+      }
       LOG.info("Submitting DAG to YARN"
           + ", applicationId=" + appId
-          + ", dagName=" + dag.getName());
+          + ", dagName=" + dag.getName()
+          + callerContextStr);
       
       frameworkClient.submitApplication(appContext);
       ApplicationReport appReport = frameworkClient.getApplicationReport(appId);

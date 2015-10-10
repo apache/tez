@@ -1084,4 +1084,9 @@ public class DAG {
     }
     return false;
   }
+
+  public synchronized CallerContext getCallerContext() {
+    return this.callerContext;
+  }
+
 }
