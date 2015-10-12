@@ -318,6 +318,17 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
             });
           }
         }
+      },
+      {
+        id: 'logs',
+        headerCellName: 'Logs',
+        templateName: 'components/basic-table/multi-logs-cell',
+        getCellContent: function(row) {
+          var content = {
+            logs: row.get('containerLogs')
+          };
+          return content;
+        }
       }
     ];
   }.property(),
