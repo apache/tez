@@ -94,6 +94,24 @@ var timelineJsonToDagMap = {
   name: 'primaryfilters.dagName.0',
   user: 'primaryfilters.user.0',
   status: 'otherinfo.status',
+  containerLogs: {
+    custom: function(source) {
+
+      var containerLogs = [];
+      var otherinfo = Em.get(source, 'otherinfo');
+      for (var key in otherinfo) {
+        if (key.indexOf('inProgressLogsURL_') === 0) {
+          var logs = Em.get(source, 'otherinfo.' + key);
+          if (logs.indexOf('http') !== 0) {
+            logs = 'http://' + logs;
+          }
+          var attemptid = key.substring(18);
+          containerLogs.push({id : attemptid, containerLog: logs});
+        }
+      }
+      return containerLogs;
+    }
+  },
   hasFailedTaskAttempts: {
     custom: function(source) {
       // if no other info is available we say no failed tasks attempts.

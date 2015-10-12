@@ -72,7 +72,8 @@ App.Dag = App.AbstractEntity.extend({
   vertexIdToNameMap: DS.attr('array'),
 
   counterGroups: DS.attr('array'),
-  amWebServiceVersion: DS.attr('string')
+  amWebServiceVersion: DS.attr('string'),
+  containerLogs: DS.attr('array'),
 });
 
 App.CounterGroup = DS.Model.extend({

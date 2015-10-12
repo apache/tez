@@ -80,6 +80,16 @@
           <td>{{t 'common.time.duration'}}</td>
           <td>{{formatDuration startTime endTime}}</td>
         </tr>
+        <tr>
+          <td>Logs</td>
+              <td>
+            {{#each log in containerLogs}}
+              <a target="_blank" a href='{{unbound log.containerLog}}'>{{log.id}}</a>
+            {{else}}
+              <span class="message">Not Available!</span>
+            {{/each}}
+              </td>
+        </tr>
       </tbody>
     </table>
   </div>
