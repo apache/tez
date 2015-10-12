@@ -36,6 +36,13 @@
     <category rdf:resource="http://projects.apache.org/category/big-data" />
     <release>
       <Version>
+        <name>Version 0.8.1-alpha</name>
+        <created>2015-10-12</created>
+        <revision>0.8.1-alpha</revision>
+      </Version>
+    </release>
+    <release>
+      <Version>
         <name>Version 0.8.0-alpha</name>
         <created>2015-09-01</created>
         <revision>0.8.0-alpha</revision>
