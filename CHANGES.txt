@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2887. Tez build failure due to missing dependency in pom files.
   TEZ-2096. TEZ-UI : Add link to view AM log of finished & running apps
   TEZ-2874. Improved logging for caller context.
   TEZ-2781. Fallback to send only TaskAttemptFailedEvent if taskFailed heartbeat fails
