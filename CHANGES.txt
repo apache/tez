@@ -1,14 +1,12 @@
 Apache Tez Change Log
 =====================
 
-
-
 Release 0.8.2: Unreleased
 
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
-
+  TEZ-2887. Tez build failure due to missing dependency in pom files.
 
 
 Release 0.8.1-alpha: 2015-10-12
@@ -213,6 +211,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2887. Tez build failure due to missing dependency in pom files.
   TEZ-2096. TEZ-UI : Add link to view AM log of finished & running apps
   TEZ-2874. Improved logging for caller context.
   TEZ-2781. Fallback to send only TaskAttemptFailedEvent if taskFailed heartbeat fails
