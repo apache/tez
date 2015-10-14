@@ -519,8 +519,10 @@ public class AMWebController extends Controller {
     if (counterNames == null || counterNames.isEmpty()) {
       return null;
     }
-    LOG.info("Requested counter names=" + counterNames.entrySet());
-    LOG.info("actual counters=" + counters);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Requested counter names=" + counterNames.entrySet());
+      LOG.debug("actual counters=" + counters);
+    }
 
     Map<String, Map<String, Long>> counterInfo = new TreeMap<String, Map<String, Long>>();
 
