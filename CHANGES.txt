@@ -14,6 +14,7 @@ Release 0.8.1-alpha: 2015-10-12
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2885. Remove counter logs from AMWebController
   TEZ-2096. TEZ-UI : Add link to view AM log of finished & running apps
   TEZ-2874. Improved logging for caller context.
   TEZ-2875. Enable missing tests in TestAnalyzer
