@@ -51,13 +51,13 @@ App.ColumnSelectorMixin = Em.Mixin.create({
       visibleColumnIds = JSON.parse(localStorage.getItem(this._storeKey));
     }catch(e){}
 
-    if(!visibleColumnIds) {
-      visibleColumnIds = {};
+    visibleColumnIds = visibleColumnIds || {};
 
-      this.get('defaultColumnConfigs').forEach(function (config) {
+    this.get('defaultColumnConfigs').forEach(function (config) {
+      if(visibleColumnIds[config.id] != false) {
         visibleColumnIds[config.id] = true;
-      });
-    }
+      }
+    });
 
     this._super();
     this.set('visibleColumnIds', visibleColumnIds);
@@ -122,19 +122,19 @@ App.ColumnSelectorMixin = Em.Mixin.create({
     },
 
     selectionChange: function () {
-      var visibleColumnIds = this.get('selectOptions').reduce(function (obj, option) {
-            if(option.get('selected')) {
-              obj[option.get('id')] = true;
-            }
-            return obj;
-          }, {}),
-          selectionToSave = this.get('selectOptions').reduce(function (obj, option) {
-            var id = option.id;
-            if(!id.match('_INPUT_') && !id.match('_OUTPUT_') && visibleColumnIds[id]) {
-              obj[id] = true;
-            }
-            return obj;
-          }, {});
+      var visibleColumnIds = {},
+          selectionToSave = {};
+
+      this.get('selectOptions').forEach(function (option) {
+        var isSelected = option.get('selected'),
+            id = option.get('id'),
+            groupName = id.split('/')[0];
+
+        visibleColumnIds[id] = isSelected;
+        if(!groupName.match('_INPUT_') && !groupName.match('_OUTPUT_')) {
+          selectionToSave[id] = isSelected;
+        }
+      });
 
       if(isObjectsDifferent(visibleColumnIds, this.get('visibleColumnIds'))) {
         try {
