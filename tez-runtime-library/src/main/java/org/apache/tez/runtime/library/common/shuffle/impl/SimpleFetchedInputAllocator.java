@@ -111,7 +111,7 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
 
     LOG.info(srcNameTrimmed + ": "
         + "RequestedMemory=" + memReq
-        + ", AssignedMemorty=" + this.memoryLimit
+        + ", AssignedMemory=" + this.memoryLimit
         + ", maxSingleShuffleLimit=" + this.maxSingleShuffleLimit
     );
 

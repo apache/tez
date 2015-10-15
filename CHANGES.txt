@@ -6,6 +6,7 @@ Release 0.8.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2896. Fix thread names used during Input/Output initialization.
   TEZ-2866. Tez UI: Newly added columns wont be displayed by default in tables
   TEZ-2887. Tez build failure due to missing dependency in pom files.
   TEZ-1692. Reduce code duplication between TezMapredSplitsGrouper and TezMapreduceSplitsGrouper.
@@ -214,6 +215,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2896. Fix thread names used during Input/Output initialization.
   TEZ-2866. Tez UI: Newly added columns wont be displayed by default in tables
   TEZ-2885. Remove counter logs from AMWebController.
   TEZ-2887. Tez build failure due to missing dependency in pom files.
