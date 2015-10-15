@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-2887. Tez build failure due to missing dependency in pom files.
+  TEZ-1692. Reduce code duplication between TezMapredSplitsGrouper and TezMapreduceSplitsGrouper.
 
 
 Release 0.8.1-alpha: 2015-10-12

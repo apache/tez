@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configurable;
@@ -50,11 +51,25 @@ public class TezGroupedSplit extends InputSplit
   String rack = null;
   long length = 0;
   Configuration conf;
-  
+
+  @InterfaceAudience.Private
   public TezGroupedSplit() {
     
   }
-  
+
+  @InterfaceAudience.Private
+  /**
+   * Meant for internal usage only
+   */
+  public TezGroupedSplit(List<InputSplit> wrappedSplits, String wrappedInputFormatName,
+                         String[] locations, String rack, long length) {
+    this.wrappedSplits = wrappedSplits;
+    this.wrappedInputFormatName = wrappedInputFormatName;
+    this.locations = locations;
+    this.rack = rack;
+    this.length = length;
+  }
+
   public TezGroupedSplit(int numSplits, String wrappedInputFormatName,
       String[] locations, String rack) {
     this.wrappedSplits = new ArrayList<InputSplit>(numSplits);

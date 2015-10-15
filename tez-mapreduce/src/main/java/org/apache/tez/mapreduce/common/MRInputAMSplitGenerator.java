@@ -23,6 +23,7 @@ import java.util.List;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
+import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -97,8 +98,8 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     int totalResource = getContext().getTotalAvailableResource().getMemory();
     int taskResource = getContext().getVertexTaskResource().getMemory();
     float waves = conf.getFloat(
-        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_WAVES,
-        TezMapReduceSplitsGrouper.TEZ_GROUPING_SPLIT_WAVES_DEFAULT);
+        TezSplitGrouper.TEZ_GROUPING_SPLIT_WAVES,
+        TezSplitGrouper.TEZ_GROUPING_SPLIT_WAVES_DEFAULT);
 
     int numTasks = (int)((totalResource*waves)/taskResource);
 

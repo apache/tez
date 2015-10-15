@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,8 +48,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
-import org.apache.hadoop.mapred.split.SplitSizeEstimator;
-import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.junit.Assert;
@@ -308,7 +307,7 @@ public class TestGroupedSplits {
     format.setConf(job);
     format.setInputFormat(mockWrappedFormat);
     
-    job = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(job)
+    job = (JobConf) TezSplitGrouper.newConfigBuilder(job)
         .setGroupingSplitSize(50*1000*1000l, 500*1000*1000l)
         .build();
     InputSplit mockSplit1 = mock(InputSplit.class);
@@ -389,7 +388,7 @@ public class TestGroupedSplits {
     
     TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
     JobConf conf = new JobConf(defaultConf);
-    conf = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(conf)
+    conf = (JobConf) TezSplitGrouper.newConfigBuilder(conf)
     .setGroupingSplitSize(splitLength*3, splitLength*3)
     .setGroupingRackSplitSizeReduction(1)
     .build();
@@ -446,7 +445,7 @@ public class TestGroupedSplits {
 
     TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
     JobConf conf = new JobConf(defaultConf);
-    conf = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(conf)
+    conf = (JobConf) TezSplitGrouper.newConfigBuilder(conf)
     .setGroupingSplitSize(splitLength*3, splitLength*3)
     .setGroupingRackSplitSizeReduction(1)
     .build();
@@ -553,7 +552,7 @@ public class TestGroupedSplits {
   public void testGroupedSplitWithEstimator() throws IOException {
     JobConf job = new JobConf(defaultConf);
 
-    job = (JobConf) TezMapReduceSplitsGrouper.createConfigBuilder(job)
+    job = (JobConf) TezSplitGrouper.newConfigBuilder(job)
         .setGroupingSplitSize(12*1000*1000l, 25*1000*1000l)
         .build();
 
