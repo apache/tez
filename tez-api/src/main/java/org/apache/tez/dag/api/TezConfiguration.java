@@ -149,6 +149,16 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_CREDENTIALS_PATH = TEZ_PREFIX + "credentials.path";
 
+  /**
+   * Boolean value. If true then Tez will add the ApplicationMaster credentials
+   * to all task credentials.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_CREDENTIALS_MERGE = TEZ_AM_PREFIX
+      + "credentials-merge";
+  public static boolean TEZ_AM_CREDENTIALS_MERGE_DEFAULT = true;
+
   @Private
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_AM_USE_CONCURRENT_DISPATCHER = TEZ_AM_PREFIX

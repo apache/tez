@@ -935,6 +935,12 @@ public class DAGAppMaster extends AbstractService {
     } else {
       dagCredentials = new Credentials();
     }
+    if (getConfig().getBoolean(TezConfiguration.TEZ_AM_CREDENTIALS_MERGE,
+        TezConfiguration.TEZ_AM_CREDENTIALS_MERGE_DEFAULT)) {
+      LOG.info("Merging AM credentials into DAG credentials");
+      dagCredentials.mergeAll(amCredentials);
+    }
+
     // TODO Does this move to the client in case of work-preserving recovery.
     TokenCache.setSessionToken(sessionToken, dagCredentials);
 
