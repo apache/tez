@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2886. Ability to merge AM credentials with DAG credentials.
   TEZ-2896. Fix thread names used during Input/Output initialization.
   TEZ-2866. Tez UI: Newly added columns wont be displayed by default in tables
   TEZ-2885. Remove counter logs from AMWebController.
