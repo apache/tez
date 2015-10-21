@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2850. Tez MergeManager OOM for small Map Outputs
   TEZ-2886. Ability to merge AM credentials with DAG credentials.
   TEZ-2896. Fix thread names used during Input/Output initialization.
   TEZ-2866. Tez UI: Newly added columns wont be displayed by default in tables
@@ -294,6 +295,7 @@ Release 0.6.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2850. Tez MergeManager OOM for small Map Outputs
   TEZ-2781. Fallback to send only TaskAttemptFailedEvent if taskFailed heartbeat fails
   TEZ-2855. Fix a potential NPE while routing VertexManager events.
   TEZ-2716. DefaultSorter.isRleNeeded not thread safe
