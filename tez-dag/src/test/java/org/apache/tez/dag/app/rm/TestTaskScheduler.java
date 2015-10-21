@@ -88,7 +88,7 @@ import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.Sets;
 
-
+@SuppressWarnings("deprecation")
 public class TestTaskScheduler {
 
   static ContainerSignatureMatcher containerSignatureMatcher = new AlwaysMatchesContainerMatcher();

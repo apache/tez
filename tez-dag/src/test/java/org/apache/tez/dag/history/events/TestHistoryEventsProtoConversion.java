@@ -473,6 +473,7 @@ public class TestHistoryEventsProtoConversion {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void testTaskAttemptStartedEvent() throws Exception {
     TaskAttemptStartedEvent event = new TaskAttemptStartedEvent(
         TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
@@ -557,6 +558,7 @@ public class TestHistoryEventsProtoConversion {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void testContainerLaunchedEvent() throws Exception {
     ContainerLaunchedEvent event = new ContainerLaunchedEvent(
         ContainerId.newInstance(ApplicationAttemptId.newInstance(
@@ -574,6 +576,7 @@ public class TestHistoryEventsProtoConversion {
     logEvents(event, deserializedEvent);
   }
 
+  @SuppressWarnings("deprecation")
   private void testContainerStoppedEvent() throws Exception {
     ContainerStoppedEvent event = new ContainerStoppedEvent(
         ContainerId.newInstance(ApplicationAttemptId.newInstance(

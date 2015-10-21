@@ -55,6 +55,7 @@ public class TestAMContainerMap {
     return appContext;
   }
 
+  @SuppressWarnings("deprecation")
   private ContainerId mockContainerId(int cId) {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);

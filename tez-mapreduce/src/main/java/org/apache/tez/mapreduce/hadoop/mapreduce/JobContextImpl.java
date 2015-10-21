@@ -52,6 +52,7 @@ import org.apache.tez.mapreduce.processor.MRTaskReporter;
  * A read-only view of the job that is provided to the tasks while they
  * are running.
  */
+@SuppressWarnings("deprecation")
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class JobContextImpl implements JobContext {

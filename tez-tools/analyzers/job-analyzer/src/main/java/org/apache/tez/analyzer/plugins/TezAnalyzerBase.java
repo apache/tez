@@ -199,12 +199,12 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       }
 
       System.out.println(separator);
-      System.out.println(String.format(format.toString(), headers));
+      System.out.println(String.format(format.toString(), (String[]) headers));
       System.out.println(separator);
 
       Iterator<String[]> recordsIterator = ((CSVResult) result).getRecordsIterator();
       while (recordsIterator.hasNext()) {
-        String line = String.format(format, recordsIterator.next());
+        String line = String.format(format, (String[]) recordsIterator.next());
         System.out.println(line);
       }
       System.out.println(separator);

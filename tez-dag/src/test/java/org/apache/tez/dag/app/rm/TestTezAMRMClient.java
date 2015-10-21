@@ -46,6 +46,7 @@ public class TestTezAMRMClient {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setup() {
     amrmClient = new TezAMRMClientAsync(new AMRMClientImpl(),
@@ -58,6 +59,7 @@ public class TestTezAMRMClient {
     amrmClient = null;
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout=10000)
   public void testMatchingRequestsForTopPriority() {
     String[] hosts = { "host1" };

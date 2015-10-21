@@ -418,7 +418,7 @@ public class TestTaskCommunicatorManager1 {
     return taskAttemptListener.heartbeat(request);
   }
 
-
+  @SuppressWarnings("deprecation")
   private ContainerId createContainerId(ApplicationId applicationId, int containerIdx) {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
     return ContainerId.newInstance(appAttemptId, containerIdx);

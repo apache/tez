@@ -106,6 +106,7 @@ public class TestHistoryEventTimelineConversion {
   private NodeId nodeId;
   private String containerLogs = "containerLogs";
 
+  @SuppressWarnings("deprecation")
   @Before
   public void setup() {
     applicationId = ApplicationId.newInstance(9999l, 1);
@@ -232,6 +233,7 @@ public class TestHistoryEventTimelineConversion {
 
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testConvertAppLaunchedEvent() {
     long launchTime = random.nextLong();
@@ -538,6 +540,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testConvertDAGInitializedEvent() {
     long initTime = random.nextLong();
@@ -869,6 +872,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testConvertVertexParallelismUpdatedEvent() {
     TezVertexID vId = tezVertexID;

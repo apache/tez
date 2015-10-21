@@ -80,6 +80,7 @@ public class Sort<K,V> extends Configured implements Tool {
    * @throws java.lang.Exception When there is communication problems with the
    *                     job tracker.
    */
+  @SuppressWarnings("deprecation")
   public int run(String[] args) throws Exception {
 
     Configuration conf = getConf();

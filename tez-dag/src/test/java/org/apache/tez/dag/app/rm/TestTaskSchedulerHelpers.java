@@ -146,6 +146,7 @@ class TestTaskSchedulerHelpers {
       this.defaultPayload = defaultPayload;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void instantiateSchedulers(String host, int port, String trackingUrl,
                                       AppContext appContext) {

@@ -34,6 +34,7 @@ public class StateMachineTez<STATE extends Enum<STATE>, EVENTTYPE extends Enum<E
 
   private final StateMachine<STATE, EVENTTYPE, EVENT> realStatemachine;
 
+  @SuppressWarnings("unchecked")
   public StateMachineTez(StateMachine sm, OPERAND operand) {
     this.realStatemachine = sm;
     this.operand = operand;
@@ -50,6 +51,7 @@ public class StateMachineTez<STATE extends Enum<STATE>, EVENTTYPE extends Enum<E
     return realStatemachine.getCurrentState();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public STATE doTransition(EVENTTYPE eventType, EVENT event) throws
       InvalidStateTransitonException {

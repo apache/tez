@@ -3432,7 +3432,8 @@ public class TestVertexImpl {
     Assert.assertEquals(0, committer.commitCounter);
     Assert.assertEquals(1, committer.abortCounter);
   }
-  
+
+  @SuppressWarnings("deprecation")
   @Test(timeout = 5000)
   public void testVertexTaskAttemptProcessorFailure() throws Exception {
     initAllVertices(VertexState.INITED);
@@ -3468,6 +3469,7 @@ public class TestVertexImpl {
     Assert.assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, ta.getTerminationCause());
   }
 
+  @SuppressWarnings("deprecation")
   @Test(timeout = 5000)
   public void testVertexTaskAttemptInputFailure() throws Exception {
     initAllVertices(VertexState.INITED);
@@ -3504,6 +3506,7 @@ public class TestVertexImpl {
   }
 
 
+  @SuppressWarnings("deprecation")
   @Test(timeout = 5000)
   public void testVertexTaskAttemptOutputFailure() throws Exception {
     initAllVertices(VertexState.INITED);

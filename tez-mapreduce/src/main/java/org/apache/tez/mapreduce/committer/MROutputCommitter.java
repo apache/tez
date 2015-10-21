@@ -186,6 +186,7 @@ public class MROutputCommitter extends OutputCommitter {
 
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public boolean isTaskRecoverySupported() {
     if (!initialized) {

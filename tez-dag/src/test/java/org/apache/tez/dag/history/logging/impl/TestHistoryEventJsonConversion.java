@@ -93,6 +93,7 @@ public class TestHistoryEventJsonConversion {
   private ContainerId containerId;
   private NodeId nodeId;
 
+  @SuppressWarnings("deprecation")
   @Before
   public void setup() {
     applicationId = ApplicationId.newInstance(9999l, 1);

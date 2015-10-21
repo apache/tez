@@ -227,6 +227,7 @@ public class TestDAGImpl {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private class TaskAttemptEventDisptacher2 implements EventHandler<TaskAttemptEvent> {
     @Override
     public void handle(TaskAttemptEvent event) {

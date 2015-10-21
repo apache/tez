@@ -59,6 +59,7 @@ import org.mockito.ArgumentCaptor;
 
 public class TestTaskCommunicatorManager2 {
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testTaskAttemptFailedKilled() throws IOException, TezException {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
@@ -130,6 +131,7 @@ public class TestTaskCommunicatorManager2 {
     // TODO TEZ-2003. Verify unregistration from the registered list
   }
 
+  @SuppressWarnings("deprecation")
   private ContainerId createContainerId(ApplicationId applicationId, int containerIdx) {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(applicationId, 1);
     ContainerId containerId = ContainerId.newInstance(appAttemptId, containerIdx);

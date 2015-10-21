@@ -194,6 +194,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
           .newInstance(appId, appAttemptId.getAttemptId());
     }
 
+    @SuppressWarnings("deprecation")
     public Container createContainer(Resource capability, Priority priority) {
       ContainerId containerId = ContainerId.newInstance(customAppAttemptId, nextId.getAndIncrement());
       NodeId nodeId = NodeId.newInstance("127.0.0.1", 0);

@@ -47,6 +47,7 @@ import org.mockito.ArgumentCaptor;
 
 public class TestDAGSchedulerNaturalOrderControlled {
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testSimpleFlow() {
     EventHandler eventHandler = mock(EventHandler.class);
@@ -104,6 +105,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
     reset(eventHandler);
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testSourceRequestDelayed() {
     // ShuffleVertexHandler - slowstart simulation
@@ -172,6 +174,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
   }
 
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testParallelismUpdated() {
     EventHandler eventHandler = mock(EventHandler.class);
@@ -222,6 +225,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
     reset(eventHandler);
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testMultipleRequestsForSameTask() {
     EventHandler eventHandler = mock(EventHandler.class);
@@ -306,16 +310,16 @@ public class TestDAGSchedulerNaturalOrderControlled {
     }
 
 
-    updateMockVertexWithConnections(vertices[0], createConnectionMap(null),
+    updateMockVertexWithConnections(vertices[0], createConnectionMap((Vertex[]) null),
         createConnectionMap(vertices[2]));
-    updateMockVertexWithConnections(vertices[1], createConnectionMap(null),
+    updateMockVertexWithConnections(vertices[1], createConnectionMap((Vertex[]) null),
         createConnectionMap(vertices[3]));
     updateMockVertexWithConnections(vertices[2], createConnectionMap(vertices[0]),
         createConnectionMap(vertices[4]));
     updateMockVertexWithConnections(vertices[3], createConnectionMap(vertices[1]),
         createConnectionMap(vertices[4]));
     updateMockVertexWithConnections(vertices[4], createConnectionMap(vertices[2], vertices[3]),
-        createConnectionMap(null));
+        createConnectionMap((Vertex[]) null));
 
     return dag;
   }

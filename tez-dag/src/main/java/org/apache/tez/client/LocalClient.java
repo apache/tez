@@ -268,6 +268,7 @@ public class LocalClient extends FrameworkClient {
     }
   }
 
+  @SuppressWarnings("deprecation")
   protected Thread createDAGAppMaster(final ApplicationSubmissionContext appContext) {
     Thread thread = new Thread(new Runnable() {
       @Override
