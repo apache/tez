@@ -58,6 +58,23 @@ public class TestOrderedGroupedMergedKVInputConfig {
     fromConf.set("test.conf.key.1", "confkey1");
     fromConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
     fromConf.set("io.shouldExist", "io");
+    fromConf.setInt(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST, 3);
+    fromConf.setFloat(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION,
+        0.1f);
+    fromConf.setFloat(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION,
+        0.6f);
+    fromConf.setInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT,
+        10);
+    fromConf.setFloat(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION, 0.2f);
+    fromConf.setFloat(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION, 0.6f);
+    fromConf.setBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, false);
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
@@ -96,6 +113,19 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertEquals(0.22f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 0.0f), 0.001f);
     assertEquals(0.33f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0.0f), 0.001f);
     assertEquals(0.44f, conf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.00f), 0.001f);
+    assertEquals(0.1f, conf.getFloat(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION, 0.00f), 0.001f);
+    assertEquals(3, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST, 0), 0);
+    assertEquals(10, conf.getInt(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT, 0), 0);
+    assertEquals(0.6f, conf.getFloat(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION, 0.00f), 0.001f);
+    assertEquals(0.2f, conf.getFloat(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION, 0.00f), 0.001f);
+    assertEquals(0.6f, conf.getFloat(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION, 0.6f), 0.001f);
+    assertEquals(false, conf.getBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, true));
 
     // Verify additional configs
     assertEquals(false, conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,

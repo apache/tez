@@ -297,7 +297,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         } else {
           LOG.warn("copyMapOutput failed for tasks " + Arrays.toString(failedTasks));
           for (InputAttemptIdentifier left : failedTasks) {
-            scheduler.copyFailed(left, host, true, false);
+            scheduler.copyFailed(left, host, true, false, false);
           }
         }
       }
@@ -359,7 +359,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       for (InputAttemptIdentifier left : remaining.values()) {
         // Need to be handling temporary glitches ..
         // Report read error to the AM to trigger source failure heuristics
-        scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded);
+        scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded, false);
       }
       return false;
     }
@@ -505,7 +505,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       retryStartTime = 0;
 
       scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength,
-                              endTime - startTime, mapOutput);
+                              endTime - startTime, mapOutput, false);
       // Note successful shuffle
       remaining.remove(srcAttemptId.toString());
       metrics.successFetch();
@@ -667,7 +667,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           mapOutput = getMapOutputForDirectDiskFetch(srcAttemptId, filename, indexRecord);
           long endTime = System.currentTimeMillis();
           scheduler.copySucceeded(srcAttemptId, host, indexRecord.getPartLength(),
-              indexRecord.getRawLength(), (endTime - startTime), mapOutput);
+              indexRecord.getRawLength(), (endTime - startTime), mapOutput, true);
           iter.remove();
           metrics.successFetch();
         } catch (IOException e) {
@@ -677,7 +677,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           if (!stopped) {
             metrics.failedFetch();
             ioErrs.increment(1);
-            scheduler.copyFailed(srcAttemptId, host, true, false);
+            scheduler.copyFailed(srcAttemptId, host, true, false, true);
             LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
                 host.getHostIdentifier(), e);
           } else {
