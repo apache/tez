@@ -812,12 +812,14 @@ public class MergeManager {
   class RawKVIteratorReader extends IFile.Reader {
 
     private final TezRawKeyValueIterator kvIter;
+    private final long size;
 
     public RawKVIteratorReader(TezRawKeyValueIterator kvIter, long size)
         throws IOException {
       super(null, size, null, spilledRecordsCounter, null, ifileReadAhead,
           ifileReadAheadLength, ifileBufferSize);
       this.kvIter = kvIter;
+      this.size = size;
     }
     @Override
     public KeyState readRawKey(DataInputBuffer key) throws IOException {
@@ -844,6 +846,10 @@ public class MergeManager {
 
     public void close() throws IOException {
       kvIter.close();
+    }
+
+    @Override public long getLength() {
+      return size;
     }
   }
 
