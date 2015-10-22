@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.base.Stopwatch;
+
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -48,7 +50,6 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.examples.TezExampleBase;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
-import sun.misc.IOUtils;
 
 public class RPCLoadGen extends TezExampleBase {
 
@@ -194,12 +195,12 @@ public class RPCLoadGen extends TezExampleBase {
         LOG.info("Reading from local filesystem");
         FileSystem localFs = FileSystem.getLocal(new Configuration());
         FSDataInputStream is = localFs.open(new Path(DISK_PAYLOAD_NAME));
-        IOUtils.readFully(is, -1, false);
+        IOUtils.toByteArray(is);
       } else if (modeByte == VIA_HDFS_DIRECT_READ_BYTE) {
         LOG.info("Reading from HDFS");
         FileSystem fs = FileSystem.get(new Configuration());
         FSDataInputStream is = fs.open(new Path(Path.SEPARATOR + "tmp", DISK_PAYLOAD_NAME));
-        IOUtils.readFully(is, -1, false);
+        IOUtils.toByteArray(is);
       } else {
         throw new IllegalArgumentException("Unknown execution mode: [" + modeByte + "]");
       }
