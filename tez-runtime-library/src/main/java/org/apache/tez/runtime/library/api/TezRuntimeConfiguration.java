@@ -170,6 +170,98 @@ public class TezRuntimeConfiguration {
       "shuffle.fetch.failures.limit";
   public static final int TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT_DEFAULT = 5;
 
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it. Sets
+   * the number of retries before giving up on downloading from source
+   * attempt by consumer. Code internally handles the threshold if set to -1.
+   */
+  public static final String
+      TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT =
+      TEZ_RUNTIME_PREFIX + "shuffle.src-attempt.abort.limit";
+  public static final int
+      TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT_DEFAULT = -1;
+
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it. Setting
+   * to determine if failures happened across a percentage of nodes. This
+   * helps in determining if the consumer has to be restarted on continuous
+   * failures. Setting it to lower value can make consumer restarts more
+   * aggressive on failures.
+   */
+  public static final String
+      TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION =
+      TEZ_RUNTIME_PREFIX + "shuffle.acceptable.host-fetch.failure.fraction";
+  public static final float
+      TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION_DEFAULT = 0.2f;
+
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it. Setting
+   * to determine if the consumer has to be restarted on continuous
+   * failures across nodes. Used along with {@link
+   * TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION}.
+   */
+  public static final String
+      TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST =
+      TEZ_RUNTIME_PREFIX + "shuffle.min.failures.per.host";
+  public static final int TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST_DEFAULT = 4;
+
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it.
+   * Maximum percentage of time (compared to overall progress), the fetcher is
+   * allowed before concluding that it is stalled.
+   */
+  public static final String TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION =
+      TEZ_RUNTIME_PREFIX + "shuffle.max.stall.time.fraction";
+  public static final float
+      TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION_DEFAULT = 0.5f;
+
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it.
+   * Fraction to determine whether the shuffle has progressed enough or not
+   * If it has not progressed enough, it could be qualified for the consumer.
+   */
+  public static final String
+      TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION =
+      TEZ_RUNTIME_PREFIX + "shuffle.min.required.progress.fraction";
+  public static final float
+      TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION_DEFAULT = 0.5f;
+
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it.
+   * Provides threshold for determining whether fetching has to be marked
+   * unhealthy based on the ratio of (failures/(failures+completed))
+   */
+  public static final String
+      TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION =
+      TEZ_RUNTIME_PREFIX + "shuffle.max.allowed.failed.fetch.fraction";
+  public static final float
+      TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION_DEFAULT = 0.5f;
+
+  @Private
+  @Unstable
+  /**
+   * Expert setting made available only for debugging. Do not change it.
+   * Provides threshold for determining whether fetching has to be marked
+   * unhealthy based on the ratio of (failures/(failures+completed))
+   */
+  public static final String
+      TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION =
+      TEZ_RUNTIME_PREFIX + "shuffle.failed.check.since-last.completion";
+  public static final boolean
+      TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION_DEFAULT = true;
+
 
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE =
       TEZ_RUNTIME_PREFIX +
@@ -357,6 +449,14 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
+    tezRuntimeKeys.add
+        (TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION);
     tezRuntimeKeys.add(TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
     tezRuntimeKeys.add(TEZ_RUNTIME_INTERNAL_SORTER_CLASS);

@@ -208,7 +208,7 @@ public class TestFetcher {
     }).when(spyFetcher).getIndexRecord(anyString(), eq(host.getPartitionId()));
 
     doNothing().when(scheduler).copySucceeded(any(InputAttemptIdentifier.class), any(MapHost.class),
-        anyLong(), anyLong(), anyLong(), any(MapOutput.class));
+        anyLong(), anyLong(), anyLong(), any(MapOutput.class), anyBoolean());
     doNothing().when(scheduler).putBackKnownMapOutput(host,
         srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX));
     doNothing().when(scheduler).putBackKnownMapOutput(host,
@@ -220,8 +220,8 @@ public class TestFetcher {
     for (int i : sucessfulAttemptsIndexes) {
       verifyCopySucceeded(scheduler, host, srcAttempts, i);
     }
-    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX), host, true, false);
-    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX), host, true, false);
+    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX), host, true, false, true);
+    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX), host, true, false, true);
 
     verify(metrics, times(3)).successFetch();
     verify(metrics, times(2)).failedFetch();
@@ -239,7 +239,7 @@ public class TestFetcher {
     String filenameToMatch = SHUFFLE_INPUT_FILE_PREFIX + srcAttemptToMatch.getPathComponent();
     ArgumentCaptor<MapOutput> captureMapOutput = ArgumentCaptor.forClass(MapOutput.class);
     verify(scheduler).copySucceeded(eq(srcAttemptToMatch), eq(host), eq(p * 100),
-        eq(p * 1000), anyLong(), captureMapOutput.capture());
+        eq(p * 1000), anyLong(), captureMapOutput.capture(), anyBoolean());
 
     // cannot use the equals of MapOutput as it compares id which is private. so doing it manually
     MapOutput m = captureMapOutput.getAllValues().get(0);
@@ -344,7 +344,7 @@ public class TestFetcher {
     verify(fetcher, times(2)).setupConnection(any(MapHost.class), anyList());
     //since copyMapOutput consistently fails, it should call copyFailed once
     verify(scheduler, times(1)).copyFailed(any(InputAttemptIdentifier.class), any(MapHost.class),
-          anyBoolean(), anyBoolean());
+          anyBoolean(), anyBoolean(), anyBoolean());
 
     verify(fetcher, times(1)).putBackRemainingMapOutputs(any(MapHost.class));
     verify(scheduler, times(3)).putBackKnownMapOutput(any(MapHost.class),

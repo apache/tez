@@ -175,7 +175,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     String baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
     int partitionId = attemptNum;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId), eq(baseUri), eq(id1));
-    verify(scheduler).shuffleInfoEventsMap.containsKey(id1.getInputIdentifier());
+    verify(scheduler).pipelinedShuffleInfoEventsMap.containsKey(id1.getInputIdentifier());
 
     //Send final_update event.
     Event dme2 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, false, 1);
@@ -185,9 +185,9 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(Collections.singletonList(dme2));
     baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
     partitionId = attemptNum;
-    assertTrue(scheduler.shuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
+    assertTrue(scheduler.pipelinedShuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId), eq(baseUri), eq(id2));
-    assertTrue(scheduler.shuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
+    assertTrue(scheduler.pipelinedShuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
 
     MapHost host = scheduler.getHost();
     assertTrue(host != null);
@@ -195,10 +195,10 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     assertTrue(!list.isEmpty());
     //Let the final_update event pass
     MapOutput output = MapOutput.createMemoryMapOutput(id2, mergeManager, 1000, true);
-    scheduler.copySucceeded(id2, host, 1000, 10000, 10000, output);
+    scheduler.copySucceeded(id2, host, 1000, 10000, 10000, output, false);
     assertTrue(!scheduler.isDone()); //we haven't downloaded id1 yet
     output = MapOutput.createMemoryMapOutput(id1, mergeManager, 1000, true);
-    scheduler.copySucceeded(id1, host, 1000, 10000, 10000, output);
+    scheduler.copySucceeded(id1, host, 1000, 10000, 10000, output, false);
     assertTrue(!scheduler.isDone()); //we haven't downloaded another source yet
 
     //Send events for source 2
@@ -214,11 +214,11 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     InputAttemptIdentifier id4 = new InputAttemptIdentifier(new InputIdentifier(inputIdx),
         attemptNum, PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 1);
     assertTrue(!scheduler.isInputFinished(id4.getInputIdentifier().getInputIndex()));
-    scheduler.copySucceeded(id4, null, 0, 0, 0, null);
+    scheduler.copySucceeded(id4, null, 0, 0, 0, null, false);
     assertTrue(!scheduler.isDone()); //we haven't downloaded another id yet
     //Let the incremental event pass
     output = MapOutput.createMemoryMapOutput(id3, mergeManager, 1000, true);
-    scheduler.copySucceeded(id3, host, 1000, 10000, 10000, output);
+    scheduler.copySucceeded(id3, host, 1000, 10000, 10000, output, false);
     assertTrue(scheduler.isDone());
   }
 
@@ -238,7 +238,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
 
     verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(baseUri), eq(id1));
     assertTrue("Shuffle info events should not be empty for pipelined shuffle",
-        !scheduler.shuffleInfoEventsMap.isEmpty());
+        !scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
 
     //Attempt #0 comes up. When processing this, it should report exception
     attemptNum = 0;
@@ -267,7 +267,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId),
         eq(baseUri), eq(expectedIdentifier));
     assertTrue("Shuffle info events should be empty for regular shuffle codepath",
-        scheduler.shuffleInfoEventsMap.isEmpty());
+        scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
   }
 
   @Test(timeout = 5000)
@@ -292,7 +292,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(events);
     InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0);
     verify(scheduler).copySucceeded(eq(expectedIdentifier), any(MapHost.class), eq(0l),
-        eq(0l), eq(0l), any(MapOutput.class));
+        eq(0l), eq(0l), any(MapOutput.class), eq(true));
   }
 
   @Test(timeout = 5000)
@@ -306,7 +306,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(events);
     InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0);
     verify(scheduler).copySucceeded(eq(expectedIdentifier), any(MapHost.class), eq(0l),
-        eq(0l), eq(0l), any(MapOutput.class));
+        eq(0l), eq(0l), any(MapOutput.class), eq(true));
   }
 
   @Test(timeout = 5000)
