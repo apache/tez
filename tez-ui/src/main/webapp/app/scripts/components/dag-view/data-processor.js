@@ -498,6 +498,26 @@ App.DagViewComponent.dataProcessor = (function (){
   }
 
   /**
+   * Part of step 1
+   * To remove recurring vertices in the tree
+   * @param vertex {Object} root vertex
+   */
+  function _normalizeVertexTree(vertex) {
+    var children = vertex.get('children');
+
+    if(children) {
+      children = children.filter(function (child) {
+        _normalizeVertexTree(child);
+        return child.get('type') != 'vertex' || child.get('treeParent') == vertex;
+      });
+
+      vertex._setChildren(children);
+    }
+
+    return vertex;
+  }
+
+  /**
    * Step 2: Recursive awesomeness
    * Attaches outputs into the primary structure created in step 1. As outputs must be represented
    * in the same level of the vertex's parent. They are added as children of its parent's parent.
@@ -717,7 +737,7 @@ App.DagViewComponent.dataProcessor = (function (){
       }
 
       dummy._setChildren(centericMap(_data.rootVertices, function (vertex) {
-        return _treefyData(vertex, 2);
+        return _normalizeVertexTree(_treefyData(vertex, 2));
       }));
 
       _addOutputs(root);
