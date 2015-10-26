@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2899. Tez UI: DAG getting created with huge horizontal gap in between vertices
   TEZ-2882. Consider improving fetch failure handling
   TEZ-2907. NPE in IFile.Reader.getLength during final merge operation
   TEZ-2850. Tez MergeManager OOM for small Map Outputs
