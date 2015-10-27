@@ -19,6 +19,7 @@
 package org.apache.tez.analyzer.plugins;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -104,6 +105,9 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   
   Map<String, TaskAttemptInfo> attempts = Maps.newHashMap();
 
+  int maxConcurrency = 0;
+  ArrayList<TimeInfo> concurrencyByTime = Lists.newArrayList();
+
   public CriticalPathAnalyzer() {
   }
 
@@ -153,6 +157,92 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     svg.saveCriticalPathAsSVG(dagInfo, outputFileName, criticalPath);
   }
   
+  static class TimeInfo implements Comparable<TimeInfo> {
+    long timestamp;
+    int count;
+    boolean start;
+    TimeInfo(long timestamp, boolean start) {
+      this.timestamp = timestamp;
+      this.start = start;
+    }
+    
+    @Override
+    public int compareTo(TimeInfo o) {
+      return Long.compare(this.timestamp, o.timestamp);
+    }
+    
+    @Override
+    public int hashCode() {
+      return (int)((timestamp >> 32) ^ timestamp);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if(o == null) {
+        return false;
+      }
+      if (o.getClass() == this.getClass()) {
+        TimeInfo other = (TimeInfo) o;
+        return (this.compareTo(other) == 0);
+      }
+      else {
+        return false;
+      }
+    }
+  }
+  
+  private void determineConcurrency(DagInfo dag) {
+    ArrayList<TimeInfo> timeInfo = Lists.newArrayList();
+    for (VertexInfo v : dag.getVertices()) {
+      for (TaskInfo t : v.getTasks()) {
+        for (TaskAttemptInfo a : t.getTaskAttempts()) {
+          if (a.getStartTime() > 0) {
+            timeInfo.add(new TimeInfo(a.getStartTime(), true));
+            timeInfo.add(new TimeInfo(a.getFinishTime(), false));
+          }
+        }
+      }
+    }
+    Collections.sort(timeInfo);
+    
+    int concurrency = 0;
+    TimeInfo lastTimeInfo = null;
+    for (TimeInfo t : timeInfo) {
+      concurrency += (t.start) ? 1 : -1;
+      maxConcurrency = (concurrency > maxConcurrency) ? concurrency : maxConcurrency;
+      if (lastTimeInfo == null || lastTimeInfo.timestamp < t.timestamp) {
+        lastTimeInfo = t;
+        lastTimeInfo.count = concurrency;
+        concurrencyByTime.add(lastTimeInfo);        
+      } else {
+        // lastTimeInfo.timestamp == t.timestamp
+        lastTimeInfo.count = concurrency;
+      }
+    }
+//    for (TimeInfo t : concurrencyByTime) {
+//      System.out.println(t.timestamp + " " + t.count);
+//    }
+  }
+  
+  private int getIntervalMaxConcurrency(long begin, long end) {
+    int concurrency = 0;
+    for (TimeInfo timeInfo : concurrencyByTime) {
+      if (timeInfo.timestamp < begin) {
+        continue;
+      }
+      if (timeInfo.timestamp > end) {
+        break;
+      }
+      if (timeInfo.count > concurrency) {
+        concurrency = timeInfo.count;
+      }
+    }
+    return concurrency;
+  }
+  
   private void analyzeAllocationOverhead(DagInfo dag) {
     List<TaskAttemptInfo> preemptedAttempts = Lists.newArrayList();
     for (VertexInfo v : dag.getVertices()) {
@@ -175,6 +265,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       
       long creationTime = attempt.getCreationTime();
       long allocationTime = attempt.getAllocationTime();
+      long finishTime = attempt.getFinishTime();
       if (allocationTime < step.startCriticalPathTime) {
         // allocated before it became critical
         continue;
@@ -190,7 +281,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           Collections.sort(attemptsList, TaskAttemptInfo.orderingOnAllocationTime());
           // walk the list to record allocation time before the current attempt
           long containerPreviousAllocatedTime = 0;
-          int wavesForVertex = 1;
+          int reUsesForVertex = 1;
           for (TaskAttemptInfo containerAttempt : attemptsList) {
             if (containerAttempt.getTaskAttemptId().equals(attempt.getTaskAttemptId())) {
               break;
@@ -199,14 +290,28 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
                 attempt.getTaskInfo().getVertexInfo().getVertexId())) {
               // another task from the same vertex ran in this container. So there are multiple 
               // waves for this vertex on this container.
-              wavesForVertex++;
+              reUsesForVertex++;
             }
-            System.out.println("Container: " + container.getId() + " running att: " + 
-            containerAttempt.getTaskAttemptId() + " wait att: " + attempt.getTaskAttemptId());
-            containerPreviousAllocatedTime += containerAttempt.getAllocationToEndTimeInterval();
+            long cAllocTime = containerAttempt.getAllocationTime();
+            long cFinishTime = containerAttempt.getFinishTime();
+            if (cFinishTime > creationTime) {
+              // for containerAttempts that used the container while this attempt was waiting
+              // add up time container was allocated to containerAttempt. Account for allocations
+              // that started before this attempt was created.
+              containerPreviousAllocatedTime += 
+                  (cFinishTime - (cAllocTime > creationTime ? cAllocTime : creationTime));
+            }
           }
-          if (wavesForVertex > 1) {
-            step.notes.add("Container ran multiple waves for this vertex.");
+          int numVertexTasks = attempt.getTaskInfo().getVertexInfo().getNumTasks();
+          int intervalMaxConcurrency = getIntervalMaxConcurrency(creationTime, finishTime);
+          double numWaves = getWaves(numVertexTasks, intervalMaxConcurrency);
+          
+          if (reUsesForVertex > 1) {
+            step.notes.add("Container ran multiple tasks for this vertex. ");
+            if (numWaves < 1) {
+              // less than 1 wave total but still ran more than 1 on this container
+              step.notes.add("Vertex potentially seeing contention from other branches in the DAG. ");
+            }
           }
           if (containerPreviousAllocatedTime == 0) {
             step.notes.add("Container newly allocated.");
@@ -223,10 +328,50 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         }
         // look for internal preemptions while attempt was waiting for allocation
         for (TaskAttemptInfo a : preemptedAttempts) {
-          if (a.getFinishTime() > creationTime && a.getFinishTime() < allocationTime){
+          if (a.getTaskInfo().getVertexInfo().getVertexId()
+              .equals(attempt.getTaskInfo().getVertexInfo().getVertexId())) {
+            // dont preempt same vertex task. ideally this should look at priority but we dont have it
+            continue;
+          }
+          if (a.getFinishTime() > creationTime && a.getFinishTime() < allocationTime) {
             // found an attempt that was preempted within this time interval
             step.notes.add("Potentially waited for preemption of " + a.getShortName());
           }
+        }
+      }
+    }
+  }
+  
+  private double getWaves(int numTasks, int concurrency) {
+    double numWaves = (numTasks*1.0) / concurrency;
+    numWaves = (double)Math.round(numWaves * 10d) / 10d; // convert to 1 decimal place
+    return numWaves;
+  }
+  
+  private void analyzeWaves(DagInfo dag) {
+    for (int i = 0; i < criticalPath.size(); ++i) {
+      CriticalPathStep step = criticalPath.get(i);
+      TaskAttemptInfo attempt = step.attempt;
+      if (step.getType() != EntityType.ATTEMPT) {
+        continue;
+      }
+      long creationTime = attempt.getCreationTime();
+      long finishTime = attempt.getFinishTime();
+
+      int numVertexTasks = attempt.getTaskInfo().getVertexInfo().getNumTasks();
+      if (numVertexTasks <= 1) {
+        continue;
+      }
+      int intervalMaxConcurrency = getIntervalMaxConcurrency(creationTime, finishTime);
+      double numWaves = getWaves(numVertexTasks, intervalMaxConcurrency);
+
+      step.notes.add("Vertex ran " + numVertexTasks
+          + " tasks in " + numWaves
+          + " waves with available concurrency of " + intervalMaxConcurrency);
+      if (numWaves > 1) {
+        if (numWaves%1 < 0.5) {
+          // more than 1 wave needed and last wave is small
+          step.notes.add("Last partial wave did not use full concurrency. ");
         }
       }
     }
@@ -246,17 +391,18 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           // there were read errors. that could have delayed the attempt. ignore this
           continue;
         }
-        long avgExecutionTime = attempt.getTaskInfo().getVertexInfo()
-            .getAvgExecutionTimeInterval();
-        if (avgExecutionTime <= 0) {
+        long avgPostDataExecutionTime = attempt.getTaskInfo().getVertexInfo()
+            .getAvgPostDataExecutionTimeInterval();
+        if (avgPostDataExecutionTime <= 0) {
           continue;
         }
-        if (avgExecutionTime * 1.25 < attempt.getExecutionTimeInterval()) {
+        long attemptExecTime = attempt.getPostDataExecutionTimeInterval();
+        if (avgPostDataExecutionTime * 1.25 < attemptExecTime) {
           step.notes
-              .add("Potential straggler. Execution time " + 
-                  SVGUtils.getTimeStr(attempt.getExecutionTimeInterval())
+              .add("Potential straggler. Post Data Execution time " + 
+                  SVGUtils.getTimeStr(attemptExecTime)
                   + " compared to vertex average of " + 
-                  SVGUtils.getTimeStr(avgExecutionTime));
+                  SVGUtils.getTimeStr(avgPostDataExecutionTime));
         }
       }
     }
@@ -267,7 +413,9 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   
   private void analyzeCriticalPath(DagInfo dag) {
     if (!criticalPath.isEmpty()) {
+      determineConcurrency(dag);
       analyzeStragglers(dag);
+      analyzeWaves(dag);
       analyzeAllocationOverhead(dag);
     }
   }
@@ -281,7 +429,12 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       long currentAttemptStopCriticalPathTime = lastAttemptFinishTime;
 
       // add the commit step
-      currentStep.stopCriticalPathTime = dagInfo.getFinishTime();
+      if (dagInfo.getFinishTime() > 0) {
+        currentStep.stopCriticalPathTime = dagInfo.getFinishTime();
+      } else {
+        // AM crashed and no dag finished written
+        currentStep.stopCriticalPathTime = currentAttemptStopCriticalPathTime;
+      }
       currentStep.startCriticalPathTime = currentAttemptStopCriticalPathTime;
       currentStep.reason = CriticalPathDependency.COMMIT_DEPENDENCY;
       tempCP.add(currentStep);

@@ -162,6 +162,20 @@ public class TaskAttemptInfo extends BaseInfo {
   public final long getExecutionTimeInterval() {
     return executionTimeInterval;
   }
+  
+  public final long getPostDataExecutionTimeInterval() {
+    if (getStartTime() > 0 && getFinishTime() > 0) {
+      // start time defaults to the actual start time
+      long postDataStartTime = startTime;
+      if (getLastDataEvents() != null && !getLastDataEvents().isEmpty()) {
+        // if last data event is after the start time then use last data event time
+        long lastEventTime = getLastDataEvents().get(getLastDataEvents().size()-1).getTimestamp();
+        postDataStartTime = startTime > lastEventTime ? startTime : lastEventTime;
+      }
+      return (getFinishTime() - postDataStartTime);
+    }
+    return -1;
+  }
 
   public final long getAllocationToEndTimeInterval() {
     return (endTime - allocationTime);

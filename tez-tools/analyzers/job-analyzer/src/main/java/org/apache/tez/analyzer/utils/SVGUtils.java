@@ -219,11 +219,15 @@ public class SVGUtils {
   }
 
   private void drawCritical(DagInfo dagInfo, List<CriticalPathStep> criticalPath) {
-    int duration = (int) dagInfo.getFinishTimeInterval();
-    MAX_DAG_RUNTIME = duration;
     long dagStartTime = dagInfo.getStartTime();
     int dagStartTimeInterval = 0; // this is 0 since we are offseting from the dag start time
     int dagFinishTimeInterval = (int) (dagInfo.getFinishTime() - dagStartTime);
+    if (dagInfo.getFinishTime() <= 0) {
+      // AM crashed. no dag finish time written
+      dagFinishTimeInterval =(int) (criticalPath.get(criticalPath.size()-1).getStopCriticalTime()
+          - dagStartTime);
+    }
+    MAX_DAG_RUNTIME = dagFinishTimeInterval;
     
     // draw grid
     addLineStr(dagStartTimeInterval, 0, dagFinishTimeInterval, 0, BORDER_COLOR, "", TICK);

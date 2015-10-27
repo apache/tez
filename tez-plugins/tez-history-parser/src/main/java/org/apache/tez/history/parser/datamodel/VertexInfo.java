@@ -75,7 +75,7 @@ public class VertexInfo extends BaseInfo {
   private final List<AdditionalInputOutputDetails> additionalInputInfoList;
   private final List<AdditionalInputOutputDetails> additionalOutputInfoList;
   
-  private long avgExecutionTimeInterval = -1;
+  private long avgPostDataExecutionTimeInterval = -1;
 
   private DagInfo dagInfo;
 
@@ -86,7 +86,7 @@ public class VertexInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_VERTEX_ID));
 
-    vertexId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY_TYPE));
+    vertexId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY));
     taskInfoMap = Maps.newHashMap();
 
     inEdgeList = Lists.newLinkedList();
@@ -195,22 +195,26 @@ public class VertexInfo extends BaseInfo {
     return getLastTaskToFinish().getFinishTimeInterval();
   }
   
-  public final long getAvgExecutionTimeInterval() {
-    if (avgExecutionTimeInterval == -1) {
+  public final long getAvgPostDataExecutionTimeInterval() {
+    if (avgPostDataExecutionTimeInterval == -1) {
       long totalExecutionTime = 0;
       long totalAttempts = 0;
       for (TaskInfo task : getTasks()) {
         TaskAttemptInfo attempt = task.getSuccessfulTaskAttempt();
         if (attempt != null) {
-          totalExecutionTime += attempt.getExecutionTimeInterval();
-          totalAttempts++;
+          // count only time after last data was received
+          long execTime = attempt.getPostDataExecutionTimeInterval();
+          if (execTime >= 0) {
+            totalExecutionTime += execTime;
+            totalAttempts++;
+          }
         }
       }
       if (totalAttempts > 0) {
-        avgExecutionTimeInterval = Math.round(totalExecutionTime*1.0/totalAttempts);
+        avgPostDataExecutionTimeInterval = Math.round(totalExecutionTime*1.0/totalAttempts);
       }
     }
-    return avgExecutionTimeInterval;
+    return avgPostDataExecutionTimeInterval;
   }
 
   public final long getStartTime() {

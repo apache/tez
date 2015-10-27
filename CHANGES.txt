@@ -6,6 +6,7 @@ Release 0.8.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2888. Make critical path calculation resilient to AM crash
   TEZ-2899. Tez UI: DAG getting created with huge horizontal gap in between vertices
   TEZ-2907. NPE in IFile.Reader.getLength during final merge operation
   TEZ-2903. Stop using proprietary APIs in RPCLoadGen.
