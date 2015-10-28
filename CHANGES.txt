@@ -6,6 +6,7 @@ Release 0.7.1: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES
+  TEZ-2900. Ignore V_INPUT_DATA_INFORMATION when vertex is in Failed/Killed/Error
   TEZ-2904. Pig can't specify task specific command opts
   TEZ-2899. Tez UI: DAG getting created with huge horizontal gap in between vertices
   TEZ-2882. Consider improving fetch failure handling

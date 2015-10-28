@@ -607,7 +607,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
-                  VertexEventType.V_ROOT_INPUT_FAILED,
+                  VertexEventType.V_INPUT_DATA_INFORMATION,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
 
           // Transitions from KILLED state
@@ -630,7 +630,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                   VertexEventType.V_TASK_COMPLETED,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
-                  VertexEventType.V_ROOT_INPUT_FAILED,
+                  VertexEventType.V_INPUT_DATA_INFORMATION,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
 
           // No transitions from INTERNAL_ERROR state. Ignore all.
@@ -651,7 +651,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                   VertexEventType.V_INTERNAL_ERROR,
                   VertexEventType.V_ROOT_INPUT_INITIALIZED,
                   VertexEventType.V_NULL_EDGE_INITIALIZED,
-                  VertexEventType.V_ROOT_INPUT_FAILED,
+                  VertexEventType.V_INPUT_DATA_INFORMATION,
                   VertexEventType.V_SOURCE_VERTEX_RECOVERED))
           // create the topology tables
           .installTopology();
