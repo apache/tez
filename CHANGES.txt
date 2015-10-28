@@ -6,6 +6,7 @@ Release 0.8.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2244. PipelinedSorter: Progressive allocation for sort-buffers
   TEZ-2904. Pig can't specify task specific command opts
   TEZ-2888. Make critical path calculation resilient to AM crash
   TEZ-2899. Tez UI: DAG getting created with huge horizontal gap in between vertices

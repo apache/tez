@@ -128,6 +128,31 @@ public class TezRuntimeConfiguration {
       "combine.min.spills";
   public static final int TEZ_RUNTIME_COMBINE_MIN_SPILLS_DEFAULT = 3;
 
+  /**
+   * Tries to allocate @link{#TEZ_RUNTIME_IO_SORT_MB} in chunks specified in
+   * this parameter.
+   */
+  @ConfigurationProperty(type = "integer")
+  public static final String
+      TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB = TEZ_RUNTIME_PREFIX +
+      "pipelined.sorter.min-block.size.in.mb";
+  public static final int
+      TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB_DEFAULT = 2000;
+
+  /**
+   * Setting this to true would enable sorter
+   * to auto-allocate memory on need basis in progressive fashion.
+   *
+   * Setting to false would allocate all available memory during
+   * initialization of sorter. In such cases,@link{#TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB}
+   * would be honored and memory specified in @link{#TEZ_RUNTIME_IO_SORT_MB}
+   * would be initialized upfront.
+   */
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY = TEZ_RUNTIME_PREFIX +
+      "pipelined.sorter.lazy-allocate.memory";
+  public static final boolean
+      TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY_DEFAULT = false;
 
   /**
    * String value.
@@ -498,6 +523,9 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
     tezRuntimeKeys.add(TEZ_RUNTIME_COMBINE_MIN_SPILLS);
     tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
+    tezRuntimeKeys.add(
+        TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB);
+    tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY);
     tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB);
     tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
     tezRuntimeKeys.add(TEZ_RUNTIME_PARTITIONER_CLASS);

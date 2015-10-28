@@ -25,9 +25,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.PriorityQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -87,19 +85,12 @@ public class PipelinedSorter extends ExternalSorter {
   private final ProxyComparator hasher;
   // SortSpans  
   private SortSpan span;
-  //Maintain a bunch of ByteBuffers (each of them can hold approximately 2 GB data)
-  @VisibleForTesting
-  protected final LinkedList<ByteBuffer> bufferList = new LinkedList<ByteBuffer>();
-  private ListIterator<ByteBuffer> listIterator;
 
   //total memory capacity allocated to sorter
   private final long capacity;
 
   //track buffer overflow recursively in all buffers
   private int bufferOverflowRecursion;
-
-  private final int blockSize;
-
 
   // Merger
   private final SpanMerger merger; 
@@ -110,16 +101,43 @@ public class PipelinedSorter extends ExternalSorter {
 
   private final boolean pipelinedShuffle;
 
+  private long currentAllocatableMemory;
+  //Maintain a list of ByteBuffers
+  @VisibleForTesting
+  final List<ByteBuffer> buffers;
+  final int maxNumberOfBlocks;
+  private int bufferIndex = -1;
+  private final int MIN_BLOCK_SIZE;
+  private final boolean lazyAllocateMem;
+
   // TODO Set additional countesr - total bytes written, spills etc.
 
   public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
-    this(outputContext,conf,numOutputs, initialMemoryAvailable, 0);
-  }
-
-  PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
-      long initialMemoryAvailable, int blkSize) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
+
+    lazyAllocateMem = this.conf.getBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY_DEFAULT);
+
+    if (lazyAllocateMem) {
+      /**
+       * When lazy-allocation is enabled, framework takes care of auto
+       * allocating memory on need basis. Desirable block size is set to 256MB
+       */
+      MIN_BLOCK_SIZE = 256 << 20; //256 MB
+    } else {
+      int minBlockSize = conf.getInt(TezRuntimeConfiguration
+              .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB,
+          TezRuntimeConfiguration
+              .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB_DEFAULT);
+      Preconditions.checkArgument(
+          (minBlockSize > 0 && minBlockSize < 2047),
+          TezRuntimeConfiguration
+              .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB
+              + "=" + minBlockSize + " should be a positive value between 0 and 2047");
+      MIN_BLOCK_SIZE = minBlockSize << 20;
+    }
 
     StringBuilder initialSetupLogLine = new StringBuilder("Setting up PipelinedSorter for ")
         .append(outputContext.getDestinationVertexName()).append(": ");
@@ -135,23 +153,7 @@ public class PipelinedSorter extends ExternalSorter {
     final long sortmb = this.availableMemoryMb;
 
     // buffers and accounting
-    long maxMemUsage = sortmb << 20;
-
-    this.blockSize = computeBlockSize(blkSize, maxMemUsage);
-
-    long usage = sortmb << 20;
-    //Divide total memory into different blocks.
-    int numberOfBlocks = Math.max(1, (int) Math.ceil(1.0 * usage / blockSize));
-    initialSetupLogLine.append("#blocks=").append(numberOfBlocks);
-    initialSetupLogLine.append(", maxMemUsage=").append(maxMemUsage);
-    initialSetupLogLine.append(", BLOCK_SIZE=").append(blockSize);
-    initialSetupLogLine.append(", finalMergeEnabled=").append(isFinalMergeEnabled());
-    initialSetupLogLine.append(", pipelinedShuffle=").append(pipelinedShuffle);
-    initialSetupLogLine.append(", sendEmptyPartitions=").append(sendEmptyPartitionDetails);
-    initialSetupLogLine.append(", ").append(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB).append(
-        "=").append(
-        sortmb);
-
+    long maxMemLimit = sortmb << 20;
 
     initialSetupLogLine.append(", UsingHashComparator=");
     // k/v serialization
@@ -166,20 +168,43 @@ public class PipelinedSorter extends ExternalSorter {
     LOG.info(initialSetupLogLine.toString());
 
     long totalCapacityWithoutMeta = 0;
-    for (int i = 0; i < numberOfBlocks; i++) {
-      Preconditions.checkArgument(usage > 0, "usage can't be less than zero " + usage);
-      long size = Math.min(usage, blockSize);
+    long availableMem = maxMemLimit;
+    int numBlocks = 0;
+    while(availableMem > 0) {
+      long size = Math.min(availableMem, computeBlockSize(availableMem, maxMemLimit));
       int sizeWithoutMeta = (int) ((size) - (size % METASIZE));
-      bufferList.add(ByteBuffer.allocate(sizeWithoutMeta));
       totalCapacityWithoutMeta += sizeWithoutMeta;
-      usage -= size;
+      availableMem -= size;
+      numBlocks++;
     }
+    currentAllocatableMemory = maxMemLimit;
+    maxNumberOfBlocks = numBlocks;
     capacity = totalCapacityWithoutMeta;
-    listIterator = bufferList.listIterator();
 
+    buffers = Lists.newArrayListWithCapacity(maxNumberOfBlocks);
+    allocateSpace(); //Allocate the first block
+    if (!lazyAllocateMem) {
+      LOG.info("Pre allocating rest of memory buffers upfront");
+      while(allocateSpace() != null);
+    }
 
-    Preconditions.checkArgument(listIterator.hasNext(), "Buffer list seems to be empty " + bufferList.size());
-    span = new SortSpan(listIterator.next(), 1024*1024, 16, this.comparator);
+    initialSetupLogLine.append("#blocks=").append(maxNumberOfBlocks);
+    initialSetupLogLine.append(", maxMemUsage=").append(maxMemLimit);
+    initialSetupLogLine.append(", lazyAllocateMem=").append(
+        lazyAllocateMem);
+    initialSetupLogLine.append(", minBlockSize=").append(MIN_BLOCK_SIZE);
+    initialSetupLogLine.append(", initial BLOCK_SIZE=").append(buffers.get(0).capacity());
+    initialSetupLogLine.append(", finalMergeEnabled=").append(isFinalMergeEnabled());
+    initialSetupLogLine.append(", pipelinedShuffle=").append(pipelinedShuffle);
+    initialSetupLogLine.append(", sendEmptyPartitions=").append(sendEmptyPartitionDetails);
+    initialSetupLogLine.append(", ").append(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB).append(
+        "=").append(
+        sortmb);
+
+    Preconditions.checkState(buffers.size() > 0, "Atleast one buffer needs to be present");
+    LOG.info(initialSetupLogLine.toString());
+
+    span = new SortSpan(buffers.get(bufferIndex), 1024 * 1024, 16, this.comparator);
     merger = new SpanMerger(); // SpanIterators are comparable
     final int sortThreads = 
             this.conf.getInt(
@@ -197,18 +222,67 @@ public class PipelinedSorter extends ExternalSorter {
     minSpillsForCombine = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 3);
   }
 
+  ByteBuffer allocateSpace() {
+    if (currentAllocatableMemory <= 0) {
+      //No space available.
+      return null;
+    }
+
+    int size = computeBlockSize(currentAllocatableMemory, availableMemoryMb << 20);
+    currentAllocatableMemory -= size;
+    int sizeWithoutMeta = (size) - (size % METASIZE);
+    ByteBuffer space = ByteBuffer.allocate(sizeWithoutMeta);
+
+    buffers.add(space);
+    bufferIndex++;
+
+    Preconditions.checkState(buffers.size() <= maxNumberOfBlocks,
+        "Number of blocks " + buffers.size()
+            + " is exceeding  " + maxNumberOfBlocks);
+
+    LOG.info("Newly allocated block size=" + size
+        + ", index=" + bufferIndex
+        + ", Number of buffers=" + buffers.size()
+        + ", currentAllocatableMemory=" + currentAllocatableMemory
+        + ", currentBufferSize=" + space.capacity()
+        + ", total=" + (availableMemoryMb << 20));
+    return space;
+  }
+
+
   @VisibleForTesting
-  static int computeBlockSize(int blkSize, long maxMemUsage) {
-    if (blkSize == 0) {
-      return (int) Math.min(maxMemUsage, Integer.MAX_VALUE);
-    } else {
-      Preconditions.checkArgument(blkSize > 0, "blkSize should be between 1 and Integer.MAX_VALUE");
-      if (blkSize >= maxMemUsage) {
-        return (maxMemUsage > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) maxMemUsage;
-      } else {
-        return blkSize;
+  int computeBlockSize(long availableMem, long maxAllocatedMemory) {
+    int maxBlockSize = 0;
+    /**
+     * When lazy-allocation is enabled, framework takes care of auto allocating
+     * memory on need basis. In such cases, first buffer starts with 32 MB.
+     */
+    if (lazyAllocateMem) {
+      if (buffers == null || buffers.isEmpty()) {
+        return 32 << 20; //32 MB
       }
     }
+
+    //Honor MIN_BLOCK_SIZE
+    maxBlockSize = Math.max(MIN_BLOCK_SIZE, maxBlockSize);
+
+    if (availableMem < maxBlockSize) {
+      maxBlockSize = (int) availableMem;
+    }
+
+    int maxMem = (maxAllocatedMemory > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) maxAllocatedMemory;
+    if (maxBlockSize > maxMem) {
+      maxBlockSize = maxMem;
+    }
+
+    availableMem -= maxBlockSize;
+    if (availableMem < MIN_BLOCK_SIZE) {
+      if ((maxBlockSize + availableMem) < Integer.MAX_VALUE) {
+        //Merge remaining with last block
+        maxBlockSize += availableMem;
+      }
+    }
+    return maxBlockSize;
   }
 
   private int bitcount(int n) {
@@ -237,8 +311,8 @@ public class PipelinedSorter extends ExternalSorter {
       if (pipelinedShuffle && ret) {
         sendPipelinedShuffleEvents();
       }
-      //safe to reset the iterator
-      listIterator = bufferList.listIterator();
+      //safe to reset bufferIndex to 0;
+      bufferIndex = 0;
       int items = 1024*1024;
       int perItem = 16;
       if(span.length() != 0) {
@@ -250,9 +324,9 @@ public class PipelinedSorter extends ExternalSorter {
             items = 1024*1024;
         }
       }
-      Preconditions.checkArgument(listIterator.hasNext(), "block iterator should not be empty");
+      Preconditions.checkArgument(buffers.get(bufferIndex) != null, "block should not be empty");
       //TODO: fix per item being passed.
-      span = new SortSpan((ByteBuffer)listIterator.next().clear(), (1024*1024),
+      span = new SortSpan((ByteBuffer)buffers.get(bufferIndex).clear(), (1024*1024),
           perItem, ConfigUtils.getIntermediateOutputKeyComparator(this.conf));
     } else {
       // queue up the sort
@@ -325,7 +399,7 @@ public class PipelinedSorter extends ExternalSorter {
       // restore limit
       span.kvbuffer.position(keystart);
       this.sort();
-      if (span.length() == 0 || bufferOverflowRecursion > bufferList.size()) {
+      if (span.length() == 0 || bufferOverflowRecursion > buffers.size()) {
         // spill the current key value pair
         spillSingleRecord(key, value, partition);
         bufferOverflowRecursion = 0;
@@ -562,7 +636,7 @@ public class PipelinedSorter extends ExternalSorter {
       sortmaster.shutdown();
 
       //safe to clean up
-      bufferList.clear();
+      buffers.clear();
 
 
       if(indexCacheList.isEmpty()) {
@@ -911,11 +985,12 @@ public class PipelinedSorter extends ExternalSorter {
       LOG.info(outputContext.getDestinationVertexName() + ": " + String.format("Span%d.length = %d, perItem = %d", index, length(), perItem));
       if(remaining.remaining() < METASIZE+perItem) {
         //Check if we can get the next Buffer from the main buffer list
-        if (listIterator.hasNext()) {
+        ByteBuffer space = allocateSpace();
+        if (space != null) {
           LOG.info(outputContext.getDestinationVertexName() + ": " + "Getting memory from next block in the list, recordsWritten=" +
               mapOutputRecordCounter.getValue());
           reinit = true;
-          return listIterator.next();
+          return space;
         }
         return null;
       }
