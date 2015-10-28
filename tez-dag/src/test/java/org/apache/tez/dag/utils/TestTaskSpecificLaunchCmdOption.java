@@ -49,6 +49,13 @@ public class TestTaskSpecificLaunchCmdOption {
     TaskSpecificLaunchCmdOption option = getOptions(conf, "");
     assertFalse(option.addTaskSpecificLaunchCmdOption("v", 0));
 
+    option = getOptions(conf, "v-10[0,1,2]");
+    assertTrue(option.addTaskSpecificLaunchCmdOption("v-10", 0));
+    assertTrue(option.addTaskSpecificLaunchCmdOption("v-10", 1));
+    assertTrue(option.addTaskSpecificLaunchCmdOption("v-10", 2));
+    assertFalse(option.addTaskSpecificLaunchCmdOption("v-10",
+        rnd.nextInt(Integer.MAX_VALUE)));
+
     option = getOptions(conf, "v[0,1,2]");
     assertTrue(option.addTaskSpecificLaunchCmdOption("v", 0));
     assertTrue(option.addTaskSpecificLaunchCmdOption("v", 1));

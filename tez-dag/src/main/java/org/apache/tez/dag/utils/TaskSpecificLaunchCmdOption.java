@@ -40,17 +40,17 @@ import com.google.common.base.Strings;
 public class TaskSpecificLaunchCmdOption {
   private static final Logger LOG = LoggerFactory.getLogger(TaskSpecificLaunchCmdOption.class);
 
-  //To check any characters apart from "a-zA-Z_0-9 : ; , [] space" anywhere in input.
+  //To check any characters apart from "a-zA-Z_0-9 : ; , [] - space" anywhere in input.
   final static Pattern INVALID_TASK_NAME_REGEX = Pattern
-    .compile("[^(\\w\\s;:,\\[\\])]");
+    .compile("[^(\\w\\s;:,\\[\\]\\-)]");
 
   /**
-   * Regex to validate the task ranges. Vertex name can only have [a-zA-Z_0-9] and
+   * Regex to validate the task ranges. Vertex name can only have [a-zA-Z_0-9], -, and
    * space. Task id is expected to be a number. : is used for specifying task id range. , is used
    * as task id separator.
    */
   final static Pattern TASKS_REGEX = Pattern
-    .compile("([\\w\\s]+)\\[([\\d:,\\s]*)\\];?");
+    .compile("([\\w\\s\\-]+)\\[([\\d:,\\s]*)\\];?");
 
   //Range regex where ':' should always be prepended and appended with digit.
   final static Pattern RANGE_REGEX = Pattern.compile("(\\d+):(\\d+)");
