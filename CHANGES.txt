@@ -4,6 +4,7 @@ Apache Tez Change Log
 Release 0.8.2: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
   TEZ-2906. Compilation fails with hadoop 2.2.0
@@ -225,6 +226,7 @@ TEZ-2003: Support for External services CHANGES
 Release 0.7.1: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
   TEZ-2900. Ignore V_INPUT_DATA_INFORMATION when vertex is in Failed/Killed/Error

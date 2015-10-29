@@ -19,6 +19,8 @@
 package org.apache.tez.common;
 
 import java.io.File;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
@@ -57,4 +59,25 @@ public class TestTezYARNUtils {
         classpath.indexOf(Environment.HADOOP_CONF_DIR.$()));
   }
 
+  @Test(timeout = 5000)
+  public void testSetupDefaultEnvironment() {
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_AM_LAUNCH_ENV, "LD_LIBRARY_PATH=USER_PATH,USER_KEY=USER_VALUE");
+    conf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV, "LD_LIBRARY_PATH=DEFAULT_PATH,DEFAULT_KEY=DEFAULT_VALUE");
+
+    Map<String, String> environment = new TreeMap<String, String>();
+    TezYARNUtils.setupDefaultEnv(environment, conf,
+        TezConfiguration.TEZ_AM_LAUNCH_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT,
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT, false);
+
+    String value1 = environment.get("USER_KEY");
+    Assert.assertEquals("User env should merge with default env", "USER_VALUE", value1);
+    String value2 = environment.get("DEFAULT_KEY");
+    Assert.assertEquals("User env should merge with default env", "DEFAULT_VALUE", value2);
+    String value3 = environment.get("LD_LIBRARY_PATH");
+    Assert.assertEquals("User env should append default env",
+        Environment.PWD.$() + File.pathSeparator + "USER_PATH" + File.pathSeparator + "DEFAULT_PATH", value3);
+    }
 }
