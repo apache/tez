@@ -120,6 +120,7 @@ App.ApplicationRoute = Em.Route.extend({
   actions: {
     willTransition: function(transition) {
       App.Helpers.ErrorBar.getInstance().hide();
+      $(document).tooltip("close");
     },
     error: function(error, transition, originRoute) {
       this.replaceWith('error');
