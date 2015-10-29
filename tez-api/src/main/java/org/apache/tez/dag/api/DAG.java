@@ -868,7 +868,10 @@ public class DAG {
       Map<String, String> taskEnv = Maps.newHashMap(vertex.getTaskEnvironment());
       TezYARNUtils.setupDefaultEnv(taskEnv, tezConf,
           TezConfiguration.TEZ_TASK_LAUNCH_ENV,
-          TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
+          TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT,
+          TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_ENV,
+          TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT,
+          tezLrsAsArchive);
       for (Map.Entry<String, String> entry : taskEnv.entrySet()) {
         PlanKeyValuePair.Builder envSettingBuilder = PlanKeyValuePair.newBuilder();
         envSettingBuilder.setKey(entry.getKey());

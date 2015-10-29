@@ -340,17 +340,42 @@ public class TezConfiguration extends Configuration {
     "PATH=%PATH%;%HADOOP_COMMON_HOME%\\bin":
     "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_COMMON_HOME/lib/native/";
 
+  /**
+   * String value. Env settings will be merged with {@link #TEZ_AM_LAUNCH_ENV}
+   * during the launch of the AppMaster process. This property will typically be configured to
+   * include default system env meant to be used by all jobs in a cluster. If required, the values can
+   * be appended to per job.
+   */
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV =
+      TEZ_AM_PREFIX + "launch.cluster-default.env";
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT =
+      NATIVE_LIB_PARAM_DEFAULT;
+
   /** String value. Env settings for the Tez AppMaster process.
    * Should be specified as a comma-separated of key-value pairs where each pair
    * is defined as KEY=VAL
    * e.g. "LD_LIBRARY_PATH=.,USERNAME=foo"
    * These take least precedence compared to other methods of setting env.
    * These get added to the app master environment prior to launching it.
-  */
+   * This setting will prepend existing settings in the cluster default
+   */
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_AM_LAUNCH_ENV = TEZ_AM_PREFIX
       + "launch.env";
-  public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = NATIVE_LIB_PARAM_DEFAULT;
+  public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = "";
+
+  /**
+   * String value. Env settings will be merged with {@link #TEZ_TASK_LAUNCH_ENV}
+   * during the launch of the task process. This property will typically be configured to
+   * include default system env meant to be used by all jobs in a cluster. If required, the values can
+   * be appended to per job.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  public static final String TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_ENV =
+      TEZ_TASK_PREFIX + "launch.cluster-default.env";
+  public static final String TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT =
+      NATIVE_LIB_PARAM_DEFAULT;
 
   /** String value. Env settings for the Tez Task processes.
    * Should be specified as a comma-separated of key-value pairs where each pair
@@ -358,11 +383,12 @@ public class TezConfiguration extends Configuration {
    * e.g. "LD_LIBRARY_PATH=.,USERNAME=foo"
    * These take least precedence compared to other methods of setting env
    * These get added to the task environment prior to launching it.
+   * This setting will prepend existing settings in the cluster default
    */
   @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_LAUNCH_ENV = TEZ_TASK_PREFIX
       + "launch.env";
-  public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = NATIVE_LIB_PARAM_DEFAULT;
+  public static final String TEZ_TASK_LAUNCH_ENV_DEFAULT = "";
 
   @Private
   @ConfigurationScope(Scope.DAG)

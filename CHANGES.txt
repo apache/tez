@@ -4,6 +4,7 @@ Apache Tez Change Log
 Release 0.7.1: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
   TEZ-2900. Ignore V_INPUT_DATA_INFORMATION when vertex is in Failed/Killed/Error

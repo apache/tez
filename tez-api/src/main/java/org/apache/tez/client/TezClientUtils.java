@@ -504,9 +504,13 @@ public class TezClientUtils {
     }
 
     Map<String, String> environment = new TreeMap<String, String>();
-    TezYARNUtils.setupDefaultEnv(environment, conf, TezConfiguration.TEZ_AM_LAUNCH_ENV,
-        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT, tezLrsAsArchive);
-    
+    TezYARNUtils.setupDefaultEnv(environment, conf,
+        TezConfiguration.TEZ_AM_LAUNCH_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_ENV_DEFAULT,
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV,
+        TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_ENV_DEFAULT,
+        tezLrsAsArchive);
+
     addVersionInfoToEnv(environment, apiVersionInfo);
     addLogParamsToEnv(environment, amLogParams);
 

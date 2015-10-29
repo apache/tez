@@ -167,8 +167,8 @@ public class TezYARNUtils {
     }
   }
 
-  public static void setupDefaultEnv(Map<String, String> env,
-      Configuration conf,  String confEnvKey, String confEnvKeyDefault, boolean usingArchive) {
+  public static void setupDefaultEnv(Map<String, String> env, Configuration conf,  String userEnvKey, String userEnvDefault,
+      String clusterDefaultEnvKey, String clusterDefaultEnvDefault, boolean usingArchive) {
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
     String classpath = getFrameworkClasspath(conf, usingArchive);
@@ -176,14 +176,16 @@ public class TezYARNUtils {
         ApplicationConstants.Environment.CLASSPATH.name(),
         classpath, File.pathSeparator);
 
+    // Pre-pend pwd to LD_LIBRARY_PATH
+    // Done separately here because this is known to work platform
+    // independent
+    TezYARNUtils.addToEnvironment(env,
+        Environment.LD_LIBRARY_PATH.name(), Environment.PWD.$(), File.pathSeparator);
+    TezYARNUtils.appendToEnvFromInputString(env,
+        conf.get(userEnvKey, userEnvDefault), File.pathSeparator);
     // set any env from config if it is not set already
-    TezYARNUtils.setEnvIfAbsentFromInputString(env, conf.get(
-        confEnvKey, confEnvKeyDefault));
-    
-    // Append pwd to LD_LIBRARY_PATH
-    // Done separately here because this is known to work platform independent
-    TezYARNUtils.addToEnvironment(env, Environment.LD_LIBRARY_PATH.name(),
-        Environment.PWD.$(), File.pathSeparator);
+    TezYARNUtils.appendToEnvFromInputString(env,
+        conf.get(clusterDefaultEnvKey, clusterDefaultEnvDefault), File.pathSeparator);
   }
 
   public static void replaceInEnv(Map<String, String> env, String key, String value) {
