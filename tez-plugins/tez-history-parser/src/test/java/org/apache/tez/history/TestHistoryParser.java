@@ -19,6 +19,8 @@
 package org.apache.tez.history;
 
 import com.google.common.collect.Sets;
+import com.sun.tools.internal.ws.processor.ProcessorException;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -92,9 +94,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TestHistoryParser {
 
@@ -342,8 +342,12 @@ public class TestHistoryParser {
         atsAddress
       };
 
-    int result = ATSImportTool.process(args);
-    assertTrue(result == -1);
+    try {
+      int result = ATSImportTool.process(args);
+      fail("Should have failed with processException");
+    } catch(ParseException e) {
+      //expects exception
+    }
   }
 
   /**

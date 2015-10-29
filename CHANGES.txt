@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-2814. ATSImportTool has a return statement in a finally block
   TEZ-2906. Compilation fails with hadoop 2.2.0
   TEZ-2900. Ignore V_INPUT_DATA_INFORMATION when vertex is in Failed/Killed/Error
   TEZ-2244. PipelinedSorter: Progressive allocation for sort-buffers
