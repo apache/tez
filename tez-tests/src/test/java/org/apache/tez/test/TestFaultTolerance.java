@@ -23,6 +23,9 @@ import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -90,6 +93,7 @@ public class TestFaultTolerance {
       tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
       tezConf.setDouble(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, 0.4);
       tezConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, 3);
+      tezConf.setInt(TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS, 100);
 
       tezSession = TezClient.create("TestFaultTolerance", tezConf, true);
       tezSession.start();
@@ -117,6 +121,11 @@ public class TestFaultTolerance {
   }
 
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState, int checkFailedAttempts) throws Exception {
+    runDAGAndVerify(dag, finalState, checkFailedAttempts, null);
+  }
+  
+  void runDAGAndVerify(DAG dag, DAGStatus.State finalState, int checkFailedAttempts, 
+      String diagnostics) throws Exception {
     tezSession.waitTillReady();
     DAGClient dagClient = tezSession.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
@@ -129,12 +138,17 @@ public class TestFaultTolerance {
       dagStatus = dagClient.getDAGStatus(null);
     }
 
+    Assert.assertEquals(finalState, dagStatus.getState());
+    
     if (checkFailedAttempts > 0) {
       Assert.assertEquals(checkFailedAttempts,
           dagStatus.getDAGProgress().getFailedTaskAttemptCount());
     }
 
-    Assert.assertEquals(finalState, dagStatus.getState());
+    if (diagnostics != null) {
+      Assert.assertNotNull(dagStatus.getDiagnostics());
+      Assert.assertTrue(Joiner.on(":").join(dagStatus.getDiagnostics()).contains(diagnostics));
+    }
   }
   
   @Test (timeout=60000)
@@ -747,6 +761,20 @@ public class TestFaultTolerance {
     testConf.setFloat(TestInput.TEZ_FAILING_INPUT_RANDOM_FAIL_PROBABILITY, 0.5f);
     DAG dag = SixLevelsFailingDAG.createDAG("testRandomFailingInputs", testConf);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
+  
+  @Test (timeout=240000)
+  public void testNoProgress() throws Exception {
+    Configuration testConf = new Configuration(false);
+    testConf.setInt(TestProcessor.TEZ_FAILING_PROCESSOR_SLEEP_MS, 1000*100); // long sleep
+    testConf.setInt(SimpleTestDAG.TEZ_SIMPLE_DAG_NUM_TASKS, 1);
+    DAG dag = SimpleTestDAG.createDAG(testConf);
+    Vertex hung = dag.getVertex("v1");
+    hung.setConf(TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, Long.toString(1000));
+    hung.setConf(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, Integer.toString(2));
+    
+    // dag will fail with 2 attempts failing from vertex v1
+    runDAGAndVerify(dag, DAGStatus.State.FAILED, 2, "no progress");
   }
   
 }

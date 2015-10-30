@@ -31,15 +31,18 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
 
   private TezCounters tezCounters;
   private float progress;
+  boolean progressNotified;
   private TaskStatistics statistics;
 
   public TaskStatusUpdateEvent() {
   }
 
-  public TaskStatusUpdateEvent(TezCounters tezCounters, float progress, TaskStatistics statistics) {
+  public TaskStatusUpdateEvent(TezCounters tezCounters, float progress, TaskStatistics statistics, 
+      boolean progressNotified) {
     this.tezCounters = tezCounters;
     this.progress = progress;
     this.statistics = statistics;
+    this.progressNotified = progressNotified;
   }
 
   public TezCounters getCounters() {
@@ -53,10 +56,15 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
   public TaskStatistics getStatistics() {
     return statistics;
   }
+  
+  public boolean getProgressNotified() {
+    return progressNotified;
+  }
 
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeFloat(progress);
+    out.writeBoolean(progressNotified);
     if (tezCounters != null) {
       out.writeBoolean(true);
       tezCounters.write(out);
@@ -74,6 +82,7 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     progress = in.readFloat();
+    progressNotified = in.readBoolean();
     if (in.readBoolean()) {
       tezCounters = new TezCounters();
       tezCounters.readFields(in);

@@ -116,6 +116,8 @@ public class TestTaskReporter {
     LogicalIOProcessorRuntimeTask mockTask = mock(LogicalIOProcessorRuntimeTask.class);
     doReturn("vertexName").when(mockTask).getVertexName();
     doReturn(mockTaskAttemptId).when(mockTask).getTaskAttemptID();
+    boolean progressNotified = false;
+    doReturn(progressNotified).when(mockTask).getAndClearProgressNotification();
     TezTaskUmbilicalProtocol mockUmbilical = mock(TezTaskUmbilicalProtocol.class);
     
     float progress = 0.5f;
@@ -136,9 +138,11 @@ public class TestTaskReporter {
     TaskStatusUpdateEvent event = heartbeatCallable.getStatusUpdateEvent(true);
     verify(mockTask, times(1)).hasInitialized();
     verify(mockTask, times(0)).getProgress();
+    verify(mockTask, times(0)).getAndClearProgressNotification();
     verify(mockTask, times(0)).getTaskStatistics();
     verify(mockTask, times(0)).getCounters();
     Assert.assertEquals(0, event.getProgress(), 0);
+    Assert.assertEquals(false, event.getProgressNotified());
     Assert.assertNull(event.getCounters());
     Assert.assertNull(event.getStatistics());
 
@@ -147,20 +151,26 @@ public class TestTaskReporter {
     event = heartbeatCallable.getStatusUpdateEvent(false);
     verify(mockTask, times(2)).hasInitialized();
     verify(mockTask, times(1)).getProgress();
+    verify(mockTask, times(1)).getAndClearProgressNotification();
     verify(mockTask, times(0)).getTaskStatistics();
     verify(mockTask, times(0)).getCounters();
     Assert.assertEquals(progress, event.getProgress(), 0);
+    Assert.assertEquals(progressNotified, event.getProgressNotified());
     Assert.assertNull(event.getCounters());
     Assert.assertNull(event.getStatistics());
 
     // task is initialized - progress obtained and also counters since flag is true
+    progressNotified = true;
+    doReturn(progressNotified).when(mockTask).getAndClearProgressNotification();
     doReturn(true).when(mockTask).hasInitialized();
     event = heartbeatCallable.getStatusUpdateEvent(true);
     verify(mockTask, times(3)).hasInitialized();
     verify(mockTask, times(2)).getProgress();
+    verify(mockTask, times(2)).getAndClearProgressNotification();
     verify(mockTask, times(1)).getTaskStatistics();
     verify(mockTask, times(1)).getCounters();
     Assert.assertEquals(progress, event.getProgress(), 0);
+    Assert.assertEquals(progressNotified, event.getProgressNotified());
     Assert.assertEquals(counters, event.getCounters());
     Assert.assertEquals(stats, event.getStatistics());
 

@@ -421,7 +421,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
               cData.numUpdates++;
               float maxUpdates = (updatesToMake != null) ? updatesToMake.intValue() : 1;
               float progress = updateProgress ? cData.numUpdates/maxUpdates : 0f;
-              events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats), new EventMetaData(
+              events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats, false), 
+                  new EventMetaData(
                   EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
                   getContext().getClock().getTime()));
               TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
