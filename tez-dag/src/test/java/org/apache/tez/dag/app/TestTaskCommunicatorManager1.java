@@ -235,7 +235,7 @@ public class TestTaskCommunicatorManager1 {
   @Test (timeout = 5000)
   public void testTaskEventRouting() throws Exception {
     List<TezEvent> events =  Arrays.asList(
-      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null), null),
+      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null, false), null),
       new TezEvent(DataMovementEvent.create(0, ByteBuffer.wrap(new byte[0])), null),
       new TezEvent(new TaskAttemptCompletedEvent(), null)
     );
@@ -264,7 +264,7 @@ public class TestTaskCommunicatorManager1 {
   @Test (timeout = 5000)
   public void testTaskEventRoutingWithReadError() throws Exception {
     List<TezEvent> events =  Arrays.asList(
-      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null), null),
+      new TezEvent(new TaskStatusUpdateEvent(null, 0.0f, null, false), null),
       new TezEvent(InputReadErrorEvent.create("", 0, 0), null),
       new TezEvent(new TaskAttemptCompletedEvent(), null)
     );

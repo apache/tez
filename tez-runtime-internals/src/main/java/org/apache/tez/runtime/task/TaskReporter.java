@@ -347,15 +347,17 @@ public class TaskReporter implements TaskReporterInterface {
       TezCounters counters = null;
       TaskStatistics stats = null;
       float progress = 0;
+      boolean progressNotified = false;
       if (task.hasInitialized()) {
         progress = task.getProgress();
+        progressNotified = task.getAndClearProgressNotification();
         if (sendCounters) {
           // send these potentially large objects at longer intervals to avoid overloading the AM
           counters = task.getCounters();
           stats = task.getTaskStatistics();
         }
       }
-      return new TaskStatusUpdateEvent(counters, progress, stats);
+      return new TaskStatusUpdateEvent(counters, progress, stats, progressNotified);
     }
 
     /**

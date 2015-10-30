@@ -174,6 +174,11 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   }
 
   @Override
+  public void notifyProgress() {
+    runtimeTask.notifyProgressInvocation();
+  }
+  
+  @Override
   public ByteBuffer getServiceConsumerMetaData(String serviceName) {
     return (ByteBuffer) serviceConsumerMetadata.get(serviceName)
         .asReadOnlyBuffer().rewind();

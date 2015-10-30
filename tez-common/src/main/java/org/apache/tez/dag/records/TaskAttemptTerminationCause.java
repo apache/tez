@@ -34,6 +34,7 @@ public enum TaskAttemptTerminationCause {
   INPUT_READ_ERROR, // Failed due to error in reading inputs
   OUTPUT_WRITE_ERROR, // Failed due to error in writing outputs
   OUTPUT_LOST, // Failed because attempts output were reported lost
+  NO_PROGRESS, // Failed because no progress was being made
   TASK_HEARTBEAT_ERROR, // Failed because AM lost connection to the task
   
   CONTAINER_LAUNCH_FAILED, // Failed to launch container

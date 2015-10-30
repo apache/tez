@@ -191,6 +191,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   private DAGCounter localityCounter;
   
   org.apache.tez.runtime.api.impl.TaskStatistics statistics;
+  
+  long lastNotifyProgressTimestamp = 0;
 
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
@@ -1372,6 +1374,29 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.reportedStatus.progress = statusEvent.getProgress();
       ta.reportedStatus.counters = statusEvent.getCounters();
       ta.statistics = statusEvent.getStatistics();
+      if (statusEvent.getProgressNotified()) {
+        ta.lastNotifyProgressTimestamp = ta.clock.getTime();
+      } else {
+        long currTime = ta.clock.getTime();
+        long hungIntervalMax = ta.conf.getLong(
+            TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 
+            TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT);
+        if (hungIntervalMax > 0 &&
+            currTime - ta.lastNotifyProgressTimestamp > hungIntervalMax) {
+          // task is hung
+          String diagnostics = "Attempt failed because it appears to make no progress for " + 
+          hungIntervalMax + "ms";
+          LOG.info(diagnostics + " " + ta.getID());
+          // send event that will fail this attempt
+          ta.sendEvent(
+              new TaskAttemptEventAttemptFailed(ta.getID(),
+                  TaskAttemptEventType.TA_FAILED,
+                  diagnostics, 
+                  TaskAttemptTerminationCause.NO_PROGRESS)
+              );
+        }
+      }
+      
       if (sEvent.getReadErrorReported()) {
         // if there is a read error then track the next last data event
         ta.appendNextDataEvent = true;

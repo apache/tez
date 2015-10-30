@@ -17,8 +17,7 @@ package org.apache.tez.runtime.api.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -97,6 +96,9 @@ public class TestProcessorContext {
     assertEquals(vertexName, procContext.getTaskVertexName());
     assertEquals(vertexId.getId(), procContext.getTaskVertexIndex());
     assertTrue(Arrays.equals(localDirs, procContext.getWorkDirs()));
-
+    
+    // test auto call of notifyProgress
+    procContext.setProgress(0.1f);
+    verify(runtimeTask, times(1)).notifyProgressInvocation();
   }
 }

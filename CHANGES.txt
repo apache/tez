@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-808. Handle task attempts that are not making progress
   TEZ-2553. Tez UI: Tez UI Nits
   TEZ-2814. ATSImportTool has a return statement in a finally block
   TEZ-2906. Compilation fails with hadoop 2.2.0

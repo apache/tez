@@ -93,6 +93,9 @@ public class TestLogicalIOProcessorRuntimeTask {
       assertEquals(1, TestProcessor.runCount);
       assertEquals(1, TestInput.startCount);
       assertEquals(0, TestOutput.startCount);
+      // test that invocations of progress are counted correctly
+      assertEquals(true, lio1.getAndClearProgressNotification());
+      assertEquals(false, lio1.getAndClearProgressNotification()); // cleared after getting
       assertEquals(30, TestInput.vertexParallelism);
       assertEquals(0, TestOutput.vertexParallelism);
       assertEquals(30, lio1.getProcessorContext().getVertexParallelism());
@@ -237,6 +240,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     public void run(Map<String, LogicalInput> inputs, Map<String, LogicalOutput> outputs)
         throws Exception {
       runCount++;
+      getContext().notifyProgress();
     }
 
 	@Override
@@ -271,6 +275,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     public void start() throws Exception {
       startCount++;
       this.vertexParallelism = getContext().getVertexParallelism();
+      getContext().notifyProgress();
     }
 
     @Override
@@ -310,6 +315,7 @@ public class TestLogicalIOProcessorRuntimeTask {
       System.err.println("Out started");
       startCount++;
       this.vertexParallelism = getContext().getVertexParallelism();
+      getContext().notifyProgress();
     }
 
     @Override

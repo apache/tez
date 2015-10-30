@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.dag.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -646,7 +647,7 @@ public class TestTaskAttempt {
     when(mockTezEvent2.getEventReceivedTime()).thenReturn(ts2);
     when(mockTezEvent2.getSourceInfo().getTaskAttemptID()).thenReturn(mockId2);
     TaskAttemptEventStatusUpdate statusEvent =
-        new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null));
+        new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false));
 
     assertEquals(0, taImpl.lastDataEvents.size());
     taImpl.setLastEventSent(mockTezEvent1);
@@ -729,7 +730,7 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(0,
             expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
     
-    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null)));
+    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
     
     taImpl.handle(new TaskAttemptEventAttemptFailed(taskAttemptID, TaskAttemptEventType.TA_FAILED, "0",
         TaskAttemptTerminationCause.APPLICATION_ERROR));
@@ -769,7 +770,95 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
-  
+
+  @Test (timeout = 5000)
+  public void testNoProgressFail() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
+        appId, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+
+    MockEventHandler eventHandler = spy(new MockEventHandler());
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
+
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
+    taskConf.setLong(TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 75);
+
+    locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
+    Resource resource = Resource.newInstance(1024, 1);
+
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    @SuppressWarnings("deprecation")
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
+        new ContainerContextMatcher(), appCtx);
+    containers.addContainerIfNew(container, 0, 0, 0);
+
+    doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
+    doReturn(containers).when(appCtx).getAllContainers();
+
+    TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
+    Clock mockClock = mock(Clock.class);
+    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        taListener, taskConf, mockClock,
+        mockHeartbeatHandler, appCtx, false,
+        resource, createFakeContainerContext(), false);
+    TezTaskAttemptID taskAttemptID = taImpl.getID();
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
+    // At state STARTING.
+    taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
+        null));
+    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
+        TaskAttemptState.RUNNING);
+    verify(mockHeartbeatHandler).register(taskAttemptID);
+    
+    when(mockClock.getTime()).thenReturn(100l);
+    taImpl.handle(new TaskAttemptEventStatusUpdate(
+        taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, true)));
+    // invocations and time updated
+    assertEquals(100l, taImpl.lastNotifyProgressTimestamp);
+    when(mockClock.getTime()).thenReturn(150l);
+    taImpl.handle(new TaskAttemptEventStatusUpdate(
+        taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, true)));
+    // invocations and time updated
+    assertEquals(150l, taImpl.lastNotifyProgressTimestamp);
+    when(mockClock.getTime()).thenReturn(200l);
+    taImpl.handle(new TaskAttemptEventStatusUpdate(
+        taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
+    // invocations and time not updated
+    assertEquals(150l, taImpl.lastNotifyProgressTimestamp);
+    when(mockClock.getTime()).thenReturn(250l);
+    taImpl.handle(new TaskAttemptEventStatusUpdate(
+        taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
+    // invocations and time not updated
+    assertEquals(150l, taImpl.lastNotifyProgressTimestamp);
+    // failed event sent to self
+    verify(eventHandler, atLeast(1)).handle(arg.capture());
+    TaskAttemptEventAttemptFailed fEvent = (TaskAttemptEventAttemptFailed) arg.getValue();
+    assertEquals(taImpl.getID(), fEvent.getTaskAttemptID());
+    assertEquals(TaskAttemptTerminationCause.NO_PROGRESS, fEvent.getTerminationCause());
+    taImpl.handle(fEvent);
+
+    assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
+        TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    verify(mockHeartbeatHandler).unregister(taskAttemptID);
+    assertEquals(1, taImpl.getDiagnostics().size());
+    assertEquals(TaskAttemptTerminationCause.NO_PROGRESS, taImpl.getTerminationCause());
+  }
+
   @Test(timeout = 5000)
   public void testEventSerializingHash() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
@@ -858,7 +947,8 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(0,
             expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
     
-    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null)));
+    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, 
+        new TaskStatusUpdateEvent(null, 0.1f, null, false)));
     
     taImpl.handle(new TaskAttemptEvent(taskAttemptID, TaskAttemptEventType.TA_DONE));
 
