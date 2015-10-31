@@ -288,22 +288,11 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         templateName: 'components/basic-table/linked-cell',
         enableFilter: true,
         getCellContent: function(row) {
-          var appId = row.get('applicationId');
-          if(appId) {
-            return Em.RSVP.allSettled([
-              store.find('appDetail', appId),
-              store.find('tezApp', 'tez_' + appId)
-            ]).then(function (response) {
-              var content = {
-                displayText: row.get('applicationId'),
-                entityId: row.get('applicationId')
-              };
-              if(response.get('0.value') && response.get('1.value')) {
-                content.linkTo = 'tez-app';
-              }
-              return content;
-            });
-          }
+          return {
+            linkTo: 'tez-app',
+            entityId: row.get('applicationId'),
+            displayText: row.get('applicationId')
+          };
         }
       },
       {
