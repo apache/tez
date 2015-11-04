@@ -19,6 +19,7 @@
 package org.apache.tez.common.security;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.junit.Assert;
@@ -30,8 +31,10 @@ public class TestACLConfigurationParser {
   public void testACLConfigParser() {
 
     Configuration conf = new Configuration(false);
+    String adminACLs = "admin1,admin4,       admgrp3,admgrp4,admgrp5  ";
     String viewACLs = "user1,user4,       grp3,grp4,grp5  ";
     String modifyACLs = "user3 ";
+    conf.set(YarnConfiguration.YARN_ADMIN_ACL, adminACLs);
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf);
@@ -40,11 +43,16 @@ public class TestACLConfigurationParser {
     Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user1"));
     Assert.assertFalse(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user3"));
     Assert.assertTrue(parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL).contains("user4"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
     Assert.assertFalse(parser.getAllowedGroups().isEmpty());
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
     Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
 
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
     parser = new ACLConfigurationParser(conf);
@@ -60,31 +68,43 @@ public class TestACLConfigurationParser {
     Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
-    Assert.assertNull(parser.getAllowedGroups().get(ACLType.AM_MODIFY_ACL));
-
+    Assert.assertFalse(parser.getAllowedGroups().isEmpty());
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
   }
 
   @Test(timeout = 5000)
   public void testGroupsOnly() {
     Configuration conf = new Configuration(false);
+    String adminACLs = "admin1,admin4,       admgrp3,admgrp4,admgrp5  ";
     String viewACLs = "     grp3,grp4,grp5";
     conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewACLs);
+    conf.set(YarnConfiguration.YARN_ADMIN_ACL, adminACLs);
+
     ACLConfigurationParser parser = new ACLConfigurationParser(conf);
-    Assert.assertTrue(parser.getAllowedUsers().isEmpty());
+    Assert.assertFalse(parser.getAllowedUsers().isEmpty());
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
     Assert.assertFalse(parser.getAllowedGroups().isEmpty());
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp3"));
     Assert.assertFalse(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp6"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp4"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL).contains("grp5"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
   }
 
   @Test(timeout = 5000)
   public void testDAGACLConfigParser() {
 
     Configuration conf = new Configuration(false);
+    String adminACLs = "admin1,admin4,       admgrp3,admgrp4,admgrp5  ";
     String viewACLs = "user1,user4 grp3,grp4,grp5";
     String modifyACLs = "user3 grp4";
     conf.set(TezConstants.TEZ_DAG_VIEW_ACLS, viewACLs);
+    conf.set(YarnConfiguration.YARN_ADMIN_ACL, adminACLs);
 
     ACLConfigurationParser parser = new ACLConfigurationParser(conf, true);
     Assert.assertTrue(parser.getAllowedUsers().containsKey(ACLType.DAG_VIEW_ACL));
@@ -92,11 +112,16 @@ public class TestACLConfigurationParser {
     Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user1"));
     Assert.assertFalse(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user3"));
     Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user4"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
     Assert.assertFalse(parser.getAllowedGroups().isEmpty());
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp3"));
     Assert.assertFalse(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp6"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp4"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp5"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
 
     conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, modifyACLs);
     parser = new ACLConfigurationParser(conf, true);
@@ -107,6 +132,8 @@ public class TestACLConfigurationParser {
     Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_VIEW_ACL).contains("user4"));
     Assert.assertFalse(parser.getAllowedUsers().get(ACLType.DAG_MODIFY_ACL).contains("user1"));
     Assert.assertTrue(parser.getAllowedUsers().get(ACLType.DAG_MODIFY_ACL).contains("user3"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin1"));
+    Assert.assertTrue(parser.getAllowedUsers().get(ACLType.YARN_ADMIN_ACL).contains("admin4"));
     Assert.assertFalse(parser.getAllowedGroups().isEmpty());
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp3"));
     Assert.assertFalse(parser.getAllowedGroups().get(ACLType.DAG_VIEW_ACL).contains("grp6"));
@@ -115,7 +142,9 @@ public class TestACLConfigurationParser {
     Assert.assertNotNull(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL));
     Assert.assertFalse(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL).contains("grp6"));
     Assert.assertTrue(parser.getAllowedGroups().get(ACLType.DAG_MODIFY_ACL).contains("grp4"));
-
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp3"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp4"));
+    Assert.assertTrue(parser.getAllowedGroups().get(ACLType.YARN_ADMIN_ACL).contains("admgrp5"));
   }
 
 }

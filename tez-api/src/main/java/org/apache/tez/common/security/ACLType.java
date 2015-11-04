@@ -25,6 +25,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
  */
 @Private
 public enum ACLType {
+  /** YARN admin (view/modify) permissions on the Application Master */
+  YARN_ADMIN_ACL,
   /** View permissions on the Application Master */
   AM_VIEW_ACL,
   /** Modify permissions on the Application Master */

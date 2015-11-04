@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2922. Tez Live UI gives access denied for admins
   TEZ-2828. Fix typo in "Shuffle assigned " log statement in shuffle.orderedgrouped.Shuffle.
   TEZ-2909. Tez UI: Application link in All DAGs table is disable when applicationhistory is unavailable
   TEZ-2553. Tez UI: Tez UI Nits

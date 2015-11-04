@@ -141,21 +141,25 @@ public class ACLManager {
   }
 
   public boolean checkAMViewAccess(UserGroupInformation ugi) {
-    return checkAccess(ugi, ACLType.AM_VIEW_ACL);
+    return checkAccess(ugi, ACLType.AM_VIEW_ACL)
+        || checkAccess(ugi, ACLType.YARN_ADMIN_ACL);
   }
 
   public boolean checkAMModifyAccess(UserGroupInformation ugi) {
-    return checkAccess(ugi, ACLType.AM_MODIFY_ACL);
+    return checkAccess(ugi, ACLType.AM_MODIFY_ACL)
+        || checkAccess(ugi, ACLType.YARN_ADMIN_ACL);
   }
 
   public boolean checkDAGViewAccess(UserGroupInformation ugi) {
     return checkAccess(ugi, ACLType.AM_VIEW_ACL)
-        || checkAccess(ugi, ACLType.DAG_VIEW_ACL);
+        || checkAccess(ugi, ACLType.DAG_VIEW_ACL)
+        || checkAccess(ugi, ACLType.YARN_ADMIN_ACL);
   }
 
   public boolean checkDAGModifyAccess(UserGroupInformation ugi) {
     return checkAccess(ugi, ACLType.AM_MODIFY_ACL)
-        || checkAccess(ugi, ACLType.DAG_MODIFY_ACL);
+        || checkAccess(ugi, ACLType.DAG_MODIFY_ACL)
+        || checkAccess(ugi, ACLType.YARN_ADMIN_ACL);
   }
 
   public Map<ApplicationAccessType, String> toYARNACls() {
