@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -63,9 +64,11 @@ public class ACLConfigurationParser {
 
   private void parse(boolean dagACLs) {
     if (!dagACLs) {
+      parseACLType(YarnConfiguration.YARN_ADMIN_ACL, ACLType.YARN_ADMIN_ACL);
       parseACLType(TezConfiguration.TEZ_AM_VIEW_ACLS, ACLType.AM_VIEW_ACL);
       parseACLType(TezConfiguration.TEZ_AM_MODIFY_ACLS, ACLType.AM_MODIFY_ACL);
     } else {
+      parseACLType(YarnConfiguration.YARN_ADMIN_ACL, ACLType.YARN_ADMIN_ACL);
       parseACLType(TezConstants.TEZ_DAG_VIEW_ACLS, ACLType.DAG_VIEW_ACL);
       parseACLType(TezConstants.TEZ_DAG_MODIFY_ACLS, ACLType.DAG_MODIFY_ACL);
     }
@@ -111,14 +114,11 @@ public class ACLConfigurationParser {
       return;
     }
     if (userListStr.length() >= 1) {
-      allowedUsers.put(aclType,
-          Sets.newLinkedHashSet(Arrays.asList(TezCommonUtils.getTrimmedStrings(userListStr))));
+      allowedUsers.put(aclType, Sets.newLinkedHashSet(Arrays.asList(TezCommonUtils.getTrimmedStrings(userListStr))));
     }
     if (groupListStr != null && groupListStr.length() >= 1) {
-      allowedGroups.put(aclType,
-          Sets.newLinkedHashSet(Arrays.asList(TezCommonUtils.getTrimmedStrings(groupListStr))));
+      allowedGroups.put(aclType, Sets.newLinkedHashSet(Arrays.asList(TezCommonUtils.getTrimmedStrings(groupListStr))));
     }
-
   }
 
   public Map<ACLType, Set<String>> getAllowedUsers() {

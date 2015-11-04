@@ -51,6 +51,17 @@ By default, ACLs are always enabled in Tez. To disable ACLs, set the following c
 > &nbsp;&nbsp;&nbsp;&lt;value&gt;false&lt;/value&gt;<br/>
 > &lt;/property&gt;<br/>
 
+### YARN Administration ACLs
+
+YARN Administration ACLs are driven by configuration at the cluster level. YARN administrators are granted AM level view and modify permissions. One current limitation is that a modification to the cluster wide yarn.admin.acl configuration while an AM is running is not reflected in the AM view and modify ACLs. To setup the ACLs, the following properties need to be defined:
+
+> &lt;property&gt;<br/>
+> &nbsp;&nbsp;&nbsp;&lt;name&gt;yarn.admin.acl&lt;/name&gt;<br/>
+> &nbsp;&nbsp;&nbsp;&lt;value&gt;&lt;/value&gt;<br/>
+> &lt;/property&gt;<br/>
+
+The format of the value is a comma-separated list of users and groups with the users and groups separated by a single whitespace. e.g. "user1,user2 group1,group2". To allow all users to do a given operation, the value "*" can be specified.
+
 ### AM/Session Level ACLs
 
 AM/Session level ACLs are driven by configuration. To setup the ACLs, the following properties need to be defined:

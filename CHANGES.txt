@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-2922. Tez Live UI gives access denied for admins
   TEZ-2849. Implement Specific Workaround for JDK-8026049 & JDK-8073093.
   TEZ-2828. Fix typo in "Shuffle assigned " log statement in shuffle.orderedgrouped.Shuffle.
   TEZ-2909. Tez UI: Application link in All DAGs table is disable when applicationhistory is unavailable
@@ -235,6 +236,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2922. Tez Live UI gives access denied for admins
   TEZ-2828. Fix typo in "Shuffle assigned " log statement in shuffle.orderedgrouped.Shuffle.
   TEZ-2900. Ignore V_INPUT_DATA_INFORMATION when vertex is in Failed/Killed/Error
   TEZ-2904. Pig can't specify task specific command opts
