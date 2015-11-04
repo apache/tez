@@ -848,13 +848,14 @@ public class PipelinedSorter extends ExternalSorter {
     }
   }
 
-  private final class SortSpan  implements IndexedSortable {
+  private final class SortSpan implements IndexedSortable {
     final IntBuffer kvmeta;
+    final byte[] rawkvmeta;
+    final int kvmetabase;
     final ByteBuffer kvbuffer;
     final DataOutputStream out;
     final RawComparator comparator;
-    final int imeta[] = new int[NMETA];
-    final int jmeta[] = new int[NMETA];
+    final byte[] imeta = new byte[METASIZE];
 
     private int index = 0;
     private long eq = 0;
@@ -878,8 +879,10 @@ public class PipelinedSorter extends ExternalSorter {
       kvbuffer = reserved.slice();
       reserved.flip();
       reserved.limit(metasize);
-      kvmeta = reserved
-                .slice()
+      ByteBuffer kvmetabuffer = reserved.slice();
+      rawkvmeta = kvmetabuffer.array();
+      kvmetabase = kvmetabuffer.arrayOffset();
+      kvmeta = kvmetabuffer
                 .order(ByteOrder.nativeOrder())
                .asIntBuffer();
       out = new DataOutputStream(
@@ -894,7 +897,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
       LOG.info(outputContext.getDestinationVertexName() + ": " + "done sorting span=" + index + ", length=" + length() + ", "
           + "time=" + (System.currentTimeMillis() - start));
-      return new SpanIterator(this);
+      return new SpanIterator((SortSpan)this);
     }
 
     int offsetFor(int i) {
@@ -905,13 +908,14 @@ public class PipelinedSorter extends ExternalSorter {
       final int kvi = offsetFor(mi);
       final int kvj = offsetFor(mj);
 
-      kvmeta.position(kvi); kvmeta.get(imeta);
-      kvmeta.position(kvj); kvmeta.get(jmeta);
-      kvmeta.position(kvj); kvmeta.put(imeta);
-      kvmeta.position(kvi); kvmeta.put(jmeta);
+      final int kvioff = kvmetabase + (kvi << 2);
+      final int kvjoff = kvmetabase + (kvj << 2);
+      System.arraycopy(rawkvmeta, kvioff, imeta, 0, METASIZE);
+      System.arraycopy(rawkvmeta, kvjoff, rawkvmeta, kvioff, METASIZE);
+      System.arraycopy(imeta, 0, rawkvmeta, kvjoff, METASIZE);
     }
 
-    private int compareKeys(final int kvi, final int kvj) {
+    protected int compareKeys(final int kvi, final int kvj) {
       final int istart = kvmeta.get(kvi + KEYSTART);
       final int jstart = kvmeta.get(kvj + KEYSTART);
       final int ilen   = kvmeta.get(kvi + VALSTART) - istart;

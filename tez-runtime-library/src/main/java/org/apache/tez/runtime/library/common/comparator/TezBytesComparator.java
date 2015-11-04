@@ -24,7 +24,7 @@ import org.apache.hadoop.io.WritableComparator;
 
 @Public
 @Unstable
-public class TezBytesComparator extends WritableComparator implements
+public final class TezBytesComparator extends WritableComparator implements
     ProxyComparator<BytesWritable> {
 
   public TezBytesComparator() {
