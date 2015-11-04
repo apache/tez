@@ -189,8 +189,8 @@ public class Shuffle implements ExceptionReporter {
         TaskCounter.SHUFFLE_BYTES_TO_MEM);
     
     LOG.info(srcNameTrimmed + ": " + "Shuffle assigned with " + numInputs + " inputs" + ", codec: "
-        + (codec == null ? "None" : codec.getClass().getName()) + 
-        "ifileReadAhead: " + ifileReadAhead);
+        + (codec == null ? "None" : codec.getClass().getName())
+        + ", ifileReadAhead: " + ifileReadAhead);
 
     boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
       TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
