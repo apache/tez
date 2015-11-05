@@ -144,10 +144,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
                 app.get('finalAppStatus')
               ));
             }
-          })
-          .catch(function(error) {
-            Em.Logger.error('Failed to fetch appDetail' + error);
-          });
+          }).catch(function(error) {});
 
           if (dag.get('status') === 'RUNNING') {
             App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
@@ -304,7 +301,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
           if(appId) {
             return store.find('appDetail', appId).then(function (app) {
               return app.get('queue');
-            });
+            }).catch(function(error) {});
           }
         }
       },
