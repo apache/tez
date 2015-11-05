@@ -94,6 +94,13 @@ var timelineJsonToDagMap = {
   name: 'primaryfilters.dagName.0',
   user: 'primaryfilters.user.0',
   status: 'otherinfo.status',
+
+  progress: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 1 : null;
+    }
+  },
+
   containerLogs: {
     custom: function(source) {
 
@@ -254,6 +261,16 @@ var timelineJsonToVertexMap = {
       return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 1 : null;
     }
   },
+  runningTasks: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 0 : null;
+    }
+  },
+  pendingTasks: {
+    custom: function(source) {
+      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 0 : null;
+    }
+  },
 
   status: 'otherinfo.status',
   hasFailedTaskAttempts: {
@@ -265,6 +282,9 @@ var timelineJsonToVertexMap = {
     }
   },
   diagnostics: 'otherinfo.diagnostics',
+
+  failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
+  killedTaskAttempts: 'otherinfo.numKilledTaskAttempts',
 
   failedTasks: 'otherinfo.numFailedTasks',
   sucessfulTasks: 'otherinfo.numSucceededTasks',
@@ -570,16 +590,30 @@ App.VertexProgressSerializer = App.DagProgressSerializer = DS.RESTSerializer.ext
 App.DagInfoSerializer = DS.RESTSerializer.extend({
   normalizePayload: function(rawPayload) {
     return {
-      dagInfo : rawPayload.dag
+      dagInfo : [rawPayload.dag]
     }
   }
 });
 
 App.VertexInfoSerializer = DS.RESTSerializer.extend({
+  map: {
+    id: 'id',
+    progress: 'progress',
+    status: 'status',
+    numTasks: 'totalTasks',
+    runningTasks: 'runningTasks',
+    sucessfulTasks: 'succeededTasks',
+    failedTaskAttempts: 'failedTaskAttempts',
+    killedTaskAttempts: 'killedTaskAttempts',
+    counters: 'counters'
+  },
   normalizePayload: function(rawPayload) {
     return {
       vertexInfo : rawPayload.vertices
     }
+  },
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(hash, this.get('map'));
   }
 });
 

@@ -95,22 +95,24 @@
   </div>
 </div>
 
-{{#if liveData}}
+{{#if data.content}}
   <br/>
   <h4>DAG Progress
-    ( Vertices {{completedVertices}}/{{liveData.length}} )
-    {{#if totalTasks}}
-      ( Tasks {{succeededTasks}}/{{totalTasks}} )
+    {{#if progressDetails}}
+      ( Vertices {{progressDetails.completedVertices}}/{{data.length}} )
+      {{#if progressDetails.totalTasks}}
+        ( Tasks {{progressDetails.succeededTasks}}/{{progressDetails.totalTasks}} )
+      {{/if}}
+      :
+      {{progressStr}}
     {{/if}}
-    :
-    {{progressStr}}
   </h4>
   {{bs-progress-animated progressDecimal=progress}}
 
   {{basic-table-component
-    columns=liveColumns
-    rows=liveData
-    rowCount=liveData.length
+    columns=defaultColumnConfigs
+    rows=data.content
+    rowCount=data.content.length
 
     enableStatus=false
     enableSort=true

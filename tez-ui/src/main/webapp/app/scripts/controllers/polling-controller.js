@@ -61,6 +61,7 @@ App.PollingController = Em.ObjectController.extend({
   },
 
   applicationComplete: function () {
+    this.set('pollster.polledRecords', null);
     if(this.load) {
       this.load();
     }

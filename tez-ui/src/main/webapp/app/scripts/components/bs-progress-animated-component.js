@@ -25,7 +25,9 @@ Bootstrap.BsProgressAnimatedComponent = Bootstrap.BsProgressComponent.extend({
  },
 
  progressDecimalObserver: function () {
-   this.set('progress', parseInt(this.get('progressDecimal') * 100).toString());
+   var progress = parseFloat(this.get('progressDecimal'));
+   progress = (typeof progress == 'number' && !isNaN(progress)) ? progress : 0;
+   this.set('progress', parseInt(progress * 100).toString());
  }.observes('progressDecimal'),
 
  progressObserver: function () {

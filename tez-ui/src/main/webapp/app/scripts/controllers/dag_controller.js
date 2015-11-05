@@ -16,10 +16,47 @@
  * limitations under the License.
  */
 
-App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
+App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
   controllerName: 'DagController',
   pageTitle: 'Dag',
+
   loading: true,
+  isActive: false,
+
+  pollingType: 'dagInfo',
+
+  setup: function () {
+    this.set('isActive', true);
+  },
+  reset: function () {
+    this.set('isActive', false);
+  },
+
+  pollsterControl: function () {
+    if(this.get('status') == 'RUNNING' &&
+        this.get('amWebServiceVersion') != '1' &&
+        this.get('isActive')) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('status', 'amWebServiceVersion', 'isActive'),
+
+  pollsterOptionsObserver: function () {
+    var model = this.get('model');
+
+    this.get('pollster').setProperties( (model && model.get('status') != 'SUCCEEDED') ? {
+      targetRecords: [model],
+      options: {
+        appID: this.get('applicationId'),
+        dagID: App.Helpers.misc.getIndexFromId(this.get('id')),
+      }
+    } : {
+      targetRecords: [],
+      options: null
+    });
+  }.observes('applicationId', 'model', 'model.status', 'id'),
 
   loadAdditional: function(dag) {
     var that = this;
@@ -68,19 +105,10 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
 
     var allLoaders = Em.RSVP.all(loaders);
     allLoaders.then(function(){
-      ['dagProgress', 'dagInfo', 'vertexInfo'].forEach(function(itemType){
-        that.store.unloadAll(itemType);
-      });
       if (dag.get('status') === 'RUNNING') {
         // update the progress info if available. this need not block the UI
         if (dag.get('amWebServiceVersion') == '1') {
           that.updateInfoFromAM(dag);
-        } else {
-          // if AM version is v2 we keep updating the status, progress etc live.
-          ["loading", "id", "model.status"].forEach(function(item) {
-            Em.addObserver(that, item, that.startAMInfoUpdateService);
-          });
-          that.startAMInfoUpdateService();
         }
       }
     });
@@ -91,114 +119,15 @@ App.DagController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
   // called only for v1 version of am api.
   updateInfoFromAM: function(dag) {
     var that = this;
+    App.Helpers.misc.removeRecord(this.get('store'), 'dagProgress', dag.get('id'));
     var aminfoLoader = this.store.find('dagProgress', dag.get('id'), {
       appId: dag.get('applicationId'),
       dagIdx: dag.get('idx')
     }).then(function(dagProgressInfo) {
-      that.set('amDagInfo', dagProgressInfo);
+      that.set('dag.progress', dagProgressInfo.get('progress'));
     }).catch(function (error) {
       Em.Logger.error("Failed to fetch dagProgress" + e);
     });
-  },
-
-  updateAMDagInfo: function() {
-    var dagId = this.get('id')
-        that = this,
-        dagInfoLoader = null;
-
-    if (!dagId) return;
-
-    if (this.store.recordIsLoaded("dagInfo", dagId)) {
-      var dagInfoRecord = this.store.recordForId("dagInfo", dagId);
-      if (dagInfoRecord.get('isLoading')) return;
-      dagInfoLoader = dagInfoRecord.reload();
-    } else {
-      dagInfoLoader = this.store.find("dagInfo", dagId, {
-        appId: that.get('applicationId'),
-        dagIdx: that.get('idx')
-      })
-    }
-
-    dagInfoLoader.then(function(dagInfo){
-      that.set('amDagInfo', dagInfo);
-      //TODO: find another way to trigger notification
-      that.set('amDagInfo._amInfoLastUpdatedTime', moment());
-      that.set('amProgressInfoSucceededOnce', true);
-    }).catch(function(e){
-      if (that.get('amProgressInfoSucceededOnce') === true) {
-        that.set('amProgressInfoSucceededOnce', false);
-        App.Helpers.ErrorBar.getInstance().show(
-          "Failed to get in-progress status. Manually refresh to get the updated status",
-          "Application Manager either exited or is not running.");
-      }
-    });
-  },
-
-  updateAMVerticesInfo: function() {
-    var dagId = this.get('id')
-        that = this,
-        verticesInfoLoader = null;
-
-    if (!dagId) return;
-
-    verticesInfoLoader = this.store.findQuery('vertexInfo', {
-      metadata: {
-        appID: that.get('applicationId'),
-        dagID: that.get('idx'),
-        counters: App.get('vertexCounters')
-      }
-    });
-
-    verticesInfoLoader.then(function(verticesInfo) {
-      that.set('amVertexInfo', verticesInfo);
-    }).catch(function(e){
-      // do nothing
-    });
-
-  },
-
-  startAMInfoUpdateService: function() {
-    if (this.get('loading') || !this.get('model.id') || this.get('model.status') != 'RUNNING') {
-      return;
-    }
-
-    var amInfoUpdateService = this.get('amInfoUpdateService')
-        that = this;
-
-    if (Em.isNone(amInfoUpdateService)) {
-      amInfoUpdateService = App.Helpers.Pollster.create({
-        onPoll: function() {
-          that.updateAMDagInfo();
-          that.updateAMVerticesInfo();
-        }
-      });
-      that.set('amInfoUpdateService', amInfoUpdateService);
-      amInfoUpdateService.start(true);
-
-      ["loading", "id", "model.status"].forEach(function(item) {
-        Em.addObserver(that, item, that.stopAMInfoUpdateService);
-      });
-    }
-    else {
-      that.updateAMDagInfo();
-      that.updateAMVerticesInfo();
-    }
-  },
-
-  dostopAMInfoUpdateService: function() {
-      var amInfoUpdateService = this.get('amInfoUpdateService');
-      if (!Em.isNone(amInfoUpdateService)) {
-        amInfoUpdateService.stop();
-        this.set('amInfoUpdateService', undefined);
-      }
-  },
-
-  // stop the update service if the status changes. see startAMInfoUpdateService
-  stopAMInfoUpdateService: function() {
-    that.set('amProgressInfoSucceededOnce', false);
-    if (this.get('loading') || this.get('model.status') != 'RUNNING') {
-      this.dostopAMInfoUpdateService();
-    }
   },
 
   enableAppIdLink: function() {
