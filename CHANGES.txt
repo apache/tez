@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2927. Tez UI: Graciously fail when system-metrics-publisher is disabled
   TEZ-2915. Tez UI: Getting back to the DAG details page is difficult
   TEZ-2895. Tez UI: Add option to enable and disable in-progress
   TEZ-2894. Tez UI: Disable sorting for few columns while in progress. Display an alert on trying to sort them
