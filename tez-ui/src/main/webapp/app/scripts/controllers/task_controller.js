@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
+App.TaskController = App.PollingController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
   controllerName: 'TaskController',
 
   pageTitle: 'Task',
@@ -25,16 +25,7 @@ App.TaskController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.M
 
   isActive: false,
 
-  pollster: App.Helpers.EntityArrayPollster.create(),
-
-  init: function () {
-    this._super();
-    this.get('pollster').setProperties({
-      entityType: 'taskInfo',
-      mergeProperties: ['status', 'progress'],
-      store: this.get('store')
-    });
-  },
+  pollingType: 'taskInfo',
 
   setup: function () {
     this.set('isActive', true);

@@ -448,6 +448,7 @@ App.Helpers.misc = {
    * @param type {String}
    * @param id {String}
    */
+  //TODO: TEZ-2876 Extend store to have a loadRecord function that skips the cache
   removeRecord: function (store, type, id) {
     var record = store.getById(type, id);
     if(record) {

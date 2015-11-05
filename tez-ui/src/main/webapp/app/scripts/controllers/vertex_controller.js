@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
+App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
   controllerName: 'VertexController',
 
   pageTitle: 'Vertex',
@@ -24,16 +24,7 @@ App.VertexController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
   loading: true,
   isActive: false,
 
-  pollster: App.Helpers.EntityArrayPollster.create(),
-
-  init: function () {
-    this._super();
-    this.get('pollster').setProperties({
-      entityType: 'vertexInfo',
-      mergeProperties: ['status', 'progress'],
-      store: this.get('store')
-    });
-  },
+  pollingType: 'vertexInfo',
 
   setup: function () {
     this.set('isActive', true);

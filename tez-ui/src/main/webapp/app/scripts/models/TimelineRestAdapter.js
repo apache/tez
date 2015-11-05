@@ -598,3 +598,26 @@ App.AttemptInfoSerializer = DS.RESTSerializer.extend({
     }
   }
 });
+
+App.ClusterAppSerializer = App.TimelineSerializer.extend({
+  map: {
+    id: 'id',
+    status: 'state',
+    finalStatus: 'finalStatus'
+  },
+
+  _normalizeSingleDagPayload: function(rawPayload) {
+    return {
+      clusterApp: rawPayload.clusterApp.app
+    }
+  },
+
+  normalizePayload: function(rawPayload){
+    // we handled only single clusterApp
+    return this._normalizeSingleDagPayload(rawPayload);
+  },
+
+  normalize: function(type, hash, prop) {
+    return Em.JsonMapper.map(hash, this.get('map'));
+  }
+});

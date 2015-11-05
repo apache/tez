@@ -28,16 +28,7 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
 
   cacheDomain: Ember.computed.alias('controllers.vertex.dagID'),
 
-  pollster: App.Helpers.EntityArrayPollster.create(),
-
-  init: function () {
-    this._super();
-    this.get('pollster').setProperties({
-      entityType: 'taskInfo',
-      mergeProperties: ['status', 'progress'],
-      store: this.get('store')
-    });
-  },
+  pollingType: 'taskInfo',
 
   pollsterControl: function () {
     if(this.get('dag.status') == 'RUNNING' &&
@@ -52,20 +43,17 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
   }.observes('dag.status', 'dag.amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
 
   pollsterOptionsObserver: function () {
-    var rows = this.get('rowsDisplayed');
-    this.set('pollster.targetRecords', rows);
-
-    this.set('pollster.options', (rows && rows.length) ? {
+    this.set('pollster.options', {
       appID: this.get('dag.applicationId'),
       dagID: this.get('dag.idx'),
       counters: this.get('countersDisplayed'),
-      taskID: rows.map(function (row) {
+      taskID: this.get('rowsDisplayed').map(function (row) {
           var taskIndex = App.Helpers.misc.getIndexFromId(row.get('id')),
           vertexIndex = App.Helpers.misc.getIndexFromId(row.get('vertexID'));
           return '%@_%@'.fmt(vertexIndex, taskIndex);
         }).join(',')
-    } : null);
-  }.observes('dag.applicationId', 'dag.idx', 'rowsDisplayed', 'counters'),
+    });
+  }.observes('dag.applicationId', 'dag.idx', 'rowsDisplayed'),
 
   countersDisplayed: function () {
     return App.Helpers.misc.getCounterQueryParam(this.get('columns'));

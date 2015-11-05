@@ -27,16 +27,7 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
 
   cacheDomain: Ember.computed.alias('controllers.dag.id'),
 
-  pollster: App.Helpers.EntityArrayPollster.create(),
-
-  init: function () {
-    this._super();
-    this.get('pollster').setProperties({
-      entityType: 'attemptInfo',
-      mergeProperties: ['status', 'progress'],
-      store: this.get('store')
-    });
-  },
+  pollingType: 'attemptInfo',
 
   pollsterControl: function () {
     if(this.get('status') == 'RUNNING' &&
@@ -52,21 +43,18 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
   }.observes('status', 'amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
 
   pollsterOptionsObserver: function () {
-    var rows = this.get('rowsDisplayed');
-    this.set('pollster.targetRecords', rows);
-
-    this.set('pollster.options', (rows && rows.length) ? {
+    this.set('pollster.options', {
       appID: this.get('applicationId'),
       dagID: this.get('idx'),
       counters: this.get('countersDisplayed'),
-      attemptID: rows.map(function (row) {
+      attemptID: this.get('rowsDisplayed').map(function (row) {
           var attemptIndex = App.Helpers.misc.getIndexFromId(row.get('id')),
               taskIndex = App.Helpers.misc.getIndexFromId(row.get('taskID')),
               vertexIndex = App.Helpers.misc.getIndexFromId(row.get('vertexID'));
           return '%@_%@_%@'.fmt(vertexIndex, taskIndex, attemptIndex);
         }).join(',')
-    } : null);
-  }.observes('applicationId', 'idx', 'rowsDisplayed', 'counters'),
+    });
+  }.observes('applicationId', 'idx', 'rowsDisplayed'),
 
   countersDisplayed: function () {
     return App.Helpers.misc.getCounterQueryParam(this.get('columns'));
