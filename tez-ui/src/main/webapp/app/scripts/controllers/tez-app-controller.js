@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
+App.TezAppController = App.BaseController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
   controllerName: 'AppController',
 
   pageTitle: 'App',
@@ -36,22 +36,16 @@ App.TezAppController = Em.ObjectController.extend(App.Helpers.DisplayHelper, App
     });
   },
 
-  setup: function () {
-    this.set('isActive', true);
-  },
-  reset: function () {
-    this.set('isActive', false);
-  },
-
   pollsterControl: function () {
     if(this.get('appDetail.finalAppStatus') == 'UNDEFINED' &&
+        this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('appDetail.finalAppStatus', 'isActive'),
+  }.observes('appDetail.finalAppStatus', 'isActive', 'pollingEnabled'),
 
   load: function () {
     var tezApp = this.get('content'),

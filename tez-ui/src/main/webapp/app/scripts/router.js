@@ -62,10 +62,6 @@ App.Router.map(function() {
 
 /* --- Router helper functions --- */
 
-function renderTableWithSpinner () {
-  this.render('common/table-with-spinner');
-}
-
 function renderSwimlanes () {
   this.render('common/swimlanes');
 }
@@ -116,6 +112,24 @@ function setupControllerFactory(format) {
   };
 }
 
+/* --- Base route class --- */
+App.BaseRoute = Em.Route.extend({
+  setupController: setupControllerFactory(),
+  resetController: function() {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
+  actions: {
+    pollingEnabledChanged: function (enabled) {
+      if(this.get('controller.pollster')) {
+        this.set('controller.pollingEnabled', enabled);
+      }
+      return true;
+    }
+  }
+});
+
 App.ApplicationRoute = Em.Route.extend({
   actions: {
     willTransition: function(transition) {
@@ -129,12 +143,12 @@ App.ApplicationRoute = Em.Route.extend({
       var err = App.Helpers.misc.formatError(error, defaultError);
       var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
       App.Helpers.ErrorBar.getInstance().show(msg, error.details);
-    }
+    },
   }
 });
 /* --- Dag related routes --- */
 
-App.DagsRoute = Em.Route.extend({
+App.DagsRoute = App.BaseRoute.extend({
   queryParams:  {
     count: App.Helpers.misc.defaultQueryParamsConfig,
     fromID: App.Helpers.misc.defaultQueryParamsConfig,
@@ -146,7 +160,7 @@ App.DagsRoute = Em.Route.extend({
   setupController: setupControllerFactory('All Dags'),
 });
 
-App.DagRoute = Em.Route.extend({
+App.DagRoute = App.BaseRoute.extend({
   model: function(params) {
     return this.store.find('dag', params.dag_id);
   },
@@ -154,18 +168,13 @@ App.DagRoute = Em.Route.extend({
     return this.controllerFor('dag').loadAdditional(model);
   },
   setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id'),
-  resetController: function() {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  }
 });
 
-App.DagViewRoute = Em.Route.extend({
+App.DagViewRoute = App.BaseRoute.extend({
   setupController: setupControllerFactory()
 });
 
-App.DagSwimlaneRoute = Em.Route.extend({
+App.DagSwimlaneRoute = App.BaseRoute.extend({
   renderTemplate: renderSwimlanes,
   model: function(params) {
     var model = this.modelFor('dag'),
@@ -178,35 +187,25 @@ App.DagSwimlaneRoute = Em.Route.extend({
 
 /* --- Task related routes --- */
 
-App.TaskRoute = Em.Route.extend({
+App.TaskRoute = App.BaseRoute.extend({
   model: function(params) {
     return this.store.find('task', params.task_id);
   },
   afterModel: function(model) {
     return this.controllerFor('task').loadAdditional(model);
   },
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  },
   setupController: setupControllerFactory('Task: %@', 'id')
 });
 
-App.TasksRoute = Em.Route.extend({
+App.TasksRoute = App.BaseRoute.extend({
   setupController: setupControllerFactory()
 });
 
 /* --- Vertex related routes --- */
 
-App.VertexRoute = Em.Route.extend({
+App.VertexRoute = App.BaseRoute.extend({
   model: function(params) {
     return this.store.find('vertex', params.vertex_id);
-  },
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
   },
   afterModel: function(model) {
     return this.controllerFor('vertex').loadAdditional(model);
@@ -214,14 +213,14 @@ App.VertexRoute = Em.Route.extend({
   setupController: setupControllerFactory('Vertex: %@ (%@)', 'name', 'id')
 });
 
-App.VertexAdditionalsRoute = Em.Route.extend({
+App.VertexAdditionalsRoute = App.BaseRoute.extend({
   setupController: function(controller, model) {
     this._super(controller, model);
     controller.loadEntities();
   }
 });
 
-App.InputRoute = Em.Route.extend({
+App.InputRoute = App.BaseRoute.extend({
   model: function (params) {
     var model = this.modelFor('vertex');
     return model.get('inputs').findBy('id', params.input_id);
@@ -229,7 +228,7 @@ App.InputRoute = Em.Route.extend({
   setupController: setupControllerFactory()
 });
 
-App.OutputRoute = Em.Route.extend({
+App.OutputRoute = App.BaseRoute.extend({
   model: function (params) {
     var model = this.modelFor('vertex');
     return model.get('outputs').findBy('id', params.input_id);
@@ -237,7 +236,7 @@ App.OutputRoute = Em.Route.extend({
   setupController: setupControllerFactory()
 });
 
-App.VertexSwimlaneRoute = Em.Route.extend({
+App.VertexSwimlaneRoute = App.BaseRoute.extend({
   renderTemplate: renderSwimlanes,
   model: function(params) {
     var model = this.modelFor('vertex'),
@@ -250,34 +249,24 @@ App.VertexSwimlaneRoute = Em.Route.extend({
 
 /* --- Task Attempt related routes--- */
 
-App.TaskAttemptRoute = Em.Route.extend({
+App.TaskAttemptRoute = App.BaseRoute.extend({
   model: function(params) {
     return this.store.find('task_attempt', params.task_attempt_id);
   },
   afterModel: function(model) {
     return this.controllerFor('task_attempt').loadAdditional(model);
   },
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  },
   setupController: setupControllerFactory('Task Attempt: %@', 'id')
 });
 
-App.TaskAttemptsRoute = Em.Route.extend({
+App.TaskAttemptsRoute = App.BaseRoute.extend({
   renderTemplate: renderTable,
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  },
   setupController: setupControllerFactory('Task Attempt: %@', 'id')
 });
 
 /* --- Tez-app related routes --- */
 
-App.TezAppRoute = Em.Route.extend({
+App.TezAppRoute = App.BaseRoute.extend({
   model: function(params) {
     var store = this.store;
     return store.find('tezApp', 'tez_' + params.app_id).then(function (tezApp){
@@ -290,35 +279,20 @@ App.TezAppRoute = Em.Route.extend({
       });
     });
   },
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  },
   setupController: setupControllerFactory('Application: %@', 'id')
 });
 
-App.TezAppDagsRoute = Em.Route.extend({
+App.TezAppDagsRoute = App.BaseRoute.extend({
   renderTemplate: renderTable,
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  },
   setupController: setupControllerFactory()
 });
 
-App.TezAppConfigsRoute = Em.Route.extend({
+App.TezAppConfigsRoute = App.BaseRoute.extend({
   renderTemplate: renderConfigs
 });
 
 /* --- Shared routes --- */
-App.DagIndexRoute = Em.Route.extend({
-  resetController: function () {
-    if(this.controller.reset) {
-      this.controller.reset();
-    }
-  },
+App.DagIndexRoute = App.BaseRoute.extend({
   setupController: setupControllerFactory()
 });
 
@@ -327,12 +301,7 @@ App.DagTasksRoute =
     App.DagTaskAttemptsRoute =
     App.VertexTasksRoute =
     App.VertexTaskAttemptsRoute =
-    Em.Route.extend({
-      resetController: function () {
-        if(this.controller.reset) {
-          this.controller.reset();
-        }
-      },
+    App.BaseRoute.extend({
       renderTemplate: renderTable,
       setupController: setupControllerFactory()
     });
@@ -341,12 +310,7 @@ App.DagCountersRoute =
     App.VertexCountersRoute =
     App.TaskCountersRoute =
     App.TaskAttemptCountersRoute =
-    Em.Route.extend({
-      resetController: function () {
-        if(this.controller.reset) {
-          this.controller.reset();
-        }
-      },
+    App.BaseRoute.extend({
       renderTemplate: function() {
         this.render('common/counters');
       }

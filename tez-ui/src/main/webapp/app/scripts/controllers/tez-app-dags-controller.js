@@ -25,6 +25,8 @@ App.TezAppDagsController = App.TablePageController.extend({
   filterEntityType: 'tezApp',
   filterEntityId: Ember.computed.alias('appId'),
 
+  showAutoUpdate: false,
+
   afterLoad: function () {
     var data = this.get('data'),
         loaders = [],

@@ -21,27 +21,20 @@ App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
   pageTitle: 'Dag',
 
   loading: true,
-  isActive: false,
 
   pollingType: 'dagInfo',
-
-  setup: function () {
-    this.set('isActive', true);
-  },
-  reset: function () {
-    this.set('isActive', false);
-  },
 
   pollsterControl: function () {
     if(this.get('status') == 'RUNNING' &&
         this.get('amWebServiceVersion') != '1' &&
+        this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('status', 'amWebServiceVersion', 'isActive'),
+  }.observes('status', 'amWebServiceVersion', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     var model = this.get('model');
@@ -107,9 +100,12 @@ App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
     allLoaders.then(function(){
       if (dag.get('status') === 'RUNNING') {
         // update the progress info if available. this need not block the UI
-        if (dag.get('amWebServiceVersion') == '1') {
+        if (dag.get('amWebServiceVersion') == '1' || !that.get('pollingEnabled')) {
           that.updateInfoFromAM(dag);
         }
+      }
+      else if(dag.get('status') == 'SUCCEEDED') {
+        dag.set('progress', 1);
       }
     });
 
@@ -124,9 +120,9 @@ App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
       appId: dag.get('applicationId'),
       dagIdx: dag.get('idx')
     }).then(function(dagProgressInfo) {
-      that.set('dag.progress', dagProgressInfo.get('progress'));
+      that.set('progress', dagProgressInfo.get('progress'));
     }).catch(function (error) {
-      Em.Logger.error("Failed to fetch dagProgress" + e);
+      Em.Logger.error("Failed to fetch dagProgress" + error);
     });
   },
 

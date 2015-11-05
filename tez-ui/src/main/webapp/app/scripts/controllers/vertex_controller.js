@@ -22,27 +22,20 @@ App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, A
   pageTitle: 'Vertex',
 
   loading: true,
-  isActive: false,
 
   pollingType: 'vertexInfo',
-
-  setup: function () {
-    this.set('isActive', true);
-  },
-  reset: function () {
-    this.set('isActive', false);
-  },
 
   pollsterControl: function () {
     if(this.get('dag.status') == 'RUNNING' &&
         this.get('dag.amWebServiceVersion') != '1' &&
+        this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('dag.status', 'dag.amWebServiceVersion', 'isActive'),
+  }.observes('dag.status', 'dag.amWebServiceVersion', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     var model = this.get('model');

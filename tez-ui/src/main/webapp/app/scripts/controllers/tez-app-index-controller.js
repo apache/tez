@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.TezAppIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
+App.TezAppIndexController = App.PollingController.extend(App.ModelRefreshMixin, {
 
   needs: "tezApp",
   controllerName: 'TezAppIndexController',

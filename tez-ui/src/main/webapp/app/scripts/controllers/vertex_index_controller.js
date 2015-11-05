@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.VertexIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
+App.VertexIndexController = App.BaseController.extend(App.ModelRefreshMixin, {
   controllerName: 'VertexIndexController',
 
   needs: 'vertex',

@@ -37,8 +37,8 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
 
   start: function(interval) {
     if(!this.get('isRunning')) {
-      this._super(true, interval);
       this.set('isRunning', true);
+      this._super(true, interval);
     }
   },
 
@@ -61,11 +61,11 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
     }
   },
 
-  _optionObserver: function () {
-    if(this.get('options')) {
-      Em.run.later(this, this.onPoll, 10);
+  _preRequisitesObserver: function () {
+    if(this.get('isRunning')) {
+      this.onPoll();
     }
-  }.observes('options'),
+  }.observes('options', 'targetRecords'),
 
   _callIfRunning: function (that, funName) {
     return function (data) {
