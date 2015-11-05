@@ -7,6 +7,8 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-1976. Findbug warning: Unread field:
+  org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat$SplitHolder.split
   TEZ-2927. Tez UI: Graciously fail when system-metrics-publisher is disabled
   TEZ-2915. Tez UI: Getting back to the DAG details page is difficult
   TEZ-2895. Tez UI: Add option to enable and disable in-progress

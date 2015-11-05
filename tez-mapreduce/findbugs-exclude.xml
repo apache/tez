@@ -164,11 +164,4 @@
     <Bug pattern="WA_AWAIT_NOT_IN_LOOP"/>
   </Match>
 
-  <!-- TEZ-1976 -->
-  <Match>
-    <Class name="org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat$SplitHolder"/>
-    <Field name="split"/>
-    <Bug pattern="URF_UNREAD_FIELD"/>
-  </Match>
-
 </FindBugsFilter>

@@ -81,38 +81,6 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
       LOG.debug("Split size estimator : " + estimator);
     }
   }
-
-  class SplitHolder {
-    InputSplit split;
-    boolean isProcessed = false;
-    SplitHolder(InputSplit split) {
-      this.split = split;
-    }
-  }
-  
-  class LocationHolder {
-    List<SplitHolder> splits;
-    int headIndex = 0;
-    LocationHolder(int capacity) {
-      splits = new ArrayList<SplitHolder>(capacity);
-    }
-    boolean isEmpty() {
-      return (headIndex == splits.size());
-    }
-    SplitHolder getUnprocessedHeadSplit() {
-      while (!isEmpty()) {
-        SplitHolder holder = splits.get(headIndex);
-        if (!holder.isProcessed) {
-          return holder;
-        }
-        incrementHeadIndex();
-      }
-      return null;
-    }
-    void incrementHeadIndex() {
-      headIndex++;
-    }
-  }
   
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException,
