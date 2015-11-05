@@ -29,8 +29,11 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
   targetRecords: [],
 
   _ready: function () {
-    return this.get('entityType') && this.get('store') && this.get('options');
-  }.property('entityType', 'store', 'options'),
+    return this.get('entityType') &&
+        this.get('store') &&
+        this.get('options') &&
+        this.get('targetRecords.length');
+  }.property('entityType', 'store', 'options', 'targetRecords.length'),
 
   start: function(interval) {
     if(!this.get('isRunning')) {
@@ -46,7 +49,6 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
   },
 
   stop: function() {
-    this.set('amProgressInfoSucceededOnce', false);
     if(this.get('isRunning')) {
       Ember.run.cancel(this.get('timer'));
       this.set('isRunning', false);
@@ -79,19 +81,12 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
   },
 
   onResponse: function (data) {
-    this.set('amProgressInfoSucceededOnce', true);
     this.set('polledRecords', data);
     this.mergeToTarget();
   },
 
   onFailure: function (err) {
     // Implement based on requirement
-    if (this.get('amProgressInfoSucceededOnce') === true) {
-      this.set('amProgressInfoSucceededOnce', false);
-      App.Helpers.ErrorBar.getInstance().show(
-        "Failed to get in-progress status. Manually refresh to get the updated status",
-        "Application Manager either exited or is not running.");
-    }
   },
 
   _final: function () {

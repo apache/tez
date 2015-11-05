@@ -261,6 +261,14 @@ App.ready = function () {
     }
   });
 
+  App.ClusterAppAdapter = DS.RESTAdapter.extend({
+    host: App.env.RMWebUrl,
+    namespace: App.Configs.restNamespace.cluster,
+    pathForType: function() {
+      return 'apps';
+    }
+  });
+
 };
 
 $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
@@ -283,6 +291,7 @@ require('scripts/router');
 require('scripts/views/**/*');
 require('scripts/models/**/*');
 
+require('scripts/controllers/polling-controller');
 require('scripts/controllers/table-page-controller');
 require('scripts/controllers/**/*');
 

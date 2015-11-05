@@ -342,6 +342,16 @@ App.TezApp = App.AbstractEntity.extend({
   tezVersion: DS.attr('string'),
 });
 
+App.ClusterApp = App.AbstractEntity.extend({
+  status: DS.attr('string'),
+  finalStatus: DS.attr('string'),
+
+  isComplete: function () {
+    var status = this.get('status');
+    return status == 'FINISHED' || status == 'FAILED' || status == 'KILLED';
+  }.property('status')
+});
+
 App.Task = App.AbstractEntity.extend({
   status: DS.attr('string'),
 

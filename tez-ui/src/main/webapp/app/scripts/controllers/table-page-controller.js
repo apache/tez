@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-App.TablePageController = Em.ObjectController.extend(
+App.TablePageController = App.PollingController.extend(
     App.DataArrayLoaderMixin,
     App.ColumnSelectorMixin, {
       queryParams: ['pageNum', 'rowCount', 'searchText', 'sortColumnId', 'sortOrder'],
@@ -40,6 +40,14 @@ App.TablePageController = Em.ObjectController.extend(
       },
       reset: function () {
         this.set('isActive', false);
+      },
+
+      rowsDisplayedObserver: function () {
+        this.set('pollster.targetRecords', this.get('rowsDisplayed'));
+      }.observes('rowsDisplayed', 'pollster'),
+
+      applicationComplete: function () {
+        this.loadData(true);
       },
 
       statusMessage: function () {

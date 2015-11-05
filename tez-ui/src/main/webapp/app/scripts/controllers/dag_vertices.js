@@ -26,10 +26,36 @@ App.DagVerticesController = App.TablePageController.extend({
 
   cacheDomain: Ember.computed.alias('controllers.dag.id'),
 
-  pollster: {},
-  amInfoUpdateServiceObserver: function () {
-    this.set('pollster.isRunning', !!this.get('amInfoUpdateService'));
-  }.observes('amInfoUpdateService').on('init'),
+  pollingType: 'vertexInfo',
+
+  pollsterControl: function () {
+
+    if(this.get('status') == 'RUNNING' &&
+        this.get('amWebServiceVersion') != '1' &&
+        !this.get('loading') &&
+        this.get('isActive') &&
+        this. get('rowsDisplayed.length') > 0) {
+      this.get('pollster').start();
+    }
+    else {
+      this.get('pollster').stop();
+    }
+  }.observes('status', 'amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
+
+  pollsterOptionsObserver: function () {
+    this.set('pollster.options', {
+      appID: this.get('applicationId'),
+      dagID: this.get('idx'),
+      counters: this.get('countersDisplayed'),
+      vertexID: this.get('rowsDisplayed').map(function (row) {
+          return App.Helpers.misc.getIndexFromId(row.get('id'));
+        }).join(',')
+    });
+  }.observes('applicationId', 'idx', 'rowsDisplayed'),
+
+  countersDisplayed: function () {
+    return App.Helpers.misc.getCounterQueryParam(this.get('columns'));
+  }.property('columns'),
 
   beforeLoad: function () {
     var dagController = this.get('controllers.dag'),
@@ -84,38 +110,6 @@ App.DagVerticesController = App.TablePageController.extend({
     }
   },
 
-  _onColumnChange: function () {
-    App.set('vertexCounters', App.Helpers.misc.getCounterQueryParam(this.get('columns')));
-  }.observes('columns').on('init'),
-
-  overlayVertexInfo: function(vertex, amVertexInfo) {
-    if (Em.isNone(amVertexInfo) || Em.isNone(vertex)) return;
-    amVertexInfo.set('_amInfoLastUpdatedTime', moment());
-
-    var props = ['progress', '_amInfoLastUpdatedTime']; 
-    if (this.get('controllers.dag.amWebServiceVersion') != '1') {
-      // status is not available for v1 version.
-      props.push('status')
-    }
-    var propValues = amVertexInfo.getProperties(props);
-    propValues['counterGroups'] = App.Helpers.misc.mergeCounterInfo(vertex.get('counterGroups'),
-                                    amVertexInfo.get('counters')).slice(0);
-    vertex.setProperties(propValues);
-
-    Em.tryInvoke(vertex, 'didLoad');
-  },
-
-  updateVertexInfo: function() {
-    var amVertexInfo = this.get('controllers.dag.amVertexInfo');
-    var vertices = this.get('data');
-    var that = this;
-    if (amVertexInfo && vertices) {
-      amVertexInfo.forEach(function(item) {
-        that.overlayVertexInfo(vertices.findBy('id', item.get('id')), item);
-      });
-    }
-  }.observes('controllers.dag.amVertexInfo', 'data'),
-
   defaultColumnConfigs: function() {
     function onProgressChange() {
       var progress = this.get('vertex.progress'),
@@ -157,18 +151,13 @@ App.DagVerticesController = App.TablePageController.extend({
         headerCellName: 'Status',
         templateName: 'components/basic-table/status-cell',
         contentPath: 'status',
+        observePath: true,
         getCellContent: function(row) {
-          var status = row.get('status'),
-              content = Ember.Object.create({
-                vertex: row,
-              });
-          if(status == 'RUNNING') {
-            row.addObserver('_amInfoLastUpdatedTime', content, onProgressChange);
-            row.addObserver('progress', content, onProgressChange);
-            row.addObserver('status', content, onProgressChange);
-          }
-          onProgressChange.call(content);
-          return content;
+          var status = row.get('status');
+          return {
+            status: status,
+            statusIcon: App.Helpers.misc.getStatusClassForEntity(status)
+          };
         }
       },
       {
