@@ -128,6 +128,7 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
         templateName: 'components/basic-table/status-cell',
         contentPath: 'status',
         observePath: true,
+        onSort: this.onInProgressColumnSort.bind(this),
         getCellContent: function(row) {
           var status = row.get('status');
           return {
@@ -142,6 +143,7 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
         headerCellName: 'Progress',
         contentPath: 'progress',
         observePath: true,
+        onSort: this.onInProgressColumnSort.bind(this),
         templateName: 'components/basic-table/progress-cell'
       },
       {

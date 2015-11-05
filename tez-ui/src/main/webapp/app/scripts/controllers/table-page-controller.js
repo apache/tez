@@ -62,6 +62,18 @@ App.TablePageController = App.PollingController.extend(
         return this.get('loading') ? "Loading all records..." : null;
       }.property('loading'),
 
+      onInProgressColumnSort: function (columnDef) {
+        var inProgress = this.get('pollster.isRunning');
+        if(inProgress) {
+          App.Helpers.Dialogs.alert(
+            'Cannot sort',
+            'Sorting on %@ is disabled for in-progress DAGs!'.fmt(columnDef.get('headerCellName')),
+            this
+          );
+        }
+        return !inProgress;
+      },
+
       actions: {
         refresh: function () {
           this.loadData(true);

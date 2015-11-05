@@ -140,6 +140,7 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         templateName: 'components/basic-table/status-cell',
         contentPath: 'status',
         observePath: true,
+        onSort: this.onInProgressColumnSort.bind(this),
         getCellContent: function(row) {
           var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
           return {
@@ -153,6 +154,7 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         headerCellName: 'Progress',
         contentPath: 'progress',
         observePath: true,
+        onSort: this.onInProgressColumnSort.bind(this),
         templateName: 'components/basic-table/progress-cell'
       },
       {
@@ -260,7 +262,7 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
           App.get('Configs.tables.entity.taskAttempt') || [],
           App.get('Configs.tables.sharedColumns') || []
         )
-      )
+      , this)
     );
   }.property('defaultColumnConfigs'),
 

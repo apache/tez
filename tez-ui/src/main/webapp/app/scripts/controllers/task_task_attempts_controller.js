@@ -123,6 +123,7 @@ App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColum
         templateName: 'components/basic-table/status-cell',
         contentPath: 'status',
         observePath: true,
+        onSort: this.onInProgressColumnSort.bind(this),
         getCellContent: function(row) {
           var status = App.Helpers.misc.getFixedupDisplayStatus(row.get('status'));
           return {
@@ -136,6 +137,7 @@ App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColum
         headerCellName: 'Progress',
         contentPath: 'progress',
         observePath: true,
+        onSort: this.onInProgressColumnSort.bind(this),
         templateName: 'components/basic-table/progress-cell'
       },
       {
