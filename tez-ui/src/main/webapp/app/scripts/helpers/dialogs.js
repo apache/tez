@@ -16,7 +16,27 @@
  * limitations under the License.
  */
 
-App.Dialogs = Em.Namespace.create({
+App.Helpers.Dialogs = Em.Namespace.create({
+
+  /**
+   * Shows an alert box with a title and body
+   * @param title {String} The alert window title
+   * @param message {String} The alert message
+   * @param controller {Controller} Active ember controller
+   */
+   alert: function (title, message, controller) {
+      Bootstrap.ModalManager.open(
+      'alertModal',
+      title,
+      Ember.View.extend({
+        template: Em.Handlebars.compile(
+          '<p id="modalMessage">%@</p>'.fmt(message)
+        )
+      }), [
+        Ember.Object.create({title: 'OK', dismiss: 'modal'})
+      ], controller);
+   },
+
   /*
    * Displays a dialog with a multiselector based on the provided data.
    * - Helper looks for id & displayText in listItems.

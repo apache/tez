@@ -160,7 +160,7 @@ App.Helpers.misc = {
    * @param counterConfigs Array
    * @return Normalized configurations
    */
-  normalizeCounterConfigs: function (counterConfigs, inProgress) {
+  normalizeCounterConfigs: function (counterConfigs, controller) {
     return counterConfigs.map(function (configuration) {
       var groupName = configuration.counterGroupName || configuration.groupId,
           counterName = configuration.counterName || configuration.counterId;
@@ -175,7 +175,10 @@ App.Helpers.misc = {
       configuration.contentPath = 'counterGroups';
       configuration.counterGroupName = groupName;
       configuration.counterName = counterName;
-      configuration.searchAndSortable = !inProgress;
+
+      if(controller) {
+        configuration.onSort = controller.onInProgressColumnSort.bind(controller);
+      }
 
       configuration.getSortValue = App.Helpers.misc.getCounterCellContent;
       configuration.getCellContent =
