@@ -34,13 +34,14 @@ App.DagTaskAttemptsController = App.TablePageController.extend({
         this.get('amWebServiceVersion') != '1' &&
         !this.get('loading') &&
         this.get('isActive') &&
+        this.get('pollingEnabled') &&
         this. get('rowsDisplayed.length') > 0) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('status', 'amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
+  }.observes('status', 'amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     this.set('pollster.options', {

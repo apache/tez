@@ -32,29 +32,25 @@ App.TablePageController = App.PollingController.extend(
 
       isRefreshable: true,
 
-      // -- TODO: TEZ-2785 : Following 3 must be moved to a parent class
-      isActive: false,
-
-      setup: function () {
-        this.set('isActive', true);
-      },
-      reset: function () {
-        this.set('isActive', false);
-      },
+      parentStatus: null,
 
       rowsDisplayedObserver: function () {
         this.set('pollster.targetRecords', this.get('rowsDisplayed'));
       }.observes('rowsDisplayed', 'pollster'),
 
       parentStatusObserver: function () {
-        var parentStatus = this.get('status');
-        if(parentStatus && parentStatus != 'RUNNING') {
+        var parentStatus = this.get('status'),
+            previousStatus = this.get('parentStatus');
+
+        if(parentStatus != previousStatus && previousStatus == 'RUNNING' && this.get('pollingEnabled')) {
           this.get('pollster').stop();
           this.loadData(true);
         }
+        this.set('parentStatus', parentStatus);
       }.observes('status'),
 
       applicationComplete: function () {
+        this.set('pollster.polledRecords', null);
         this.loadData(true);
       },
 
@@ -67,7 +63,7 @@ App.TablePageController = App.PollingController.extend(
         if(inProgress) {
           App.Helpers.Dialogs.alert(
             'Cannot sort',
-            'Sorting on %@ is disabled for in-progress DAGs!'.fmt(columnDef.get('headerCellName')),
+            'Sorting on %@ is disabled for running DAGs!'.fmt(columnDef.get('headerCellName')),
             this
           );
         }

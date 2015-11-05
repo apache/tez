@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-App.TaskAttemptController = Em.ObjectController.extend(App.Helpers.DisplayHelper, {
+App.TaskAttemptController = App.BaseController.extend(App.Helpers.DisplayHelper, {
   controllerName: 'TaskAttemptController',
 
   pageTitle: 'TaskAttempt',
 
   loading: true,
-
-  isActive: false,
 
   pollster: App.Helpers.EntityArrayPollster.create(),
 
@@ -36,23 +34,17 @@ App.TaskAttemptController = Em.ObjectController.extend(App.Helpers.DisplayHelper
     });
   },
 
-  setup: function () {
-    this.set('isActive', true);
-  },
-  reset: function () {
-    this.set('isActive', false);
-  },
-
   pollsterControl: function () {
     if(this.get('task.vertex.dag.status') == 'RUNNING' &&
         this.get('task.vertex.dag.amWebServiceVersion') != '1' &&
+        this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('task.vertex.dag.status', 'task.vertex.dag.amWebServiceVersion', 'isActive'),
+  }.observes('task.vertex.dag.status', 'task.vertex.dag.amWebServiceVersion', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     var model = this.get('model');

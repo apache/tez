@@ -20,6 +20,16 @@
   <div class="panel-body">
     <div class="horizontal-half">
       <i class='fa fa-clock-o'></i>
+
+      {{#if targetObject.showAutoUpdate}}
+        <div class="auto-update">
+          {{view App.Checkbox
+          classNames='inline-display checkbox'
+          checked=targetObject.pollingEnabled
+          }}
+          Auto Refresh
+        </div>
+      {{/if}}
     </div><div class="horizontal-half align-children-right">
       <span class="margin-small-horizontal">
         {{#if displayTime}}

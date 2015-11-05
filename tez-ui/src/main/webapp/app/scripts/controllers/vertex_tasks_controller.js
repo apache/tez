@@ -34,13 +34,14 @@ App.VertexTasksController = App.TablePageController.extend(App.AutoCounterColumn
     if(this.get('dag.status') == 'RUNNING' &&
         this.get('dag.amWebServiceVersion') != '1' &&
         !this.get('loading') && this.get('isActive') &&
-        this. get('rowsDisplayed.length') > 0) {
+        this.get('pollingEnabled') &&
+        this.get('rowsDisplayed.length') > 0) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('dag.status', 'dag.amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive'),
+  }.observes('dag.status', 'dag.amWebServiceVersion', 'rowsDisplayed', 'loading', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     this.set('pollster.options', {

@@ -298,6 +298,7 @@ require('scripts/router');
 require('scripts/views/**/*');
 require('scripts/models/**/*');
 
+require('scripts/controllers/base-controller');
 require('scripts/controllers/polling-controller');
 require('scripts/controllers/table-page-controller');
 require('scripts/controllers/**/*');

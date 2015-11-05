@@ -23,27 +23,19 @@ App.TaskController = App.PollingController.extend(App.Helpers.DisplayHelper, App
 
   loading: true,
 
-  isActive: false,
-
   pollingType: 'taskInfo',
-
-  setup: function () {
-    this.set('isActive', true);
-  },
-  reset: function () {
-    this.set('isActive', false);
-  },
 
   pollsterControl: function () {
     if(this.get('vertex.dag.status') == 'RUNNING' &&
         this.get('vertex.dag.amWebServiceVersion') != '1' &&
+        this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('vertex.dag.status', 'vertex.dag.amWebServiceVersion', 'isActive'),
+  }.observes('vertex.dag.status', 'vertex.dag.amWebServiceVersion', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     var model = this.get('model');

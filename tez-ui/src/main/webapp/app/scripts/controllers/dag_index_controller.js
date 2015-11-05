@@ -44,17 +44,20 @@ App.DagIndexController = App.TablePageController.extend({
         this.get('amWebServiceVersion') != '1' &&
         !this.get('loading') &&
         this.get('isActive') &&
+        this.get('pollingEnabled') &&
         this.get('rowsDisplayed.length') > 0) {
       this.get('pollster').start();
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('status', 'amWebServiceVersion', 'loading', 'isActive'),
+  }.observes('status', 'amWebServiceVersion', 'loading', 'isActive', 'pollingEnabled'),
 
   applicationComplete: function () {
     this._super();
-    this.set('controllers.dag.progress', 1);
+    if(this.get('controllers.dag.status') == 'SUCCEEDED') {
+      this.set('controllers.dag.progress', 1);
+    }
   },
 
   pollsterOptionsObserver: function () {

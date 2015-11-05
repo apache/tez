@@ -45,6 +45,11 @@
   pointer-events: none;
 }
 
+.inactive {
+  .no-pointer;
+  opacity: 0.4;
+}
+
 .no-wrap {
   white-space: nowrap;
 }
@@ -99,5 +104,13 @@
   &::-webkit-scrollbar-track {
     background-color: #EEE;
     border-radius: 8px;
+  }
+}
+
+.align-checknradio {
+  input[type=checkbox], input[type=radio] {
+    vertical-align: middle;
+    position: relative;
+    bottom: .2em;
   }
 }

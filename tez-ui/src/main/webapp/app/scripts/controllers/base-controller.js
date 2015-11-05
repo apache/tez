@@ -16,28 +16,34 @@
  * limitations under the License.
  */
 
- //TODO: watch individual counters.
-App.TaskIndexController = App.BaseController.extend(App.ModelRefreshMixin, {
-  controllerName: 'TaskIndexController',
+App.BaseController = Em.ObjectController.extend({
+  controllerName: null, // Must be set by the respective controllers
 
-  taskStatus: function() {
-    return App.Helpers.misc.getFixedupDisplayStatus(this.get('model.status'));
-  }.property('id', 'model.status'),
+  isActive: false,
 
-  taskIconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('taskStatus'),
-      this.get('hasFailedTaskAttempts'));
-  }.property('id', 'taskStatus', 'hasFailedTaskAttempts'),
+  setup: function () {
+    this.set('isActive', true);
+  },
+  reset: function () {
+    this.set('isActive', false);
+  },
 
-  load: function () {
-    var model = this.get('content');
-    if(model && $.isFunction(model.reload)) {
-      model.reload().then(function(record) {
-        if(record.get('isDirty')) {
-          record.rollback();
-        }
-      });
+  getStoreKey: function (subKey) {
+    return "%@:%@".fmt(this.get('controllerName'), subKey);
+  },
+  storeConfig: function (key, value) {
+    try {
+      localStorage.setItem(this.getStoreKey(key) , JSON.stringify(value));
+    }catch(e){
+      return e;
     }
+    return value;
+  },
+  fetchConfig: function (key) {
+    try {
+      return JSON.parse(localStorage.getItem(this.getStoreKey(key)));
+    }catch(e){}
+    return undefined;
   },
 
 });

@@ -18,15 +18,18 @@
 
 var DEFAULT_MERGE_PROPS = ['status', 'progress'];
 
-App.PollingController = Em.ObjectController.extend({
+App.PollingController = App.BaseController.extend({
 
   pollster: null,
-  pollingEnabled: false,
+  pollingEnabled: true,
+  showAutoUpdate: true,
 
   pollingType: null,
   pollingOptions: null,
 
   init: function () {
+    var pollingEnabled;
+
     this._super();
     this.set('pollster', App.Helpers.EntityArrayPollster.create({
       store: this.get('store'),
@@ -37,7 +40,25 @@ App.PollingController = Em.ObjectController.extend({
 
       onFailure: this.onPollingFailure.bind(this)
     }));
+
+    pollingEnabled = this.fetchConfig('pollingEnabled');
+    if(pollingEnabled != undefined) {
+      this.set('pollingEnabled', pollingEnabled);
+    }
   },
+
+  pollingEnabledObserver: function () {
+    var pollingEnabled = this.get('pollingEnabled');
+
+    this.storeConfig('pollingEnabled', pollingEnabled);
+    this.send('pollingEnabledChanged', pollingEnabled);
+
+    if(!pollingEnabled && this.get('pollster.isRunning')) {
+      this.get('pollster').stop();
+      this.set('pollster.polledRecords', null);
+      this.applicationComplete();
+    }
+  }.observes('pollingEnabled'),
 
   onPollingFailure: function (error) {
     var appID = this.get('pollster.options.appID'),
@@ -61,6 +82,7 @@ App.PollingController = Em.ObjectController.extend({
   },
 
   applicationComplete: function () {
+    this.get('pollster').stop();
     this.set('pollster.polledRecords', null);
     if(this.load) {
       this.load();
