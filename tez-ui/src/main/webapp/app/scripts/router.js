@@ -155,7 +155,6 @@ App.DagRoute = Em.Route.extend({
   },
   setupController: setupControllerFactory('Dag: %@ (%@)', 'name', 'id'),
   resetController: function() {
-    this.controller.dostopAMInfoUpdateService();
     if(this.controller.reset) {
       this.controller.reset();
     }
@@ -314,6 +313,15 @@ App.TezAppConfigsRoute = Em.Route.extend({
 });
 
 /* --- Shared routes --- */
+App.DagIndexRoute = Em.Route.extend({
+  resetController: function () {
+    if(this.controller.reset) {
+      this.controller.reset();
+    }
+  },
+  setupController: setupControllerFactory()
+});
+
 App.DagTasksRoute =
     App.DagVerticesRoute =
     App.DagTaskAttemptsRoute =

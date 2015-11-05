@@ -194,15 +194,22 @@ App.ready = function () {
   // v2 version of am web services
   App.DagInfoAdapter = App.AMInfoAdapter.extend({
     namespace: App.Configs.restNamespace.aminfoV2,
-    buildURL: function(type, id, record) {
-      var url = this._super(type, null, record);
-      return url.replace('__app_id__', record.get('appId'))
-        .fmt(record.get('dagIdx'));
+    findQuery: function(store, type, query) {
+      var record = query.metadata;
+      delete query.metadata;
+      return this.ajax(
+        this.buildURL(Ember.String.pluralize(type.typeKey),
+          record.dagID, Em.Object.create(record)), 'GET', { data: query});
     },
-    pathForType: function() {
+    buildURL: function(type, id, record) {
+      var url = this._super(type, undefined, record);
+      return url.replace('__app_id__', record.get('appID')).fmt(id);
+    },
+    pathForType: function(typeName) {
       return 'dagInfo?dagID=%@';
     }
   });
+
 
   App.VertexInfoAdapter = App.AMInfoAdapter.extend({
     namespace: App.Configs.restNamespace.aminfoV2,

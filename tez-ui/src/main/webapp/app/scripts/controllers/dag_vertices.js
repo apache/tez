@@ -103,7 +103,11 @@ App.DagVerticesController = App.TablePageController.extend({
           vertexIds: runningVerticesIdx.join(',')
         }
       }).then(function(vertexProgressInfo) {
-        that.set('controllers.dag.amVertexInfo', vertexProgressInfo);
+          App.Helpers.emData.mergeRecords(
+            that.get('displayedRecords'),
+            vertexProgressInfo,
+            ['progress']
+          );
       }).catch(function(error) {
         Em.Logger.debug("failed to fetch vertex progress")
       });

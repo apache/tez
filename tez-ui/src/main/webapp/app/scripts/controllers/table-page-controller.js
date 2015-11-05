@@ -46,6 +46,14 @@ App.TablePageController = App.PollingController.extend(
         this.set('pollster.targetRecords', this.get('rowsDisplayed'));
       }.observes('rowsDisplayed', 'pollster'),
 
+      parentStatusObserver: function () {
+        var parentStatus = this.get('status');
+        if(parentStatus && parentStatus != 'RUNNING') {
+          this.get('pollster').stop();
+          this.loadData(true);
+        }
+      }.observes('status'),
+
       applicationComplete: function () {
         this.loadData(true);
       },

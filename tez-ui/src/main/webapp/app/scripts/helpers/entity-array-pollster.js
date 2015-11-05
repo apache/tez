@@ -37,20 +37,14 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
 
   start: function(interval) {
     if(!this.get('isRunning')) {
-      if (!!interval && interval > 1000) {
-        this.set('_interval', interval)
-      }
-
+      this._super(true, interval);
       this.set('isRunning', true);
-
-      this.onPoll();
-      this.set('timer', this.schedule(this.onPoll, true));
     }
   },
 
   stop: function() {
     if(this.get('isRunning')) {
-      Ember.run.cancel(this.get('timer'));
+      this._super();
       this.set('isRunning', false);
     }
   },
@@ -68,7 +62,9 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
   },
 
   _optionObserver: function () {
-    Em.run.later(this, this.onPoll, 10);
+    if(this.get('options')) {
+      Em.run.later(this, this.onPoll, 10);
+    }
   }.observes('options'),
 
   _callIfRunning: function (that, funName) {
@@ -94,37 +90,10 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
   },
 
   mergeToTarget: function () {
-    var polledRecords = this.get('polledRecords'),
-        targetRecords = this.get('targetRecords'),
-        mergeProperties = this.get('mergeProperties') || [];
-
-    if(polledRecords && targetRecords) {
-      targetRecords.forEach(function (row) {
-        var info = polledRecords.findBy('id', row.get('id')),
-             merge = !!info;
-
-        row.didLoad();
-
-        if(merge && row.get('progress') && info.get('progress')) {
-          if(row.get('progress') >= info.get('progress')) {
-            merge = false;
-          }
-        }
-
-        if(merge) {
-          row.setProperties(info.getProperties.apply(info, mergeProperties));
-
-          if(info.get('counters')) {
-            row.set('counterGroups',
-              App.Helpers.misc.mergeCounterInfo(
-                row.get('counterGroups'),
-                info.get('counters')
-              ).slice(0)
-            );
-          }
-
-        }
-      });
-    }
+    App.Helpers.emData.mergeRecords(
+      this.get('targetRecords'),
+      this.get('polledRecords'),
+      this.get('mergeProperties') || []
+    );
   }.observes('targetRecords').on('init')
 });

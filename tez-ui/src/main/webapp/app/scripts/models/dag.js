@@ -50,6 +50,8 @@ App.Dag = App.AbstractEntity.extend({
   tezApp: DS.belongsTo('tezApp'),
   appDetail: DS.belongsTo('appDetail'),
 
+  progress: DS.attr('number'),
+
   // status
   status: DS.attr('string'),
   hasFailedTaskAttempts: DS.attr('boolean'),
@@ -215,8 +217,13 @@ App.Vertex = App.AbstractEntity.extend({
 
   failedTasks: DS.attr('number'),
   sucessfulTasks: DS.attr('number'),
+  runningTasks: DS.attr('number'),
+  pendingTasks: DS.attr('number'),
   numTasks: DS.attr('number'),
   killedTasks: DS.attr('number'),
+
+  failedTaskAttempts: DS.attr('number'),
+  killedTaskAttempts: DS.attr('number'),
 
   diagnostics: DS.attr('string'),
 
@@ -434,14 +441,15 @@ App.VertexInfo = DS.Model.extend({
 
   progress: DS.attr('number'),
   status: DS.attr('string'),
-  totalTasks: DS.attr('number'),
+  numTasks: DS.attr('number'),
   runningTasks: DS.attr('number'),
-  succeededTasks: DS.attr('number'),
+  sucessfulTasks: DS.attr('number'),
   failedTaskAttempts: DS.attr('number'),
   killedTaskAttempts: DS.attr('number'),
+
   pendingTasks: function() {
-    return this.get('totalTasks') - this.get('runningTasks') - this.get('succeededTasks');
-  }.property('totalTasks', 'runningTasks', 'succeededTasks'),
+    return this.get('numTasks') - this.get('runningTasks') - this.get('sucessfulTasks');
+  }.property('numTasks', 'runningTasks', 'sucessfulTasks'),
 
   counters: DS.attr('object')
 });

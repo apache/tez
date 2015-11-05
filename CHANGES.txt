@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2893. Tez UI: Retain vertex info displayed in DAG details page even after completion
   TEZ-2878. Tez UI: AM error handling - Make the UI handle cases in which AM returns unexpected/no data
   TEZ-2922. Tez Live UI gives access denied for admins
   TEZ-2828. Fix typo in "Shuffle assigned " log statement in shuffle.orderedgrouped.Shuffle.
