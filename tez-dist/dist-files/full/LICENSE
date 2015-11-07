@@ -300,6 +300,8 @@ The Apache TEZ binary distribution bundles the following files under the CDDL Li
   - jaxb-impl-*.jar
   - servlet-api-*.jar
 
+The text for this license can be found in the LICENSE-CDDLv1.1-GPLv2_withCPE file.
+
 -----------------------------------------------------------------------
  BSD-style Licenses
 ( 3-clause BSD License - http://opensource.org/licenses/BSD-3-Clause )
