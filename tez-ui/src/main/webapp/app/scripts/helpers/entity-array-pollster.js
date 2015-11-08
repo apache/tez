@@ -35,10 +35,10 @@ App.Helpers.EntityArrayPollster = App.Helpers.Pollster.extend({
         this.get('targetRecords.length');
   }.property('entityType', 'store', 'options', 'targetRecords.length'),
 
-  start: function(interval) {
+  start: function(runImmediate, interval) {
     if(!this.get('isRunning')) {
       this.set('isRunning', true);
-      this._super(true, interval);
+      this._super(runImmediate == undefined ? true : runImmediate, interval);
     }
   },
 

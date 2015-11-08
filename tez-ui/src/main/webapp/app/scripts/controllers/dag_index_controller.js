@@ -28,6 +28,9 @@ App.DagIndexController = App.TablePageController.extend({
 
   pollingType: 'vertexInfo',
 
+  _isRunning: false,
+  _autoReloaded: false,
+
   init: function () {
     this._super();
     this.set('pollster.mergeProperties', ['progress', 'status', 'runningTasks', 'pendingTasks',
@@ -37,23 +40,61 @@ App.DagIndexController = App.TablePageController.extend({
   reset: function () {
     this._super();
     this.set('data', null);
+    this.set('_autoReloaded', false);
   },
 
+  _statusObserver: function () {
+    var rowsDisplayed,
+        isRunning = false;
+
+    if(this.get('status') == 'RUNNING') {
+      isRunning = true;
+    }
+    else if(rowsDisplayed = this.get('rowsDisplayed')){
+      rowsDisplayed.forEach(function (row) {
+        if(row.get('status') == 'RUNNING') {
+          isRunning = true;
+        }
+      });
+    }
+
+    this.set('_isRunning', isRunning);
+  }.observes('status', 'rowsDisplayed.@each.status'),
+
+  pollingObserver: function () {
+    if(this.get('pollingEnabled')) {
+      this.set('_autoReloaded', false);
+    }
+  }.observes('pollingEnabled'),
+
   pollsterControl: function () {
-    if(this.get('status') == 'RUNNING' &&
+    if(this.get('_isRunning') &&
         this.get('amWebServiceVersion') != '1' &&
         !this.get('loading') &&
         this.get('isActive') &&
         this.get('pollingEnabled') &&
         this.get('rowsDisplayed.length') > 0) {
-      this.get('pollster').start();
+      this.get('pollster').start(!this.get('_autoReloaded'));
     }
     else {
       this.get('pollster').stop();
     }
-  }.observes('status', 'amWebServiceVersion', 'loading', 'isActive', 'pollingEnabled'),
+  }.observes('_isRunning', 'amWebServiceVersion', 'loading', 'isActive', 'pollingEnabled'),
+
+  parentStatusObserver: function () {
+    var parentStatus = this.get('status'),
+        previousStatus = this.get('parentStatus');
+
+    if(parentStatus != previousStatus && previousStatus == 'RUNNING' && this.get('pollingEnabled')) {
+      this.get('pollster').stop();
+      this.set('_autoReloaded', true);
+      this.loadData(true);
+    }
+    this.set('parentStatus', parentStatus);
+  }.observes('status'),
 
   applicationComplete: function () {
+    this.set('_autoReloaded', true);
     this._super();
     if(this.get('controllers.dag.status') == 'SUCCEEDED') {
       this.set('controllers.dag.progress', 1);

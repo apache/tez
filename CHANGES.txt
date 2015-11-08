@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2929. Tez UI: Dag details page displays vertices to be running even when dag have completed
   TEZ-2927. Tez UI: Graciously fail when system-metrics-publisher is disabled
   TEZ-2915. Tez UI: Getting back to the DAG details page is difficult
   TEZ-2895. Tez UI: Add option to enable and disable in-progress
