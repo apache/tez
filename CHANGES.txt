@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-2929. Tez UI: Dag details page displays vertices to be running even when dag have completed
   TEZ-1976. Findbug warning: Unread field:
   org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat$SplitHolder.split
   TEZ-2927. Tez UI: Graciously fail when system-metrics-publisher is disabled
