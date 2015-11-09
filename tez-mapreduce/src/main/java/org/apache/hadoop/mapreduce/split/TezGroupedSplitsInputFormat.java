@@ -54,6 +54,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   int desiredNumSplits = 0;
   Configuration conf;
   SplitSizeEstimator estimator;
+  SplitLocationProvider locationProvider;
   
   public TezGroupedSplitsInputFormat() {
     
@@ -81,14 +82,24 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
       LOG.debug("Split size estimator : " + estimator);
     }
   }
-  
+
+  public void setSplitLocationProvider(SplitLocationProvider locationProvider) {
+    Preconditions.checkArgument(locationProvider != null);
+    this.locationProvider = locationProvider;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Split location provider : " + locationProvider);
+    }
+  }
+
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException,
       InterruptedException {
     List<InputSplit> originalSplits = wrappedInputFormat.getSplits(context);
     TezMapReduceSplitsGrouper grouper = new TezMapReduceSplitsGrouper();
     String wrappedInputFormatName = wrappedInputFormat.getClass().getName();
-    return grouper.getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator);
+    return grouper
+        .getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator,
+            locationProvider);
   }
 
   @Override

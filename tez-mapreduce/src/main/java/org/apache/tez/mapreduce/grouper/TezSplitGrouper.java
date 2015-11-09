@@ -129,6 +129,17 @@ public abstract class TezSplitGrouper {
     }
   }
 
+  private static final SplitLocationProviderWrapper DEFAULT_SPLIT_LOCATION_PROVIDER = new DefaultSplitLocationProvider();
+
+  static final class DefaultSplitLocationProvider implements SplitLocationProviderWrapper {
+
+    @Override
+    public String[] getPreferredLocations(SplitContainer splitContainer) throws IOException,
+        InterruptedException {
+      return splitContainer.getPreferredLocations();
+    }
+  }
+
   Map<String, LocationHolder> createLocationsMap(Configuration conf) {
     if (conf.getBoolean(TEZ_GROUPING_REPEATABLE,
         TEZ_GROUPING_REPEATABLE_DEFAULT)) {
@@ -141,7 +152,8 @@ public abstract class TezSplitGrouper {
                                                       List<SplitContainer> originalSplits,
                                                       int desiredNumSplits,
                                                       String wrappedInputFormatName,
-                                                      SplitSizeEstimatorWrapper estimator) throws
+                                                      SplitSizeEstimatorWrapper estimator,
+                                                      SplitLocationProviderWrapper locationProvider) throws
       IOException, InterruptedException {
     LOG.info("Grouping splits in Tez");
     Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
@@ -155,6 +167,9 @@ public abstract class TezSplitGrouper {
 
     if (estimator == null) {
       estimator = DEFAULT_SPLIT_ESTIMATOR;
+    }
+    if (locationProvider == null) {
+      locationProvider = DEFAULT_SPLIT_LOCATION_PROVIDER;
     }
 
     if (! (configNumSplits > 0 ||
@@ -218,9 +233,10 @@ public abstract class TezSplitGrouper {
       LOG.info("Using original number of splits: " + originalSplits.size() +
           " desired splits: " + desiredNumSplits);
       groupedSplits = new ArrayList<GroupedSplitContainer>(originalSplits.size());
+      // TODO TEZ-2911 null in the non null String[] handled differently here compared to when grouping happens.
       for (SplitContainer split : originalSplits) {
         GroupedSplitContainer newSplit =
-            new GroupedSplitContainer(1, wrappedInputFormatName, split.getPreferredLocations(),
+            new GroupedSplitContainer(1, wrappedInputFormatName, locationProvider.getPreferredLocations(split),
                 null);
         newSplit.addSplit(split);
         groupedSplits.add(newSplit);
@@ -237,7 +253,7 @@ public abstract class TezSplitGrouper {
     // go through splits and add them to locations
     for (SplitContainer split : originalSplits) {
       totalLength += estimator.getEstimatedSize(split);
-      String[] locations = split.getPreferredLocations();
+      String[] locations = locationProvider.getPreferredLocations(split);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
       }
@@ -262,7 +278,7 @@ public abstract class TezSplitGrouper {
     Set<String> locSet = new HashSet<String>();
     for (SplitContainer split : originalSplits) {
       locSet.clear();
-      String[] locations = split.getPreferredLocations();
+      String[] locations = locationProvider.getPreferredLocations(split);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
       }
@@ -352,7 +368,7 @@ public abstract class TezSplitGrouper {
           groupLocation = null;
         } else if (doingRackLocal) {
           for (SplitContainer splitH : group) {
-            String[] locations = splitH.getPreferredLocations();
+            String[] locations = locationProvider.getPreferredLocations(splitH);
             if (locations != null) {
               for (String loc : locations) {
                 if (loc != null) {
@@ -436,7 +452,7 @@ public abstract class TezSplitGrouper {
           }
           numRackSplitsToGroup--;
           rackSet.clear();
-          String[] locations = split.getPreferredLocations();
+          String[] locations = locationProvider.getPreferredLocations(split);
           if (locations == null || locations.length == 0) {
             locations = emptyLocations;
           }

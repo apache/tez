@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import org.apache.tez.mapreduce.grouper.GroupedSplitContainer;
 import org.apache.tez.mapreduce.grouper.MapredSplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitContainer;
+import org.apache.tez.mapreduce.grouper.SplitLocationProviderWrapperMapred;
 import org.apache.tez.mapreduce.grouper.SplitSizeEstimatorWrapperMapred;
 import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
 import org.slf4j.Logger;
@@ -54,8 +55,17 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
   }
 
   public InputSplit[] getGroupedSplits(Configuration conf,
+                                       InputSplit[] originalSplits, int desiredNumSplits,
+                                       String wrappedInputFormatName,
+                                       SplitSizeEstimator estimator) throws IOException {
+    return getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName,
+        estimator, null);
+  }
+
+
+  public InputSplit[] getGroupedSplits(Configuration conf,
       InputSplit[] originalSplits, int desiredNumSplits,
-      String wrappedInputFormatName, SplitSizeEstimator estimator) throws IOException {
+      String wrappedInputFormatName, SplitSizeEstimator estimator, SplitLocationProvider locationProvider) throws IOException {
     Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
 
     List<SplitContainer> originalSplitContainers = Lists.transform(Arrays.asList(originalSplits),
@@ -70,7 +80,9 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
       List<InputSplit> resultList = Lists.transform(super
               .getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
                   wrappedInputFormatName, estimator == null ? null :
-                  new SplitSizeEstimatorWrapperMapred(estimator)),
+                      new SplitSizeEstimatorWrapperMapred(estimator),
+                  locationProvider == null ? null :
+                      new SplitLocationProviderWrapperMapred(locationProvider)),
           new Function<GroupedSplitContainer, InputSplit>() {
             @Override
             public InputSplit apply(GroupedSplitContainer input) {

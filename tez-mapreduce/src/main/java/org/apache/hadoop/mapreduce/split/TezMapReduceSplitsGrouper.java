@@ -145,6 +145,15 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
                                            String wrappedInputFormatName,
                                            SplitSizeEstimator estimator) throws IOException,
       InterruptedException {
+    return getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator, null);
+  }
+
+  public List<InputSplit> getGroupedSplits(Configuration conf,
+                                           List<InputSplit> originalSplits, int desiredNumSplits,
+                                           String wrappedInputFormatName,
+                                           SplitSizeEstimator estimator,
+                                           SplitLocationProvider locationProvider) throws IOException,
+      InterruptedException {
     Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
     List<SplitContainer> originalSplitContainers = Lists.transform(originalSplits,
         new Function<InputSplit, SplitContainer>() {
@@ -158,7 +167,9 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
     return Lists.transform(super
             .getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
                 wrappedInputFormatName, estimator == null ? null :
-                new SplitSizeEstimatorWrapperMapReduce(estimator)),
+                    new SplitSizeEstimatorWrapperMapReduce(estimator),
+                locationProvider == null ? null :
+                    new SplitLocationProviderMapReduce(locationProvider)),
         new Function<GroupedSplitContainer, InputSplit>() {
           @Override
           public InputSplit apply(GroupedSplitContainer input) {
