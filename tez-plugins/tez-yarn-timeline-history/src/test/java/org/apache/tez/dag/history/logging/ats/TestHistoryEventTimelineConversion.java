@@ -317,6 +317,33 @@ public class TestHistoryEventTimelineConversion {
   }
 
   @Test(timeout = 5000)
+  public void testConvertAMStartedEvent() {
+    long startTime = random.nextLong();
+
+    AMStartedEvent event = new AMStartedEvent(applicationAttemptId, startTime, user);
+
+    TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
+
+    Assert.assertEquals("tez_" + applicationAttemptId.toString(), timelineEntity.getEntityId());
+    Assert.assertEquals(EntityTypes.TEZ_APPLICATION_ATTEMPT.name(), timelineEntity.getEntityType());
+
+    final Map<String, Set<String>> relatedEntities = timelineEntity.getRelatedEntities();
+    Assert.assertEquals(0, relatedEntities.size());
+
+    final Map<String, Set<Object>> primaryFilters = timelineEntity.getPrimaryFilters();
+    Assert.assertEquals(2, primaryFilters.size());
+    Assert.assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
+    Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
+            .contains(applicationId.toString()));
+
+    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    TimelineEvent evt = timelineEntity.getEvents().get(0);
+    Assert.assertEquals(HistoryEventType.AM_STARTED.name(), evt.getEventType());
+    Assert.assertEquals(startTime, evt.getTimestamp());
+
+  }
+
+  @Test(timeout = 5000)
   public void testConvertContainerLaunchedEvent() {
     long launchTime = random.nextLong();
     ContainerLaunchedEvent event = new ContainerLaunchedEvent(containerId, launchTime,
@@ -675,6 +702,40 @@ public class TestHistoryEventTimelineConversion {
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.INIT_TIME)).longValue());
     Assert.assertEquals(numTasks,
         ((Integer) timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS)).intValue());
+  }
+
+  @Test(timeout = 5000)
+  public void testConvertVertexStartedEvent() {
+    long startRequestedTime = random.nextLong();
+    long startTime = random.nextLong();
+
+    VertexStartedEvent event = new VertexStartedEvent(tezVertexID, startRequestedTime, startTime);
+
+    TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
+    Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
+    Assert.assertEquals(tezVertexID.toString(), timelineEntity.getEntityId());
+
+    Assert.assertEquals(0, timelineEntity.getRelatedEntities().size());
+
+    Assert.assertEquals(2, timelineEntity.getPrimaryFilters().size());
+    Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID)
+            .contains(applicationId.toString()));
+    Assert.assertTrue(
+            timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
+                    tezDAGID.toString()));
+
+    Assert.assertEquals(1, timelineEntity.getEvents().size());
+    TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
+    Assert.assertEquals(HistoryEventType.VERTEX_STARTED.name(), timelineEvent.getEventType());
+    Assert.assertEquals(startTime, timelineEvent.getTimestamp());
+
+    Assert.assertEquals(3, timelineEntity.getOtherInfo().size());
+    Assert.assertEquals(startRequestedTime,
+            ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_REQUESTED_TIME)).longValue());
+    Assert.assertEquals(startTime,
+            ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
+    Assert.assertEquals(VertexState.RUNNING.name(),
+            timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
   }
 
   @Test(timeout = 5000)
