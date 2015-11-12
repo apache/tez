@@ -20,6 +20,7 @@ App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, A
   controllerName: 'VertexController',
 
   pageTitle: 'Vertex',
+  persistConfigs: false,
 
   loading: true,
 

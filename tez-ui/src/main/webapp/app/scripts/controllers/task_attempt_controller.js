@@ -20,6 +20,7 @@ App.TaskAttemptController = App.BaseController.extend(App.Helpers.DisplayHelper,
   controllerName: 'TaskAttemptController',
 
   pageTitle: 'TaskAttempt',
+  persistConfigs: false,
 
   loading: true,
 
