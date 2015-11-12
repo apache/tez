@@ -23,6 +23,7 @@ App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
   loading: true,
 
   pollingType: 'dagInfo',
+  persistConfigs: false,
 
   pollsterControl: function () {
     if(this.get('status') == 'RUNNING' &&

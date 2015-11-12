@@ -21,8 +21,10 @@ var DEFAULT_MERGE_PROPS = ['status', 'progress'];
 App.PollingController = App.BaseController.extend({
 
   pollster: null,
-  pollingEnabled: true,
+  pollingEnabled: null,
   showAutoUpdate: true,
+
+  persistConfigs: true,
 
   pollingType: null,
   pollingOptions: null,
@@ -41,16 +43,27 @@ App.PollingController = App.BaseController.extend({
       onFailure: this.onPollingFailure.bind(this)
     }));
 
-    pollingEnabled = this.fetchConfig('pollingEnabled');
-    if(pollingEnabled != undefined) {
-      this.set('pollingEnabled', pollingEnabled);
+    if(this.get('persistConfigs')) {
+      pollingEnabled = this.fetchConfig('pollingEnabled');
+      if(pollingEnabled == undefined) {
+        pollingEnabled = true;
+      }
+      Ember.run.later(this, this.set, 'pollingEnabled', pollingEnabled, 100);
     }
+  },
+
+  setup: function () {
+    this._super();
+    Ember.run.later(this, this.send, 'pollingEnabledChanged', this.get('pollingEnabled'));
   },
 
   pollingEnabledObserver: function () {
     var pollingEnabled = this.get('pollingEnabled');
 
-    this.storeConfig('pollingEnabled', pollingEnabled);
+    if(this.get('persistConfigs')) {
+      this.storeConfig('pollingEnabled', pollingEnabled);
+    }
+
     this.send('pollingEnabledChanged', pollingEnabled);
 
     if(!pollingEnabled && this.get('pollster.isRunning')) {

@@ -282,6 +282,10 @@ App.TezAppRoute = App.BaseRoute.extend({
   setupController: setupControllerFactory('Application: %@', 'id')
 });
 
+App.TezAppIndexRoute = App.BaseRoute.extend({
+  setupController: setupControllerFactory()
+});
+
 App.TezAppDagsRoute = App.BaseRoute.extend({
   renderTemplate: renderTable,
   setupController: setupControllerFactory()

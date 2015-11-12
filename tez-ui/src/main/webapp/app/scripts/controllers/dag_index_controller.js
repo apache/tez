@@ -79,7 +79,7 @@ App.DagIndexController = App.TablePageController.extend({
     else {
       this.get('pollster').stop();
     }
-  }.observes('_isRunning', 'amWebServiceVersion', 'loading', 'isActive', 'pollingEnabled'),
+  }.observes('_isRunning', 'amWebServiceVersion', 'loading', 'isActive', 'pollingEnabled', 'rowsDisplayed'),
 
   parentStatusObserver: function () {
     var parentStatus = this.get('status'),

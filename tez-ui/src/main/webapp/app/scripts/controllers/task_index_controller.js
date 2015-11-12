@@ -17,7 +17,7 @@
  */
 
  //TODO: watch individual counters.
-App.TaskIndexController = App.BaseController.extend(App.ModelRefreshMixin, {
+App.TaskIndexController = App.PollingController.extend(App.ModelRefreshMixin, {
   controllerName: 'TaskIndexController',
 
   taskStatus: function() {

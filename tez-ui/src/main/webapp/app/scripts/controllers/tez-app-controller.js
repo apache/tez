@@ -20,6 +20,8 @@ App.TezAppController = App.BaseController.extend(App.Helpers.DisplayHelper, App.
   controllerName: 'AppController',
 
   pageTitle: 'App',
+  persistConfigs: false,
+  pollingEnabled: true,
 
   loading: true,
 

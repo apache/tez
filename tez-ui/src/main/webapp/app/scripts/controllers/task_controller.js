@@ -22,6 +22,7 @@ App.TaskController = App.PollingController.extend(App.Helpers.DisplayHelper, App
   pageTitle: 'Task',
 
   loading: true,
+  persistConfigs: false,
 
   pollingType: 'taskInfo',
 
