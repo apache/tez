@@ -535,7 +535,16 @@ public class TestShuffleVertexManager {
       Assert.assertTrue(e.getMessage().contains(
           "Invalid values for slowStartMinSrcCompletionFraction"));
     }
-    
+
+    try {
+      // source vertex have some tasks. max > 1.
+      manager = createManager(conf, mockContext, 0.0f, 95.0f);
+      Assert.assertTrue(false); // should not come here
+    } catch (IllegalArgumentException e) {
+      Assert.assertTrue(e.getMessage().contains(
+          "Invalid values for slowStartMinSrcCompletionFraction"));
+    }
+
     try {
       // source vertex have some tasks. min > max
       manager = createManager(conf, mockContext, 0.5f, 0.3f);
