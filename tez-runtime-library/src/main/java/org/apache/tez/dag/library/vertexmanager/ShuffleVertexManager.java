@@ -949,12 +949,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
             ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
             ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
 
-    if (slowStartMinSrcCompletionFraction < 0
+    if (slowStartMinSrcCompletionFraction < 0 || slowStartMaxSrcCompletionFraction > 1
         || slowStartMaxSrcCompletionFraction < slowStartMinSrcCompletionFraction) {
       throw new IllegalArgumentException(
           "Invalid values for slowStartMinSrcCompletionFraction"
-              + "/slowStartMaxSrcCompletionFraction. Min cannot be < 0 and "
-              + "max cannot be < min.");
+              + "/slowStartMaxSrcCompletionFraction. Min cannot be < 0, max cannot be > 1,"
+              + " and max cannot be < min.");
     }
 
     enableAutoParallelism = conf
