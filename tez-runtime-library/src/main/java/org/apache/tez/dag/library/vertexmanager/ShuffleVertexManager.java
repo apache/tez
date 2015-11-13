@@ -87,7 +87,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
    * In case of a ScatterGather connection, once this fraction of source tasks
    * have completed, all tasks on the current vertex can be scheduled. Number of
    * tasks ready for scheduling on the current vertex scales linearly between
-   * min-fraction and max-fraction
+   * min-fraction and max-fraction. Defaults to the greater of the default value
+   * or tez.shuffle-vertex-manager.min-src-fraction.
    */
   public static final String TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION = 
                                       "tez.shuffle-vertex-manager.max-src-fraction";
@@ -785,10 +786,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         .getFloat(
             ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION,
             ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
+    float defaultSlowStartMaxSrcFraction = ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT;
+    if (slowStartMinSrcCompletionFraction > defaultSlowStartMaxSrcFraction) {
+      defaultSlowStartMaxSrcFraction = slowStartMinSrcCompletionFraction;
+    }
     this.slowStartMaxSrcCompletionFraction = conf
         .getFloat(
             ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
-            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT);
+            defaultSlowStartMaxSrcFraction);
 
     if (slowStartMinSrcCompletionFraction < 0 || slowStartMaxSrcCompletionFraction > 1
         || slowStartMaxSrcCompletionFraction < slowStartMinSrcCompletionFraction) {

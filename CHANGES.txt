@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2935. Add MR slow start translation for ShuffleVertexManager
   TEZ-2940. Invalid shuffle max slow start setting causes vertex to hang indefinitely
   TEZ-2930. Tez UI: Parent controller is not polling at times
   TEZ-1670. Add tests for all converter functions in HistoryEventTimelineConversion.
