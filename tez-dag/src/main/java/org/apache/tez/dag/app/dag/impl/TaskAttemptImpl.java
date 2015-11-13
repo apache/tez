@@ -193,6 +193,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   org.apache.tez.runtime.api.impl.TaskStatistics statistics;
   
   long lastNotifyProgressTimestamp = 0;
+  private final long hungIntervalMax;
 
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
@@ -500,6 +501,10 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.taskResource = resource;
     this.containerContext = containerContext;
     this.leafVertex = leafVertex;
+    this.hungIntervalMax = conf.getLong(
+        TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 
+        TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT);
+
   }
 
 
@@ -1396,14 +1401,11 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.lastNotifyProgressTimestamp = ta.clock.getTime();
       } else {
         long currTime = ta.clock.getTime();
-        long hungIntervalMax = ta.conf.getLong(
-            TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 
-            TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT);
-        if (hungIntervalMax > 0 &&
-            currTime - ta.lastNotifyProgressTimestamp > hungIntervalMax) {
+        if (ta.hungIntervalMax > 0 &&
+            currTime - ta.lastNotifyProgressTimestamp > ta.hungIntervalMax) {
           // task is hung
           String diagnostics = "Attempt failed because it appears to make no progress for " + 
-          hungIntervalMax + "ms";
+          ta.hungIntervalMax + "ms";
           LOG.info(diagnostics + " " + ta.getID());
           // send event that will fail this attempt
           ta.sendEvent(

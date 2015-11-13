@@ -343,6 +343,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       int valend = bb.markRecord();
 
       mapOutputRecordCounter.increment(1);
+      outputContext.notifyProgress();
       mapOutputByteCounter.increment(
           distanceTo(keystart, valend, bufvoid));
 
@@ -638,6 +639,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   @Override
   public void flush() throws IOException {
     LOG.info("Starting flush of map output");
+    outputContext.notifyProgress();
     spillLock.lock();
     try {
       while (spillInProgress) {
@@ -669,6 +671,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           sameKeyCount = sameKey;
           totalKeysCount = totalKeys;
         }
+        outputContext.notifyProgress();
         sortAndSpill(sameKeyCount, totalKeysCount);
       }
     } catch (InterruptedException e) {
@@ -792,7 +795,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       throws IOException, InterruptedException {
     final int mstart = getMetaStart();
     final int mend = getMetaEnd();
-    sorter.sort(this, mstart, mend, nullProgressable);
+    sorter.sort(this, mstart, mend, progressable);
     spill(mstart, mend, sameKeyCount, totalKeysCount);
   }
 
@@ -1233,6 +1236,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         List<Segment> segmentList =
           new ArrayList<Segment>(numSpills);
         for(int i = 0; i < numSpills; i++) {
+          outputContext.notifyProgress();
           TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
           Segment s =
@@ -1261,7 +1265,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
                        segmentList, mergeFactor,
                        new Path(taskIdentifier),
                        (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf),
-                       nullProgressable, sortSegments, true,
+                       progressable, sortSegments, true,
                        null, spilledRecordsCounter, additionalSpillBytesRead,
                        null); // Not using any Progress in TezMerger. Should just work.
 
@@ -1272,7 +1276,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
                 spilledRecordsCounter, null);
         if (combiner == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
-              nullProgressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+              progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         } else {
           runCombineProcessor(kvIter, writer);
         }

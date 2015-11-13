@@ -22,21 +22,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.hadoop.io.RawComparator;
-import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.junit.Test;
@@ -44,8 +42,7 @@ import org.junit.Test;
 public class TestSortedGroupedMergedInput {
 
   MergedInputContext createMergedInputContext() {
-    return new TezMergedInputContextImpl(null, "mergedInputName", new HashMap<String, MergedLogicalInput>(),
-        mock(InputReadyTracker.class), null);
+    return mock(MergedInputContext.class);
   }
   
   @Test(timeout = 5000)
@@ -67,7 +64,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput1);
     sInputs.add(sInput2);
     sInputs.add(sInput3);
-    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
+    MergedInputContext mockContext = createMergedInputContext();
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(mockContext, sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
@@ -84,6 +82,7 @@ public class TestSortedGroupedMergedInput {
       }
       assertEquals(6, valCount);
     }
+    verify(mockContext, times(4)).notifyProgress(); // one for each reader change and one to exit
 
     getNextFromFinishedReader(kvsReader);
   }
@@ -120,7 +119,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput2);
     sInputs.add(sInput3);
 
-    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(createMergedInputContext(), sInputs);
+    OrderedGroupedMergedKVInput input = new OrderedGroupedMergedKVInput(
+        createMergedInputContext(), sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
@@ -384,8 +384,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput1);
     sInputs.add(sInput2);
     sInputs.add(sInput3);
-    ConcatenatedMergedKeyValueInput input =
-        new ConcatenatedMergedKeyValueInput(createMergedInputContext(), sInputs);
+    MergedInputContext mockContext = createMergedInputContext();
+    ConcatenatedMergedKeyValueInput input = new ConcatenatedMergedKeyValueInput(mockContext, sInputs);
 
     KeyValueReader kvReader = input.getReader();
     int keyCount = 0;
@@ -395,6 +395,7 @@ public class TestSortedGroupedMergedInput {
       Integer value = (Integer) kvReader.getCurrentValue();
     }
     assertTrue(keyCount == 30);
+    verify(mockContext, times(4)).notifyProgress(); // one for each reader change and one to exit
 
     getNextFromFinishedReader(kvReader);
   }
@@ -418,8 +419,8 @@ public class TestSortedGroupedMergedInput {
     sInputs.add(sInput1);
     sInputs.add(sInput2);
     sInputs.add(sInput3);
-    ConcatenatedMergedKeyValuesInput input =
-        new ConcatenatedMergedKeyValuesInput(createMergedInputContext(), sInputs);
+    MergedInputContext mockContext = createMergedInputContext();
+    ConcatenatedMergedKeyValuesInput input = new ConcatenatedMergedKeyValuesInput(mockContext, sInputs);
 
     KeyValuesReader kvsReader = input.getReader();
     int keyCount = 0;
@@ -435,6 +436,7 @@ public class TestSortedGroupedMergedInput {
       assertEquals(2, valCount);
     }
     assertEquals(9, keyCount);
+    verify(mockContext, times(4)).notifyProgress(); // one for each reader change and one to exit
 
     getNextFromFinishedReader(kvsReader);
   }

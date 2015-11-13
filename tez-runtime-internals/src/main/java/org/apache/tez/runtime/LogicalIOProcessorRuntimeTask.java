@@ -528,7 +528,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
        }
        MergedInputContext mergedInputContext =
            new TezMergedInputContextImpl(groupInputSpec.getMergedInputDescriptor().getUserPayload(),
-               groupInputSpec.getGroupName(), groupInputsMap, inputReadyTracker, localDirs);
+               groupInputSpec.getGroupName(), groupInputsMap, inputReadyTracker, localDirs, this);
        List<Input> inputs = Lists.newArrayListWithCapacity(groupInputSpec.getGroupVertices().size());
        for (String groupVertex : groupInputSpec.getGroupVertices()) {
          inputs.add(inputsMap.get(groupVertex));

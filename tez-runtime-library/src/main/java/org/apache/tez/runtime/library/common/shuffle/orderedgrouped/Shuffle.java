@@ -372,13 +372,15 @@ public class Shuffle implements ExceptionReporter {
 
       // Finish the on-going merges...
       TezRawKeyValueIterator kvIter = null;
+      inputContext.notifyProgress();
       try {
         kvIter = merger.close();
       } catch (Throwable e) {
         throw new ShuffleError("Error while doing final merge " , e);
       }
       mergePhaseTime.setValue(System.currentTimeMillis() - startTime);
-
+      
+      inputContext.notifyProgress();
       // Sanity check
       synchronized (Shuffle.this) {
         if (throwable.get() != null) {

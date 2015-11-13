@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -429,6 +430,7 @@ public class TestDefaultSorter {
     TezCounter outputBytesWithOverheadCounter = context.getCounters().findCounter
         (TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
     assertTrue(outputBytesWithOverheadCounter.getValue() > 0);
+    verify(context, atLeastOnce()).notifyProgress();
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {

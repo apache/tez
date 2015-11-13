@@ -26,6 +26,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
@@ -123,7 +124,7 @@ public class TestUnorderedKVReader {
     }).when(manager).getNextInput();
 
     unorderedKVReader = new UnorderedKVReader<Text, Text>(manager,
-        defaultConf, null, false, -1, -1, inputRecords);
+        defaultConf, null, false, -1, -1, inputRecords, mock(InputContext.class));
   }
 
   private void createIFile(Path path, int recordCount) throws IOException {

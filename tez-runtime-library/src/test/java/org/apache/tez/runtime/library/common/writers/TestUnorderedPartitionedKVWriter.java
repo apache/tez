@@ -25,7 +25,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -585,6 +584,8 @@ public class TestUnorderedPartitionedKVWriter {
       assertTrue(eventProto.hasPathComponent());
     }
 
+    verify(outputContext, atLeast(1)).notifyProgress();
+
     // Verify if all spill files are available.
     TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
 
@@ -784,6 +785,7 @@ public class TestUnorderedPartitionedKVWriter {
       expectedValues.remove(i);
     }
     assertEquals(0, expectedValues.size());
+    verify(outputContext, atLeast(1)).notifyProgress();
   }
 
   private static String createRandomString(int size) {

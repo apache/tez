@@ -20,20 +20,51 @@ package org.apache.tez.mapreduce.output;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.HashMap;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DataSinkDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.mapreduce.TestUmbilical;
+import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.ProcessorContext;
+import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TezUmbilical;
+import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.processor.SimpleProcessor;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 
 
 public class TestMROutput {
@@ -143,5 +174,135 @@ public class TestMROutput {
     when(outputContext.getTaskAttemptNumber()).thenReturn(1);
     when(outputContext.getCounters()).thenReturn(new TezCounters());
     return outputContext;
+  }
+  
+  public static LogicalIOProcessorRuntimeTask createLogicalTask(
+      Configuration conf,
+      TezUmbilical umbilical, String dagName,
+      String vertexName) throws Exception {
+    ProcessorDescriptor procDesc = ProcessorDescriptor.create(TestProcessor.class.getName());
+    List<InputSpec> inputSpecs = Lists.newLinkedList();
+    List<OutputSpec> outputSpecs = Lists.newLinkedList();
+    outputSpecs.add(new OutputSpec("Null",
+        MROutput.createConfigBuilder(conf, TestOutputFormat.class).build().getOutputDescriptor(), 1));
+    
+    TaskSpec taskSpec = new TaskSpec(
+        TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0),
+        dagName, vertexName, -1,
+        procDesc,
+        inputSpecs,
+        outputSpecs, null);
+
+    FileSystem fs = FileSystem.getLocal(conf);
+    Path workDir =
+        new Path(new Path(System.getProperty("test.build.data", "/tmp")),
+                 "TestMapOutput").makeQualified(fs.getUri(), fs.getWorkingDirectory());
+
+    LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
+        taskSpec,
+        0,
+        conf,
+        new String[] {workDir.toString()},
+        umbilical,
+        null,
+        new HashMap<String, String>(),
+        HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
+        Runtime.getRuntime().maxMemory());
+    return task;
+  }
+  
+  public static class TestOutputCommitter extends OutputCommitter {
+
+    @Override
+    public void setupJob(JobContext jobContext) throws IOException {
+    }
+
+    @Override
+    public void setupTask(TaskAttemptContext taskContext) throws IOException {
+    }
+
+    @Override
+    public boolean needsTaskCommit(TaskAttemptContext taskContext) throws IOException {
+      return false;
+    }
+
+    @Override
+    public void commitTask(TaskAttemptContext taskContext) throws IOException {
+    }
+
+    @Override
+    public void abortTask(TaskAttemptContext taskContext) throws IOException {
+    }
+    
+  }
+  
+  public static class TestOutputFormat extends OutputFormat<String, String> {
+    public static class TestRecordWriter extends RecordWriter<String, String> {
+      Writer writer;
+      boolean doWrite;
+      TestRecordWriter(boolean write) throws IOException {
+        this.doWrite = write;
+        if (doWrite) {
+          File f = File.createTempFile("test", null);
+          f.deleteOnExit();
+          writer = new BufferedWriter(new FileWriter(f));
+        }
+      }
+      
+      @Override
+      public void write(String key, String value) throws IOException, InterruptedException {
+        if (doWrite) {
+          writer.write(key);
+          writer.write(value);
+        }
+      }
+
+      @Override
+      public void close(TaskAttemptContext context) throws IOException, InterruptedException {
+        writer.close();
+      }
+      
+    }
+    
+    @Override
+    public RecordWriter<String, String> getRecordWriter(TaskAttemptContext context)
+        throws IOException, InterruptedException {
+      return new TestRecordWriter(true);
+    }
+
+    @Override
+    public void checkOutputSpecs(JobContext context) throws IOException, InterruptedException {
+    }
+
+    @Override
+    public OutputCommitter getOutputCommitter(TaskAttemptContext context)
+        throws IOException, InterruptedException {
+      return new TestOutputCommitter();
+    }
+  }
+
+  public static class TestProcessor extends SimpleProcessor {
+    public TestProcessor(ProcessorContext context) {
+      super(context);
+    }
+
+    @Override
+    public void run() throws Exception {
+      KeyValueWriter writer = (KeyValueWriter) getOutputs().values().iterator().next().getWriter();
+      for (int i=0; i<1000000; ++i) {
+        writer.write("key", "value");
+      }
+    }
+
+  }
+
+  @Ignore
+  @Test
+  public void testPerf() throws Exception {
+    LogicalIOProcessorRuntimeTask task = createLogicalTask(new Configuration(), 
+        new TestUmbilical(), "dag", "vertex");
+    task.initialize();
+    task.run();
+    task.close();
   }
 }

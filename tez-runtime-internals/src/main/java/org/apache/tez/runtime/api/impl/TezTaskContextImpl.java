@@ -174,7 +174,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   }
 
   @Override
-  public void notifyProgress() {
+  public final void notifyProgress() {
     runtimeTask.notifyProgressInvocation();
   }
   

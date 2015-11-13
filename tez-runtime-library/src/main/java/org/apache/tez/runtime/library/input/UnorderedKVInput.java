@@ -168,6 +168,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       return new KeyValueReader() {
         @Override
         public boolean next() throws IOException {
+          getContext().notifyProgress();
           hasCompletedProcessing();
           completedProcessing = true;
           return false;
@@ -240,7 +241,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       int ifileBufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength)
       throws IOException {
     return new UnorderedKVReader(shuffleManager, conf, codec, ifileReadAheadEnabled,
-        ifileReadAheadLength, ifileBufferSize, inputRecordCounter);
+        ifileReadAheadLength, ifileBufferSize, inputRecordCounter, getContext());
   }
 
   private static final Set<String> confKeys = new HashSet<String>();

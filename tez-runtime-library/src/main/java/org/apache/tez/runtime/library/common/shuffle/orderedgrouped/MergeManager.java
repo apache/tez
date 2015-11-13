@@ -82,7 +82,12 @@ public class MergeManager {
   private final LocalDirAllocator localDirAllocator;
   
   private final  TezTaskOutputFiles mapOutputFile;
-  private final Progressable nullProgressable = new NullProgressable();
+  private final Progressable progressable = new Progressable() {
+    @Override
+    public void progress() {
+      inputContext.notifyProgress();
+    }
+  };
   private final Combiner combiner;  
   
   private final Set<MapOutput> inMemoryMergedMapOutputs = 
@@ -567,6 +572,7 @@ public class MergeManager {
         return;
       }
 
+      inputContext.notifyProgress();
 
       InputAttemptIdentifier dummyMapId = inputs.get(0).getAttemptIdentifier(); 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
@@ -593,8 +599,8 @@ public class MergeManager {
                        inMemorySegments, inMemorySegments.size(),
                        new Path(inputContext.getUniqueIdentifier()),
                        (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
-                       nullProgressable, null, null, null, null); 
-      TezMerger.writeFile(rIter, writer, nullProgressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+                       progressable, null, null, null, null); 
+      TezMerger.writeFile(rIter, writer, progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
       writer.close();
 
       LOG.info(inputContext.getSourceVertexName() +
@@ -625,6 +631,7 @@ public class MergeManager {
       }
 
       numMemToDiskMerges.increment(1);
+      inputContext.notifyProgress();
       
       //name this output file same as the name of the first file that is 
       //there in the current list of inmem files (this is guaranteed to
@@ -644,7 +651,7 @@ public class MergeManager {
 
       // TODO Maybe track serialized vs deserialized bytes.
       
-      // All disk writes done by this merge are overhead - due to the lac of
+      // All disk writes done by this merge are overhead - due to the lack of
       // adequate memory to keep all segments in memory.
       Path outputPath = mapOutputFile.getInputFileForWrite(
           srcTaskIdentifier.getInputIdentifier().getInputIndex(), srcTaskIdentifier.getSpillEventId(),
@@ -670,13 +677,13 @@ public class MergeManager {
             inMemorySegments, inMemorySegments.size(),
             new Path(inputContext.getUniqueIdentifier()),
             (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
-            nullProgressable, spilledRecordsCounter, null, additionalBytesRead, null);
+            progressable, spilledRecordsCounter, null, additionalBytesRead, null);
         // spilledRecordsCounter is tracking the number of keys that will be
         // read from each of the segments being merged - which is essentially
         // what will be written to disk.
 
         if (null == combiner) {
-          TezMerger.writeFile(rIter, writer, nullProgressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+          TezMerger.writeFile(rIter, writer, progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         } else {
           // TODO Counters for Combine
           runCombineProcessor(rIter, writer);
@@ -729,7 +736,8 @@ public class MergeManager {
         return;
       }
       numDiskToDiskMerges.increment(1);
-      
+      inputContext.notifyProgress();
+
       long approxOutputSize = 0;
       int bytesPerSum = 
         conf.getInt("io.bytes.per.checksum", 512);
@@ -790,13 +798,13 @@ public class MergeManager {
             inputSegments,
             ioSortFactor, tmpDir,
             (RawComparator)ConfigUtils.getIntermediateInputKeyComparator(conf),
-            nullProgressable, true, spilledRecordsCounter, null,
+            progressable, true, spilledRecordsCounter, null,
             mergedMapOutputsCounter, null);
 
         // TODO Maybe differentiate between data written because of Merges and
         // the finalMerge (i.e. final mem available may be different from
         // initial merge mem)
-        TezMerger.writeFile(iter, writer, nullProgressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+        TezMerger.writeFile(iter, writer, progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         writer.close();
         additionalBytesWritten.increment(writer.getCompressedLength());
       } catch (IOException e) {
@@ -907,6 +915,7 @@ public class MergeManager {
       }
     }
     
+    inputContext.notifyProgress();
 
     // merge config params
     Class keyClass = (Class)ConfigUtils.getIntermediateInputKeyClass(job);
@@ -943,12 +952,12 @@ public class MergeManager {
           mapOutputFile.getInputFileForWrite(srcTaskId, Integer.MAX_VALUE,
               inMemToDiskBytes).suffix(Constants.MERGED_OUTPUT_PREFIX);
         final TezRawKeyValueIterator rIter = TezMerger.merge(job, fs, keyClass, valueClass,
-            memDiskSegments, numMemDiskSegments, tmpDir, comparator, nullProgressable,
+            memDiskSegments, numMemDiskSegments, tmpDir, comparator, progressable,
             spilledRecordsCounter, null, additionalBytesRead, null);
         final Writer writer = new Writer(job, fs, outputPath,
             keyClass, valueClass, codec, null, null);
         try {
-          TezMerger.writeFile(rIter, writer, nullProgressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+          TezMerger.writeFile(rIter, writer, progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         } catch (IOException e) {
           if (null != outputPath) {
             try {
@@ -1024,7 +1033,7 @@ public class MergeManager {
       TezRawKeyValueIterator diskMerge = TezMerger.merge(
           job, fs, keyClass, valueClass, codec, diskSegments,
           ioSortFactor, numInMemSegments, tmpDir, comparator,
-          nullProgressable, false, spilledRecordsCounter, null, additionalBytesRead, null);
+          progressable, false, spilledRecordsCounter, null, additionalBytesRead, null);
       diskSegments.clear();
       if (0 == finalSegments.size()) {
         return diskMerge;
@@ -1035,7 +1044,7 @@ public class MergeManager {
     // This is doing nothing but creating an iterator over the segments.
     return TezMerger.merge(job, fs, keyClass, valueClass,
                  finalSegments, finalSegments.size(), tmpDir,
-                 comparator, nullProgressable, spilledRecordsCounter, null,
+                 comparator, progressable, spilledRecordsCounter, null,
                  additionalBytesRead, null);
   }
 }

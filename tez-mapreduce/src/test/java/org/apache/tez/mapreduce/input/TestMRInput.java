@@ -19,6 +19,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -57,6 +59,7 @@ public class TestMRInput {
     mrInput.start();
 
     assertFalse(mrInput.getReader().next());
+    verify(inputContext, times(1)).notifyProgress();
 
     List<Event> events = new LinkedList<Event>();
     try {

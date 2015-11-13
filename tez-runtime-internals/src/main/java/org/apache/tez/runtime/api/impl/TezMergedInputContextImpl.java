@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.InputReadyTracker;
+import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.MergedInputContext;
 
@@ -38,10 +39,12 @@ public class TezMergedInputContextImpl implements MergedInputContext {
   private final Map<String, MergedLogicalInput> groupInputsMap;
   private final InputReadyTracker inputReadyTracker;
   private final String[] workDirs;
+  private final LogicalIOProcessorRuntimeTask runtimeTask;
 
   public TezMergedInputContextImpl(@Nullable UserPayload userPayload, String groupInputName,
                                    Map<String, MergedLogicalInput> groupInputsMap,
-                                   InputReadyTracker inputReadyTracker, String[] workDirs) {
+                                   InputReadyTracker inputReadyTracker, String[] workDirs,
+                                   LogicalIOProcessorRuntimeTask runtimeTask) {
     checkNotNull(groupInputName, "groupInputName is null");
     checkNotNull(groupInputsMap, "input-group map is null");
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
@@ -50,6 +53,7 @@ public class TezMergedInputContextImpl implements MergedInputContext {
     this.userPayload = userPayload;
     this.inputReadyTracker = inputReadyTracker;
     this.workDirs = workDirs;
+    this.runtimeTask = runtimeTask;
   }
 
   @Override
@@ -65,6 +69,11 @@ public class TezMergedInputContextImpl implements MergedInputContext {
   @Override
   public String[] getWorkDirs() {
     return Arrays.copyOf(workDirs, workDirs.length);
+  }
+
+  @Override
+  public final void notifyProgress() {
+    runtimeTask.notifyProgressInvocation();
   }
 
 }

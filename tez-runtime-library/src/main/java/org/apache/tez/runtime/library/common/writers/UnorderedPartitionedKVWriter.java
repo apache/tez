@@ -247,8 +247,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       throw new IOException("Exception during spill", new IOException(spillException));
     }
     if (skipBuffers) {
-      //special case, where we have only one partition and pipeliing is disabled.
-      writer.append(key, value);
+      //special case, where we have only one partition and pipelining is disabled.
+      writer.append(key, value); // ???? Why is outputrecordscounter not updated here?
+      outputContext.notifyProgress();
     } else {
       int partition = partitioner.getPartition(key, value, numPartitions);
       write(key, value, partition);
@@ -318,6 +319,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     outputRecordBytesCounter.increment(currentBuffer.nextPosition - (metaStart + META_SIZE));
     outputBytesWithOverheadCounter.increment((currentBuffer.nextPosition - metaStart) + metaSkip);
     outputRecordsCounter.increment(1);
+    outputContext.notifyProgress();
     currentBuffer.partitionPositions[partition] = metaStart;
     currentBuffer.recordsPerPartition[partition]++;
     currentBuffer.numRecords++;
@@ -406,6 +408,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       long compressedLength = 0;
       for (int i = 0; i < numPartitions; i++) {
         IFile.Writer writer = null;
+        outputContext.notifyProgress();
         try {
           long segmentStart = out.getPos();
           if (wrappedBuffer.partitionPositions[i] == WrappedBuffer.PARTITION_ABSENT_POSITION) {
@@ -555,6 +558,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       boolean isLastSpill, String pathComponent, BitSet emptyPartitions)
       throws IOException {
 
+    outputContext.notifyProgress();
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
 
@@ -709,6 +713,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
           }
           synchronized (spillInfoList) {
             for (SpillInfo spillInfo : spillInfoList) {
+              outputContext.notifyProgress();
               TezIndexRecord indexRecord = spillInfo.spillRecord.getIndex(i);
               if (indexRecord.getPartLength() == 0) {
                 // Skip empty partitions within a spill

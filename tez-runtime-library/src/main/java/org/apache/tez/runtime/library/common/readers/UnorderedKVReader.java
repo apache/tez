@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.common.readers;
 
 import java.io.IOException;
 
+import org.apache.tez.runtime.api.InputContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -60,6 +61,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   private final int ifileBufferSize;
   
   private final TezCounter inputRecordCounter;
+  private final InputContext context;
   
   private K key;
   private V value;
@@ -74,10 +76,10 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
 
   public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
       CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
-      TezCounter inputRecordCounter)
+      TezCounter inputRecordCounter, InputContext context)
       throws IOException {
     this.shuffleManager = shuffleManager;
-
+    this.context = context;
     this.codec = codec;
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -112,6 +114,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   public boolean next() throws IOException {
     if (readNextFromCurrentReader()) {
       inputRecordCounter.increment(1);
+      context.notifyProgress();
       numRecordsRead++;
       return true;
     } else {
@@ -119,6 +122,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       while (nextInputExists) {
         if(readNextFromCurrentReader()) {
           inputRecordCounter.increment(1);
+          context.notifyProgress();
           numRecordsRead++;
           return true;
         }
