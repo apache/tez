@@ -583,7 +583,7 @@ public class TestShuffleVertexManager {
 
     try {
       // source vertex have some tasks. min < 0.
-      manager = createManager(conf, mockContext, -0.1f, 0);
+      manager = createManager(conf, mockContext, -0.1f, 0.0f);
       Assert.assertTrue(false); // should not come here
     } catch (IllegalArgumentException e) {
       Assert.assertTrue(e.getMessage().contains(
@@ -607,9 +607,49 @@ public class TestShuffleVertexManager {
       Assert.assertTrue(e.getMessage().contains(
           "Invalid values for slowStartMinSrcCompletionFraction"));
     }
-    
+
+    // source vertex have some tasks. min > default and max undefined
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(20);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(20);
+    scheduledTasks.clear();
+
+    manager = createManager(conf, mockContext, 0.8f, null);
+    manager.onVertexStarted(emptyCompletions);
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
+    Assert.assertEquals(3, manager.pendingTasks.size());
+    Assert.assertEquals(40, manager.totalNumBipartiteSourceTasks);
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+
+    float completedTasksThreshold = 0.8f * manager.totalNumBipartiteSourceTasks;
+    int completedTasks = 0;
+    // Finish all tasks before exceeding the threshold
+    for (String mockSrcVertex : new String[] { mockSrcVertexId1, mockSrcVertexId2 }) {
+      for (int i = 0; i < mockContext.getVertexNumTasks(mockSrcVertex); ++i) {
+        manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertex, i));
+        ++completedTasks;
+        if ((completedTasks + 1) >= completedTasksThreshold) {
+          // stop before completing more than min/max source tasks
+          break;
+        }
+      }
+    }
+    // Since we haven't exceeded the threshold, all tasks are still pending
+    Assert.assertEquals(manager.totalTasksToSchedule, manager.pendingTasks.size());
+    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+
+    // Cross the threshold min/max threshold to schedule all tasks
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, completedTasks));
+    Assert.assertEquals(0, manager.pendingTasks.size());
+    Assert.assertEquals(manager.totalTasksToSchedule, scheduledTasks.size()); // all tasks scheduled
+
+    // reset vertices for next test
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
+
     // source vertex have some tasks. min, max == 0
-    manager = createManager(conf, mockContext, 0, 0);
+    manager = createManager(conf, mockContext, 0.0f, 0.0f);
     manager.onVertexStarted(emptyCompletions);
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 4);
     Assert.assertTrue(manager.totalTasksToSchedule == 3);
@@ -1184,9 +1224,17 @@ public class TestShuffleVertexManager {
   }
 
   private ShuffleVertexManager createManager(Configuration conf,
-      VertexManagerPluginContext context, float min, float max) {
-    conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
-    conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
+      VertexManagerPluginContext context, Float min, Float max) {
+    if (min != null) {
+      conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
+    } else {
+      conf.unset(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION);
+    }
+    if (max != null) {
+      conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
+    } else {
+      conf.unset(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION);
+    }
     UserPayload payload;
     try {
       payload = TezUtils.createUserPayloadFromConf(conf);

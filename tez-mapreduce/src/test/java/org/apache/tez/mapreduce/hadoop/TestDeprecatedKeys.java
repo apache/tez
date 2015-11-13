@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNull;
 
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.junit.Test;
@@ -73,6 +74,7 @@ public class TestDeprecatedKeys {
     jobConf.setInt(MRJobConfig.IO_SORT_FACTOR, 2000);
     jobConf.setInt(MRJobConfig.IO_SORT_MB, 100);
     jobConf.setInt(MRJobConfig.COUNTERS_MAX_KEY, 100);
+    jobConf.setFloat(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, 0.95f);
     
     jobConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 1000);
     jobConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 200);
@@ -127,6 +129,7 @@ public class TestDeprecatedKeys {
     assertEquals("SecondaryComparator", jobConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS, ""));
     assertEquals("DefaultSorter", jobConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertTrue(jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
+    assertEquals(0.95f, jobConf.getFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, 0.0f), 0.0f);
 
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD));
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD_BYTES));
@@ -151,6 +154,7 @@ public class TestDeprecatedKeys {
     assertNull(jobConf.get(MRJobConfig.GROUP_COMPARATOR_CLASS));
     assertNull(jobConf.get(MRJobConfig.GROUP_COMPARATOR_CLASS));
     assertNull(jobConf.get("map.sort.class"));
+    assertNull(jobConf.get(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART));
   }
 
 }
