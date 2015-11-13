@@ -466,6 +466,7 @@ class ShuffleScheduler {
                                          boolean isLocalFetch
                                          ) throws IOException {
 
+    inputContext.notifyProgress();
     if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex())) {
       if (!isLocalFetch) {
         /**
@@ -626,7 +627,7 @@ class ShuffleScheduler {
                                       boolean connectError,
                                       boolean isLocalFetch) {
     failedShuffleCounter.increment(1);
-
+    inputContext.notifyProgress();
     int failures = incrementAndGetFailureAttempt(srcAttempt);
 
     if (!isLocalFetch) {

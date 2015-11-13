@@ -24,6 +24,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -155,9 +157,11 @@ public class TestMultiMRInput {
     input.handleEvents(eventList);
 
     int readerCount = 0;
+    int recordCount = 0;
     for (KeyValueReader reader : input.getKeyValueReaders()) {
       readerCount++;
       while (reader.next()) {
+        verify(inputContext, times(++recordCount) ).notifyProgress();
         if (data1.size() == 0) {
           fail("Found more records than expected");
         }

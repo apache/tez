@@ -229,6 +229,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
         return new KeyValuesReader() {
           @Override
           public boolean next() throws IOException {
+            getContext().notifyProgress();
             hasCompletedProcessing();
             completedProcessing = true;
             return false;
@@ -259,7 +260,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     synchronized(this) {
       valuesIter = vIter;
     }
-    return new OrderedGroupedKeyValuesReader(valuesIter);
+    return new OrderedGroupedKeyValuesReader(valuesIter, getContext());
   }
 
   @Override
@@ -307,13 +308,16 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
   private static class OrderedGroupedKeyValuesReader extends KeyValuesReader {
 
     private final ValuesIterator valuesIter;
+    private final InputContext context;
 
-    OrderedGroupedKeyValuesReader(ValuesIterator valuesIter) {
+    OrderedGroupedKeyValuesReader(ValuesIterator valuesIter, InputContext context) {
       this.valuesIter = valuesIter;
+      this.context = context;
     }
 
     @Override
     public boolean next() throws IOException {
+      context.notifyProgress();
       return valuesIter.moveToNext();
     }
 

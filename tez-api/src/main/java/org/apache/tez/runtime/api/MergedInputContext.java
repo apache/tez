@@ -42,6 +42,11 @@ public interface MergedInputContext {
   public void inputIsReady();
   
   /**
+   * Inform the framework that progress has been made
+   */
+  public void notifyProgress();
+  
+  /**
    * Get the work directories for the Input
    * @return an array of work dirs
    */

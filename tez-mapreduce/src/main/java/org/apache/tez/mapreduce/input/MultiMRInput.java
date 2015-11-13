@@ -177,7 +177,7 @@ public class MultiMRInput extends MRInputBase {
           getContext().getCounters(), inputRecordCounter, getContext().getApplicationId()
           .getClusterTimestamp(), getContext().getTaskVertexIndex(), getContext()
           .getApplicationId().getId(), getContext().getTaskIndex(), getContext()
-          .getTaskAttemptNumber());
+          .getTaskAttemptNumber(), getContext());
       if (LOG.isDebugEnabled()) {
         LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", NewSplit: " + split);
@@ -186,7 +186,7 @@ public class MultiMRInput extends MRInputBase {
     } else {
       split = MRInputUtils.getOldSplitDetailsFromEvent(splitProto, localJobConf);
       reader = new MRReaderMapred(localJobConf, (org.apache.hadoop.mapred.InputSplit) split,
-          getContext().getCounters(), inputRecordCounter);
+          getContext().getCounters(), inputRecordCounter, getContext());
       if (LOG.isDebugEnabled()) {
         LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", OldSplit: " + split);

@@ -461,9 +461,10 @@ public class MRInput extends MRInputBase {
           mrReader = new MRReaderMapReduce(jobConf, getContext().getCounters(), inputRecordCounter,
               getContext().getApplicationId().getClusterTimestamp(), getContext()
                   .getTaskVertexIndex(), getContext().getApplicationId().getId(), getContext()
-                  .getTaskIndex(), getContext().getTaskAttemptNumber());
+                  .getTaskIndex(), getContext().getTaskAttemptNumber(), getContext());
         } else {
-          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter);
+          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter, 
+              getContext());
         }
       } else {
         TaskSplitMetaInfo[] allMetaInfo = MRInputUtils.readSplits(jobConf);
@@ -477,14 +478,14 @@ public class MRInput extends MRInputBase {
           mrReader = new MRReaderMapReduce(jobConf, newInputSplit, getContext().getCounters(),
               inputRecordCounter, getContext().getApplicationId().getClusterTimestamp(),
               getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),
-              getContext().getTaskIndex(), getContext().getTaskAttemptNumber());
+              getContext().getTaskIndex(), getContext().getTaskAttemptNumber(), getContext());
         } else {
           org.apache.hadoop.mapred.InputSplit oldInputSplit = MRInputUtils
               .getOldSplitDetailsFromDisk(splitMetaInfo, jobConf, getContext().getCounters()
                   .findCounter(TaskCounter.SPLIT_RAW_BYTES));
           mrReader =
               new MRReaderMapred(jobConf, oldInputSplit, getContext().getCounters(),
-                  inputRecordCounter);
+                  inputRecordCounter, getContext());
         }
       }
     } finally {
@@ -508,6 +509,7 @@ public class MRInput extends MRInputBase {
       return new KeyValueReader() {
         @Override
         public boolean next() throws IOException {
+          getContext().notifyProgress();
           return false;
         }
 

@@ -604,6 +604,7 @@ public class ShuffleManager implements FetcherCallback {
       lock.unlock();
     }
     
+    inputContext.notifyProgress();
     boolean committed = false;
     if (!completedInputSet.contains(inputIdentifier)) {
       synchronized (completedInputSet) {
@@ -760,6 +761,7 @@ public class ShuffleManager implements FetcherCallback {
         + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
         + connectFailed);
     failedShufflesCounter.increment(1);
+    inputContext.notifyProgress();
     if (srcAttemptIdentifier == null) {
       reportFatalError(null, "Received fetchFailure for an unknown src (null)");
     } else {

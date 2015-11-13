@@ -59,7 +59,6 @@ import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
-import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 
 import com.google.common.base.Preconditions;
 
@@ -72,6 +71,7 @@ public abstract class ExternalSorter {
     spillFileIndexPaths.clear();
     spillFilePaths.clear();
     reportStatistics();
+    outputContext.notifyProgress();
   }
 
   public abstract void flush() throws IOException;
@@ -86,7 +86,13 @@ public abstract class ExternalSorter {
     }
   }
 
-  protected final Progressable nullProgressable = new NullProgressable();
+  protected final Progressable progressable = new Progressable() {
+    @Override
+    public void progress() {
+      outputContext.notifyProgress();
+    }
+  };
+
   protected final OutputContext outputContext;
   protected final Combiner combiner;
   protected final Partitioner partitioner;
@@ -298,6 +304,7 @@ public abstract class ExternalSorter {
   protected void runCombineProcessor(TezRawKeyValueIterator kvIter,
       Writer writer) throws IOException {
     try {
+      outputContext.notifyProgress();
       combiner.combine(kvIter, writer);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

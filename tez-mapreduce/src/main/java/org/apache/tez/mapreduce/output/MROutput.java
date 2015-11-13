@@ -510,6 +510,7 @@ public class MROutput extends AbstractLogicalOutput {
           oldRecordWriter.write(key, value);
         }
         outputRecordCounter.increment(1);
+        getContext().notifyProgress();
       }
     };
   }

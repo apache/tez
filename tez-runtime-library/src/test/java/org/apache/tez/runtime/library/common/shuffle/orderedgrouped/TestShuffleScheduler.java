@@ -152,6 +152,8 @@ public class TestShuffleScheduler {
         scheduler.copySucceeded(identifiers[i], mapHosts[i], 20, 25, 100, mapOutput, false);
         scheduler.freeHost(mapHosts[i]);
       }
+      
+      verify(inputContext, atLeast(numInputs)).notifyProgress();
 
       // Ensure the executor exits, and without an error.
       executorFuture.get();

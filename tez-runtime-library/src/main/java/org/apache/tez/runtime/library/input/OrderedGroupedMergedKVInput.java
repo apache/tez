@@ -60,7 +60,7 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
    */
   @Override
   public KeyValuesReader getReader() throws Exception {
-    return new OrderedGroupedMergedKeyValuesReader(getInputs());
+    return new OrderedGroupedMergedKeyValuesReader(getInputs(), getContext());
   }
 
   @Override
@@ -81,8 +81,10 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
     private final ValuesIterable currentValues;
     private KeyValuesReader nextKVReader;
     private Object currentKey;
+    private final MergedInputContext context;
 
-    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs) throws Exception {
+    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs, MergedInputContext context) 
+        throws Exception {
       keyComparator = ((OrderedGroupedKVInput) inputs.get(0))
           .getInputKeyComparator();
       pQueue = new PriorityQueue<KeyValuesReader>(inputs.size(),
@@ -95,6 +97,7 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
         }
       }
       currentValues = new ValuesIterable();
+      this.context = context;
     }
 
     private void advanceAndAddToQueue(KeyValuesReader kvsReadr)
@@ -122,6 +125,7 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
       finishedReaders.clear();
 
       nextKVReader = pQueue.poll();
+      context.notifyProgress();
       if (nextKVReader != null) {
         currentKey = nextKVReader.getCurrentKey();
         currentValues.moveToNext();

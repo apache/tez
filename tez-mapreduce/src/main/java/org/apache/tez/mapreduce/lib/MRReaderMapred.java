@@ -33,6 +33,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.input.MRInput;
+import org.apache.tez.runtime.api.InputContext;
 
 import com.google.common.base.Preconditions;
 
@@ -56,13 +57,15 @@ public class MRReaderMapred extends MRReader {
 
   private boolean setupComplete = false;
 
-  public MRReaderMapred(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter)
+  public MRReaderMapred(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter, 
+      InputContext context)
       throws IOException {
-    this(jobConf, null, tezCounters, inputRecordCounter);
+    this(jobConf, null, tezCounters, inputRecordCounter, context);
   }
 
   public MRReaderMapred(JobConf jobConf, InputSplit inputSplit, TezCounters tezCounters,
-      TezCounter inputRecordCounter) throws IOException {
+      TezCounter inputRecordCounter, InputContext context) throws IOException {
+    super(context);
     this.jobConf = jobConf;
     this.tezCounters = tezCounters;
     this.inputRecordCounter = inputRecordCounter;
@@ -113,9 +116,11 @@ public class MRReaderMapred extends MRReader {
     boolean hasNext = recordReader.next(key, value);
     if (hasNext) {
       inputRecordCounter.increment(1);
+      notifyProgress();
     } else {
       hasCompletedProcessing();
       completedProcessing = true;
+      notifyDone();
     }
     // The underlying reader does not throw InterruptedExceptions. Cannot convert to an
     // IOInterruptedException without checking the interrupt flag on each request, which is also

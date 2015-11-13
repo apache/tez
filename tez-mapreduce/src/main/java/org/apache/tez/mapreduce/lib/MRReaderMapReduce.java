@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
 
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,15 +52,16 @@ public class MRReaderMapReduce extends MRReader {
   private boolean setupComplete = false;
 
   public MRReaderMapReduce(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter,
-      long clusterId, int vertexIndex, int appId, int taskIndex, int taskAttemptNumber)
+      long clusterId, int vertexIndex, int appId, int taskIndex, int taskAttemptNumber, InputContext context)
       throws IOException {
     this(jobConf, null, tezCounters, inputRecordCounter, clusterId, vertexIndex, appId, taskIndex,
-        taskAttemptNumber);
+        taskAttemptNumber, context);
   }
 
   public MRReaderMapReduce(JobConf jobConf, InputSplit inputSplit, TezCounters tezCounters,
       TezCounter inputRecordCounter, long clusterId, int vertexIndex, int appId, int taskIndex,
-      int taskAttemptNumber) throws IOException {
+      int taskAttemptNumber, InputContext context) throws IOException {
+    super(context);
     this.inputRecordCounter = inputRecordCounter;
     this.taskAttemptContext = new TaskAttemptContextImpl(jobConf, tezCounters, clusterId,
         vertexIndex, appId, taskIndex, taskAttemptNumber, true, null);
@@ -121,9 +123,11 @@ public class MRReaderMapReduce extends MRReader {
     }
     if (hasNext) {
       inputRecordCounter.increment(1);
+      notifyProgress();
     } else {
       hasCompletedProcessing();
       completedProcessing = true;
+      notifyDone();
     }
     return hasNext;
   }

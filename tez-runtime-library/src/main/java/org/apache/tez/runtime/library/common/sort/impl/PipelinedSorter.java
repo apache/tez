@@ -429,6 +429,7 @@ public class PipelinedSorter extends ExternalSorter {
     span.kvmeta.put(valstart);
     span.kvmeta.put(valend - valstart);
     mapOutputRecordCounter.increment(1);
+    outputContext.notifyProgress();
     mapOutputByteCounter.increment(valend - keystart);
   }
 
@@ -545,6 +546,7 @@ public class PipelinedSorter extends ExternalSorter {
         if (isThreadInterrupted()) {
           return false;
         }
+        outputContext.notifyProgress();
         TezRawKeyValueIterator kvIter = merger.filter(i);
         //write merged output to disk
         long segmentStart = out.getPos();
@@ -611,6 +613,7 @@ public class PipelinedSorter extends ExternalSorter {
   public void flush() throws IOException {
     final String uniqueIdentifier = outputContext.getUniqueIdentifier();
 
+    outputContext.notifyProgress();
     /**
      * Possible that the thread got interrupted when flush was happening or when the flush was
      * never invoked. As a part of cleanup activity in TezTaskRunner, it would invoke close()
@@ -698,6 +701,7 @@ public class PipelinedSorter extends ExternalSorter {
         }
         numShuffleChunks.setValue(numSpills);
         fileOutputByteCounter.increment(rfs.getFileStatus(finalOutputFile).getLen());
+        // ??? why are events not being sent here?
         return;
       }
 
@@ -742,7 +746,7 @@ public class PipelinedSorter extends ExternalSorter {
             segmentList, mergeFactor,
             new Path(uniqueIdentifier),
             (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf),
-            nullProgressable, sortSegments, true,
+            progressable, sortSegments, true,
             null, spilledRecordsCounter, additionalSpillBytesRead,
             null); // Not using any Progress in TezMerger. Should just work.
         //write merged output to disk
@@ -751,7 +755,7 @@ public class PipelinedSorter extends ExternalSorter {
             new Writer(conf, finalOut, keyClass, valClass, codec,
                 spilledRecordsCounter, null, merger.needsRLE());
         if (combiner == null || numSpills < minSpillsForCombine) {
-          TezMerger.writeFile(kvIter, writer, nullProgressable,
+          TezMerger.writeFile(kvIter, writer, progressable,
               TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
         } else {
           runCombineProcessor(kvIter, writer);
@@ -893,7 +897,7 @@ public class PipelinedSorter extends ExternalSorter {
     public SpanIterator sort(IndexedSorter sorter) {
       long start = System.currentTimeMillis();
       if(length() > 1) {
-        sorter.sort(this, 0, length(), nullProgressable);
+        sorter.sort(this, 0, length(), progressable);
       }
       LOG.info(outputContext.getDestinationVertexName() + ": " + "done sorting span=" + index + ", length=" + length() + ", "
           + "time=" + (System.currentTimeMillis() - start));

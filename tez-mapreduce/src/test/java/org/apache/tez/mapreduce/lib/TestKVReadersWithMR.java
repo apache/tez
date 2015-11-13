@@ -25,6 +25,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.runtime.api.InputContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,6 +33,9 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class TestKVReadersWithMR {
 
@@ -60,12 +64,14 @@ public class TestKVReadersWithMR {
   }
 
   public void testWithSpecificNumberOfKV(int kvPairs) throws IOException {
-    MRReaderMapred reader = new MRReaderMapred(conf, counters, inputRecordCounter);
+    InputContext mockContext = mock(InputContext.class);
+    MRReaderMapred reader = new MRReaderMapred(conf, counters, inputRecordCounter, mockContext);
 
     reader.recordReader = new DummyRecordReader(kvPairs);
     int records = 0;
     while (reader.next()) {
       records++;
+      verify(mockContext, times(records)).notifyProgress();
     }
     assertTrue(kvPairs == records);
 
@@ -80,13 +86,15 @@ public class TestKVReadersWithMR {
   }
 
   public void testWithSpecificNumberOfKV_MapReduce(int kvPairs) throws IOException {
+    InputContext mockContext = mock(InputContext.class);
     MRReaderMapReduce reader = new MRReaderMapReduce(conf, counters, inputRecordCounter, -1, 1,
-        10, 20, 30);
+        10, 20, 30, mockContext);
 
     reader.recordReader = new DummyRecordReaderMapReduce(kvPairs);
     int records = 0;
     while (reader.next()) {
       records++;
+      verify(mockContext, times(records)).notifyProgress();
     }
     assertTrue(kvPairs == records);
 

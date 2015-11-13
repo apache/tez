@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -328,6 +329,8 @@ public class TestMergeManager {
     assertEquals(m1Prefix, m2Prefix);
     assertNotEquals(m1Prefix, m3Prefix);
     assertNotEquals(m2Prefix, m3Prefix);
+    
+    verify(inputContext, atLeastOnce()).notifyProgress();
 
   }
 

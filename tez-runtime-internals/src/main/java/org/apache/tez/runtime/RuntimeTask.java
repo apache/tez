@@ -54,7 +54,7 @@ public abstract class RuntimeTask {
   private final AtomicBoolean taskDone;
   private final TaskCounterUpdater counterUpdater;
   private final TaskStatistics statistics;
-  private volatile boolean progressNotified;
+  private final AtomicBoolean progressNotified = new AtomicBoolean(false);
 
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
       TezUmbilical tezUmbilical, String pid, boolean setupSysCounterUpdater) {
@@ -105,13 +105,12 @@ public abstract class RuntimeTask {
     this.fatalErrorMessage = message;
   }
   
-  public void notifyProgressInvocation() {
-    progressNotified = true;
+  public final void notifyProgressInvocation() {
+    progressNotified.lazySet(true);
   }
   
   public boolean getAndClearProgressNotification() {
-    boolean retVal = progressNotified;
-    progressNotified = false;
+    boolean retVal = progressNotified.getAndSet(false);
     return retVal;
   }
   

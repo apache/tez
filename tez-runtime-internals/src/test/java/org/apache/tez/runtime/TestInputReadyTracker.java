@@ -156,8 +156,10 @@ public class TestInputReadyTracker {
     group2Inputs.add(input4);
 
     Map<String, MergedLogicalInput> mergedInputMap = new HashMap<String, MergedLogicalInput>();
-    MergedInputContext mergedInputContext1 = new TezMergedInputContextImpl(null, "group1", mergedInputMap, inputReadyTracker, null);
-    MergedInputContext mergedInputContext2 = new TezMergedInputContextImpl(null, "group2", mergedInputMap, inputReadyTracker, null);
+    MergedInputContext mergedInputContext1 = new TezMergedInputContextImpl(
+        null, "group1", mergedInputMap, inputReadyTracker, null, null);
+    MergedInputContext mergedInputContext2 = new TezMergedInputContextImpl(
+        null, "group2", mergedInputMap, inputReadyTracker, null, null);
 
     AnyOneMergedInputForTest group1 = new AnyOneMergedInputForTest(mergedInputContext1, group1Inputs);
     AllMergedInputForTest group2 = new AllMergedInputForTest(mergedInputContext2, group2Inputs);
