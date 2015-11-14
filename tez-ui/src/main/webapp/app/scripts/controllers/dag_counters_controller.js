@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-App.TaskCountersController = App.PollingController.extend(App.ModelRefreshMixin, {
-  controllerName: 'TaskCountersController',
+App.DagCountersController = App.PollingController.extend(App.Helpers.DisplayHelper, App.ModelRefreshMixin, {
+  controllerName: 'DagCountersController',
 
-  pollingType: 'taskInfo',
+  pollingType: 'dagInfo',
 
   pollsterControl: function () {
-    if(this.get('vertex.dag.status') == 'RUNNING' &&
-        this.get('vertex.dag.amWebServiceVersion') != '1' &&
+    if(this.get('status') == 'RUNNING' &&
+        this.get('amWebServiceVersion') != '1' &&
         this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
@@ -31,7 +31,7 @@ App.TaskCountersController = App.PollingController.extend(App.ModelRefreshMixin,
     else {
       this.get('pollster').stop();
     }
-  }.observes('vertex.dag.status', 'vertex.dag.amWebServiceVersion', 'isActive', 'pollingEnabled'),
+  }.observes('status', 'amWebServiceVersion', 'isActive', 'pollingEnabled'),
 
   pollsterOptionsObserver: function () {
     var model = this.get('model');
@@ -39,26 +39,13 @@ App.TaskCountersController = App.PollingController.extend(App.ModelRefreshMixin,
     this.get('pollster').setProperties( (model && model.get('status') != 'SUCCEEDED') ? {
       targetRecords: [model],
       options: {
-        appID: this.get('vertex.dag.applicationId'),
-        dagID: App.Helpers.misc.getIndexFromId(this.get('dagID')),
-        taskID: '%@_%@'.fmt(
-          App.Helpers.misc.getIndexFromId(this.get('vertexID')),
-          App.Helpers.misc.getIndexFromId(this.get('id'))
-        ),
+        appID: this.get('applicationId'),
+        dagID: App.Helpers.misc.getIndexFromId(this.get('id')),
         counters: '*'
       }
     } : {
       targetRecords: [],
       options: null
     });
-  }.observes('vertex.dag.applicationId', 'status', 'dagID', 'vertexID', 'id'),
-
-  message: function () {
-    var status = this.get('content.status');
-    if(!this.get('content.counterGroups.length')) {
-      if(status == 'KILLED' || status == 'FAILED') {
-        return 'Task %@, please check the counters of individual task attempts.'.fmt(status);
-      }
-    }
-  }.property('content.status', 'content.counterGroups.length')
+  }.observes('applicationId', 'model', 'model.status', 'id'),
 });

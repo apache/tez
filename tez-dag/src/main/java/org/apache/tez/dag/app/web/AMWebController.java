@@ -504,11 +504,20 @@ public class AMWebController extends Controller {
       return;
     }
 
-    Map<String, String> dagInfo = new HashMap<String, String>();
+    Map<String, Set<String>> counterNames = getCounterListFromRequest();
+
+    Map<String, Object> dagInfo = new HashMap<String, Object>();
     dagInfo.put("id", dag.getID().toString());
     dagInfo.put("progress", Float.toString(dag.getCompletedTaskProgress()));
     dagInfo.put("status", dag.getState().toString());
 
+    if (counterNames != null && !counterNames.isEmpty()) {
+      TezCounters counters = dag.getCachedCounters();
+      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+      if (counterMap != null && !counterMap.isEmpty()) {
+        dagInfo.put("counters", counterMap);
+      }
+    }
     renderJSON(ImmutableMap.of(
         "dag", dagInfo
     ));
@@ -526,15 +535,25 @@ public class AMWebController extends Controller {
 
     Map<String, Map<String, Long>> counterInfo = new TreeMap<String, Map<String, Long>>();
 
-    for (Entry<String, Set<String>> entry : counterNames.entrySet()) {
-      Map<String, Long> matchedCounters = new HashMap<String, Long>();
-      CounterGroup grpCounters = counters.getGroup(entry.getKey());
-      for (TezCounter counter : grpCounters) {
-        if (entry.getValue().isEmpty() || entry.getValue().contains(counter.getName())) {
+    if (counterNames.containsKey("*")) {
+      for (CounterGroup grpCounters : counters) {
+        Map<String, Long> matchedCounters = new HashMap<String, Long>();
+        for (TezCounter counter : grpCounters) {
           matchedCounters.put(counter.getName(), counter.getValue());
         }
+        counterInfo.put(grpCounters.getName(), matchedCounters);
       }
-      counterInfo.put(entry.getKey(), matchedCounters);
+    } else {
+      for (Entry<String, Set<String>> entry : counterNames.entrySet()) {
+        Map<String, Long> matchedCounters = new HashMap<String, Long>();
+        CounterGroup grpCounters = counters.getGroup(entry.getKey());
+        for (TezCounter counter : grpCounters) {
+          if (entry.getValue().isEmpty() || entry.getValue().contains(counter.getName())) {
+            matchedCounters.put(counter.getName(), counter.getValue());
+          }
+        }
+        counterInfo.put(entry.getKey(), matchedCounters);
+      }
     }
 
     return counterInfo;

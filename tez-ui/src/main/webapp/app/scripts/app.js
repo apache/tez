@@ -203,10 +203,11 @@ App.ready = function () {
     },
     buildURL: function(type, id, record) {
       var url = this._super(type, undefined, record);
-      return url.replace('__app_id__', record.get('appID')).fmt(id);
+      return url.replace('__app_id__', record.get('appID'))
+        .fmt(id, record.get('counters'));
     },
     pathForType: function(typeName) {
-      return 'dagInfo?dagID=%@';
+      return 'dagInfo?dagID=%@&counters=%@';
     }
   });
 

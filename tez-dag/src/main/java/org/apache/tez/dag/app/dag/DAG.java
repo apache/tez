@@ -56,7 +56,8 @@ public interface DAG {
    * @return job-counters and aggregate task-counters
    */
   TezCounters getAllCounters();
-  
+  TezCounters getCachedCounters();
+
   @SuppressWarnings("rawtypes")
   EventHandler getEventHandler();
 

@@ -190,6 +190,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private Object fullCountersLock = new Object();
   @VisibleForTesting
   TezCounters fullCounters = null;
+  private TezCounters cachedCounters = null;
+  private long cachedCountersTimestamp = 0;
   private Set<TezVertexID> reRunningVertices = new HashSet<TezVertexID>();
 
   private final Configuration dagConf;
@@ -723,6 +725,47 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } finally {
       readLock.unlock();
     }
+  }
+
+  @Override
+  public TezCounters getCachedCounters() {
+
+    readLock.lock();
+
+    try {
+      // FIXME a better lightweight approach for counters is needed
+      if (fullCounters == null && cachedCounters != null
+          && ((cachedCountersTimestamp+10000) > System.currentTimeMillis())) {
+        LOG.info("Asked for counters"
+            + ", cachedCountersTimestamp=" + cachedCountersTimestamp
+            + ", currentTime=" + System.currentTimeMillis());
+        return cachedCounters;
+      }
+
+      cachedCountersTimestamp = System.currentTimeMillis();
+      if (inTerminalState()) {
+        this.mayBeConstructFinalFullCounters();
+        return fullCounters;
+      }
+
+      // dag not yet finished. update cpu time counters
+      updateCpuCounters();
+      TezCounters counters = new TezCounters();
+      counters.incrAllCounters(dagCounters);
+      return incrTaskCounters(counters, vertices.values());
+
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  boolean inTerminalState() {
+    DAGState state = getInternalState();
+    if (state == DAGState.ERROR || state == DAGState.FAILED
+        || state == DAGState.KILLED || state == DAGState.SUCCEEDED) {
+      return true;
+    }
+    return false;
   }
 
   public static TezCounters incrTaskCounters(

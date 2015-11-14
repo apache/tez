@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -242,10 +243,28 @@ public class TestAMWebController {
     doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
     doReturn(66.0f).when(mockDAG).getCompletedTaskProgress();
     doReturn(DAGState.RUNNING).when(mockDAG).getState();
+    TezCounters counters = new TezCounters();
+    counters.addGroup("g1", "g1");
+    counters.addGroup("g2", "g2");
+    counters.addGroup("g3", "g3");
+    counters.addGroup("g4", "g4");
+    counters.findCounter("g1", "g1_c1").setValue(100);
+    counters.findCounter("g1", "g1_c2").setValue(100);
+    counters.findCounter("g2", "g2_c3").setValue(100);
+    counters.findCounter("g2", "g2_c4").setValue(100);
+    counters.findCounter("g3", "g3_c5").setValue(100);
+    counters.findCounter("g3", "g3_c6").setValue(100);
+
+    doReturn(counters).when(mockDAG).getAllCounters();
+    doReturn(counters).when(mockDAG).getCachedCounters();
 
     doReturn(true).when(spy).setupResponse();
     doReturn(mockDAG).when(spy).checkAndGetDAGFromRequest();
     doNothing().when(spy).renderJSON(any());
+
+    Map<String, Set<String>> counterNames = new HashMap<String, Set<String>>();
+    counterNames.put("*", null);
+    doReturn(counterNames).when(spy).getCounterListFromRequest();
 
     spy.getDagInfo();
     verify(spy).renderJSON(returnResultCaptor.capture());
@@ -255,10 +274,12 @@ public class TestAMWebController {
     Assert.assertTrue(result.containsKey("dag"));
     Map<String, String> dagInfo = (Map<String, String>) result.get("dag");
 
-    Assert.assertEquals(3, dagInfo.size());
+    Assert.assertEquals(4, dagInfo.size());
     Assert.assertTrue("dag_1422960590892_0007_42".equals(dagInfo.get("id")));
     Assert.assertEquals("66.0", dagInfo.get("progress"));
     Assert.assertEquals("RUNNING", dagInfo.get("status"));
+    Assert.assertNotNull(dagInfo.get("counters"));
+
   }
 
   @SuppressWarnings("unchecked")
