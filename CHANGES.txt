@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-2928. Framework for Hadoop shims.
   TEZ-2935. Add MR slow start translation for ShuffleVertexManager
   TEZ-2918. Make progress notifications in IOs
   TEZ-2940. Invalid shuffle max slow start setting causes vertex to hang indefinitely

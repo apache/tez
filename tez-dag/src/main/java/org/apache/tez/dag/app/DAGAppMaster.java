@@ -174,6 +174,8 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
+import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.util.TezMxBeanResourceCalculator;
 import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
@@ -234,6 +236,7 @@ public class DAGAppMaster extends AbstractService {
   private final String[] localDirs;
   private final String[] logDirs;
   private final AMPluginDescriptorProto amPluginDescriptorProto;
+  private final HadoopShim hadoopShim;
   private ContainerSignatureMatcher containerSignatureMatcher;
   private AMContainerMap containers;
   private AMNodeTracker nodes;
@@ -353,9 +356,11 @@ public class DAGAppMaster extends AbstractService {
 
     this.containerLogs = getRunningLogURL(this.nmHost + ":" + this.nmHttpPort,
         this.containerID.toString(), this.appMasterUgi.getShortUserName());
+    this.hadoopShim = new HadoopShimsLoader().getHadoopShim();
 
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo.toString());
+
   }
 
   // Pull this WebAppUtils function into Tez until YARN-4186
@@ -1593,6 +1598,11 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public String getContainerLauncherName(int launcherId) {
       return containerLaunchers.inverse().get(launcherId);
+    }
+
+    @Override
+    public HadoopShim getHadoopShim() {
+      return hadoopShim;
     }
 
     @Override

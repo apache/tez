@@ -102,6 +102,11 @@
     <dependencies>
       <dependency>
         <groupId>org.apache.tez</groupId>
+        <artifactId>hadoop-shim</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tez</groupId>
         <artifactId>tez-api</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -679,6 +684,7 @@
   </dependencyManagement>
 
   <modules>
+    <module>hadoop-shim</module>
     <module>tez-api</module>
     <module>tez-common</module>
     <module>tez-runtime-library</module>
@@ -691,6 +697,7 @@
     <module>tez-ui</module>
     <module>tez-plugins</module>
     <module>tez-tools</module>
+    <module>hadoop-shim-impls</module>
     <module>tez-dist</module>
     <module>docs</module>
   </modules>

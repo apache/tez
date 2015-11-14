@@ -37,6 +37,7 @@ import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.hadoop.shim.HadoopShim;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
@@ -122,5 +123,7 @@ public interface AppContext {
   public String getTaskCommunicatorName(int taskCommId);
   public String getTaskSchedulerName(int schedulerId);
   public String getContainerLauncherName(int launcherId);
+
+  public HadoopShim getHadoopShim();
 
 }
