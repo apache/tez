@@ -31,6 +31,16 @@ App.Helpers.emData = {
         var info = source.findBy('id', row.get('id')),
             merge = !!info;
 
+        if(info && info.get('counters')) {
+          row.set('counterGroups',
+            App.Helpers.misc.mergeCounterInfo(
+              row.get('counterGroups'),
+              info.get('counters')
+            ).slice(0)
+          );
+          row.didLoad();// To update the record time stamp
+        }
+
         if(merge && row.get('progress') && info.get('progress')) {
           if(row.get('progress') >= info.get('progress')) {
             merge = false;
@@ -39,16 +49,6 @@ App.Helpers.emData = {
 
         if(merge) {
           row.setProperties(info.getProperties.apply(info, mergeProps));
-
-          if(info.get('counters')) {
-            row.set('counterGroups',
-              App.Helpers.misc.mergeCounterInfo(
-                row.get('counterGroups'),
-                info.get('counters')
-              ).slice(0)
-            );
-          }
-
           row.didLoad();// To update the record time stamp
         }
       });

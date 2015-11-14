@@ -221,7 +221,7 @@ App.Helpers.misc = {
         atsCounters = targetATSCounters.findBy('counterGroupName', counterGroupName);
         if(!atsCounters) {
           atsCounters = [];
-          targetATSCounters.push({
+          targetATSCounters.pushObject({
             counterGroupName: counterGroupName,
             counterGroupDisplayName: counterGroupName,
             counters: atsCounters
@@ -236,7 +236,7 @@ App.Helpers.misc = {
             Em.set(atsCounter, 'counterValue', counters[counterName]);
           }
           else {
-            atsCounters.push({
+            atsCounters.pushObject({
               "counterName": counterName,
               "counterDisplayName": counterName,
               "counterValue": counters[counterName]

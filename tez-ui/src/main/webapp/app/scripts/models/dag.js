@@ -428,6 +428,7 @@ App.DagInfo = DS.Model.extend({
 
   progress: DS.attr('number'),
   status: DS.attr('string'),
+  counters: DS.attr('object')
 });
 
 App.VertexInfo = DS.Model.extend({
