@@ -315,7 +315,7 @@ App.Helpers.misc = {
     // for cross domain requests, the error is not set if no access control headers were found.
     // this could be either because there was a n/w error or the cors headers being not set.
     if (error.status === 0 && error.statusText === 'error') {
-      msg = defaultErrorMessage ;
+      msg = defaultErrorMessage || error.message;
     } else {
       msg = error.statusText || error.message;
     }

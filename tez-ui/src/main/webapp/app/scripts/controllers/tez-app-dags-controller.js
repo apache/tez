@@ -49,7 +49,11 @@ App.TezAppDagsController = App.TablePageController.extend({
             dag.set('progress', dagProgressInfo.get('progress'));
           })
           .catch(function(error) {
-            Em.Logger.error('Failed to fetch dagProgress' + error);
+            error.message = "Failed to fetch dagProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
+            Em.Logger.error(error);
+            var err = App.Helpers.misc.formatError(error);
+            var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
+            App.Helpers.ErrorBar.getInstance().show(msg, err.details);
           });
           loaders.push(fetcher);
         }
@@ -111,7 +115,11 @@ App.TezAppDagsController = App.TablePageController.extend({
               content.set('progress', dagProgressInfo.get('progress'));
             })
             .catch(function(error) {
-              Em.Logger.error('Failed to fetch dagProgress' + error);
+              error.message = "Failed to fetch dagProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
+              Em.Logger.error(error);
+              var err = App.Helpers.misc.formatError(error);
+              var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
+              App.Helpers.ErrorBar.getInstance().show(msg, err.details);
             });
           }
 

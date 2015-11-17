@@ -73,7 +73,11 @@ App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, A
           vertex.set('progress', vertexProgressInfo.get('progress'));
         }
       }).catch(function(error) {
-        Em.Logger.error("Failed to fetch vertexProgress" + error)
+        error.message = "Failed to fetch vertexProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
+        Em.Logger.error(error);
+        var err = App.Helpers.misc.formatError(error);
+        var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
+        App.Helpers.ErrorBar.getInstance().show(msg, err.details);
       });
       loaders.push(progressLoader);
     }
