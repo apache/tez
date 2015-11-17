@@ -114,7 +114,7 @@ App.DataArrayLoaderMixin = Em.Mixin.create({
 
   errorHandler: function (error) {
     Em.Logger.error(error);
-    var err = App.Helpers.misc.formatError(error, 'Error while loading ' + this.get('entityType'));
+    var err = App.Helpers.misc.formatError(error, 'Error while loading %@. CORS might not be enabled for YARN ResourceManager and/or Timeline Server.'.fmt(this.get('entityType')));
     var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
     App.Helpers.ErrorBar.getInstance().show(msg, err.details);
   },

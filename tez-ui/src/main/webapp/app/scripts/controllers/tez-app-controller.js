@@ -63,7 +63,7 @@ App.TezAppController = App.BaseController.extend(App.Helpers.DisplayHelper, App.
         });
       }).catch(function (error) {
         Em.Logger.error(error);
-        var err = App.Helpers.misc.formatError(error, defaultErrMsg);
+        var err = App.Helpers.misc.formatError(error);
         var msg = 'error code: %@, message: %@'.fmt(err.errCode, err.msg);
         App.Helpers.ErrorBar.getInstance().show(msg, err.details);
       });

@@ -110,7 +110,11 @@ App.DagVerticesController = App.TablePageController.extend({
             ['progress']
           );
       }).catch(function(error) {
-        Em.Logger.debug("failed to fetch vertex progress")
+        error.message = "Failed to fetch vertexProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
+        Em.Logger.error(error);
+        var err = App.Helpers.misc.formatError(error);
+        var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
+        App.Helpers.ErrorBar.getInstance().show(msg, err.details);
       });
     }
   },

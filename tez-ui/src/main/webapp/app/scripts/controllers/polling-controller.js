@@ -84,7 +84,7 @@ App.PollingController = App.BaseController.extend({
         that.applicationComplete();
       }
       else {
-        error.message = "Application Master (AM) is out of reach. Either it's down, or CORS is not enabled.";
+        error.message = "Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
         that.applicationFailed(error);
       }
     }).catch(function (error) {
