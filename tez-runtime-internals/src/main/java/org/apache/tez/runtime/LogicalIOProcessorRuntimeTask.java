@@ -858,7 +858,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       } catch (Throwable e) {
         LOG.warn(
             "Ignoring Exception when closing processor(cleanup). Exception class={}, message={}" +
-                e.getClass().getName(), e.getMessage(), e);
+                e.getClass().getName(), e.getMessage());
       }
     }
 
@@ -879,7 +879,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       } catch (Throwable e) {
         LOG.warn(
             "Ignoring exception when closing input {}(cleanup). Exception class={}, message={}",
-            srcVertexName, e.getClass().getName(), e.getMessage(), e);
+            srcVertexName, e.getClass().getName(), e.getMessage());
       } finally {
         LOG.info("Closed input for vertex={}, sourceVertex={}, interruptedStatus={}", processor
             .getContext().getTaskVertexName(), srcVertexName, Thread.currentThread().isInterrupted());
@@ -903,7 +903,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       } catch (Throwable e) {
         LOG.warn(
             "Ignoring exception when closing output {}(cleanup). Exception class={}, message={}",
-            destVertexName, e.getClass().getName(), e.getMessage(), e);
+            destVertexName, e.getClass().getName(), e.getMessage());
       } finally {
         LOG.info("Closed input for vertex={}, sourceVertex={}, interruptedStatus={}", processor
             .getContext().getTaskVertexName(), destVertexName, Thread.currentThread().isInterrupted());
