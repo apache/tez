@@ -125,44 +125,34 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
 
       entities.forEach(function (dag) {
         var appId = dag.get('applicationId');
-        if(appId) {
-          record = store.getById('appDetail', appId);
-          if(record && !App.Helpers.misc.isStatusInUnsuccessful(record.get('appState'))) {
-            store.unloadRecord(record);
-          }
-        }
-      });
-      entities.forEach(function (dag) {
-        var appId = dag.get('applicationId');
-        if(appId) {
-          store.find('appDetail', appId).then(function (app) {
+        if(appId && dag.get('status') === 'RUNNING') {
+          App.Helpers.misc.loadApp(store, appId).then(function (app) {
             dag.set('appDetail', app);
-            if (dag.get('status') === 'RUNNING') {
-              dag.set('status', App.Helpers.misc.getRealStatus(
-                dag.get('status'),
-                app.get('appState'),
-                app.get('finalAppStatus')
-              ));
+            dag.set('status', App.Helpers.misc.getRealStatus(
+              dag.get('status'),
+              app.get('status'),
+              app.get('finalStatus')
+            ));
+          }).catch(function(error) {})
+          .finally(function () {
+            if(dag.get('status') === 'RUNNING') {
+              App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
+              store.find('dagProgress', dag.get('id'), {
+                appId: dag.get('applicationId'),
+                dagIdx: dag.get('idx')
+              })
+              .then(function(dagProgressInfo) {
+                dag.set('progress', dagProgressInfo.get('progress'));
+              })
+              .catch(function(error) {
+                error.message = "Failed to fetch dagProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
+                Em.Logger.error(error);
+                var err = App.Helpers.misc.formatError(error);
+                var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
+                App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+              });
             }
-          }).catch(function(error) {});
-
-          if (dag.get('status') === 'RUNNING') {
-            App.Helpers.misc.removeRecord(store, 'dagProgress', dag.get('id'));
-            store.find('dagProgress', dag.get('id'), {
-              appId: dag.get('applicationId'),
-              dagIdx: dag.get('idx')
-            })
-            .then(function(dagProgressInfo) {
-              dag.set('progress', dagProgressInfo.get('progress'));
-            })
-            .catch(function(error) {
-              error.message = "Failed to fetch dagProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
-              Em.Logger.error(error);
-              var err = App.Helpers.misc.formatError(error);
-              var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
-              App.Helpers.ErrorBar.getInstance().show(msg, err.details);
-            });
-          }
+          });
         }
       });
     }).catch(function(error){
@@ -303,7 +293,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         getCellContent: function(row) {
           var appId = row.get('applicationId');
           if(appId) {
-            return store.find('appDetail', appId).then(function (app) {
+            return App.Helpers.misc.loadApp(store, appId, true).then(function (app) {
               return app.get('queue');
             }).catch(function(error) {});
           }

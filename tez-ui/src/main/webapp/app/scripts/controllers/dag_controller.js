@@ -57,15 +57,14 @@ App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
     var loaders = [];
     var applicationId = dag.get('applicationId');
 
-    App.Helpers.misc.removeRecord(this.store, 'appDetail', applicationId);
-    var appDetailLoader = this.store.find('appDetail', applicationId)
+    var appDetailLoader = App.Helpers.misc.loadApp(this.store, applicationId)
       .then(function(app){
         dag.set('appDetail', app);
-        var appState = app.get('appState');
-        if (appState) {
-          dag.set('yarnAppState', appState);
+        var status = app.get('status');
+        if (status) {
+          dag.set('yarnAppState', status);
         }
-        dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('appState'), app.get('finalAppStatus')));
+        dag.set('status', App.Helpers.misc.getRealStatus(dag.get('status'), app.get('status'), app.get('finalStatus')));
       }).catch(function(){});
     App.Helpers.misc.removeRecord(this.store, 'tezApp', 'tez_' + applicationId);
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId)

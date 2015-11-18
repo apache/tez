@@ -82,14 +82,13 @@ App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, A
       loaders.push(progressLoader);
     }
 
-    App.Helpers.misc.removeRecord(that.store, 'appDetail', applicationId);
-    var appDetailFetcher = that.store.find('appDetail', applicationId).then(function(appDetail) {
-      var appState = appDetail.get('appState');
-      if (appState) {
-        vertex.set('yarnAppState', appState);
+    var appDetailFetcher = App.Helpers.misc.loadApp(that.store, applicationId).then(function(appDetail) {
+      var status = appDetail.get('status');
+      if (status) {
+        vertex.set('yarnAppState', status);
       }
-      vertex.set('status', App.Helpers.misc.getRealStatus(vertex.get('status'), appDetail.get('appState'),
-        appDetail.get('finalAppStatus')));
+      vertex.set('status', App.Helpers.misc.getRealStatus(vertex.get('status'), appDetail.get('status'),
+        appDetail.get('finalStatus')));
     }).catch(function(){});
     loaders.push(appDetailFetcher);
 

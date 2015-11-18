@@ -79,13 +79,12 @@ App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColum
 
     var appDetailFetcher = that.store.find('dag', that.get('controllers.task.dagID')).
       then(function (dag) {
-        App.Helpers.misc.removeRecord(that.store, 'appDetail', dag.get('applicationId'));
-        return that.store.find('appDetail', dag.get('applicationId'));
+        return App.Helpers.misc.loadApp(that.store, dag.get('applicationId'));
       }).
       then(function(appDetail) {
-        var appState = appDetail.get('appState');
-        if (appState) {
-          that.set('yarnAppState', appState);
+        var status = appDetail.get('status');
+        if (status) {
+          that.set('yarnAppState', status);
         }
       });
     loaders.push(appDetailFetcher);
