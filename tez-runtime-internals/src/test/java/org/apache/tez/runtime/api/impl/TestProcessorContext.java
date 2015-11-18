@@ -96,9 +96,5 @@ public class TestProcessorContext {
     assertEquals(vertexName, procContext.getTaskVertexName());
     assertEquals(vertexId.getId(), procContext.getTaskVertexIndex());
     assertTrue(Arrays.equals(localDirs, procContext.getWorkDirs()));
-    
-    // test auto call of notifyProgress
-    procContext.setProgress(0.1f);
-    verify(runtimeTask, times(1)).notifyProgressInvocation();
   }
 }
