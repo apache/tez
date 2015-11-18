@@ -789,6 +789,26 @@ App.Helpers.misc = {
   defaultQueryParamsConfig: {
     refreshModel: true,
     replace: true
+  },
+
+  /**
+   * Load app details form RM if available, else load from ATS if AHS is enabled
+   * @param store {Store}
+   * @param appId {String}
+   * @param useCache {Boolean}
+   */
+  loadApp: function (store, appId, useCache) {
+    if(!useCache) {
+      App.Helpers.misc.removeRecord(store, 'appDetail', appId);
+      App.Helpers.misc.removeRecord(store, 'clusterApp', appId);
+    }
+
+    return store.find('clusterApp', appId).catch(function () {
+      return store.find('appDetail', appId);
+    }).catch(function (error) {
+      error.message = "Couldn't get details of application %@. RM is not reachable, and history service is not enabled.".fmt(appId);
+      throw error;
+    });
   }
 
 }

@@ -39,7 +39,7 @@ App.TezAppController = App.BaseController.extend(App.Helpers.DisplayHelper, App.
   },
 
   pollsterControl: function () {
-    if(this.get('appDetail.finalAppStatus') == 'UNDEFINED' &&
+    if(this.get('appDetail.finalStatus') == 'UNDEFINED' &&
         this.get('pollingEnabled') &&
         this.get('isActive')) {
       this.get('pollster').start();
@@ -47,7 +47,7 @@ App.TezAppController = App.BaseController.extend(App.Helpers.DisplayHelper, App.
     else {
       this.get('pollster').stop();
     }
-  }.observes('appDetail.finalAppStatus', 'isActive', 'pollingEnabled'),
+  }.observes('appDetail.finalStatus', 'isActive', 'pollingEnabled'),
 
   load: function () {
     var tezApp = this.get('content'),
@@ -56,8 +56,7 @@ App.TezAppController = App.BaseController.extend(App.Helpers.DisplayHelper, App.
       tezApp.reload().then(function (tezApp) {
         var appId = tezApp.get('appId');
         if(!appId) return tezApp;
-        App.Helpers.misc.removeRecord(store, 'appDetail', appId);
-        return store.find('appDetail', appId).then(function (appDetails){
+        return App.Helpers.misc.loadApp(store, appId).then(function (appDetails){
           tezApp.set('appDetail', appDetails);
           return tezApp;
         });

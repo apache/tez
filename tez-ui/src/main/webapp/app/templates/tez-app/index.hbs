@@ -74,14 +74,14 @@
           <tr>
             <td>Application State</td>
             <td>
-              {{appDetail.appState}}
+              {{appDetail.status}}
             </td>
           </tr>
           <tr>
             <td>Final Application Status</td>
             <td>
-              {{#if appDetail.appState}}
-              <i {{bind-attr class=':task-status iconStatus'}}></i> {{appDetail.finalAppStatus}}
+              {{#if appDetail.status}}
+              <i {{bind-attr class=':task-status iconStatus'}}></i> {{appDetail.finalStatus}}
               {{/if}}
             </td>
           </tr>

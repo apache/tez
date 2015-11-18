@@ -32,8 +32,7 @@ App.TezAppIndexController = App.PollingController.extend(App.ModelRefreshMixin, 
       tezApp.reload().then(function (tezApp) {
         var appId = tezApp.get('appId');
         if(!appId) return tezApp;
-        App.Helpers.misc.removeRecord(store, 'appDetail', appId);
-        return store.find('appDetail', appId).then(function (appDetails){
+        return App.Helpers.misc.loadApp(store, appId).then(function (appDetails){
           tezApp.set('appDetail', appDetails);
           return tezApp;
         });
@@ -50,6 +49,6 @@ App.TezAppIndexController = App.PollingController.extend(App.ModelRefreshMixin, 
   }.property('appDetail.user', 'user'),
 
   iconStatus: function() {
-    return App.Helpers.misc.getStatusClassForEntity(this.get('model.appDetail.finalAppStatus'));
-  }.property('id', 'appDetail.finalAppStatus'),
+    return App.Helpers.misc.getStatusClassForEntity(this.get('model.appDetail.finalStatus'));
+  }.property('id', 'appDetail.finalStatus'),
 });

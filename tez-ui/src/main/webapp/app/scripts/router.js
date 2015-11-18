@@ -271,7 +271,7 @@ App.TezAppRoute = App.BaseRoute.extend({
     var store = this.store;
     return store.find('tezApp', 'tez_' + params.app_id).then(function (tezApp){
       if(!tezApp.get('appId')) return tezApp;
-      return store.find('appDetail', tezApp.get('appId')).then(function (appDetails){
+      return App.Helpers.misc.loadApp(store, tezApp.get('appId')).then(function (appDetails){
         tezApp.set('appDetail', appDetails);
         return tezApp;
       }).catch(function() {

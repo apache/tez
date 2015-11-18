@@ -482,9 +482,9 @@ var timelineJsonToAppDetailMap = {
   finishedTime: 'finishedTime',
   submittedTime: 'submittedTime',
 
-  appState: 'appState',
+  status: 'appState',
 
-  finalAppStatus: 'finalAppStatus',
+  finalStatus: 'finalAppStatus',
   diagnostics: 'otherinfo.diagnostics',
 };
 
@@ -637,7 +637,18 @@ App.ClusterAppSerializer = App.TimelineSerializer.extend({
   map: {
     id: 'id',
     status: 'state',
-    finalStatus: 'finalStatus'
+    finalStatus: 'finalStatus',
+
+    name: 'name',
+    queue: 'queue',
+    user: 'user',
+    type: 'type',
+
+    startedTime: 'startedTime',
+    elapsedTime: 'elapsedTime',
+    finishedTime: 'finishedTime',
+
+    progress: 'progress'
   },
 
   _normalizeSingleDagPayload: function(rawPayload) {
