@@ -7,6 +7,8 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES:
+  TEZ-2945. TEZ-2740 addendum to update API with currently supported
+  parameters
   TEZ-2933. Tez UI: Load application details from RM when available
   TEZ-2908. Tez UI: Errors are logged, but not displayed in the UI when AM fetch fails
   TEZ-2923. Tez Live UI counters view empty for vertices, tasks, attempts

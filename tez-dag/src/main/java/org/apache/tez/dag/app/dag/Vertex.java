@@ -115,6 +115,11 @@ public interface Vertex extends Comparable<Vertex> {
   public void reconfigureVertex(@Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate,
       int parallelism,
       @Nullable VertexLocationHint locationHint) throws AMUserCodeException;
+  
+  public void reconfigureVertex(int parallelism,
+      @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, EdgeProperty> sourceEdgeProperties,
+      @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate) throws AMUserCodeException;
 
   void setVertexLocationHint(VertexLocationHint vertexLocationHint);
   void vertexReconfigurationPlanned();

@@ -202,7 +202,7 @@ public interface VertexManagerPluginContext {
    */
   public void reconfigureVertex(int parallelism,
       @Nullable VertexLocationHint locationHint,
-      @Nullable Map<String, EdgeManagerPluginDescriptor> sourceEdgeProperties,
+      @Nullable Map<String, EdgeProperty> sourceEdgeProperties,
       @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate);
   
   /**

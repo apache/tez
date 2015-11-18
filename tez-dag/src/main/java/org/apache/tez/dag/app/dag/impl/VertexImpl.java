@@ -1698,6 +1698,14 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
   
   @Override
+  public void reconfigureVertex(int parallelism,
+      @Nullable VertexLocationHint locationHint,
+      @Nullable Map<String, EdgeProperty> sourceEdgeProperties,
+      @Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate) throws AMUserCodeException {
+    setParallelism(parallelism, locationHint, sourceEdgeProperties, rootInputSpecUpdate, false, true);
+  }
+  
+  @Override
   public void setParallelism(int parallelism, VertexLocationHint vertexLocationHint,
       Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
       Map<String, InputSpecUpdate> rootInputSpecUpdates, boolean fromVertexManager) 
