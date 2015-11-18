@@ -278,7 +278,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   }
 
   @Override
-  public void dagComplete(String dagName) {
+  public void dagComplete(int dagIdentifier) {
     // Nothing to do at the moment. Some of the TODOs from TaskAttemptListener apply here.
   }
 

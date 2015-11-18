@@ -101,6 +101,10 @@ public class TaskSpec implements Writable {
     return dagName;
   }
 
+  public int getDagIdentifier() {
+    return taskAttemptId.getTaskID().getVertexID().getDAGId().getId();
+  }
+
   public int getVertexParallelism() {
     return vertexParallelism;
   }

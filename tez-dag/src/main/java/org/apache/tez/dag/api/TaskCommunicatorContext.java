@@ -163,6 +163,18 @@ public interface TaskCommunicatorContext {
   String getCurrentDagName();
 
   /**
+   * Get an identifier for the executing context of the DAG.
+   * @return a String identifier for the exeucting context.
+   */
+  String getCurrentAppIdentifier();
+
+  /**
+   * Get the identifier for the currently executing dag.
+   * @return a numerical identifier for the currently running DAG. This is unique within the currently running application.
+   */
+  int getCurrentDagIdenitifer();
+
+  /**
    * Get the name of the Input vertices for the specified vertex.
    * Root Inputs are not returned.
    *

@@ -150,6 +150,17 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   }
 
   @Override
+  public String getCurrentAppIdentifier() {
+    return getDag().getID().getApplicationId().toString();
+
+  }
+
+  @Override
+  public int getCurrentDagIdenitifer() {
+    return getDag().getID().getId();
+  }
+
+  @Override
   public Iterable<String> getInputVertexNames(String vertexName) {
     Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
     Vertex vertex = getDag().getVertex(vertexName);
