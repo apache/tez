@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2948. Stop using dagName in the dagComplete notification to TaskCommunicators.
 
 ALL CHANGES:
+  TEZ-2952. NPE in TestOnFileUnorderedKVOutput
   TEZ-2480. Exception when closing output is ignored.
   TEZ-2944. NPE in TestProcessorContext.
   TEZ-2945. TEZ-2740 addendum to update API with currently supported parameters
