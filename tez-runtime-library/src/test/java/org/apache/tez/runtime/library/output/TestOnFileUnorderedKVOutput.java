@@ -33,6 +33,7 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezUtils;
-import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezDAGID;
@@ -62,7 +62,9 @@ import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
-import org.apache.tez.runtime.api.impl.TaskStatistics;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
@@ -91,7 +93,7 @@ public class TestOnFileUnorderedKVOutput {
   private static Path workDir = null;
   private static final int shufflePort = 2112;
 
-  TaskStatistics stats;
+  LogicalIOProcessorRuntimeTask task;
 
   static {
     defaultConf.set("fs.defaultFS", "file:///");
@@ -108,7 +110,6 @@ public class TestOnFileUnorderedKVOutput {
 
   @Before
   public void setup() throws Exception {
-    stats = new TaskStatistics();
     localFs.mkdirs(workDir);
   }
 
@@ -139,8 +140,8 @@ public class TestOnFileUnorderedKVOutput {
     }
 
     events = kvOutput.close();
-    assertEquals(45, stats.getIOStatistics().values().iterator().next().getDataSize());
-    assertEquals(5, stats.getIOStatistics().values().iterator().next().getItemsProcessed());
+    assertEquals(45, task.getTaskStatistics().getIOStatistics().values().iterator().next().getDataSize());
+    assertEquals(5, task.getTaskStatistics().getIOStatistics().values().iterator().next().getItemsProcessed());
     assertTrue(events != null && events.size() == 1);
     CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(0);
 
@@ -212,12 +213,18 @@ public class TestOnFileUnorderedKVOutput {
     TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
-    TezCounters counters = new TezCounters();
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
-    LogicalIOProcessorRuntimeTask runtimeTask = mock(LogicalIOProcessorRuntimeTask.class);
-    when(runtimeTask.addAndGetTezCounter(destinationVertexName)).thenReturn(counters);
-    when(runtimeTask.getTaskStatistics()).thenReturn(stats);
-
+    
+    TaskSpec mockSpec = mock(TaskSpec.class);
+    when(mockSpec.getInputs()).thenReturn(Collections.singletonList(mock(InputSpec.class)));
+    when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
+    task = new LogicalIOProcessorRuntimeTask(
+        mockSpec, appAttemptNumber, 
+        new Configuration(), new String[]{"/"}, 
+        tezUmbilical, null, null, null, null, "", null, 1024);
+    
+    LogicalIOProcessorRuntimeTask runtimeTask = spy(task);
+    
     Map<String, String> auxEnv = new HashMap<String, String>();
     ByteBuffer bb = ByteBuffer.allocate(4);
     bb.putInt(shufflePort);
@@ -236,7 +243,7 @@ public class TestOnFileUnorderedKVOutput {
     verify(runtimeTask, times(1)).addAndGetTezCounter(destinationVertexName);
     verify(runtimeTask, times(1)).getTaskStatistics();
     // verify output stats object got created
-    Assert.assertTrue(stats.getIOStatistics().containsKey(destinationVertexName));
+    Assert.assertTrue(task.getTaskStatistics().getIOStatistics().containsKey(destinationVertexName));
     OutputContext outputContext = spy(realOutputContext);
     doAnswer(new Answer() {
       @Override public Object answer(InvocationOnMock invocation) throws Throwable {

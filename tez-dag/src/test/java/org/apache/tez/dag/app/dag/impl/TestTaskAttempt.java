@@ -787,7 +787,7 @@ public class TestTaskAttempt {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
     MockEventHandler eventHandler = spy(new MockEventHandler());
-    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
+    TaskAttemptListener taListener = mock(TaskAttemptListener.class);
 
     Configuration taskConf = new Configuration();
     taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
@@ -807,9 +807,9 @@ public class TestTaskAttempt {
     when(container.getNodeHttpAddress()).thenReturn("localhost:0");
 
     AMContainerMap containers = new AMContainerMap(
-        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
+        mock(ContainerHeartbeatHandler.class), mock(TaskAttemptListener.class),
         new ContainerContextMatcher(), appCtx);
-    containers.addContainerIfNew(container, 0, 0, 0);
+    containers.addContainerIfNew(container);
 
     doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
     doReturn(containers).when(appCtx).getAllContainers();

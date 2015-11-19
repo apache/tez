@@ -651,7 +651,6 @@ public class TezConfiguration extends Configuration {
    * A config value <=0 disables this.
    */
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty
   public static final String TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS = TEZ_TASK_PREFIX + 
     "progress.stuck.interval-ms";
   public static final long TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT = -1;
