@@ -70,7 +70,6 @@ public class TestRecoveryParser {
     this.recoveryPath = new Path(TEST_ROOT_DIR + "/" + appId + "/recovery");
     this.localFS.delete(new Path(TEST_ROOT_DIR), true);
     mockAppMaster = mock(DAGAppMaster.class);
-    mockAppMaster.dagNames = new HashSet<String>();
     mockAppMaster.dagIDs = new HashSet<String>();
     when(mockAppMaster.getConfig()).thenReturn(new Configuration());
     mockDAGImpl = mock(DAGImpl.class);

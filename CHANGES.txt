@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2948. Stop using dagName in the dagComplete notification to TaskCommunicators.
 
 ALL CHANGES:
+  TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-2952. NPE in TestOnFileUnorderedKVOutput
   TEZ-2480. Exception when closing output is ignored.
   TEZ-2944. NPE in TestProcessorContext.
@@ -259,6 +260,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
 
 ALL CHANGES
+  TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-2923. Tez Live UI counters view empty for vertices, tasks, attempts
   TEZ-2935. Add MR slow start translation for ShuffleVertexManager
   TEZ-2940. Invalid shuffle max slow start setting causes vertex to hang indefinitely

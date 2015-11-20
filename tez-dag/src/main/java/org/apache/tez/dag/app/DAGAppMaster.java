@@ -2298,10 +2298,6 @@ public class DAGAppMaster extends AbstractService {
       throws TezException {
     long submitTime = this.clock.getTime();
     this.appName = dagPlan.getName();
-    if (dagNames.contains(dagPlan.getName())) {
-      throw new TezException("Duplicate dag name '" + dagPlan.getName() + "'");
-    }
-    dagNames.add(dagPlan.getName());
 
     // /////////////////// Create the job itself.
     DAG newDAG = createDAG(dagPlan);

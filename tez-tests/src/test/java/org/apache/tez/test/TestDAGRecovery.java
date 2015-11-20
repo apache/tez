@@ -238,14 +238,6 @@ public class TestDAGRecovery {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
 
     verifyRecoveryLog();
-
-    // it should fail if submitting same dags in recovery mode (TEZ-1064)
-    try {
-      DAGClient dagClient = tezSession.submitDAG(dag);
-      Assert.fail("Expected DAG submit to fail on duplicate dag name");
-    } catch (TezException e) {
-      Assert.assertTrue(e.getMessage().contains("Duplicate dag name"));
-    }
   }
 
   @Test(timeout=120000)
