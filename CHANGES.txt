@@ -5,6 +5,7 @@ Release 0.7.1: Unreleased
 
 INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
+  TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
