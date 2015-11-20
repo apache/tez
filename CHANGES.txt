@@ -6,6 +6,7 @@ Release 0.8.2: Unreleased
 INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
   TEZ-2948. Stop using dagName in the dagComplete notification to TaskCommunicators.
+  TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
   TEZ-2949. Allow duplicate dag names within session for Tez.
