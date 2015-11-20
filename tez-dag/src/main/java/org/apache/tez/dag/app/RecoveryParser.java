@@ -323,7 +323,6 @@ public class RecoveryParser {
   static class DAGSummaryData {
 
     final TezDAGID dagId;
-    String dagName;
     boolean completed = false;
     boolean dagCommitCompleted = true;
     DAGState dagState;
@@ -346,7 +345,6 @@ public class RecoveryParser {
           completed = false;
           DAGSubmittedEvent dagSubmittedEvent = new DAGSubmittedEvent();
           dagSubmittedEvent.fromSummaryProtoStream(proto);
-          dagName = dagSubmittedEvent.getDAGName();
           break;
         case DAG_FINISHED:
           completed = true;
@@ -541,7 +539,6 @@ public class RecoveryParser {
     // Set counter for next set of DAGs & update dagNames Set in DAGAppMaster
     dagAppMaster.setDAGCounter(dagCounter);
     for (DAGSummaryData dagSummaryData: dagSummaryDataMap.values()){
-      dagAppMaster.dagNames.add(dagSummaryData.dagName);
       dagAppMaster.dagIDs.add(dagSummaryData.dagId.toString());
     }
 
