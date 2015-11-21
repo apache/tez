@@ -191,7 +191,9 @@ body, html {
     }
 
     .message-container {
-      width:90%;
+      width:100%;
+      overflow: scroll;
+      max-height: 100px;
 
       .align-children-left;
 
@@ -203,8 +205,8 @@ body, html {
     }
 
     .close-container {
-      width:10%;
-
+      position: absolute;
+      right: 15px;
       .align-children-right;
     }
   }
@@ -237,8 +239,10 @@ body, html {
     overflow: auto;
     max-height: 300px;
 
+    .force-scrollbar;
+
     &.visible {
-      display: inline;
+      display: block;
     }
   }
 

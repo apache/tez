@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2946. Tez UI: At times RM return a huge error message making the yellow error bar to fill the whole screen
   TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-2933. Tez UI: Load application details from RM when available
   TEZ-2908. Tez UI: Errors are logged, but not displayed in the UI when AM fetch fails
