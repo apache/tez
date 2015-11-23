@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2947. Tez UI: Timeline, RM & AM requests gets into a consecutive loop in counters page without any delay
   TEZ-2946. Tez UI: At times RM return a huge error message making the yellow error bar to fill the whole screen
   TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-2933. Tez UI: Load application details from RM when available

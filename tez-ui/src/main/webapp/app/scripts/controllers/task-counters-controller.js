@@ -60,5 +60,10 @@ App.TaskCountersController = App.PollingController.extend(App.ModelRefreshMixin,
         return 'Task %@, please check the counters of individual task attempts.'.fmt(status);
       }
     }
-  }.property('content.status', 'content.counterGroups.length')
+  }.property('content.status', 'content.counterGroups.length'),
+
+  applicationComplete: function () {
+    this.get('pollster').stop();
+    this.set('pollster.polledRecords', null);
+  }
 });
