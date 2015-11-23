@@ -49,4 +49,9 @@ App.VertexCountersController = App.PollingController.extend(App.Helpers.DisplayH
       options: null
     });
   }.observes('applicationId', 'status', 'dagID', 'id'),
+
+  applicationComplete: function () {
+    this.get('pollster').stop();
+    this.set('pollster.polledRecords', null);
+  }
 });

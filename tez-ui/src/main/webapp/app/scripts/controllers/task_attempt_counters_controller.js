@@ -54,4 +54,9 @@ App.TaskAttemptCountersController = App.PollingController.extend(App.Helpers.Dis
       options: null
     });
   }.observes('task.vertex.dag.applicationId', 'status', 'dagID', 'vertexID', 'id'),
+
+  applicationComplete: function () {
+    this.get('pollster').stop();
+    this.set('pollster.polledRecords', null);
+  }
 });

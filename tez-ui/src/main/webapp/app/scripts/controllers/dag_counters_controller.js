@@ -48,4 +48,9 @@ App.DagCountersController = App.PollingController.extend(App.Helpers.DisplayHelp
       options: null
     });
   }.observes('applicationId', 'model', 'model.status', 'id'),
+
+  applicationComplete: function () {
+    this.get('pollster').stop();
+    this.set('pollster.polledRecords', null);
+  }
 });
