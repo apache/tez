@@ -570,12 +570,10 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
    */
   @VisibleForTesting
   boolean determineParallelismAndApply() {
-    if(numBipartiteSourceTasksCompleted == 0) {
-      return true;
-    }
-    
     if(numVertexManagerEventsReceived == 0) {
-      return true;
+      if (totalNumBipartiteSourceTasks > 0) {
+        return true;
+      }
     }
     
     int currentParallelism = pendingTasks.size();
@@ -598,8 +596,11 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       return false;
     }
 
-    long expectedTotalSourceTasksOutputSize =
-        (totalNumBipartiteSourceTasks * completedSourceTasksOutputSize) / numVertexManagerEventsReceived;
+    long expectedTotalSourceTasksOutputSize = 0;
+    if (numVertexManagerEventsReceived > 0 && totalNumBipartiteSourceTasks > 0 ) {
+      expectedTotalSourceTasksOutputSize =
+          (totalNumBipartiteSourceTasks * completedSourceTasksOutputSize) / numVertexManagerEventsReceived;
+    }
 
     int desiredTaskParallelism = 
         (int)(

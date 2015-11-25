@@ -180,7 +180,8 @@ public class TestShuffleVertexManager {
 
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) throws Exception {
-          when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(2);
+          final int numTasks = ((Integer)invocation.getArguments()[0]).intValue();
+          when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(numTasks);
           newEdgeManagers.clear();
           for (Entry<String, EdgeProperty> entry :
               ((Map<String, EdgeProperty>)invocation.getArguments()[2]).entrySet()) {
@@ -210,7 +211,7 @@ public class TestShuffleVertexManager {
 
               @Override
               public int getDestinationVertexNumTasks() {
-                return 2;
+                return numTasks;
               }
             };
             EdgeManagerPlugin edgeManager = ReflectionUtils
@@ -220,7 +221,7 @@ public class TestShuffleVertexManager {
             newEdgeManagers.put(entry.getKey(), edgeManager);
           }
           return null;
-      }}).when(mockContext).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+      }}).when(mockContext).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
     
     // check initialization
     manager = createManager(conf, mockContext, 0.1f, 0.1f); // Tez notified of reconfig
@@ -238,12 +239,15 @@ public class TestShuffleVertexManager {
     // source vertices have 0 tasks. so only 1 notification needed. triggers scheduling
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
     Assert.assertTrue(manager.pendingTasks.isEmpty());
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any
+        (VertexLocationHint.class), anyMap());
     verify(mockContext, times(1)).doneReconfiguringVertex(); // reconfig done
-    Assert.assertTrue(scheduledTasks.size() == 4); // all tasks scheduled
+    Assert.assertTrue(scheduledTasks.size() == 1); // all tasks scheduled and parallelism changed
     scheduledTasks.clear();
     // TODO TEZ-1714 locking verify(mockContext, times(1)).vertexManagerDone(); // notified after scheduling all tasks
 
     // check scheduling only after onVertexStarted
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
     manager = createManager(conf, mockContext, 0.1f, 0.1f); // Tez notified of reconfig
     verify(mockContext, times(3)).vertexReconfigurationPlanned();
     // source vertices have 0 tasks. so only 1 notification needed. does not trigger scheduling
@@ -254,13 +258,16 @@ public class TestShuffleVertexManager {
     // trigger start and processing of pending notification events
     manager.onVertexStarted(emptyCompletions);
     Assert.assertTrue(manager.bipartiteSources == 2);
+    verify(mockContext, times(2)).reconfigureVertex(anyInt(), any
+        (VertexLocationHint.class), anyMap());
     verify(mockContext, times(2)).doneReconfiguringVertex(); // reconfig done
     Assert.assertTrue(manager.pendingTasks.isEmpty());
-    Assert.assertTrue(scheduledTasks.size() == 4); // all tasks scheduled
+    Assert.assertTrue(scheduledTasks.size() == 1); // all tasks scheduled and parallelism changed
 
     
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
 
     VertexManagerEvent vmEvent = getVertexManagerEvent(null, 5000L, "Vertex");
     // parallelism not change due to large data size
@@ -274,11 +281,13 @@ public class TestShuffleVertexManager {
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, 0));
-    verify(mockContext, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(2)).reconfigureVertex(anyInt(), any
+        (VertexLocationHint.class), anyMap());
     verify(mockContext, times(2)).doneReconfiguringVertex();
     // trigger scheduling
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-    verify(mockContext, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(2)).reconfigureVertex(anyInt(), any
+        (VertexLocationHint.class), anyMap());
     verify(mockContext, times(3)).doneReconfiguringVertex(); // reconfig done
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(4, scheduledTasks.size());
