@@ -151,8 +151,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public String getCurrentAppIdentifier() {
-    return getDag().getID().getApplicationId().toString();
-
+    return context.getApplicationID().toString();
   }
 
   @Override
