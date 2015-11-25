@@ -22,10 +22,12 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventAttemptKilled extends TaskAttemptEvent
-    implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
+    implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent, RecoveryEvent {
 
   private final String diagnostics;
   private final TaskAttemptTerminationCause errorCause;
+  private boolean fromRecovery;
+
   public TaskAttemptEventAttemptKilled(TezTaskAttemptID id,
                                        String diagnostics,
                                        TaskAttemptTerminationCause errorCause) {
@@ -34,6 +36,14 @@ public class TaskAttemptEventAttemptKilled extends TaskAttemptEvent
     this.errorCause = errorCause;
   }
 
+  public TaskAttemptEventAttemptKilled(TezTaskAttemptID id,
+      String diagnostics,
+      TaskAttemptTerminationCause errorCause,
+      boolean fromRecovery) {
+    this(id, diagnostics, errorCause);
+    this.fromRecovery = fromRecovery;
+  }
+  
   @Override
   public String getDiagnosticInfo() {
     return diagnostics;
@@ -44,4 +54,8 @@ public class TaskAttemptEventAttemptKilled extends TaskAttemptEvent
     return errorCause;
   }
 
+  @Override
+  public boolean isFromRecovery() {
+    return fromRecovery;
+  }
 }

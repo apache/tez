@@ -22,11 +22,12 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskID;
 
 public class TaskEventTermination extends TaskEvent implements DiagnosableEvent,
-    TaskAttemptEventTerminationCauseEvent {
+    TaskAttemptEventTerminationCauseEvent, RecoveryEvent {
 
   private final String diagnostics;
   private final TaskAttemptTerminationCause errorCause;
-  
+  private boolean fromRecovery;
+
   public TaskEventTermination(TezTaskID taskID, TaskAttemptTerminationCause errorCause, String diagnostics) {
     super(taskID, TaskEventType.T_TERMINATE);
     this.errorCause = errorCause;
@@ -37,6 +38,12 @@ public class TaskEventTermination extends TaskEvent implements DiagnosableEvent,
     }
   }
 
+  public TaskEventTermination(TezTaskID taskID, TaskAttemptTerminationCause errorCause, String diagnostics,
+      boolean fromRecovery) {
+    this(taskID, errorCause, diagnostics);
+    this.fromRecovery = fromRecovery;
+  }
+
   @Override
   public String getDiagnosticInfo() {
     return diagnostics;
@@ -45,6 +52,11 @@ public class TaskEventTermination extends TaskEvent implements DiagnosableEvent,
   @Override
   public TaskAttemptTerminationCause getTerminationCause() {
     return errorCause;
+  }
+
+  @Override
+  public boolean isFromRecovery() {
+    return fromRecovery;
   }
 
 }

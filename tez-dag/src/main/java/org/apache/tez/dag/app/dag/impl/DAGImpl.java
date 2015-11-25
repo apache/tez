@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
@@ -82,7 +81,9 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.RecoveryParser.VertexRecoveryData;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
+import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGReport;
@@ -112,11 +113,11 @@ import org.apache.tez.dag.app.dag.event.VertexEventTermination;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
+import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
@@ -204,10 +205,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   private final List<String> diagnostics = new ArrayList<String>();
 
-  // Recovery related flags
-  boolean recoveryInitEventSeen = false;
-  boolean recoveryStartEventSeen = false;
-
   private TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
 
   private static final DagStateChangedCallback STATE_CHANGED_CALLBACK = new DagStateChangedCallback();
@@ -237,10 +234,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           .addTransition(DAGState.NEW, DAGState.NEW,
               DAGEventType.DAG_DIAGNOSTIC_UPDATE,
               DIAGNOSTIC_UPDATE_TRANSITION)
+          // either recovered to FINISHED state or recovered to NEW to rerun the dag based on the recovery data
           .addTransition(DAGState.NEW,
-              EnumSet.of(DAGState.NEW, DAGState.INITED, DAGState.RUNNING,
-                  DAGState.SUCCEEDED, DAGState.FAILED, DAGState.KILLED,
-                  DAGState.ERROR, DAGState.TERMINATING),
+              EnumSet.of(DAGState.NEW, DAGState.SUCCEEDED,
+                  DAGState.FAILED, DAGState.KILLED,
+                  DAGState.ERROR),
               DAGEventType.DAG_RECOVER,
               new RecoverTransition())
           .addTransition(DAGState.NEW, DAGState.NEW,
@@ -448,11 +446,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   Map<String, VertexGroupInfo> vertexGroups = Maps.newHashMap();
   Map<String, List<VertexGroupInfo>> vertexGroupInfo = Maps.newHashMap();
-  private DAGState recoveredState = DAGState.NEW;
-
-  @VisibleForTesting
-  boolean recoveryCommitInProgress = false;
-  Map<String, Boolean> recoveredGroupCommits = new HashMap<String, Boolean>();
+  private DAGRecoveryData recoveryData;
 
   static class VertexGroupInfo {
     String groupName;
@@ -634,59 +628,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @Override
   public UserGroupInformation getDagUGI() {
     return this.dagUGI;
-  }
-
-  @Override
-  public DAGState restoreFromEvent(HistoryEvent historyEvent) {
-    writeLock.lock();
-    try {
-      switch (historyEvent.getEventType()) {
-        case DAG_INITIALIZED:
-          recoveredState = initializeDAG((DAGInitializedEvent) historyEvent);
-          recoveryInitEventSeen = true;
-          return recoveredState;
-        case DAG_STARTED:
-          if (!recoveryInitEventSeen) {
-            throw new RuntimeException("Started Event seen but"
-                + " no Init Event was encountered earlier");
-          }
-          recoveryStartEventSeen = true;
-          this.startTime = ((DAGStartedEvent) historyEvent).getStartTime();
-          recoveredState = DAGState.RUNNING;
-          return recoveredState;
-        case DAG_COMMIT_STARTED:
-          recoveryCommitInProgress = true;
-          return recoveredState;
-        case VERTEX_GROUP_COMMIT_STARTED:
-          VertexGroupCommitStartedEvent vertexGroupCommitStartedEvent =
-              (VertexGroupCommitStartedEvent) historyEvent;
-          recoveredGroupCommits.put(
-              vertexGroupCommitStartedEvent.getVertexGroupName(), false);
-          return recoveredState;
-        case VERTEX_GROUP_COMMIT_FINISHED:
-          VertexGroupCommitFinishedEvent vertexGroupCommitFinishedEvent =
-              (VertexGroupCommitFinishedEvent) historyEvent;
-          recoveredGroupCommits.put(
-              vertexGroupCommitFinishedEvent.getVertexGroupName(), true);
-          return recoveredState;
-        case DAG_KILL_REQUEST:
-          trySetTerminationCause(DAGTerminationCause.DAG_KILL);
-          this.recoveredState = DAGState.KILLED;
-          return recoveredState;
-        case DAG_FINISHED:
-          recoveryCommitInProgress = false;
-          DAGFinishedEvent finishedEvent = (DAGFinishedEvent) historyEvent;
-          setFinishTime(finishedEvent.getFinishTime());
-          recoveredState = finishedEvent.getState();
-          this.fullCounters = finishedEvent.getTezCounters();
-          return recoveredState;
-        default:
-          throw new RuntimeException("Unexpected event received for restoring"
-              + " state, eventType=" + historyEvent.getEventType());
-      }
-    } finally {
-      writeLock.unlock();
-    }
   }
 
   @Override
@@ -1241,39 +1182,50 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return taskStats;
   }
 
-  void logJobHistoryFinishedEvent() throws IOException {
-    this.setFinishTime();
-    Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
-    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
-        finishTime, DAGState.SUCCEEDED, "", getAllCounters(),
-        this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId());
-    this.appContext.getHistoryHandler().handleCriticalEvent(
-        new DAGHistoryEvent(dagId, finishEvt));
-  }
-
   void logJobHistoryInitedEvent() {
-    DAGInitializedEvent initEvt = new DAGInitializedEvent(this.dagId,
-        this.initTime, this.userName, this.dagName, this.getVertexNameIDMapping());
-    this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(dagId, initEvt));
+    if (recoveryData == null
+        || recoveryData.getDAGInitializedEvent() == null) {
+      DAGInitializedEvent initEvt = new DAGInitializedEvent(this.dagId,
+          clock.getTime(), this.userName, this.dagName, this.getVertexNameIDMapping());
+      this.appContext.getHistoryHandler().handle(
+          new DAGHistoryEvent(dagId, initEvt));
+    }
   }
 
   void logJobHistoryStartedEvent() {
-    DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
-        this.startTime, this.userName, this.dagName);
-    this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(dagId, startEvt));
+    if (recoveryData == null
+        || recoveryData.getDAGStartedEvent() == null) {
+      DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
+          clock.getTime(), this.userName, this.dagName);
+      this.appContext.getHistoryHandler().handle(
+          new DAGHistoryEvent(dagId, startEvt));
+    }
+  }
+
+  void logJobHistoryFinishedEvent() throws IOException {
+    if (recoveryData == null
+        || recoveryData.getDAGFinishedEvent() == null) {
+      Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
+      DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, clock.getTime(),
+          finishTime, DAGState.SUCCEEDED, "", getAllCounters(),
+          this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId());
+      this.appContext.getHistoryHandler().handleCriticalEvent(
+          new DAGHistoryEvent(dagId, finishEvt));
+    }
   }
 
   void logJobHistoryUnsuccesfulEvent(DAGState state) throws IOException {
-    Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
-    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
-        clock.getTime(), state,
-        StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
-        getAllCounters(), this.userName, this.dagName, taskStats,
-        this.appContext.getApplicationAttemptId());
-    this.appContext.getHistoryHandler().handleCriticalEvent(
-        new DAGHistoryEvent(dagId, finishEvt));
+    if (recoveryData == null
+        || recoveryData.getDAGFinishedEvent() == null) {
+      Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
+      DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, 0L,
+          clock.getTime(), state,
+          StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
+          getAllCounters(), this.userName, this.dagName, taskStats,
+          this.appContext.getApplicationAttemptId());
+      this.appContext.getHistoryHandler().handleCriticalEvent(
+          new DAGHistoryEvent(dagId, finishEvt));
+    }
   }
 
   // triggered by vertex_complete
@@ -1474,17 +1426,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  public DAGState initializeDAG() {
-    return initializeDAG(null);
-  }
 
-  DAGState initializeDAG(DAGInitializedEvent event) {
-    if (event != null) {
-      initTime = event.getInitTime();
-    } else {
-      initTime = clock.getTime();
-    }
-
+  DAGState initializeDAG() {
     commitAllOutputsOnSuccess = dagConf.getBoolean(
         TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT);
@@ -1494,9 +1437,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     if (numVertices == 0) {
       addDiagnostic("No vertices for dag");
       trySetTerminationCause(DAGTerminationCause.ZERO_VERTICES);
-      if (event != null) {
-        return DAGState.FAILED;
-      }
       return finished(DAGState.FAILED);
     }
 
@@ -1668,139 +1608,68 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     vertex.setOutputVertices(outVertices);
   }
 
+  /**
+   * 2 cases of recovery:
+   * <ul>
+   * <li>
+   * 1. For the completed dag, recover the dag to the desired state and also its vertices,
+   *    but not task & task attempt. This recovery is sync call (after this Transition, 
+   *    DAG & vertices are all recovered to the desired state)
+   * </li>
+   * <li>
+   * 2. For the non-completed dag, recover the dag as normal dag execution. The only difference
+   *    is setting the recoveryData before sending DAG_INIT event so that some steps in the execution
+   *    will be skipped based on the recoveryData
+   * </li>
+   * </ul>
+   */
   private static class RecoverTransition
       implements MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
     @Override
     public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
-      DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent) dagEvent;
+      DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent)dagEvent;
+      // With desired state, represents the case that DAG is completed
       if (recoverEvent.hasDesiredState()) {
-        // DAG completed or final end state known
-        dag.recoveredState = recoverEvent.getDesiredState();
-      }
-      if (recoverEvent.getAdditionalUrlsForClasspath() != null) {
-        LOG.info("Added additional resources : [" + recoverEvent.getAdditionalUrlsForClasspath()
-            + "] to classpath");
-        RelocalizationUtils.addUrlsToClassPath(recoverEvent.getAdditionalUrlsForClasspath());
-      }
-
-      switch (dag.recoveredState) {
-        case NEW:
-          // send DAG an Init and start events
-          dag.eventHandler.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
-          dag.eventHandler.handle(new DAGEventStartDag(dag.getID(), null));
-          return DAGState.NEW;
-        case INITED:
-          // DAG inited but not started
-          // This implies vertices need to be sent init event
-          // Root vertices need to be sent start event
-          // The vertices may already have been sent these events but the
-          // DAG start may not have been persisted
-          for (Vertex v : dag.vertices.values()) {
-            if (v.getInputVerticesCount() == 0) {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Sending Running Recovery event to root vertex "
-                    + v.getLogIdentifier());
-              }
-              dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
-                  VertexState.RUNNING));
-            }
-          }
-          return DAGState.RUNNING;
-        case RUNNING:
-          // if commit is in progress, DAG should fail as commits are not
-          // recoverable
-          boolean groupCommitInProgress = false;
-          if (!dag.recoveredGroupCommits.isEmpty()) {
-            for (Entry<String, Boolean> entry : dag.recoveredGroupCommits.entrySet()) {
-              if (!entry.getValue().booleanValue()) {
-                LOG.info("Found a pending Vertex Group commit"
-                    + ", vertexGroup=" + entry.getKey());
-                groupCommitInProgress = true;
-                break;
-              }
-            }
-          }
-
-          if (groupCommitInProgress || dag.recoveryCommitInProgress) {
-            // Fail the DAG as we have not seen a commit completion
-            dag.trySetTerminationCause(DAGTerminationCause.COMMIT_FAILURE);
-            dag.setFinishTime();
-            // Recover all other data for all vertices
-            // send recover event to all vertices with a final end state
-            for (Vertex v : dag.vertices.values()) {
-              VertexState desiredState = VertexState.SUCCEEDED;
-              if (dag.recoveredState.equals(DAGState.KILLED)) {
-                desiredState = VertexState.KILLED;
-              } else if (EnumSet.of(DAGState.ERROR, DAGState.FAILED).contains(
-                  dag.recoveredState)) {
-                desiredState = VertexState.FAILED;
-              }
-              dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
-                  desiredState));
-            }
-            DAGState endState = DAGState.FAILED;
-            try {
-              dag.logJobHistoryUnsuccesfulEvent(endState);
-            } catch (IOException e) {
-              LOG.warn("Failed to persist recovery event for DAG completion"
-                  + ", dagId=" + dag.dagId
-                  + ", finalState=" + endState);
-            }
-            dag.eventHandler.handle(new DAGAppMasterEventDAGFinished(dag.getID(),
-                endState));
-            return endState;
-          }
-
-          for (Vertex v : dag.vertices.values()) {
-            if (v.getInputVerticesCount() == 0) {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Sending Running Recovery event to root vertex "
-                    + v.getLogIdentifier());
-              }
-              dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
-                  VertexState.RUNNING));
-            }
-          }
-          return DAGState.RUNNING;
+        VertexState vertexDesiredState = null;
+        switch (recoverEvent.getDesiredState()) {
         case SUCCEEDED:
-        case ERROR:
+          vertexDesiredState = VertexState.SUCCEEDED;
+          break;
         case FAILED:
+          vertexDesiredState = VertexState.FAILED;
+          break;
         case KILLED:
-          // Completed
-          
-          // Recover all other data for all vertices
-          // send recover event to all vertices with a final end state
-          for (Vertex v : dag.vertices.values()) {
-            VertexState desiredState = VertexState.SUCCEEDED;
-            if (dag.recoveredState.equals(DAGState.KILLED)) {
-              desiredState = VertexState.KILLED;
-            } else if (EnumSet.of(DAGState.ERROR, DAGState.FAILED).contains(
-                dag.recoveredState)) {
-              desiredState = VertexState.FAILED;
-            }
-            dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(),
-                desiredState));
-          }
-
-          // Let us inform AM of completion
-          dag.eventHandler.handle(new DAGAppMasterEventDAGFinished(dag.getID(),
-              dag.recoveredState));
-
-          LOG.info("Recovered DAG: " + dag.getID() + " finished with state: "
-              + dag.recoveredState);
-          return dag.recoveredState;
+          vertexDesiredState = VertexState.KILLED;
+          break;
+        case ERROR:
+          vertexDesiredState = VertexState.ERROR;
+          break;
         default:
-          // Error state
-          LOG.warn("Trying to recover DAG, failed to recover"
-              + " from non-handled state" + dag.recoveredState);
-          // Tell AM ERROR so that it can shutdown
-          dag.eventHandler.handle(new DAGAppMasterEventDAGFinished(dag.getID(),
-              DAGState.ERROR));
-          return DAGState.FAILED;
+          String msg = "Invalid desired state of DAG"
+              + ", dagName=" + dag.getName()
+              + ", state=" + recoverEvent.getDesiredState();
+          LOG.warn(msg);
+          dag.addDiagnostic(msg);
+          return dag.finished(DAGState.ERROR);
+        }
+        // Initialize dag synchronously to generate the vertices and recover its vertices to the desired state.
+        dag.initializeDAG();
+        for (Vertex v : dag.vertexMap.values()) {
+          dag.eventHandler.handle(new VertexEventRecoverVertex(v.getVertexId(), vertexDesiredState));
+        }
+        dag.addDiagnostic("DAG is recovered to finished state:" + recoverEvent.getDesiredState()
+            + ", but will only recover partial data due to incomplete recovery data");
+        return dag.finished(recoverEvent.getDesiredState());
       }
-    }
 
+      // for the cases that DAG is not completed, recover it as normal dag execution.
+      dag.recoveryData = recoverEvent.getRecoveredDagData();
+      dag.appContext.setDAGRecoveryData(dag.recoveryData);
+      dag.getEventHandler().handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
+      dag.getEventHandler().handle(new DAGEventStartDag(dag.getID(), dag.recoveryData.additionalUrlsForClasspath));
+      return DAGState.NEW;
+    }
   }
 
   private static class InitTransition
@@ -1818,6 +1687,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // TODO Metrics
       //dag.metrics.submittedJob(dag);
       //dag.metrics.preparingJob(dag);
+      if (dag.recoveryData != null && dag.recoveryData.getDAGInitializedEvent() != null) {
+        dag.initTime = dag.recoveryData.getDAGInitializedEvent().getInitTime();
+      } else {
+        dag.initTime = dag.clock.getTime();
+      }
       dag.startDAGCpuTime = dag.appContext.getCumulativeCPUTime();
       dag.startDAGGCTime = dag.appContext.getCumulativeGCTime();
 
@@ -1845,9 +1719,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
      */
     @Override
     public void transition(DAGImpl dag, DAGEvent event) {
+      if (dag.recoveryData != null && dag.recoveryData.getDAGStartedEvent() != null) {
+        dag.startTime = dag.recoveryData.getDAGStartedEvent().getStartTime();
+      } else {
+        dag.startTime = dag.clock.getTime();
+      }
       DAGEventStartDag startEvent = (DAGEventStartDag) event;
-      dag.startTime = dag.clock.getTime();
-      dag.logJobHistoryStartedEvent();
       List<URL> additionalUrlsForClasspath = startEvent.getAdditionalUrlsForClasspath();
       if (additionalUrlsForClasspath != null) {
         LOG.info("Added additional resources : [" + additionalUrlsForClasspath  + "] to classpath");
@@ -1858,6 +1735,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       // Start all vertices with no incoming edges when job starts
       dag.initializeVerticesAndStart();
+      dag.logJobHistoryStartedEvent();
     }
   }
 
@@ -2032,6 +1910,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   }
 
+  private Collection<TezVertexID> getVertexIds(Collection<String> vertexNames) {
+    List<TezVertexID> vertexIds = new ArrayList<TezVertexID>(vertexNames.size());
+    for (String name : vertexNames) {
+      vertexIds.add(getVertexNameIDMapping().get(name));
+    }
+    return vertexIds;
+  }
+
   private static class VertexReRunningTransition implements
     MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
@@ -2078,17 +1964,30 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           }
         }
         for (VertexGroupInfo groupInfo : commitList) {
-          if (recoveredGroupCommits.containsKey(groupInfo.groupName)) {
+          if (recoveryData != null && recoveryData.isVertexGroupCommitted(groupInfo.groupName)) {
             LOG.info("VertexGroup was already committed as per recovery"
                 + " data, groupName=" + groupInfo.groupName);
+            for (String vertexName : groupInfo.groupMembers) {
+              VertexRecoveryData vertexRecoveryData =
+                  recoveryData.getVertexRecoveryData(getVertex(vertexName).getVertexId());
+              Preconditions.checkArgument(vertexRecoveryData != null,"Vertex Group has been committed"
+                  + ", but no VertexRecoveryData found for its vertex " + vertexName);
+              VertexFinishedEvent vertexFinishedEvent = vertexRecoveryData.getVertexFinishedEvent();
+              Preconditions.checkArgument(vertexFinishedEvent!= null,"Vertex Group has been committed"
+                  + ", but no VertexFinishedEvent found in its vertex " + vertexName);
+              Preconditions.checkArgument(vertexFinishedEvent.getState() == VertexState.SUCCEEDED,
+                  "Vertex Group has been committed, but unexpected vertex state of its vertex "
+                  + vertexName + ", vertexstate=" + vertexFinishedEvent.getState());
+            }
             continue;
           }
           groupInfo.commitStarted = true;
           final Vertex v = getVertex(groupInfo.groupMembers.iterator().next());
           try {
+            Collection<TezVertexID> vertexIds = getVertexIds(groupInfo.groupMembers);
             appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
                 new VertexGroupCommitStartedEvent(dagId, groupInfo.groupName,
-                    clock.getTime())));
+                    vertexIds, clock.getTime())));
           } catch (IOException e) {
             LOG.error("Failed to send commit recovery event to handler", e);
             recoveryFailed = true;
@@ -2269,9 +2168,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         if (vertexGroup.isCommitted()) {
           if (!commitAllOutputsOnSuccess) {
             try {
+              Collection<TezVertexID> vertexIds = getVertexIds(vertexGroup.groupMembers);
               appContext.getHistoryHandler().handleCriticalEvent(new DAGHistoryEvent(getID(),
                   new VertexGroupCommitFinishedEvent(getID(), commitCompletedEvent.getOutputKey().getEntityName(),
-                      clock.getTime())));
+                      vertexIds, clock.getTime())));
             } catch (IOException e) {
               String diag = "Failed to send commit recovery event to handler, " + ExceptionUtils.getStackTrace(e);
               addDiagnostic(diag);

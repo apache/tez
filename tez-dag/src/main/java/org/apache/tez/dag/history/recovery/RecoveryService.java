@@ -50,7 +50,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class RecoveryService extends AbstractService {
 
   private static final Logger LOG = LoggerFactory.getLogger(RecoveryService.class);
-  private final AppContext appContext;
+  protected final AppContext appContext;
 
   public static final String RECOVERY_FATAL_OCCURRED_DIR =
       "RecoveryFatalErrorOccurred";
@@ -73,7 +73,7 @@ public class RecoveryService extends AbstractService {
   private Set<TezDAGID> completedDAGs = new HashSet<TezDAGID>();
   private Set<TezDAGID> skippedDAGs = new HashSet<TezDAGID>();
 
-  private Thread eventHandlingThread;
+  public Thread eventHandlingThread;
   private AtomicBoolean stopped = new AtomicBoolean(false);
   private AtomicBoolean started = new AtomicBoolean(false);
   private int eventCounter = 0;
@@ -374,7 +374,7 @@ public class RecoveryService extends AbstractService {
     }
   }
 
-  private void handleSummaryEvent(TezDAGID dagID,
+  protected void handleSummaryEvent(TezDAGID dagID,
       HistoryEventType eventType,
       SummaryEvent summaryEvent) throws IOException {
     if (LOG.isDebugEnabled()) {
@@ -505,5 +505,9 @@ public class RecoveryService extends AbstractService {
     while (!this.drained) {
       Thread.yield();
     }
+  }
+
+  public void setStopped(boolean stopped) {
+    this.stopped.set(stopped);
   }
 }

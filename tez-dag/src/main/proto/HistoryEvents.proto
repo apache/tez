@@ -90,6 +90,8 @@ message VertexInitializedProto {
   optional int64 init_time = 4;
   optional int32 num_tasks = 5;
   repeated RootInputLeafOutputProto inputs = 6;
+  repeated TezEventProto init_generated_events = 7; 
+  optional bool isReconfigurePlanned = 8;
 }
 
 message VertexStartedProto {
@@ -97,6 +99,16 @@ message VertexStartedProto {
   optional string vertex_id = 2;
   optional int64 start_requested_time = 3;
   optional int64 start_time = 4;
+}
+
+message VertexConfigurationDoneProto {
+  optional string vertex_id = 1;
+  optional int64 reconfigure_done_time = 2;
+  optional int32 num_tasks = 3;
+  optional VertexLocationHintProto vertex_location_hint = 4;
+  repeated EdgeManagerDescriptorProto edge_manager_descriptors = 5;
+  repeated RootInputSpecUpdateProto root_input_spec_updates = 6;
+  optional bool setParallelismCalled_flag = 7;
 }
 
 message EdgeManagerDescriptorProto {
@@ -110,14 +122,6 @@ message RootInputSpecUpdateProto {
   repeated int32 num_physical_inputs = 3;
 }
 
-message VertexParallelismUpdatedProto {
-  optional string vertex_id = 1;
-  optional int32 num_tasks = 2;
-  optional VertexLocationHintProto vertex_location_hint = 3;
-  repeated EdgeManagerDescriptorProto edge_manager_descriptors = 4;
-  repeated RootInputSpecUpdateProto root_input_spec_updates = 5;
-}
-
 message VertexCommitStartedProto {
   optional string vertex_id = 1;
 }
@@ -129,11 +133,13 @@ message VertexCommitFinishedProto {
 message VertexGroupCommitStartedProto {
   optional string dag_id = 1;
   optional string vertex_group_name = 2;
+  repeated string vertex_ids = 3;
 }
 
 message VertexGroupCommitFinishedProto {
   optional string dag_id = 1;
   optional string vertex_group_name = 2;
+  repeated string vertex_ids = 3;
 }
 
 message VertexFinishedProto {
@@ -183,6 +189,7 @@ message TaskAttemptFinishedProto {
   optional TezCountersProto counters = 9;
   optional string error_enum = 10;
   repeated DataEventDependencyInfoProto data_events = 11;
+  repeated TezEventProto ta_generated_events = 12;
 }
 
 message EventMetaDataProto {
@@ -192,7 +199,7 @@ message EventMetaDataProto {
   optional string task_attempt_id = 4;
 }
 
-message TezDataMovementEventProto {
+message TezEventProto {
   optional EventMetaDataProto source_info = 1;
   optional EventMetaDataProto destination_info = 2;
   optional DataMovementEventProto data_movement_event = 3;
@@ -200,11 +207,7 @@ message TezDataMovementEventProto {
   optional RootInputDataInformationEventProto root_input_data_information_event = 5;
   optional RootInputInitializerEventProto input_initializer_event = 6;
   optional int64 event_time = 7;
-}
-
-message VertexDataMovementEventsGeneratedProto {
-  optional string vertex_id = 1;
-  repeated TezDataMovementEventProto tez_data_movement_event = 2;
+  optional VertexManagerEventProto vm_event = 8;
 }
 
 message SummaryEventProto {

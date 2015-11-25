@@ -163,7 +163,7 @@ public class TestTaskImpl {
   }
 
   private void scheduleTaskAttempt(TezTaskID taskId) {
-    mockTask.handle(new TaskEventScheduleTask(taskId, mockTaskSpec, locationHint));
+    mockTask.handle(new TaskEventScheduleTask(taskId, mockTaskSpec, locationHint, false));
     assertTaskScheduledState();
     assertEquals(mockTaskSpec, mockTask.getBaseTaskSpec());
     assertEquals(locationHint, mockTask.getTaskLocationHint());
@@ -762,8 +762,7 @@ public class TestTaskImpl {
         boolean isRescheduled,
         Resource resource, ContainerContext containerContext, TezTaskAttemptID schedCausalTA) {
       super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
-          appContext, isRescheduled, resource, containerContext, false, mock(TaskImpl.class),
-          schedCausalTA);
+          appContext, isRescheduled, resource, containerContext, false, mock(TaskImpl.class), schedCausalTA);
     }
     
     @Override

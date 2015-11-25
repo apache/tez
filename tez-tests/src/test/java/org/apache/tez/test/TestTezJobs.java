@@ -573,7 +573,7 @@ public class TestTezJobs {
     }
   }
 
-  private void generateOrderedWordCountInput(Path inputDir, FileSystem fs) throws IOException {
+  public static void generateOrderedWordCountInput(Path inputDir, FileSystem fs) throws IOException {
     Path dataPath1 = new Path(inputDir, "inPath1");
     Path dataPath2 = new Path(inputDir, "inPath2");
 
@@ -606,7 +606,7 @@ public class TestTezJobs {
     }
   }
 
-  private void verifyOrderedWordCountOutput(Path resultFile, FileSystem fs) throws IOException {
+  public static void verifyOrderedWordCountOutput(Path resultFile, FileSystem fs) throws IOException {
     FSDataInputStream inputStream = fs.open(resultFile);
     final String prefix = "a";
     int currentCounter = 10;
@@ -631,7 +631,7 @@ public class TestTezJobs {
     Assert.assertEquals(0, currentCounter);
   }
   
-  private void verifyOutput(Path outputDir, FileSystem fs) throws IOException {
+  public static void verifyOutput(Path outputDir, FileSystem fs) throws IOException {
     FileStatus[] fileStatuses = fs.listStatus(outputDir);
     Path resultFile = null;
     boolean foundResult = false;

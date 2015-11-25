@@ -24,26 +24,18 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatus.State;
-import org.apache.tez.dag.app.RecoveryParser;
-import org.apache.tez.dag.history.HistoryEvent;
-import org.apache.tez.dag.history.HistoryEventType;
-import org.apache.tez.dag.history.events.VertexInitializedEvent;
-import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.test.dag.MultiAttemptDAG;
 import org.apache.tez.test.dag.MultiAttemptDAG.FailingInputInitializer;
 import org.apache.tez.test.dag.MultiAttemptDAG.NoOpInput;
@@ -57,8 +49,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 public class TestDAGRecovery {
@@ -176,56 +166,6 @@ public class TestDAGRecovery {
     Assert.assertEquals(finalState, dagStatus.getState());
   }
 
-  private void verifyRecoveryLog() throws IOException{
-    ApplicationId appId = tezSession.getAppMasterApplicationId();
-    Path tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(tezConf, appId.toString());
-    Path recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, tezConf);
-
-    FileSystem fs = tezSystemStagingDir.getFileSystem(tezConf);
-    // verify recovery logs in each attempt
-    for (int attemptNum=1; attemptNum<=3; ++attemptNum) {
-      List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
-      // read the recovery logs for current attempt
-      // since dag recovery logs is dispersed in each attempt's recovery directory,
-      // so need to read recovery logs from the first attempt to current attempt
-      for (int i=1 ;i<=attemptNum;++i) {
-        Path currentAttemptRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,i);
-        Path recoveryFilePath = new Path(currentAttemptRecoveryDataDir,
-        appId.toString().replace("application", "dag") + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
-        historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(
-            fs.open(recoveryFilePath)));
-      }
-
-      int inputInfoEventIndex = -1;
-      int vertexInitedEventIndex = -1;
-      for (int j=0;j<historyEvents.size(); ++j) {
-        HistoryEvent historyEvent = historyEvents.get(j);
-        LOG.info("Parsed event from recovery stream"
-            + ", eventType=" + historyEvent.getEventType()
-            + ", event=" + historyEvent);
-        if (historyEvent.getEventType() ==  HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED) {
-          VertexRecoverableEventsGeneratedEvent dmEvent =
-              (VertexRecoverableEventsGeneratedEvent) historyEvent;
-          // TODO do not need to check whether it is -1 after Tez-1521 is resolved
-          if (dmEvent.getVertexID().getId() == 0 && inputInfoEventIndex == -1) {
-            inputInfoEventIndex = j;
-          }
-        }
-        if (historyEvent.getEventType() == HistoryEventType.VERTEX_INITIALIZED) {
-          VertexInitializedEvent vInitedEvent = (VertexInitializedEvent) historyEvent;
-          if (vInitedEvent.getVertexID().getId() == 0) {
-            vertexInitedEventIndex = j;
-          }
-        }
-      }
-      // v1's init events must be logged before its VertexInitializedEvent (Tez-1345)
-      Assert.assertTrue("can not find VERTEX_DATA_MOVEMENT_EVENTS_GENERATED for v1", inputInfoEventIndex != -1);
-      Assert.assertTrue("can not find VERTEX_INITIALIZED for v1", vertexInitedEventIndex != -1);
-      Assert.assertTrue("VERTEX_DATA_MOVEMENT_EVENTS_GENERATED is logged before VERTEX_INITIALIZED for v1",
-          inputInfoEventIndex < vertexInitedEventIndex);
-    }
-  }
-
   @Test(timeout=120000)
   public void testBasicRecovery() throws Exception {
     DAG dag = MultiAttemptDAG.createDAG("TestBasicRecovery", null);
@@ -236,8 +176,6 @@ public class TestDAGRecovery {
     dag.getVertex("v1").addDataSource("Input", dataSource);
 
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-
-    verifyRecoveryLog();
   }
 
   @Test(timeout=120000)

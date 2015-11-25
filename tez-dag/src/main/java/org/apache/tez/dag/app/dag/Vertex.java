@@ -49,7 +49,6 @@ import org.apache.tez.dag.app.TaskAttemptEventInfo;
 import org.apache.tez.dag.app.dag.event.SpeculatorEvent;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
 import org.apache.tez.dag.app.dag.impl.Edge;
-import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -172,8 +171,6 @@ public interface Vertex extends Comparable<Vertex> {
   // TODO remove this once RootInputVertexManager is fixed to not use
   // internal apis
   AppContext getAppContext();
-
-  VertexState restoreFromEvent(HistoryEvent event);
 
   String getLogIdentifier();
 

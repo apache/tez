@@ -21,15 +21,22 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventKillRequest extends TaskAttemptEvent 
-  implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
+  implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent, RecoveryEvent {
 
   private final String message;
   private final TaskAttemptTerminationCause errorCause;
+  private boolean fromRecovery = false;
 
   public TaskAttemptEventKillRequest(TezTaskAttemptID id, String message, TaskAttemptTerminationCause err) {
     super(id, TaskAttemptEventType.TA_KILL_REQUEST);
     this.message = message;
     this.errorCause = err;
+  }
+
+  public TaskAttemptEventKillRequest(TezTaskAttemptID id, String message, TaskAttemptTerminationCause err,
+      boolean fromRecovery) {
+    this(id, message, err);
+    this.fromRecovery = fromRecovery;
   }
 
   @Override
@@ -40,6 +47,11 @@ public class TaskAttemptEventKillRequest extends TaskAttemptEvent
   @Override
   public TaskAttemptTerminationCause getTerminationCause() {
     return errorCause;
+  }
+
+  @Override
+  public boolean isFromRecovery() {
+    return fromRecovery;
   }
 
 }

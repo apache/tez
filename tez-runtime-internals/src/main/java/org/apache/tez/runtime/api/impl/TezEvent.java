@@ -278,7 +278,7 @@ public class TezEvent implements Writable {
     } else {
       out.writeBoolean(false);
     }
-  }
+  } 
 
   @Override
   public void readFields(DataInput in) throws IOException {

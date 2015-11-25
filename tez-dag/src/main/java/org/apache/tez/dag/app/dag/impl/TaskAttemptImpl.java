@@ -61,6 +61,7 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
+import org.apache.tez.dag.app.RecoveryParser.TaskAttemptRecoveryData;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.Task;
@@ -72,9 +73,13 @@ import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
+import org.apache.tez.dag.app.dag.event.RecoveryEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventTezEventUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
@@ -89,7 +94,6 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.history.DAGHistoryEvent;
-import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
@@ -109,6 +113,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -166,6 +171,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Lock writeLock;
   protected final AppContext appContext;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
+  private final TaskAttemptRecoveryData recoveryData;
   private long launchTime = 0;
   private long finishTime = 0;
   private String trackerName;
@@ -191,9 +197,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   private DAGCounter localityCounter;
   
   org.apache.tez.runtime.api.impl.TaskStatistics statistics;
-  
+
   long lastNotifyProgressTimestamp = 0;
   private final long hungIntervalMax;
+
+  private List<TezEvent> taGeneratedEvents = Lists.newArrayList();
 
   // Used to store locality information when
   Set<String> taskHosts = new HashSet<String>();
@@ -240,20 +248,29 @@ public class TaskAttemptImpl implements TaskAttempt,
             (TaskAttemptStateInternal.NEW)
 
       .addTransition(TaskAttemptStateInternal.NEW,
-          EnumSet.of(TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAILED),
+          EnumSet.of(TaskAttemptStateInternal.NEW, TaskAttemptStateInternal.START_WAIT, TaskAttemptStateInternal.FAILED),
           TaskAttemptEventType.TA_SCHEDULE, new ScheduleTaskattemptTransition())
+       // NEW -> FAILED due to TA_FAILED happens in recovery 
+       // (No TaskAttemptStartedEvent, but with TaskAttemptFinishedEvent(FAILED)
+      .addTransition(TaskAttemptStateInternal.NEW,
+              TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_FAILED, new TerminateTransition(FAILED_HELPER))
       .addTransition(TaskAttemptStateInternal.NEW,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_KILL_REQUEST,
           new TerminateTransition(KILLED_HELPER))
-
+      // NEW -> KILLED due to TA_KILLED happens in recovery
+      // (No TaskAttemptStartedEvent, but with TaskAttemptFinishedEvent(KILLED)    
       .addTransition(TaskAttemptStateInternal.NEW,
-          EnumSet.of(TaskAttemptStateInternal.NEW,
-              TaskAttemptStateInternal.RUNNING,
-              TaskAttemptStateInternal.KILLED,
-              TaskAttemptStateInternal.FAILED,
-              TaskAttemptStateInternal.SUCCEEDED),
-          TaskAttemptEventType.TA_RECOVER, new RecoverTransition())
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_KILLED,
+          new TerminateTransition(KILLED_HELPER))
+      // NEW -> SUCCEEDED due to TA_DONE happens in recovery
+      // (with TaskAttemptStartedEvent and with TaskAttemptFinishedEvent(SUCCEEDED)    
+      .addTransition(TaskAttemptStateInternal.NEW,
+          TaskAttemptStateInternal.SUCCEEDED,
+          TaskAttemptEventType.TA_DONE,
+          new SucceededTransition())
 
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.RUNNING,
@@ -328,6 +345,11 @@ public class TaskAttemptImpl implements TaskAttempt,
               TaskAttemptStateInternal.RUNNING),
           TaskAttemptEventType.TA_OUTPUT_FAILED,
           new OutputReportedFailedTransition())
+       // for recovery, needs to log the TA generated events in TaskAttemptFinishedEvent    
+      .addTransition(TaskAttemptStateInternal.RUNNING,
+          TaskAttemptStateInternal.RUNNING,
+          TaskAttemptEventType.TA_TEZ_EVENT_UPDATE,
+          new TezEventUpdaterTransition())
 
       .addTransition(TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptStateInternal.KILLED,
@@ -434,9 +456,6 @@ public class TaskAttemptImpl implements TaskAttempt,
 
         .installTopology();
 
-  private TaskAttemptState recoveredState = TaskAttemptState.NEW;
-  private boolean recoveryStartEventSeen = false;
-
   @SuppressWarnings("rawtypes")
   public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
       TaskCommunicatorManagerInterface taskCommunicatorManagerInterface, Configuration conf, Clock clock,
@@ -493,6 +512,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 
         TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT);
 
+    this.recoveryData = appContext.getDAGRecoveryData() == null ?
+        null : appContext.getDAGRecoveryData().getTaskAttemptRecoveryData(attemptId);
   }
 
   @Override
@@ -521,14 +542,6 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
     TaskSpec baseTaskSpec = task.getBaseTaskSpec();
-    if (baseTaskSpec == null) {
-      // since recovery does not follow normal transitions, TaskEventScheduleTask
-      // is not being honored by the recovery code path. Using this to workaround 
-      // until recovery is fixed. Calling the non-locking internal method of the vertex
-      // to get the taskSpec directly. Since everything happens on the central dispatcher 
-      // during recovery this is deadlock free for now. TEZ-1019 should remove the need for this.
-      baseTaskSpec = ((VertexImpl) vertex).createRemoteTaskSpec(getID().getTaskID().getId());
-    }
     return new TaskSpec(getID(),
         baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
         baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
@@ -839,52 +852,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     }
   }
 
-  @Override
-  public TaskAttemptState restoreFromEvent(HistoryEvent historyEvent) {
-    writeLock.lock();
-    try {
-      switch (historyEvent.getEventType()) {
-        case TASK_ATTEMPT_STARTED:
-        {
-          TaskAttemptStartedEvent tEvent = (TaskAttemptStartedEvent) historyEvent;
-          this.launchTime = tEvent.getStartTime();
-          recoveryStartEventSeen = true;
-          recoveredState = TaskAttemptState.RUNNING;
-          this.containerId = tEvent.getContainerId();
-          sendEvent(createDAGCounterUpdateEventTALaunched(this));
-          return recoveredState;
-        }
-        case TASK_ATTEMPT_FINISHED:
-        {
-          TaskAttemptFinishedEvent tEvent = (TaskAttemptFinishedEvent) historyEvent;
-          this.creationTime = tEvent.getCreationTime();
-          this.allocationTime = tEvent.getAllocationTime();
-          this.launchTime = tEvent.getStartTime();
-          this.finishTime = tEvent.getFinishTime();
-          this.creationCausalTA = tEvent.getCreationCausalTA();
-          this.reportedStatus.counters = tEvent.getCounters();
-          this.reportedStatus.progress = 1f;
-          this.reportedStatus.state = tEvent.getState();
-          this.terminationCause = tEvent.getTaskAttemptError() != null ? tEvent.getTaskAttemptError()
-              : TaskAttemptTerminationCause.UNKNOWN_ERROR;
-          this.diagnostics.add(tEvent.getDiagnostics());
-          this.recoveredState = tEvent.getState();
-          if (tEvent.getDataEvents() != null) {
-            this.lastDataEvents.addAll(tEvent.getDataEvents());
-          }
-          sendEvent(createDAGCounterUpdateEventTAFinished(this, tEvent.getState()));
-          return recoveredState;
-        }
-        default:
-          throw new RuntimeException("Unexpected event received for restoring"
-              + " state, eventType=" + historyEvent.getEventType());
-  
-      }
-    } finally {
-      writeLock.unlock();
-    }
-  }
-
   @SuppressWarnings("unchecked")
   private void sendEvent(Event<?> event) {
     this.eventHandler.handle(event);
@@ -1055,6 +1022,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   protected void logJobHistoryAttemptStarted() {
+    Preconditions.checkArgument(recoveryData == null);
     final String containerIdStr = containerId.toString();
     String inProgressLogsUrl = nodeHttpAddress
        + "/" + "node/containerlogs"
@@ -1081,13 +1049,16 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   protected void logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal state) {
-    //Log finished events only if an attempt started.
+    Preconditions.checkArgument(recoveryData == null
+        || recoveryData.getTaskAttemptFinishedEvent() == null,
+        "log TaskAttemptFinishedEvent again in recovery when there's already another TaskAtttemptFinishedEvent");
     if (getLaunchTime() == 0) return;
 
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, null,
-        "", getCounters(), lastDataEvents, creationTime, creationCausalTA, allocationTime);
+        "", getCounters(), lastDataEvents, taGeneratedEvents,
+        creationTime, creationCausalTA, allocationTime);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1095,6 +1066,9 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
+    Preconditions.checkArgument(recoveryData == null
+        || recoveryData.getTaskAttemptFinishedEvent() == null,
+        "log TaskAttemptFinishedEvent again in recovery when there's already another TaskAtttemptFinishedEvent");
     long finishTime = getFinishTime();
     if (finishTime <= 0) {
       finishTime = clock.getTime(); // comes here in case it was terminated before launch
@@ -1104,8 +1078,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         finishTime, state,
         terminationCause,
         StringUtils.join(
-            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents, 
-        creationTime, creationCausalTA, allocationTime);
+            getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents,
+        taGeneratedEvents, creationTime, creationCausalTA, allocationTime);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1116,12 +1090,69 @@ public class TaskAttemptImpl implements TaskAttempt,
   //////////////////////////////////////////////////////////////////////////////
 
   protected static class ScheduleTaskattemptTransition implements
-      MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
+    MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
 
     @Override
     public TaskAttemptStateInternal transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
-      TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
+      if (ta.recoveryData != null) {
+        TaskAttemptStartedEvent taStartedEvent =
+            ta.recoveryData.getTaskAttemptStartedEvent();
+        if (taStartedEvent != null) {
+          ta.launchTime = taStartedEvent.getStartTime();
+          TaskAttemptFinishedEvent taFinishedEvent =
+              ta.recoveryData.getTaskAttemptFinishedEvent();
+          if (taFinishedEvent == null) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Only TaskAttemptStartedEvent but no TaskAttemptFinishedEvent, "
+                  + "send out TaskAttemptEventAttemptKilled to move it to KILLED");
+            }
+            ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getID(), 
+                "Task Attempt killed in recovery due to can't recover the running task attempt",
+                TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY, true));
+            return TaskAttemptStateInternal.NEW;
+          }
+        }
+        // No matter whether TaskAttemptStartedEvent is seen, send corresponding event to move 
+        // TA to the state of TaskAttemptFinishedEvent
+        TaskAttemptFinishedEvent taFinishedEvent =
+            ta.recoveryData.getTaskAttemptFinishedEvent();
+        Preconditions.checkArgument(taFinishedEvent != null, "Both of TaskAttemptStartedEvent and TaskFinishedEvent is null,"
+            + "taskAttemptId=" + ta.getID());
+        switch (taFinishedEvent.getState()) {
+          case FAILED:
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("TaskAttemptFinishedEvent is seen with state of FAILED"
+                  + ", send TA_FAILED to itself"
+                  + ", attemptId=" + ta.attemptId);
+            }
+            ta.sendEvent(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+                taFinishedEvent.getDiagnostics(), taFinishedEvent.getTaskAttemptError(), true));
+            break;
+          case KILLED:
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("TaskAttemptFinishedEvent is seen with state of KILLED"
+                  + ", send TA_KILLED to itself"
+                  + ", attemptId=" + ta.attemptId);
+            }
+            ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getID(),
+                taFinishedEvent.getDiagnostics(), taFinishedEvent.getTaskAttemptError(), true));
+            break;
+          case SUCCEEDED:
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("TaskAttemptFinishedEvent is seen with state of SUCCEEDED"
+                  + ", send TA_DONE to itself"
+                  + ", attemptId=" + ta.attemptId);
+            }
+            ta.sendEvent(new TaskAttemptEvent(ta.getID(), TaskAttemptEventType.TA_DONE));
+            break;
+          default:
+            throw new TezUncheckedException("Invalid state in TaskAttemptFinishedEvent, state=" 
+                + taFinishedEvent.getState() + ", taId=" + ta.getID());
+        }
+        return TaskAttemptStateInternal.NEW;
+      }
 
+      TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
       ta.scheduledTime = ta.clock.getTime();
       // TODO Creating the remote task here may not be required in case of
       // recovery.
@@ -1212,7 +1243,14 @@ public class TaskAttemptImpl implements TaskAttempt,
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       // This transition should not be invoked directly, if a scheduler event has already been sent out.
       // Sub-classes should be used if a scheduler request has been sent.
-      ta.setFinishTime();
+      if (ta.recoveryData == null ||
+          ta.recoveryData.getTaskAttemptFinishedEvent() == null) {
+        ta.setFinishTime();
+        ta.logJobHistoryAttemptUnsuccesfulCompletion(helper
+            .getTaskAttemptState());
+      } else {
+        ta.finishTime = ta.recoveryData.getTaskAttemptFinishedEvent().getFinishTime();
+      }
 
       if (event instanceof DiagnosableEvent) {
         ta.addDiagnosticInfo(((DiagnosableEvent) event).getDiagnosticInfo());
@@ -1225,11 +1263,16 @@ public class TaskAttemptImpl implements TaskAttempt,
             + ", requiredClass=TaskAttemptEventTerminationCauseEvent"
             + ", eventClass=" + event.getClass().getName());
       }
-
+      if (event instanceof RecoveryEvent) {
+        RecoveryEvent rEvent = (RecoveryEvent)event;
+        if (rEvent.isFromRecovery()) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Faked TerminateEvent from recovery, taskAttemptId=" + ta.getID());
+          }
+        }
+      }
       ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
           helper.getTaskAttemptState()));
-      ta.logJobHistoryAttemptUnsuccesfulCompletion(helper
-          .getTaskAttemptState());
       // Send out events to the Task - indicating TaskAttemptTermination(F/K)
       ta.sendEvent(new TaskEventTAUpdate(ta.attemptId, helper
           .getTaskEventType(), event));
@@ -1413,14 +1456,42 @@ public class TaskAttemptImpl implements TaskAttempt,
     }
   }
 
+  protected static class TezEventUpdaterTransition implements
+      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
+
+    @Override
+    public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
+      TaskAttemptEventTezEventUpdate tezEventUpdate = (TaskAttemptEventTezEventUpdate)event;
+      ta.taGeneratedEvents.addAll(tezEventUpdate.getTezEvents());
+    }
+  }
+
   protected static class SucceededTransition implements
       SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
     @Override
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
 
-      ta.setFinishTime();
-      // Send out history event.
-      ta.logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal.SUCCEEDED);
+      // If TaskAttempt is recovered to SUCCEEDED, send events generated by this TaskAttempt to vertex
+      // for its downstream consumers. For normal dag execution, the events are sent by TaskAttmeptListener
+      // for performance consideration.
+      if (ta.recoveryData != null && ta.recoveryData.isTaskAttemptSucceeded()) {
+        TaskAttemptFinishedEvent taFinishedEvent = ta.recoveryData
+            .getTaskAttemptFinishedEvent();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("TaskAttempt is recovered to SUCCEEDED, attemptId=" + ta.attemptId);
+        }
+        ta.reportedStatus.counters = taFinishedEvent.getCounters();
+        List<TezEvent> tezEvents = taFinishedEvent.getTAGeneratedEvents();
+        if (tezEvents != null && !tezEvents.isEmpty()) {
+          ta.sendEvent(new VertexEventRouteEvent(ta.getVertexID(), tezEvents));
+        }
+        ta.finishTime = taFinishedEvent.getFinishTime();
+      } else {
+        ta.setFinishTime();
+        // Send out history event.
+        ta.logJobHistoryAttemptFinishedEvent(TaskAttemptStateInternal.SUCCEEDED);
+      }
+
       ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
           TaskAttemptState.SUCCEEDED));
 
@@ -1516,48 +1587,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       super.transition(ta, event);
       ta.sendTaskAttemptCleanupEvent();
-    }
-
-  }
-
-  protected static class RecoverTransition implements
-      MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
-
-    @Override
-    public TaskAttemptStateInternal transition(TaskAttemptImpl taskAttempt, TaskAttemptEvent taskAttemptEvent) {
-      TaskAttemptStateInternal endState = TaskAttemptStateInternal.FAILED;
-      switch(taskAttempt.recoveredState) {
-        case NEW:
-        case RUNNING:
-          // FIXME once running containers can be recovered, this
-          // should be handled differently
-          // TODO abort taskattempt
-          taskAttempt.sendEvent(new TaskEventTAUpdate(taskAttempt.attemptId,
-              TaskEventType.T_ATTEMPT_KILLED));
-          taskAttempt.sendEvent(createDAGCounterUpdateEventTAFinished(taskAttempt,
-              getExternalState(TaskAttemptStateInternal.KILLED)));
-          taskAttempt.logJobHistoryAttemptUnsuccesfulCompletion(TaskAttemptState.KILLED);
-          endState = TaskAttemptStateInternal.KILLED;
-          break;
-        case SUCCEEDED:
-          // Do not inform Task as it already knows about completed attempts
-          endState = TaskAttemptStateInternal.SUCCEEDED;
-          break;
-        case FAILED:
-          // Do not inform Task as it already knows about completed attempts
-          endState = TaskAttemptStateInternal.FAILED;
-          break;
-        case KILLED:
-          // Do not inform Task as it already knows about completed attempts
-          endState = TaskAttemptStateInternal.KILLED;
-          break;
-        default:
-          throw new RuntimeException("Failed to recover from non-handled state"
-              + ", taskAttemptId=" + taskAttempt.getID()
-              + ", state=" + taskAttempt.recoveredState);
-      }
-
-      return endState;
     }
 
   }

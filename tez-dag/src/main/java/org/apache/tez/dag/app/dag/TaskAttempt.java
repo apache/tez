@@ -28,7 +28,6 @@ import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
-import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -136,7 +135,5 @@ public interface TaskAttempt {
    *  yet, returns 0.
    */
   long getFinishTime();
-  
-  TaskAttemptState restoreFromEvent(HistoryEvent event);
 
 }

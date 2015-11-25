@@ -64,7 +64,10 @@ public class HistoryEventHandler extends CompositeService {
     addService(historyLoggingService);
 
     if (recoveryEnabled) {
-      recoveryService = new RecoveryService(context);
+      String recoveryServiceClass = conf.get(TezConfiguration.TEZ_AM_RECOVERY_SERVICE_CLASS,
+          TezConfiguration.TEZ_AM_RECOVERY_SERVICE_CLASS_DEFAULT);
+      recoveryService = ReflectionUtils.createClazzInstance(recoveryServiceClass,
+          new Class[]{AppContext.class}, new Object[] {context});
       addService(recoveryService);
     }
     super.serviceInit(conf);

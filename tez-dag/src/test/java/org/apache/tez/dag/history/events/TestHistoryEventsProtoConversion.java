@@ -61,23 +61,28 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 
 public class TestHistoryEventsProtoConversion {
 
@@ -270,10 +275,12 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private void testVertexInitializedEvent() throws Exception {
+    List<TezEvent> initGeneratedEvents = Lists.newArrayList(
+        new TezEvent(InputDataInformationEvent.createWithSerializedPayload(0, ByteBuffer.wrap(new byte[0])), null));
     VertexInitializedEvent event = new VertexInitializedEvent(
         TezVertexID.getInstance(
             TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-        "vertex1", 1000l, 15000l, 100, "procName", null);
+        "vertex1", 1000l, 15000l, 100, "procName", null, initGeneratedEvents);
     VertexInitializedEvent deserializedEvent = (VertexInitializedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
@@ -286,6 +293,11 @@ public class TestHistoryEventsProtoConversion {
     Assert.assertEquals(event.getAdditionalInputs(),
         deserializedEvent.getAdditionalInputs());
     Assert.assertNull(deserializedEvent.getProcessorName());
+    Assert.assertEquals(1, event.getInitGeneratedEvents().size());
+    Assert.assertEquals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT,
+        event.getInitGeneratedEvents().get(0).getEventType());
+    Assert.assertEquals(event.getInitGeneratedEvents().size(),
+        deserializedEvent.getInitGeneratedEvents().size());
     logEvents(event, deserializedEvent);
   }
 
@@ -304,85 +316,72 @@ public class TestHistoryEventsProtoConversion {
     logEvents(event, deserializedEvent);
   }
 
-  private void testVertexParallelismUpdatedEvent() throws Exception {
-    {
-      InputSpecUpdate rootInputSpecUpdateBulk = InputSpecUpdate
-          .createAllTaskInputSpecUpdate(2);
-      InputSpecUpdate rootInputSpecUpdatePerTask = InputSpecUpdate
-          .createPerTaskInputSpecUpdate(Lists.newArrayList(1, 2, 3));
-      Map<String, InputSpecUpdate> rootInputSpecUpdates = new HashMap<String, InputSpecUpdate>();
-      rootInputSpecUpdates.put("input1", rootInputSpecUpdateBulk);
-      rootInputSpecUpdates.put("input2", rootInputSpecUpdatePerTask);
-      VertexParallelismUpdatedEvent event =
-          new VertexParallelismUpdatedEvent(
-              TezVertexID.getInstance(
-                  TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-              100, null, null, rootInputSpecUpdates, 1);
-      VertexParallelismUpdatedEvent deserializedEvent = (VertexParallelismUpdatedEvent)
-          testProtoConversion(event);
-      Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
-      Assert.assertEquals(event.getNumTasks(), deserializedEvent.getNumTasks());
-      Assert.assertEquals(event.getSourceEdgeProperties(),
-          deserializedEvent.getSourceEdgeProperties());
-      Assert.assertEquals(event.getVertexLocationHint(),
-          deserializedEvent.getVertexLocationHint());
-      Assert.assertEquals(event.getRootInputSpecUpdates().size(), deserializedEvent
-          .getRootInputSpecUpdates().size());
-      InputSpecUpdate deserializedBulk = deserializedEvent.getRootInputSpecUpdates().get("input1");
-      InputSpecUpdate deserializedPerTask = deserializedEvent.getRootInputSpecUpdates().get("input2");
-      Assert.assertEquals(rootInputSpecUpdateBulk.isForAllWorkUnits(),
-          deserializedBulk.isForAllWorkUnits());
-      Assert.assertEquals(rootInputSpecUpdateBulk.getAllNumPhysicalInputs(),
-          deserializedBulk.getAllNumPhysicalInputs());
-      Assert.assertEquals(rootInputSpecUpdatePerTask.isForAllWorkUnits(),
-          deserializedPerTask.isForAllWorkUnits());
-      Assert.assertEquals(rootInputSpecUpdatePerTask.getAllNumPhysicalInputs(),
-          deserializedPerTask.getAllNumPhysicalInputs());
-      logEvents(event, deserializedEvent);
-    }
-    {
-      Map<String, EdgeProperty> sourceEdgeManagers
-          = new LinkedHashMap<String, EdgeProperty>();
-      // add standard and custom edge
-      sourceEdgeManagers.put("foo", EdgeProperty.create(DataMovementType.SCATTER_GATHER, 
-          DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
-          OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
-      sourceEdgeManagers.put("foo1", EdgeProperty.create(EdgeManagerPluginDescriptor.create("bar1")
-          .setUserPayload(
-              UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)), 
-          DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
-          OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
-      VertexParallelismUpdatedEvent event =
-          new VertexParallelismUpdatedEvent(
-              TezVertexID.getInstance(
-                  TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-              100, VertexLocationHint.create(Arrays.asList(TaskLocationHint.createTaskLocationHint(
-              new HashSet<String>(Arrays.asList("h1")),
-              new HashSet<String>(Arrays.asList("r1"))))),
-              sourceEdgeManagers, null, 1);
+  private void testVertexReconfigureDoneEvent() throws Exception {
+    VertexLocationHint vertexLocationHint = VertexLocationHint.create(new ArrayList<TaskLocationHint>());
+    InputSpecUpdate rootInputSpecUpdateBulk = InputSpecUpdate
+        .createAllTaskInputSpecUpdate(2);
+    InputSpecUpdate rootInputSpecUpdatePerTask = InputSpecUpdate
+        .createPerTaskInputSpecUpdate(Lists.newArrayList(1, 2, 3));
+    Map<String, InputSpecUpdate> rootInputSpecUpdates = new HashMap<String, InputSpecUpdate>();
+    rootInputSpecUpdates.put("input1", rootInputSpecUpdateBulk);
+    rootInputSpecUpdates.put("input2", rootInputSpecUpdatePerTask);
+    
+    Map<String, EdgeProperty> sourceEdgeManagers
+      = new HashMap<String, EdgeProperty>();
+    // add standard and custom edge
+    sourceEdgeManagers.put("foo", EdgeProperty.create(DataMovementType.SCATTER_GATHER, 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+        OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
+    sourceEdgeManagers.put("foo1", EdgeProperty.create(EdgeManagerPluginDescriptor.create("bar1")
+        .setUserPayload(
+            UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)), 
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+        OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
 
-      VertexParallelismUpdatedEvent deserializedEvent = 
-          (VertexParallelismUpdatedEvent) testProtoConversion(event);
-      Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
-      Assert.assertEquals(event.getNumTasks(), deserializedEvent.getNumTasks());
-      Assert.assertEquals(event.getSourceEdgeProperties().size(), deserializedEvent
-          .getSourceEdgeProperties().size());
-      Assert.assertEquals(event.getSourceEdgeProperties().get("foo").getDataMovementType(),
-          deserializedEvent.getSourceEdgeProperties().get("foo").getDataMovementType());
-      Assert.assertNull(deserializedEvent.getSourceEdgeProperties().get("foo")
-          .getEdgeManagerDescriptor());
-      Assert.assertEquals(event.getSourceEdgeProperties().get("foo1").getDataMovementType(),
-          deserializedEvent.getSourceEdgeProperties().get("foo1").getDataMovementType());
-      Assert.assertEquals(event.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor()
-          .getUserPayload().getVersion(), deserializedEvent.getSourceEdgeProperties().get("foo1")
-          .getEdgeManagerDescriptor().getUserPayload().getVersion());
-      Assert.assertArrayEquals(event.getSourceEdgeProperties().get("foo1")
-          .getEdgeManagerDescriptor().getUserPayload().deepCopyAsArray(), deserializedEvent
-          .getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload()
-          .deepCopyAsArray());
-      Assert.assertEquals(event.getVertexLocationHint(), deserializedEvent.getVertexLocationHint());
-      logEvents(event, deserializedEvent);
-    }
+    VertexConfigurationDoneEvent event =
+        new VertexConfigurationDoneEvent(
+            TezVertexID.getInstance(
+                TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
+            100, 2, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates, true);
+    VertexConfigurationDoneEvent deserializedEvent = (VertexConfigurationDoneEvent)
+          testProtoConversion(event);
+    Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
+    Assert.assertEquals(event.getNumTasks(), deserializedEvent.getNumTasks());
+    Assert.assertEquals(event.isSetParallelismCalled(), deserializedEvent.isSetParallelismCalled());
+    // vertexLocationHint
+    Assert.assertEquals(event.getVertexLocationHint(),
+        deserializedEvent.getVertexLocationHint());
+    // rootInputSpec
+    Assert.assertEquals(event.getRootInputSpecUpdates().size(), deserializedEvent
+        .getRootInputSpecUpdates().size());
+    InputSpecUpdate deserializedBulk = deserializedEvent.getRootInputSpecUpdates().get("input1");
+    InputSpecUpdate deserializedPerTask = deserializedEvent.getRootInputSpecUpdates().get("input2");
+    Assert.assertEquals(rootInputSpecUpdateBulk.isForAllWorkUnits(),
+        deserializedBulk.isForAllWorkUnits());
+    Assert.assertEquals(rootInputSpecUpdateBulk.getAllNumPhysicalInputs(),
+        deserializedBulk.getAllNumPhysicalInputs());
+    Assert.assertEquals(rootInputSpecUpdatePerTask.isForAllWorkUnits(),
+        deserializedPerTask.isForAllWorkUnits());
+    Assert.assertEquals(rootInputSpecUpdatePerTask.getAllNumPhysicalInputs(),
+        deserializedPerTask.getAllNumPhysicalInputs());
+    // sourceEdgeManager
+    Assert.assertEquals(event.getSourceEdgeProperties().size(), deserializedEvent
+        .getSourceEdgeProperties().size());
+    Assert.assertEquals(event.getSourceEdgeProperties().get("foo").getDataMovementType(),
+        deserializedEvent.getSourceEdgeProperties().get("foo").getDataMovementType());
+    Assert.assertNull(deserializedEvent.getSourceEdgeProperties().get("foo")
+        .getEdgeManagerDescriptor());
+    Assert.assertEquals(event.getSourceEdgeProperties().get("foo1").getDataMovementType(),
+        deserializedEvent.getSourceEdgeProperties().get("foo1").getDataMovementType());
+    Assert.assertEquals(event.getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor()
+        .getUserPayload().getVersion(), deserializedEvent.getSourceEdgeProperties().get("foo1")
+        .getEdgeManagerDescriptor().getUserPayload().getVersion());
+    Assert.assertArrayEquals(event.getSourceEdgeProperties().get("foo1")
+        .getEdgeManagerDescriptor().getUserPayload().deepCopyAsArray(), deserializedEvent
+        .getSourceEdgeProperties().get("foo1").getEdgeManagerDescriptor().getUserPayload()
+        .deepCopyAsArray());
+
+    logEvents(event, deserializedEvent);
   }
 
   private void testVertexFinishedEvent() throws Exception {
@@ -500,7 +499,7 @@ public class TestHistoryEventsProtoConversion {
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
           "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED,
-          null, null, null, null, 2048,
+          null, null, null, null, null, 2048,
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 0), 1024);
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
@@ -536,7 +535,8 @@ public class TestHistoryEventsProtoConversion {
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
           "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED,
-          TaskAttemptTerminationCause.APPLICATION_ERROR, "diagnose", new TezCounters(), events, 0, null, 0);
+          TaskAttemptTerminationCause.APPLICATION_ERROR, "diagnose", new TezCounters(), events,
+          null, 0, null, 0);
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskAttemptID(),
@@ -594,35 +594,6 @@ public class TestHistoryEventsProtoConversion {
     logEvents(event, deserializedEvent);
   }
 
-  private void testVertexDataMovementEventsGeneratedEvent() throws Exception {
-    VertexRecoverableEventsGeneratedEvent event;
-    try {
-      event = new VertexRecoverableEventsGeneratedEvent(
-          TezVertexID.getInstance(
-              TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), null);
-      fail("Invalid creation should have errored out");
-    } catch (RuntimeException e) {
-      // Expected
-    }
-    long eventTime = 1024;
-    List<TezEvent> events =
-        Arrays.asList(new TezEvent(DataMovementEvent.create(1, null),
-            new EventMetaData(EventProducerConsumerType.SYSTEM, "foo", "bar", null), eventTime));
-    event = new VertexRecoverableEventsGeneratedEvent(
-            TezVertexID.getInstance(
-                TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1), events);
-    VertexRecoverableEventsGeneratedEvent deserializedEvent =
-        (VertexRecoverableEventsGeneratedEvent) testProtoConversion(event);
-    Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
-    Assert.assertEquals(1,
-        deserializedEvent.getTezEvents().size());
-    Assert.assertEquals(event.getTezEvents().get(0).getEventType(),
-        deserializedEvent.getTezEvents().get(0).getEventType());
-    Assert.assertEquals(event.getTezEvents().get(0).getEventReceivedTime(),
-        deserializedEvent.getTezEvents().get(0).getEventReceivedTime());
-    logEvents(event, deserializedEvent);
-  }
-
   private void testDAGCommitStartedEvent() throws Exception {
     DAGCommitStartedEvent event = new DAGCommitStartedEvent(
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100l);
@@ -643,15 +614,21 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private void testVertexGroupCommitStartedEvent() throws Exception {
+    TezVertexID vertexId1 = TezVertexID.getInstance(
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 0), 1);
+    TezVertexID vertexId2 = TezVertexID.getInstance(
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 0), 2);
+    Collection<TezVertexID> vertexIds = Lists.newArrayList(vertexId1, vertexId2);
     VertexGroupCommitStartedEvent event = new VertexGroupCommitStartedEvent(
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
-        "fooGroup", 1000344l);
+        "fooGroup", vertexIds, 1000344l);
     {
       VertexGroupCommitStartedEvent deserializedEvent =
           (VertexGroupCommitStartedEvent) testProtoConversion(event);
       Assert.assertEquals(event.getDagID(), deserializedEvent.getDagID());
       Assert.assertEquals(event.getVertexGroupName(),
           deserializedEvent.getVertexGroupName());
+      Assert.assertEquals(event.getVertexIds(), vertexIds);
       logEvents(event, deserializedEvent);
     }
     {
@@ -664,15 +641,21 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private void testVertexGroupCommitFinishedEvent() throws Exception {
+    TezVertexID vertexId1 = TezVertexID.getInstance(
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 0), 1);
+    TezVertexID vertexId2 = TezVertexID.getInstance(
+        TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 0), 2);
+    Collection<TezVertexID> vertexIds = Lists.newArrayList(vertexId1, vertexId2);
     VertexGroupCommitFinishedEvent event = new VertexGroupCommitFinishedEvent(
         TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1),
-        "fooGroup", 1000344l);
+        "fooGroup", vertexIds, 1000344l);
     {
       VertexGroupCommitFinishedEvent deserializedEvent =
           (VertexGroupCommitFinishedEvent) testProtoConversion(event);
       Assert.assertEquals(event.getDagID(), deserializedEvent.getDagID());
       Assert.assertEquals(event.getVertexGroupName(),
           deserializedEvent.getVertexGroupName());
+      Assert.assertEquals(event.getVertexIds(), vertexIds);
       logEvents(event, deserializedEvent);
     }
     {
@@ -685,7 +668,7 @@ public class TestHistoryEventsProtoConversion {
   }
 
 
-  @Test(timeout = 5000)
+  @Test//(timeout = 5000)
   public void testDefaultProtoConversion() throws Exception {
     for (HistoryEventType eventType : HistoryEventType.values()) {
       switch (eventType) {
@@ -716,8 +699,8 @@ public class TestHistoryEventsProtoConversion {
         case VERTEX_STARTED:
           testVertexStartedEvent();
           break;
-        case VERTEX_PARALLELISM_UPDATED:
-          testVertexParallelismUpdatedEvent();
+        case VERTEX_CONFIGURE_DONE:
+          testVertexReconfigureDoneEvent();
           break;
         case VERTEX_FINISHED:
           testVertexFinishedEvent();
@@ -739,9 +722,6 @@ public class TestHistoryEventsProtoConversion {
           break;
         case CONTAINER_STOPPED:
           testContainerStoppedEvent();
-          break;
-        case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
-          testVertexDataMovementEventsGeneratedEvent();
           break;
         case DAG_COMMIT_STARTED:
           testDAGCommitStartedEvent();

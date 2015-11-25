@@ -57,6 +57,8 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -137,6 +139,7 @@ public class TestTaskAttempt {
     mockTask = mock(Task.class);
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
     doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
+    LogManager.getRootLogger().setLevel(Level.DEBUG);
   }
 
   @Test(timeout = 5000)
@@ -1556,7 +1559,7 @@ public class TestTaskAttempt {
         Resource resource, ContainerContext containerContext, boolean leafVertex) {
       super(taskId, attemptNumber, eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          isRescheduled, resource, containerContext, leafVertex, mockTask);
+          isRescheduled, resource, containerContext, leafVertex, mockTask, null);
       when(mockTask.getTaskLocationHint()).thenReturn(locationHint);
     }
 

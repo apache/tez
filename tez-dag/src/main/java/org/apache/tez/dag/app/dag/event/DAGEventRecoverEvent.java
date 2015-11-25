@@ -18,37 +18,34 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import java.net.URL;
-import java.util.List;
-
+import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGEventRecoverEvent extends DAGEvent {
 
   private final DAGState desiredState;
-  private final List<URL> additionalUrlsForClasspath;
+  private final DAGRecoveryData recoveredDagData;
 
-  public DAGEventRecoverEvent(TezDAGID dagId, DAGState desiredState,
-      List<URL> additionalUrlsForClasspath) {
+  public DAGEventRecoverEvent(TezDAGID dagId, DAGState desiredState, DAGRecoveryData recoveredDagData) {
     super(dagId, DAGEventType.DAG_RECOVER);
     this.desiredState = desiredState;
-    this.additionalUrlsForClasspath = additionalUrlsForClasspath;
+    this.recoveredDagData = recoveredDagData;
   }
   
-  public DAGEventRecoverEvent(TezDAGID dagId, List<URL> additionalUrlsForClasspath) {
-    this(dagId, null, additionalUrlsForClasspath);
+  public DAGEventRecoverEvent(TezDAGID dagId, DAGRecoveryData recoveredDagData) {
+    this(dagId, null, recoveredDagData);
   }
   
   public DAGState getDesiredState() {
     return desiredState;
   }
   
-  public List<URL> getAdditionalUrlsForClasspath() {
-    return this.additionalUrlsForClasspath;
-  }
-
   public boolean hasDesiredState() {
     return this.desiredState != null;
+  }
+
+  public DAGRecoveryData getRecoveredDagData() {
+    return recoveredDagData;
   }
 }

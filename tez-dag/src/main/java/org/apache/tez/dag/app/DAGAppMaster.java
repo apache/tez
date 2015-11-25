@@ -127,7 +127,7 @@ import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
-import org.apache.tez.dag.app.RecoveryParser.RecoveredDAGData;
+import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
@@ -151,6 +151,10 @@ import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
+import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
+import org.apache.tez.dag.app.dag.impl.TaskImpl;
+import org.apache.tez.dag.app.dag.impl.VertexImpl;
+import org.apache.tez.dag.app.launcher.LocalContainerLauncher;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.ContainerLauncherEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
@@ -1417,6 +1421,7 @@ public class DAGAppMaster extends AbstractService {
   private class RunningAppContext implements AppContext {
 
     private DAG dag;
+    private DAGRecoveryData dagRecoveryData;
     private final Configuration conf;
     private final ClusterInfo clusterInfo = new ClusterInfo();
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -1633,6 +1638,7 @@ public class DAGAppMaster extends AbstractService {
       try {
         wLock.lock();
         this.dag = dag;
+        this.dagRecoveryData = null;
       } finally {
         wLock.unlock();
       }
@@ -1646,6 +1652,16 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public long getCumulativeGCTime() {
       return getAMGCTime();
+    }
+
+    @Override
+    public void setDAGRecoveryData(DAGRecoveryData dagRecoveryData) {
+      this.dagRecoveryData = dagRecoveryData;
+    }
+
+    @Override
+    public DAGRecoveryData getDAGRecoveryData() {
+      return dagRecoveryData;
     }
   }
 
@@ -1818,7 +1834,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private RecoveredDAGData recoverDAG() throws IOException, TezException {
+  private DAGRecoveryData recoverDAG() throws IOException, TezException {
     if (recoveryEnabled) {
       if (this.appAttemptID.getAttemptId() > 1) {
         LOG.info("Recovering data from previous attempts"
@@ -1826,7 +1842,7 @@ public class DAGAppMaster extends AbstractService {
         this.state = DAGAppMasterState.RECOVERING;
         RecoveryParser recoveryParser = new RecoveryParser(
             this, recoveryFS, recoveryDataDir, appAttemptID.getAttemptId());
-        RecoveredDAGData recoveredDAGData = recoveryParser.parseRecoveryData();
+        DAGRecoveryData recoveredDAGData = recoveryParser.parseRecoveryData();
         return recoveredDAGData;
       }
     }
@@ -1855,7 +1871,7 @@ public class DAGAppMaster extends AbstractService {
 
     this.lastDAGCompletionTime = clock.getTime();
 
-    RecoveredDAGData recoveredDAGData;
+    DAGRecoveryData recoveredDAGData;
     try {
       recoveredDAGData = recoverDAG();
     } catch (IOException e) {
@@ -1875,9 +1891,8 @@ public class DAGAppMaster extends AbstractService {
     }
 
     if (recoveredDAGData != null) {
-      List<URL> classpathUrls = null;
       if (recoveredDAGData.cumulativeAdditionalResources != null) {
-        classpathUrls = processAdditionalResources(recoveredDAGData.cumulativeAdditionalResources);
+        recoveredDAGData.additionalUrlsForClasspath = processAdditionalResources(recoveredDAGData.cumulativeAdditionalResources);
         amResources.putAll(recoveredDAGData.cumulativeAdditionalResources);
         cumulativeAdditionalResources.putAll(recoveredDAGData.cumulativeAdditionalResources);
       }
@@ -1900,9 +1915,11 @@ public class DAGAppMaster extends AbstractService {
             + ", failureReason=" + recoveredDAGData.reason);
         _updateLoggers(recoveredDAGData.recoveredDAG, "");
         if (recoveredDAGData.nonRecoverable) {
+          addDiagnostic("DAG " + recoveredDAGData.recoveredDagID + " can not be recovered due to "
+              + recoveredDAGData.reason);
           DAGEventRecoverEvent recoverDAGEvent =
               new DAGEventRecoverEvent(recoveredDAGData.recoveredDAG.getID(),
-                  DAGState.FAILED, classpathUrls);
+                  DAGState.FAILED, recoveredDAGData);
           DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
               recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
               recoveredDAGData.recoveredDAG.getUserName(),
@@ -1919,7 +1936,7 @@ public class DAGAppMaster extends AbstractService {
         } else {
           DAGEventRecoverEvent recoverDAGEvent =
               new DAGEventRecoverEvent(recoveredDAGData.recoveredDAG.getID(),
-                  recoveredDAGData.dagState, classpathUrls);
+                  recoveredDAGData.dagState, recoveredDAGData);
           DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
               recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
               recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime(),
@@ -1938,7 +1955,7 @@ public class DAGAppMaster extends AbstractService {
         this.historyEventHandler.handle(new DAGHistoryEvent(recoveredDAGData.recoveredDAG.getID(),
             dagRecoveredEvent));
         DAGEventRecoverEvent recoverDAGEvent = new DAGEventRecoverEvent(
-            recoveredDAGData.recoveredDAG.getID(), classpathUrls);
+            recoveredDAGData.recoveredDAG.getID(), recoveredDAGData);
         dagEventDispatcher.handle(recoverDAGEvent);
         this.state = DAGAppMasterState.RUNNING;
       }
@@ -2050,7 +2067,6 @@ public class DAGAppMaster extends AbstractService {
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
-      
       Task task =
           dag.getVertex(event.getTaskID().getVertexID()).
               getTask(event.getTaskID());
@@ -2432,7 +2448,6 @@ public class DAGAppMaster extends AbstractService {
         TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE_DEFAULT);
   }
 
-
   @VisibleForTesting
   static void parseAllPlugins(
       List<NamedEntityDescriptor> taskSchedulerDescriptors, BiMap<String, Integer> taskSchedulerPluginMap,
@@ -2547,4 +2562,5 @@ public class DAGAppMaster extends AbstractService {
     }
     return sb.toString();
   }
+
 }

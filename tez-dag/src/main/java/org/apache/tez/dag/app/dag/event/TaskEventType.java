@@ -38,7 +38,4 @@ public enum TaskEventType {
   T_ATTEMPT_SUCCEEDED,
   T_ATTEMPT_KILLED,
 
-  // Recovery event
-  T_RECOVER
-
 }

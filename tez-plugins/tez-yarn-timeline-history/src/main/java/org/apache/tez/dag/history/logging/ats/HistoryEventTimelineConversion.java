@@ -50,7 +50,7 @@ import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
-import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
+import org.apache.tez.dag.history.events.VertexConfigurationDoneEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.dag.history.utils.DAGUtils;
@@ -113,15 +113,14 @@ public class HistoryEventTimelineConversion {
       case TASK_ATTEMPT_FINISHED:
         timelineEntity = convertTaskAttemptFinishedEvent((TaskAttemptFinishedEvent) historyEvent);
         break;
-      case VERTEX_PARALLELISM_UPDATED:
-        timelineEntity = convertVertexParallelismUpdatedEvent(
-            (VertexParallelismUpdatedEvent) historyEvent);
+      case VERTEX_CONFIGURE_DONE:
+        timelineEntity = convertVertexReconfigureDoneEvent(
+            (VertexConfigurationDoneEvent) historyEvent);
         break;
       case DAG_RECOVERED:
         timelineEntity = convertDAGRecoveredEvent(
             (DAGRecoveredEvent) historyEvent);
         break;
-      case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
       case VERTEX_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_FINISHED:
@@ -657,8 +656,8 @@ public class HistoryEventTimelineConversion {
     return atsEntity;
   }
 
-  private static TimelineEntity convertVertexParallelismUpdatedEvent(
-      VertexParallelismUpdatedEvent event) {
+  private static TimelineEntity convertVertexReconfigureDoneEvent(
+      VertexConfigurationDoneEvent event) {
     TimelineEntity atsEntity = new TimelineEntity();
     atsEntity.setEntityId(event.getVertexID().toString());
     atsEntity.setEntityType(EntityTypes.TEZ_VERTEX_ID.name());
@@ -669,8 +668,8 @@ public class HistoryEventTimelineConversion {
         event.getVertexID().getDAGId().toString());
 
     TimelineEvent updateEvt = new TimelineEvent();
-    updateEvt.setEventType(HistoryEventType.VERTEX_PARALLELISM_UPDATED.name());
-    updateEvt.setTimestamp(event.getUpdateTime());
+    updateEvt.setEventType(HistoryEventType.VERTEX_CONFIGURE_DONE.name());
+    updateEvt.setTimestamp(event.getReconfigureDoneTime());
 
     Map<String,Object> eventInfo = new HashMap<String, Object>();
     if (event.getSourceEdgeProperties() != null && !event.getSourceEdgeProperties().isEmpty()) {
@@ -683,7 +682,6 @@ public class HistoryEventTimelineConversion {
       eventInfo.put(ATSConstants.UPDATED_EDGE_MANAGERS, updatedEdgeManagers);
     }
     eventInfo.put(ATSConstants.NUM_TASKS, event.getNumTasks());
-    eventInfo.put(ATSConstants.OLD_NUM_TASKS, event.getOldNumTasks());
     updateEvt.setEventInfo(eventInfo);
     atsEntity.addEvent(updateEvt);
 

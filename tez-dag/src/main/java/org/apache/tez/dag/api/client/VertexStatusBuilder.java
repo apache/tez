@@ -65,8 +65,6 @@ public class VertexStatusBuilder extends VertexStatus {
         return VertexStatusStateProto.VERTEX_NEW;
       case INITIALIZING:
         return VertexStatusStateProto.VERTEX_INITIALIZING;
-      case RECOVERING:
-        return VertexStatusStateProto.VERTEX_NEW;
       case INITED:
         return VertexStatusStateProto.VERTEX_INITED;
       case RUNNING:

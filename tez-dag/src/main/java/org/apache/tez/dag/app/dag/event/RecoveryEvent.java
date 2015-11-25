@@ -15,26 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.tez.dag.app.dag.event;
 
-package org.apache.tez.dag.api.client;
+public interface RecoveryEvent {
 
-import org.apache.tez.dag.api.client.VertexStatus.State;
-import org.apache.tez.dag.api.records.DAGProtos;
-import org.apache.tez.dag.app.dag.VertexState;
-import org.junit.Assert;
-import org.junit.Test;
-
-public class TestVertexStatusBuilder {
-
-  @Test(timeout = 5000)
-  public void testVertexStateConversion() {
-    for (VertexState state : VertexState.values()) {
-      DAGProtos.VertexStatusStateProto stateProto =
-          VertexStatusBuilder.getProtoState(state);
-      VertexStatus.State clientState =
-          VertexStatus.getState(stateProto);
-      Assert.assertEquals(state.name(), clientState.name());
-    }
-  }
-
+  public boolean isFromRecovery();
 }

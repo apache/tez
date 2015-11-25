@@ -15,26 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.tez.dag.history;
 
-package org.apache.tez.dag.api.client;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.recovery.records.RecoveryProtos;
+import org.apache.tez.runtime.api.impl.EventMetaData;
 
-import org.apache.tez.dag.api.client.VertexStatus.State;
-import org.apache.tez.dag.api.records.DAGProtos;
-import org.apache.tez.dag.app.dag.VertexState;
-import org.junit.Assert;
-import org.junit.Test;
+public class RecoveryConverters {
 
-public class TestVertexStatusBuilder {
-
-  @Test(timeout = 5000)
-  public void testVertexStateConversion() {
-    for (VertexState state : VertexState.values()) {
-      DAGProtos.VertexStatusStateProto stateProto =
-          VertexStatusBuilder.getProtoState(state);
-      VertexStatus.State clientState =
-          VertexStatus.getState(stateProto);
-      Assert.assertEquals(state.name(), clientState.name());
-    }
-  }
 
 }

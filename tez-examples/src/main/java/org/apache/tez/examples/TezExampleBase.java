@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 
 import org.apache.commons.cli.Options;
@@ -32,6 +33,7 @@ import org.apache.tez.client.CallerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -263,4 +265,14 @@ public abstract class TezExampleBase extends Configured implements Tool {
    */
   protected abstract int runJob(String[] args, TezConfiguration tezConf,
                                 TezClient tezClient) throws Exception;
+  
+  @Private
+  @VisibleForTesting
+  public ApplicationId getAppId() {
+    if (tezClientInternal == null) {
+      LOG.warn("TezClient is not initialized, return null for AppId");
+      return null;
+    }
+    return tezClientInternal.getAppMasterApplicationId();
+  }
 }

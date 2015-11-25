@@ -15,39 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.api.oldrecords.TaskState;
-import org.apache.tez.dag.records.TezTaskID;
+import java.util.List;
 
-public class TaskEventRecoverTask extends TaskEvent {
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
-  TaskState desiredState;
+public class TaskAttemptEventTezEventUpdate extends TaskAttemptEvent {
 
-  boolean recoverDataForAttempts;
+  private List<TezEvent> tezEvents;
 
-  public TaskEventRecoverTask(TezTaskID taskID, TaskState desiredState) {
-    this(taskID, desiredState, true);
+  public TaskAttemptEventTezEventUpdate(TezTaskAttemptID taId, List<TezEvent> tezEvents) {
+    super(taId, TaskAttemptEventType.TA_TEZ_EVENT_UPDATE);
+    this.tezEvents = tezEvents;
   }
 
-  public TaskEventRecoverTask(TezTaskID taskID, TaskState desiredState,
-      boolean recoverData) {
-    super(taskID, TaskEventType.T_RECOVER);
-    this.desiredState = desiredState;
-    this.recoverDataForAttempts = recoverData;
+  public List<TezEvent> getTezEvents() {
+    return tezEvents;
   }
-
-  public TaskEventRecoverTask(TezTaskID taskID) {
-    this(taskID, null);
-  }
-
-  public TaskState getDesiredState() {
-    return desiredState;
-  }
-
-  public boolean recoverData() {
-    return recoverDataForAttempts;
-  }
-
 }

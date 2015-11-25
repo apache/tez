@@ -70,12 +70,11 @@ import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexCommitStartedEvent;
-import org.apache.tez.dag.history.events.VertexRecoverableEventsGeneratedEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
 import org.apache.tez.dag.history.events.VertexInitializedEvent;
-import org.apache.tez.dag.history.events.VertexParallelismUpdatedEvent;
+import org.apache.tez.dag.history.events.VertexConfigurationDoneEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.dag.history.utils.DAGUtils;
@@ -158,13 +157,13 @@ public class TestHistoryEventTimelineConversion {
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
-              random.nextInt(), "proc", null);
+              random.nextInt(), "proc", null, null);
           break;
         case VERTEX_STARTED:
           event = new VertexStartedEvent(tezVertexID, random.nextInt(), random.nextInt());
           break;
-        case VERTEX_PARALLELISM_UPDATED:
-          event = new VertexParallelismUpdatedEvent(tezVertexID, 1, null, null, null, 1);
+        case VERTEX_CONFIGURE_DONE:
+          event = new VertexConfigurationDoneEvent(tezVertexID, 0L, 1, null, null, null, true);
           break;
         case VERTEX_FINISHED:
           event = new VertexFinishedEvent(tezVertexID, "v1", 1, random.nextInt(), random.nextInt(),
@@ -184,7 +183,8 @@ public class TestHistoryEventTimelineConversion {
           break;
         case TASK_ATTEMPT_FINISHED:
           event = new TaskAttemptFinishedEvent(tezTaskAttemptID, "v1", random.nextInt(),
-              random.nextInt(), TaskAttemptState.FAILED, TaskAttemptTerminationCause.OUTPUT_LOST, null, null, null, 0, null, 0);
+              random.nextInt(), TaskAttemptState.FAILED, TaskAttemptTerminationCause.OUTPUT_LOST,
+              null, null, null, null, 0, null, 0);
           break;
         case CONTAINER_LAUNCHED:
           event = new ContainerLaunchedEvent(containerId, random.nextInt(),
@@ -192,9 +192,6 @@ public class TestHistoryEventTimelineConversion {
           break;
         case CONTAINER_STOPPED:
           event = new ContainerStoppedEvent(containerId, random.nextInt(), -1, applicationAttemptId);
-          break;
-        case VERTEX_DATA_MOVEMENT_EVENTS_GENERATED:
-          event = new VertexRecoverableEventsGeneratedEvent();
           break;
         case DAG_COMMIT_STARTED:
           event = new DAGCommitStartedEvent();
@@ -524,7 +521,7 @@ public class TestHistoryEventTimelineConversion {
     events.add(new DataEventDependencyInfo(lastDataEventTime, tezTaskAttemptID));
 
     TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(tezTaskAttemptID, vertexName,
-        startTime, finishTime, state, error, diagnostics, counters, events, creationTime,
+        startTime, finishTime, state, error, diagnostics, counters, events, null, creationTime,
         tezTaskAttemptID, allocationTime);
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
@@ -668,7 +665,7 @@ public class TestHistoryEventTimelineConversion {
     long initedTime = random.nextLong();
     int numTasks = random.nextInt();
     VertexInitializedEvent event = new VertexInitializedEvent(tezVertexID, "v1", initRequestedTime,
-        initedTime, numTasks, "proc", null);
+        initedTime, numTasks, "proc", null, null);
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
@@ -935,7 +932,7 @@ public class TestHistoryEventTimelineConversion {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testConvertVertexParallelismUpdatedEvent() {
+  public void testConvertVertexReconfigreDoneEvent() {
     TezVertexID vId = tezVertexID;
     Map<String, EdgeProperty> edgeMgrs =
         new HashMap<String, EdgeProperty>();
@@ -943,8 +940,8 @@ public class TestHistoryEventTimelineConversion {
     edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
         .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out"), InputDescriptor.create("In")));
-    VertexParallelismUpdatedEvent event = new VertexParallelismUpdatedEvent(vId, 1, null,
-        edgeMgrs, null, 10);
+    VertexConfigurationDoneEvent event = new VertexConfigurationDoneEvent(vId, 0L, 1, null,
+        edgeMgrs, null, true);
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(ATSConstants.TEZ_VERTEX_ID, timelineEntity.getEntityType());
@@ -959,9 +956,8 @@ public class TestHistoryEventTimelineConversion {
         .contains(tezDAGID.toString()));
 
     TimelineEvent evt = timelineEntity.getEvents().get(0);
-    Assert.assertEquals(HistoryEventType.VERTEX_PARALLELISM_UPDATED.name(), evt.getEventType());
+    Assert.assertEquals(HistoryEventType.VERTEX_CONFIGURE_DONE.name(), evt.getEventType());
     Assert.assertEquals(1, evt.getEventInfo().get(ATSConstants.NUM_TASKS));
-    Assert.assertEquals(10, evt.getEventInfo().get(ATSConstants.OLD_NUM_TASKS));
     Assert.assertNotNull(evt.getEventInfo().get(ATSConstants.UPDATED_EDGE_MANAGERS));
 
     Map<String, Object> updatedEdgeMgrs = (Map<String, Object>)
@@ -976,7 +972,6 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals("a.class", updatedEdgeMgr.get(DAGUtils.EDGE_MANAGER_CLASS_KEY));
 
     Assert.assertEquals(1, timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS));
-
   }
 
   @Test(timeout = 5000)

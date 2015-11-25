@@ -121,7 +121,7 @@ public class MultiAttemptDAG {
             + ", currentAttempt=" + getContext().getDAGAttemptNumber());
         if (successAttemptId > getContext().getDAGAttemptNumber()) {
           Runtime.getRuntime().halt(-1);
-        } else if (successAttemptId == getContext().getDAGAttemptNumber()) {
+        } else {
           LOG.info("Scheduling tasks for vertex=" + getContext().getVertexName());
           int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
           List<ScheduleTaskRequest> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);

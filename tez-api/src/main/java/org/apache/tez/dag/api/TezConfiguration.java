@@ -1493,4 +1493,12 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty(type="boolean")
   public static final String TEZ_CLIENT_ASYNCHRONOUS_STOP = TEZ_PREFIX + "client.asynchronous-stop";
   public static final boolean TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT = true;
+
+  // for Recovery Test
+  @Private
+  @ConfigurationScope(Scope.TEST)
+  public static final String TEZ_AM_RECOVERY_SERVICE_CLASS =
+      TEZ_PREFIX + "test.recovery-service-class";
+  @Private
+  public static final String TEZ_AM_RECOVERY_SERVICE_CLASS_DEFAULT = "org.apache.tez.dag.history.recovery.RecoveryService";
 }

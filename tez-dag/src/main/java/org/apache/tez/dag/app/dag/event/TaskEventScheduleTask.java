@@ -22,14 +22,17 @@ import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 
-public class TaskEventScheduleTask extends TaskEvent {
+public class TaskEventScheduleTask extends TaskEvent implements RecoveryEvent {
   private final TaskSpec baseTaskSpec;
   private final TaskLocationHint locationHint;
-  
-  public TaskEventScheduleTask(TezTaskID taskId, TaskSpec baseTaskSpec, TaskLocationHint locationHint) {
+  private final boolean fromRecovery;
+
+  public TaskEventScheduleTask(TezTaskID taskId, TaskSpec baseTaskSpec, TaskLocationHint locationHint,
+      boolean fromRecovery) {
     super(taskId, TaskEventType.T_SCHEDULE);
     this.baseTaskSpec = baseTaskSpec;
     this.locationHint = locationHint;
+    this.fromRecovery = fromRecovery;
   }
   
   public TaskSpec getBaseTaskSpec() {
@@ -38,5 +41,10 @@ public class TaskEventScheduleTask extends TaskEvent {
   
   public TaskLocationHint getTaskLocationHint() {
     return locationHint;
+  }
+
+  @Override
+  public boolean isFromRecovery() {
+    return fromRecovery;
   }
 }
