@@ -144,7 +144,7 @@ public class TestRecovery {
     TezVertexID vertexId0 = TezVertexID.getInstance(dagId, 0);
     TezVertexID vertexId1 = TezVertexID.getInstance(dagId, 1);
     TezVertexID vertexId2 = TezVertexID.getInstance(dagId, 2);
-    ContainerId containerId = ContainerId.newContainerId(
+    ContainerId containerId = ContainerId.newInstance(
         ApplicationAttemptId.newInstance(appId, 1), 1);
     NodeId nodeId = NodeId.newInstance("localhost", 10);
     
@@ -300,7 +300,7 @@ public class TestRecovery {
     TezVertexID vertexId0 = TezVertexID.getInstance(dagId, 0);
     TezVertexID vertexId1 = TezVertexID.getInstance(dagId, 1);
     TezVertexID vertexId2 = TezVertexID.getInstance(dagId, 2);
-    ContainerId containerId = ContainerId.newContainerId(
+    ContainerId containerId = ContainerId.newInstance(
         ApplicationAttemptId.newInstance(appId, 1), 1);
     NodeId nodeId = NodeId.newInstance("localhost", 10);
     List<TezEvent> initGeneratedEvents = Lists.newArrayList(

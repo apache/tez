@@ -675,7 +675,7 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID, t2v2FinishedEvent));
 
     // attempts under t0v2
-    ContainerId containerId = ContainerId.newContainerId(appAttemptId, 1);
+    ContainerId containerId = ContainerId.newInstance(appAttemptId, 1);
     NodeId nodeId = NodeId.newInstance("localhost", 9999);
     TezTaskAttemptID ta0t0v2Id = TezTaskAttemptID.getInstance(t0v2Id, 0);
     TaskAttemptStartedEvent ta0t0v2StartedEvent = new TaskAttemptStartedEvent(
