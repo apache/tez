@@ -53,6 +53,10 @@ $.extend(true, App.Configs, {
     cluster: 'ws/v1/cluster'
   },
 
+  otherNamespace: {
+    cluster: 'cluster',
+  },
+
   tables: {
     entity: {
       dag: [
