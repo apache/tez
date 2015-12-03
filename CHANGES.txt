@@ -19,6 +19,7 @@ ALL CHANGES:
   TEZ-2952. NPE in TestOnFileUnorderedKVOutput
   TEZ-2480. Exception when closing output is ignored.
   TEZ-2944. NPE in TestProcessorContext.
+  TEZ-2948. Stop using dagName in the dagComplete notification to TaskCommunicators.
   TEZ-2945. TEZ-2740 addendum to update API with currently supported parameters
   TEZ-2933. Tez UI: Load application details from RM when available
   TEZ-2908. Tez UI: Errors are logged, but not displayed in the UI when AM fetch fails
@@ -29,6 +30,7 @@ ALL CHANGES:
   TEZ-2940. Invalid shuffle max slow start setting causes vertex to hang indefinitely
   TEZ-2930. Tez UI: Parent controller is not polling at times
   TEZ-1670. Add tests for all converter functions in HistoryEventTimelineConversion.
+  TEZ-2879. While grouping splits, allow an alternate list of preferred locations to be provided per split.
   TEZ-2929. Tez UI: Dag details page displays vertices to be running even when dag have completed
   TEZ-1976. Findbug warning: Unread field:
   org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat$SplitHolder.split
