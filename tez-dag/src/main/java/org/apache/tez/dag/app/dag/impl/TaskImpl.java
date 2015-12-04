@@ -35,6 +35,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -900,9 +901,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       try {
         stateMachine.doTransition(event.getType(), event);
       } catch (InvalidStateTransitonException e) {
-        LOG.error("Can't handle this event at current state for "
-            + this.taskId, e);
+        LOG.error("Can't handle this event" + event.getType()
+            + " at current state " + oldState + " for task " + this.taskId, e);
         internalError(event.getType());
+      } catch (RuntimeException e) {
+        LOG.error("Uncaught exception when trying handle event " + event.getType()
+            + " at current state " + oldState + " for task " + this.taskId, e);
+        internalErrorUncaughtException(event.getType(), e);
       }
       if (oldState != getInternalState()) {
         if (LOG.isDebugEnabled()) {
@@ -925,6 +930,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
         DAGEventType.INTERNAL_ERROR));
   }
+
+  protected void internalErrorUncaughtException(TaskEventType type, Exception e) {
+    eventHandler.handle(new DAGEventDiagnosticsUpdate(
+        this.taskId.getVertexID().getDAGId(), "Uncaught exception when handling  event " + type +
+        " on Task " + this.taskId + ", error=" + e.getMessage()));
+    eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
+        DAGEventType.INTERNAL_ERROR));
+  }
+
 
   private void sendTaskAttemptCompletionEvent(TezTaskAttemptID attemptId,
       TaskAttemptStateInternal attemptState) {
@@ -1563,4 +1577,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       */
     }
   }
+
+  @Private
+  @VisibleForTesting
+  void setCounters(TezCounters counters) {
+    try {
+      writeLock.lock();
+      this.counters = counters;
+    } finally {
+      writeLock.unlock();
+    }
+  }
+
 }

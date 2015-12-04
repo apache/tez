@@ -42,6 +42,7 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
 import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.client.ProgressBuilder;
@@ -511,12 +512,17 @@ public class AMWebController extends Controller {
     dagInfo.put("progress", Float.toString(dag.getCompletedTaskProgress()));
     dagInfo.put("status", dag.getState().toString());
 
-    if (counterNames != null && !counterNames.isEmpty()) {
-      TezCounters counters = dag.getCachedCounters();
-      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
-      if (counterMap != null && !counterMap.isEmpty()) {
-        dagInfo.put("counters", counterMap);
+    try {
+      if (counterNames != null && !counterNames.isEmpty()) {
+        TezCounters counters = dag.getCachedCounters();
+        Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+        if (counterMap != null && !counterMap.isEmpty()) {
+          dagInfo.put("counters", counterMap);
+        }
       }
+    } catch (LimitExceededException e) {
+      // Ignore
+      // TODO: add an error message instead for counter key
     }
     renderJSON(ImmutableMap.of(
         "dag", dagInfo
@@ -576,12 +582,17 @@ public class AMWebController extends Controller {
     vertexInfo.put("killedTaskAttempts",
         Integer.toString(vertexProgress.getKilledTaskAttemptCount()));
 
-    if (counterNames != null && !counterNames.isEmpty()) {
-      TezCounters counters = vertex.getCachedCounters();
-      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
-      if (counterMap != null && !counterMap.isEmpty()) {
-        vertexInfo.put("counters", counterMap);
+    try {
+      if (counterNames != null && !counterNames.isEmpty()) {
+        TezCounters counters = vertex.getCachedCounters();
+        Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+        if (counterMap != null && !counterMap.isEmpty()) {
+          vertexInfo.put("counters", counterMap);
+        }
       }
+    } catch (LimitExceededException e) {
+      // Ignore
+      // TODO: add an error message instead for counter key
     }
 
     return vertexInfo;
@@ -733,11 +744,17 @@ public class AMWebController extends Controller {
       taskInfo.put("progress", Float.toString(t.getProgress()));
       taskInfo.put("status", t.getState().toString());
 
-      TezCounters counters = t.getCounters();
-      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
-      if (counterMap != null && !counterMap.isEmpty()) {
-        taskInfo.put("counters", counterMap);
+      try {
+        TezCounters counters = t.getCounters();
+        Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+        if (counterMap != null && !counterMap.isEmpty()) {
+          taskInfo.put("counters", counterMap);
+        }
+      } catch (LimitExceededException e) {
+        // Ignore
+        // TODO: add an error message instead for counter key
       }
+
       tasksInfo.add(taskInfo);
     }
 
@@ -825,10 +842,15 @@ public class AMWebController extends Controller {
       attemptInfo.put("progress", Float.toString(a.getProgress()));
       attemptInfo.put("status", a.getState().toString());
 
-      TezCounters counters = a.getCounters();
-      Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
-      if (counterMap != null && !counterMap.isEmpty()) {
-        attemptInfo.put("counters", counterMap);
+      try {
+        TezCounters counters = a.getCounters();
+        Map<String, Map<String, Long>> counterMap = constructCounterMapInfo(counters, counterNames);
+        if (counterMap != null && !counterMap.isEmpty()) {
+          attemptInfo.put("counters", counterMap);
+        }
+      } catch (LimitExceededException e) {
+        // Ignore
+        // TODO: add an error message instead for counter key
       }
       attemptsInfo.add(attemptInfo);
     }

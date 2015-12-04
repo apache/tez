@@ -49,6 +49,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.counters.TezCounters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -238,6 +240,14 @@ public class TestVertexImpl {
   private HistoryEventHandler historyEventHandler;
   private StateChangeNotifierForTest updateTracker;
   private static TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
+
+  static {
+    Limits.reset();
+    Configuration conf = new Configuration(false);
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX, 100);
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS, 100);
+    Limits.setConfiguration(conf);
+  }
 
   public static class CountingOutputCommitter extends OutputCommitter {
 
@@ -6446,5 +6456,42 @@ public class TestVertexImpl {
     void setContext(InputInitializerContext context);
   }
 
+  @Test(timeout = 5000)
+  public void testCounterLimits() {
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v = vertices.get("vertex2");
+    startVertex(v);
+
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
+
+    for (int i = 0; i < 2; ++i) {
+      TezCounters ctrs = new TezCounters();
+      for (int j = 0; j < 75; ++j) {
+        ctrs.findCounter("g", "c" + i + "_" + j).increment(1);
+      }
+      Task t = v.getTask(i);
+      ((TaskImpl) t).setCounters(ctrs);
+    }
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Assert.assertEquals(1, v.getCompletedTasks());
+    Assert.assertTrue((0.5f) == v.getCompletedTaskProgress());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(2, v.getCompletedTasks());
+
+    System.out.println(v.getDiagnostics());
+    Assert.assertTrue("Diagnostics should contain counter limits error message",
+        StringUtils.join(v.getDiagnostics(), ",").contains("Counters limit exceeded"));
+
+  }
 
 }

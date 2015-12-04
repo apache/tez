@@ -38,6 +38,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.counters.TezCounters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -184,6 +186,14 @@ public class TestDAGImpl {
   private HistoryEventHandler historyEventHandler;
   private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
   private ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
+
+  static {
+    Limits.reset();
+    Configuration conf = new Configuration(false);
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX, 100);
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS, 100);
+    Limits.setConfiguration(conf);
+  }
 
   private DAGImpl chooseDAG(TezDAGID curDAGId) {
     if (curDAGId.equals(dagId)) {
@@ -2209,4 +2219,33 @@ public class TestDAGImpl {
       }
     }
   }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testCounterLimits() {
+    initDAG(mrrDag);
+    dispatcher.await();
+    startDAG(mrrDag);
+    dispatcher.await();
+    for (int i=0; i<3; ++i) {
+      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+      TezCounters ctrs = new TezCounters();
+      for (int j = 0; j < 50; ++j) {
+        ctrs.findCounter("g", "c" + i + "_" + j).increment(1);
+      }
+      ((VertexImpl) v).setCounters(ctrs);
+      dispatcher.await();
+      Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
+      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+    }
+
+    Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
+    Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
+    Assert.assertTrue("Diagnostics should contain counter limits error message",
+        StringUtils.join(mrrDag.getDiagnostics(), ",").contains("Counters limit exceeded"));
+
+  }
+
 }

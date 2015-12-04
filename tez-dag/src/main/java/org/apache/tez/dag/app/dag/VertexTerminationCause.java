@@ -58,7 +58,10 @@ public enum VertexTerminationCause {
   INTERNAL_ERROR(VertexState.ERROR),
   
   /** error when writing recovery log */ 
-  RECOVERY_ERROR(VertexState.FAILED);
+  RECOVERY_ERROR(VertexState.FAILED),
+
+  /** This vertex failed due to counter limits exceeded. */
+  COUNTER_LIMITS_EXCEEDED(VertexState.FAILED);
 
   private VertexState finishedState;
 

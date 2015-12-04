@@ -788,6 +788,20 @@ public class TaskAttemptImpl implements TaskAttempt,
                 this.attemptId.getTaskID().getVertexID().getDAGId(),
                 DAGEventType.INTERNAL_ERROR)
             );
+      } catch (RuntimeException e) {
+        LOG.error("Uncaught exception when handling event " + event.getType()
+            + " at current state " + oldState + " for "
+            + this.attemptId, e);
+        eventHandler.handle(new DAGEventDiagnosticsUpdate(
+            this.attemptId.getTaskID().getVertexID().getDAGId(),
+            "Uncaught exception when handling event " + event.getType()
+                + " on TaskAttempt " + this.attemptId
+                + " at state " + oldState + ", error=" + e.getMessage()));
+        eventHandler.handle(
+            new DAGEvent(
+                this.attemptId.getTaskID().getVertexID().getDAGId(),
+                DAGEventType.INTERNAL_ERROR)
+        );
       }
       if (oldState != getInternalState()) {
         if (LOG.isDebugEnabled()) {
