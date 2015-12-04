@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2968. Counter limits exception causes AM to crash.
   TEZ-2960. Tez UI: Move hardcoded url namespace to the configuration file
   TEZ-2581. Umbrella for Tez Recovery Redesign
   TEZ-2956. Handle auto-reduce parallelism when the
@@ -270,6 +271,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2968. Counter limits exception causes AM to crash.
   TEZ-2947. Tez UI: Timeline, RM & AM requests gets into a consecutive loop in counters page without any delay
   TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-2923. Tez Live UI counters view empty for vertices, tasks, attempts

@@ -41,6 +41,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 import org.slf4j.Logger;
@@ -197,7 +198,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   private final Configuration dagConf;
   private final DAGPlan jobPlan;
-  
+
+  private final AtomicBoolean internalErrorTriggered = new AtomicBoolean(false);
+
   Map<String, LocalResource> localResources;
   
   long startDAGCpuTime = 0;
@@ -1133,11 +1136,22 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       try {
          getStateMachine().doTransition(event.getType(), event);
       } catch (InvalidStateTransitonException e) {
-        LOG.error("Can't handle this event at current state", e);
-        addDiagnostic("Invalid event " + event.getType() +
-            " on Job " + this.dagId);
+        String message = "Invalid event " + event.getType() + " on Dag " + this.dagId
+            + " at currentState=" + oldState;
+        LOG.error("Can't handle " + message, e);
+        addDiagnostic(message);
         eventHandler.handle(new DAGEvent(this.dagId,
             DAGEventType.INTERNAL_ERROR));
+      } catch (RuntimeException e) {
+        String message = "Uncaught Exception when handling event " + event.getType()
+            + " on Dag " + this.dagId + " at currentState=" + oldState;
+        LOG.error(message, e);
+        addDiagnostic(message);
+        if (!internalErrorTriggered.getAndSet(true)) {
+          // to prevent a recursive loop
+          eventHandler.handle(new DAGEvent(this.dagId,
+              DAGEventType.INTERNAL_ERROR));
+        }
       }
       //notify the eventhandler of state change
       if (oldState != getInternalState()) {
@@ -1202,26 +1216,27 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  void logJobHistoryFinishedEvent() throws IOException {
+  void logJobHistoryFinishedEvent(TezCounters counters) throws IOException {
     if (recoveryData == null
         || recoveryData.getDAGFinishedEvent() == null) {
       Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
       DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, clock.getTime(),
-          finishTime, DAGState.SUCCEEDED, "", getAllCounters(),
+          finishTime, DAGState.SUCCEEDED, "", counters,
           this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId());
       this.appContext.getHistoryHandler().handleCriticalEvent(
           new DAGHistoryEvent(dagId, finishEvt));
     }
   }
 
-  void logJobHistoryUnsuccesfulEvent(DAGState state) throws IOException {
+  void logJobHistoryUnsuccesfulEvent(DAGState state, TezCounters counters) throws IOException {
     if (recoveryData == null
         || recoveryData.getDAGFinishedEvent() == null) {
       Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
+
       DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, 0L,
           clock.getTime(), state,
           StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
-          getAllCounters(), this.userName, this.dagName, taskStats,
+          counters, this.userName, this.dagName, taskStats,
           this.appContext.getApplicationAttemptId());
       this.appContext.getHistoryHandler().handleCriticalEvent(
           new DAGHistoryEvent(dagId, finishEvt));
@@ -1303,7 +1318,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
     } else {
       Preconditions.checkState(dag.getState() == DAGState.TERMINATING
-          || dag.getState() == DAGState.COMMITTING,
+              || dag.getState() == DAGState.COMMITTING,
           "DAG should be in COMMITTING/TERMINATING state, but in " + dag.getState());
       if (!dag.commitFutures.isEmpty() || dag.numCompletedVertices != dag.numVertices) {
         // pending commits are running or still some vertices are not completed
@@ -1343,12 +1358,19 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     // update cpu time counters before finishing the dag
     updateCpuCounters();
-    
+    TezCounters counters = null;
+    try {
+      counters = getAllCounters();
+    } catch (LimitExceededException e) {
+      addDiagnostic("Counters limit exceeded: " + e.getMessage());
+      finalState = DAGState.FAILED;
+    }
+
     try {
       if (finalState == DAGState.SUCCEEDED) {
-        logJobHistoryFinishedEvent();
+        logJobHistoryFinishedEvent(counters);
       } else {
-        logJobHistoryUnsuccesfulEvent(finalState);
+        logJobHistoryUnsuccesfulEvent(finalState, counters);
       }
     } catch (IOException e) {
       LOG.warn("Failed to persist recovery event for DAG completion"
@@ -2226,11 +2248,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
     public void transition(DAGImpl job, DAGEvent event) {
-      //TODO Is this JH event required.
       LOG.info(job.getID() + " terminating due to internal error");
       // terminate all vertices
-      job.enactKill(DAGTerminationCause.INTERNAL_ERROR,
-          VertexTerminationCause.INTERNAL_ERROR);
+      job.enactKill(DAGTerminationCause.INTERNAL_ERROR, VertexTerminationCause.INTERNAL_ERROR);
       job.setFinishTime();
       job.cancelCommits();
       job.finished(DAGState.ERROR);

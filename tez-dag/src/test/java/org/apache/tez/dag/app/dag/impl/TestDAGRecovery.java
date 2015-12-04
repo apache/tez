@@ -1021,7 +1021,10 @@ public class TestDAGRecovery {
         ta1t1v1Id, "v1", ta1LaunchTime, mock(ContainerId.class), 
         mock(NodeId.class), "", "", "");
     List<TezEvent> taGeneratedEvents = new ArrayList<TezEvent>();
-    taGeneratedEvents.add(new TezEvent(DataMovementEvent.create(ByteBuffer.wrap(new byte[0])), null));
+    EventMetaData sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT, "vertex1",
+        "vertex3", ta1t1v1Id);
+    taGeneratedEvents.add(new TezEvent(DataMovementEvent.create(ByteBuffer.wrap(new byte[0])),
+        sourceInfo));
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", ta1LaunchTime, ta1FinishedTime, 
         TaskAttemptState.SUCCEEDED, null, "", null, 

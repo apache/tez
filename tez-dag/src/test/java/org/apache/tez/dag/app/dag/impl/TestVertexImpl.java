@@ -51,6 +51,8 @@ import com.google.protobuf.ByteString;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.counters.Limits;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
@@ -249,6 +251,14 @@ public class TestVertexImpl {
   private HistoryEventHandler historyEventHandler;
   private StateChangeNotifierForTest updateTracker;
   private static TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
+
+  static {
+    Limits.reset();
+    Configuration conf = new Configuration(false);
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX, 100);
+    conf.setInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS, 100);
+    Limits.setConfiguration(conf);
+  }
 
   public static class CountingOutputCommitter extends OutputCommitter {
 
@@ -5861,7 +5871,11 @@ public class TestVertexImpl {
     //Send VertexManagerEvent
     long[] sizes = new long[]{(100 * 1000l * 1000l)};
     Event vmEvent = getVertexManagerEvent(sizes, 1060000000, "C");
-    TezEvent tezEvent = new TezEvent(vmEvent, null);
+
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(vC.getVertexId(), 1), 1);
+    EventMetaData sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT, "C", "C", taId);
+    TezEvent tezEvent = new TezEvent(vmEvent, sourceInfo);
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(vC.getVertexId(),
         Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -6677,5 +6691,42 @@ public class TestVertexImpl {
     void setContext(InputInitializerContext context);
   }
 
+  @Test(timeout = 5000)
+  public void testCounterLimits() {
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v = vertices.get("vertex2");
+    startVertex(v);
+
+    TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
+    TezTaskID t2 = TezTaskID.getInstance(v.getVertexId(), 1);
+
+    for (int i = 0; i < 2; ++i) {
+      TezCounters ctrs = new TezCounters();
+      for (int j = 0; j < 75; ++j) {
+        ctrs.findCounter("g", "c" + i + "_" + j).increment(1);
+      }
+      Task t = v.getTask(i);
+      ((TaskImpl) t).setCounters(ctrs);
+    }
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Assert.assertEquals(1, v.getCompletedTasks());
+    Assert.assertTrue((0.5f) == v.getCompletedTaskProgress());
+
+    dispatcher.getEventHandler().handle(
+        new VertexEventTaskCompleted(t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.FAILED, v.getState());
+    Assert.assertEquals(2, v.getCompletedTasks());
+
+    System.out.println(v.getDiagnostics());
+    Assert.assertTrue("Diagnostics should contain counter limits error message",
+        StringUtils.join(v.getDiagnostics(), ",").contains("Counters limit exceeded"));
+
+  }
 
 }
