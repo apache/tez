@@ -243,7 +243,7 @@ public class TezChild {
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
-        handleNewTaskLocalResources(containerTask);
+        handleNewTaskLocalResources(containerTask, childUGI);
         cleanupOnTaskChanged(containerTask);
 
         // Execute the Actual Task
@@ -314,26 +314,34 @@ public class TezChild {
    * @throws IOException
    * @throws TezException
    */
-  private void handleNewTaskLocalResources(ContainerTask containerTask) throws IOException,
-      TezException {
-    Map<String, TezLocalResource> additionalResources = containerTask.getAdditionalResources();
+  private void handleNewTaskLocalResources(ContainerTask containerTask,
+      UserGroupInformation ugi) throws IOException, TezException {
+
+    final Map<String, TezLocalResource> additionalResources = containerTask.getAdditionalResources();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Additional Resources added to container: " + additionalResources);
     }
 
-
     if (additionalResources != null && !additionalResources.isEmpty()) {
       LOG.info("Localizing additional local resources for Task : " + additionalResources);
 
-      List<URL> downloadedUrls = RelocalizationUtils.processAdditionalResources(
-          Maps.transformValues(additionalResources, new Function<TezLocalResource, URI>() {
-            @Override
-            public URI apply(TezLocalResource input) {
-              return input.getUri();
-            }
-          }), defaultConf, workingDir);
-      RelocalizationUtils.addUrlsToClassPath(downloadedUrls);
-
+      try {
+        List<URL> downloadedUrls = ugi.doAs(new PrivilegedExceptionAction<List<URL>>() {
+          @Override
+          public List<URL> run() throws Exception {
+            return RelocalizationUtils.processAdditionalResources(
+                Maps.transformValues(additionalResources, new Function<TezLocalResource, URI>() {
+                  @Override
+                  public URI apply(TezLocalResource input) {
+                    return input.getUri();
+                  }
+                }), defaultConf, workingDir);
+          }
+        });
+        RelocalizationUtils.addUrlsToClassPath(downloadedUrls);
+      } catch (InterruptedException e) {
+        throw new TezException(e);
+      }
       LOG.info("Done localizing additional resources");
     }
   }
