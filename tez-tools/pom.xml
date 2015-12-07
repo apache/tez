@@ -26,6 +26,10 @@
   <artifactId>tez-tools</artifactId>
   <packaging>pom</packaging>
 
+  <modules>
+    <module>analyzers</module>
+  </modules>
+
   <build>
     <plugins>
       <plugin>
