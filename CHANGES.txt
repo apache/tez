@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2975. Bump up apache commons dependency.
   TEZ-2970. Re-localization in TezChild does not use correct UGI.
   TEZ-2968. Counter limits exception causes AM to crash.
   TEZ-2960. Tez UI: Move hardcoded url namespace to the configuration file
