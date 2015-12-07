@@ -302,6 +302,11 @@ App.Helpers.misc = {
    * @return value
    */
   getCounterCellContentFormatted: function (row) {
+    if(row.get(this.get('contentPath')) == undefined) {
+      return {
+        isPending: true
+      };
+    }
     var value = App.Helpers.misc.getCounterCellContent.call(this, row);
     return App.Helpers.number.formatNumThousands(value);
   },

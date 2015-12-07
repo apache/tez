@@ -44,11 +44,13 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
   entities: [],
   _paginationFilters: {},
-  loading: true,
+  loading: false,
 
   load: function() {
-    this.resetNavigation();
-    this.loadEntities();
+    if(!this.get('loading')) {
+      this.resetNavigation();
+      this.loadEntities();
+    }
   }.observes('rowCount'),
 
   lastPage: function () {
@@ -149,7 +151,7 @@ App.PaginatedContentMixin = Em.Mixin.create({
     return p.join(',');
   },
 
-  getFilterProperties: function() {
+  getFilterProperties: function(fields) {
     var params = {
       limit: Math.min(this.rowCount, this.get('maxRowCount')) + 1
     };
@@ -189,6 +191,10 @@ App.PaginatedContentMixin = Em.Mixin.create({
 
     if (!Em.empty(this.get('fromID'))) {
       params['fromId'] = this.get('fromID');
+    }
+
+    if (fields) {
+      params['fields'] = fields;
     }
 
     return params;

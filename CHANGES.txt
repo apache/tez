@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2346. TEZ-UI: Lazy load other info / counter data
   TEZ-2975. Bump up apache commons dependency.
   TEZ-2970. Re-localization in TezChild does not use correct UGI.
   TEZ-2968. Counter limits exception causes AM to crash.
@@ -273,6 +274,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2346. TEZ-UI: Lazy load other info / counter data
   TEZ-2975. Bump up apache commons dependency.
   TEZ-2970. Re-localization in TezChild does not use correct UGI.
   TEZ-2968. Counter limits exception causes AM to crash.
