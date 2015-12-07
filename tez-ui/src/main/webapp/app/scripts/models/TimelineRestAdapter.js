@@ -85,27 +85,74 @@ App.TimelineSerializer = DS.RESTSerializer.extend({
   }
 });
 
+function getStatus(source) {
+  var status = Em.get(source, 'otherinfo.status') || Em.get(source, 'primaryfilters.status.0'),
+      event = source.events;
+
+  if(!status && event) {
+    if(event.findBy('eventtype', 'DAG_STARTED')) {
+      status = 'RUNNING';
+    }
+  }
+
+  return status;
+}
 
 var timelineJsonToDagMap = {
   id: 'entity',
   submittedTime: 'starttime',
-  startTime: 'otherinfo.startTime',
-  endTime: 'otherinfo.endTime',
+
+  startTime: {
+    custom: function(source) {
+      var time = Em.get(source, 'otherinfo.startTime'),
+          event = source.events;
+
+      if(!time && event) {
+        event = event.findBy('eventtype', 'DAG_STARTED');
+        if(event) {
+          time = event.timestamp;
+        }
+      }
+
+      return time;
+    }
+  },
+  endTime: {
+    custom: function(source) {
+      var time = Em.get(source, 'otherinfo.endTime'),
+          event = source.events;
+
+      if(!time && event) {
+        event = event.findBy('eventtype', 'DAG_FINISHED');
+        if(event) {
+          time = event.timestamp;
+        }
+      }
+
+      return time;
+    }
+  },
+
   name: 'primaryfilters.dagName.0',
   user: 'primaryfilters.user.0',
-  status: 'otherinfo.status',
 
+  status: {
+    custom: getStatus
+  },
   progress: {
     custom: function(source) {
-      return Em.get(source, 'otherinfo.status') == 'SUCCEEDED' ? 1 : null;
+      var status = getStatus(source);
+      return status == 'SUCCEEDED' ? 1 : null;
     }
   },
 
   containerLogs: {
     custom: function(source) {
-
       var containerLogs = [];
       var otherinfo = Em.get(source, 'otherinfo');
+      if(!otherinfo) {
+        return undefined;
+      }
       for (var key in otherinfo) {
         if (key.indexOf('inProgressLogsURL_') === 0) {
           var logs = Em.get(source, 'otherinfo.' + key);
@@ -130,7 +177,14 @@ var timelineJsonToDagMap = {
   numFailedTasks: 'otherinfo.numFailedTasks',
   diagnostics: 'otherinfo.diagnostics',
 
-  counterGroups: 'otherinfo.counters.counterGroups',
+  counterGroups: {
+    custom: function(source) {
+      var otherinfo = source.otherinfo;
+      if(otherinfo) {
+        return Em.get(otherinfo, 'counters.counterGroups') || [];
+      }
+    }
+  },
 
   planName: 'otherinfo.dagPlan.dagName',
   planVersion: 'otherinfo.dagPlan.version',

@@ -21,6 +21,8 @@ App.Dag = App.AbstractEntity.extend({
     return App.Helpers.misc.getDagIndexFromDagId(this.get('id'));
   }.property('id'),
 
+  progress: DS.attr('number'),
+
   submittedTime: DS.attr('number'),
 
   // start time of the entity
