@@ -36,6 +36,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
+
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,7 @@ import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
+import org.apache.tez.runtime.library.utils.LocalProgress;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -1044,7 +1046,7 @@ public class PipelinedSorter extends ExternalSorter {
     private final SortSpan span;
     private final InputByteBuffer key = new InputByteBuffer();
     private final InputByteBuffer value = new InputByteBuffer();
-    private final Progress progress = new Progress();
+    private final Progress progress = new LocalProgress();
 
     private static final int minrun = (1 << 4);
 

@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-1491. Tez reducer-side merge's counter update is slow.
   TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
   reduce and slow start
   TEZ-2346. TEZ-UI: Lazy load other info / counter data
