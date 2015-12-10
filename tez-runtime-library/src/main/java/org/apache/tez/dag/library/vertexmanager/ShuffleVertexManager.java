@@ -154,12 +154,21 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     EdgeProperty edgeProperty;
     boolean vertexIsConfigured;
     BitSet finishedTaskSet;
+    int numTasks;
+    int numVMEventsReceived;
+    long outputSize;
 
     SourceVertexInfo(EdgeProperty edgeProperty) {
       this.edgeProperty = edgeProperty;
-      if (edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
-        finishedTaskSet = new BitSet();
-      }
+      finishedTaskSet = new BitSet();
+    }
+    
+    int getNumTasks() {
+      return numTasks;
+    }
+    
+    int getNumCompletedTasks() {
+      return finishedTaskSet.cardinality();
     }
   }
 
@@ -453,6 +462,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
       srcVertexInfo.put(entry.getKey(), new SourceVertexInfo(entry.getValue()));
       // TODO what if derived class has already called this
+      // register for status update from all source vertices
       getContext().registerForVertexStateUpdates(entry.getKey(),
           EnumSet.of(VertexState.CONFIGURED));
       if (entry.getValue().getDataMovementType() == DataMovementType.SCATTER_GATHER) {
@@ -469,7 +479,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     
     // track the tasks in this vertex
     updatePendingTasks();
-    updateSourceTaskCount();
     
     LOG.info("OnVertexStarted vertex: " + getContext().getVertexName() +
              " with " + totalNumBipartiteSourceTasks + " source tasks and " +
@@ -489,19 +498,20 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   public synchronized void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
     String srcVertexName = attempt.getTaskIdentifier().getVertexIdentifier().getName();
     int srcTaskId = attempt.getTaskIdentifier().getIdentifier();
-    updateSourceTaskCount();
     SourceVertexInfo srcInfo = srcVertexInfo.get(srcVertexName);
-
-    if (srcInfo.edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
-      //handle duplicate events for bipartite sources
-      BitSet completedSourceTasks = srcInfo.finishedTaskSet;
-      if (completedSourceTasks != null) {
-        // duplicate notifications tracking
-        if (!completedSourceTasks.get(srcTaskId)) {
-          completedSourceTasks.set(srcTaskId);
-          // source task has completed
-          ++numBipartiteSourceTasksCompleted;
-        }
+    if (srcInfo.vertexIsConfigured) {
+      Preconditions.checkState(srcTaskId < srcInfo.numTasks,  
+          "Received completion for srcTaskId " + srcTaskId + " but Vertex: " + srcVertexName +
+          " has only " + srcInfo.numTasks + " tasks");
+    }
+    //handle duplicate events and count task completions from all source vertices
+    BitSet completedSourceTasks = srcInfo.finishedTaskSet;
+    // duplicate notifications tracking
+    if (!completedSourceTasks.get(srcTaskId)) {
+      completedSourceTasks.set(srcTaskId);
+      // source task has completed
+      if (srcInfo.edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
+        numBipartiteSourceTasksCompleted++;
       }
     }
     schedulePendingTasks();
@@ -516,9 +526,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       LOG.info("Ignoring vertex manager event from: " + producerTask);
       return;
     }
-    
+
+    String vName = producerTask.getVertexIdentifier().getName();
+    SourceVertexInfo srcInfo = srcVertexInfo.get(vName);
+    Preconditions.checkState(srcInfo != null, "Unknown vmEvent from " + producerTask);
+
     numVertexManagerEventsReceived++;
 
+    long sourceTaskOutputSize = 0;
     if (vmEvent.getUserPayload() != null) {
       // save output size
       VertexManagerEventPayloadProto proto;
@@ -527,15 +542,21 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       } catch (InvalidProtocolBufferException e) {
         throw new TezUncheckedException(e);
       }
-      long sourceTaskOutputSize = proto.getOutputSize();
+      sourceTaskOutputSize = proto.getOutputSize();
+
+      srcInfo.numVMEventsReceived++;
+      srcInfo.outputSize += sourceTaskOutputSize;
       completedSourceTasksOutputSize += sourceTaskOutputSize;
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Received info of output size: " + sourceTaskOutputSize 
-            + " numInfoReceived: " + numVertexManagerEventsReceived
-            + " total output size: " + completedSourceTasksOutputSize);
-      }
     }
     
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("For attempt: " + vmEvent.getProducerAttemptIdentifier()
+          + " received info of output size: " + sourceTaskOutputSize
+          + " vertex numEventsReceived: " + srcInfo.numVMEventsReceived
+          + " vertex output size: " + srcInfo.outputSize
+          + " total numEventsReceived: " + numVertexManagerEventsReceived
+          + " total output size: " + completedSourceTasksOutputSize);
+    }
   }
   
   void updatePendingTasks() {
@@ -554,22 +575,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     });
   }
 
-  void updateSourceTaskCount() {
-    // track source vertices
-    int numSrcTasks = 0;
-    Iterable<Map.Entry<String, SourceVertexInfo>> bipartiteItr = getBipartiteInfo();
-    for(Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
-      numSrcTasks += getContext().getVertexNumTasks(entry.getKey());
-    }
-    totalNumBipartiteSourceTasks = numSrcTasks;
-  }
-
   /**
    * Compute optimal parallelism needed for the job
    * @return true (if parallelism is determined), false otherwise
    */
   @VisibleForTesting
-  boolean determineParallelismAndApply() {
+  boolean determineParallelismAndApply(float minSourceVertexCompletedTaskFraction) {
     if(numVertexManagerEventsReceived == 0) {
       if (totalNumBipartiteSourceTasks > 0) {
         return true;
@@ -585,21 +596,28 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
      */
     boolean canDetermineParallelismLater = (completedSourceTasksOutputSize <
         desiredTaskInputDataSize)
-        && (numBipartiteSourceTasksCompleted < (totalNumBipartiteSourceTasks * slowStartMaxSrcCompletionFraction));
+        && (minSourceVertexCompletedTaskFraction < slowStartMaxSrcCompletionFraction);
     if (canDetermineParallelismLater) {
       LOG.info("Defer scheduling tasks; vertex=" + getContext().getVertexName()
           + ", totalNumBipartiteSourceTasks=" + totalNumBipartiteSourceTasks
           + ", completedSourceTasksOutputSize=" + completedSourceTasksOutputSize
           + ", numVertexManagerEventsReceived=" + numVertexManagerEventsReceived
-          + ", numBipartiteSourceTasksCompleted=" + numBipartiteSourceTasksCompleted + ", maxThreshold="
-          + (totalNumBipartiteSourceTasks * slowStartMaxSrcCompletionFraction));
+          + ", numBipartiteSourceTasksCompleted=" + numBipartiteSourceTasksCompleted
+          + ", minSourceVertexCompletedTaskFraction=" + minSourceVertexCompletedTaskFraction);
       return false;
     }
 
+    // Change this to use per partition stats for more accuracy TEZ-2962.
+    // Instead of aggregating overall size and then dividing equally - coalesce partitions until 
+    // desired per partition size is achieved.
     long expectedTotalSourceTasksOutputSize = 0;
-    if (numVertexManagerEventsReceived > 0 && totalNumBipartiteSourceTasks > 0 ) {
-      expectedTotalSourceTasksOutputSize =
-          (totalNumBipartiteSourceTasks * completedSourceTasksOutputSize) / numVertexManagerEventsReceived;
+    for (Map.Entry<String, SourceVertexInfo> vInfo : getBipartiteInfo()) {
+      SourceVertexInfo srcInfo = vInfo.getValue();
+      if (srcInfo.numTasks > 0 && srcInfo.numVMEventsReceived > 0) {
+        // this assumes that 1 vmEvent is received per completed task - TEZ-2961
+        expectedTotalSourceTasksOutputSize += 
+            (srcInfo.numTasks * srcInfo.outputSize) / srcInfo.numVMEventsReceived;
+      }
     }
 
     int desiredTaskParallelism = 
@@ -667,8 +685,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     return true;
   }
-  
-  void schedulePendingTasks(int numTasksToSchedule) {
+
+  void schedulePendingTasks(int numTasksToSchedule, float minSourceVertexCompletedTaskFraction) {
     // determine parallelism before scheduling the first time
     // this is the latest we can wait before determining parallelism.
     // currently this depends on task completion and so this is the best time
@@ -677,7 +695,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     // calculating parallelism or change parallelism while tasks are already
     // running then we can create other parameters to trigger this calculation.
     if(enableAutoParallelism && !parallelismDetermined) {
-      parallelismDetermined = determineParallelismAndApply();
+      parallelismDetermined = determineParallelismAndApply(minSourceVertexCompletedTaskFraction);
       if (!parallelismDetermined) {
         //try to determine parallelism later when more info is available.
         return;
@@ -707,10 +725,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
    */
   boolean canScheduleTasks() {
     for(Map.Entry<String, SourceVertexInfo> entry : srcVertexInfo.entrySet()) {
-      String sourceVertex = entry.getKey();
-      int numSourceTasks = getContext().getVertexNumTasks(sourceVertex);
-      if (numSourceTasks > 0 && !entry.getValue().vertexIsConfigured) {
-        // vertex not configured
+      // need to check for vertex configured because until that we dont know if numTasks==0 is valid
+      if (!entry.getValue().vertexIsConfigured) { // isConfigured
+        // vertex not scheduled tasks
         if (LOG.isDebugEnabled()) {
           LOG.debug("Waiting for vertex: " + entry.getKey() + " in vertex: "
               + getContext().getVertexName());
@@ -744,29 +761,38 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       LOG.info("All source tasks assigned. " +
           "Ramping up " + numPendingTasks + 
           " remaining tasks for vertex: " + getContext().getVertexName());
-      schedulePendingTasks(numPendingTasks);
+      schedulePendingTasks(numPendingTasks, 1);
       return;
     }
 
-    float completedSourceTaskFraction = 0f;
-    if (totalNumBipartiteSourceTasks != 0) { // support for 0 source tasks
-      completedSourceTaskFraction = (float) numBipartiteSourceTasksCompleted / totalNumBipartiteSourceTasks;
-    } else {
-      completedSourceTaskFraction = 1;
+    float minSourceVertexCompletedTaskFraction = 1f;
+    String minCompletedVertexName = "";
+    for (Map.Entry<String, SourceVertexInfo> vInfo : getBipartiteInfo()) {
+      SourceVertexInfo srcInfo = vInfo.getValue();
+      // canScheduleTasks check has already verified all sources are configured
+      Preconditions.checkState(srcInfo.vertexIsConfigured, "Vertex: " + vInfo.getKey());
+      if (srcInfo.numTasks > 0) {
+        int numCompletedTasks = srcInfo.getNumCompletedTasks();
+        float completedFraction = (float) numCompletedTasks / srcInfo.numTasks;
+        if (minSourceVertexCompletedTaskFraction > completedFraction) {
+          minSourceVertexCompletedTaskFraction = completedFraction;
+          minCompletedVertexName = vInfo.getKey();
+        }
+      }
     }
 
     // start scheduling when source tasks completed fraction is more than min.
     // linearly increase the number of scheduled tasks such that all tasks are 
     // scheduled when source tasks completed fraction reaches max
-    float tasksFractionToSchedule = 1; 
+    float tasksFractionToSchedule = 1;
     float percentRange = slowStartMaxSrcCompletionFraction - slowStartMinSrcCompletionFraction;
     if (percentRange > 0) {
       tasksFractionToSchedule = 
-            (completedSourceTaskFraction - slowStartMinSrcCompletionFraction)/
+            (minSourceVertexCompletedTaskFraction - slowStartMinSrcCompletionFraction)/
             percentRange;
     } else {
       // min and max are equal. schedule 100% on reaching min
-      if(completedSourceTaskFraction < slowStartMinSrcCompletionFraction) {
+      if(minSourceVertexCompletedTaskFraction < slowStartMinSrcCompletionFraction) {
         tasksFractionToSchedule = 0;
       }
     }
@@ -784,10 +810,11 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
                getContext().getVertexName() + " with totalTasks: " +
                totalTasksToSchedule + ". " + numBipartiteSourceTasksCompleted +
                " source tasks completed out of " + totalNumBipartiteSourceTasks +
-               ". SourceTaskCompletedFraction: " + completedSourceTaskFraction + 
+               ". MinSourceTaskCompletedFraction: " + minSourceVertexCompletedTaskFraction +
+               " in Vertex: " + minCompletedVertexName +
                " min: " + slowStartMinSrcCompletionFraction + 
                " max: " + slowStartMaxSrcCompletionFraction);
-      schedulePendingTasks(numTasksToSchedule);
+      schedulePendingTasks(numTasksToSchedule, minSourceVertexCompletedTaskFraction);
     }
   }
 
@@ -857,8 +884,13 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     SourceVertexInfo vInfo = srcVertexInfo.get(stateUpdate.getVertexName()); 
     Preconditions.checkState(vInfo.vertexIsConfigured == false);
     vInfo.vertexIsConfigured = true;
+    vInfo.numTasks = getContext().getVertexNumTasks(stateUpdate.getVertexName());
+    if (vInfo.edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER) {
+      totalNumBipartiteSourceTasks += vInfo.numTasks;
+    }
     LOG.info("Received configured notification : " + stateUpdate.getVertexState() + " for vertex: "
-      + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName());
+      + stateUpdate.getVertexName() + " in vertex: " + getContext().getVertexName() + 
+      " numBipartiteSourceTasks: " + totalNumBipartiteSourceTasks);
     schedulePendingTasks();
   }
   

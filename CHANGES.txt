@@ -8,6 +8,8 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
+  reduce and slow start
   TEZ-2956. Handle auto-reduce parallelism when the
   totalNumBipartiteSourceTasks is 0
   TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
