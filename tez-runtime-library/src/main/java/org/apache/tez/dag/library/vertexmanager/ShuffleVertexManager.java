@@ -528,7 +528,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         throw new TezUncheckedException(e);
       }
       long sourceTaskOutputSize = proto.getOutputSize();
-      numVertexManagerEventsReceived++;
       completedSourceTasksOutputSize += sourceTaskOutputSize;
       if (LOG.isDebugEnabled()) {
         LOG.debug("Received info of output size: " + sourceTaskOutputSize 
