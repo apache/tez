@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2966. Tez does not honor mapreduce.task.timeout
   TEZ-2346. TEZ-UI: Lazy load other info / counter data
   TEZ-2973. Backport Analyzers to branch-0.7
   TEZ-2975. Bump up apache commons dependency.
