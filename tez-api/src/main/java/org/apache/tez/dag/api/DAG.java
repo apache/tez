@@ -346,6 +346,26 @@ public class DAG {
     return this.name;
   }
 
+  /**
+   * This is currently used to setup additional configuration parameters which will be available
+   * in the DAG configuration used in the AppMaster. This API would be used for properties which
+   * are used by the Tez framework while executing the DAG. As an example, the number of attempts
+   * for a task.</p>
+   *
+   * A DAG inherits it's base properties from the ApplicationMaster within which it's running. This
+   * method allows for these properties to be overridden.
+   *
+   * Currently, properties which are used by the task runtime, such as the task to AM
+   * heartbeat interval, cannot be changed using this method. </p>
+   *
+   * Note: This API does not add any configuration to runtime components such as InputInitializers,
+   * OutputCommitters, Inputs and Outputs.
+   *
+   * @param property the property name
+   * @param value the value for the property
+   * @return the current DAG being constructed
+   */
+  @InterfaceStability.Unstable
   public DAG setConf(String property, String value) {
     TezConfiguration.validateProperty(property, Scope.DAG);
     dagConf.put(property, value);
