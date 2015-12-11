@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2966. Tez does not honor mapreduce.task.timeout
   TEZ-2979. FlakyTest: org.apache.tez.history.TestHistoryParser.
   TEZ-1491. Tez reducer-side merge's counter update is slow.
   TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
@@ -278,6 +279,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2966. Tez does not honor mapreduce.task.timeout
   TEZ-2346. TEZ-UI: Lazy load other info / counter data
   TEZ-2975. Bump up apache commons dependency.
   TEZ-2970. Re-localization in TezChild does not use correct UGI.

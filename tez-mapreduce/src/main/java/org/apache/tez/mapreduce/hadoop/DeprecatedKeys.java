@@ -84,7 +84,7 @@ public class DeprecatedKeys {
       TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH);
   }
 
-  // TODO TEZAM4 Sometime, make sure this gets loaded by default. Insteaf of the current initialization in MRAppMaster, TezChild.
+  // TODO TEZAM4 Sometime, make sure this gets loaded by default. Instead of the current initialization in MRAppMaster, TezChild.
   // Maybe define in an TEZConfiguration / TEZ JobConf variant.
   
   public static void init() {
@@ -154,6 +154,7 @@ public class DeprecatedKeys {
 
     registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
 
+    registerMRToRuntimeKeyTranslation(MRJobConfig.TASK_TIMEOUT, TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS);
   }
   
   private static void addDeprecatedKeys() {
