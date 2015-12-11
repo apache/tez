@@ -405,6 +405,26 @@ public class Vertex {
 	  return taskLaunchCmdOpts;
   }
 
+  /**
+   * This is currently used to setup additional configuration parameters which will be available
+   * in the Vertex specific configuration used in the AppMaster. This API would be used for properties which
+   * are used by the Tez framework while executing this vertex as part of a larger DAG.
+   * As an example, the number of attempts for a task. </p>
+   *
+   * A vertex inherits it's Configuration from the DAG, and can override properties for this Vertex only
+   * using this method </p>
+   *
+   * Currently, properties which are used by the task runtime, such as the task to AM
+   * heartbeat interval, cannot be changed using this method. </p>
+   *
+   * Note: This API does not add any configuration to runtime components such as InputInitializers,
+   * OutputCommitters, Inputs and Outputs.
+   *
+   * @param property the property name
+   * @param value the value for the property
+   * @return the current DAG being constructed
+   */
+  @InterfaceStability.Unstable
   public Vertex setConf(String property, String value) {
     TezConfiguration.validateProperty(property, Scope.VERTEX);
     this.vertexConf.put(property, value);
