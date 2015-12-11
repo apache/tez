@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2979. FlakyTest: org.apache.tez.history.TestHistoryParser.
   TEZ-1491. Tez reducer-side merge's counter update is slow.
   TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
   reduce and slow start
