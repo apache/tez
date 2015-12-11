@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -148,6 +149,8 @@ public abstract class TezSplitGrouper {
     return new HashMap<String, LocationHolder>();
   }
 
+
+
   public List<GroupedSplitContainer> getGroupedSplits(Configuration conf,
                                                       List<SplitContainer> originalSplits,
                                                       int desiredNumSplits,
@@ -233,10 +236,9 @@ public abstract class TezSplitGrouper {
       LOG.info("Using original number of splits: " + originalSplits.size() +
           " desired splits: " + desiredNumSplits);
       groupedSplits = new ArrayList<GroupedSplitContainer>(originalSplits.size());
-      // TODO TEZ-2911 null in the non null String[] handled differently here compared to when grouping happens.
       for (SplitContainer split : originalSplits) {
         GroupedSplitContainer newSplit =
-            new GroupedSplitContainer(1, wrappedInputFormatName, locationProvider.getPreferredLocations(split),
+            new GroupedSplitContainer(1, wrappedInputFormatName, cleanupLocations(locationProvider.getPreferredLocations(split)),
                 null);
         newSplit.addSplit(split);
         groupedSplits.add(newSplit);
@@ -516,6 +518,34 @@ public abstract class TezSplitGrouper {
         " created: " + groupedSplits.size() +
         " splitsProcessed: " + splitsProcessed);
     return groupedSplits;
+  }
+
+  private String[] cleanupLocations(String[] locations) {
+    if (locations == null || locations.length == 0) {
+      return null;
+    }
+    boolean nullLocationFound = false;
+    for (String location : locations) {
+      if (location == null) {
+        nullLocationFound = true;
+        break;
+      }
+    }
+    if (!nullLocationFound) {
+      return locations;
+    } else {
+      List<String> newLocations = new LinkedList<>();
+      for (String location : locations) {
+        if (location != null) {
+          newLocations.add(location);
+        }
+      }
+      if (newLocations.size() == 0) {
+        return null;
+      } else {
+        return newLocations.toArray(new String[newLocations.size()]);
+      }
+    }
   }
 
   /**

@@ -549,6 +549,66 @@ public class TestGroupedSplits {
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
+  // No grouping
+  @Test(timeout=10000)
+  public void testGroupedSplitWithBadLocations2() throws IOException {
+    JobConf job = new JobConf(defaultConf);
+    InputFormat mockWrappedFormat = mock(InputFormat.class);
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
+        new TezGroupedSplitsInputFormat<LongWritable, Text>();
+    format.setConf(job);
+    format.setInputFormat(mockWrappedFormat);
+
+    // put multiple splits with multiple copies in the same location
+    String validLocation = "validLocation";
+    String validLocation2 = "validLocation2";
+    int numSplits = 5;
+    InputSplit[] mockSplits = new InputSplit[numSplits];
+    InputSplit mockSplit1 = mock(InputSplit.class);
+    when(mockSplit1.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit1.getLocations()).thenReturn(null);
+    mockSplits[0] = mockSplit1;
+    InputSplit mockSplit2 = mock(InputSplit.class);
+    when(mockSplit2.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit2.getLocations()).thenReturn(new String[] {null});
+    mockSplits[1] = mockSplit2;
+    InputSplit mockSplit3 = mock(InputSplit.class);
+    when(mockSplit3.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit3.getLocations()).thenReturn(new String[] {null, null});
+    mockSplits[2] = mockSplit3;
+    InputSplit mockSplit4 = mock(InputSplit.class);
+    when(mockSplit4.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit4.getLocations()).thenReturn(new String[] {validLocation});
+    mockSplits[3] = mockSplit4;
+    InputSplit mockSplit5 = mock(InputSplit.class);
+    when(mockSplit5.getLength()).thenReturn(100*1000*1000l);
+    when(mockSplit5.getLocations()).thenReturn(new String[] {validLocation, null, validLocation2});
+    mockSplits[4] = mockSplit4;
+
+    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+
+    format.setDesiredNumberOfSplits(numSplits);
+    InputSplit[] splits = format.getSplits(job, 1);
+    Assert.assertEquals(numSplits, splits.length);
+    for (int i = 0 ; i < numSplits ; i++) {
+      TezGroupedSplit split = (TezGroupedSplit) splits[i];
+      // all 3 splits are present
+      Assert.assertEquals(1, split.wrappedSplits.size());
+      if (i==3) {
+        Assert.assertEquals(1, split.getLocations().length);
+        Assert.assertEquals(validLocation, split.getLocations()[0]);
+      } else if (i==4) {
+        Assert.assertEquals(1, split.getLocations().length);
+        Assert.assertTrue(split.getLocations()[0].equals(validLocation) || split.getLocations()[0].equals(validLocation2));
+      } else {
+        Assert.assertNull(split.getLocations());
+      }
+      ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+      split.write(new DataOutputStream(bOut));
+    }
+  }
+
+  @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test(timeout=10000)
   public void testGroupedSplitWithEstimator() throws IOException {
     JobConf job = new JobConf(defaultConf);

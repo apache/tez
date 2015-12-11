@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
+  TEZ-2911. Null location Strings can cause problems with GroupedSplit serialization.
   TEZ-2990. Change test-patch.sh to run through all tests, despite failures in upstream modules
   TEZ-2798. NPE when executing TestMemoryWithEvents::testMemoryScatterGather.
   TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
