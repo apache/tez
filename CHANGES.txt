@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
   TEZ-2948. Stop using dagName in the dagComplete notification to TaskCommunicators.
   TEZ-2949. Allow duplicate dag names within session for Tez.
+  TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
   TEZ-2990. Change test-patch.sh to run through all tests, despite failures in upstream modules

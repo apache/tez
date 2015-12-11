@@ -543,25 +543,10 @@ public class YARNRunner implements ClientProtocol {
     return finalConf;
   }
 
-  private void maybeKillSession() throws IOException {
-    String sessionAppIdToKill = conf.get("mapreduce.tez.session.tokill-application-id");
-    if (sessionAppIdToKill != null) {
-      ApplicationId killAppId = ConverterUtils.toApplicationId(sessionAppIdToKill);
-      try {
-        resMgrDelegate.killApplication(killAppId);
-      } catch (YarnException e) {
-        throw new IOException("Failed while killing Session AppId", e);
-      }
-    }
-  }
-  
   @Override
   public JobStatus submitJob(JobID jobId, String jobSubmitDir, Credentials ts)
   throws IOException, InterruptedException {
 
-    // HACK! TEZ-604. Get rid of this once Hive moves all of it's tasks over to Tez native.
-    maybeKillSession();
-    
     ApplicationId appId = resMgrDelegate.getApplicationId();
 
     FileSystem fs = FileSystem.get(conf);
