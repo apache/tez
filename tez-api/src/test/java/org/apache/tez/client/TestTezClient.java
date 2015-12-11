@@ -543,7 +543,7 @@ public class TestTezClient {
     verify(client.mockYarnClient, atLeast(2)).getApplicationReport(client.mockAppId);
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 20000)
   public void testStopRetriesUntilTimeout() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP, false);
@@ -551,7 +551,7 @@ public class TestTezClient {
     final TezClientForTest client = configureAndCreateTezClient(conf);
     client.start();
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
-        .thenReturn(YarnApplicationState.NEW);
+        .thenReturn(YarnApplicationState.RUNNING);
     long start = System.currentTimeMillis();
     try {
       client.stop();
