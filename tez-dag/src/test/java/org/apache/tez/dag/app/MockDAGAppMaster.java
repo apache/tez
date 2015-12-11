@@ -87,8 +87,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class MockDAGAppMaster extends DAGAppMaster {
   
   private static final Logger LOG = LoggerFactory.getLogger(MockDAGAppMaster.class);
-  ContainerLauncherContext containerLauncherContext;
   MockContainerLauncher containerLauncher;
+  private final AtomicBoolean launcherGoFlag;
   boolean initFailFlag;
   boolean startFailFlag;
   boolean recoveryFatalError = false;
@@ -488,17 +488,8 @@ public class MockDAGAppMaster extends DAGAppMaster {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
         isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(), 1,
         credentials, jobUserName, null);
-    Configuration conf = new Configuration(false);
-    UserPayload userPayload;
-    try {
-      userPayload = TezUtils.createUserPayloadFromConf(conf);
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
-    containerLauncherContext =
-        new ContainerLauncherContextImpl(getContext(), getTaskCommunicatorManager(), userPayload);
-    containerLauncher = new MockContainerLauncher(launcherGoFlag, containerLauncherContext);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
+    this.launcherGoFlag = launcherGoFlag;
     this.initFailFlag = initFailFlag;
     this.startFailFlag = startFailFlag;
     Preconditions.checkArgument(handlerConcurrency > 0);
@@ -512,6 +503,15 @@ public class MockDAGAppMaster extends DAGAppMaster {
       List<NamedEntityDescriptor> containerLauncherDescirptors,
       boolean isLocal)
       throws UnknownHostException {
+    UserPayload userPayload;
+    try {
+      userPayload = TezUtils.createUserPayloadFromConf(new Configuration(false));
+    } catch (IOException e) {
+      throw new TezUncheckedException(e);
+    }
+    ContainerLauncherContext containerLauncherContext =
+        new ContainerLauncherContextImpl(getContext(), getTaskCommunicatorManager(), userPayload);
+    containerLauncher = new MockContainerLauncher(launcherGoFlag, containerLauncherContext);
     return new ContainerLauncherManager(containerLauncher, getContext());
   }
 

@@ -14,6 +14,7 @@
 
 package org.apache.tez.dag.app;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.TezUtilsInternal;
@@ -37,6 +38,8 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
   private final UserPayload initialUserPayload;
 
   public ContainerLauncherContextImpl(AppContext appContext, TaskCommunicatorManagerInterface tal, UserPayload initialUserPayload) {
+    Preconditions.checkNotNull(appContext, "AppContext cannot be null");
+    Preconditions.checkNotNull(tal, "TaskCommunicator cannot be null");
     this.context = appContext;
     this.tal = tal;
     this.initialUserPayload = initialUserPayload;
