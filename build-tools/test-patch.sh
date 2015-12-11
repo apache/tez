@@ -606,7 +606,7 @@ runTests () {
   test_logfile=$PATCH_DIR/testrun.txt
   echo "  Running tests "
   echo "  $MVN clean install -fn -D${PROJECT_NAME}PatchProcess"
-  $MVN clean install -fae > $test_logfile 2>&1
+  $MVN clean install -fn > $test_logfile 2>&1
   test_build_result=$?
   cat $test_logfile
   module_test_timeouts=`$AWK '/^Running / { if (last) { print last } last=$2 } /^Tests run: / { last="" }' $test_logfile`

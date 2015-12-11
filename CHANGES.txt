@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2990. Change test-patch.sh to run through all tests, despite failures in upstream modules
   TEZ-2798. NPE when executing TestMemoryWithEvents::testMemoryScatterGather.
   TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
   TEZ-2966. Tez does not honor mapreduce.task.timeout
