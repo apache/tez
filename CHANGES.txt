@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
   TEZ-2966. Tez does not honor mapreduce.task.timeout
   TEZ-2979. FlakyTest: org.apache.tez.history.TestHistoryParser.
   TEZ-1491. Tez reducer-side merge's counter update is slow.
@@ -279,6 +280,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
   TEZ-2966. Tez does not honor mapreduce.task.timeout
   TEZ-2346. TEZ-UI: Lazy load other info / counter data
   TEZ-2975. Bump up apache commons dependency.
