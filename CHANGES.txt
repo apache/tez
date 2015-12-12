@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
+  TEZ-2995. Timeline primary filter should only be on callerId and not type.
   TEZ-2994. LocalProgress in tez-runtime-library missing Apache header, rat check warnings from the new licenses after TEZ-2592 merge.
   TEZ-2977. Make HadoopShim selection be overridable for distro-specific implementations.
   TEZ-2472. Change slf4j version to 1.7.10.
@@ -289,6 +290,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2995. Timeline primary filter should only be on callerId and not type.
   TEZ-2824. Add javadocs for Vertex.setConf and DAG.setConf.
   TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
   TEZ-2966. Tez does not honor mapreduce.task.timeout
