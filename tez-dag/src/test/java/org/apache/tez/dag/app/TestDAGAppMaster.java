@@ -117,7 +117,7 @@ public class TestDAGAppMaster {
         .writeDelimitedTo(sessionJarsPBOutStream);
     sessionJarsPBOutStream.close();
     DAGAppMaster am = new DAGAppMaster(attemptId,
-        ContainerId.newContainerId(attemptId, 1),
+        ContainerId.newInstance(attemptId, 1),
         "127.0.0.1", 0, 0, new SystemClock(), 1, true,
         TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
         new String[] {TEST_DIR.toString()},
