@@ -799,6 +799,25 @@
           <configuration>
             <excludes>
               <exclude>CHANGES.txt</exclude>
+              <exclude>**/LICENSE*</exclude>
+              <!-- IDE files -->
+              <exclude>.idea/**</exclude>
+              <exclude>**/*.iml</exclude>
+              <exclude>**/.classpath</exclude>
+              <exclude>**/.project</exclude>
+              <exclude>**/node/**</exclude>
+              <exclude>**/node_modules/**</exclude>
+              <exclude>**/.checkstyle</exclude>
+              <exclude>**/.settings/**</exclude>
+              <exclude>**/maven-eclipse.xml</exclude>
+              <!-- Build directories - target for maven -->
+              <exclude>**/target/**</exclude>
+              <!-- To make developer life easy. Source wont have these files -->
+              <exclude>**/*.diff</exclude>
+              <exclude>*.patch</exclude>
+              <!-- .png files constitute images required for documentation. .pptx contain the sources for images -->
+              <exclude>**/*.png</exclude>
+              <exclude>**/*.pptx</exclude>
             </excludes>
           </configuration>
         </plugin>
