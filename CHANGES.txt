@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
+  TEZ-2977. Make HadoopShim selection be overridable for distro-specific implementations.
   TEZ-2472. Change slf4j version to 1.7.10.
   TEZ-2920. org.apache.tez.client.TestTezClient.testStopRetriesUntilTimeout is flaky.
   TEZ-2824. Add javadocs for Vertex.setConf and DAG.setConf.

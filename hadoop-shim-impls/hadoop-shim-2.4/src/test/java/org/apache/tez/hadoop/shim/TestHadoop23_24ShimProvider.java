@@ -18,6 +18,8 @@
 
 package org.apache.tez.hadoop.shim;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.hadoop.shim.DummyShimProvider.DummyShim;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,6 +35,48 @@ public class TestHadoop23_24ShimProvider {
     Assert.assertNull(provider.createHadoopShim("foo", 3, 3));
     Assert.assertNotNull(provider.createHadoopShim("foo", 2, 3));
     Assert.assertNotNull(provider.createHadoopShim("foo", 2, 4));
+
+    Assert.assertEquals(HadoopShim24.class,
+        provider.createHadoopShim("foo", 2, 3).getClass());
+
+  }
+
+  @Test
+  public void testLoaderOverride() {
+    Configuration conf = new Configuration(false);
+    // Set shim and version to ensure that hadoop version from the build does not create
+    // a mismatch
+    conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_PROVIDER_CLASS,
+        HadoopShim23_24Provider.class.getName());
+    conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_HADOOP_VERSION_OVERRIDE, "2.4.0");
+    HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
+    HadoopShim shim = loader.getHadoopShim();
+    Assert.assertNotNull(shim);
+    Assert.assertEquals(HadoopShim24.class, shim.getClass());
+  }
+
+  @Test
+  public void testInvalidVersion() {
+    Configuration conf = new Configuration(false);
+    // Set incompatible version so that shim in this module does not match
+    conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_HADOOP_VERSION_OVERRIDE, "2.6.0");
+    HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
+    HadoopShim shim = loader.getHadoopShim();
+    Assert.assertNotNull(shim);
+    Assert.assertEquals(DefaultHadoopShim.class, shim.getClass());
+  }
+
+  @Test
+  public void testLoaderOverrideInvalidVersion() {
+    Configuration conf = new Configuration(false);
+    // Set incompatible version so that override shim does not return a valid shim
+    conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_PROVIDER_CLASS,
+        HadoopShim23_24Provider.class.getName());
+    conf.set(HadoopShimsLoader.TEZ_HADOOP_SHIM_HADOOP_VERSION_OVERRIDE, "2.1.0");
+    HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
+    HadoopShim shim = loader.getHadoopShim();
+    Assert.assertNotNull(shim);
+    Assert.assertEquals(DefaultHadoopShim.class, shim.getClass());
   }
 
 }

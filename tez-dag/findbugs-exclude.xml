@@ -161,6 +161,7 @@
       <Field name="nodes"/>
       <Field name="recoveryEnabled"/>
       <Field name="isLocal"/>
+      <Field name="hadoopShim"/>
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>

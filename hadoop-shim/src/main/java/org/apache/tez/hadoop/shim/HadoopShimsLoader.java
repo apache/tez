@@ -22,9 +22,12 @@ import java.util.ServiceLoader;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.VersionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 @Private
 public class HadoopShimsLoader {
@@ -37,17 +40,57 @@ public class HadoopShimsLoader {
   private final HadoopShim currentShim;
   private final HadoopShimProvider currentShimProvider;
 
-  public HadoopShimsLoader() {
+  public static final String TEZ_HADOOP_SHIM_PROVIDER_CLASS =
+      "tez.hadoop.shim.provider.class";
+
+  // A way to override the hadoop version for testing
+  @Private
+  @VisibleForTesting
+  static final String TEZ_HADOOP_SHIM_HADOOP_VERSION_OVERRIDE =
+      "tez.hadoop.shim.hadoop.version.override";
+
+  public HadoopShimsLoader(Configuration conf) {
+    this(conf, false);
+  }
+
+  @VisibleForTesting
+  @SuppressWarnings("unchecked")
+  HadoopShimsLoader(Configuration conf, boolean useReflection) {
+    String overrideProviderClassStr = conf.get(TEZ_HADOOP_SHIM_PROVIDER_CLASS);
+    if (overrideProviderClassStr != null && !overrideProviderClassStr.isEmpty()) {
+      LOG.info("HadoopShim Selection is overridden, using Configured Provider="
+          + overrideProviderClassStr);
+    } else {
+      overrideProviderClassStr = null;
+    }
+
     String versionStr = VersionInfo.getVersion();
+    String overrideVersionStr = conf.get(TEZ_HADOOP_SHIM_HADOOP_VERSION_OVERRIDE);
+    if (overrideVersionStr != null && !overrideVersionStr.isEmpty()) {
+      LOG.warn("Using overridden hadoop version instead of actual version"
+          + ", realVersion=" + versionStr
+          + ", overrideVersion=" + overrideVersionStr);
+      versionStr = overrideVersionStr;
+    }
+
     Version version = new Version(versionStr);
     HadoopShim selectedShim = null;
     HadoopShimProvider selectedShimProvider = null;
+
     LOG.info("Trying to locate HadoopShimProvider for "
         + "hadoopVersion=" + versionStr
         + ", majorVersion=" + version.majorVersion
         + ", minorVersion=" + version.minorVersion);
     synchronized (shimLoader) {
       for (HadoopShimProvider provider : shimLoader) {
+        if (overrideProviderClassStr != null
+            && !provider.getClass().getName().equals(overrideProviderClassStr)) {
+          LOG.debug("Skipping HadoopShimProvider : "
+              + provider.getClass().getName()
+              + " as config provided to override selection");
+          continue;
+        }
+
         LOG.debug("Trying HadoopShimProvider : "
             + provider.getClass().getName());
         HadoopShim hadoopShim = null;
@@ -70,6 +113,21 @@ public class HadoopShimsLoader {
               + " due to error: ", e);
         }
       }
+      if (selectedShim == null && useReflection && overrideProviderClassStr != null) {
+        try {
+          LOG.debug("Using Reflection to create HadoopShim from provider class="
+              + overrideProviderClassStr);
+          Class<HadoopShimProvider> clazz = (Class<HadoopShimProvider>)Class.forName(
+              overrideProviderClassStr, true, Thread.currentThread().getContextClassLoader());
+          selectedShimProvider = clazz.newInstance();
+          selectedShim = selectedShimProvider.createHadoopShim(versionStr,
+              version.majorVersion, version.minorVersion);
+        } catch (Exception e) {
+          throw new RuntimeException("Unable to create HadoopShim from provider class: "
+              + overrideProviderClassStr, e);
+        }
+      }
+
       if (selectedShim == null) {
         currentShim = new DefaultHadoopShim();
         currentShimProvider = null;
@@ -80,7 +138,8 @@ public class HadoopShimsLoader {
     }
     LOG.info("Picked HadoopShim " + currentShim.getClass().getName()
         + ", providerName="
-        + (currentShimProvider != null ? currentShimProvider.getClass().getName() : "null" )
+        + (currentShimProvider != null ? currentShimProvider.getClass().getName() : "null")
+        + ", overrideProviderViaConfig=" + overrideProviderClassStr
         + ", hadoopVersion=" + versionStr
         + ", majorVersion=" + version.majorVersion
         + ", minorVersion=" + version.minorVersion);

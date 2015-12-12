@@ -240,7 +240,7 @@ public class DAGAppMaster extends AbstractService {
   private final String[] localDirs;
   private final String[] logDirs;
   private final AMPluginDescriptorProto amPluginDescriptorProto;
-  private final HadoopShim hadoopShim;
+  private HadoopShim hadoopShim;
   private ContainerSignatureMatcher containerSignatureMatcher;
   private AMContainerMap containers;
   private AMNodeTracker nodes;
@@ -360,7 +360,6 @@ public class DAGAppMaster extends AbstractService {
 
     this.containerLogs = getRunningLogURL(this.nmHost + ":" + this.nmHttpPort,
         this.containerID.toString(), this.appMasterUgi.getShortUserName());
-    this.hadoopShim = new HadoopShimsLoader().getHadoopShim();
 
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo.toString());
@@ -417,6 +416,9 @@ public class DAGAppMaster extends AbstractService {
 
     this.amConf = conf;
     initResourceCalculatorPlugins();
+    this.hadoopShim = new HadoopShimsLoader(this.amConf).getHadoopShim();
+
+
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
 
