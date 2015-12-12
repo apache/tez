@@ -41,6 +41,7 @@
     <jetty.version>6.1.26</jetty.version>
     <pig.version>0.13.0</pig.version>
     <javac.version>1.7</javac.version>
+    <slf4j.version>1.7.10</slf4j.version>
     <enforced.java.version>[${javac.version},)</enforced.java.version>
     <distMgmtSnapshotsId>apache.snapshots.https</distMgmtSnapshotsId>
     <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
@@ -207,17 +208,17 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.7.5</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
-	      <groupId>com.ning</groupId>
+        <groupId>com.ning</groupId>
 	      <artifactId>async-http-client</artifactId>
 	      <version>1.8.16</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
-        <version>1.7.5</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
