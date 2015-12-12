@@ -460,7 +460,7 @@ public class TestHistoryEventTimelineConversion {
 
     Assert.assertEquals(submitTime, timelineEntity.getStartTime().longValue());
 
-    Assert.assertEquals(5, timelineEntity.getPrimaryFilters().size());
+    Assert.assertEquals(4, timelineEntity.getPrimaryFilters().size());
 
     Assert.assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.DAG_NAME).contains(
@@ -468,9 +468,6 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.CALLER_CONTEXT_ID).contains(
             dagPlan.getCallerContext().getCallerId()));
-    Assert.assertTrue(
-        timelineEntity.getPrimaryFilters().get(ATSConstants.CALLER_CONTEXT_TYPE).contains(
-            dagPlan.getCallerContext().getCallerType()));
     Assert.assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationAttemptId.getApplicationId().toString()));

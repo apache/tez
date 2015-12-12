@@ -392,12 +392,9 @@ public class HistoryEventTimelineConversion {
         event.getDagID().getApplicationId().toString());
 
     if (event.getDAGPlan().hasCallerContext()
-        && event.getDAGPlan().getCallerContext().hasCallerId()
-        && event.getDAGPlan().getCallerContext().hasCallerType()) {
+        && event.getDAGPlan().getCallerContext().hasCallerId()) {
       atsEntity.addPrimaryFilter(ATSConstants.CALLER_CONTEXT_ID,
           event.getDAGPlan().getCallerContext().getCallerId());
-      atsEntity.addPrimaryFilter(ATSConstants.CALLER_CONTEXT_TYPE,
-          event.getDAGPlan().getCallerContext().getCallerType());
     }
 
     try {
