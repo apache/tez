@@ -365,7 +365,6 @@ public class DAG {
    * @param value the value for the property
    * @return the current DAG being constructed
    */
-  @InterfaceStability.Unstable
   public DAG setConf(String property, String value) {
     TezConfiguration.validateProperty(property, Scope.DAG);
     dagConf.put(property, value);

@@ -423,7 +423,6 @@ public class Vertex {
    * @param value the value for the property
    * @return the current DAG being constructed
    */
-  @InterfaceStability.Unstable
   public Vertex setConf(String property, String value) {
     TezConfiguration.validateProperty(property, Scope.VERTEX);
     this.vertexConf.put(property, value);
