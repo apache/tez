@@ -290,6 +290,8 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.
+  TEZ-2496. Consider scheduling tasks in ShuffleVertexManager based on the partition sizes from the source.
   TEZ-2995. Timeline primary filter should only be on callerId and not type.
   TEZ-2824. Add javadocs for Vertex.setConf and DAG.setConf.
   TEZ-2963. RecoveryService#handleSummaryEvent exception with HDFS transparent encryption + kerberos authentication.
