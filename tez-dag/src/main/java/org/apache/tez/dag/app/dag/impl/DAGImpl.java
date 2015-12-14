@@ -1256,7 +1256,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   void logJobHistoryFinishedEvent(TezCounters counters) throws IOException {
     Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
-    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, clock.getTime(),
+    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         finishTime, DAGState.SUCCEEDED, "", counters,
         this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId());
     this.appContext.getHistoryHandler().handleCriticalEvent(
@@ -1266,7 +1266,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   void logJobHistoryUnsuccesfulEvent(DAGState state, TezCounters counters) throws IOException {
     Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
 
-    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, 0L,
+    DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         clock.getTime(), state,
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
         counters, this.userName, this.dagName, taskStats,

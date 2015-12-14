@@ -6,6 +6,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2979. FlakyTest: org.apache.tez.history.TestHistoryParser.
   TEZ-2684. ShuffleVertexManager.parsePartitionStats throws IllegalStateException: Stats should be initialized.
   TEZ-2496. Consider scheduling tasks in ShuffleVertexManager based on the partition sizes from the source.
   TEZ-2987. TestVertexImpl.testTez2684 fails
