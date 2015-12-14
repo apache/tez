@@ -307,6 +307,25 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(5000L, manager.completedSourceTasksOutputSize);
 
     /**
+     * Test vmEvent and vertexStatusUpdate before started
+     */
+    scheduledTasks.clear();
+    //{5,9,12,18} in bitmap
+    vmEvent = getVertexManagerEvent(null, 1L, "Vertex");
+
+    manager = createManager(conf, mockContext, 0.01f, 0.75f);
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+
+    TezTaskAttemptID taId1 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_0");
+    vmEvent.setProducerAttemptIdentifier(new TaskAttemptIdentifierImpl("dag", mockSrcVertexId1, taId1));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexManagerEventReceived(vmEvent);
+    Assert.assertEquals(0, manager.numVertexManagerEventsReceived); // nothing happens
+    manager.onVertexStarted(emptyCompletions); // now the processing happens
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+
+    /**
      * Test partition stats
      */
     scheduledTasks.clear();
@@ -320,7 +339,7 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
     Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
 
-    TezTaskAttemptID taId1 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_0");
+    taId1 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_0");
     vmEvent.setProducerAttemptIdentifier(new TaskAttemptIdentifierImpl("dag", mockSrcVertexId1, taId1));
     manager.onVertexManagerEventReceived(vmEvent);
     Assert.assertEquals(1, manager.numVertexManagerEventsReceived);

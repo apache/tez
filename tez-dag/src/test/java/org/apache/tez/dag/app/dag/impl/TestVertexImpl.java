@@ -5930,11 +5930,11 @@ public class TestVertexImpl {
 
     //Send VertexManagerEvent
     long[] sizes = new long[]{(100 * 1000l * 1000l)};
-    Event vmEvent = getVertexManagerEvent(sizes, 1060000000, "C");
+    Event vmEvent = getVertexManagerEvent(sizes, 1060000000, "B");
 
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(
         TezTaskID.getInstance(vC.getVertexId(), 1), 1);
-    EventMetaData sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT, "C", "C", taId);
+    EventMetaData sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT, "B", "C", taId);
     TezEvent tezEvent = new TezEvent(vmEvent, sourceInfo);
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(vC.getVertexId(),
         Lists.newArrayList(tezEvent)));

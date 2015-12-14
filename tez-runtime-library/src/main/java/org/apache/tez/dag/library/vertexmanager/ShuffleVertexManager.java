@@ -145,6 +145,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   int numBipartiteSourceTasksCompleted = 0;
   int numVertexManagerEventsReceived = 0;
   List<PendingTaskInfo> pendingTasks = Lists.newLinkedList();
+  List<VertexManagerEvent> pendingVMEvents = Lists.newLinkedList();
   int totalTasksToSchedule = 0;
   private AtomicBoolean onVertexStartedDone = new AtomicBoolean(false);
   
@@ -501,10 +502,16 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     if(bipartiteSources == 0) {
       throw new TezUncheckedException("Atleast 1 bipartite source should exist");
     }
+
     for (VertexStateUpdate stateUpdate : pendingStateUpdates) {
       handleVertexStateUpdate(stateUpdate);
     }
     pendingStateUpdates.clear();
+
+    for (VertexManagerEvent vmEvent : pendingVMEvents) {
+      handleVertexManagerEvent(vmEvent);
+    }
+    pendingVMEvents.clear();
     
     // track the tasks in this vertex
     updatePendingTasks();
@@ -567,6 +574,16 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   @Override
   public synchronized void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
+    if (onVertexStartedDone.get()) {
+      // internal data structures have been initialized - so handle the events directly
+      handleVertexManagerEvent(vmEvent);
+    } else {
+      // save this event for processing after vertex starts
+      pendingVMEvents.add(vmEvent);
+    }
+  }
+
+  private void handleVertexManagerEvent(VertexManagerEvent vmEvent) {
     // currently events from multiple attempts of the same task can be ignored because
     // their output will be the same. However, with pipelined events that may not hold.
     TaskIdentifier producerTask = vmEvent.getProducerAttemptIdentifier().getTaskIdentifier();
