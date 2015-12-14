@@ -53,6 +53,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -307,6 +308,38 @@ public class TestDefaultSorter {
     }
   }
 
+  void testPartitionStats(boolean withStats) throws IOException {
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, withStats);
+    OutputContext context = createTezOutputContext();
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+        context.getTotalMemoryAvailableToTask()), handler);
+    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+
+    writeData(sorter, 1000, 10);
+    assertTrue(sorter.getNumSpills() == 1);
+    verifyCounters(sorter, context);
+
+    if (withStats) {
+      assertTrue(sorter.getPartitionStats() != null);
+    } else {
+      assertTrue(sorter.getPartitionStats() == null);
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testWithPartitionStats() throws IOException {
+    testPartitionStats(true);
+  }
+
+  @Test(timeout = 60000)
+  public void testWithoutPartitionStats() throws IOException {
+    testPartitionStats(false);
+  }
+
   @Test(timeout = 60000)
   @SuppressWarnings("unchecked")
   public void testWithSingleSpillWithFinalMergeDisabled() throws IOException {
@@ -418,6 +451,7 @@ public class TestDefaultSorter {
 
     OutputContext context = mock(OutputContext.class);
     ExecutionContext execContext = new ExecutionContextImpl("localhost");
+    doReturn(mock(OutputStatisticsReporter.class)).when(context).getStatisticsReporter();
     doReturn(execContext).when(context).getExecutionContext();
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();

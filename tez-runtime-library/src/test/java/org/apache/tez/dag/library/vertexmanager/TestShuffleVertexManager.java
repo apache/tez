@@ -18,10 +18,14 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
@@ -48,11 +52,13 @@ import org.apache.tez.runtime.api.VertexIdentifier;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -301,6 +307,43 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(5000L, manager.completedSourceTasksOutputSize);
 
     /**
+     * Test partition stats
+     */
+    scheduledTasks.clear();
+    //{5,9,12,18} in bitmap
+    long[] sizes = new long[]{(0l), (1000l * 1000l),
+                              (1010 * 1000l * 1000l), (50 * 1000l * 1000l)};
+    vmEvent = getVertexManagerEvent(sizes, 1L, "Vertex");
+
+    manager = createManager(conf, mockContext, 0.01f, 0.75f);
+    manager.onVertexStarted(emptyCompletions);
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+
+    TezTaskAttemptID taId1 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_0");
+    vmEvent.setProducerAttemptIdentifier(new TaskAttemptIdentifierImpl("dag", mockSrcVertexId1, taId1));
+    manager.onVertexManagerEventReceived(vmEvent);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+
+    Assert.assertEquals(4, manager.stats.length);
+    Assert.assertEquals(0, manager.stats[0]); //0 MB bucket
+    Assert.assertEquals(1, manager.stats[1]); //1 MB bucket
+    Assert.assertEquals(100, manager.stats[2]); //100 MB bucket
+    Assert.assertEquals(10, manager.stats[3]); //10 MB bucket
+
+    // sending again from a different version of the same task has not impact
+    TezTaskAttemptID taId2 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_1");
+    vmEvent.setProducerAttemptIdentifier(new TaskAttemptIdentifierImpl("dag", mockSrcVertexId1, taId2));
+    manager.onVertexManagerEventReceived(vmEvent);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+
+    Assert.assertEquals(4, manager.stats.length);
+    Assert.assertEquals(0, manager.stats[0]); //0 MB bucket
+    Assert.assertEquals(1, manager.stats[1]); //1 MB bucket
+    Assert.assertEquals(100, manager.stats[2]); //100 MB bucket
+    Assert.assertEquals(10, manager.stats[3]); //10 MB bucket
+
+    /**
      * Test for TEZ-978
      * Delay determining parallelism until enough data has been received.
      */
@@ -511,6 +554,7 @@ public class TestShuffleVertexManager {
     String mockManagedVertexId = "Vertex4";
     
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
+    when(mockContext.getVertexStatistics(any(String.class))).thenReturn(mock(VertexStatistics.class));
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
@@ -631,7 +675,7 @@ public class TestShuffleVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
 
     // source vertex have some tasks. min, max == 0
-    manager = createManager(conf, mockContext, 0.f, 0.f);
+    manager = createManager(conf, mockContext, 0.0f, 0.0f);
     manager.onVertexStarted(emptyCompletions);
     Assert.assertTrue(manager.totalTasksToSchedule == 3);
     Assert.assertTrue(manager.numBipartiteSourceTasksCompleted == 0);
@@ -926,7 +970,6 @@ public class TestShuffleVertexManager {
       throws IOException {
     ByteBuffer payload = null;
     if (sizes != null) {
-      /*
       RoaringBitmap partitionStats = ShuffleUtils.getPartitionStatsForPhysicalOutput(sizes);
       DataOutputBuffer dout = new DataOutputBuffer();
       partitionStats.serialize(dout);
@@ -938,7 +981,6 @@ public class TestShuffleVertexManager {
               .setPartitionStats(partitionStatsBytes)
               .build().toByteString()
               .asReadOnlyByteBuffer();
-              */
     } else {
       payload =
           VertexManagerEventPayloadProto.newBuilder()
@@ -951,6 +993,108 @@ public class TestShuffleVertexManager {
     VertexManagerEvent vmEvent = VertexManagerEvent.create(vertexName, payload);
     vmEvent.setProducerAttemptIdentifier(taId);
     return vmEvent;
+  }
+
+  @Test(timeout = 5000)
+  public void testSchedulingWithPartitionStats() throws IOException {
+    Configuration conf = new Configuration();
+    conf.setBoolean(
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
+        true);
+    conf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
+    ShuffleVertexManager manager = null;
+
+    HashMap<String, EdgeProperty> mockInputVertices = new HashMap<String, EdgeProperty>();
+    String r1 = "R1";
+    EdgeProperty eProp1 = EdgeProperty.create(
+        EdgeProperty.DataMovementType.SCATTER_GATHER,
+        EdgeProperty.DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
+    String m2 = "M2";
+    EdgeProperty eProp2 = EdgeProperty.create(
+        EdgeProperty.DataMovementType.BROADCAST,
+        EdgeProperty.DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
+    String m3 = "M3";
+    EdgeProperty eProp3 = EdgeProperty.create(
+        EdgeProperty.DataMovementType.BROADCAST,
+        EdgeProperty.DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
+
+    final String mockManagedVertexId = "R2";
+
+    mockInputVertices.put(r1, eProp1);
+    mockInputVertices.put(m2, eProp2);
+    mockInputVertices.put(m3, eProp3);
+
+    VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
+    when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
+    when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
+    when(mockContext.getVertexNumTasks(r1)).thenReturn(3);
+    when(mockContext.getVertexNumTasks(m2)).thenReturn(3);
+    when(mockContext.getVertexNumTasks(m3)).thenReturn(3);
+
+    final List<Integer> scheduledTasks = Lists.newLinkedList();
+    doAnswer(new Answer() {
+      public Object answer(InvocationOnMock invocation) {
+        Object[] args = invocation.getArguments();
+        scheduledTasks.clear();
+        List<ScheduleTaskRequest> tasks = (List<ScheduleTaskRequest>)args[0];
+        for (ScheduleTaskRequest task : tasks) {
+          scheduledTasks.add(task.getTaskIndex());
+        }
+        return null;
+      }}).when(mockContext).scheduleTasks(anyList());
+
+    // check initialization
+    manager = createManager(conf, mockContext, 0.001f, 0.001f);
+    manager.onVertexStarted(emptyCompletions);
+    Assert.assertTrue(manager.bipartiteSources == 1);
+
+    manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(m2, VertexState.CONFIGURED));
+
+    Assert.assertEquals(3, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(3, manager.totalNumBipartiteSourceTasks);
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+
+    //Send an event for r1.
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(r1, 0));
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 3);
+
+    //Tasks should be scheduled in task 2, 0, 1 order
+    long[] sizes = new long[]{(100 * 1000l * 1000l), (0l), (5000 * 1000l * 1000l)};
+    VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 1060000000, r1);
+    manager.onVertexManagerEventReceived(vmEvent); //send VM event
+
+    //stats from another vertex (more of empty stats)
+    sizes = new long[]{(0l), (0l), (0l)};
+    vmEvent = getVertexManagerEvent(sizes, 1060000000, r1);
+    manager.onVertexManagerEventReceived(vmEvent); //send VM event
+
+    //Send an event for m2.
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m2, 0));
+    Assert.assertTrue(manager.pendingTasks.size() == 3); // no tasks scheduled
+    Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 3);
+
+    //Send an event for m3.
+    manager.onVertexStateUpdated(new VertexStateUpdate(m3, VertexState.CONFIGURED));
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m3, 0));
+    Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
+    Assert.assertTrue(scheduledTasks.size() == 3);
+
+    //Order of scheduling should be 2,0,1 based on the available partition statistics
+    Assert.assertTrue(scheduledTasks.get(0) == 2);
+    Assert.assertTrue(scheduledTasks.get(1) == 0);
+    Assert.assertTrue(scheduledTasks.get(2) == 1);
   }
 
   @Test(timeout = 5000)

@@ -271,7 +271,7 @@ public class PipelinedSorter extends ExternalSorter {
     String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
     ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false, outputContext,
         (numSpills - 1), indexCacheList.get(numSpills - 1), partitions, sendEmptyPartitionDetails,
-        pathComponent);
+        pathComponent, partitionStats);
     outputContext.sendEvents(events);
     LOG.info(outputContext.getDestinationVertexName() +
         ": Added spill event for spill (final update=false), spillId=" + (numSpills - 1));
@@ -476,6 +476,9 @@ public class PipelinedSorter extends ExternalSorter {
                 writer.getRawLength(),
                 writer.getCompressedLength());
         spillRec.putIndex(rec, i);
+        if (!isFinalMergeEnabled() && reportPartitionStats()) {
+          partitionStats[i] += writer.getCompressedLength();
+        }
       }
 
       Path indexFilename =
@@ -538,7 +541,7 @@ public class PipelinedSorter extends ExternalSorter {
         String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
         ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), isLastEvent,
             outputContext, i, indexCacheList.get(i), partitions,
-            sendEmptyPartitionDetails, pathComponent);
+            sendEmptyPartitionDetails, pathComponent, partitionStats);
         LOG.info(outputContext.getDestinationVertexName() + ": Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
       }
       outputContext.sendEvents(events);
@@ -563,6 +566,12 @@ public class PipelinedSorter extends ExternalSorter {
             ", finalOutputFile=" + finalOutputFile + ", "
             + "finalIndexFile=" + finalIndexFile + ", filename=" + filename + ", indexFilename=" +
             indexFilename);
+      }
+      TezSpillRecord spillRecord = new TezSpillRecord(finalIndexFile, conf);
+      if (reportPartitionStats()) {
+        for (int i = 0; i < spillRecord.size(); i++) {
+          partitionStats[i] += spillRecord.getIndex(i).getPartLength();
+        }
       }
       numShuffleChunks.setValue(numSpills);
       fileOutputByteCounter.increment(rfs.getFileStatus(finalOutputFile).getLen());
@@ -638,6 +647,9 @@ public class PipelinedSorter extends ExternalSorter {
               writer.getRawLength(), 
               writer.getCompressedLength());
       spillRec.putIndex(rec, parts);
+      if (reportPartitionStats()) {
+        partitionStats[parts] += writer.getCompressedLength();
+      }
     }
 
     numShuffleChunks.setValue(1); //final merge has happened.

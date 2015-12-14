@@ -28,6 +28,9 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
+import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -59,12 +62,17 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexMan
 
 import javax.annotation.Nullable;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,7 +144,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   int totalNumBipartiteSourceTasks = 0;
   int numBipartiteSourceTasksCompleted = 0;
   int numVertexManagerEventsReceived = 0;
-  List<Integer> pendingTasks = Lists.newLinkedList();
+  List<PendingTaskInfo> pendingTasks = Lists.newLinkedList();
   int totalTasksToSchedule = 0;
   private AtomicBoolean onVertexStartedDone = new AtomicBoolean(false);
   
@@ -149,6 +157,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   int bipartiteSources = 0;
   long completedSourceTasksOutputSize = 0;
   List<VertexStateUpdate> pendingStateUpdates = Lists.newArrayList();
+
+  private int[][] targetIndexes;
+  private int basePartitionRange;
+  private int remainderRangeForLastShuffler;
+  @VisibleForTesting
+  long[] stats; //approximate amount of data to be fetched
 
   static class SourceVertexInfo {
     EdgeProperty edgeProperty;
@@ -172,8 +186,30 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
   }
 
+  static class PendingTaskInfo {
+    private int index;
+    private long outputStats;
+
+    public PendingTaskInfo(int index) {
+      this.index = index;
+    }
+
+    public String toString() {
+      return "[index=" + index + ", outputStats=" + outputStats + "]";
+    }
+  }
+
   public ShuffleVertexManager(VertexManagerPluginContext context) {
     super(context);
+  }
+
+  static int[] createIndices(int partitionRange, int taskIndex, int offSetPerTask) {
+    int startIndex = taskIndex * offSetPerTask;
+    int[] indices = new int[partitionRange];
+    for (int currentIndex = 0; currentIndex < partitionRange; ++currentIndex) {
+      indices[currentIndex] = (startIndex + currentIndex);
+    }
+    return indices;
   }
 
   public static class CustomShuffleEdgeManager extends EdgeManagerPluginOnDemand {
@@ -242,7 +278,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       } else {
         partitionRange = remainderRangeForLastShuffler;
       }
-      
+
       // all inputs from a source task are next to each other in original order
       int targetIndex = 
           sourceTaskIndex * partitionRange 
@@ -273,14 +309,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       return EventRouteMetadata.create(1, new int[]{targetIndex});
     }
     
-    private int[] createIndices(int partitionRange, int taskIndex, int offSetPerTask) {
-      int startIndex = taskIndex * offSetPerTask;
-      int[] indices = new int[partitionRange];
-      for (int currentIndex = 0; currentIndex < partitionRange; ++currentIndex) {
-        indices[currentIndex] = (startIndex + currentIndex);
-      }
-      return indices;      
-    }
+
     
     @Override
     public void prepareForRouting() throws Exception {
@@ -494,6 +523,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     schedulePendingTasks();
   }
 
+
   @Override
   public synchronized void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
     String srcVertexName = attempt.getTaskIdentifier().getVertexIdentifier().getName();
@@ -516,7 +546,25 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     schedulePendingTasks();
   }
-  
+
+  @VisibleForTesting
+  void parsePartitionStats(RoaringBitmap partitionStats) {
+    Preconditions.checkState(stats != null, "Stats should be initialized");
+    Iterator<Integer> it = partitionStats.iterator();
+    final DATA_RANGE_IN_MB[] RANGES = DATA_RANGE_IN_MB.values();
+    final int RANGE_LEN = RANGES.length;
+    while (it.hasNext()) {
+      int pos = it.next();
+      int index = ((pos) / RANGE_LEN);
+      int rangeIndex = ((pos) % RANGE_LEN);
+      //Add to aggregated stats and normalize to DATA_RANGE_IN_MB.
+      if (RANGES[rangeIndex].getSizeInMB() > 0) {
+        stats[index] += RANGES[rangeIndex].getSizeInMB();
+      }
+    }
+  }
+
+
   @Override
   public synchronized void onVertexManagerEventReceived(VertexManagerEvent vmEvent) {
     // currently events from multiple attempts of the same task can be ignored because
@@ -544,6 +592,19 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       }
       sourceTaskOutputSize = proto.getOutputSize();
 
+      if (proto.hasPartitionStats()) {
+        try {
+          RoaringBitmap partitionStats = new RoaringBitmap();
+          ByteString compressedPartitionStats = proto.getPartitionStats();
+          byte[] rawData = TezCommonUtils.decompressByteStringToByteArray(compressedPartitionStats);
+          ByteArrayInputStream bin = new ByteArrayInputStream(rawData);
+          partitionStats.deserialize(new DataInputStream(bin));
+
+          parsePartitionStats(partitionStats);
+        } catch (IOException e) {
+          throw new TezUncheckedException(e);
+        }
+      }
       srcInfo.numVMEventsReceived++;
       srcInfo.outputSize += sourceTaskOutputSize;
       completedSourceTasksOutputSize += sourceTaskOutputSize;
@@ -558,13 +619,17 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
           + " total output size: " + completedSourceTasksOutputSize);
     }
   }
-  
+
+
   void updatePendingTasks() {
     pendingTasks.clear();
-    for (int i=0; i<getContext().getVertexNumTasks(getContext().getVertexName()); ++i) {
-      pendingTasks.add(i);
+    for (int i = 0; i < getContext().getVertexNumTasks(getContext().getVertexName()); ++i) {
+      pendingTasks.add(new PendingTaskInfo(i));
     }
     totalTasksToSchedule = pendingTasks.size();
+    if (stats == null) {
+      stats = new long[totalTasksToSchedule]; // TODO lost previous data
+    }
   }
 
   Iterable<Map.Entry<String, SourceVertexInfo>> getBipartiteInfo() {
@@ -633,7 +698,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     
     // most shufflers will be assigned this range
-    int basePartitionRange = currentParallelism/desiredTaskParallelism;
+    basePartitionRange = currentParallelism/desiredTaskParallelism;
     
     if (basePartitionRange <= 1) {
       // nothing to do if range is equal 1 partition. shuffler does it by default
@@ -641,7 +706,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     
     int numShufflersWithBaseRange = currentParallelism / basePartitionRange;
-    int remainderRangeForLastShuffler = currentParallelism % basePartitionRange; 
+    remainderRangeForLastShuffler = currentParallelism % basePartitionRange;
     
     int finalTaskParallelism = (remainderRangeForLastShuffler > 0) ?
           (numShufflersWithBaseRange + 1) : (numShufflersWithBaseRange);
@@ -678,12 +743,28 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
             oldEdgeProp.getEdgeSource(), oldEdgeProp.getEdgeDestination());
         edgeProperties.put(vertex, newEdgeProp);
       }
-      
+
       getContext().reconfigureVertex(finalTaskParallelism, null, edgeProperties);
-      
       updatePendingTasks();
+      configureTargetMapping(finalTaskParallelism);
     }
     return true;
+  }
+
+  void configureTargetMapping(int tasks) {
+    targetIndexes = new int[tasks][];
+    for (int idx = 0; idx < tasks; ++idx) {
+      int partitionRange = basePartitionRange;
+      if (idx == (tasks - 1)) {
+        partitionRange = ((remainderRangeForLastShuffler > 0)
+            ? remainderRangeForLastShuffler : basePartitionRange);
+      }
+      // skip the basePartitionRange per destination task
+      targetIndexes[idx] = createIndices(partitionRange, idx, basePartitionRange);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("targetIdx[" + idx + "] to " + Arrays.toString(targetIndexes[idx]));
+      }
+    }
   }
 
   void schedulePendingTasks(int numTasksToSchedule, float minSourceVertexCompletedTaskFraction) {
@@ -702,11 +783,15 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       }
       getContext().doneReconfiguringVertex();
     }
+    if (totalNumBipartiteSourceTasks > 0) {
+      //Sort in case partition stats are available
+      sortPendingTasksBasedOnDataSize();
+    }
     List<ScheduleTaskRequest> scheduledTasks = Lists.newArrayListWithCapacity(numTasksToSchedule);
 
     while(!pendingTasks.isEmpty() && numTasksToSchedule > 0) {
       numTasksToSchedule--;
-      Integer taskIndex = pendingTasks.get(0);
+      Integer taskIndex = pendingTasks.get(0).index;
       scheduledTasks.add(ScheduleTaskRequest.create(taskIndex, null));
       pendingTasks.remove(0);
     }
@@ -716,6 +801,59 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       // done scheduling all tasks
       // TODO TEZ-1714 locking issues. getContext().vertexManagerDone();
     }
+  }
+
+  private void sortPendingTasksBasedOnDataSize() {
+    //Get partition sizes from all source vertices
+    boolean statsUpdated = computePartitionSizes();
+
+    if (statsUpdated) {
+      //Order the pending tasks based on task size in reverse order
+      Collections.sort(pendingTasks, new Comparator<PendingTaskInfo>() {
+        @Override
+        public int compare(PendingTaskInfo left, PendingTaskInfo right) {
+          return (left.outputStats > right.outputStats) ? -1 :
+              ((left.outputStats == right.outputStats) ? 0 : 1);
+        }
+      });
+
+      if (LOG.isDebugEnabled()) {
+        for (PendingTaskInfo pendingTask : pendingTasks) {
+          LOG.debug("Pending task:" + pendingTask.toString());
+        }
+      }
+    }
+  }
+
+  /**
+   * Compute partition sizes in case statistics are available in vertex.
+   *
+   * @return boolean indicating whether stats are computed
+   */
+  private synchronized boolean computePartitionSizes() {
+    boolean computedPartitionSizes = false;
+    for (PendingTaskInfo taskInfo : pendingTasks) {
+      int index = taskInfo.index;
+      if (targetIndexes != null) { //parallelism has changed.
+        Preconditions.checkState(index < targetIndexes.length,
+            "index=" + index +", targetIndexes length=" + targetIndexes.length);
+        int[] mapping = targetIndexes[index];
+        long totalStats = 0;
+        for (int i : mapping) {
+          totalStats += stats[i];
+        }
+        if ((totalStats > 0) && (taskInfo.outputStats != totalStats)) {
+          computedPartitionSizes = true;
+          taskInfo.outputStats = totalStats;
+        }
+      } else {
+        if ((stats[index] > 0) && (stats[index] != taskInfo.outputStats)) {
+          computedPartitionSizes = true;
+          taskInfo.outputStats = stats[index];
+        }
+      }
+    }
+    return computedPartitionSizes;
   }
 
   /**
@@ -865,7 +1003,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
         + slowStartMaxSrcCompletionFraction + " auto:" + enableAutoParallelism
         + " desiredTaskIput:" + desiredTaskInputDataSize + " minTasks:"
         + minTaskParallelism);
-    
+
     if (enableAutoParallelism) {
       getContext().vertexReconfigurationPlanned();
     }

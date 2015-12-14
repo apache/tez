@@ -19,6 +19,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -128,6 +129,14 @@ public class TestPipelinedSorter {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 5);
     basicTest(1, 100000, 100, (10 * 1024l * 1024l), 3 << 20);
 
+  }
+
+  @Test
+  public void testWithoutPartitionStats() throws IOException {
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, false);
+    //# partition, # of keys, size per key, InitialMem, blockSize
+    basicTest(1, 0, 0, (10 * 1024l * 1024l), 3 << 20);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, true);
   }
 
   @Test
@@ -328,6 +337,13 @@ public class TestPipelinedSorter {
 
     writeData(sorter, numKeys, keySize);
 
+    //partition stats;
+    boolean partitionStats = conf.getBoolean(TezRuntimeConfiguration
+        .TEZ_RUNTIME_REPORT_PARTITION_STATS, TezRuntimeConfiguration
+        .TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT);
+    if (partitionStats) {
+      assertTrue(sorter.getPartitionStats() != null);
+    }
 
     verifyCounters(sorter, outputContext);
     Path outputFile = sorter.finalOutputFile;
@@ -471,6 +487,7 @@ public class TestPipelinedSorter {
             (ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
 
     doReturn(execContext).when(outputContext).getExecutionContext();
+    doReturn(mock(OutputStatisticsReporter.class)).when(outputContext).getStatisticsReporter();
     doReturn(counters).when(outputContext).getCounters();
     doReturn(appId).when(outputContext).getApplicationId();
     doReturn(1).when(outputContext).getDAGAttemptNumber();

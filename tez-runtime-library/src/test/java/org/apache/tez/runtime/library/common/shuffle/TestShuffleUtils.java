@@ -148,7 +148,7 @@ public class TestShuffleUtils {
     int physicalOutputs = 10;
     String pathComponent = "/attempt_x_y_0/file.out";
     ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, isLastEvent, outputContext,
-        spillId, new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent);
+        spillId, new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent, null);
 
     Assert.assertTrue(events.size() == 1);
     Assert.assertTrue(events.get(0) instanceof CompositeDataMovementEvent);
@@ -186,7 +186,7 @@ public class TestShuffleUtils {
 
     //normal code path where we do final merge all the time
     ShuffleUtils.generateEventOnSpill(events, finalMergeEnabled, isLastEvent, outputContext,
-        spillId, new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent);
+        spillId, new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent, null);
 
     Assert.assertTrue(events.size() == 2); //one for VM
     Assert.assertTrue(events.get(0) instanceof VertexManagerEvent);
@@ -226,7 +226,7 @@ public class TestShuffleUtils {
 
     //normal code path where we do final merge all the time
     ShuffleUtils.generateEventOnSpill(events, finalMergeDisabled, isLastEvent, outputContext,
-        spillId, new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent);
+        spillId, new TezSpillRecord(indexFile, conf), physicalOutputs, true, pathComponent, null);
 
     Assert.assertTrue(events.size() == 2); //one for VM
     Assert.assertTrue(events.get(0) instanceof VertexManagerEvent);
