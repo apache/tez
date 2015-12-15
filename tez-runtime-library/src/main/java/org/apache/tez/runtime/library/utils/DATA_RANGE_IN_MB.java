@@ -18,7 +18,6 @@
 
 package org.apache.tez.runtime.library.utils;
 
-import org.apache.commons.math3.util.FastMath;
 
 public enum DATA_RANGE_IN_MB {
   THOUSAND(1000), HUNDRED(100), TEN(10), ONE(1), ZERO(0);
