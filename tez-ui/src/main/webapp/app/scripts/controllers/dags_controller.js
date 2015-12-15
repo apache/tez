@@ -34,7 +34,8 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
     user_filter: 'user',
     appId_filter: 'appid',
     id_filter: 'id',
-    dagName_filter: 'dag_name'
+    dagName_filter: 'dag_name',
+    callerId_filter: 'caller_id'
   },
 
   _loadedAllData: false,
@@ -46,6 +47,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
   appId_filter: null,
   id_filter: null,
   dagName_filter: null,
+  callerId_filter: null,
 
   boundFilterValues: Em.Object.create({
     status: null
@@ -63,9 +65,11 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
       user: this.get('user_filter'),
       appId: this.get('appId_filter'),
       id: this.get('id_filter'),
-      dagName: this.get('dagName_filter')
+      dagName: this.get('dagName_filter'),
+      callerId: this.get('callerId_filter')
     }));
-  }.observes('status_filter', 'user_filter', 'appId_filter', 'dagName_filter', 'id_filter'),
+  }.observes('status_filter', 'user_filter', 'appId_filter', 'dagName_filter', 'id_filter',
+      'callerId_filter'),
 
   _otherInfoFieldsVisible: function () {
     var visibleColumns = this.get('visibleColumnIds') || {},
@@ -101,7 +105,8 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
       primary: {
         dagName: this.dagName_filter,
         applicationId: this.appId_filter,
-        user: this.user_filter
+        user: this.user_filter,
+        callerId: this.callerId_filter
       },
       secondary: {
       }
@@ -147,7 +152,8 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
           (that.dagName_filter && entity.get('name') != that.dagName_filter) ||
           (that.appId_filter && entity.get('applicationId') != that.appId_filter) ||
           (that.user_filter && entity.get('user') != that.user_filter) ||
-          (that.status_filter && entity.get('status') != that.status_filter)
+          (that.status_filter && entity.get('status') != that.status_filter) ||
+          (that.callerId_filter && entity.get('callerId') != that.callerId_filter)
         ) ? [] : [entity];
 
         return setEntities(entities);
@@ -227,6 +233,7 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
         appId_filter: filterValues.get('appId') || null,
         id_filter: filterValues.get('id') || null,
         dagName_filter: filterValues.get('dagName') || null,
+        callerId_filter: filterValues.get('callerId') || null
       });
       this.loadData();
     }
@@ -336,6 +343,12 @@ App.DagsController = Em.ObjectController.extend(App.PaginatedContentMixin, App.C
             }).catch(function(error) {});
           }
         }
+      },
+      {
+        id: 'callerId',
+        headerCellName: 'Context ID',
+        enableFilter: true,
+        contentPath: 'callerId'
       },
       {
         id: 'logs',

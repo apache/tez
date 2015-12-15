@@ -236,7 +236,8 @@ public class TestHistoryEventsProtoConversion {
     {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
-          DAGState.FAILED, null, null, "user", "dagName", null, null);
+          DAGState.FAILED, null, null, "user", "dagName", null, null,
+          DAGPlan.newBuilder().setName("dagName").build());
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
@@ -257,7 +258,7 @@ public class TestHistoryEventsProtoConversion {
       DAGFinishedEvent event = new DAGFinishedEvent(
           TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 1000l, 20000l,
           DAGState.FAILED, "bad diagnostics", tezCounters,
-          "user", "dagName", null, null);
+          "user", "dagName", null, null, DAGPlan.newBuilder().setName("dagName").build());
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(

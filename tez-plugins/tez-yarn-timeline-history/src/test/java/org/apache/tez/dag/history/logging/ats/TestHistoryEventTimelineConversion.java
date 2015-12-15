@@ -153,7 +153,7 @@ public class TestHistoryEventTimelineConversion {
           break;
         case DAG_FINISHED:
           event = new DAGFinishedEvent(tezDAGID, random.nextInt(), random.nextInt(), DAGState.ERROR,
-              null, null, user, dagPlan.getName(), null, applicationAttemptId);
+              null, null, user, dagPlan.getName(), null, applicationAttemptId, dagPlan);
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
@@ -611,7 +611,7 @@ public class TestHistoryEventTimelineConversion {
     taskStats.put("BAR", 200);
 
     DAGFinishedEvent event = new DAGFinishedEvent(tezDAGID, startTime, finishTime, DAGState.ERROR,
-        "diagnostics", null, user, dagPlan.getName(), taskStats, applicationAttemptId);
+        "diagnostics", null, user, dagPlan.getName(), taskStats, applicationAttemptId, dagPlan);
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
@@ -624,7 +624,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), timelineEvent.getEventType());
     Assert.assertEquals(finishTime, timelineEvent.getTimestamp());
 
-    Assert.assertEquals(4, timelineEntity.getPrimaryFilters().size());
+    Assert.assertEquals(5, timelineEntity.getPrimaryFilters().size());
     Assert.assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID).contains(
             applicationId.toString()));
@@ -635,6 +635,9 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertTrue(
         timelineEntity.getPrimaryFilters().get(ATSConstants.STATUS).contains(
             DAGState.ERROR.name()));
+    Assert.assertTrue(
+        timelineEntity.getPrimaryFilters().get(ATSConstants.CALLER_CONTEXT_ID).contains(
+            dagPlan.getCallerContext().getCallerId()));
 
     Assert.assertEquals(startTime,
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());

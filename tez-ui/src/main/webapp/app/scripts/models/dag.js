@@ -66,7 +66,7 @@ App.Dag = App.AbstractEntity.extend({
   // diagnostics info if any.
   diagnostics: DS.attr('string'),
 
-  // Dag plan reated data
+  // Dag plan related data
   planName: DS.attr('string'),
   planVersion: DS.attr('number'),
   appContextInfo: DS.attr('object'),
@@ -78,6 +78,8 @@ App.Dag = App.AbstractEntity.extend({
   counterGroups: DS.attr('array'),
   amWebServiceVersion: DS.attr('string'),
   containerLogs: DS.attr('array'),
+
+  callerId: DS.attr('string')
 });
 
 App.CounterGroup = DS.Model.extend({

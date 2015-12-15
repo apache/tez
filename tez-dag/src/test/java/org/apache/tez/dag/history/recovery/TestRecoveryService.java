@@ -101,12 +101,12 @@ public class TestRecoveryService {
     // 2 DAGFinishedEvent
     recoveryService.handle(new DAGHistoryEvent(dagId,
         new DAGFinishedEvent(dagId, 1L, 2L, DAGState.FAILED, "diag", null, "user", "dag1", null,
-            appAttemptId)));
+            appAttemptId, null)));
     // outputStream removed
     assertFalse(recoveryService.outputStreamMap.containsKey(dagId));
     recoveryService.handle(new DAGHistoryEvent(dagId,
         new DAGFinishedEvent(dagId, 1L, 2L, DAGState.ERROR, "diag", null, "user", "dag1", null,
-            appAttemptId)));
+            appAttemptId, null)));
     // no new outputStream opened
     assertEquals(recoveryService.outputStreamMap.size(), 0);
     assertFalse(recoveryService.outputStreamMap.containsKey(dagId));
@@ -132,12 +132,12 @@ public class TestRecoveryService {
     assertFalse(recoveryService.hasRecoveryFailed());
     recoveryService.handle(new DAGHistoryEvent(dagId,
         new DAGFinishedEvent(dagId, 1L, 2L, DAGState.ERROR, "diag", null, "user", "dag1", null,
-            appAttemptId)));
+            appAttemptId, null)));
     assertTrue(recoveryService.hasRecoveryFailed());
     // be able to handle event after fatal error
     recoveryService.handle(new DAGHistoryEvent(dagId,
         new DAGFinishedEvent(dagId, 1L, 2L, DAGState.ERROR, "diag", null, "user", "dag1", null,
-            appAttemptId)));
+            appAttemptId, null)));
   }
 
   @Test(timeout = 5000)

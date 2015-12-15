@@ -1222,7 +1222,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
       DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
           finishTime, DAGState.SUCCEEDED, "", counters,
-          this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId());
+          this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId(),
+          this.jobPlan);
       this.appContext.getHistoryHandler().handleCriticalEvent(
           new DAGHistoryEvent(dagId, finishEvt));
     }
@@ -1237,7 +1238,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           clock.getTime(), state,
           StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
           counters, this.userName, this.dagName, taskStats,
-          this.appContext.getApplicationAttemptId());
+          this.appContext.getApplicationAttemptId(), this.jobPlan);
       this.appContext.getHistoryHandler().handleCriticalEvent(
           new DAGHistoryEvent(dagId, finishEvt));
     }

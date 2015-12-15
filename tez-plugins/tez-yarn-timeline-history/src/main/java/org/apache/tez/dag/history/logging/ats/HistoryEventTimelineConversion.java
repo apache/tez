@@ -298,6 +298,11 @@ public class HistoryEventTimelineConversion {
         event.getDagID().getApplicationId().toString());
     atsEntity.addPrimaryFilter(ATSConstants.DAG_NAME, event.getDagName());
     atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
+    if (event.getDAGPlan().hasCallerContext()
+        && event.getDAGPlan().getCallerContext().hasCallerId()) {
+      atsEntity.addPrimaryFilter(ATSConstants.CALLER_CONTEXT_ID,
+          event.getDAGPlan().getCallerContext().getCallerId());
+    }
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
     atsEntity.addOtherInfo(ATSConstants.FINISH_TIME, event.getFinishTime());

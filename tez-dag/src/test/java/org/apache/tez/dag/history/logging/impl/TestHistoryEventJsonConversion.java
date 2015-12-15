@@ -134,7 +134,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case DAG_FINISHED:
           event = new DAGFinishedEvent(tezDAGID, random.nextInt(), random.nextInt(), DAGState.ERROR,
-              null, null, user, dagPlan.getName(), null, applicationAttemptId);
+              null, null, user, dagPlan.getName(), null, applicationAttemptId, dagPlan);
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),

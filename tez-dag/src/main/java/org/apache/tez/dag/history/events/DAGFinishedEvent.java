@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -49,6 +50,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
   private String user;
   private String dagName;
   Map<String, Integer> dagTaskStats;
+  private DAGPlan dagPlan;
 
   private ApplicationAttemptId applicationAttemptId;
 
@@ -59,7 +61,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
       long finishTime, DAGState state,
       String diagnostics, TezCounters counters,
       String user, String dagName, Map<String, Integer> dagTaskStats,
-      ApplicationAttemptId applicationAttemptId) {
+      ApplicationAttemptId applicationAttemptId, DAGPlan dagPlan) {
     this.dagID = dagId;
     this.startTime = startTime;
     this.finishTime = finishTime;
@@ -70,6 +72,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
     this.dagName = dagName;
     this.dagTaskStats = dagTaskStats;
     this.applicationAttemptId = applicationAttemptId;
+    this.dagPlan = dagPlan;
   }
 
   @Override
@@ -207,4 +210,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
     return applicationAttemptId;
   }
 
+  public DAGPlan getDAGPlan() {
+    return dagPlan;
+  }
 }

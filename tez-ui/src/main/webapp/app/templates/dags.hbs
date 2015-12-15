@@ -82,6 +82,16 @@
             }}
           </div>
         {{/if}}
+        {{#if visibleFilters.callerId}}
+          <div class='filter-elements'>
+            <div>Context ID (Hive Query ID or Pig Script ID)</div>
+            {{input
+              action="filterUpdated"
+              value=boundFilterValues.callerId
+              placeholder="Search..."
+            }}
+          </div>
+        {{/if}}
       </div><div class="align-children-right">
         {{view App.BasicTableComponent.PaginationView
           pageNum=page

@@ -158,6 +158,12 @@ App.TezAppDagsController = App.TablePageController.extend({
         getSearchValue: function(row) {
           return App.Helpers.date.timingFormat(row.get('duration'), 1);
         },
+      },
+      {
+        id: 'callerId',
+        headerCellName: 'Context ID',
+        filterID: 'callerId_filter',
+        contentPath: 'callerId'
       }
     ];
   }.property(),

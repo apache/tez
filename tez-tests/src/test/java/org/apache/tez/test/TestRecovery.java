@@ -160,7 +160,7 @@ public class TestRecovery {
             new SimpleShutdownCondition(TIMING.POST, new DAGFinishedEvent(
                 dagId, 0L, 0L, DAGState.SUCCEEDED, "", new TezCounters(),
                 "username", "dagName", new HashMap<String, Integer>(),
-                ApplicationAttemptId.newInstance(appId, 1))),
+                ApplicationAttemptId.newInstance(appId, 1), null)),
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexInitializedEvent(vertexId0, "Tokenizer", 0L, 0L, 0,
                     "", null, initGeneratedEvents)),
@@ -315,7 +315,7 @@ public class TestRecovery {
         new SimpleShutdownCondition(TIMING.POST, new DAGFinishedEvent(dagId,
             0L, 0L, DAGState.SUCCEEDED, "", new TezCounters(), "username",
             "dagName", new HashMap<String, Integer>(), ApplicationAttemptId
-                .newInstance(appId, 1))),
+                .newInstance(appId, 1), null)),
         new SimpleShutdownCondition(TIMING.POST, new VertexInitializedEvent(
             vertexId0, "hashSide", 0L, 0L, 0, "", null, initGeneratedEvents)),
         new SimpleShutdownCondition(TIMING.POST, new VertexInitializedEvent(
