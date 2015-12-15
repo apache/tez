@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
+  TEZ-2996. TestAnalyzer fails in trunk after recovery redesign
   TEZ-2987. TestVertexImpl.testTez2684 fails
   TEZ-2995. Timeline primary filter should only be on callerId and not type.
   TEZ-2994. LocalProgress in tez-runtime-library missing Apache header, rat check warnings from the new licenses after TEZ-2592 merge.

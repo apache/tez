@@ -1168,8 +1168,6 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
       ta.scheduledTime = ta.clock.getTime();
-      // TODO Creating the remote task here may not be required in case of
-      // recovery.
 
       // Create the remote task.
       TaskSpec remoteTaskSpec;
@@ -1257,6 +1255,19 @@ public class TaskAttemptImpl implements TaskAttempt,
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       // This transition should not be invoked directly, if a scheduler event has already been sent out.
       // Sub-classes should be used if a scheduler request has been sent.
+
+      // in both normal and recovery flow make sure diagnostics etc. are correctly assigned
+      if (event instanceof DiagnosableEvent) {
+        ta.addDiagnosticInfo(((DiagnosableEvent) event).getDiagnosticInfo());
+      }
+      if (event instanceof TaskAttemptEventTerminationCauseEvent) {
+        ta.trySetTerminationCause(((TaskAttemptEventTerminationCauseEvent) event).getTerminationCause());
+      } else {
+        throw new TezUncheckedException("Invalid event received in TerminateTransition"
+                + ", requiredClass=TaskAttemptEventTerminationCauseEvent"
+                + ", eventClass=" + event.getClass().getName());
+      }
+
       if (ta.recoveryData == null ||
           ta.recoveryData.getTaskAttemptFinishedEvent() == null) {
         ta.setFinishTime();
@@ -1266,17 +1277,6 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.finishTime = ta.recoveryData.getTaskAttemptFinishedEvent().getFinishTime();
       }
 
-      if (event instanceof DiagnosableEvent) {
-        ta.addDiagnosticInfo(((DiagnosableEvent) event).getDiagnosticInfo());
-      }
-      
-      if (event instanceof TaskAttemptEventTerminationCauseEvent) {
-        ta.trySetTerminationCause(((TaskAttemptEventTerminationCauseEvent) event).getTerminationCause());
-      } else {
-        throw new TezUncheckedException("Invalid event received in TerminateTransition"
-            + ", requiredClass=TaskAttemptEventTerminationCauseEvent"
-            + ", eventClass=" + event.getClass().getName());
-      }
       if (event instanceof RecoveryEvent) {
         RecoveryEvent rEvent = (RecoveryEvent)event;
         if (rEvent.isFromRecovery()) {
