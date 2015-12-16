@@ -52,6 +52,7 @@ import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGInitializedEvent;
 import org.apache.tez.dag.history.events.DAGStartedEvent;
@@ -70,6 +71,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.examples.HashJoinExample;
 import org.apache.tez.examples.OrderedWordCount;
+import org.apache.tez.examples.TezExampleBase;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.test.RecoveryServiceWithEventHandlingHook.SimpleRecoveryEventHook;
@@ -239,13 +241,15 @@ public class TestRecovery {
       // randomly choose half of the test scenario to avoid
       // timeout.
       if (rand.nextDouble() < 0.5) {
-        testOrderedWordCount(shutdownConditions.get(i), true);
+        // generate split in client side when HistoryEvent type is VERTEX_STARTED (TEZ-2976)
+        testOrderedWordCount(shutdownConditions.get(i), true,
+            shutdownConditions.get(i).getHistoryEvent().getEventType() == HistoryEventType.VERTEX_STARTED);
       }
     }
   }
 
   private void testOrderedWordCount(SimpleShutdownCondition shutdownCondition,
-      boolean enableAutoParallelism) throws Exception {
+      boolean enableAutoParallelism, boolean generateSplitInClient) throws Exception {
     LOG.info("shutdownCondition:" + shutdownCondition.getEventType()
         + ", event=" + shutdownCondition.getEvent());
     String inputDirStr = "/tmp/owc-input/";
@@ -276,11 +280,16 @@ public class TestRecovery {
     tezConf.setBoolean(
         TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE, false);
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "INFO;org.apache.tez=DEBUG");
-
     OrderedWordCount job = new OrderedWordCount();
-    Assert
-        .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[] {
-            inputDirStr, outputDirStr, "5" }, null) == 0);
+    if (generateSplitInClient) {
+      Assert
+          .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
+              "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null) == 0);
+    } else {
+      Assert
+          .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
+              inputDirStr, outputDirStr, "5"}, null) == 0);
+    }
     TestTezJobs.verifyOutput(outputDir, remoteFs);
     List<HistoryEvent> historyEventsOfAttempt1 = RecoveryParser
         .readRecoveryEvents(tezConf, job.getAppId(), 1);
@@ -392,13 +401,15 @@ public class TestRecovery {
       // randomly choose half of the test scenario to avoid
       // timeout.
       if (rand.nextDouble() < 0.5) {
-        testHashJoinExample(shutdownConditions.get(i), true);
+        // generate split in client side when HistoryEvent type is VERTEX_STARTED (TEZ-2976)
+        testHashJoinExample(shutdownConditions.get(i), true,
+            shutdownConditions.get(i).getHistoryEvent().getEventType() == HistoryEventType.VERTEX_STARTED);
       }
     }
   }
 
   private void testHashJoinExample(SimpleShutdownCondition shutdownCondition,
-      boolean enableAutoParallelism) throws Exception {
+      boolean enableAutoParallelism, boolean generateSplitInClient) throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
     TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
@@ -449,10 +460,19 @@ public class TestRecovery {
     out1.close();
     out2.close();
 
-    String[] args = new String[] {
-        "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "="
-            + stagingDirPath.toString(), inPath1.toString(),
-        inPath2.toString(), "1", outPath.toString() };
+    String[] args = null;
+    if (generateSplitInClient) {
+      args = new String[]{
+          "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "="
+              + stagingDirPath.toString(),
+          "-generateSplitInClient",
+          inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
+    } else {
+      args = new String[]{
+          "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "="
+              + stagingDirPath.toString(),
+          inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
+    }
     assertEquals(0, hashJoinExample.run(args));
 
     FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {

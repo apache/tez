@@ -158,7 +158,8 @@ public class SortMergeJoinExample extends TezExampleBase {
                 MRInput
                     .createConfigBuilder(new Configuration(tezConf),
                         TextInputFormat.class, inputPath1.toUri().toString())
-                    .groupSplits(!isDisableSplitGrouping()).build());
+                    .groupSplits(!isDisableSplitGrouping())
+                    .generateSplitsInAM(!isGenerateSplitInClient()).build());
 
     /**
      * The other vertex represents the other side of the join. It reads text
@@ -173,7 +174,8 @@ public class SortMergeJoinExample extends TezExampleBase {
                 MRInput
                     .createConfigBuilder(new Configuration(tezConf),
                         TextInputFormat.class, inputPath2.toUri().toString())
-                    .groupSplits(!isDisableSplitGrouping()).build());
+                    .groupSplits(!isDisableSplitGrouping())
+                    .generateSplitsInAM(!isGenerateSplitInClient()).build());
 
     /**
      * This vertex represents the join operation. It writes the join output as

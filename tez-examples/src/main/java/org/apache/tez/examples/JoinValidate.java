@@ -155,14 +155,16 @@ public class JoinValidate extends TezExampleBase {
         ForwardingProcessor.class.getName())).addDataSource("lhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
-                lhs.toUri().toString()).groupSplits(!isDisableSplitGrouping()).build());
+                lhs.toUri().toString()).groupSplits(!isDisableSplitGrouping())
+                .generateSplitsInAM(!isGenerateSplitInClient()).build());
     setVertexExecutionContext(lhsVertex, getLhsExecutionContext());
 
     Vertex rhsVertex = Vertex.create(RHS_INPUT_NAME, ProcessorDescriptor.create(
         ForwardingProcessor.class.getName())).addDataSource("rhs",
         MRInput
             .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
-                rhs.toUri().toString()).groupSplits(!isDisableSplitGrouping()).build());
+                rhs.toUri().toString()).groupSplits(!isDisableSplitGrouping())
+                .generateSplitsInAM(!isGenerateSplitInClient()).build());
     setVertexExecutionContext(rhsVertex, getRhsExecutionContext());
 
     Vertex joinValidateVertex = Vertex.create("joinvalidate", ProcessorDescriptor.create(

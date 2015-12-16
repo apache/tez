@@ -87,7 +87,7 @@ public class SimpleSessionExample extends TezExampleBase {
 
     for (int i = 0; i < inputPaths.length; ++i) {
       DAG dag = OrderedWordCount.createDAG(tezConf, inputPaths[i], outputPaths[i], numPartitions,
-          isDisableSplitGrouping(), ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
+          isDisableSplitGrouping(), isGenerateSplitInClient(), ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
 
       LOG.info("Running dag number " + i);
       if(runDag(dag, isCountersLog(), LOG) != 0) {

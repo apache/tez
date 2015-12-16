@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
+  TEZ-2976. Recovery fails when InputDescriptor is changed during input initialization.
   TEZ-2997. Tez UI: Support searches by CallerContext ID for DAGs
   TEZ-2996. TestAnalyzer fails in trunk after recovery redesign
   TEZ-2987. TestVertexImpl.testTez2684 fails

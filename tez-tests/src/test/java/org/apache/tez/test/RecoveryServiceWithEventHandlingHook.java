@@ -222,6 +222,10 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
     public SimpleShutdownCondition() {
     }
 
+    public HistoryEvent getHistoryEvent() {
+      return this.event;
+    }
+
     private String encodeHistoryEvent(HistoryEvent event) throws IOException {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       event.toProtoStream(out);

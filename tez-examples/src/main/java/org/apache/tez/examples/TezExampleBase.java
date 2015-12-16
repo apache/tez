@@ -58,10 +58,12 @@ public abstract class TezExampleBase extends Configured implements Tool {
   protected static final String DISABLE_SPLIT_GROUPING = "disableSplitGrouping";
   protected static final String LOCAL_MODE = "local";
   protected static final String COUNTER_LOG = "counter";
+  protected static final String GENERATE_SPLIT_IN_CLIENT = "generateSplitInClient";
 
   private boolean disableSplitGrouping = false;
   private boolean isLocalMode = false;
   private boolean isCountersLog = false;
+  private boolean generateSplitInClient = false;
 
   protected boolean isCountersLog() {
 	  return isCountersLog;
@@ -71,11 +73,16 @@ public abstract class TezExampleBase extends Configured implements Tool {
     return disableSplitGrouping;
   }
 
+  protected boolean isGenerateSplitInClient() {
+    return generateSplitInClient;
+  }
+
   private Options getExtraOptions() {
     Options options = new Options();
     options.addOption(LOCAL_MODE, false, "run it as local mode");
     options.addOption(DISABLE_SPLIT_GROUPING, false , "disable split grouping");
     options.addOption(COUNTER_LOG, false , "print counter log");
+    options.addOption(GENERATE_SPLIT_IN_CLIENT, false, "whether generate split in client");
     return options;
   }
 
@@ -91,9 +98,11 @@ public abstract class TezExampleBase extends Configured implements Tool {
       disableSplitGrouping = true;
     }
     if (optionParser.getCommandLine().hasOption(COUNTER_LOG)) {
-        isCountersLog = true;
+      isCountersLog = true;
     }
-
+    if (optionParser.getCommandLine().hasOption(GENERATE_SPLIT_IN_CLIENT)) {
+      generateSplitInClient = true;
+    }
     return _execute(otherArgs, null, null);
   }
 
@@ -124,7 +133,10 @@ public abstract class TezExampleBase extends Configured implements Tool {
       disableSplitGrouping = true;
     }
     if (optionParser.getCommandLine().hasOption(COUNTER_LOG)) {
-        isCountersLog = true;
+      isCountersLog = true;
+    }
+    if (optionParser.getCommandLine().hasOption(GENERATE_SPLIT_IN_CLIENT)) {
+      generateSplitInClient = true;
     }
     String[] otherArgs = optionParser.getRemainingArgs();
     return _execute(otherArgs, conf, tezClient);
@@ -238,6 +250,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     ps.println("-" + DISABLE_SPLIT_GROUPING + "\t\t disable split grouping for MRInput,"
         + " enable split grouping without this option.");
     ps.println("-" + COUNTER_LOG + "\t\t to print counters information");
+    ps.println("-" + GENERATE_SPLIT_IN_CLIENT + "\t\tgenerate input split in client");
     ps.println();
     ps.println("The Tez example extra options usage syntax is ");
     ps.println("example_name [extra_options] [example_parameters]");

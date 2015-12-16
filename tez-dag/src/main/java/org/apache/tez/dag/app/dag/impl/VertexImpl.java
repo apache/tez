@@ -2231,6 +2231,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (initGeneratedEvents != null && !initGeneratedEvents.isEmpty()) {
         eventHandler.handle(new VertexEventRouteEvent(getVertexId(), initGeneratedEvents));
       }
+      // reset rootInputDescriptor because it may be changed during input initialization.
+      this.rootInputDescriptors = recoveryData.getVertexInitedEvent().getAdditionalInputs();
     } else {
       initedTime = clock.getTime();
     }
