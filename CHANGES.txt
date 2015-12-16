@@ -6,6 +6,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-3006. Remove unused import in TestHistoryParser.
   TEZ-2918. Make progress notifications in IOs
   TEZ-2979. FlakyTest: org.apache.tez.history.TestHistoryParser.
   TEZ-2952. NPE in TestOnFileUnorderedKVOutput

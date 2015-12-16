@@ -19,7 +19,6 @@
 package org.apache.tez.history;
 
 import com.google.common.collect.Sets;
-import com.sun.tools.internal.ws.processor.ProcessorException;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.RandomStringUtils;
