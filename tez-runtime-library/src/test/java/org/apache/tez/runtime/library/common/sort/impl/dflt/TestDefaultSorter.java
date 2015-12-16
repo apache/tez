@@ -253,7 +253,7 @@ public class TestDefaultSorter {
     conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 1);
     context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
             context.getTotalMemoryAvailableToTask()), handler);
-    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+    DefaultSorter sorter = new DefaultSorter(context, conf, 5, handler.getMemoryAssigned());
 
     //Write 1000 keys each of size 1000, (> 1 spill should happen)
     try {
@@ -295,7 +295,7 @@ public class TestDefaultSorter {
     MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
     context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
         context.getTotalMemoryAvailableToTask()), handler);
-    DefaultSorter sorter = new DefaultSorter(context, conf, 1, handler.getMemoryAssigned());
+    DefaultSorter sorter = new DefaultSorter(context, conf, 5, handler.getMemoryAssigned());
 
     //no data written. Empty
     try {

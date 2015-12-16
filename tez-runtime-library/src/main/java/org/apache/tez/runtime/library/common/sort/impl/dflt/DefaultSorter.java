@@ -805,7 +805,6 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     } else {
       if (numSpills > 0) {
         additionalSpillBytesWritten.increment(compLength);
-        numAdditionalSpills.increment(1);
         // Reset the value will be set during the final merge.
         outputBytesWithOverheadCounter.setValue(0);
       } else {
@@ -910,6 +909,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       ++numSpills;
       if (!isFinalMergeEnabled()) {
         numShuffleChunks.setValue(numSpills);
+      } else if (numSpills > 1) {
+        //Increment only when there was atleast one previous spill
+        numAdditionalSpills.increment(1);
       }
     } finally {
       if (out != null) out.close();
@@ -982,6 +984,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       ++numSpills;
       if (!isFinalMergeEnabled()) {
         numShuffleChunks.setValue(numSpills);
+      } else if (numSpills > 1) {
+        //Increment only when there is atleast one previous spill
+        numAdditionalSpills.increment(1);
       }
     } finally {
       if (out != null) out.close();
