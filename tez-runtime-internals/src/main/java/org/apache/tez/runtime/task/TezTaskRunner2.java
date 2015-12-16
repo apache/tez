@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
@@ -91,6 +92,8 @@ public class TezTaskRunner2 {
 
   private volatile long taskKillStartTime  = 0;
 
+  private final HadoopShim hadoopShim;
+
   // The callable which is being used to execute the task.
   private volatile TaskRunner2Callable taskRunnerCallable;
 
@@ -102,15 +105,16 @@ public class TezTaskRunner2 {
                         TaskReporterInterface taskReporter, ListeningExecutorService executor,
                         ObjectRegistry objectRegistry, String pid,
                         ExecutionContext executionContext, long memAvailable,
-                        boolean updateSysCounters) throws
+                        boolean updateSysCounters, HadoopShim hadoopShim) throws
       IOException {
     this.ugi = ugi;
     this.taskReporter = taskReporter;
     this.executor = executor;
     this.umbilicalAndErrorHandler = new UmbilicalAndErrorHandler();
+    this.hadoopShim = hadoopShim;
     this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
-        objectRegistry, pid, executionContext, memAvailable, updateSysCounters);
+        objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim);
   }
 
   /**

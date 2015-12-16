@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.AppContext;
@@ -133,6 +134,8 @@ public class RecoveryService extends AbstractService {
     eventHandlingThread = new Thread(new Runnable() {
       @Override
       public void run() {
+        TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(),
+            appContext.getApplicationID());
         DAGHistoryEvent event;
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           drained = eventQueue.isEmpty();

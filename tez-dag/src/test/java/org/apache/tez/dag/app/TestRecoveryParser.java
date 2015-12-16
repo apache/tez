@@ -20,7 +20,6 @@ package org.apache.tez.dag.app;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +69,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.*;
@@ -252,6 +252,8 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
     // write data in attempt_1
@@ -430,6 +432,8 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -465,6 +469,8 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -497,6 +503,8 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -543,6 +551,8 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     // MockRecoveryService will skip the non-summary event
     MockRecoveryService rService = new MockRecoveryService(appContext);
@@ -617,6 +627,8 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();

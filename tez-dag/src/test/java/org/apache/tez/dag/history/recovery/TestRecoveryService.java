@@ -36,6 +36,7 @@ import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,6 +63,9 @@ public class TestRecoveryService {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(TEST_ROOT_DIR));
     when(appContext.getClock()).thenReturn(new SystemClock());
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     MockRecoveryService recoveryService = new MockRecoveryService(appContext);
     conf.setBoolean(RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED, true);
@@ -85,6 +89,8 @@ public class TestRecoveryService {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(TEST_ROOT_DIR));
     when(appContext.getClock()).thenReturn(new SystemClock());
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     MockRecoveryService recoveryService = new MockRecoveryService(appContext);
     conf.setBoolean(RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED, true);
@@ -121,6 +127,8 @@ public class TestRecoveryService {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(TEST_ROOT_DIR));
     when(appContext.getClock()).thenReturn(new SystemClock());
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     MockRecoveryService recoveryService = new MockRecoveryService(appContext);
     conf.setBoolean(RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED, true);
@@ -147,6 +155,8 @@ public class TestRecoveryService {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(TEST_ROOT_DIR));
     when(appContext.getClock()).thenReturn(new SystemClock());
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
 
     MockRecoveryService recoveryService = new MockRecoveryService(appContext);
     conf.setBoolean(RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED, true);

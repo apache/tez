@@ -41,6 +41,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
@@ -1022,19 +1023,24 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       if (!groupInfo.outputs.isEmpty()) {
         groupInfo.commitStarted = true;
         final Vertex v = getVertex(groupInfo.groupMembers.iterator().next());
-        for (final String outputName : groupInfo.outputs) {
-          final OutputKey outputKey = new OutputKey(outputName, groupInfo.groupName, true);
-          CommitCallback groupCommitCallback = new CommitCallback(outputKey);
-          CallableEvent groupCommitCallableEvent = new CallableEvent(groupCommitCallback) {
-            @Override
-            public Void call() throws Exception {
-              OutputCommitter committer = v.getOutputCommitters().get(outputName);
-              LOG.info("Committing output: " + outputKey);
-              commitOutput(committer);
-              return null;
-            }
-          };
-          commitEvents.put(outputKey, groupCommitCallableEvent);
+        try {
+          TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(), v.getVertexId());
+          for (final String outputName : groupInfo.outputs) {
+            final OutputKey outputKey = new OutputKey(outputName, groupInfo.groupName, true);
+            CommitCallback groupCommitCallback = new CommitCallback(outputKey);
+            CallableEvent groupCommitCallableEvent = new CallableEvent(groupCommitCallback) {
+              @Override
+              public Void call() throws Exception {
+                OutputCommitter committer = v.getOutputCommitters().get(outputName);
+                LOG.info("Committing output: " + outputKey);
+                commitOutput(committer);
+                return null;
+              }
+            };
+            commitEvents.put(outputKey, groupCommitCallableEvent);
+          }
+        } finally {
+          appContext.getHadoopShim().clearHadoopCallerContext();
         }
       }
     }
@@ -1061,23 +1067,28 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         LOG.info("No exclusive output committers for vertex: " + vertex.getLogIdentifier());
         continue;
       }
-      for (final Map.Entry<String, OutputCommitter> entry : outputCommitters.entrySet()) {
-        if (vertex.getState() != VertexState.SUCCEEDED) {
-          throw new TezUncheckedException("Vertex: " + vertex.getLogIdentifier() +
-              " not in SUCCEEDED state. State= " + vertex.getState());
-        }
-        OutputKey outputKey = new OutputKey(entry.getKey(), vertex.getName(), false);
-        CommitCallback commitCallback = new CommitCallback(outputKey);
-        CallableEvent commitCallableEvent = new CallableEvent(commitCallback) {
-          @Override
-          public Void call() throws Exception {
-            LOG.info("Committing output: " + entry.getKey() + " for vertex: "
-                + vertex.getLogIdentifier() + ", outputName: " + entry.getKey());
-            commitOutput(entry.getValue());
-            return null;
+      try {
+        TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(), vertex.getVertexId());
+        for (final Map.Entry<String, OutputCommitter> entry : outputCommitters.entrySet()) {
+          if (vertex.getState() != VertexState.SUCCEEDED) {
+            throw new TezUncheckedException("Vertex: " + vertex.getLogIdentifier() +
+                " not in SUCCEEDED state. State= " + vertex.getState());
           }
-        };
-        commitEvents.put(outputKey, commitCallableEvent);
+          OutputKey outputKey = new OutputKey(entry.getKey(), vertex.getName(), false);
+          CommitCallback commitCallback = new CommitCallback(outputKey);
+          CallableEvent commitCallableEvent = new CallableEvent(commitCallback) {
+            @Override
+            public Void call() throws Exception {
+              LOG.info("Committing output: " + entry.getKey() + " for vertex: "
+                  + vertex.getLogIdentifier() + ", outputName: " + entry.getKey());
+              commitOutput(entry.getValue());
+              return null;
+            }
+          };
+          commitEvents.put(outputKey, commitCallableEvent);
+        }
+      } finally {
+        appContext.getHadoopShim().clearHadoopCallerContext();
       }
     }
     

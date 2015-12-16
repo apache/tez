@@ -64,6 +64,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
@@ -634,7 +635,7 @@ public class TestTaskExecution2 {
           new HashMap<String, ByteBuffer>(), new HashMap<String, String>(),
           HashMultimap.<String, String>create(), taskReporter,
           executor, null, "", new ExecutionContextImpl("localhost"),
-          Runtime.getRuntime().maxMemory(), updateSysCounters);
+          Runtime.getRuntime().maxMemory(), updateSysCounters, new DefaultHadoopShim());
     }
 
     return taskRunner;
@@ -662,7 +663,7 @@ public class TestTaskExecution2 {
                                  boolean updateSysCounters) throws IOException {
       super(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
           serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry, pid,
-          executionContext, memAvailable, updateSysCounters);
+          executionContext, memAvailable, updateSysCounters, new DefaultHadoopShim());
     }
 
 

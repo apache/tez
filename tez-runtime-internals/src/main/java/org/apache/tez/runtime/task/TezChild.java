@@ -64,6 +64,9 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
+import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.hadoop.shim.HadoopShimProvider;
+import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -118,6 +121,7 @@ public class TezChild {
   private TaskReporterInterface taskReporter;
   private int taskCount = 0;
   private TezVertexID lastVertexID;
+  private final HadoopShim hadoopShim;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
@@ -125,7 +129,7 @@ public class TezChild {
       ObjectRegistryImpl objectRegistry, String pid,
       ExecutionContext executionContext,
       Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical,
-      boolean updateSysCounters) throws IOException, InterruptedException {
+      boolean updateSysCounters, HadoopShim hadoopShim) throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -138,6 +142,7 @@ public class TezChild {
     this.memAvailable = memAvailable;
     this.user = user;
     this.updateSysCounters = updateSysCounters;
+    this.hadoopShim = hadoopShim;
 
     getTaskMaxSleepTime = defaultConf.getInt(
         TezConfiguration.TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX,
@@ -239,6 +244,8 @@ public class TezChild {
             containerTask.getTaskSpec().getTaskAttemptID().toString());
         System.out.println(timeStamp + " Starting to run new task attempt: " +
             containerTask.getTaskSpec().getTaskAttemptID().toString());
+        TezUtilsInternal.setHadoopCallerContext(hadoopShim,
+            containerTask.getTaskSpec().getTaskAttemptID());
         TezUtilsInternal.updateLoggers(loggerAddend);
         FileSystem.clearStatistics();
 
@@ -250,7 +257,8 @@ public class TezChild {
         TezTaskRunner2 taskRunner = new TezTaskRunner2(defaultConf, childUGI,
             localDirs, containerTask.getTaskSpec(), appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
-            executor, objectRegistry, pid, executionContext, memAvailable, updateSysCounters);
+            executor, objectRegistry, pid, executionContext, memAvailable, updateSysCounters,
+            hadoopShim);
         boolean shouldDie;
         try {
           TaskRunner2Result result = taskRunner.run();
@@ -443,7 +451,7 @@ public class TezChild {
       String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
       Map<String, String> serviceProviderEnvMap, @Nullable String pid,
       ExecutionContext executionContext, Credentials credentials, long memAvailable, String user,
-      TezTaskUmbilicalProtocol tezUmbilical, boolean updateSysCounters)
+      TezTaskUmbilicalProtocol tezUmbilical, boolean updateSysCounters, HadoopShim hadoopShim)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -456,7 +464,8 @@ public class TezChild {
 
     return new TezChild(conf, host, port, containerIdentifier, tokenIdentifier,
         attemptNumber, workingDirectory, localDirs, serviceProviderEnvMap, objectRegistry, pid,
-        executionContext, credentials, memAvailable, user, tezUmbilical, updateSysCounters);
+        executionContext, credentials, memAvailable, user, tezUmbilical, updateSysCounters,
+        hadoopShim);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
@@ -488,11 +497,14 @@ public class TezChild {
     TezUtilsInternal.addUserSpecifiedTezConfiguration(defaultConf, confProto.getConfKeyValuesList());
     UserGroupInformation.setConfiguration(defaultConf);
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+
+    HadoopShim hadoopShim = new HadoopShimsLoader(defaultConf).getHadoopShim();
+
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
         credentials, Runtime.getRuntime().maxMemory(), System
-            .getenv(ApplicationConstants.Environment.USER.toString()), null, true);
+            .getenv(ApplicationConstants.Environment.USER.toString()), null, true, hadoopShim);
     tezChild.run();
   }
 

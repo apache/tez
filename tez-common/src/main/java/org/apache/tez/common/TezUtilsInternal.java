@@ -38,8 +38,13 @@ import com.google.protobuf.TextFormat;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.log4j.Appender;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -327,4 +332,25 @@ public class TezUtilsInternal {
         return TaskAttemptEndReason.OTHER;
     }
   }
+
+  @Private
+  public static void setHadoopCallerContext(HadoopShim hadoopShim, TezTaskAttemptID attemptID) {
+    hadoopShim.setHadoopCallerContext("tez_ta:" + attemptID.toString());
+  }
+
+  @Private
+  public static void setHadoopCallerContext(HadoopShim hadoopShim, TezVertexID vertexID) {
+    hadoopShim.setHadoopCallerContext("tez_v:" + vertexID.toString());
+  }
+
+  @Private
+  public static void setHadoopCallerContext(HadoopShim hadoopShim, TezDAGID dagID) {
+    hadoopShim.setHadoopCallerContext("tez_dag:" + dagID.toString());
+  }
+
+  @Private
+  public static void setHadoopCallerContext(HadoopShim hadoopShim, ApplicationId appID) {
+    hadoopShim.setHadoopCallerContext("tez_app:" + appID.toString());
+  }
+
 }

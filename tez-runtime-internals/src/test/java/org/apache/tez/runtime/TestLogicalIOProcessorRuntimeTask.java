@@ -38,6 +38,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -82,7 +83,8 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
-        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true);
+        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true,
+        new DefaultHadoopShim());
 
     try {
       lio1.initialize();
@@ -107,13 +109,12 @@ public class TestLogicalIOProcessorRuntimeTask {
       cleanupAndTest(lio1);
     }
 
-
-
-    // local mode 
+    // local mode
     tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
-        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true);
+        "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true,
+        new DefaultHadoopShim());
     try {
       lio2.initialize();
       lio2.run();

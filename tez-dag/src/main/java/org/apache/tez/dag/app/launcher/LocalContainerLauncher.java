@@ -45,6 +45,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -356,7 +357,8 @@ public class LocalContainerLauncher extends ContainerLauncher {
     TezChild tezChild =
         TezChild.newTezChild(defaultConf, null, 0, containerId.toString(), tokenIdentifier,
             attemptNumber, localDirs, workingDirectory, containerEnv, "", executionContext, credentials,
-            memAvailable, context.getUser(), tezTaskUmbilicalProtocol, false);
+            memAvailable, context.getUser(), tezTaskUmbilicalProtocol, false,
+            context.getHadoopShim());
     return tezChild;
   }
 

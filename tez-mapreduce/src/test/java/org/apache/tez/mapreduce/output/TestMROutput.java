@@ -47,6 +47,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
@@ -207,7 +208,7 @@ public class TestMROutput {
         null,
         new HashMap<String, String>(),
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory(), true);
+        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim());
     return task;
   }
   

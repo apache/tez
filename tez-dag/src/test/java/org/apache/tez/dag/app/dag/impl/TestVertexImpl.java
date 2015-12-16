@@ -53,6 +53,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
@@ -2353,6 +2354,7 @@ public class TestVertexImpl {
     }
     dispatcher = new DrainDispatcher();
     appContext = mock(AppContext.class);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     thh = mock(TaskHeartbeatHandler.class);
     historyEventHandler = mock(HistoryEventHandler.class);
     TaskSchedulerManager taskScheduler = mock(TaskSchedulerManager.class);

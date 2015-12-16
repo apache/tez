@@ -41,6 +41,7 @@ import java.util.Map;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -220,8 +221,8 @@ public class TestOnFileUnorderedKVOutput {
     when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
     task = new LogicalIOProcessorRuntimeTask(
         mockSpec, appAttemptNumber, 
-        new Configuration(), new String[]{"/"}, 
-        tezUmbilical, null, null, null, null, "", null, 1024, false);
+        new Configuration(), new String[]{"/"},
+        tezUmbilical, null, null, null, null, "", null, 1024, false, new DefaultHadoopShim());
     
     LogicalIOProcessorRuntimeTask runtimeTask = spy(task);
     

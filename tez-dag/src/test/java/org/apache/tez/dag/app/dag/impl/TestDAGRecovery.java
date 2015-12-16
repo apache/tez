@@ -119,6 +119,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
@@ -319,6 +320,8 @@ public class TestDAGRecovery {
     execService = mock(ListeningExecutorService.class);
     thh = mock(TaskHeartbeatHandler.class);
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
 
     Mockito.doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
