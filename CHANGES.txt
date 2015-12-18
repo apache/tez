@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
 
 ALL CHANGES:
+  TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
   TEZ-3006. Remove unused import in TestHistoryParser.
   TEZ-2910. Set caller context for tracing ( integrate with HDFS-9184 ).
   TEZ-2976. Recovery fails when InputDescriptor is changed during input initialization.
@@ -296,6 +297,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
   TEZ-2538. ADDITIONAL_SPILL_COUNT wrongly populated for DefaultSorter with multiple partitions.
   TEZ-3006. Remove unused import in TestHistoryParser.
   TEZ-2979. FlakyTest: org.apache.tez.history.TestHistoryParser.
