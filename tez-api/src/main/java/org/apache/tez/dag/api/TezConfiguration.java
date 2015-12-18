@@ -569,6 +569,19 @@ public class TezConfiguration extends Configuration {
       + "node-blacklisting.ignore-threshold-node-percent";
   public static final int TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
 
+  /**
+   * Boolean value. Enable task rescheduling for node updates.
+   * When enabled the task scheduler will reschedule task attempts that
+   * are associated with an unhealthy node to avoid potential data transfer
+   * errors from downstream tasks.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS =
+      TEZ_AM_PREFIX + "node-unhealthy-reschedule-tasks";
+  public static final boolean
+    TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT = false;
+
   /** Int value. Number of threads to handle client RPC requests. Expert level setting.*/
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")

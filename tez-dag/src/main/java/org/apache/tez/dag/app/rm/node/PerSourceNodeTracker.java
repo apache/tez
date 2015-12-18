@@ -42,6 +42,7 @@ public class PerSourceNodeTracker {
   private final int maxTaskFailuresPerNode;
   private final boolean nodeBlacklistingEnabled;
   private final int blacklistDisablePercent;
+  private final boolean nodeUpdatesRescheduleEnabled;
 
   private int numClusterNodes;
   float currentIgnoreBlacklistingCountThreshold = 0;
@@ -50,7 +51,8 @@ public class PerSourceNodeTracker {
   @SuppressWarnings("rawtypes")
   public PerSourceNodeTracker(int sourceId, EventHandler eventHandler, AppContext appContext,
                               int maxTaskFailuresPerNode, boolean nodeBlacklistingEnabled,
-                              int blacklistDisablePercent) {
+                              int blacklistDisablePercent,
+                              boolean nodeUpdatesRescheduleEnabled) {
     this.sourceId = sourceId;
     this.nodeMap = new ConcurrentHashMap<>();
     this.blacklistMap = new ConcurrentHashMap<>();
@@ -60,13 +62,15 @@ public class PerSourceNodeTracker {
     this.maxTaskFailuresPerNode = maxTaskFailuresPerNode;
     this.nodeBlacklistingEnabled = nodeBlacklistingEnabled;
     this.blacklistDisablePercent = blacklistDisablePercent;
+    this.nodeUpdatesRescheduleEnabled = nodeUpdatesRescheduleEnabled;
   }
 
 
 
   public void nodeSeen(NodeId nodeId) {
     if (nodeMap.putIfAbsent(nodeId, new AMNodeImpl(nodeId, sourceId, maxTaskFailuresPerNode,
-        eventHandler, nodeBlacklistingEnabled, appContext)) == null) {
+        eventHandler, nodeBlacklistingEnabled, nodeUpdatesRescheduleEnabled,
+        appContext)) == null) {
       LOG.info("Adding new node {} to nodeTracker {}", nodeId, sourceId);
     }
   }

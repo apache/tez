@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
   TEZ-2948. Stop using dagName in the dagComplete notification to TaskCommunicators.
   TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-604. Revert temporary changes made in TEZ-603 to kill the provided tez session, if running a MapReduce job.
+  TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
   TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
@@ -90,6 +91,7 @@ ALL CHANGES:
   TEZ-2866. Tez UI: Newly added columns wont be displayed by default in tables
   TEZ-2887. Tez build failure due to missing dependency in pom files.
   TEZ-1692. Reduce code duplication between TezMapredSplitsGrouper and TezMapreduceSplitsGrouper.
+  TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 
 Release 0.8.1-alpha: 2015-10-12
