@@ -126,10 +126,15 @@ App.DagTasksController = App.TablePageController.extend({
       {
         id: 'vertexName',
         headerCellName: 'Vertex Name',
+        templateName: 'components/basic-table/linked-cell',
         contentPath: 'vertexID',
         getCellContent: function(row) {
-          var vertexId = row.get('vertexID');
-          return vertexIdToNameMap[vertexId] || vertexId;
+          var vertexId = row.get('vertexID') || '';
+          return {
+            linkTo: 'vertex',
+            displayText: vertexIdToNameMap[vertexId] || vertexId,
+            entityId: vertexId
+          };
         },
         getSearchValue: function(row) {
           var vertexId = row.get('vertexID');
