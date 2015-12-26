@@ -6,6 +6,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2914. Ability to limit vertex concurrency
   TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
   TEZ-2538. ADDITIONAL_SPILL_COUNT wrongly populated for DefaultSorter with multiple partitions.
   TEZ-3006. Remove unused import in TestHistoryParser.

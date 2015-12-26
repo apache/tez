@@ -56,7 +56,6 @@ import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
-import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.rm.TaskSchedulerService.TaskSchedulerAppCallback;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
@@ -437,7 +436,6 @@ public class TaskSchedulerEventHandler extends AbstractService
       sendEvent(new AMContainerEventLaunchRequest(containerId, taskAttempt.getVertexID(),
           event.getContainerContext()));
     }
-    sendEvent(new DAGEventSchedulerUpdateTAAssigned(taskAttempt, container));
     sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getID(),
         event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources(), event
             .getContainerContext().getCredentials(), event.getPriority()));

@@ -62,35 +62,35 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all tasks belonging to v0
     for (int i = 0; i < vertices[0].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[0].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[0].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[0].getTotalTasks())).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule 3 tasks belonging to v2
     for (int i = 0; i < 3; i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[2].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
     }
     verify(eventHandler, times(3)).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule 3 tasks belonging to v3
     for (int i = 0; i < 3; i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[3].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[3].getVertexId(), i, 0));
     }
     verify(eventHandler, times(3)).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule remaining tasks belonging to v2
     for (int i = 3; i < vertices[2].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[2].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[2].getTotalTasks() - 3)).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule remaining tasks belonging to v3
     for (int i = 3; i < vertices[3].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[3].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[3].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[3].getTotalTasks() - 3)).handle(any(Event.class));
     reset(eventHandler);
@@ -98,7 +98,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all tasks belonging to v4
     for (int i = 0; i < vertices[4].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[4].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[4].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[4].getTotalTasks())).handle(any(Event.class));
     reset(eventHandler);
@@ -120,7 +120,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all tasks belonging to v0
     for (int i = 0; i < vertices[0].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[0].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[0].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[0].getTotalTasks())).handle(any(Event.class));
     reset(eventHandler);
@@ -128,14 +128,14 @@ public class TestDAGSchedulerNaturalOrderControlled {
     // v2 behaving as if configured with slow-start.
     // Schedule all tasks belonging to v3.
     for (int i = 0; i < vertices[3].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[3].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[3].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[3].getTotalTasks())).handle(any(Event.class));
     reset(eventHandler);
 
     // Scheduling all tasks belonging to v4. None should get scheduled.
     for (int i = 0; i < vertices[4].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[4].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[4].getVertexId(), i, 0));
     }
     verify(eventHandler, never()).handle(any(Event.class));
     reset(eventHandler);
@@ -143,14 +143,14 @@ public class TestDAGSchedulerNaturalOrderControlled {
     // v2 now starts scheduling ...
     // Schedule 3 tasks for v2 initially.
     for (int i = 0; i < 3; i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[2].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
     }
     verify(eventHandler, times(3)).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule remaining tasks belonging to v2
     for (int i = 3; i < vertices[2].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[2].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
     }
     ArgumentCaptor<Event> args = ArgumentCaptor.forClass(Event.class);
     // All of v2 and v3 should be sent out.
@@ -187,7 +187,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all tasks belonging to v0
     for (int i = 0; i < vertices[0].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[0].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[0].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[0].getTotalTasks())).handle(any(Event.class));
     reset(eventHandler);
@@ -197,14 +197,14 @@ public class TestDAGSchedulerNaturalOrderControlled {
     // v2 will change parallelism
     // Schedule all tasks belonging to v3
     for (int i = 0; i < vertices[3].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[3].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[3].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[3].getTotalTasks())).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule all tasks belonging to v4
     for (int i = 0; i < vertices[4].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[4].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[4].getVertexId(), i, 0));
     }
     verify(eventHandler, never()).handle(any(Event.class));
     reset(eventHandler);
@@ -215,7 +215,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all tasks belonging to v2
     for (int i = 0; i < vertices[2].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[2].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[2].getTotalTasks() + vertices[4].getTotalTasks()))
         .handle(any(Event.class));
@@ -237,7 +237,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all but 1 task belonging to v0
     for (int i = 0; i < vertices[0].getTotalTasks() - 1; i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[0].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[0].getVertexId(), i, 0));
     }
     verify(eventHandler, times(vertices[0].getTotalTasks() - 1)).handle(any(Event.class));
     reset(eventHandler);
@@ -245,7 +245,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule all tasks belonging to v2
     for (int i = 0; i < vertices[2].getTotalTasks(); i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[2].getVertexId(), i, 0));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
     }
     // Nothing should be scheduled
     verify(eventHandler, never()).handle(any(Event.class));
@@ -253,14 +253,14 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     // Schedule an extra attempt for all but 1 task belonging to v0
     for (int i = 0; i < vertices[0].getTotalTasks() - 1; i++) {
-      dagScheduler.scheduleTask(createScheduleRequest(vertices[0].getVertexId(), i, 1));
+      dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[0].getVertexId(), i, 1));
     }
     // Only v0 requests should have gone out
     verify(eventHandler, times(vertices[0].getTotalTasks() - 1)).handle(any(Event.class));
     reset(eventHandler);
 
     // Schedule last task of v0, with attempt 1
-    dagScheduler.scheduleTask(
+    dagScheduler.scheduleTaskEx(
         createScheduleRequest(vertices[0].getVertexId(), vertices[0].getTotalTasks() - 1, 1));
     // One v0 request and all of v2 should have gone out
     verify(eventHandler, times(1 + vertices[2].getTotalTasks())).handle(any(Event.class));

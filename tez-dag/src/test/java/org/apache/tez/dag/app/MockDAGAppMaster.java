@@ -85,7 +85,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-@SuppressWarnings("unchecked")
 public class MockDAGAppMaster extends DAGAppMaster {
   
   private static final Logger LOG = LoggerFactory.getLogger(MockDAGAppMaster.class);
@@ -96,6 +95,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   EventsDelegate eventsDelegate;
   CountersDelegate countersDelegate;
   StatisticsDelegate statsDelegate;
+  ContainerDelegate containerDelegate;
   long launcherSleepTime = 1;
   boolean doSleep = true;
   int handlerConcurrency = 1;
@@ -115,6 +115,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
   
   public static interface EventsDelegate {
     public void getEvents(TaskSpec taskSpec, List<TezEvent> events, long time);
+  }
+  
+  public static interface ContainerDelegate {
+    public void stop();
+    public void launch();
   }
 
   // mock container launcher does not launch real tasks.
@@ -275,6 +280,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
     void stop(NMCommunicatorStopRequestEvent event) {
       // remove from simulated container list
       containers.remove(event.getContainerId());
+      if (containerDelegate != null) {
+        containerDelegate.stop();
+      }
       getContext().getEventHandler().handle(
           new AMContainerEvent(event.getContainerId(), AMContainerEventType.C_NM_STOP_SENT));
     }
@@ -285,6 +293,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
           event.getContainerLaunchContext());
       containers.put(event.getContainerId(), cData);
       containersToProcess.add(cData);
+      if (containerDelegate != null) {
+        containerDelegate.launch();
+      }
       getContext().getEventHandler().handle(new AMContainerEventLaunched(event.getContainerId()));      
     }
     

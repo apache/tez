@@ -1604,7 +1604,6 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
     Assert.assertEquals(1, dag.numCompletedVertices);
-    verify(dag.dagScheduler, times(1)).vertexCompleted(v);
     
     dispatcher.getEventHandler().handle(
         new VertexEventTaskReschedule(TezTaskID.getInstance(vId, 0)));
@@ -1621,9 +1620,6 @@ public class TestDAGImpl {
     Assert.assertEquals(1, dag.getSuccessfulVertices());
     Assert.assertEquals(1, dag.numCompletedVertices);
     
-    // re-completion is not notified again
-    verify(dag.dagScheduler, times(1)).vertexCompleted(v);
-
   }
 
   @SuppressWarnings("unchecked")

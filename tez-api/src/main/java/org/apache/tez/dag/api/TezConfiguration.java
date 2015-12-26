@@ -503,7 +503,16 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_MAX_APP_ATTEMPTS = TEZ_AM_PREFIX + 
       "max.app.attempts";
   public static final int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
-  
+
+  /**
+   * Int value. The maximum number of attempts that can run concurrently for a given vertex.
+   * Setting <=0 implies no limit
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  public static final String TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY =
+      TEZ_AM_PREFIX + "vertex.max-task-concurrency";
+  public static final int TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY_DEFAULT = -1;
+
   /**
    * Int value. The maximum number of attempts that can fail for a particular task before the task is failed. 
    * This does not count killed attempts. Task failure results in DAG failure.
