@@ -104,7 +104,6 @@ import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventRecoverEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
-import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdateTAAssigned;
 import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
@@ -1592,6 +1591,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     LOG.info("Using DAG Scheduler: " + dagSchedulerClassName);
     dag.dagScheduler = ReflectionUtils.createClazzInstance(dagSchedulerClassName, new Class<?>[] {
         DAG.class, EventHandler.class}, new Object[] {dag, dag.eventHandler});
+    for (Vertex v : dag.vertices.values()) {
+      dag.dagScheduler.addVertexConcurrencyLimit(v.getVertexId(), v.getMaxTaskConcurrency());
+    }
   }
 
   private static VertexImpl createVertex(DAGImpl dag, String vertexName, int vId) {
@@ -1903,10 +1905,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
       job.numCompletedVertices++;
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
-        if (!job.reRunningVertices.contains(vertex.getVertexId())) {
-          // vertex succeeded for the first time
-          job.dagScheduler.vertexCompleted(vertex);
-        }
         forceTransitionToKillWait = !(job.vertexSucceeded(vertex));
       }
       else if (vertexEvent.getVertexState() == VertexState.FAILED) {
@@ -2146,13 +2144,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         case TA_SCHEDULE:
           dag.dagScheduler.scheduleTask(sEvent);
           break;
-        case TA_SCHEDULED:
-          DAGEventSchedulerUpdateTAAssigned taEvent =
-                                (DAGEventSchedulerUpdateTAAssigned) sEvent;
-          dag.dagScheduler.taskScheduled(taEvent);
-          break;
-        case TA_SUCCEEDED:
-          dag.dagScheduler.taskSucceeded(sEvent);
+        case TA_COMPLETED:
+          dag.dagScheduler.taskCompleted(sEvent);
           break;
         default:
           throw new TezUncheckedException("Unknown DAGEventSchedulerUpdate:"

@@ -191,10 +191,10 @@ public class TestTaskSchedulerManager {
         new AMSchedulerEventTALaunchRequest(mockAttemptId, resource, null, mockTaskAttempt, locHint,
             priority, containerContext, 0, 0, 0);
     schedulerHandler.taskAllocated(0, mockTaskAttempt, lr, container);
-    assertEquals(2, mockEventHandler.events.size());
-    assertTrue(mockEventHandler.events.get(1) instanceof AMContainerEventAssignTA);
+    assertEquals(1, mockEventHandler.events.size());
+    assertTrue(mockEventHandler.events.get(0) instanceof AMContainerEventAssignTA);
     AMContainerEventAssignTA assignEvent =
-        (AMContainerEventAssignTA) mockEventHandler.events.get(1);
+        (AMContainerEventAssignTA) mockEventHandler.events.get(0);
     assertEquals(priority, assignEvent.getPriority());
     assertEquals(mockAttemptId, assignEvent.getTaskAttemptId());
   }

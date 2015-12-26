@@ -85,7 +85,7 @@ public interface Vertex extends Comparable<Vertex> {
    */
   TezCounters getCachedCounters();
 
-
+  int getMaxTaskConcurrency();
   Map<TezTaskID, Task> getTasks();
   Task getTask(TezTaskID taskID);
   Task getTask(int taskIndex);

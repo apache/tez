@@ -1184,6 +1184,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       readLock.unlock();
     }
   }
+  
+  @Override
+  public int getMaxTaskConcurrency() {
+    return vertexConf.getInt(TezConfiguration.TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY, 
+        TezConfiguration.TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY_DEFAULT);
+  }
 
   public VertexStats getVertexStats() {
 
