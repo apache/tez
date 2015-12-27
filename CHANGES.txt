@@ -300,6 +300,14 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2914. Ability to limit vertex concurrency
+  TEZ-2918. Make progress notifications in IOs
+  TEZ-2952. NPE in TestOnFileUnorderedKVOutput
+  TEZ-808. Handle task attempts that are not making progress
+  TEZ-2987. TestVertexImpl.testTez2684 fails
+  TEZ-2599. Dont send obsoleted data movement events to tasks
+  TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
+  TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
   TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
   TEZ-2538. ADDITIONAL_SPILL_COUNT wrongly populated for DefaultSorter with multiple partitions.
   TEZ-3006. Remove unused import in TestHistoryParser.
