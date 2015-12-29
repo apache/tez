@@ -2,3 +2,4 @@ ALL CHANGES:
   TEZ-2982. Tez UI: Create tez-ui2 directory and get a basic dummy page working in ember 2.2
   TEZ-3016. Tez UI 2: Make bower dependency silent
   TEZ-2983. Tez UI 2: Get ember initializers functional
+  TEZ-3018. Tez UI 2: Add config.env

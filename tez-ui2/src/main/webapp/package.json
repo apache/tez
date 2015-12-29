@@ -40,6 +40,7 @@
     "ember-resolver": "^2.0.3"
   },
   "dependencies": {
+    "broccoli-funnel": "^1.0.1",
     "ember-cli-htmlbars": "^1.0.1",
     "ember-cli-less": "^1.4.0"
   }

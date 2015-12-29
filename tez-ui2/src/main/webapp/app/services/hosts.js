@@ -21,18 +21,27 @@ import environment from '../config/environment';
 
 export default Ember.Service.extend({
 
-  correctProtocol: function (url) {
-    var proto = window.location.protocol;
+  correctProtocol: function (url, localProto) {
+    var urlProto;
 
-    if(proto === "file:") {
-      proto = "http:";
+    localProto = localProto || window.location.protocol;
+
+    if(url.match("://")) {
+      urlProto = url.substr(0, url.indexOf("//"));
+    }
+
+    if(localProto === "file:") {
+      urlProto = urlProto || "http:";
+    }
+    else {
+      urlProto = localProto;
     }
 
     if(url.match("://")) {
       url = url.substr(url.indexOf("://") + 3);
     }
 
-    return proto + "//" + url;
+    return urlProto + "//" + url;
   },
 
   normalizeURL: function (url) {
@@ -46,13 +55,13 @@ export default Ember.Service.extend({
   },
 
   timelineBaseURL: Ember.computed(function () {
-    // Todo: Use global ENV if available
-    // Todo: Use loaded host if protocol is != file
-    return this.normalizeURL(environment.hosts.timeline);
+    var ENV = window.ENV;
+    return this.normalizeURL((ENV && ENV.timelineBaseURL) || environment.hosts.timeline);
   }),
 
   rmBaseURL: Ember.computed(function () {
-    return this.normalizeURL(environment.hosts.RM);
+    var ENV = window.ENV;
+    return this.normalizeURL((ENV && ENV.rmBaseURL) || environment.hosts.RM);
   }),
 
 });
