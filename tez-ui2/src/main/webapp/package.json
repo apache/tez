@@ -11,16 +11,17 @@
     "build": "ember build",
     "start": "ember server",
     "test": "ember test",
-    "postinstall": "bower install"
+    "postinstall": "./node_modules/bower/bin/bower install"
   },
-  "repository" : {
-    "type" : "git",
-    "url" : "https://git-wip-us.apache.org/repos/asf/tez.git"
+  "repository": {
+    "type": "git",
+    "url": "https://git-wip-us.apache.org/repos/asf/tez.git"
   },
   "engines": {
     "node": ">= 0.10.0"
   },
   "devDependencies": {
+    "bower": "^1.7.1",
     "broccoli-asset-rev": "^2.2.0",
     "ember-cli": "1.13.13",
     "ember-cli-app-version": "^1.0.0",
