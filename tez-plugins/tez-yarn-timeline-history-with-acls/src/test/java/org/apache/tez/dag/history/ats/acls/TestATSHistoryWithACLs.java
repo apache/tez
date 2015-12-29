@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -73,9 +74,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 
 import org.mockito.Matchers;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.doThrow;
 
 public class TestATSHistoryWithACLs {
 
@@ -385,7 +383,9 @@ public class TestATSHistoryWithACLs {
     }
     dagLogging = dag2.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
     Assert.assertNull(dagLogging);
+    myAclPolicyManager.timelineClient = spy(myAclPolicyManager.timelineClient);
     tezSession.stop();
+    verify(myAclPolicyManager.timelineClient, times(1)).stop();
   }
   
 /**
@@ -465,7 +465,10 @@ public class TestATSHistoryWithACLs {
     }
     dagLogging = dag2.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
     Assert.assertNull(dagLogging);
+    myAclPolicyManager.timelineClient = spy(myAclPolicyManager.timelineClient);
     tezClient.stop();
+    verify(myAclPolicyManager.timelineClient, times(1)).stop();
+
   }
   /**
    * Test Disable Logging for all dags in a session 

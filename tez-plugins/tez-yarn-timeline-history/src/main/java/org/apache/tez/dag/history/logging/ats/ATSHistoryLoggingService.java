@@ -243,6 +243,9 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
           + ", eventQueueBacklog=" + eventQueue.size());
     }
     timelineClient.stop();
+    if (historyACLPolicyManager != null) {
+      historyACLPolicyManager.close();
+    }
   }
 
   private void getEventBatch(List<DAGHistoryEvent> events) throws InterruptedException {

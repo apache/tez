@@ -524,6 +524,10 @@ public class TezClient {
    */
   public synchronized void stop() throws TezException, IOException {
     try {
+      if (historyACLPolicyManager != null) {
+        historyACLPolicyManager.close();
+      }
+
       if (sessionStarted) {
         LOG.info("Shutting down Tez Session"
             + ", sessionName=" + clientName

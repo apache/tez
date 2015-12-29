@@ -69,5 +69,8 @@ public interface HistoryACLPolicyManager extends Configurable {
 
   public void updateTimelineEntityDomain(Object timelineEntity, String domainId);
 
-
+  /**
+   * Call this to stop and clean up
+   */
+  public void close();
 }
