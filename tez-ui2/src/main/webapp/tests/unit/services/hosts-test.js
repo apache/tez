@@ -57,20 +57,20 @@ test('Test correctProtocol with protocol=file:', function(assert) {
   assert.equal(service.correctProtocol("https://localhost:8088", "file:"), "https://localhost:8088");
 });
 
-test('Test base URLs', function(assert) {
+test('Test host URLs', function(assert) {
   let service = this.subject();
 
-  assert.equal(service.get("timelineBaseURL"), "http://localhost:8188");
-  assert.equal(service.get("rmBaseURL"), "http://localhost:8088");
+  assert.equal(service.get("timeline"), "http://localhost:8188");
+  assert.equal(service.get("rm"), "http://localhost:8088");
 });
 
-test('Test base URLs with ENV set', function(assert) {
+test('Test host URLs with ENV set', function(assert) {
   let service = this.subject();
 
   window.ENV = {
-    timelineBaseURL: "https://localhost:3333",
-    rmBaseURL: "https://localhost:4444"
+    timelineHost: "https://localhost:3333",
+    rmHost: "https://localhost:4444"
   };
-  assert.equal(service.get("timelineBaseURL"), "http://localhost:3333");
-  assert.equal(service.get("rmBaseURL"), "http://localhost:4444");
+  assert.equal(service.get("timeline"), "http://localhost:3333");
+  assert.equal(service.get("rm"), "http://localhost:4444");
 });

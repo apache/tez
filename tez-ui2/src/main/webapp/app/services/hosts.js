@@ -54,14 +54,14 @@ export default Ember.Service.extend({
     return url;
   },
 
-  timelineBaseURL: Ember.computed(function () {
+  timeline: Ember.computed(function () {
     var ENV = window.ENV;
-    return this.normalizeURL((ENV && ENV.timelineBaseURL) || environment.hosts.timeline);
+    return this.normalizeURL((ENV && ENV.timelineHost) || environment.hosts.timeline);
   }),
 
-  rmBaseURL: Ember.computed(function () {
+  rm: Ember.computed(function () {
     var ENV = window.ENV;
-    return this.normalizeURL((ENV && ENV.rmBaseURL) || environment.hosts.RM);
+    return this.normalizeURL((ENV && ENV.rmHost) || environment.hosts.RM);
   }),
 
 });
