@@ -16,9 +16,23 @@
  * limitations under the License.
  */
 
-.generic-tooltip {
-  padding: 3px 5px !important;
-  background: rgba(0,0,0,.8) !important;
-  color: white !important;
-  border: none !important;
-}
+import Ember from 'ember';
+import ObjectTransformInitializer from '../../../initializers/object-transform';
+import { module, test } from 'qunit';
+
+let application;
+
+module('Unit | Initializer | object transform', {
+  beforeEach() {
+    Ember.run(function() {
+      application = Ember.Application.create();
+      application.deferReadiness();
+    });
+  }
+});
+
+test('it works', function(assert) {
+  ObjectTransformInitializer.initialize(application);
+
+  assert.ok(true);
+});

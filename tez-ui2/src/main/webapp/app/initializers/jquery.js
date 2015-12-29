@@ -1,3 +1,5 @@
+/*global $*/
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,9 +18,26 @@
  * limitations under the License.
  */
 
-.generic-tooltip {
-  padding: 3px 5px !important;
-  background: rgba(0,0,0,.8) !important;
-  color: white !important;
-  border: none !important;
+import environment from '../config/environment';
+
+export function initialize(/* application */) {
+  if(environment.environment !== 'test') {
+    $(document).tooltip({
+      delay: 20,
+      tooltipClass: 'generic-tooltip'
+    });
+
+    $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
+      jqXHR.requestOptions = originalOptions;
+    });
+
+    $.ajaxSetup({
+      cache: false
+    });
+  }
 }
+
+export default {
+  name: 'jquery',
+  initialize
+};

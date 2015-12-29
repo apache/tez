@@ -16,9 +16,22 @@
  * limitations under the License.
  */
 
-.generic-tooltip {
-  padding: 3px 5px !important;
-  background: rgba(0,0,0,.8) !important;
-  color: white !important;
-  border: none !important;
+import Ember from 'ember';
+import DS from "ember-data";
+
+export function initialize(application) {
+  application.register('transform:object', DS.Transform.extend({
+    deserialize: function(serialized) {
+      return Ember.none(serialized) ? {} : serialized;
+    },
+
+    serialized: function(deserialized) {
+      return Ember.none(deserialized) ? {} : deserialized;
+    }
+  }));
 }
+
+export default {
+  name: 'object-transform',
+  initialize
+};

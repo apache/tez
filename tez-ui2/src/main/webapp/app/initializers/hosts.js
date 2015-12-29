@@ -16,9 +16,12 @@
  * limitations under the License.
  */
 
-.generic-tooltip {
-  padding: 3px 5px !important;
-  background: rgba(0,0,0,.8) !important;
-  color: white !important;
-  border: none !important;
+export function initialize(application) {
+  application.inject('controller', 'hosts', 'service:hosts');
+  application.inject('adapter', 'hosts', 'service:hosts');
 }
+
+export default {
+  name: 'hosts',
+  initialize
+};
