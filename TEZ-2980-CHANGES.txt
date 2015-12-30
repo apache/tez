@@ -5,3 +5,4 @@ ALL CHANGES:
   TEZ-3018. Tez UI 2: Add config.env
   TEZ-3019. Tez UI 2: Replace BaseURL with Host
   TEZ-2984. Tez UI 2: Create abstract classes
+  TEZ-3020. Tez UI 2: Add entity blueprint
