@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,14 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import { moduleFor, test } from 'ember-qunit';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+moduleFor('route:abstract', 'Unit | Route | abstract', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
-
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
-
-  app.import('bower_components/more-js/dist/more.js');
-
-  return app.toTree(extraAssets);
-};
+test('Basic test for existence', function(assert) {
+  let route = this.subject();
+  assert.ok(route);
+});

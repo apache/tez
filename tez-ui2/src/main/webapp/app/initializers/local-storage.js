@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,11 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+export function initialize(application) {
+  application.inject('controller', 'localStorage', 'service:localStorage');
+}
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
-
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
-
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
-
-  app.import('bower_components/more-js/dist/more.js');
-
-  return app.toTree(extraAssets);
+export default {
+  name: 'local-storage',
+  initialize
 };

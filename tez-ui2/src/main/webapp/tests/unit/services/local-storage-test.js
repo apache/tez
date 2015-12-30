@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,27 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import { moduleFor, test } from 'ember-qunit';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+moduleFor('service:local-storage', 'Unit | Service | local storage', {
+  // Specify the other units that are required for this test.
+  // needs: ['service:foo']
+});
 
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
+test('Test creation', function(assert) {
+  let service = this.subject();
+  assert.ok(service);
+});
 
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
+test('getStoreKey test', function(assert) {
+  let service = this.subject();
 
-  app.import('bower_components/more-js/dist/more.js');
+  assert.equal(service.getStoreKey("abc"), "tez-ui:abc");
+});
 
-  return app.toTree(extraAssets);
-};
+test('Set & get test', function(assert) {
+  let service = this.subject();
+
+  service.set("abc", "value");
+  assert.equal(service.get("abc"), "value");
+});

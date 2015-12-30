@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,24 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import Ember from 'ember';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
-
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
-
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
-
-  app.import('bower_components/more-js/dist/more.js');
-
-  return app.toTree(extraAssets);
-};
+export default Ember.Service.extend({
+  getStoreKey: function (key) {
+    return "tez-ui:" + key;
+  },
+  set: function (key, value) {
+    try {
+      localStorage.setItem(this.getStoreKey(key) , JSON.stringify(value));
+    }catch(e){
+      return e;
+    }
+    return value;
+  },
+  get: function (key) {
+    try {
+      return JSON.parse(localStorage.getItem(this.getStoreKey(key)));
+    }catch(e){}
+    return undefined;
+  }
+});

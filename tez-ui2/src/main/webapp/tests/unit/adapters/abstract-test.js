@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,24 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import { moduleFor, test } from 'ember-qunit';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+moduleFor('adapter:abstract', 'Unit | Adapter | abstract', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:foo']
+});
 
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
+test('Basic creation', function(assert) {
+  let adapter = this.subject();
 
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
+  assert.ok(adapter);
+});
 
-  app.import('bower_components/more-js/dist/more.js');
+test('buildURL test', function(assert) {
+  let adapter = this.subject();
 
-  return app.toTree(extraAssets);
-};
+  assert.equal(adapter.buildURL("{x}/{y}/type", null, {
+    x: "x_x",
+    y: "y_y"
+  }), "/x_x/y_y/types");
+});

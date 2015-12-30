@@ -4,3 +4,4 @@ ALL CHANGES:
   TEZ-2983. Tez UI 2: Get ember initializers functional
   TEZ-3018. Tez UI 2: Add config.env
   TEZ-3019. Tez UI 2: Replace BaseURL with Host
+  TEZ-2984. Tez UI 2: Create abstract classes

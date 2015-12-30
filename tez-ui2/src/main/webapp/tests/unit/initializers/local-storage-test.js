@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,24 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import Ember from 'ember';
+import LocalStorageInitializer from '../../../initializers/local-storage';
+import { module, test } from 'qunit';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+let application;
 
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
+module('Unit | Initializer | local storage', {
+  beforeEach() {
+    Ember.run(function() {
+      application = Ember.Application.create();
+      application.deferReadiness();
+    });
+  }
+});
 
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
+test('it works', function(assert) {
+  LocalStorageInitializer.initialize(application);
 
-  app.import('bower_components/more-js/dist/more.js');
-
-  return app.toTree(extraAssets);
-};
+  // you would normally confirm the results of the initializer here
+  assert.ok(true);
+});

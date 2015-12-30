@@ -23,7 +23,6 @@ moduleFor('service:hosts', 'Unit | Service | hosts', {
   // needs: ['service:foo']
 });
 
-// Replace this with your real tests.
 test('Test creation', function(assert) {
   let service = this.subject();
   assert.ok(service);

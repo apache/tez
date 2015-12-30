@@ -1,5 +1,4 @@
-/*jshint node:true*/
-/* global require, module */
+/*global more*/
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +18,37 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import Ember from 'ember';
+import DS from 'ember-data';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+var MoreString = more.String;
 
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
+export default DS.RESTAdapter.extend({
+  ajax: function(url, method, hash) {
+    return this._super(url, method, Ember.$.extend(hash || {}, {
+      crossDomain: true,
+      xhrFields: {
+        withCredentials: true
+      }
+    }));
+  },
+  buildURL: function(type, id, record) {
+    var url = this._super(type, undefined, record);
+    return MoreString.fmt(url, record);
+  },
+  findQuery: function(store, type, query) {
+    var record = query.metadata;
+    delete query.metadata;
 
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
-
-  app.import('bower_components/more-js/dist/more.js');
-
-  return app.toTree(extraAssets);
-};
+    return this.ajax(this.buildURL(
+        Ember.String.pluralize(type.typeKey),
+        record.id,
+        Ember.Object.create(record)
+      ),
+      'GET',
+      {
+        data: query
+      }
+    );
+  }
+});

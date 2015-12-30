@@ -11,6 +11,7 @@
     "jquery": "^1.11.3",
     "loader.js": "3.3.0",
     "qunit": "~1.19.0",
-    "jquery-ui": "~1.11.4"
+    "jquery-ui": "~1.11.4",
+    "more-js": "*"
   }
 }

@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,22 +16,17 @@
  * limitations under the License.
  */
 
-var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+import Ember from 'ember';
 
-module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+export default Ember.Route.extend({
+  title: null, // Must be set by inheriting class
 
-  var extraAssets = new Funnel('config', {
-     srcDir: '/',
-     include: ['*.env'],
-     destDir: '/config'
-  });
+  setDocTitle: function () {
+    Ember.$(document).attr('title', this.get('title'));
+  },
 
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
-
-  app.import('bower_components/more-js/dist/more.js');
-
-  return app.toTree(extraAssets);
-};
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    this.setDocTitle();
+  }
+});
