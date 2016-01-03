@@ -16,24 +16,25 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import Ember from 'ember';
+import LoaderInitializer from '../../../initializers/loader';
+import { module, test } from 'qunit';
 
-moduleFor('adapter:abstract', 'Unit | Adapter | abstract', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
+let application;
+
+module('Unit | Initializer | loader', {
+  beforeEach() {
+    Ember.run(function() {
+      application = Ember.Application.create();
+      application.deferReadiness();
+    });
+  }
 });
 
-test('Basic creation', function(assert) {
-  let adapter = this.subject();
+// Replace this with your real tests.
+test('it works', function(assert) {
+  LoaderInitializer.initialize(application);
 
-  assert.ok(adapter);
-});
-
-test('buildURL test', function(assert) {
-  let adapter = this.subject();
-
-  assert.equal(adapter.buildURL("{x}/{y}/type", null, {
-    x: "x_x",
-    y: "y_y"
-  }), "/x_x/y_y/types");
+  // you would normally confirm the results of the initializer here
+  assert.ok(true);
 });

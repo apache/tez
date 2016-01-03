@@ -16,16 +16,12 @@
  * limitations under the License.
  */
 
-import { moduleForModel, test } from 'ember-qunit';
+export function initialize(application) {
+  application.inject('route', 'loader', 'service:loader');
+  application.inject('entity', 'loader', 'service:loader');
+}
 
-moduleForModel('abstract', 'Unit | Serializer | abstract', {
-  // Specify the other units that are required for this test.
-  needs: ['serializer:abstract']
-});
-
-test('it serializes records', function(assert) {
-  let record = this.subject();
-  let serializedRecord = record.serialize();
-
-  assert.ok(serializedRecord);
-});
+export default {
+  name: 'loader',
+  initialize
+};

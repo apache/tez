@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,5 +19,67 @@
 
 import Ember from 'ember';
 
-export default Ember.ObjectProxy.extend({
+var MoreObject = more.Object;
+
+export default Ember.Object.extend({
+
+  loadRelations: function (loader, model) {
+    var needsPromise = this.loadNeeds(loader, model);
+
+    if(needsPromise) {
+      return needsPromise.then(function () {
+        return model;
+      });
+    }
+
+    return model;
+  },
+
+  normalizeNeed: function(name, options) {
+    var attrName = name,
+        attrType = name,
+        idKey = options,
+        lazy = false;
+
+    if(typeof options === 'object') {
+      attrType = options.type || attrType;
+      idKey = options.idKey || idKey;
+      if(options.lazy) {
+        lazy = true;
+      }
+    }
+
+    return {
+      name: attrName,
+      type: attrType,
+      idKey: idKey,
+      lazy: lazy
+    };
+  },
+
+  loadNeeds: function (loader, parentModel) {
+    var needLoaders = [],
+        that = this,
+        needs = parentModel.get("needs");
+
+    if(needs) {
+      MoreObject.forEach(needs, function (name, options) {
+        var need = that.normalizeNeed(name, options),
+            needLoader = loader.queryRecord(need.type, parentModel.get(need.idKey));
+
+        needLoader.then(function (model) {
+          parentModel.set(need.name, model);
+        });
+
+        if(!need.lazy) {
+          needLoaders.push(needLoader);
+        }
+      });
+    }
+
+    if(needLoaders.length) {
+      return Ember.RSVP.all(needLoaders);
+    }
+  },
+
 });

@@ -6,3 +6,4 @@ ALL CHANGES:
   TEZ-3019. Tez UI 2: Replace BaseURL with Host
   TEZ-2984. Tez UI 2: Create abstract classes
   TEZ-3020. Tez UI 2: Add entity blueprint
+  TEZ-2985. Tez UI 2: Create loader and entity classes
