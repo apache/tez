@@ -17,9 +17,17 @@
  */
 
 import Ember from 'ember';
+import LoaderService from '../services/loader';
+import UnlinkedPromise from '../errors/unlinked-promise';
 
 export default Ember.Route.extend({
   title: null, // Must be set by inheriting class
+
+  isLoading: false,
+  currentPromiseId: null,
+  loadedValue: null,
+
+  queryParams: null,
 
   setDocTitle: function () {
     Ember.$(document).attr('title', this.get('title'));
@@ -28,5 +36,65 @@ export default Ember.Route.extend({
   setupController: function (controller, model) {
     this._super(controller, model);
     this.setDocTitle();
+  },
+
+  beforeModel: function (transition) {
+    this.set('queryParams', transition.queryParams);
+    return this._super(transition);
+  },
+
+  checkAndCall: function (id, functionName, value) {
+    if(id === this.get("currentPromiseId")) {
+      return this[functionName](value);
+    }
+    else {
+      throw new UnlinkedPromise();
+    }
+  },
+
+  loadData: Ember.observer("queryParams", function () {
+    var promiseId = Math.random();
+
+    this.set('currentPromiseId', promiseId);
+
+    return Ember.RSVP.resolve().
+      then(this.checkAndCall.bind(this, promiseId, "setLoading")).
+      then(this.checkAndCall.bind(this, promiseId, "beforeLoad")).
+      then(this.checkAndCall.bind(this, promiseId, "load")).
+      then(this.checkAndCall.bind(this, promiseId, "afterLoad")).
+      then(this.checkAndCall.bind(this, promiseId, "setValue"));
+  }),
+
+  setLoading: function () {
+    this.set('isLoading', true);
+  },
+  beforeLoad: function (value) {
+    return value;
+  },
+  load: function (value) {
+    return value;
+  },
+  afterLoad: function (value) {
+    return value;
+  },
+  setValue: function (value) {
+    this.set('loadedValue', value);
+    this.set('isLoading', false);
+  },
+
+  _setControllerModel: Ember.observer("_controller", "loadedValue", function () {
+    var controller = this.get("controller");
+    if(controller) {
+      controller.set("model", this.get("loadedValue"));
+    }
+  }),
+
+  setLoader: function (nameSpace) {
+    this.set("loader", LoaderService.create({
+      nameSpace: nameSpace,
+      store: this.get("store"),
+      container: this.get("container")
+    }));
   }
+
 });

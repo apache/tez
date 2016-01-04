@@ -8,3 +8,4 @@ ALL CHANGES:
   TEZ-3020. Tez UI 2: Add entity blueprint
   TEZ-2985. Tez UI 2: Create loader and entity classes
   TEZ-3021. Tez UI 2: Add env service & initializer
+  TEZ-3023. Tez UI 2: Abstract adapter and route
