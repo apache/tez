@@ -20,7 +20,7 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('service:hosts', 'Unit | Service | hosts', {
   // Specify the other units that are required for this test.
-  // needs: ['service:foo']
+  needs: ['service:env']
 });
 
 test('Test creation', function(assert) {
@@ -67,8 +67,10 @@ test('Test host URLs with ENV set', function(assert) {
   let service = this.subject();
 
   window.ENV = {
-    timelineHost: "https://localhost:3333",
-    rmHost: "https://localhost:4444"
+    hosts: {
+      timeline: "https://localhost:3333",
+      rm: "https://localhost:4444"
+    }
   };
   assert.equal(service.get("timeline"), "http://localhost:3333");
   assert.equal(service.get("rm"), "http://localhost:4444");

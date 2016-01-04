@@ -17,9 +17,10 @@
  */
 
 import Ember from 'ember';
-import environment from '../config/environment';
 
 export default Ember.Service.extend({
+
+  env: Ember.inject.service("env"),
 
   correctProtocol: function (url, localProto) {
     var urlProto;
@@ -55,13 +56,13 @@ export default Ember.Service.extend({
   },
 
   timeline: Ember.computed(function () {
-    var ENV = window.ENV;
-    return this.normalizeURL((ENV && ENV.timelineHost) || environment.hosts.timeline);
+    var env = this.get("env");
+    return this.normalizeURL(env.getAppConfig("hosts.timeline"));
   }),
 
   rm: Ember.computed(function () {
-    var ENV = window.ENV;
-    return this.normalizeURL((ENV && ENV.rmHost) || environment.hosts.RM);
+    var env = this.get("env");
+    return this.normalizeURL(env.getAppConfig("hosts.rm"));
   }),
 
 });

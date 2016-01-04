@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 
+const DEFAULT_APP_CONF = require('./default-app-conf');
+
 module.exports = function(environment) {
   var ENV = {
     modulePrefix: 'tez-ui',
@@ -31,14 +33,10 @@ module.exports = function(environment) {
       }
     },
 
-    APP: {
-      // Here you can pass flags/options to your application instance
-      // when it is created
-    },
+    APP: DEFAULT_APP_CONF,
 
-    hosts: {
-      timeline: 'localhost:8188',
-      RM: 'localhost:8088'
+    contentSecurityPolicy: {
+      'connect-src': "* 'self'"
     }
   };
 
