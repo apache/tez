@@ -16,35 +16,25 @@
  * limitations under the License.
  */
 
-module.exports = { // Tez App configurations
-  hosts: {
-    timeline: 'localhost:8188',
-    rm: 'localhost:8088',
-  },
-  namespaces: {
-    webService: {
-      timeline: 'ws/v1/timeline',
-      history: 'ws/v1/applicationhistory',
-      am: {
-        v1: 'proxy/__app_id__/ws/v1/tez',
-        v2: 'proxy/__app_id__/ws/v2/tez',
-      },
-      cluster: 'ws/v1/cluster',
-    },
-    web: {
-      cluster: 'cluster'
-    },
-  },
-  paths: {
-    timeline: {
-      dag: 'TEZ_DAG_ID',
-      vertex: 'TEZ_VERTEX_ID',
-      task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+import { moduleFor, test } from 'ember-qunit';
 
-      hiveQuery: 'HIVE_QUERY_ID',
+moduleFor('serializer:timeline', 'Unit | Serializer | timeline', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:timeline']
+});
 
-      tezApp: 'TEZ_APPLICATION'
-    }
-  }
-};
+test('Basic creation test', function(assert) {
+  let serializer = this.subject();
+
+  assert.ok(serializer);
+  assert.ok(serializer.extractArrayPayload);
+});
+
+test('extractArrayPayload test', function(assert) {
+  let serializer = this.subject(),
+      testPayload = {
+        entities: []
+      };
+
+  assert.equal(serializer.extractArrayPayload(testPayload), testPayload.entities);
+});

@@ -80,6 +80,7 @@ export default Ember.Route.extend({
   setValue: function (value) {
     this.set('loadedValue', value);
     this.set('isLoading', false);
+    return value;
   },
 
   _setControllerModel: Ember.observer("_controller", "loadedValue", function () {

@@ -16,35 +16,10 @@
  * limitations under the License.
  */
 
-module.exports = { // Tez App configurations
-  hosts: {
-    timeline: 'localhost:8188',
-    rm: 'localhost:8088',
-  },
-  namespaces: {
-    webService: {
-      timeline: 'ws/v1/timeline',
-      history: 'ws/v1/applicationhistory',
-      am: {
-        v1: 'proxy/__app_id__/ws/v1/tez',
-        v2: 'proxy/__app_id__/ws/v2/tez',
-      },
-      cluster: 'ws/v1/cluster',
-    },
-    web: {
-      cluster: 'cluster'
-    },
-  },
-  paths: {
-    timeline: {
-      dag: 'TEZ_DAG_ID',
-      vertex: 'TEZ_VERTEX_ID',
-      task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+import LoaderSerializer from './loader';
 
-      hiveQuery: 'HIVE_QUERY_ID',
-
-      tezApp: 'TEZ_APPLICATION'
-    }
+export default LoaderSerializer.extend({
+  extractArrayPayload: function (payload) {
+    return payload.entities;
   }
-};
+});

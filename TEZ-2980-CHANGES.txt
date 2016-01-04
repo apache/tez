@@ -9,3 +9,4 @@ ALL CHANGES:
   TEZ-2985. Tez UI 2: Create loader and entity classes
   TEZ-3021. Tez UI 2: Add env service & initializer
   TEZ-3023. Tez UI 2: Abstract adapter and route
+  TEZ-3022. Tez UI 2: Add serializer & adapter for timeline server
