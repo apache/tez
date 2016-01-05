@@ -18,6 +18,7 @@
     <Or>
       <Field name="blacklistDisablePercent" />
       <Field name="maxTaskFailuresPerNode" />
+      <Field name="nodeUpdatesRescheduleEnabled" />
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC" />
   </Match>

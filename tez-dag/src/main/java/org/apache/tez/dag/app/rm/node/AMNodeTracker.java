@@ -53,7 +53,8 @@ public class AMNodeTracker extends AbstractService implements
   private boolean nodeBlacklistingEnabled;
   private int blacklistDisablePercent;
   float currentIgnoreBlacklistingCountThreshold = 0;
-  
+  private boolean nodeUpdatesRescheduleEnabled;
+
   @SuppressWarnings("rawtypes")
   public AMNodeTracker(EventHandler eventHandler, AppContext appContext) {
     super("AMNodeMap");
@@ -74,10 +75,14 @@ public class AMNodeTracker extends AbstractService implements
     this.blacklistDisablePercent = conf.getInt(
           TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD,
           TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
+    this.nodeUpdatesRescheduleEnabled = conf.getBoolean(
+          TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS,
+          TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT);
 
     LOG.info("blacklistDisablePercent is " + blacklistDisablePercent +
-        ", blacklistingEnabled: " + nodeBlacklistingEnabled + 
-        ", maxTaskFailuresPerNode: " + maxTaskFailuresPerNode);
+        ", blacklistingEnabled: " + nodeBlacklistingEnabled +
+        ", maxTaskFailuresPerNode: " + maxTaskFailuresPerNode +
+        ", nodeUpdatesRescheduleEnabled: " + nodeUpdatesRescheduleEnabled);
 
     if (blacklistDisablePercent < -1 || blacklistDisablePercent > 100) {
       throw new TezUncheckedException("Invalid blacklistDisablePercent: "
@@ -88,7 +93,8 @@ public class AMNodeTracker extends AbstractService implements
   
   public void nodeSeen(NodeId nodeId) {
     if (nodeMap.putIfAbsent(nodeId, new AMNodeImpl(nodeId, maxTaskFailuresPerNode,
-        eventHandler, nodeBlacklistingEnabled, appContext)) == null) {
+        eventHandler, nodeBlacklistingEnabled, nodeUpdatesRescheduleEnabled,
+        appContext)) == null) {
       LOG.info("Adding new node: " + nodeId);
     }
   }

@@ -321,6 +321,53 @@ public class TestAMNodeTracker {
     amNodeTracker.stop();
   }
 
+  @Test(timeout=10000)
+  public void testNodeUnhealthyRescheduleTasksEnabled() throws Exception {
+    _testNodeUnhealthyRescheduleTasks(true);
+  }
+
+  @Test(timeout=10000)
+  public void testNodeUnhealthyRescheduleTasksDisabled() throws Exception {
+    _testNodeUnhealthyRescheduleTasks(false);
+  }
+
+  private void _testNodeUnhealthyRescheduleTasks(boolean rescheduleTasks) {
+    AppContext appContext = mock(AppContext.class);
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS,
+        rescheduleTasks);
+    TestEventHandler handler = new TestEventHandler();
+    AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    amNodeTracker.init(conf);
+    amNodeTracker.start();
+
+    // add a node
+    amNodeTracker.handle(new AMNodeEventNodeCountUpdated(1));
+    NodeId nodeId = NodeId.newInstance("host1", 1234);
+    amNodeTracker.nodeSeen(nodeId);
+    AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId);
+
+    // simulate task starting on node
+    ContainerId cid = mock(ContainerId.class);
+    amNodeTracker.handle(new AMNodeEventContainerAllocated(nodeId, cid));
+
+    // mark node unhealthy
+    NodeReport nodeReport = generateNodeReport(nodeId, NodeState.UNHEALTHY);
+    amNodeTracker.handle(new AMNodeEventStateChanged(nodeReport));
+    assertEquals(AMNodeState.UNHEALTHY, node.getState());
+
+    // check for task rescheduling events
+    if (rescheduleTasks) {
+      assertEquals(1, handler.events.size());
+      assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(0).getType());
+    } else {
+      assertEquals(0, handler.events.size());
+    }
+
+    amNodeTracker.stop();
+  }
+
   private static NodeReport generateNodeReport(NodeId nodeId, NodeState nodeState) {
     NodeReport nodeReport = mock(NodeReport.class);
     doReturn(nodeId).when(nodeReport).getNodeId();
