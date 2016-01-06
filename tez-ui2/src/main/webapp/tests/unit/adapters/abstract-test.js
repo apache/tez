@@ -37,6 +37,34 @@ test('Basic creation test', function(assert) {
   assert.ok(adapter.pathForType);
 });
 
+test('host, namespace & pathTypeHash test', function(assert) {
+  let adapter = this.subject(),
+      testServerName = "sn",
+      testHosts = {
+        sn: "foo.bar",
+      },
+      testENV = {
+        app: {
+          namespaces: {
+            webService: {
+              sn: "ws"
+            }
+          },
+          paths: {
+            sn: "path"
+          }
+        }
+      };
+
+  adapter.hosts = testHosts;
+  adapter.env = testENV;
+  adapter.set("serverName", testServerName);
+
+  assert.equal(adapter.get("host"), testHosts.sn);
+  assert.equal(adapter.get("namespace"), testENV.app.namespaces.webService.sn);
+  assert.equal(adapter.get("pathTypeHash"), testENV.app.paths.sn);
+});
+
 test('ajaxOptions test', function(assert) {
   let adapter = this.subject(),
       testUrl = "foo.bar",

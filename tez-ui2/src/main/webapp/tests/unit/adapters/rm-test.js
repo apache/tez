@@ -16,32 +16,16 @@
  * limitations under the License.
  */
 
-module.exports = { // Tez App configurations
-  hosts: {
-    timeline: 'localhost:8188',
-    rm: 'localhost:8088',
-  },
-  namespaces: {
-    webService: {
-      timeline: 'ws/v1/timeline',
-      appHistory: 'ws/v1/applicationhistory',
-      rm: 'ws/v1/cluster',
-      am: 'proxy/{app_id}/ws/v{version}/tez',
-    },
-    web: {
-      rm: 'cluster'
-    },
-  },
-  paths: {
-    timeline: {
-      dag: 'TEZ_DAG_ID',
-      vertex: 'TEZ_VERTEX_ID',
-      task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+import { moduleFor, test } from 'ember-qunit';
 
-      hiveQuery: 'HIVE_QUERY_ID',
+moduleFor('adapter:rm', 'Unit | Adapter | rm', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:foo']
+});
 
-      tezApp: 'TEZ_APPLICATION'
-    }
-  }
-};
+test('Basic creation test', function(assert) {
+  let adapter = this.subject();
+
+  assert.ok(adapter);
+  assert.equal(adapter.serverName, "rm");
+});

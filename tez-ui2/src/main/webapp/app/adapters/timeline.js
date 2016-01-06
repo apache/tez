@@ -20,4 +20,6 @@ import AbstractAdapter from './abstract';
 
 export default AbstractAdapter.extend({
   serverName: "timeline",
+
+  // Any timeline specific adapter changes must be added here
 });

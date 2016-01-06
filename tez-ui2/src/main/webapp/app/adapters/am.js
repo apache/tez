@@ -16,32 +16,10 @@
  * limitations under the License.
  */
 
-module.exports = { // Tez App configurations
-  hosts: {
-    timeline: 'localhost:8188',
-    rm: 'localhost:8088',
-  },
-  namespaces: {
-    webService: {
-      timeline: 'ws/v1/timeline',
-      appHistory: 'ws/v1/applicationhistory',
-      rm: 'ws/v1/cluster',
-      am: 'proxy/{app_id}/ws/v{version}/tez',
-    },
-    web: {
-      rm: 'cluster'
-    },
-  },
-  paths: {
-    timeline: {
-      dag: 'TEZ_DAG_ID',
-      vertex: 'TEZ_VERTEX_ID',
-      task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+import AbstractAdapter from './abstract';
 
-      hiveQuery: 'HIVE_QUERY_ID',
+export default AbstractAdapter.extend({
+  serverName: "am",
 
-      tezApp: 'TEZ_APPLICATION'
-    }
-  }
-};
+  // Any am specific adapter changes must be added here
+});

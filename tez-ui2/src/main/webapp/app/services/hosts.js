@@ -56,13 +56,11 @@ export default Ember.Service.extend({
   },
 
   timeline: Ember.computed(function () {
-    var env = this.get("env");
-    return this.normalizeURL(env.getAppConfig("hosts.timeline"));
+    return this.normalizeURL(this.get("env.app.hosts.timeline"));
   }),
 
   rm: Ember.computed(function () {
-    var env = this.get("env");
-    return this.normalizeURL(env.getAppConfig("hosts.rm"));
+    return this.normalizeURL(this.get("env.app.hosts.rm"));
   }),
 
 });

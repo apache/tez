@@ -28,15 +28,12 @@ export default LoaderAdapter.extend({
     return this.get(`hosts.${serverName}`);
   }),
   namespace: Ember.computed("serverName", function () {
-    var serverName = this.get("serverName"),
-        env = this.get("env");
-    return env.getAppConfig(`namespaces.webService.${serverName}`);
+    var serverName = this.get("serverName");
+    return this.get(`env.app.namespaces.webService.${serverName}`);
   }),
   pathTypeHash: Ember.computed("serverName", function () {
-    var serverName = this.get("serverName"),
-        env = this.get("env");
-
-    return env.getAppConfig(`paths.${serverName}`);
+    var serverName = this.get("serverName");
+    return this.get(`env.app.paths.${serverName}`);
   }),
 
   ajaxOptions: function(url, method, options) {

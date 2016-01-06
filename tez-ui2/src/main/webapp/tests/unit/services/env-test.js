@@ -29,9 +29,9 @@ test('Basic creation test', function(assert) {
   let service = this.subject();
 
   assert.ok(service);
+  assert.ok(service.ENV);
   assert.ok(service.collateConfigs);
-  assert.ok(service.getConfig);
-  assert.ok(service.getAppConfig);
+  assert.ok(service.app);
 });
 
 test('collateConfigs test', function(assert) {
@@ -46,25 +46,28 @@ test('collateConfigs test', function(assert) {
 
   service.collateConfigs();
 
-  APP = service._configs.APP;
+  APP = service.get("app");
   assert.equal(APP.a, 1, "Test window.ENV merge onto environment.APP");
   assert.equal(APP.b, 22);
 });
 
-test('getConfig test', function(assert) {
-  let service = this.subject();
+test('app computed property test', function(assert) {
+  let service = this.subject(),
+      ENV = {
+        b: 2
+      };
 
-  window.ENV = {};
-  environment.a = 11;
-  service.collateConfigs();
-  assert.equal(service.getConfig("a"), environment.a);
-});
-
-test('getAppConfig test', function(assert) {
-  let service = this.subject();
-
-  window.ENV = {};
+  window.ENV = ENV;
   environment.APP.a = 11;
   service.collateConfigs();
-  assert.equal(service.getAppConfig("a"), environment.APP.a);
+  assert.equal(service.get("app.a"), environment.APP.a);
+  assert.equal(service.get("app.b"), ENV.b);
+});
+
+test('Validate config/default-app-conf.js', function(assert) {
+  let service = this.subject();
+
+  assert.equal(service.get("app.hosts.timeline"), "localhost:8188");
+  assert.equal(service.get("app.namespaces.webService.timeline"), "ws/v1/timeline");
+  assert.equal(service.get("app.paths.timeline.dag"), "TEZ_DAG_ID");
 });

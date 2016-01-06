@@ -24,32 +24,28 @@ import environment from '../config/environment';
 var MoreObject = more.Object;
 
 export default Ember.Service.extend({
-  _configs: null,
+  ENV: null,
 
   init: function () {
     this.collateConfigs();
   },
 
   collateConfigs: function () {
-    var configs = {},
+    var collatedENV = {
+          APP: {}
+        },
         ENV = window.ENV;
 
-    MoreObject.merge(configs, environment);
+    MoreObject.merge(collatedENV, environment);
 
     if(ENV) {
-      MoreObject.merge(configs.APP, ENV);
+      MoreObject.merge(collatedENV.APP, ENV);
     }
 
-    this.set("_configs", configs);
+    this.set("ENV", collatedENV);
   },
 
-  getConfig: function (path) {
-    var configs = this.get("_configs");
-    return Ember.get(configs, path);
-  },
-
-  getAppConfig: function (path) {
-    var configs = this.get("_configs.APP");
-    return Ember.get(configs, path);
-  }
+  app: Ember.computed("ENV.APP", function () {
+    return this.get("ENV.APP");
+  })
 });
