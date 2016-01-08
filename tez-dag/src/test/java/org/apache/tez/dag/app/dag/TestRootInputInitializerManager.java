@@ -25,19 +25,25 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
@@ -197,5 +203,68 @@ public class TestRootInputInitializerManager {
     initializerWrapper.handleInputInitializerEvents(eventList);
 
     verify(initializer, never()).handleInputInitializerEvent(any(List.class));
+  }
+
+
+  @Test (timeout = 5000)
+  public void testCorrectUgiUsage() throws TezException, InterruptedException {
+    Vertex vertex = mock(Vertex.class);
+    doReturn(mock(TezVertexID.class)).when(vertex).getVertexId();
+    AppContext appContext = mock(AppContext.class);
+    doReturn(mock(EventHandler.class)).when(appContext).getEventHandler();
+    UserGroupInformation dagUgi = UserGroupInformation.createRemoteUser("fakeuser");
+    StateChangeNotifier stateChangeNotifier = mock(StateChangeNotifier.class);
+    RootInputInitializerManager rootInputInitializerManager = new RootInputInitializerManager(vertex, appContext, dagUgi, stateChangeNotifier);
+
+    InputDescriptor id = mock(InputDescriptor.class);
+    InputInitializerDescriptor iid = InputInitializerDescriptor.create(InputInitializerForUgiTest.class.getName());
+    RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> rootInput =
+        new RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>("InputName", id, iid);
+    rootInputInitializerManager.runInputInitializers(Collections.singletonList(rootInput));
+
+    InputInitializerForUgiTest.awaitInitialize();
+
+    assertEquals(dagUgi, InputInitializerForUgiTest.ctorUgi);
+    assertEquals(dagUgi, InputInitializerForUgiTest.initializeUgi);
+  }
+
+  public static class InputInitializerForUgiTest extends InputInitializer {
+
+    static volatile UserGroupInformation ctorUgi;
+    static volatile UserGroupInformation initializeUgi;
+
+    static boolean initialized = false;
+    static final Object initializeSync = new Object();
+
+    public InputInitializerForUgiTest(InputInitializerContext initializerContext) {
+      super(initializerContext);
+      try {
+        ctorUgi = UserGroupInformation.getCurrentUser();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public List<Event> initialize() throws Exception {
+      initializeUgi = UserGroupInformation.getCurrentUser();
+      synchronized (initializeSync) {
+        initialized = true;
+        initializeSync.notify();
+      }
+      return null;
+    }
+
+    @Override
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
+    }
+
+    static void awaitInitialize() throws InterruptedException {
+      synchronized (initializeSync) {
+        while (!initialized) {
+          initializeSync.wait();
+        }
+      }
+    }
   }
 }
