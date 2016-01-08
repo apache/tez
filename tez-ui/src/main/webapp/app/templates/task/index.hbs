@@ -64,6 +64,23 @@
 					<td>{{t 'common.time.duration'}}</td>
 					<td>{{formatDuration startTime endTime}}</td>
 				</tr>
+        <tr>
+          <td>Logs</td>
+          <td>
+            {{#if logsLink.viewUrl}}
+              <a target="_blank" href='//{{unbound logsLink.viewUrl}}'>View</a>
+              &nbsp;
+            {{/if}}
+            {{#if logsLink.downloadUrl}}
+              <a target="_blank" href='{{unbound logsLink.downloadUrl}}' download type="application/octet-stream">Download</a>
+            {{/if}}
+            {{#unless logsLink.viewUrl}}
+              {{#unless logsLink.downloadUrl}}
+                <span class="message">Not Available!</span>
+              {{/unless}}
+            {{/unless}}
+          </td>
+        </tr>
 			</tbody>
 		</table>
 	</div>

@@ -20,6 +20,8 @@
 App.TaskIndexController = App.PollingController.extend(App.ModelRefreshMixin, {
   controllerName: 'TaskIndexController',
 
+  needs: "task",
+
   taskStatus: function() {
     return App.Helpers.misc.getFixedupDisplayStatus(this.get('model.status'));
   }.property('id', 'model.status'),
@@ -39,5 +41,28 @@ App.TaskIndexController = App.PollingController.extend(App.ModelRefreshMixin, {
       });
     }
   },
+
+  logsLink: null,
+
+  logsLinkObserver: function() {
+
+    var model = this.get('content');
+    var taskAttemptId = model.get('successfulAttemptId') || model.get('attempts.lastObject');
+    var store = this.get('store');
+    var that = this;
+
+    if (taskAttemptId) {
+      store.find('taskAttempt', taskAttemptId).then(function(attempt) {
+          var cellContent = App.Helpers.misc.constructLogLinks(
+              attempt,
+              that.get('controllers.task.appDetail.status'),
+              that.get('controllers.task.tezApp.user')
+              );
+
+          cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
+          that.set('logsLink', cellContent);
+        });
+    }
+  }.observes('id', 'successfulAttemptId'),
 
 });
