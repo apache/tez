@@ -11,6 +11,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3025. InputInitializer creation should use the dag ugi.
   TEZ-3017. HistoryACLManager does not have a close method for cleanup
   TEZ-2914. Ability to limit vertex concurrency
   TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
@@ -301,6 +302,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-3025. InputInitializer creation should use the dag ugi.
   TEZ-3017. HistoryACLManager does not have a close method for cleanup
   TEZ-2914. Ability to limit vertex concurrency
   TEZ-2918. Make progress notifications in IOs

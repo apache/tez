@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.dag;
 
 import javax.annotation.Nullable;
 
+import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
@@ -107,7 +108,7 @@ public class RootInputInitializerManager {
     this.entityStateTracker = stateTracker;
   }
   
-  public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
+  public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
       inputs) throws TezException {
     for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
 
@@ -141,12 +142,29 @@ public class RootInputInitializerManager {
   }
 
   @VisibleForTesting
-  protected InputInitializer createInitializer(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>
-      input, InputInitializerContext context) throws TezException {
-    InputInitializer initializer = ReflectionUtils
-        .createClazzInstance(input.getControllerDescriptor().getClassName(),
-            new Class[]{InputInitializerContext.class}, new Object[]{context});
-    return initializer;
+  protected InputInitializer createInitializer(final RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>
+      input, final InputInitializerContext context) throws TezException {
+    try {
+      return dagUgi.doAs(new PrivilegedExceptionAction<InputInitializer>() {
+        @Override
+        public InputInitializer run() throws Exception {
+          InputInitializer initializer = ReflectionUtils
+              .createClazzInstance(input.getControllerDescriptor().getClassName(),
+                  new Class[]{InputInitializerContext.class}, new Object[]{context});
+          return initializer;
+        }
+      });
+    } catch (IOException e) {
+      throw new TezException(e);
+    } catch (InterruptedException e) {
+      throw new TezException(e);
+    } catch (UndeclaredThrowableException e) {
+      if (e.getCause() instanceof TezException) {
+        throw (TezException) e.getCause();
+      } else {
+        throw e;
+      }
+    }
   }
 
   public void handleInitializerEvents(List<TezEvent> events) {
