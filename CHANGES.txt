@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES
+  TEZ-2129. Task and Attempt views should contain links to the logs
   TEZ-3025. InputInitializer creation should use the dag ugi.
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
   TEZ-3017. HistoryACLManager does not have a close method for cleanup

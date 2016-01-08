@@ -223,6 +223,8 @@ App.TaskAttemptsController = App.TablePageController.extend(App.AutoCounterColum
 App.TaskAttemptIndexController = Em.ObjectController.extend(App.ModelRefreshMixin, {
   controllerName: 'TaskAttemptIndexController',
 
+  needs: "taskAttempt",
+
   taskAttemptStatus: function() {
     return App.Helpers.misc.getFixedupDisplayStatus(this.get('status'));
   }.property('id', 'status'),
@@ -241,5 +243,16 @@ App.TaskAttemptIndexController = Em.ObjectController.extend(App.ModelRefreshMixi
       });
     }
   },
+
+  logsLink: function() {
+    var cellContent = App.Helpers.misc.constructLogLinks(
+      this.get('content'),
+      this.get('controllers.taskAttempt.appDetail.status'),
+      this.get('controllers.taskAttempt.tezApp.user')
+    );
+
+    cellContent.notAvailable = cellContent.viewUrl || cellContent.downloadUrl;
+    return cellContent;
+  }.property('id', 'controllers.taskAttempt'),
 
 });

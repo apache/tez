@@ -64,18 +64,21 @@ App.TaskController = App.PollingController.extend(App.Helpers.DisplayHelper, App
     var dagLoader = this.store.find('dag', task.get('dagID'));
     var vertexLoader = this.store.find('vertex', task.get('vertexID'));
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId);
+    var appDetailLoader = App.Helpers.misc.loadApp(this.store, applicationId);
 
     task.set('progress', undefined);
     var allLoaders = Em.RSVP.hash({
       dag: dagLoader,
       vertex: vertexLoader,
-      tezApp: tezAppLoader
+      tezApp: tezAppLoader,
+      appDetail: appDetailLoader
     });
 
     allLoaders.then(function(results) {
       task.set('vertex', results.vertex);
       task.set('vertex.dag', results.dag);
       task.set('tezApp', results.tezApp);
+      task.set('appDetail', results.appDetail);
     }).finally(function() {
       that.set('loading', false);
     });
