@@ -36,7 +36,8 @@ module.exports = function(environment) {
     APP: DEFAULT_APP_CONF,
 
     contentSecurityPolicy: {
-      'connect-src': "* 'self'"
+      'connect-src': "* 'self'",
+      'style-src': "'self' 'unsafe-inline'"
     }
   };
 

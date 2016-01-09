@@ -16,24 +16,29 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+// Colors
+@logo-orange: #D27A22;
 
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    delay: 20,
-    tooltipClass: 'generic-tooltip'
-  });
+@bg-lite: #f5f5f5;
+@bg-liter: #f5f5f5;
+@bg-red-light: #FFE6E6;
 
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
+@bg-grey: #f0f0f0;
 
-  Ember.$.ajaxSetup({
-    cache: false
-  });
-}
+@border-lite: #e5e5e5;
+@border-color: #dcdcdc;
 
-export default {
-  name: 'jquery',
-  initialize
-};
+@white: #fff;
+
+@text-color: rgb(70, 70, 70);
+@text-red: red;
+@text-light: #BBBBBB;
+@text-green: green;
+
+@top-nav-bg-color-from: #d5d5d5;
+@top-nav-bg-color-to: #f0f0f0;
+
+@success-color: limegreen;
+@error-color: crimson;
+@warning-color: orange;
+@unknown-color: crimson;

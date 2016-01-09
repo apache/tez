@@ -16,24 +16,9 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    delay: 20,
-    tooltipClass: 'generic-tooltip'
-  });
-
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
-
-  Ember.$.ajaxSetup({
-    cache: false
-  });
+.generic-tooltip {
+  padding: 3px 5px !important;
+  background: rgba(0,0,0,.8) !important;
+  color: white !important;
+  border: none !important;
 }
-
-export default {
-  name: 'jquery',
-  initialize
-};

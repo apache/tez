@@ -8,10 +8,12 @@
     "ember-load-initializers": "0.1.7",
     "ember-qunit": "0.4.16",
     "ember-qunit-notifications": "0.1.0",
-    "jquery": "^1.11.3",
     "loader.js": "3.3.0",
     "qunit": "~1.19.0",
-    "jquery-ui": "~1.11.4",
-    "more-js": "*"
+    "more-js": "*",
+    "bootstrap": "~3.3.5",
+    "snippet-ss": "*",
+    "font-awesome": "~4.5.0",
+    "jquery-ui": "1.11.4"
   }
 }

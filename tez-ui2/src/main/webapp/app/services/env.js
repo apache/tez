@@ -42,7 +42,14 @@ export default Ember.Service.extend({
       MoreObject.merge(collatedENV.APP, ENV);
     }
 
+    this.setComputedENVs(collatedENV);
+
     this.set("ENV", collatedENV);
+  },
+
+  setComputedENVs: function (env) {
+    var navigator = window.navigator;
+    env.isIE = navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') > 0;
   },
 
   app: Ember.computed("ENV.APP", function () {

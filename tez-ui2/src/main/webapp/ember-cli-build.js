@@ -23,7 +23,9 @@ var Funnel = require("broccoli-funnel");
 var EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
 module.exports = function(defaults) {
-  var app = new EmberApp(defaults, {});
+  var app = new EmberApp(defaults, {
+    storeConfigInMeta: false
+  });
 
   var extraAssets = new Funnel('config', {
      srcDir: '/',

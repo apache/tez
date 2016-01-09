@@ -11,3 +11,4 @@ ALL CHANGES:
   TEZ-3023. Tez UI 2: Abstract adapter and route
   TEZ-3022. Tez UI 2: Add serializer & adapter for timeline server
   TEZ-3026. Tez UI 2: Add adapters for RM & AM
+  TEZ-3027. Tez UI 2: Add header and footer elements

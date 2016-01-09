@@ -17,6 +17,8 @@
  */
 
 module.exports = { // Tez App configurations
+  buildVersion: "",
+  isStandalone: true, // Must be set false while running in wrapped mode
   hosts: {
     timeline: 'localhost:8188',
     rm: 'localhost:8088',
@@ -43,5 +45,9 @@ module.exports = { // Tez App configurations
 
       tezApp: 'TEZ_APPLICATION'
     }
+  },
+  hrefs: {
+    help: "https://tez.apache.org/tez_ui_user_data.html",
+    license: "http://www.apache.org/licenses/LICENSE-2.0"
   }
 };

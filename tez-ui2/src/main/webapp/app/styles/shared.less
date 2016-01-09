@@ -16,24 +16,17 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+@import "colors";
 
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    delay: 20,
-    tooltipClass: 'generic-tooltip'
-  });
-
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
-
-  Ember.$.ajaxSetup({
-    cache: false
-  });
+b {
+  font-weight: bold;
+}
+.horizontal-half {
+  width: 50%;
 }
 
-export default {
-  name: 'jquery',
-  initialize
-};
+.left-delim {
+  border-left: 1px solid @border-color;
+  margin-left: 5px;
+  padding-left: 5px;
+}

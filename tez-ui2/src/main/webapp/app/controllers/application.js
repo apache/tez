@@ -18,22 +18,21 @@
 
 import Ember from 'ember';
 
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    delay: 20,
-    tooltipClass: 'generic-tooltip'
-  });
+const BREADCRUMB_PREFIX = [{
+  text: "All DAGs",
+  routeName: 'application'
+}];
 
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
+export default Ember.Controller.extend({
+  breadcrumbs: null,
+  prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
+    var prefix = BREADCRUMB_PREFIX,
+    breadcrumbs = this.get('breadcrumbs');
 
-  Ember.$.ajaxSetup({
-    cache: false
-  });
-}
+    if(Array.isArray(breadcrumbs)) {
+      prefix = prefix.concat(breadcrumbs);
+    }
 
-export default {
-  name: 'jquery',
-  initialize
-};
+    return prefix;
+  })
+});

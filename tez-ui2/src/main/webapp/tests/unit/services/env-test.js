@@ -32,6 +32,7 @@ test('Basic creation test', function(assert) {
   assert.ok(service.ENV);
   assert.ok(service.collateConfigs);
   assert.ok(service.app);
+  assert.ok(service.setComputedENVs);
 });
 
 test('collateConfigs test', function(assert) {
@@ -62,6 +63,12 @@ test('app computed property test', function(assert) {
   service.collateConfigs();
   assert.equal(service.get("app.a"), environment.APP.a);
   assert.equal(service.get("app.b"), ENV.b);
+});
+
+test('setComputedENVs test', function(assert) {
+  let service = this.subject();
+
+  assert.equal(service.ENV.isIE, false);
 });
 
 test('Validate config/default-app-conf.js', function(assert) {

@@ -16,24 +16,30 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleFor, test } from 'ember-qunit';
 
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    delay: 20,
-    tooltipClass: 'generic-tooltip'
-  });
+moduleFor('controller:application', 'Unit | Controller | application', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
+test('Basic creation test', function(assert) {
+  let controller = this.subject();
 
-  Ember.$.ajaxSetup({
-    cache: false
-  });
-}
+  assert.ok(controller.prefixedBreadcrumbs);
+});
 
-export default {
-  name: 'jquery',
-  initialize
-};
+test('prefixedBreadcrumbs test', function(assert) {
+  let controller = this.subject(),
+      prefixedBreadcrumbs,
+      testText = "foo";
+
+  controller.breadcrumbs = [{
+    text: testText
+  }];
+  prefixedBreadcrumbs = controller.get("prefixedBreadcrumbs");
+
+  assert.equal(prefixedBreadcrumbs.length, 2);
+  assert.equal(prefixedBreadcrumbs[0].text, "All DAGs");
+  assert.equal(prefixedBreadcrumbs[1].text, testText);
+});

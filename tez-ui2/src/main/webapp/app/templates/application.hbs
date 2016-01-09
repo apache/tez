@@ -16,10 +16,49 @@
  * limitations under the License.
 }}
 
-<h2 id="title">Welcome to Ember</h2>
+<div class="{{if env.app.isStandalone 'standalone' 'wrapped'}} {{if env.ENV.isIE 'ie'}}">
+  <div class="footer-pusher">
 
-{{outlet}}
+    <div class="header">
+      <div class="lr-margin content">
+        {{#link-to 'application' class="logo"}}
+          <img src="assets/images/logo.png" width="70px"/>
+          <span>{{unbound App.env.version}}</span>
+        {{/link-to}}
 
-Timeline: {{hosts.timeline}}
-<br/>
-RM: {{hosts.rm}}
+        <div class="breadcrumb-container">
+          {{em-breadcrumbs items=prefixedBreadcrumbs}}
+        </div>
+
+        <div class="ui-info">
+          {{#if env.app.buildVersion}}
+            <span>Version <b>{{env.app.buildVersion}}</b></span>
+          {{/if}}
+          <span>
+            <a href={{env.app.hrefs.help}} target="_blank">
+              <i class="fa fa-question-circle"></i>
+            </a>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lr-margin">
+      {{outlet}}
+    </div>
+    <div class="footer-frame"> </div>
+  </div>
+
+  <div class="footer">
+    <div class="lr-margin content">
+      <a href={{env.app.hrefs.license}} target="_blank">
+        Licensed under the Apache License, Version 2.0.
+      </a>
+      <div class="ui-info">
+        {{#if env.app.timezone}}
+          <span>Timezone <b>{{env.app.timezone}}</b></span>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</div>

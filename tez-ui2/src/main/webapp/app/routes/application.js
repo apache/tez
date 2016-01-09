@@ -18,22 +18,18 @@
 
 import Ember from 'ember';
 
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    delay: 20,
-    tooltipClass: 'generic-tooltip'
-  });
+export default Ember.Route.extend({
 
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
+  pageReset: function () {
+    Ember.$(document).tooltip("close");
+  },
 
-  Ember.$.ajaxSetup({
-    cache: false
-  });
-}
-
-export default {
-  name: 'jquery',
-  initialize
-};
+  actions: {
+    didTransition: function(/* transition */) {
+      this.pageReset();
+    },
+    pageChanged: function (breadcrumbs) {
+      this.set("controller.breadcrumbs", breadcrumbs);
+    }
+  }
+});
