@@ -17,13 +17,8 @@ package org.apache.tez.tests;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.tez.client.TezClient;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -37,18 +32,13 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.launcher.TezTestServiceNoOpContainerLauncher;
 import org.apache.tez.dag.app.rm.TezTestServiceTaskSchedulerService;
 import org.apache.tez.dag.app.taskcomm.TezTestServiceTaskCommunicatorImpl;
-import org.apache.tez.examples.HashJoinExample;
-import org.apache.tez.examples.JoinDataGen;
 import org.apache.tez.examples.JoinValidateConfigured;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
-import org.apache.tez.service.MiniTezTestServiceCluster;
 import org.apache.tez.service.impl.ContainerRunnerImpl;
 import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
-import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -61,17 +51,7 @@ public class TestExternalTezServices {
 
   private static final String EXT_PUSH_ENTITY_NAME = "ExtServiceTestPush";
 
-  private static volatile MiniTezCluster tezCluster;
-  private static volatile MiniDFSCluster dfsCluster;
-  private static volatile MiniTezTestServiceCluster tezTestServiceCluster;
-
-  private static volatile Configuration clusterConf = new Configuration();
-  private static volatile Configuration confForJobs;
-
-  private static volatile FileSystem remoteFs;
-  private static volatile FileSystem localFs;
-
-  private static volatile TezClient sharedTezClient;
+  private static ExternalTezServiceTestHelper extServiceTestHelper;
 
   private static final Path SRC_DATA_DIR = new Path("/tmp/" + TestExternalTezServices.class.getSimpleName());
   private static final Path HASH_JOIN_EXPECTED_RESULT_PATH = new Path(SRC_DATA_DIR, "expectedOutputPath");
@@ -93,50 +73,8 @@ public class TestExternalTezServices {
   @BeforeClass
   public static void setup() throws Exception {
 
-    localFs = FileSystem.getLocal(clusterConf);
-
-    try {
-      clusterConf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
-      dfsCluster =
-          new MiniDFSCluster.Builder(clusterConf).numDataNodes(1).format(true).racks(null).build();
-      remoteFs = dfsCluster.getFileSystem();
-      LOG.info("MiniDFSCluster started");
-    } catch (IOException io) {
-      throw new RuntimeException("problem starting mini dfs cluster", io);
-    }
-
-    tezCluster = new MiniTezCluster(TestExternalTezServices.class.getName(), 1, 1, 1);
-    Configuration conf = new Configuration();
-    conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
-    tezCluster.init(conf);
-    tezCluster.start();
-    LOG.info("MiniTezCluster started");
-
-    clusterConf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
-    for (Map.Entry<String, String> entry : tezCluster.getConfig()) {
-      clusterConf.set(entry.getKey(), entry.getValue());
-    }
-    long jvmMax = Runtime.getRuntime().maxMemory();
-
-    tezTestServiceCluster = MiniTezTestServiceCluster
-        .create(TestExternalTezServices.class.getSimpleName(), 3, ((long) (jvmMax * 0.5d)), 1);
-    tezTestServiceCluster.init(clusterConf);
-    tezTestServiceCluster.start();
-    LOG.info("MiniTezTestServer started");
-
-    confForJobs = new Configuration(clusterConf);
-    for (Map.Entry<String, String> entry : tezTestServiceCluster
-        .getClusterSpecificConfiguration()) {
-      confForJobs.set(entry.getKey(), entry.getValue());
-    }
-
-    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
-    remoteFs.mkdirs(stagingDirPath);
-    // This is currently configured to push tasks into the Service, and then use the standard RPC
-    confForJobs.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
-    confForJobs.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
-
-    UserPayload userPayload = TezUtils.createUserPayloadFromConf(confForJobs);
+    extServiceTestHelper = new ExternalTezServiceTestHelper(TEST_ROOT_DIR);
+    UserPayload userPayload = TezUtils.createUserPayloadFromConf(extServiceTestHelper.getConfForJobs());
 
     TaskSchedulerDescriptor[] taskSchedulerDescriptors = new TaskSchedulerDescriptor[]{
         TaskSchedulerDescriptor
@@ -156,60 +94,21 @@ public class TestExternalTezServices {
     ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor.create(true, true,
         taskSchedulerDescriptors, containerLauncherDescriptors, taskCommunicatorDescriptors);
 
-    // Create a session to use for all tests.
-    TezConfiguration tezClientConf = new TezConfiguration(confForJobs);
 
-    sharedTezClient = TezClient
-        .newBuilder(TestExternalTezServices.class.getSimpleName() + "_session", tezClientConf)
-        .setIsSession(true).setServicePluginDescriptor(servicePluginsDescriptor).build();
+    extServiceTestHelper.setupSharedTezClient(servicePluginsDescriptor);
 
-    sharedTezClient.start();
-    LOG.info("Shared TezSession started");
-    sharedTezClient.waitTillReady();
-    LOG.info("Shared TezSession ready for submission");
 
     // Generate the join data set used for each run.
     // Can a timeout be enforced here ?
-    remoteFs.mkdirs(SRC_DATA_DIR);
     Path dataPath1 = new Path(SRC_DATA_DIR, "inPath1");
     Path dataPath2 = new Path(SRC_DATA_DIR, "inPath2");
-    TezConfiguration tezConf = new TezConfiguration(confForJobs);
-    //   Generate join data - with 2 tasks.
-    JoinDataGen dataGen = new JoinDataGen();
-    String[] dataGenArgs = new String[]{
-        dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
-        HASH_JOIN_EXPECTED_RESULT_PATH.toString(), "2"};
-    assertEquals(0, dataGen.run(tezConf, dataGenArgs, sharedTezClient));
-    //    Run the actual join - with 2 reducers
-    HashJoinExample joinExample = new HashJoinExample();
-    String[] args = new String[]{
-        dataPath1.toString(), dataPath2.toString(), "2", HASH_JOIN_OUTPUT_PATH.toString()};
-    assertEquals(0, joinExample.run(tezConf, args, sharedTezClient));
-
-    LOG.info("Completed generating Data - Expected Hash Result and Actual Join Result");
+    extServiceTestHelper
+        .setupHashJoinData(SRC_DATA_DIR, dataPath1, dataPath2, HASH_JOIN_EXPECTED_RESULT_PATH, HASH_JOIN_OUTPUT_PATH);
   }
 
   @AfterClass
   public static void tearDown() throws IOException, TezException {
-    if (sharedTezClient != null) {
-      sharedTezClient.stop();
-      sharedTezClient = null;
-    }
-
-    if (tezTestServiceCluster != null) {
-      tezTestServiceCluster.stop();
-      tezTestServiceCluster = null;
-    }
-
-    if (tezCluster != null) {
-      tezCluster.stop();
-      tezCluster = null;
-    }
-    if (dfsCluster != null) {
-      dfsCluster.shutdown();
-      dfsCluster = null;
-    }
-    // TODO Add cleanup code.
+    extServiceTestHelper.tearDownAll();
   }
 
 
@@ -297,7 +196,7 @@ public class TestExternalTezServices {
     v.setExecutionContext(EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
     dag.addVertex(v);
 
-    DAGClient dagClient = sharedTezClient.submitDAG(dag);
+    DAGClient dagClient = extServiceTestHelper.getSharedTezClient().submitDAG(dag);
     DAGStatus dagStatus = dagClient.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
     assertEquals(1, dagStatus.getDAGProgress().getFailedTaskAttemptCount());
@@ -309,18 +208,18 @@ public class TestExternalTezServices {
                                VertexExecutionContext rhsContext,
                                VertexExecutionContext validateContext) throws
       Exception {
-    int externalSubmissionCount = tezTestServiceCluster.getNumSubmissions();
+    int externalSubmissionCount = extServiceTestHelper.getTezTestServiceCluster().getNumSubmissions();
 
-    TezConfiguration tezConf = new TezConfiguration(confForJobs);
+    TezConfiguration tezConf = new TezConfiguration(extServiceTestHelper.getConfForJobs());
     JoinValidateConfigured joinValidate =
         new JoinValidateConfigured(EXECUTION_CONTEXT_DEFAULT, lhsContext, rhsContext,
             validateContext, name);
     String[] validateArgs = new String[]{"-disableSplitGrouping",
         HASH_JOIN_EXPECTED_RESULT_PATH.toString(), HASH_JOIN_OUTPUT_PATH.toString(), "3"};
-    assertEquals(0, joinValidate.run(tezConf, validateArgs, sharedTezClient));
+    assertEquals(0, joinValidate.run(tezConf, validateArgs, extServiceTestHelper.getSharedTezClient()));
 
     // Ensure this was actually submitted to the external cluster
     assertEquals(extExpectedCount,
-        (tezTestServiceCluster.getNumSubmissions() - externalSubmissionCount));
+        (extServiceTestHelper.getTezTestServiceCluster().getNumSubmissions() - externalSubmissionCount));
   }
 }

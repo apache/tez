@@ -21,12 +21,15 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
@@ -42,6 +45,8 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.event.Event;
+import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TaskCommunicator;
@@ -50,6 +55,9 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
@@ -57,6 +65,9 @@ import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestTaskCommunicatorManager {
 
@@ -215,8 +226,90 @@ public class TestTaskCommunicatorManager {
 
     } finally {
       tcm.stop();
-      verify(tcm.getTaskCommunicator(0)).shutdown();
-      verify(tcm.getTaskCommunicator(1)).shutdown();
+      verify(tcm.getTaskCommunicator(0).getTaskCommunicator()).shutdown();
+      verify(tcm.getTaskCommunicator(1).getTaskCommunicator()).shutdown();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testTaskCommunicatorUserError() {
+    TaskCommunicatorContextImpl taskCommContext = mock(TaskCommunicatorContextImpl.class);
+    TaskCommunicator taskCommunicator = mock(TaskCommunicator.class, new ExceptionAnswer());
+    doReturn(taskCommContext).when(taskCommunicator).getContext();
+
+    EventHandler eventHandler = mock(EventHandler.class);
+    AppContext appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+
+    when(appContext.getEventHandler()).thenReturn(eventHandler);
+    doReturn("testTaskCommunicator").when(appContext).getTaskCommunicatorName(0);
+    String expectedId = "[0:testTaskCommunicator]";
+
+    Configuration conf = new Configuration(false);
+
+    TaskCommunicatorManager taskCommunicatorManager =
+        new TaskCommunicatorManager(taskCommunicator, appContext, mock(TaskHeartbeatHandler.class),
+            mock(ContainerHeartbeatHandler.class));
+    try {
+      taskCommunicatorManager.init(conf);
+      taskCommunicatorManager.start();
+
+      // Invoking a couple of random methods.
+
+      DAG mockDag = mock(DAG.class, RETURNS_DEEP_STUBS);
+      when(mockDag.getID().getId()).thenReturn(1);
+
+      taskCommunicatorManager.dagComplete(mockDag);
+      ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+
+      Event rawEvent = argumentCaptor.getValue();
+      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      DAGAppMasterEventUserServiceFatalError event =
+          (DAGAppMasterEventUserServiceFatalError) rawEvent;
+
+      assertEquals(DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR, event.getType());
+      assertTrue(event.getError().getMessage().contains("TestException_" + "dagComplete"));
+      assertTrue(event.getDiagnosticInfo().contains("DAG completion"));
+      assertTrue(event.getDiagnosticInfo().contains(expectedId));
+
+
+      when(appContext.getAllContainers().get(any(ContainerId.class)).getContainer().getNodeId())
+          .thenReturn(mock(NodeId.class));
+
+      taskCommunicatorManager.registerRunningContainer(mock(ContainerId.class), 0);
+      argumentCaptor = ArgumentCaptor.forClass(Event.class);
+      verify(eventHandler, times(2)).handle(argumentCaptor.capture());
+
+      rawEvent = argumentCaptor.getAllValues().get(1);
+      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      event = (DAGAppMasterEventUserServiceFatalError) rawEvent;
+
+      assertEquals(DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR, event.getType());
+      assertTrue(
+          event.getError().getMessage().contains("TestException_" + "registerRunningContainer"));
+      assertTrue(event.getDiagnosticInfo().contains("registering running Container"));
+      assertTrue(event.getDiagnosticInfo().contains(expectedId));
+
+
+    } finally {
+      taskCommunicatorManager.stop();
+    }
+
+  }
+
+  private static class ExceptionAnswer implements Answer {
+
+    @Override
+    public Object answer(InvocationOnMock invocation) throws Throwable {
+      Method method = invocation.getMethod();
+      if (method.getDeclaringClass().equals(TaskCommunicator.class) &&
+          !method.getName().equals("getContext") && !method.getName().equals("initialize") &&
+          !method.getName().equals("start") && !method.getName().equals("shutdown")) {
+        throw new RuntimeException("TestException_" + method.getName());
+      } else {
+        return invocation.callRealMethod();
+      }
     }
   }
 
@@ -353,7 +446,7 @@ public class TestTaskCommunicatorManager {
     }
 
     @Override
-    public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
+    public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
 
     }
 

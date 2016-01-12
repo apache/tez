@@ -15,6 +15,11 @@
 package org.apache.tez.examples;
 
 
+import java.io.IOException;
+
+import org.apache.hadoop.fs.Path;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 
 public class JoinValidateConfigured extends JoinValidate {
@@ -59,5 +64,10 @@ public class JoinValidateConfigured extends JoinValidate {
   @Override
   protected String getDagName() {
     return "JoinValidate_" + dagNameSuffix;
+  }
+
+  public DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
+      throws IOException {
+    return super.createDag(tezConf, lhs, rhs, numPartitions);
   }
 }

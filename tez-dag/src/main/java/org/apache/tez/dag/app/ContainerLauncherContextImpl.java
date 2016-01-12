@@ -19,6 +19,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
@@ -29,10 +31,13 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventStopFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unchecked")
 public class ContainerLauncherContextImpl implements ContainerLauncherContext {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherContextImpl.class);
   private final AppContext context;
   private final TaskCommunicatorManagerInterface tal;
   private final UserPayload initialUserPayload;
@@ -101,7 +106,18 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
   @Override
   public Object getTaskCommunicatorMetaInfo(String taskCommName) {
     int taskCommId = context.getTaskCommunicatorIdentifier(taskCommName);
-    return tal.getTaskCommunicator(taskCommId).getMetaInfo();
+    try {
+      return tal.getTaskCommunicator(taskCommId).getMetaInfo();
+    } catch (Exception e) {
+      String msg = "Error in retrieving meta-info from TaskCommunicator"
+          + ", communicatorName=" + context.getTaskCommunicatorName(taskCommId);
+      LOG.error(msg, e);
+      context.getEventHandler().handle(
+          new DAGAppMasterEventUserServiceFatalError(
+              DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR,
+              msg, e));
+    }
+    return null;
   }
 
 }

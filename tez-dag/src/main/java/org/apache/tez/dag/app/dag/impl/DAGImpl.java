@@ -43,6 +43,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
+import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
+import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 import org.slf4j.Logger;
@@ -2252,13 +2254,21 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private static class InternalErrorTransition implements
       SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
-      LOG.info(job.getID() + " terminating due to internal error");
+    public void transition(DAGImpl dag, DAGEvent event) {
+      String diagnostics = null;
+      if (event instanceof DiagnosableEvent) {
+        DiagnosableEvent errEvent = (DiagnosableEvent) event;
+        diagnostics = errEvent.getDiagnosticInfo();
+        dag.addDiagnostic(diagnostics);
+      }
+
+      LOG.info(dag.getID() + " terminating due to internal error. "
+          + (diagnostics == null? "" : " Error=" + diagnostics));
       // terminate all vertices
-      job.enactKill(DAGTerminationCause.INTERNAL_ERROR, VertexTerminationCause.INTERNAL_ERROR);
-      job.setFinishTime();
-      job.cancelCommits();
-      job.finished(DAGState.ERROR);
+      dag.enactKill(DAGTerminationCause.INTERNAL_ERROR, VertexTerminationCause.INTERNAL_ERROR);
+      dag.setFinishTime();
+      dag.cancelCommits();
+      dag.finished(DAGState.ERROR);
     }
   }
 

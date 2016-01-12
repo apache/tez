@@ -63,7 +63,9 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
+import org.apache.tez.dag.app.TaskCommunicatorWrapper;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
+import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.app.AppContext;
@@ -1228,8 +1230,12 @@ public class TestAMContainer {
 
       tal = mock(TaskCommunicatorManagerInterface.class);
       TaskCommunicator taskComm = mock(TaskCommunicator.class);
-      doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-      doReturn(taskComm).when(tal).getTaskCommunicator(0);
+      try {
+        doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
+      } catch (ServicePluginException e) {
+        throw new RuntimeException(e);
+      }
+      doReturn(new TaskCommunicatorWrapper(taskComm)).when(tal).getTaskCommunicator(0);
 
       dagID = TezDAGID.getInstance(applicationID, 1);
       vertexID = TezVertexID.getInstance(dagID, 1);

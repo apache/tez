@@ -99,12 +99,13 @@ public interface ContainerLauncherContext {
   ApplicationAttemptId getApplicationAttemptId();
 
   /**
-   * Get meta info from the specified TaskCommunicator. This assumes that the launched has been
+   * Get meta info from the specified TaskCommunicator. This assumes that the launcher has been
    * setup
    * along with a compatible TaskCommunicator, and the launcher knows how to read this meta-info
    *
    * @param taskCommName the name of the task communicator
    * @return meta info for the requested task communicator
+   *
    */
   Object getTaskCommunicatorMetaInfo(String taskCommName);
 }

@@ -63,6 +63,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
@@ -72,6 +73,8 @@ import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
 import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -151,10 +154,6 @@ import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
-import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
-import org.apache.tez.dag.app.dag.impl.TaskImpl;
-import org.apache.tez.dag.app.dag.impl.VertexImpl;
-import org.apache.tez.dag.app.launcher.LocalContainerLauncher;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.ContainerLauncherEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
@@ -671,8 +670,34 @@ public class DAGAppMaster extends AbstractService {
     return taskSchedulerManager;
   }
 
+  private void handleInternalError(String errDiagnosticsPrefix, String errDiagDagEvent) {
+    state = DAGAppMasterState.ERROR;
+    if (currentDAG != null) {
+      _updateLoggers(currentDAG, "_post");
+      String errDiagnostics = errDiagnosticsPrefix + ". Aborting dag: " + currentDAG.getID();
+      LOG.info(errDiagnostics);
+      // Inform the current DAG about the error
+      sendEvent(new DAGEventInternalError(currentDAG.getID(), errDiagDagEvent));
+    } else {
+      LOG.info(errDiagnosticsPrefix + ". AppMaster will exit as no dag is active");
+      // This could be problematic if the scheduler generated the error,
+      // since un-registration may not be possible.
+      // For now - try setting this flag, but call the shutdownHandler irrespective of
+      // how the flag is handled by user code.
+      try {
+        this.taskSchedulerManager.setShouldUnregisterFlag();
+      } catch (Exception e) {
+        // Ignore exception for now
+        LOG.error("Error when trying to set unregister flag for TaskScheduler", e);
+      } finally {
+        shutdownHandler.shutdown();
+      }
+    }
+  }
+
   @VisibleForTesting
   protected synchronized void handle(DAGAppMasterEvent event) {
+    String errDiagnostics;
     switch (event.getType()) {
     case SCHEDULING_SERVICE_ERROR:
       // Scheduling error - probably an issue with the communication with the RM
@@ -683,22 +708,30 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventSchedulingServiceError schedulingServiceErrorEvent =
           (DAGAppMasterEventSchedulingServiceError) event;
       state = DAGAppMasterState.ERROR;
-      LOG.info("Error in the TaskScheduler. Shutting down.",
-          schedulingServiceErrorEvent.getThrowable());
+      errDiagnostics = "Error in the TaskScheduler. Shutting down. ";
+      addDiagnostic(errDiagnostics
+          + "Error=" + ExceptionUtils.getStackTrace(schedulingServiceErrorEvent.getThrowable()));
+      LOG.error(errDiagnostics, schedulingServiceErrorEvent.getThrowable());
       shutdownHandler.shutdown();
       break;
+    case TASK_COMMUNICATOR_SERVICE_FATAL_ERROR:
+    case CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR:
+    case TASK_SCHEDULER_SERVICE_FATAL_ERROR:
+      // A fatal error from the pluggable services. The AM cannot continue operation, and should
+      // be shutdown. The AM should not be restarted for recovery.
+      DAGAppMasterEventUserServiceFatalError usfe = (DAGAppMasterEventUserServiceFatalError) event;
+      Throwable error = usfe.getError();
+      errDiagnostics = "Service Error: " + usfe.getDiagnosticInfo()
+          + ", eventType=" + event.getType()
+          + ", exception=" + ExceptionUtils.getStackTrace(usfe.getError());
+      LOG.error(errDiagnostics, error);
+      addDiagnostic(errDiagnostics);
+
+      handleInternalError("Service error: " + event.getType(), errDiagnostics);
+      break;
     case INTERNAL_ERROR:
-      state = DAGAppMasterState.ERROR;
-      if(currentDAG != null) {
-        _updateLoggers(currentDAG, "_post");
-        // notify dag to finish which will send the DAG_FINISHED event
-        LOG.info("Internal Error. Notifying dags to finish.");
-        sendEvent(new DAGEvent(currentDAG.getID(), DAGEventType.INTERNAL_ERROR));
-      } else {
-        LOG.info("Internal Error. Finishing directly as no dag is active.");
-        this.taskSchedulerManager.setShouldUnregisterFlag();
-        shutdownHandler.shutdown();
-      }
+      handleInternalError("DAGAppMaster Internal Error occurred",
+          "DAGAppMaster Internal Error occurred");
       break;
     case DAG_FINISHED:
       DAGAppMasterEventDAGFinished finishEvt =
@@ -756,6 +789,7 @@ public class DAGAppMaster extends AbstractService {
           LOG.error("Received a DAG Finished Event with state="
               + finishEvt.getDAGState()
               + ". Error. Shutting down.");
+          addDiagnostic("DAG completed with an ERROR state. Shutting down AM");
           state = DAGAppMasterState.ERROR;
           this.taskSchedulerManager.setShouldUnregisterFlag();
           shutdownHandler.shutdown();

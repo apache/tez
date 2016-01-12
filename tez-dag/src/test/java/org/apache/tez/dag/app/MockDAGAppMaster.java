@@ -193,7 +193,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
     @Override
     public void start() throws Exception {
       taskCommunicatorManager = (TaskCommunicatorManager) getTaskCommunicatorManager();
-      taskCommunicator = (TezTaskCommunicatorImpl) taskCommunicatorManager.getTaskCommunicator(0);
+      taskCommunicator = (TezTaskCommunicatorImpl) taskCommunicatorManager.getTaskCommunicator(0).getTaskCommunicator();
       eventHandlingThread = new Thread(this);
       eventHandlingThread.start();
       ExecutorService rawExecutor = Executors.newFixedThreadPool(handlerConcurrency,

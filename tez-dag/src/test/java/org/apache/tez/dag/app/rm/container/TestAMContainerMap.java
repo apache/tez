@@ -35,6 +35,7 @@ import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
+import org.apache.tez.serviceplugins.api.ServicePluginException;
 
 public class TestAMContainerMap {
 
@@ -42,7 +43,7 @@ public class TestAMContainerMap {
     return mock(ContainerHeartbeatHandler.class);
   }
 
-  private TaskCommunicatorManagerInterface mockTaskAttemptListener() {
+  private TaskCommunicatorManagerInterface mockTaskAttemptListener() throws ServicePluginException {
     TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
     TaskCommunicator taskComm = mock(TaskCommunicator.class);
     doReturn(new InetSocketAddress("localhost", 21000)).when(taskComm).getAddress();

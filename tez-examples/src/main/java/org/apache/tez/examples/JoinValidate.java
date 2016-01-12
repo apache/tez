@@ -21,6 +21,7 @@ package org.apache.tez.examples;
 import java.io.IOException;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +135,8 @@ public class JoinValidate extends TezExampleBase {
     return 0;
   }
 
-  private DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
+  @VisibleForTesting
+  DAG createDag(TezConfiguration tezConf, Path lhs, Path rhs, int numPartitions)
       throws IOException {
     DAG dag = DAG.create(getDagName());
     if (getDefaultExecutionContext() != null) {

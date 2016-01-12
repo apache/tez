@@ -22,7 +22,6 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.api.TaskCommunicator;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 /**
@@ -42,5 +41,5 @@ public interface TaskCommunicatorManagerInterface {
 
   void dagSubmitted();
 
-  TaskCommunicator getTaskCommunicator(int taskCommIndex);
+  TaskCommunicatorWrapper getTaskCommunicator(int taskCommIndex);
 }

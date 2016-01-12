@@ -157,13 +157,15 @@ class TestTaskSchedulerHelpers {
           new TaskSchedulerContextImplWrapper(taskSchedulerContext,
               new CountingExecutorService(appCallbackExecutor));
       TaskSchedulerContextDrainable drainable = new TaskSchedulerContextDrainable(wrapper);
-      taskSchedulers[0] =
-          new TaskSchedulerWithDrainableContext(drainable, amrmClientAsync);
-      taskSchedulerServiceWrappers[0] = new ServicePluginLifecycleAbstractService(taskSchedulers[0]);
+
+      taskSchedulers[0] = new TaskSchedulerWrapper(
+          new TaskSchedulerWithDrainableContext(drainable, amrmClientAsync));
+      taskSchedulerServiceWrappers[0] =
+          new ServicePluginLifecycleAbstractService(taskSchedulers[0].getTaskScheduler());
     }
 
     public TaskScheduler getSpyTaskScheduler() {
-      return taskSchedulers[0];
+      return taskSchedulers[0].getTaskScheduler();
     }
 
     @Override
@@ -172,7 +174,9 @@ class TestTaskSchedulerHelpers {
       // Init the service so that reuse configuration is picked up.
       ((AbstractService)taskSchedulerServiceWrappers[0]).init(getConfig());
       ((AbstractService)taskSchedulerServiceWrappers[0]).start();
-      taskSchedulers[0] = spy(taskSchedulers[0]);
+      // For some reason, the spy needs to be setup after sertvice startup.
+      taskSchedulers[0] = new TaskSchedulerWrapper(spy(taskSchedulers[0].getTaskScheduler()));
+
     }
 
     @Override

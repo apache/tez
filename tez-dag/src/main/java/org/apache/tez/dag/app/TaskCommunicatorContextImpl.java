@@ -205,11 +205,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public void onStateUpdated(VertexStateUpdate event) {
-    try {
-      taskCommunicatorManager.vertexStateUpdateNotificationReceived(event, taskCommunicatorIndex);
-    } catch (Exception e) {
-      throw new TezUncheckedException(e);
-    }
+    taskCommunicatorManager.vertexStateUpdateNotificationReceived(event, taskCommunicatorIndex);
   }
 
   private DAG getDag() {

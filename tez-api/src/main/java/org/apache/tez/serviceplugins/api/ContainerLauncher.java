@@ -74,16 +74,22 @@ public abstract class ContainerLauncher implements ServicePluginLifecycle {
   }
 
   /**
-   * A request to launch the specified container
+   * Get the {@link ContainerLauncherContext} associated with this instance of the container
+   * launcher, which is used to communicate with the rest of the system
    *
    * @param launchRequest the actual launch request
+   * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
+   *                               This will cause the app to shutdown.
    */
-  public abstract void launchContainer(ContainerLaunchRequest launchRequest);
+  public abstract void launchContainer(ContainerLaunchRequest launchRequest) throws
+      ServicePluginException;
 
   /**
    * A request to stop a specific container
    *
    * @param stopRequest the actual stop request
+   * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
+   *                               This will cause the app to shutdown.
    */
-  public abstract void stopContainer(ContainerStopRequest stopRequest);
+  public abstract void stopContainer(ContainerStopRequest stopRequest) throws ServicePluginException;
 }

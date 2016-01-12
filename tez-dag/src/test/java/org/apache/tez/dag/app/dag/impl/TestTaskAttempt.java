@@ -69,6 +69,7 @@ import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
+import org.apache.tez.dag.app.TaskCommunicatorWrapper;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
@@ -108,6 +109,7 @@ import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -1469,7 +1471,7 @@ public class TestTaskAttempt {
 
   @SuppressWarnings("deprecation")
   @Test(timeout = 5000)
-  public void testKilledInNew() {
+  public void testKilledInNew() throws ServicePluginException {
     ApplicationId appId = ApplicationId.newInstance(1, 2);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
         appId, 0);
@@ -1609,11 +1611,12 @@ public class TestTaskAttempt {
         new Credentials(), new HashMap<String, String>(), "");
   }
 
-  private TaskCommunicatorManagerInterface createMockTaskAttemptListener() {
+  private TaskCommunicatorManagerInterface createMockTaskAttemptListener() throws
+      ServicePluginException {
     TaskCommunicatorManagerInterface taListener = mock(TaskCommunicatorManagerInterface.class);
     TaskCommunicator taskComm = mock(TaskCommunicator.class);
     doReturn(new InetSocketAddress("localhost", 0)).when(taskComm).getAddress();
-    doReturn(taskComm).when(taListener).getTaskCommunicator(0);
+    doReturn(new TaskCommunicatorWrapper(taskComm)).when(taListener).getTaskCommunicator(0);
     return taListener;
   }
 }

@@ -34,10 +34,12 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
+import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -110,7 +112,10 @@ public class StateChangeNotifier {
           } catch (Exception e) {
             // TODO send user code exception - TEZ-2332
             LOG.error("Error in state update notification for " + event, e);
-            dag.getEventHandler().handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
+            dag.getEventHandler().handle(
+                new DAGEventInternalError(dag.getID(),
+                    "Internal Error in State Update Notification: "
+                        + ExceptionUtils.getStackTrace(e)));
             return;
           }
         }

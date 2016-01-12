@@ -273,7 +273,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   }
 
   @Override
-  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
     // Empty. Not registering, or expecting any updates.
   }
 

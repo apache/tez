@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -56,8 +58,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.CallableEvent;
-import org.apache.tez.dag.app.dag.event.DAGEvent;
-import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventInputDataInformation;
 import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
@@ -530,7 +530,9 @@ public class VertexManager {
       // state change must be triggered via an event transition
       LOG.error("Error after vertex manager callback " + managedVertex.getLogIdentifier(), e);
       appContext.getEventHandler().handle(
-          (new DAGEvent(managedVertex.getVertexId().getDAGId(), DAGEventType.INTERNAL_ERROR)));
+          (new DAGEventInternalError(managedVertex.getVertexId().getDAGId(),
+              "Error in VertexManager for vertex: " + managedVertex.getLogIdentifier()
+              + ", error=" + ExceptionUtils.getStackTrace(e))));
     }
   }
   

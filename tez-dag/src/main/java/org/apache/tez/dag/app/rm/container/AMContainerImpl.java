@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm.container;
 
+import java.net.InetSocketAddress;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -27,7 +28,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
+import org.apache.tez.Utils;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
@@ -461,6 +465,29 @@ public class AMContainerImpl implements AMContainer {
         dagId = container.appContext.getCurrentDAG().getID();
         dagLocalResources = container.appContext.getCurrentDAG().getLocalResources();
       }
+
+      // TODO TEZ-2625 This should ideally be handled inside of user code. Will change once
+      // CLC construction moves into user code. For now, generating a user code error here
+      InetSocketAddress cAddress = null;
+      try {
+        cAddress =
+            container.taskCommunicatorManagerInterface.getTaskCommunicator(container.taskCommId).getAddress();
+      } catch (Exception e) {
+        String msg = "Error in TaskCommunicator when getting address"
+            + ", communicator=" + Utils.getTaskCommIdentifierString(container.taskCommId, container.appContext)
+            + ", containerId=" + container.containerId;
+        LOG.error(msg, e);
+        container.sendEvent(
+            new DAGAppMasterEventUserServiceFatalError(
+                DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR,
+                msg, e));
+        // We have not registered with any of the listeners etc yet. Send out a deallocateContainer
+        // message and return. The AM will shutdown shortly.
+        container.inError = true;
+        container.deAllocate();
+        return;
+      }
+
       ContainerLaunchContext clc = AMContainerHelpers.createContainerLaunchContext(
           dagId, dagLocalResources,
           container.appContext.getApplicationACLs(),
@@ -468,7 +495,8 @@ public class AMContainerImpl implements AMContainer {
           containerContext.getLocalResources(),
           containerContext.getEnvironment(),
           containerContext.getJavaOpts(),
-          container.taskCommunicatorManagerInterface.getTaskCommunicator(container.taskCommId).getAddress(), containerContext.getCredentials(),
+          cAddress,
+          containerContext.getCredentials(),
           container.appContext, container.container.getResource(),
           container.appContext.getAMConf());
 

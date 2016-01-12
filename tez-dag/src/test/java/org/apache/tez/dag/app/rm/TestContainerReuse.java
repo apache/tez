@@ -1407,8 +1407,12 @@ public class TestContainerReuse {
   private void verifyDeAllocateTask(TaskScheduler taskScheduler, Object ta, boolean taskSucceeded,
                                     TaskAttemptEndReason endReason, String diagContains) {
     ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
-    verify(taskScheduler)
-        .deallocateTask(eq(ta), eq(taskSucceeded), eq(endReason), argumentCaptor.capture());
+    try {
+      verify(taskScheduler)
+          .deallocateTask(eq(ta), eq(taskSucceeded), eq(endReason), argumentCaptor.capture());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     assertEquals(1, argumentCaptor.getAllValues().size());
     if (diagContains == null) {
       assertNull(argumentCaptor.getValue());

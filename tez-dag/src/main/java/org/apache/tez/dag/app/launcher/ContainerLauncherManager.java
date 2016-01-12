@@ -22,13 +22,17 @@ import com.google.common.base.Preconditions;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.Utils;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
+import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -49,7 +53,7 @@ public class ContainerLauncherManager extends AbstractService
   static final Logger LOG = LoggerFactory.getLogger(TezContainerLauncherImpl.class);
 
   @VisibleForTesting
-  final ContainerLauncher containerLaunchers[];
+  final ContainerLauncherWrapper containerLaunchers[];
   @VisibleForTesting
   final ContainerLauncherContext containerLauncherContexts[];
   protected final ServicePluginLifecycleAbstractService[] containerLauncherServiceWrappers;
@@ -59,7 +63,7 @@ public class ContainerLauncherManager extends AbstractService
   public ContainerLauncherManager(ContainerLauncher containerLauncher, AppContext context) {
     super(ContainerLauncherManager.class.getName());
     this.appContext = context;
-    containerLaunchers = new ContainerLauncher[] {containerLauncher};
+    containerLaunchers = new ContainerLauncherWrapper[] {new ContainerLauncherWrapper(containerLauncher)};
     containerLauncherContexts = new ContainerLauncherContext[] {containerLauncher.getContext()};
     containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[]{
         new ServicePluginLifecycleAbstractService<>(containerLauncher)};
@@ -78,7 +82,7 @@ public class ContainerLauncherManager extends AbstractService
         containerLauncherDescriptors != null && !containerLauncherDescriptors.isEmpty(),
         "ContainerLauncherDescriptors must be specified");
     containerLauncherContexts = new ContainerLauncherContext[containerLauncherDescriptors.size()];
-    containerLaunchers = new ContainerLauncher[containerLauncherDescriptors.size()];
+    containerLaunchers = new ContainerLauncherWrapper[containerLauncherDescriptors.size()];
     containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[containerLauncherDescriptors.size()];
 
 
@@ -87,9 +91,9 @@ public class ContainerLauncherManager extends AbstractService
       ContainerLauncherContext containerLauncherContext =
           new ContainerLauncherContextImpl(context, taskCommunicatorManagerInterface, userPayload);
       containerLauncherContexts[i] = containerLauncherContext;
-      containerLaunchers[i] = createContainerLauncher(containerLauncherDescriptors.get(i), context,
-          containerLauncherContext, taskCommunicatorManagerInterface, workingDirectory, i, isPureLocalMode);
-      containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(containerLaunchers[i]);
+      containerLaunchers[i] = new ContainerLauncherWrapper(createContainerLauncher(containerLauncherDescriptors.get(i), context,
+          containerLauncherContext, taskCommunicatorManagerInterface, workingDirectory, i, isPureLocalMode));
+      containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(containerLaunchers[i].getContainerLauncher());
     }
   }
 
@@ -197,14 +201,43 @@ public class ContainerLauncherManager extends AbstractService
                 launchEvent.getContainerToken(), launchEvent.getContainerLaunchContext(),
                 launchEvent.getContainer(), schedulerName,
                 taskCommName);
-        containerLaunchers[launcherId].launchContainer(launchRequest);
+        try {
+          containerLaunchers[launcherId].launchContainer(launchRequest);
+        } catch (Exception e) {
+          String msg = "Error when launching container"
+              + ", containerLauncher=" + Utils.getContainerLauncherIdentifierString(launcherId, appContext)
+              + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
+              + ", taskCommunicator=" + Utils.getTaskCommIdentifierString(event.getTaskCommId(), appContext);
+          LOG.error(msg, e);
+          sendEvent(
+              new DAGAppMasterEventUserServiceFatalError(
+                  DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR,
+                  msg, e));
+        }
         break;
       case CONTAINER_STOP_REQUEST:
         ContainerStopRequest stopRequest =
             new ContainerStopRequest(event.getNodeId(), event.getContainerId(),
                 event.getContainerToken(), schedulerName, taskCommName);
-        containerLaunchers[launcherId].stopContainer(stopRequest);
+        try {
+          containerLaunchers[launcherId].stopContainer(stopRequest);
+        } catch (Exception e) {
+          String msg = "Error when stopping container"
+              + ", containerLauncher=" + Utils.getContainerLauncherIdentifierString(launcherId, appContext)
+              + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
+              + ", taskCommunicator=" + Utils.getTaskCommIdentifierString(event.getTaskCommId(), appContext);
+          LOG.error(msg, e);
+          sendEvent(
+              new DAGAppMasterEventUserServiceFatalError(
+                  DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR,
+                  msg, e));
+        }
         break;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void sendEvent(Event<?> event) {
+    appContext.getEventHandler().handle(event);
   }
 }
