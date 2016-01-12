@@ -94,6 +94,13 @@ public abstract class TezSplitGrouper {
   public static final String TEZ_GROUPING_REPEATABLE = "tez.grouping.repeatable";
   public static final boolean TEZ_GROUPING_REPEATABLE_DEFAULT = true;
 
+  /**
+   * Generate node local splits only. This prevents fallback to rack locality etc, and overrides
+   * the target size for small splits.
+   */
+  public static final String TEZ_GROUPING_NODE_LOCAL_ONLY = "tez.grouping.node.local.only";
+  public static final boolean TEZ_GROUPING_NODE_LOCAL_ONLY_DEFAULT = false;
+
 
   static class LocationHolder {
     List<SplitContainer> splits;
@@ -302,6 +309,9 @@ public abstract class TezSplitGrouper {
     boolean groupByCount = conf.getBoolean(
         TEZ_GROUPING_SPLIT_BY_COUNT,
         TEZ_GROUPING_SPLIT_BY_COUNT_DEFAULT);
+    boolean nodeLocalOnly = conf.getBoolean(
+        TEZ_GROUPING_NODE_LOCAL_ONLY,
+        TEZ_GROUPING_NODE_LOCAL_ONLY_DEFAULT);
     if (!(groupByLength || groupByCount)) {
       throw new TezUncheckedException(
           "None of the grouping parameters are true: "
@@ -315,7 +325,9 @@ public abstract class TezSplitGrouper {
         " numSplitsInGroup: " + numSplitsInGroup +
         " totalLength: " + totalLength +
         " numOriginalSplits: " + originalSplits.size() +
-        " . Grouping by length: " + groupByLength + " count: " + groupByCount);
+        " . Grouping by length: " + groupByLength +
+        " count: " + groupByCount +
+        " nodeLocalOnly: " + nodeLocalOnly);
 
     // go through locations and group splits
     int splitsProcessed = 0;
@@ -332,7 +344,6 @@ public abstract class TezSplitGrouper {
         groupLocationSet.clear();
         String location = entry.getKey();
         LocationHolder holder = entry.getValue();
-        // KKK rename to splitContainer
         SplitContainer splitContainer = holder.getUnprocessedHeadSplit();
         if (splitContainer == null) {
           // all splits on node processed
@@ -402,7 +413,18 @@ public abstract class TezSplitGrouper {
       }
 
       if (!doingRackLocal && numFullGroupsCreated < 1) {
-        // no node could create a node-local group. go rack-local
+        // no node could create a regular node-local group.
+
+        // Allow small groups if that is configured.
+        if (nodeLocalOnly && !allowSmallGroups) {
+          LOG.info(
+              "Allowing small groups early after attempting to create full groups at iteration: {}, groupsCreatedSoFar={}",
+              iterations, groupedSplits.size());
+          allowSmallGroups = true;
+          continue;
+        }
+
+        // else go rack-local
         doingRackLocal = true;
         // re-create locations
         int numRemainingSplits = originalSplits.size() - splitsProcessed;
@@ -598,6 +620,11 @@ public abstract class TezSplitGrouper {
 
     public TezMRSplitsGrouperConfigBuilder setGroupingRackSplitSizeReduction(float rackSplitSizeReduction) {
       this.conf.setFloat(TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION, rackSplitSizeReduction);
+      return this;
+    }
+
+    public TezMRSplitsGrouperConfigBuilder setNodeLocalGroupsOnly(boolean nodeLocalGroupsOnly) {
+      this.conf.setBoolean(TEZ_GROUPING_NODE_LOCAL_ONLY, nodeLocalGroupsOnly);
       return this;
     }
 
