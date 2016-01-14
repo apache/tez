@@ -1222,7 +1222,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     if (recoveryData == null
         || recoveryData.getDAGStartedEvent() == null) {
       DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
-          clock.getTime(), this.userName, this.dagName);
+          this.startTime, this.userName, this.dagName);
       this.appContext.getHistoryHandler().handle(
           new DAGHistoryEvent(dagId, startEvt));
     }

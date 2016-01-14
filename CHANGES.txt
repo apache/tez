@@ -18,6 +18,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
   TEZ-2669. Propagation of errors from plugins to the AM for error reporting.
   TEZ-2978. Add an option to allow the SplitGrouper to generate node local only groups.
   TEZ-2129. Task and Attempt views should contain links to the logs
@@ -312,6 +313,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
   TEZ-2129. Task and Attempt views should contain links to the logs
   TEZ-3025. InputInitializer creation should use the dag ugi.
   TEZ-3017. HistoryACLManager does not have a close method for cleanup
