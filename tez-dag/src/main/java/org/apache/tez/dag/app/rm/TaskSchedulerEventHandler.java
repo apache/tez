@@ -600,14 +600,12 @@ public class TaskSchedulerEventHandler extends AbstractService
     Configuration config = this.appContext.getAMConf();
     String historyUrl = "";
 
-    String loggingClass =  config.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "");
     String historyUrlTemplate = config.get(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
             TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE_DEFAULT);
     String historyUrlBase = config.get(TezConfiguration.TEZ_HISTORY_URL_BASE, "");
 
 
-    if (loggingClass.equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService") &&
-        !historyUrlTemplate.isEmpty() &&
+    if (!historyUrlTemplate.isEmpty() &&
         !historyUrlBase.isEmpty()) {
       // replace the placeholders, while tolerating extra or missing "/" in input. replace all
       // instances of consecutive "/" with single (except for the http(s):// case

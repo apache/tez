@@ -340,17 +340,14 @@ public class TestTaskSchedulerEventHandler {
   @Test (timeout = 5000)
   public void testHistoryUrlConf() throws Exception {
     Configuration conf = schedulerHandler.appContext.getAMConf();
-
-    // ensure history url is empty when timeline server is not the logging class
-    conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://ui-host:9999");
-    assertTrue("".equals(schedulerHandler.getHistoryUrl()));
-
-    // ensure expansion of url happens
-    conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
-        "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService");
     final ApplicationId mockApplicationId = mock(ApplicationId.class);
     doReturn("TEST_APP_ID").when(mockApplicationId).toString();
     doReturn(mockApplicationId).when(mockAppContext).getApplicationID();
+
+    // ensure history url is empty when timeline server is not the logging class
+    conf.set(TezConfiguration.TEZ_HISTORY_URL_BASE, "http://ui-host:9999");
+
+    // ensure expansion of url happens
     assertTrue("http://ui-host:9999/#/tez-app/TEST_APP_ID"
         .equals(schedulerHandler.getHistoryUrl()));
 
