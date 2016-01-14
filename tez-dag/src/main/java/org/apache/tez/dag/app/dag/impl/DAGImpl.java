@@ -1245,9 +1245,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     if (recoveryData == null
         || recoveryData.getDAGFinishedEvent() == null) {
       Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
-
       DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
-          clock.getTime(), state,
+          finishTime, state,
           StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
           counters, this.userName, this.dagName, taskStats,
           this.appContext.getApplicationAttemptId(), this.jobPlan);
