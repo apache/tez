@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
 
 Release 0.8.2: 2016-01-19
 
@@ -18,7 +19,6 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
-  TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
   TEZ-2669. Propagation of errors from plugins to the AM for error reporting.
   TEZ-2978. Add an option to allow the SplitGrouper to generate node local only groups.
   TEZ-2129. Task and Attempt views should contain links to the logs
