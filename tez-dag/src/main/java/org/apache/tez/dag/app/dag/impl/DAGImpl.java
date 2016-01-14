@@ -1247,20 +1247,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   void logJobHistoryStartedEvent() {
-<<<<<<< HEAD
     DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
         this.startTime, this.userName, this.dagName);
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(dagId, startEvt));
-=======
-    if (recoveryData == null
-        || recoveryData.getDAGStartedEvent() == null) {
-      DAGStartedEvent startEvt = new DAGStartedEvent(this.dagId,
-          this.startTime, this.userName, this.dagName);
-      this.appContext.getHistoryHandler().handle(
-          new DAGHistoryEvent(dagId, startEvt));
-    }
->>>>>>> 37e7014... TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field. (hitesh)
   }
 
   void logJobHistoryFinishedEvent(TezCounters counters) throws IOException {
