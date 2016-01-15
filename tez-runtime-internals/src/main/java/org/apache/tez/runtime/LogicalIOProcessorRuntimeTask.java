@@ -350,10 +350,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           "Can only run while in RUNNING state. Current: " + this.state);
       this.state.set(State.CLOSED);
 
-      // Close the Processor.
-      processorClosed = true;
-      processor.close();
-
       // Close the Inputs.
       for (InputSpec inputSpec : inputSpecs) {
         String srcVertexName = inputSpec.getSourceVertexName();
@@ -373,6 +369,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
             EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
             destVertexName, taskSpec.getTaskAttemptID());
       }
+
+      // Close the Processor.
+      processorClosed = true;
+      processor.close();
+
     } finally {
       setTaskDone();
       if (eventRouterThread != null) {
@@ -806,21 +807,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       LOG.debug("Num of inputs to be closed={}", initializedInputs.size());
       LOG.debug("Num of outputs to be closed={}", initializedOutputs.size());
     }
-    // Close processor
-    if (!processorClosed && processor != null) {
-      try {
-        processorClosed = true;
-        processor.close();
-        LOG.info("Closed processor for vertex={}, index={}",
-            processor
-                .getContext().getTaskVertexName(),
-            processor.getContext().getTaskVertexIndex());
-      } catch (Throwable e) {
-        LOG.warn(
-            "Ignoring Exception when closing processor(cleanup). Exception class={}, message={}",
-                e.getClass().getName(), e.getMessage());
-      }
-    }
 
     // Close the remaining inited Inputs.
     Iterator<Map.Entry<String, LogicalInput>> inputIterator = initializedInputs.entrySet().iterator();
@@ -855,6 +841,28 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       } finally {
         LOG.info("Closed input for vertex={}, sourceVertex={}", processor
             .getContext().getTaskVertexName(), destVertexName);
+      }
+    }
+
+    // Close processor
+    if (!processorClosed && processor != null) {
+      try {
+        processorClosed = true;
+        processor.close();
+        LOG.info("Closed processor for vertex={}, index={}, interruptedStatus={}",
+            processor
+            .getContext().getTaskVertexName(),
+            processor.getContext().getTaskVertexIndex(),
+            Thread.currentThread().isInterrupted());
+        maybeResetInterruptStatus();
+      } catch (InterruptedException ie) {
+        //reset the status
+        LOG.info("Resetting interrupt for processor");
+        Thread.currentThread().interrupt();
+      } catch (Throwable e) {
+        LOG.warn(
+            "Ignoring Exception when closing processor(cleanup). Exception class={}, message={}" +
+            e.getClass().getName(), e.getMessage());
       }
     }
 
