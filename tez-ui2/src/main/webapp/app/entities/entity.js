@@ -36,25 +36,19 @@ export default Ember.Object.extend({
   },
 
   normalizeNeed: function(name, options) {
-    var attrName = name,
-        attrType = name,
-        idKey = options,
-        lazy = false;
+    var need = {
+      name: name,
+      type: name,
+      idKey: options,
+      lazy: false,
+      silent: false
+    };
 
     if(typeof options === 'object') {
-      attrType = options.type || attrType;
-      idKey = options.idKey || idKey;
-      if(options.lazy) {
-        lazy = true;
-      }
+      return Ember.Object.create(need, options);
     }
 
-    return {
-      name: attrName,
-      type: attrType,
-      idKey: idKey,
-      lazy: lazy
-    };
+    return Ember.Object.create(need);
   },
 
   loadNeeds: function (loader, parentModel) {
@@ -70,6 +64,12 @@ export default Ember.Object.extend({
         needLoader.then(function (model) {
           parentModel.set(need.name, model);
         });
+
+        if(need.silent) {
+          needLoader = needLoader.catch(function () {
+            parentModel.set(need.name, null);
+          });
+        }
 
         if(!need.lazy) {
           needLoaders.push(needLoader);

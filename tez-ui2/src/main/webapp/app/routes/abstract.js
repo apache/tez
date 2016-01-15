@@ -27,8 +27,6 @@ export default Ember.Route.extend({
   currentPromiseId: null,
   loadedValue: null,
 
-  queryParams: null,
-
   setDocTitle: function () {
     Ember.$(document).attr('title', this.get('title'));
   },
@@ -38,35 +36,31 @@ export default Ember.Route.extend({
     this.setDocTitle();
   },
 
-  beforeModel: function (transition) {
-    this.set('queryParams', transition.queryParams);
-    return this._super(transition);
-  },
-
-  checkAndCall: function (id, functionName, value) {
+  checkAndCall: function (id, functionName, query, value) {
     if(id === this.get("currentPromiseId")) {
-      return this[functionName](value);
+      return this[functionName](value, query);
     }
     else {
       throw new UnlinkedPromise();
     }
   },
 
-  loadData: Ember.observer("queryParams", function () {
+  loadData: function (query) {
     var promiseId = Math.random();
 
     this.set('currentPromiseId', promiseId);
 
     return Ember.RSVP.resolve().
-      then(this.checkAndCall.bind(this, promiseId, "setLoading")).
-      then(this.checkAndCall.bind(this, promiseId, "beforeLoad")).
-      then(this.checkAndCall.bind(this, promiseId, "load")).
-      then(this.checkAndCall.bind(this, promiseId, "afterLoad")).
-      then(this.checkAndCall.bind(this, promiseId, "setValue"));
-  }),
+      then(this.checkAndCall.bind(this, promiseId, "setLoading", query)).
+      then(this.checkAndCall.bind(this, promiseId, "beforeLoad", query)).
+      then(this.checkAndCall.bind(this, promiseId, "load", query)).
+      then(this.checkAndCall.bind(this, promiseId, "afterLoad", query)).
+      then(this.checkAndCall.bind(this, promiseId, "setValue", query));
+  },
 
   setLoading: function () {
     this.set('isLoading', true);
+    this.set('controller.isLoading', true);
   },
   beforeLoad: function (value) {
     return value;
@@ -80,6 +74,7 @@ export default Ember.Route.extend({
   setValue: function (value) {
     this.set('loadedValue', value);
     this.set('isLoading', false);
+    this.set('controller.isLoading', false);
     return value;
   },
 
@@ -96,6 +91,13 @@ export default Ember.Route.extend({
       store: this.get("store"),
       container: this.get("container")
     }));
+  },
+
+  actions: {
+    loadData: function (query) {
+      // To be on the safer side
+      Ember.run.once(this, "loadData", query);
+    }
   }
 
 });

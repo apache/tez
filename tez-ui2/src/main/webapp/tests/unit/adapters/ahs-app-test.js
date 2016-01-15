@@ -16,26 +16,19 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import { moduleFor, test } from 'ember-qunit';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+moduleFor('adapter:ahs-app', 'Unit | Adapter | ahs app', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:foo']
+});
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
+test('Basic creation test', function(assert) {
+  let adapter = this.subject();
 
-    afterEach() {
-      destroyApp(this.application);
+  assert.ok(adapter);
+  assert.ok(adapter.namespace);
+  assert.ok(adapter.pathForType);
 
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+  assert.equal(adapter.pathForType(), "apps");
+});

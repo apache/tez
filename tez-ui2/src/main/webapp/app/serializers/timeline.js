@@ -19,6 +19,8 @@
 import LoaderSerializer from './loader';
 
 export default LoaderSerializer.extend({
+  primaryKey: 'entity',
+
   extractArrayPayload: function (payload) {
     return payload.entities;
   }

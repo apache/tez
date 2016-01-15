@@ -16,26 +16,36 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import Ember from 'ember';
+import LoaderSerializer from './loader';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+export default LoaderSerializer.extend({
+  primaryKey: 'appId',
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
+  extractArrayPayload: function (payload) {
+    return payload.app;
+  },
+
+  maps: {
+    entityID: 'appId',
+    attemptID: function(source) {
+      // while an attempt is in progress the attempt id contains a '-'
+      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
     },
 
-    afterEach() {
-      destroyApp(this.application);
+    name: 'name',
+    queue: 'queue',
+    user: 'user',
+    type: 'type',
 
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+    status: 'appState',
+    finalStatus: 'finalAppStatus',
+
+    startedTime: 'startedTime',
+    elapsedTime: 'elapsedTime',
+    finishedTime: 'finishedTime',
+    submittedTime: 'submittedTime',
+
+    diagnostics: 'otherinfo.diagnostics',
+  }
+});

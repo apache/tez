@@ -33,7 +33,6 @@ test('Basic creation test', function(assert) {
   assert.ok(route);
   assert.ok(route.setDocTitle);
   assert.ok(route.setupController);
-  assert.ok(route.beforeModel);
 
   assert.ok(route.checkAndCall);
 
@@ -46,32 +45,26 @@ test('Basic creation test', function(assert) {
 
   assert.ok(route._setControllerModel);
   assert.ok(route.setLoader);
-});
 
-test('beforeModel test', function(assert) {
-  let route = this.subject(),
-      testQueryParams = {};
-
-  route.loadData = Ember.K;
-  assert.notOk(route.queryParams.queryParams);
-  route.beforeModel({queryParams: testQueryParams});
-  assert.equal(route.queryParams, testQueryParams);
+  assert.ok(route.actions.loadData);
 });
 
 test('checkAndCall test', function(assert) {
   let route = this.subject(),
-      testValue = {};
+      testValue = {},
+      testQuery = {};
 
-  assert.expect(2);
+  assert.expect(2 + 1);
 
-  route.testFunction = function (value) {
-    assert.equal(value, testValue, "Call with current id");
+  route.testFunction = function (value, query) {
+    assert.equal(value, testValue, "Value check for id 1");
+    assert.equal(query, testQuery, "Query check for id 1");
   };
   route.currentPromiseId = 1;
 
-  route.checkAndCall(1, "testFunction", testValue);
+  route.checkAndCall(1, "testFunction", testQuery, testValue);
   assert.throws(function () {
-    route.checkAndCall(2, "testFunction", testValue);
+    route.checkAndCall(2, "testFunction", testQuery, testValue);
   });
 });
 
@@ -79,10 +72,10 @@ test('loadData test - Hook sequence check', function(assert) {
   let route = this.subject();
 
   // Bind poilyfill
-  Function.prototype.bind = function (context, val1, val2) {
+  Function.prototype.bind = function (context, val1, val2, val3) {
     var that = this;
     return function (val) {
-      return that.call(context, val1, val2, val);
+      return that.call(context, val1, val2, val3, val);
     };
   };
 
@@ -118,10 +111,10 @@ test('loadData test - ID change check with exception throw', function(assert) {
   let route = this.subject();
 
   // Bind poilyfill
-  Function.prototype.bind = function (context, val1, val2) {
+  Function.prototype.bind = function (context, val1, val2, val3) {
     var that = this;
     return function (val) {
-      return that.call(context, val1, val2, val);
+      return that.call(context, val1, val2, val3, val);
     };
   };
 
@@ -160,6 +153,8 @@ test('loadData test - ID change check with exception throw', function(assert) {
 test('setLoading test', function(assert) {
   let route = this.subject();
 
+  route.controller = Ember.Object.create();
+
   assert.equal(route.get("isLoading"), false);
   route.setLoading();
   assert.equal(route.get("isLoading"), true);
@@ -177,6 +172,8 @@ test('beforeLoad load afterLoad test', function(assert) {
 test('setValue test', function(assert) {
   let route = this.subject(),
       testVal = {};
+
+  route.controller = Ember.Object.create();
 
   route.setLoading();
   assert.equal(route.get("loadedValue"), null);

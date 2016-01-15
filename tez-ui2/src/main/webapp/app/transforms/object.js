@@ -16,26 +16,14 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import DS from 'ember-data';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+export default DS.Transform.extend({
+  deserialize(serialized) {
+    return serialized;
+  },
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
-
-    afterEach() {
-      destroyApp(this.application);
-
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+  serialize(deserialized) {
+    return deserialized;
+  }
+});

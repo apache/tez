@@ -16,22 +16,14 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from "ember-data";
+import { moduleForModel, test } from 'ember-qunit';
 
-export function initialize(application) {
-  application.register('transform:object', DS.Transform.extend({
-    deserialize: function(serialized) {
-      return Ember.none(serialized) ? {} : serialized;
-    },
+moduleForModel('ahs-app', 'Unit | Model | ahs app', {
+  // Specify the other units that are required for this test.
+  needs: []
+});
 
-    serialized: function(deserialized) {
-      return Ember.none(deserialized) ? {} : deserialized;
-    }
-  }));
-}
-
-export default {
-  name: 'object-transform',
-  initialize
-};
+test('Basic creation test', function(assert) {
+  let model = this.subject();
+  assert.ok(!!model);
+});

@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,28 +14,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
-
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
-
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
-
-    afterEach() {
-      destroyApp(this.application);
-
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+{{#if content}}
+  <span class="label label-{{statusType}}">{{content}}</span>
+{{else}}
+  <span class="txt-message"> Not Available! </span>
+{{/if}}

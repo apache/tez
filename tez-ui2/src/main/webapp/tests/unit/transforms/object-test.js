@@ -16,26 +16,15 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import { moduleFor, test } from 'ember-qunit';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+moduleFor('transform:object', 'Unit | Transform | object', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:foo']
+});
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
-
-    afterEach() {
-      destroyApp(this.application);
-
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+// Replace this with your real tests.
+test('it exists', function(assert) {
+  let transform = this.subject();
+  assert.ok(transform);
+});

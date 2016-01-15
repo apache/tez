@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,25 +14,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
-import ObjectTransformInitializer from '../../../initializers/object-transform';
-import { module, test } from 'qunit';
+<h3>Loading...</h3>
 
-let application;
-
-module('Unit | Initializer | object transform', {
-  beforeEach() {
-    Ember.run(function() {
-      application = Ember.Application.create();
-      application.deferReadiness();
-    });
-  }
-});
-
-test('it works', function(assert) {
-  ObjectTransformInitializer.initialize(application);
-
-  assert.ok(true);
-});
+<div class="progress">
+  <div class="progress-bar progress-bar-striped active" role="progressbar" style="width:100%">
+  </div>
+</div>

@@ -16,26 +16,24 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import DS from 'ember-data';
+import AbstractModel from './abstract';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+export default AbstractModel.extend({
+  attemptID: DS.attr('string'),
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
+  name: DS.attr('string'),
+  queue: DS.attr('string'),
+  user: DS.attr('string'),
+  type: DS.attr('string'),
 
-    afterEach() {
-      destroyApp(this.application);
+  status: DS.attr('string'),
+  finalStatus: DS.attr('string'),
 
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+  startedTime: DS.attr('number'),
+  elapsedTime: DS.attr('number'),
+  finishedTime: DS.attr('number'),
+  submittedTime: DS.attr('number'),
+
+  diagnostics: DS.attr('string'),
+});

@@ -16,20 +16,36 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
+import Ember from 'ember';
 
-export default DS.Model.extend({
-  timeStamp: null,
+export default Ember.Controller.extend({
+  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
+  rowCount: 10,
+  searchText: "",
+  sortColumnId: "",
+  sortOrder: "",
+  pageNo: 1,
 
-  mergedProperties: ["needs"],
-
-  refreshTimestamp: function () {
-    this.set('timeStamp', new Date());
-  },
+  loaded: Ember.computed("model", "isLoading", function () {
+    return this.get("model") && !this.get("isLoading");
+  }),
 
   actions: {
-    didUpdate: function () {
-      this.refreshTimestamp();
-    }
+    searchChanged: function (searchText) {
+      this.set("searchText", searchText);
+    },
+    sortChanged: function (sortColumnId, sortOrder) {
+      this.setProperties({
+        sortColumnId,
+        sortOrder
+      });
+    },
+    rowsChanged: function (rowCount) {
+      // Change to rows action in em-table
+      this.set("rowCount", rowCount);
+    },
+    pageChanged: function (pageNum) {
+      this.set("pageNum", pageNum);
+    },
   }
 });

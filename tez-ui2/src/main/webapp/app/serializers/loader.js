@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,12 +20,22 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 
+var MoreObject = more.Object;
+
 // TODO - Move to more js
 function mapObject(hash, map) {
   var mappedObject = Ember.Object.create();
-  for (var key in map) {
-    mappedObject.set(key, Ember.get(hash, map[key]));
-  }
+  MoreObject.forEach(map, function (key, value) {
+    if(MoreObject.isString(value)) {
+      mappedObject.set(key, Ember.get(hash, value));
+    }
+    else if (MoreObject.isFunction(value)) {
+      mappedObject.set(key, value(hash));
+    }
+    else {
+      Ember.assert("Unknown mapping value");
+    }
+  });
   return mappedObject;
 }
 

@@ -16,26 +16,12 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import Ember from 'ember';
+import TimelineAdapter from './timeline';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
-
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
-
-    afterEach() {
-      destroyApp(this.application);
-
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+export default TimelineAdapter.extend({
+  namespace: Ember.computed.alias("env.app.namespaces.webService.appHistory"),
+  pathForType: function() {
+    return "apps";
+  },
+});

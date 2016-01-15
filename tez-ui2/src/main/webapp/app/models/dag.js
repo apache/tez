@@ -16,26 +16,36 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import Ember from 'ember';
+import DS from 'ember-data';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+import TimelineModel from './timeline';
+/*
+  Inherited properties
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
+  entityID - String
+  appID - Computed from entityID
 
-    afterEach() {
-      destroyApp(this.application);
+  status - String
+  progress - Computed from status
 
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+  startTime - Number
+  endTime - Number
+  duration - Computed from start & end times
+
+  counterGroups - Array
+  counterHash - Computed from counterGroups
+*/
+
+export default TimelineModel.extend({
+  name: DS.attr("string"),
+
+  user: DS.attr("string"),
+  contextID: DS.attr("string"),
+
+  domain: DS.attr("string"),
+  containerLogs: DS.attr("object"),
+  queue: Ember.computed("app", function () {
+    return this.get("app.queue");
+  }),
+});

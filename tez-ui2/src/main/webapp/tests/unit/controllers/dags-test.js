@@ -16,26 +16,24 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import { moduleFor, test } from 'ember-qunit';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+moduleFor('controller:dags', 'Unit | Controller | dags', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
+test('Basic creation test', function(assert) {
+  assert.expect(2 + 3);
 
-    afterEach() {
-      destroyApp(this.application);
-
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
+  let controller = this.subject({
+    send: function (name, query) {
+      assert.equal(name, "loadData");
+      assert.ok(query);
     }
   });
-}
+
+  assert.ok(controller);
+  assert.ok(controller.columns);
+  assert.ok(controller._loadObserver);
+});

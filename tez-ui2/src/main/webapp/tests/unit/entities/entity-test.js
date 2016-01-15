@@ -25,7 +25,7 @@ moduleFor('entitie:entity', 'Unit | Entity | entity', {
   // needs: ['entitie:foo']
 });
 
-test('Basic creation', function(assert) {
+test('Basic creation test', function(assert) {
   let adapter = this.subject();
 
   assert.ok(adapter);
@@ -34,7 +34,7 @@ test('Basic creation', function(assert) {
   assert.ok(adapter.loadNeeds);
 });
 
-test('loadRelations creation', function(assert) {
+test('loadRelations test', function(assert) {
   let adapter = this.subject(),
       testLoader = {},
       testModel = {},
@@ -69,39 +69,52 @@ test('loadRelations creation', function(assert) {
 
 });
 
-test('normalizeNeed creation', function(assert) {
-  let adapter = this.subject();
+test('normalizeNeed test', function(assert) {
+  let adapter = this.subject(),
+      expectedProperties = ["name", "type", "idKey", "lazy", "silent"];
 
-  assert.deepEqual(adapter.normalizeNeed("app", "appKey"), {
+  assert.deepEqual(adapter.normalizeNeed("app", "appKey").getProperties(expectedProperties), {
     name: "app",
     type: "app",
     idKey: "appKey",
-    lazy: false
+    lazy: false,
+    silent: false
   }, "Test 1");
 
-  assert.deepEqual(adapter.normalizeNeed( "app", { idKey: "appKey" }), {
+  assert.deepEqual(adapter.normalizeNeed( "app", { idKey: "appKey" }).getProperties(expectedProperties), {
     name: "app",
     type: "app",
     idKey: "appKey",
-    lazy: false
+    lazy: false,
+    silent: false
   }, "Test 2");
 
-  assert.deepEqual(adapter.normalizeNeed( "app", { type: "application", idKey: "appKey" }), {
+  assert.deepEqual(adapter.normalizeNeed( "app", { type: "application", idKey: "appKey" }).getProperties(expectedProperties), {
     name: "app",
     type: "application",
     idKey: "appKey",
-    lazy: false
+    lazy: false,
+    silent: false
   }, "Test 3");
 
-  assert.deepEqual(adapter.normalizeNeed( "app", { lazy: true, idKey: "appKey" }), {
+  assert.deepEqual(adapter.normalizeNeed( "app", { lazy: true, idKey: "appKey" }).getProperties(expectedProperties), {
     name: "app",
     type: "app",
     idKey: "appKey",
-    lazy: true
+    lazy: true,
+    silent: false
   }, "Test 4");
+
+  assert.deepEqual(adapter.normalizeNeed( "app", { silent: true, idKey: "appKey" }).getProperties(expectedProperties), {
+    name: "app",
+    type: "app",
+    idKey: "appKey",
+    lazy: false,
+    silent: true
+  }, "Test 5");
 });
 
-test('loadNeeds creation', function(assert) {
+test('loadNeeds basic test', function(assert) {
   let adapter = this.subject(),
       loader,
       testModel = Ember.Object.create({
@@ -115,7 +128,7 @@ test('loadNeeds creation', function(assert) {
 
   assert.expect(1 + 2 + 1);
 
-  assert.equal(adapter.loadNeeds(loader, Ember.Object.create()), null, "Model without needs");
+  assert.equal(adapter.loadNeeds(loader, Ember.Object.create()), undefined, "Model without needs");
 
   loader = {
     queryRecord: function (type, id) {
@@ -136,4 +149,81 @@ test('loadNeeds creation', function(assert) {
   adapter.loadNeeds(loader, testModel).then(function () {
     assert.ok(true);
   });
+});
+
+test('loadNeeds silent=false test', function(assert) {
+  let adapter = this.subject(),
+      loader,
+      testModel = Ember.Object.create({
+        needs: {
+          app: {
+            idKey: "appID",
+            // silent: false - By default it's false
+          },
+        },
+        appID: 1,
+      }),
+      testErr = {};
+
+  assert.expect(1 + 1);
+
+  loader = {
+    queryRecord: function (type, id) {
+      assert.equal(id, testModel.get("appID"));
+      return Ember.RSVP.reject(testErr);
+    }
+  };
+  adapter.loadNeeds(loader, testModel).catch(function (err) {
+    assert.equal(err, testErr);
+  });
+});
+
+test('loadNeeds silent=true test', function(assert) {
+  let adapter = this.subject(),
+      loader,
+      testModel = Ember.Object.create({
+        needs: {
+          app: {
+            idKey: "appID",
+            silent: true
+          },
+        },
+        appID: 1,
+      });
+
+  assert.expect(1 + 1);
+
+  loader = {
+    queryRecord: function (type, id) {
+      assert.equal(id, testModel.get("appID"));
+      return Ember.RSVP.resolve();
+    }
+  };
+  adapter.loadNeeds(loader, testModel).then(function (val) {
+    assert.ok(val);
+  });
+});
+
+test('loadNeeds lazy=true test', function(assert) {
+  let adapter = this.subject(),
+      loader,
+      testModel = Ember.Object.create({
+        needs: {
+          app: {
+            idKey: "appID",
+            lazy: true
+          },
+        },
+        appID: 1,
+      });
+
+  assert.expect(1 + 1);
+
+  loader = {
+    queryRecord: function (type, id) {
+      assert.equal(id, testModel.get("appID"));
+      return Ember.RSVP.resolve();
+    }
+  };
+  assert.equal(adapter.loadNeeds(loader, testModel), undefined, "Model without needs");
 });

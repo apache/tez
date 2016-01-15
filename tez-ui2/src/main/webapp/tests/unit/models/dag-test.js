@@ -16,26 +16,24 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import Ember from 'ember';
+import { moduleForModel, test } from 'ember-qunit';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+moduleForModel('dag', 'Unit | Model | dag', {
+  // Specify the other units that are required for this test.
+  needs: []
+});
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
+test('Basic creation test', function(assert) {
+  let model = this.subject(),
+      testQueue = "TQ";
 
-    afterEach() {
-      destroyApp(this.application);
+  Ember.run(function () {
+    model.set("app", {
+      queue: testQueue
+    });
 
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
+    assert.ok(!!model);
+    assert.equal(model.get("queue"), testQueue);
   });
-}
+});

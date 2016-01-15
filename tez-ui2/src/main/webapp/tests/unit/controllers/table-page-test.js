@@ -16,26 +16,27 @@
  * limitations under the License.
  */
 
-import { module } from 'qunit';
-import startApp from '../helpers/start-app';
-import destroyApp from '../helpers/destroy-app';
+import { moduleFor, test } from 'ember-qunit';
 
-export default function(name, options = {}) {
-  module(name, {
-    beforeEach() {
-      this.application = startApp();
+moduleFor('controller:table-page', 'Unit | Controller | table page', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-      if (options.beforeEach) {
-        options.beforeEach.apply(this, arguments);
-      }
-    },
+test('Basic creation test', function(assert) {
+  let controller = this.subject();
 
-    afterEach() {
-      destroyApp(this.application);
+  assert.ok(controller);
+  assert.ok(controller.queryParams);
 
-      if (options.afterEach) {
-        options.afterEach.apply(this, arguments);
-      }
-    }
-  });
-}
+  assert.equal(controller.rowCount, 10);
+  assert.equal(controller.searchText, "");
+  assert.equal(controller.sortColumnId, "");
+  assert.equal(controller.sortOrder, "");
+  assert.equal(controller.pageNo, 1);
+
+  assert.ok(controller.actions.searchChanged);
+  assert.ok(controller.actions.sortChanged);
+  assert.ok(controller.actions.rowsChanged);
+  assert.ok(controller.actions.pageChanged);
+});
