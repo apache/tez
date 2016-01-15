@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2937. Can Processor.close() be called after closing inputs and outputs?
   TEZ-3037. History URL should be set regardless of which history logging service is enabled.
   TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
 
@@ -314,6 +315,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2937. Can Processor.close() be called after closing inputs and outputs?
   TEZ-3037. History URL should be set regardless of which history logging service is enabled.
   TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
   TEZ-2129. Task and Attempt views should contain links to the logs
