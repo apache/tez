@@ -13,3 +13,4 @@ ALL CHANGES:
   TEZ-3026. Tez UI 2: Add adapters for RM & AM
   TEZ-3027. Tez UI 2: Add header and footer elements
   TEZ-2986. Tez UI 2: Implement All DAGs page
+  TEZ-3038. Tez UI 2: Create DAG details page

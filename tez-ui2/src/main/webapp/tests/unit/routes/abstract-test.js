@@ -31,6 +31,11 @@ test('Basic creation test', function(assert) {
   let route = this.subject();
 
   assert.ok(route);
+
+  assert.ok(route.loaderQueryParams);
+  assert.ok(route.model);
+  assert.ok(route.queryFromParams);
+
   assert.ok(route.setDocTitle);
   assert.ok(route.setupController);
 
@@ -46,7 +51,28 @@ test('Basic creation test', function(assert) {
   assert.ok(route._setControllerModel);
   assert.ok(route.setLoader);
 
-  assert.ok(route.actions.loadData);
+  assert.ok(route.actions.setBreadcrumbs);
+  assert.ok(route.actions.bubbleBreadcrumbs);
+});
+
+test('queryFromParams test', function(assert) {
+  let route = this.subject({
+    loaderQueryParams: {
+      id: "a_id",
+      b: "b"
+    }
+  }),
+  testParam = {
+    a: 1,
+    a_id: 2,
+    b: 3,
+    b_id: 4
+  };
+
+  assert.deepEqual(route.queryFromParams(testParam), {
+    id: 2,
+    b: 3
+  });
 });
 
 test('checkAndCall test', function(assert) {
@@ -207,4 +233,38 @@ test('setLoader test', function(assert) {
   assert.equal(route.get("loader.nameSpace"), testNamespace);
   assert.equal(route.get("loader.store"), route.get("store"));
   assert.equal(route.get("loader.container"), route.get("container"));
+});
+
+test('actions.setBreadcrumbs test', function(assert) {
+  let testName = "ts",
+      route = this.subject({
+        name: testName
+      }),
+      testCrumbs = {};
+
+  // Because all controllers are pointing to the leaf rout
+  testCrumbs[testName] = testCrumbs;
+
+  route.send("setBreadcrumbs", testCrumbs);
+  assert.equal(route.get("breadcrumbs"), testCrumbs);
+
+  route.send("setBreadcrumbs", {});
+  assert.equal(route.get("breadcrumbs"), testCrumbs);
+
+  route.send("setBreadcrumbs", null);
+  assert.equal(route.get("breadcrumbs"), testCrumbs);
+});
+
+test('actions.bubbleBreadcrumbs test', function(assert) {
+  let testName = "ts",
+      route = this.subject({
+        name: testName
+      }),
+      existingCrumbs = [1, 2],
+      testCrumbs = [1, 2];
+
+  route.set("breadcrumbs", existingCrumbs);
+
+  route.send("bubbleBreadcrumbs", testCrumbs);
+  assert.equal(testCrumbs.length, 2 + 2);
 });

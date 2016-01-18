@@ -16,32 +16,29 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import { moduleFor, test } from 'ember-qunit';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+moduleFor('route:dag/vertices', 'Unit | Route | dag/vertices', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+test('Basic creation test', function(assert) {
+  let route = this.subject();
+
+  assert.ok(route);
+  assert.ok(route.title);
+  assert.ok(route.setupController);
+});
+
+test('setupController test', function(assert) {
+  assert.expect(1);
+
+  let route = this.subject({
+    startCrumbBubble: function () {
+      assert.ok(true);
+    }
+  });
+
+  route.setupController({}, {});
 });

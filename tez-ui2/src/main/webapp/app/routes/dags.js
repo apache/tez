@@ -16,10 +16,27 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import AbstractRoute from './abstract';
 
 export default AbstractRoute.extend({
   title: "All DAGs",
+
+  queryParams: {
+    rowCount: {
+      refreshModel: true
+    }
+  },
+
+  loaderQueryParams: {
+    rowCount: "rowCount"
+  },
+
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
 
   load: function (value, query) {
     return this.get("loader").query('dag', query);

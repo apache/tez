@@ -25,6 +25,12 @@ const Router = Ember.Router.extend({
 
 Router.map(function() {
   this.route('dags', { path: '/' });
+  this.route('dag', {path: '/dag/:dag_id'}, function() {
+    this.route('vertices');
+    this.route('tasks');
+    this.route('attempts');
+  });
+  this.route('app', {path: '/app/:app_id'});
 });
 
 export default Router;

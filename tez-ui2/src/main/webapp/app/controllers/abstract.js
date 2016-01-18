@@ -16,32 +16,27 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+import NameMixin from '../mixins/name';
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
+export default Ember.Controller.extend(NameMixin, {
+  // Must be set by inheriting classes
+  breadcrumbs: null,
+
+  init: function () {
+    this._super();
+    Ember.run.later(this, "setBreadcrumbs");
+  },
+
+  crumbObserver: Ember.observer("breadcrumbs", function () {
+    Ember.run.later(this, "setBreadcrumbs");
+  }),
+
+  setBreadcrumbs: function () {
+    var crumbs = {},
+        name = this.get("name");
+    crumbs[name] = this.get("breadcrumbs");
+    this.send("setBreadcrumbs", crumbs);
   }
 });

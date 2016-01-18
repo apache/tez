@@ -16,32 +16,15 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+export default Ember.Mixin.create({
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+  name: Ember.computed(function () {
+    var name = this.toString();
+    name = name.substr(0, name.indexOf("::"));
+    name = name.substr(name.indexOf(":") + 1);
+    return name;
+  }),
+
 });

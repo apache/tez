@@ -16,31 +16,35 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:table-page', 'Unit | Controller | table page', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+moduleForComponent('tab-n-refresh', 'Integration | Component | tab n refresh', {
+  integration: true
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
+  var testTabs = [{
+    text: "Tab 1",
+    routeName: "route_1",
+  },{
+    text: "Tab 2",
+    routeName: "route_2",
+  }];
 
-  assert.ok(controller);
-  assert.ok(controller.queryParams);
+  this.set("tabs", testTabs);
 
-  assert.equal(controller.rowCount, 10);
-  assert.equal(controller.searchText, "");
-  assert.equal(controller.sortColumnId, "");
-  assert.equal(controller.sortOrder, "");
-  assert.equal(controller.pageNo, 1);
+  this.render(hbs`{{tab-n-refresh tabs=tabs}}`);
 
-  assert.ok(controller.actions.searchChanged);
-  assert.ok(controller.actions.sortChanged);
-  assert.ok(controller.actions.rowsChanged);
-  assert.ok(controller.actions.pageChanged);
+  assert.equal(this.$("button").text().trim(), 'Refresh');
+  assert.equal($(this.$("li")[0]).text().trim(), testTabs[0].text);
+  assert.equal($(this.$("li")[1]).text().trim(), testTabs[1].text);
+
+  this.render(hbs`
+    {{#tab-n-refresh tabs=tabs}}
+      template block text
+    {{/tab-n-refresh}}
+  `);
+
+  assert.equal(this.$("button").text().trim(), 'Refresh');
 });

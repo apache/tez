@@ -16,32 +16,34 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+.detail-list {
+  table-layout: fixed;
+  white-space: nowrap;
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
-
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
+  .progress {
+    margin-bottom: 0px;
   }
-});
+
+  tr {
+    margin: 0px 0px 0px 15px;
+    overflow: hidden;
+  }
+
+  thead {
+    background-color: @bg-lite;
+    font-weight: bold;
+  }
+
+  td {
+    padding: 0px 20px 0px 0px;
+  }
+
+  td:first-child {
+    width:120px;
+  }
+
+  th, td {
+    border: 1px solid @border-lite;
+    padding: 5px;
+  }
+}

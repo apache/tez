@@ -19,16 +19,21 @@
 import Ember from 'ember';
 
 export default Ember.Route.extend({
+  title: "Application",
 
   pageReset: function () {
-    Ember.$(document).tooltip("close");
+    Ember.$(document).tooltip("destroy");
+    Ember.$(document).tooltip({
+      delay: 20,
+      tooltipClass: 'generic-tooltip'
+    });
   },
 
   actions: {
     didTransition: function(/* transition */) {
       this.pageReset();
     },
-    pageChanged: function (breadcrumbs) {
+    bubbleBreadcrumbs: function (breadcrumbs) {
       this.set("controller.breadcrumbs", breadcrumbs);
     }
   }

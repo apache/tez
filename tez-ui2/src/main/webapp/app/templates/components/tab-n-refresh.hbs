@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,34 +14,29 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import PageController from './page';
-
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
-
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
-});
+<ul class="nav nav-tabs tab-n-refresh">
+  {{#each normalizedTabs as |tab|}}
+    <li class="{{if tab.active 'active'}}">
+      {{#link-to tab.routeName}}
+        {{tab.text}}
+      {{/link-to}}
+    </li>
+  {{/each}}
+  <span class="refresh-ui">
+    <span class="text-elements">
+      {{input type="checkbox" name="autoEnabled" checked=autoEnabled}}
+      Auto Refresh
+      <br/>
+      {{#if displayTime}}
+        Last refreshed at <b>{{displayTime}}</b>
+      {{else}}
+        Load time not available!
+      {{/if}}
+    </span>
+    <button type="button" class="btn btn-success">
+      <i class='fa fa-refresh'></i> Refresh
+    </button>
+  </span>
+</ul>

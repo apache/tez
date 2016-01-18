@@ -16,32 +16,29 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+export default Ember.Component.extend({
+  init: function () {
+    this._super();
+    this.setApplication();
+  },
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+  setApplication: function () {
+    var application = this.get("targetObject.container").lookup('controller:application');
+    this.set("application", application);
+  },
+
+  normalizedTabs: Ember.computed("tabs", "application.currentPath", function () {
+    var tabs = this.get("tabs"),
+        activeRouteName = this.get("application.currentPath");
+
+    return tabs.map(function (tab) {
+      return {
+        text: tab.text,
+        routeName: tab.routeName,
+        active: tab.routeName === activeRouteName
+      };
+    });
+  })
 });

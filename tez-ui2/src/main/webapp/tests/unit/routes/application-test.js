@@ -29,7 +29,7 @@ test('Basic creation test', function(assert) {
   assert.ok(route);
   assert.ok(route.pageReset);
   assert.ok(route.actions.didTransition);
-  assert.ok(route.actions.pageChanged);
+  assert.ok(route.actions.bubbleBreadcrumbs);
 });
 
 test('Test didTransition action', function(assert) {
@@ -44,7 +44,7 @@ test('Test didTransition action', function(assert) {
   route.send("didTransition");
 });
 
-test('Test pageChanged action', function(assert) {
+test('Test bubbleBreadcrumbs action', function(assert) {
   let route = this.subject(),
       testController = {
         breadcrumbs: null
@@ -54,6 +54,6 @@ test('Test pageChanged action', function(assert) {
   route.controller = testController;
 
   assert.notOk(route.get("controller.breadcrumbs"));
-  route.send("pageChanged", testBreadcrumbs);
+  route.send("bubbleBreadcrumbs", testBreadcrumbs);
   assert.equal(route.get("controller.breadcrumbs"), testBreadcrumbs);
 });

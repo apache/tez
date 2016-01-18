@@ -16,32 +16,29 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
+import NameMixin from '../../../mixins/name';
+import { module, test } from 'qunit';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+module('Unit | Mixin | name');
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+test('Basic creation', function(assert) {
+  let NameObject = Ember.Object.extend(NameMixin);
+  let subject = NameObject.create();
+
+  assert.ok(subject);
+  assert.ok(subject.name);
+});
+
+test('name test', function(assert) {
+  let NameObject = Ember.Object.extend(NameMixin),
+      testName = "ts";
+
+  let subject = NameObject.create({
+    toString: function () {
+      return `<tez-ui@test:${testName}::ember427>`;
+    }
+  });
+
+  assert.equal(subject.get("name"), testName);
 });

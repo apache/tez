@@ -16,32 +16,34 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+import { moduleFor, test } from 'ember-qunit';
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+moduleFor('controller:page', 'Unit | Controller | page', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
+
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K
+  });
+
+  assert.ok(controller);
+  assert.ok(controller.loaded);
+
+  assert.equal(controller.isLoading, false);
+});
+
+test('loaded test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K
+  });
+
+  assert.notOk(controller.get("loaded"));
+  controller.set("model", true);
+  assert.ok(controller.get("loaded"));
+  controller.set("isLoading", true);
+  assert.notOk(controller.get("loaded"));
 });

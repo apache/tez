@@ -16,32 +16,27 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+@import "./shared";
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+.tab-n-refresh {
+  margin-bottom: 10px;
+  position: relative;
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
+  .refresh-ui {
+    position: absolute;
+    right: 0px;
+    top: -10px;
+
+    .text-elements {
+      display: inline-block;
+      position: relative;
+
+      line-height: 18px;
+      top: 12px;
+      text-align: right;
+      font-size: .95em;
+
+      .align-checknradio;
+    }
   }
-});
+}

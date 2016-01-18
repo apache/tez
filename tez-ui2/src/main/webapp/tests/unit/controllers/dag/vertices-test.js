@@ -16,32 +16,20 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+import { moduleFor, test } from 'ember-qunit';
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+moduleFor('controller:dag/vertices', 'Unit | Controller | dag/vertices', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
+
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K
+  });
+
+  assert.ok(controller);
+  assert.ok(controller.breadcrumbs);
 });

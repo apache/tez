@@ -16,23 +16,59 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dags', 'Unit | Controller | dags', {
+moduleFor('controller:abstract', 'Unit | Controller | abstract', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  // needs: ['route:abstract']
 });
 
 test('Basic creation test', function(assert) {
-  assert.expect(2 + 2);
+  let controller = this.subject({
+    send: Ember.K
+  });
+
+  assert.ok(controller.name);
+  assert.ok(controller.crumbObserver);
+  assert.ok(controller.setBreadcrumbs);
+});
+
+test('init test', function(assert) {
+  assert.expect(1);
+
+  this.subject({
+    send: function (name) {
+      assert.equal(name, "setBreadcrumbs");
+    }
+  });
+});
+
+test('crumbObserver test', function(assert) {
+  assert.expect(1 + 1); // Init and fired
 
   let controller = this.subject({
-    send: function (name, query) {
+    send: function (name) {
       assert.equal(name, "setBreadcrumbs");
-      assert.ok(query);
     }
   });
 
-  assert.ok(controller);
-  assert.ok(controller.columns);
+  controller.set("breadcrumbs", []);
+});
+
+test('setBreadcrumbs test', function(assert) {
+  let testName = "Abc", // Because all controllers are pointing to the leaf rout
+      testBreadCrumbs = [];
+
+  assert.expect(3);
+  this.subject({
+    name: testName,
+    breadcrumbs: testBreadCrumbs,
+    send: function (name, crumbs) {
+      assert.equal(name, "setBreadcrumbs");
+      assert.ok(crumbs.hasOwnProperty(testName));
+      assert.equal(crumbs[testName], testBreadCrumbs);
+    }
+  });
 });

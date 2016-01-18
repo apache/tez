@@ -16,17 +16,25 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 import TablePageController from './table-page';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
 export default TablePageController.extend({
 
+  breadcrumbs: [],
+
   columns: ColumnDefinition.make([{
     id: 'dagName',
     headerTitle: 'Dag Name',
-    contentPath: 'name'
+    contentPath: 'name',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "dag",
+        model: row.get("entityID"),
+        text: row.get("name")
+      };
+    }
   },{
     id: 'entityID',
     headerTitle: 'Id',
@@ -88,16 +96,5 @@ export default TablePageController.extend({
       target: "_blank"
     }
   }]),
-
-  _loadObserver: Ember.on("init", Ember.observer("rowCount", function () {
-    var that = this,
-        query = {
-          limit: this.get("rowCount")
-        };
-
-    Ember.run.later(function () {
-      that.send("loadData", query);
-    });
-  }))
 
 });

@@ -16,32 +16,32 @@
  * limitations under the License.
  */
 
-import PageController from './page';
+import Ember from 'ember';
 
-export default PageController.extend({
-  queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
-  rowCount: 10,
-  searchText: "",
-  sortColumnId: "",
-  sortOrder: "",
-  pageNo: 1,
+import AbstractController from './abstract';
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
+export default AbstractController.extend({
+  breadcrumbs: Ember.computed("model", function () {
+    var name = this.get("model.name");
+
+    return [{
+      text: `DAG [${name}]`,
+      routeName: "dag.index",
+      model: this.get("model.entityID")
+    }];
+  }),
+
+  tabs: [{
+    text: "DAG Details",
+    routeName: "dag.index"
+  }, {
+    text: "All Vertices",
+    routeName: "dag.vertices"
+  }, {
+    text: "All Tasks",
+    routeName: "dag.tasks"
+  }, {
+    text: "All Attempts",
+    routeName: "dag.attempts"
+  }]
 });

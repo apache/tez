@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,13 +20,39 @@
 import Ember from 'ember';
 import LoaderService from '../services/loader';
 import UnlinkedPromise from '../errors/unlinked-promise';
+import NameMixin from '../mixins/name';
 
-export default Ember.Route.extend({
+var MoreObject = more.Object;
+
+export default Ember.Route.extend(NameMixin, {
   title: null, // Must be set by inheriting class
 
   isLoading: false,
   currentPromiseId: null,
   loadedValue: null,
+
+  isLeafRoute: false,
+  breadcrumbs: null,
+  childCrumbs: null,
+
+  loaderQueryParams: {},
+
+  model: function(params/*, transition*/) {
+    Ember.run.later(this, "loadData", this.queryFromParams(params));
+  },
+
+  queryFromParams: function (params) {
+    var query = {};
+
+    MoreObject.forEach(this.get("loaderQueryParams"), function (name, paramKey) {
+      var value = Ember.get(params, paramKey);
+      if(value) {
+        query[name] = value;
+      }
+    });
+
+    return query;
+  },
 
   setDocTitle: function () {
     Ember.$(document).attr('title', this.get('title'));
@@ -78,7 +105,7 @@ export default Ember.Route.extend({
     return value;
   },
 
-  _setControllerModel: Ember.observer("_controller", "loadedValue", function () {
+  _setControllerModel: Ember.observer("loadedValue", function () {
     var controller = this.get("controller");
     if(controller) {
       controller.set("model", this.get("loadedValue"));
@@ -93,11 +120,21 @@ export default Ember.Route.extend({
     }));
   },
 
+  startCrumbBubble: function () {
+    this.send("bubbleBreadcrumbs", []);
+  },
+
   actions: {
-    loadData: function (query) {
-      // To be on the safer side
-      Ember.run.once(this, "loadData", query);
+    setBreadcrumbs: function (crumbs) {
+      var name = this.get("name");
+      if(crumbs && crumbs[name]) {
+        this.set("breadcrumbs", crumbs[name]);
+      }
+      return true;
+    },
+    bubbleBreadcrumbs: function (crumbs) {
+      crumbs.unshift.apply(crumbs, this.get("breadcrumbs"));
+      return true;
     }
   }
-
 });
