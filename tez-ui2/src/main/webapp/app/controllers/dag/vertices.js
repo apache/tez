@@ -29,6 +29,14 @@ export default TablePageController.extend({
     id: 'name',
     headerTitle: 'Vertex Name',
     contentPath: 'name',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "vertex",
+        model: row.get("entityID"),
+        text: row.get("name")
+      };
+    }
   },{
     id: 'entityID',
     headerTitle: 'Vertex Id',
@@ -72,6 +80,10 @@ export default TablePageController.extend({
     cellDefinition: {
      type: 'date'
     }
+  },{
+    id: 'totalTasks',
+    headerTitle: 'Tasks',
+    contentPath: 'totalTasks',
   },{
     id: 'processorClassName',
     headerTitle: 'Processor Class',

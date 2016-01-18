@@ -16,32 +16,17 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleFor, test } from 'ember-qunit';
 
-import AbstractController from './abstract';
+moduleFor('route:vertex', 'Unit | Route | vertex', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+test('Basic creation test', function(assert) {
+  let route = this.subject();
 
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
-
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+  assert.ok(route);
+  assert.ok(route.loaderQueryParams);
+  assert.ok(route.model);
 });

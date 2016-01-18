@@ -16,32 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import AbstractRoute from './abstract';
 
-import AbstractController from './abstract';
+export default AbstractRoute.extend({
+  title: "Vertex",
 
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+  loaderQueryParams: {
+    id: "vertex_id"
+  },
 
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
-
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+  model: function (params) {
+    return this.get("loader").queryRecord('vertex', this.queryFromParams(params).id);
+  }
 });

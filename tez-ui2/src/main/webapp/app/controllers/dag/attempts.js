@@ -21,7 +21,7 @@ import ColumnDefinition from 'em-table/utils/column-definition';
 
 export default TablePageController.extend({
   breadcrumbs: [{
-    text: "All Attempts",
+    text: "All Task Attempts",
     routeName: "dag.attempts",
   }],
 
@@ -36,7 +36,15 @@ export default TablePageController.extend({
   },{
     id: 'vertexName',
     headerTitle: 'Vertex Index',
-    contentPath: 'vertexName'
+    contentPath: 'vertexName',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "vertex",
+        model: row.get("vertexID"),
+        text: row.get("vertexName")
+      };
+    }
   },{
     id: 'status',
     headerTitle: 'Status',

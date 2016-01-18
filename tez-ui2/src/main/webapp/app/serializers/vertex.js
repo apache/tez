@@ -30,15 +30,22 @@ export default TimelineSerializer.extend({
     name: 'otherinfo.vertexName',
 
     firstTaskStartTime: 'otherinfo.stats.firstTaskStartTime',
+    lastTaskFinishTime: 'otherinfo.stats.lastTaskFinishTime',
 
-    numTasks: 'otherinfo.numTasks',
+    totalTasks: 'otherinfo.numTasks',
     failedTasks: 'otherinfo.numFailedTasks',
-    sucessfulTasks: 'otherinfo.numSucceededTasks',
+    successfulTasks: 'otherinfo.numSucceededTasks',
     killedTasks: 'otherinfo.numKilledTasks',
 
     failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
     killedTaskAttempts: 'otherinfo.numKilledTaskAttempts',
 
+    minDuration:  'otherinfo.stats.minTaskDuration',
+    maxDuration:  'otherinfo.stats.maxTaskDuration',
+    avgDuration:  'otherinfo.stats.avgTaskDuration',
+
     processorClassName: getProcessorClass,
+
+    dagID: 'primaryfilters.TEZ_DAG_ID.0',
   }
 });

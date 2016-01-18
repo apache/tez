@@ -15,3 +15,4 @@ ALL CHANGES:
   TEZ-2986. Tez UI 2: Implement All DAGs page
   TEZ-3038. Tez UI 2: Create DAG details page
   TEZ-3039. Tez UI 2: Create all sub-pages for DAG
+  TEZ-3040. Tez UI 2: Create Vertex details page & sub tables

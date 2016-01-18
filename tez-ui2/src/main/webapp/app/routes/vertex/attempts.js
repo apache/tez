@@ -17,31 +17,19 @@
  */
 
 import Ember from 'ember';
+import AbstractRoute from '../abstract';
 
-import AbstractController from './abstract';
+export default AbstractRoute.extend({
+  title: "Task Attempts",
 
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
 
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
-
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+  load: function (/*value, query*/) {
+    return this.get("loader").query('attempt', {
+      vertexID: this.modelFor("vertex").id
+    });
+  }
 });

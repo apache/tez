@@ -38,13 +38,22 @@ import TimelineModel from './timeline';
 */
 
 export default TimelineModel.extend({
+  needs: {
+    dag: {
+      type: "dag",
+      idKey: "dagID",
+      silent: true
+    }
+  },
+
   name: DS.attr('string'),
 
   firstTaskStartTime: DS.attr('number'),
+  lastTaskFinishTime: DS.attr('number'),
 
-  numTasks: DS.attr('number'),
+  totalTasks: DS.attr('number'),
   failedTasks: DS.attr('number'),
-  sucessfulTasks: DS.attr('number'),
+  successfulTasks: DS.attr('number'),
   killedTasks: DS.attr('number'),
 
   runningTasks: Ember.computed("status", function () {
@@ -57,5 +66,12 @@ export default TimelineModel.extend({
   failedTaskAttempts: DS.attr('number'),
   killedTaskAttempts: DS.attr('number'),
 
+  minDuration: DS.attr('number'),
+  maxDuration: DS.attr('number'),
+  avgDuration: DS.attr('number'),
+
   processorClassName: DS.attr('string'),
+
+  dagID: DS.attr('string'),
+  dag: DS.attr('object'), // Auto-loaded by need
 });

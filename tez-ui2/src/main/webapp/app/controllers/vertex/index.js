@@ -16,32 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import PageController from '../page';
 
-import AbstractController from './abstract';
-
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
-
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
-
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+export default PageController.extend({
 });

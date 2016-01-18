@@ -18,30 +18,19 @@
 
 import Ember from 'ember';
 
-import AbstractController from './abstract';
+import { moduleFor, test } from 'ember-qunit';
 
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+moduleFor('controller:vertex/attempts', 'Unit | Controller | vertex/attempts', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K
+  });
 
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+  assert.ok(controller);
+  assert.ok(controller.breadcrumbs);
+  assert.ok(controller.columns);
 });

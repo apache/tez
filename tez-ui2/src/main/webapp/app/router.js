@@ -31,6 +31,10 @@ Router.map(function() {
     this.route('attempts');
   });
   this.route('app', {path: '/app/:app_id'});
+  this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
+    this.route('tasks');
+    this.route('attempts');
+  });
 });
 
 export default Router;

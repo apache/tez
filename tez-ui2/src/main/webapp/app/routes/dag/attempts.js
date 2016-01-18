@@ -20,7 +20,7 @@ import Ember from 'ember';
 import AbstractRoute from '../abstract';
 
 export default AbstractRoute.extend({
-  title: "All Attempts",
+  title: "All Task Attempts",
 
   setupController: function (controller, model) {
     this._super(controller, model);

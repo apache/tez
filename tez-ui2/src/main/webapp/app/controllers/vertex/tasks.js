@@ -21,26 +21,14 @@ import ColumnDefinition from 'em-table/utils/column-definition';
 
 export default TablePageController.extend({
   breadcrumbs: [{
-    text: "All Tasks",
-    routeName: "dag.tasks",
+    text: "Tasks",
+    routeName: "vertex.tasks",
   }],
 
   columns: ColumnDefinition.make([{
     id: 'index',
     headerTitle: 'Task Index',
     contentPath: 'index'
-  },{
-    id: 'vertexName',
-    headerTitle: 'Vertex Name',
-    contentPath: 'vertexName',
-    cellComponentName: 'em-table-linked-cell',
-    getCellContent: function (row) {
-      return {
-        routeName: "vertex",
-        model: row.get("vertexID"),
-        text: row.get("vertexName")
-      };
-    }
   },{
     id: 'status',
     headerTitle: 'Status',

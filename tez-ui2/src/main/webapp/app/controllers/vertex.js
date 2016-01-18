@@ -21,27 +21,29 @@ import Ember from 'ember';
 import AbstractController from './abstract';
 
 export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+  breadcrumbs: Ember.computed("model.dag", function () {
+    var dagName = this.get("model.dag.name"),
+        vertexName = this.get("model.name");
 
     return [{
-      text: `DAG [ ${name} ]`,
+      text: `DAG [ ${dagName} ]`,
       routeName: "dag.index",
-      model: this.get("model.entityID")
+      model: this.get("model.dagID")
+    },{
+      text: `Vertex [ ${vertexName} ]`,
+      routeName: "vertex.index",
+      model: this.get("model.vertexID")
     }];
   }),
 
   tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
+    text: "Vertex Details",
+    routeName: "vertex.index"
   }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
+    text: "Tasks",
+    routeName: "vertex.tasks"
   }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
+    text: "Task Attempts",
+    routeName: "vertex.attempts"
   }]
 });

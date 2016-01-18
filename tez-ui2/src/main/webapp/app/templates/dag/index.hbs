@@ -24,58 +24,51 @@
       </tr>
     </thead>
     <tbody>
-    <tr>
-      <td colspan="2">
-        {{bs-button icon="fa fa-download" title="Download data" defaultText="Download data" type="info" clicked="downloadDagJson"}}
-      </td>
-    </tr>
-    <tr>
-      <td>Application ID</td>
-      <td>
-        {{#link-to 'app' model.appID class='ember-table-content'}}
-          {{model.appID}}
-        {{/link-to}}
-      </td>
-    </tr>
-    <tr>
-      <td>ID</td>
-      <td>{{model.entityID}}</td>
-    </tr>
-    <tr>
-      <td>Submitter</td>
-      <td>{{model.user}}</td>
-    </tr>
-    <tr>
-      <td>Status</td>
-      <td>
-        {{em-table-status-cell content=model.status}}
-        {{#if progressStr}} {{bs-badge content=progressStr}}{{/if}}
-        {{#if hasFailedTasks}}
-          [ <a href='{{unbound failedTasksLink}}'>Failed Tasks</a> ]
-        {{/if}}
-        {{#if hasFailedTaskAttempts}}
-          [ <a href='{{unbound failedTaskAttemptsLink}}'>Failed TaskAttempts</a> ]
-        {{/if}}
-      </td>
-    </tr>
-    <tr>
-      <td>Start Time</td>
-      <td>{{txt model.startTime type="date"}}</td>
-    </tr>
-    <tr>
-      <td>End Time</td>
-      <td>{{txt model.endTime type="date"}}</td>
-    </tr>
-    <tr>
-      <td>Duration</td>
-      <td>{{txt model.duration type="duration"}}</td>
-    </tr>
-    <tr>
-      <td>Logs</td>
-      <td>
-        {{em-table-linked-cell content=model.containerLogs}}
-      </td>
-    </tr>
+      <tr>
+        <td colspan="2">
+          {{bs-button icon="fa fa-download" title="Download data" defaultText="Download data" type="info" clicked="downloadDagJson"}}
+        </td>
+      </tr>
+      <tr>
+        <td>Application ID</td>
+        <td>
+          {{#link-to 'app' model.appID class='ember-table-content'}}
+            {{model.appID}}
+          {{/link-to}}
+        </td>
+      </tr>
+      <tr>
+        <td>ID</td>
+        <td>{{model.entityID}}</td>
+      </tr>
+      <tr>
+        <td>Submitter</td>
+        <td>{{model.user}}</td>
+      </tr>
+      <tr>
+        <td>Status</td>
+        <td>
+          {{em-table-status-cell content=model.status}}
+        </td>
+      </tr>
+      <tr>
+        <td>Start Time</td>
+        <td>{{txt model.startTime type="date"}}</td>
+      </tr>
+      <tr>
+        <td>End Time</td>
+        <td>{{txt model.endTime type="date"}}</td>
+      </tr>
+      <tr>
+        <td>Duration</td>
+        <td>{{txt model.duration type="duration"}}</td>
+      </tr>
+      <tr>
+        <td>Logs</td>
+        <td>
+          {{em-table-linked-cell content=model.containerLogs}}
+        </td>
+      </tr>
     </tbody>
   </table>
 {{else}}
