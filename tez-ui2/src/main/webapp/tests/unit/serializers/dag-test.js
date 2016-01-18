@@ -31,6 +31,7 @@ test('Basic creation test', function(assert) {
   assert.ok(serializer.maps.startTime);
   assert.ok(serializer.maps.endTime);
   assert.ok(serializer.maps.containerLogs);
+  assert.ok(serializer.maps.vertexIdNameMap);
 });
 
 test('atsStatus test', function(assert) {
@@ -106,4 +107,25 @@ test('containerLogs test', function(assert) {
   assert.deepEqual(mapper({
     otherinfo: {inProgressLogsURL_1: "foo", inProgressLogsURL_2: "bar"},
   }), [{text: "1", href: "http://foo"}, {text: "2", href: "http://bar"}], "2 logs");
+});
+
+test('vertexIdNameMap test', function(assert) {
+  let serializer = this.subject(),
+      mapper = serializer.maps.vertexIdNameMap;
+
+  let nameIdMap = {
+    otherinfo: {
+      vertexNameIdMapping: {
+        name1: "ID1",
+        name2: "ID2",
+        name3: "ID3",
+      }
+    }
+  };
+
+  assert.deepEqual(mapper(nameIdMap), {
+    ID1: "name1",
+    ID2: "name2",
+    ID3: "name3",
+  });
 });

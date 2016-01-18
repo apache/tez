@@ -29,6 +29,7 @@ test('Basic creation test', function(assert) {
   assert.ok(route);
   assert.ok(route.title);
   assert.ok(route.setupController);
+  assert.ok(route.load);
 });
 
 test('setupController test', function(assert) {

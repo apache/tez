@@ -16,21 +16,48 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleForModel, test } from 'ember-qunit';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
+moduleForModel('attempt', 'Unit | Model | attempt', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  needs: []
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
+  let model = this.subject();
+
+  assert.ok(model);
+  assert.ok(model.index);
+  assert.ok(model.taskIndex);
+  assert.ok(model.vertexName);
+});
+
+test('index test', function(assert) {
+  let model = this.subject({
+    entityID: "1_2_3"
   });
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  assert.equal(model.get("index"), "3");
+});
+
+test('taskIndex test', function(assert) {
+  let model = this.subject({
+        taskID: "1_2_3",
+      });
+
+  assert.equal(model.get("taskIndex"), "2_3");
+});
+
+test('vertexName test', function(assert) {
+  let testVertexName = "Test Vertex",
+      model = this.subject({
+        vertexID: "1_2",
+        dag: {
+          vertexIdNameMap: {
+            "1_2": testVertexName
+          }
+        }
+      });
+
+  assert.equal(model.get("vertexName"), testVertexName);
 });

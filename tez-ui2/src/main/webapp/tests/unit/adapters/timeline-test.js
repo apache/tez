@@ -27,5 +27,58 @@ test('Basic creation test', function(assert) {
   let adapter = this.subject();
 
   assert.ok(adapter);
+  assert.ok(adapter.filters);
+  assert.ok(adapter.stringifyFilters);
+  assert.ok(adapter.normalizeQuery);
+  assert.ok(adapter.query);
+
   assert.equal(adapter.serverName, "timeline");
+});
+
+test('stringifyFilters test', function(assert) {
+  let adapter = this.subject();
+
+  assert.equal(adapter.stringifyFilters({a: 1, b: 2}), "a:1,b:2");
+  assert.throws(function () {
+    adapter.stringifyFilters();
+  });
+});
+
+test('normalizeQuery test', function(assert) {
+  let adapter = this.subject(),
+      normalQuery;
+
+  adapter.set("filters", {
+    a: "A_ID",
+    b: "B_ID",
+  });
+
+  normalQuery = adapter.normalizeQuery({a: 1, b: 2, c: 3, d: 4});
+
+  assert.deepEqual(normalQuery.primaryFilter, "A_ID:1");
+  assert.deepEqual(normalQuery.secondaryFilter, "B_ID:2");
+  assert.deepEqual(normalQuery.c, 3);
+  assert.deepEqual(normalQuery.d, 4);
+});
+
+test('query test', function(assert) {
+  let adapter = this.subject(),
+      normalQuery = {},
+      testStore = {},
+      testType = "ts",
+      testQuery = {};
+
+  assert.expect(1 + 1);
+
+  adapter.normalizeQuery = function (params) {
+    assert.equal(params, testQuery);
+    return normalQuery;
+  };
+  adapter._loaderAjax = function (url, queryParams) {
+    assert.equal(queryParams, normalQuery);
+  };
+
+  adapter.query(testStore, testType, {
+    params: testQuery
+  });
 });

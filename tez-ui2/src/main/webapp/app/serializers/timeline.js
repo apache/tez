@@ -21,7 +21,20 @@ import LoaderSerializer from './loader';
 export default LoaderSerializer.extend({
   primaryKey: 'entity',
 
+  mergedProperties: ["maps"],
+
   extractArrayPayload: function (payload) {
     return payload.entities;
+  },
+
+  maps: {
+    entityID: 'entity',
+
+    atsStatus: 'otherinfo.status',
+
+    startTime: 'otherinfo.startTime',
+    endTime: 'otherinfo.endTime',
+
+    counterGroups: 'otherinfo.counters.counterGroups'
   }
 });

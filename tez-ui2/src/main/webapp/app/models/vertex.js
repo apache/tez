@@ -38,16 +38,24 @@ import TimelineModel from './timeline';
 */
 
 export default TimelineModel.extend({
-  name: DS.attr("string"),
+  name: DS.attr('string'),
 
-  user: DS.attr("string"),
-  contextID: DS.attr("string"),
+  firstTaskStartTime: DS.attr('number'),
 
-  domain: DS.attr("string"),
-  containerLogs: DS.attr("object"),
-  queue: Ember.computed("app", function () {
-    return this.get("app.queue");
+  numTasks: DS.attr('number'),
+  failedTasks: DS.attr('number'),
+  sucessfulTasks: DS.attr('number'),
+  killedTasks: DS.attr('number'),
+
+  runningTasks: Ember.computed("status", function () {
+    return this.get("status") === 'SUCCEEDED' ? 0 : null;
+  }),
+  pendingTasks: Ember.computed("status", function () {
+    return this.get("status") === 'SUCCEEDED' ? 0 : null;
   }),
 
-  vertexIdNameMap: DS.attr("object"),
+  failedTaskAttempts: DS.attr('number'),
+  killedTaskAttempts: DS.attr('number'),
+
+  processorClassName: DS.attr('string'),
 });

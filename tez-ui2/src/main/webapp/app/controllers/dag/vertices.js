@@ -16,11 +16,66 @@
  * limitations under the License.
  */
 
-import PageController from '../page';
+import TablePageController from '../table-page';
+import ColumnDefinition from 'em-table/utils/column-definition';
 
-export default PageController.extend({
+export default TablePageController.extend({
   breadcrumbs: [{
     text: "All Vertices",
     routeName: "dag.vertices",
-  }]
+  }],
+
+  columns: ColumnDefinition.make([{
+    id: 'name',
+    headerTitle: 'Vertex Name',
+    contentPath: 'name',
+  },{
+    id: 'entityID',
+    headerTitle: 'Vertex Id',
+    contentPath: 'entityID'
+  },{
+    id: 'status',
+    headerTitle: 'Status',
+    contentPath: 'status',
+    cellComponentName: 'em-table-status-cell'
+  },{
+    id: 'progress',
+    headerTitle: 'Progress',
+    contentPath: 'progress',
+    cellComponentName: 'em-table-progress-cell',
+    observePath: true
+  },{
+    id: 'startTime',
+    headerTitle: 'Start Time',
+    contentPath: 'startTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'endTime',
+    headerTitle: 'End Time',
+    contentPath: 'endTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'duration',
+    headerTitle: 'Duration',
+    contentPath: 'duration',
+    cellDefinition: {
+      type: 'duration'
+    }
+  },{
+    id: 'firstTaskStartTime',
+    headerTitle: 'First Task Start Time',
+    contentPath: 'firstTaskStartTime',
+    cellDefinition: {
+     type: 'date'
+    }
+  },{
+    id: 'processorClassName',
+    headerTitle: 'Processor Class',
+    contentPath: 'processorClassName',
+  }])
+
 });

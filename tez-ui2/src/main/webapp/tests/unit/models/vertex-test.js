@@ -16,21 +16,33 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleForModel, test } from 'ember-qunit';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
+moduleForModel('vertex', 'Unit | Model | vertex', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  needs: []
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
+  let model = this.subject();
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  assert.ok(model);
+  assert.ok(model.runningTasks);
+  assert.ok(model.pendingTasks);
+});
+
+test('runningTasks test', function(assert) {
+  let model = this.subject();
+
+  assert.equal(model.get("runningTasks"), null);
+  model.set("status", "SUCCEEDED");
+  assert.equal(model.get("runningTasks"), 0);
+});
+
+test('pendingTasks test', function(assert) {
+  let model = this.subject();
+
+  assert.equal(model.get("pendingTasks"), null);
+  model.set("status", "SUCCEEDED");
+  assert.equal(model.get("pendingTasks"), 0);
 });

@@ -1,3 +1,5 @@
+/*global more*/
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,8 +20,81 @@
 
 import AbstractAdapter from './abstract';
 
+var MoreObject = more.Object;
+
 export default AbstractAdapter.extend({
   serverName: "timeline",
 
-  // Any timeline specific adapter changes must be added here
+  filters: {
+    dagID: 'TEZ_DAG_ID',
+    vertexID: 'TEZ_VERTEX_ID',
+    taskID: 'TEZ_TASK_ID',
+    attemptID: 'TEZ_TASK_ATTEMPT_ID',
+    hiveQueryID: 'HIVE_QUERY_ID',
+    appID: 'applicationId'
+  },
+
+  stringifyFilters: function (filters) {
+    var filterStrs = [];
+
+    MoreObject.forEach(filters, function (key, value) {
+      filterStrs.push(`${key}:${value}`);
+    });
+
+    return filterStrs.join(",");
+  },
+
+  normalizeQuery: function(query) {
+    var primaryFilter = null, // Primary must have just one single filter
+        secondaryFilters = {},
+        normalQuery = {},
+        filterStr;
+
+    MoreObject.forEach(query, function (key, value) {
+      var filter = this.get(`filters.${key}`);
+
+      if(filter) {
+        if(!primaryFilter) {
+          primaryFilter = {};
+          primaryFilter[filter] = value;
+        }
+        else {
+          secondaryFilters[filter] = value;
+        }
+      }
+      else {
+        normalQuery[key] = value;
+      }
+    }, this);
+
+    // primaryFilter
+    if(primaryFilter) {
+      filterStr = this.stringifyFilters(primaryFilter);
+    }
+    if(filterStr) {
+      normalQuery.primaryFilter = filterStr;
+    }
+
+    // secondaryFilters
+    filterStr = this.stringifyFilters(secondaryFilters);
+    if(filterStr) {
+      normalQuery.secondaryFilter = filterStr;
+    }
+
+    // Limit
+    normalQuery.limit = normalQuery.limit || this.get("env.app.rowLoadLimit");
+
+    return normalQuery;
+  },
+
+  query: function (store, type, query/*, recordArray*/) {
+    var queryParams = query.params,
+        url = this.buildURL(type.modelName, null, null, 'query', queryParams, query.urlParams);
+
+    if(query) {
+      queryParams = this.normalizeQuery(queryParams);
+    }
+
+    return this._loaderAjax(url, queryParams, query.nameSpace);
+  }
 });

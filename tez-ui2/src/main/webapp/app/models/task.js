@@ -38,16 +38,25 @@ import TimelineModel from './timeline';
 */
 
 export default TimelineModel.extend({
-  name: DS.attr("string"),
+  needs: {
+    dag: {
+      type: "dag",
+      idKey: "dagID",
+      silent: true
+    }
+  },
 
-  user: DS.attr("string"),
-  contextID: DS.attr("string"),
-
-  domain: DS.attr("string"),
-  containerLogs: DS.attr("object"),
-  queue: Ember.computed("app", function () {
-    return this.get("app.queue");
+  index: Ember.computed("entityID", function () {
+    var idParts = this.get("entityID").split("_");
+    return idParts.slice(Math.max(idParts.length - 2, 1)).join("_");
   }),
 
-  vertexIdNameMap: DS.attr("object"),
+  vertexID: DS.attr('string'),
+  vertexName: Ember.computed("vertexID", "dag", function () {
+    var vertexID = this.get("vertexID");
+    return this.get(`dag.vertexIdNameMap.${vertexID}`);
+  }),
+
+  dagID: DS.attr('string'),
+  dag: DS.attr('object'), // Auto-loaded by need
 });

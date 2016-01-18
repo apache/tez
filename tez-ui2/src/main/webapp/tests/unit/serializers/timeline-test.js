@@ -28,6 +28,7 @@ test('Basic creation test', function(assert) {
 
   assert.ok(serializer);
   assert.ok(serializer.extractArrayPayload);
+  assert.ok(serializer.maps);
 });
 
 test('extractArrayPayload test', function(assert) {

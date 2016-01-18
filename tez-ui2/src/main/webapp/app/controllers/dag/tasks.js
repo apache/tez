@@ -16,11 +16,54 @@
  * limitations under the License.
  */
 
-import PageController from '../page';
+import TablePageController from '../table-page';
+import ColumnDefinition from 'em-table/utils/column-definition';
 
-export default PageController.extend({
+export default TablePageController.extend({
   breadcrumbs: [{
     text: "All Tasks",
     routeName: "dag.tasks",
-  }]
+  }],
+
+  columns: ColumnDefinition.make([{
+    id: 'index',
+    headerTitle: 'Task Index',
+    contentPath: 'index'
+  },{
+    id: 'vertexName',
+    headerTitle: 'Vertex Name',
+    contentPath: 'vertexName'
+  },{
+    id: 'status',
+    headerTitle: 'Status',
+    contentPath: 'status',
+    cellComponentName: 'em-table-status-cell'
+  },{
+    id: 'progress',
+    headerTitle: 'Progress',
+    contentPath: 'progress',
+    cellComponentName: 'em-table-progress-cell',
+    observePath: true
+  },{
+    id: 'startTime',
+    headerTitle: 'Start Time',
+    contentPath: 'startTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'endTime',
+    headerTitle: 'End Time',
+    contentPath: 'endTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'duration',
+    headerTitle: 'Duration',
+    contentPath: 'duration',
+    cellDefinition: {
+      type: 'duration'
+    }
+  }])
 });

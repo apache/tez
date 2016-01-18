@@ -16,21 +16,15 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import TimelineSerializer from './timeline';
 
-import { moduleFor, test } from 'ember-qunit';
+export default TimelineSerializer.extend({
+  maps: {
+    taskID: 'primaryfilters.TEZ_TASK_ID.0',
+    vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
+    dagID: 'primaryfilters.TEZ_DAG_ID.0',
 
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+    containerID: 'otherinfo.containerId',
+    nodeID: 'otherinfo.nodeId',
+  }
 });

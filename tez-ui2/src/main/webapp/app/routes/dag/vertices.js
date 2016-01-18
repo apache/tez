@@ -20,10 +20,16 @@ import Ember from 'ember';
 import AbstractRoute from '../abstract';
 
 export default AbstractRoute.extend({
-  title: "DAG Details",
+  title: "All Vertices",
 
   setupController: function (controller, model) {
     this._super(controller, model);
     Ember.run.later(this, "startCrumbBubble");
   },
+
+  load: function (/*value, query*/) {
+    return this.get("loader").query('vertex', {
+      dagID: this.modelFor("dag").id
+    });
+  }
 });

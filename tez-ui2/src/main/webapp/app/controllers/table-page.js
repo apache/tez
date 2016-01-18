@@ -16,7 +16,10 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import PageController from './page';
+import TableDefinition from 'em-table/utils/table-definition';
 
 export default PageController.extend({
   queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
@@ -25,6 +28,16 @@ export default PageController.extend({
   sortColumnId: "",
   sortOrder: "",
   pageNo: 1,
+
+  definition: Ember.computed(function () {
+    return TableDefinition.create({
+      rowCount: this.get("rowCount"),
+      searchText: this.get("searchText"),
+      sortColumnId: this.get("sortColumnId"),
+      sortOrder: this.get("sortOrder"),
+      pageNo: this.get("pageNo")
+    });
+  }),
 
   actions: {
     searchChanged: function (searchText) {
@@ -41,7 +54,7 @@ export default PageController.extend({
       this.set("rowCount", rowCount);
     },
     pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
+      this.set("pageNo", pageNum);
     },
   }
 });

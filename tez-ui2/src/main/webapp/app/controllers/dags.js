@@ -24,7 +24,7 @@ export default TablePageController.extend({
   breadcrumbs: [],
 
   columns: ColumnDefinition.make([{
-    id: 'dagName',
+    id: 'name',
     headerTitle: 'Dag Name',
     contentPath: 'name',
     cellComponentName: 'em-table-linked-cell',

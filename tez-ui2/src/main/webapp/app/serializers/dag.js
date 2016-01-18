@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +20,8 @@
 import Ember from 'ember';
 
 import TimelineSerializer from './timeline';
+
+var MoreObject = more.Object;
 
 function getStatus(source) {
   var status = Ember.get(source, 'otherinfo.status') || Ember.get(source, 'primaryfilters.status.0'),
@@ -86,9 +89,21 @@ function getContainerLogs(source) {
   return containerLogs;
 }
 
+function getIdNameMap(source) {
+  var nameIdMap = Ember.get(source, 'otherinfo.vertexNameIdMapping'),
+      idNameMap = {};
+
+  if(nameIdMap) {
+    MoreObject.forEach(nameIdMap, function (name, id) {
+      idNameMap[id] = name;
+    });
+  }
+
+  return idNameMap;
+}
+
 export default TimelineSerializer.extend({
   maps: {
-    entityID: 'entity',
     name: 'primaryfilters.dagName.0',
 
     user: 'primaryfilters.user.0',
@@ -101,11 +116,11 @@ export default TimelineSerializer.extend({
     endTime: getEndTime,
     // duration
 
-    appID: 'otherinfo.applicationId',
+    // appID
     domain: 'domain',
     // queue
     containerLogs: getContainerLogs,
 
-    counterGroups: 'otherinfo.counters.counterGroups'
+    vertexIdNameMap: getIdNameMap
   }
 });

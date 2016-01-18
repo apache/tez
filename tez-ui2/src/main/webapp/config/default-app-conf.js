@@ -19,6 +19,7 @@
 module.exports = { // Tez App configurations
   buildVersion: "",
   isStandalone: true, // Must be set false while running in wrapped mode
+  rowLoadLimit: 9007199254740991,
   hosts: {
     timeline: 'localhost:8188',
     rm: 'localhost:8088',
@@ -39,7 +40,7 @@ module.exports = { // Tez App configurations
       dag: 'TEZ_DAG_ID',
       vertex: 'TEZ_VERTEX_ID',
       task: 'TEZ_TASK_ID',
-      taskAttempt: 'TEZ_TASK_ATTEMPT_ID',
+      attempt: 'TEZ_TASK_ATTEMPT_ID',
 
       hiveQuery: 'HIVE_QUERY_ID',
 

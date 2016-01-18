@@ -16,21 +16,34 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
+moduleFor('serializer:vertex', 'Unit | Serializer | vertex', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  // needs: ['serializer:vertex']
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
+  let serializer = this.subject();
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  assert.ok(serializer);
+  assert.ok(serializer.maps);
+  assert.ok(serializer.maps.processorClassName);
+});
+
+test('processorClassName test', function(assert) {
+  let serializer = this.subject(),
+      processorClassName = serializer.maps.processorClassName;
+
+  assert.equal(processorClassName({}), "");
+  assert.equal(processorClassName({
+    otherinfo: {
+      processorClassName: "foo"
+    }
+  }), "foo");
+  assert.equal(processorClassName({
+    otherinfo: {
+      processorClassName: "a.b.foo"
+    }
+  }), "foo");
 });

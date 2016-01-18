@@ -18,19 +18,27 @@
 
 import Ember from 'ember';
 
-import { moduleFor, test } from 'ember-qunit';
+import TimelineSerializer from './timeline';
 
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+function getProcessorClass(source) {
+  var name = Ember.get(source, 'otherinfo.processorClassName') || "";
+  return name.substr(name.lastIndexOf('.') + 1);
+}
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
+export default TimelineSerializer.extend({
+  maps: {
+    name: 'otherinfo.vertexName',
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+    firstTaskStartTime: 'otherinfo.stats.firstTaskStartTime',
+
+    numTasks: 'otherinfo.numTasks',
+    failedTasks: 'otherinfo.numFailedTasks',
+    sucessfulTasks: 'otherinfo.numSucceededTasks',
+    killedTasks: 'otherinfo.numKilledTasks',
+
+    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
+    killedTaskAttempts: 'otherinfo.numKilledTaskAttempts',
+
+    processorClassName: getProcessorClass,
+  }
 });

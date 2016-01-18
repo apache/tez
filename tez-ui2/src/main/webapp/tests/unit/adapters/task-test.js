@@ -16,21 +16,14 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
+moduleFor('adapter:task', 'Unit | Adapter | task', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  // needs: ['serializer:foo']
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  let adapter = this.subject();
+  assert.ok(adapter);
 });

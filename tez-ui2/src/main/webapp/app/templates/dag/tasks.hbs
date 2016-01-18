@@ -16,4 +16,18 @@
  * limitations under the License.
 }}
 
-Tasks
+{{#if loaded}}
+  {{em-table
+    columns=columns
+    rows=model
+
+    definition=definition
+
+    searchAction="searchChanged"
+    sortAction="sortChanged"
+    rowAction="rowsChanged"
+    pageAction="pageChanged"
+  }}
+{{else}}
+  {{partial "partials/loading-anim"}}
+{{/if}}

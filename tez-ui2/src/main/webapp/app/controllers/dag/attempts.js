@@ -16,11 +16,66 @@
  * limitations under the License.
  */
 
-import PageController from '../page';
+import TablePageController from '../table-page';
+import ColumnDefinition from 'em-table/utils/column-definition';
 
-export default PageController.extend({
+export default TablePageController.extend({
   breadcrumbs: [{
     text: "All Attempts",
     routeName: "dag.attempts",
-  }]
+  }],
+
+  columns: ColumnDefinition.make([{
+    id: 'index',
+    headerTitle: 'Attempt No',
+    contentPath: 'index'
+  },{
+    id: 'taskIndex',
+    headerTitle: 'Task Index',
+    contentPath: 'taskIndex'
+  },{
+    id: 'vertexName',
+    headerTitle: 'Vertex Index',
+    contentPath: 'vertexName'
+  },{
+    id: 'status',
+    headerTitle: 'Status',
+    contentPath: 'status',
+    cellComponentName: 'em-table-status-cell'
+  },{
+    id: 'progress',
+    headerTitle: 'Progress',
+    contentPath: 'progress',
+    cellComponentName: 'em-table-progress-cell',
+    observePath: true
+  },{
+    id: 'startTime',
+    headerTitle: 'Start Time',
+    contentPath: 'startTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'endTime',
+    headerTitle: 'End Time',
+    contentPath: 'endTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'duration',
+    headerTitle: 'Duration',
+    contentPath: 'duration',
+    cellDefinition: {
+      type: 'duration'
+    }
+  },{
+    id: 'containerID',
+    headerTitle: 'Container',
+    contentPath: 'containerID'
+  },{
+    id: 'nodeID',
+    headerTitle: 'Node',
+    contentPath: 'nodeID'
+  }])
 });
