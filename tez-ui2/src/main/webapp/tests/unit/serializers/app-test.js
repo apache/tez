@@ -16,34 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import LoaderSerializer from './loader';
+import { moduleFor, test } from 'ember-qunit';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+moduleFor('serializer:task', 'Unit | Serializer | task', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:task']
+});
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
+test('Basic creation test', function(assert) {
+  let serializer = this.subject();
 
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
-
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
-
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
-
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
-  }
+  assert.ok(serializer);
+  assert.ok(serializer.maps);
 });

@@ -17,33 +17,20 @@
  */
 
 import Ember from 'ember';
-import LoaderSerializer from './loader';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+import { moduleFor, test } from 'ember-qunit';
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
+moduleFor('controller:app/dags', 'Unit | Controller | vertex/attempts', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K
+  });
 
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
-
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
-
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
-  }
+  assert.ok(controller);
+  assert.ok(controller.breadcrumbs);
+  assert.ok(controller.columns);
 });

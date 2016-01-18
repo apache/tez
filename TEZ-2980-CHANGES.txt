@@ -17,3 +17,4 @@ ALL CHANGES:
   TEZ-3039. Tez UI 2: Create all sub-pages for DAG
   TEZ-3040. Tez UI 2: Create Vertex details page & sub tables
   TEZ-3041. Tez UI 2: Create Task & Attempt details page with sub tables
+  TEZ-3045. Tez UI 2: Create application details page with DAGs tab

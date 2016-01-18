@@ -16,12 +16,14 @@
  * limitations under the License.
  */
 
-import TablePageController from './table-page';
+import TablePageController from '../table-page';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
 export default TablePageController.extend({
-
-  breadcrumbs: [],
+  breadcrumbs: [{
+    text: "DAGs",
+    routeName: "app.dags",
+  }],
 
   columns: ColumnDefinition.make([{
     id: 'name',
@@ -74,18 +76,6 @@ export default TablePageController.extend({
     contentPath: 'duration',
     cellDefinition: {
       type: 'duration'
-    }
-  },{
-    id: 'appID',
-    headerTitle: 'Application Id',
-    contentPath: 'appID',
-    cellComponentName: 'em-table-linked-cell',
-    getCellContent: function (row) {
-      return {
-        routeName: "app",
-        model: row.get("appID"),
-        text: row.get("appID")
-      };
     }
   },{
     id: 'queue',

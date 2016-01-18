@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,36 +14,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
-import LoaderSerializer from './loader';
+{{#if loaded}}
+  {{em-table
+  columns=columns
+  rows=model
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+  definition=definition
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
-
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
-
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
-
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
-
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
-  }
-});
+  searchAction="searchChanged"
+  sortAction="sortChanged"
+  rowAction="rowsChanged"
+  pageAction="pageChanged"
+  }}
+{{else}}
+  {{partial "partials/loading-anim"}}
+{{/if}}

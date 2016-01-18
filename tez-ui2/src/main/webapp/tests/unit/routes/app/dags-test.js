@@ -16,34 +16,30 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import LoaderSerializer from './loader';
+import { moduleFor, test } from 'ember-qunit';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+moduleFor('route:app/dags', 'Unit | Route | vertex/attempts', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
+test('Basic creation test', function(assert) {
+  let route = this.subject();
 
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
+  assert.ok(route);
+  assert.ok(route.title);
+  assert.ok(route.setupController);
+  assert.ok(route.load);
+});
 
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
+test('setupController test', function(assert) {
+  assert.expect(1);
 
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
+  let route = this.subject({
+    startCrumbBubble: function () {
+      assert.ok(true);
+    }
+  });
 
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
-  }
+  route.setupController({}, {});
 });

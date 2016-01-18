@@ -16,34 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import LoaderSerializer from './loader';
+import TimelineAdapter from './timeline';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
-
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
-
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
-
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
-
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
-
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
-  }
+export default TimelineAdapter.extend({
 });

@@ -44,7 +44,7 @@ module.exports = { // Tez App configurations
 
       hiveQuery: 'HIVE_QUERY_ID',
 
-      tezApp: 'TEZ_APPLICATION'
+      app: 'TEZ_APPLICATION'
     }
   },
   hrefs: {

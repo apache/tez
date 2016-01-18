@@ -17,33 +17,36 @@
  */
 
 import Ember from 'ember';
-import LoaderSerializer from './loader';
+import DS from 'ember-data';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+import TimelineModel from './timeline';
+/*
+  Inherited properties
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
+  entityID - String
+  appID - Computed from entityID
 
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
+  status - String
+  progress - Computed from status
 
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
+  startTime - Number
+  endTime - Number
+  duration - Computed from start & end times
 
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
+  counterGroups - Array
+  counterHash - Computed from counterGroups
+*/
 
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
+export default TimelineModel.extend({
+  appID: Ember.computed("entityID", function () {
+    return this.get("entityID").substr(4);
+  }),
 
-    diagnostics: 'otherinfo.diagnostics',
-  }
+  domain: DS.attr("string"),
+
+  user: DS.attr("string"),
+
+  buildTime: DS.attr("string"),
+  tezRevision: DS.attr("string"),
+  tezVersion: DS.attr("string"),
 });

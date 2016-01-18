@@ -16,7 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import AbstractRoute from './abstract';
 
-export default Ember.Route.extend({
+export default AbstractRoute.extend({
+  title: "Application",
+
+  loaderQueryParams: {
+    id: "app_id"
+  },
+
+  model: function (params) {
+    return this.get("loader").queryRecord('app', "tez_" + this.queryFromParams(params).id);
+  }
 });

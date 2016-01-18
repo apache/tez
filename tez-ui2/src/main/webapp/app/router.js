@@ -38,7 +38,9 @@ Router.map(function() {
     this.route('attempts');
   });
   this.route('attempt', {path: '/attempt/:attempt_id'}, function () {});
-  this.route('app', {path: '/app/:app_id'}, function () {});
+  this.route('app', {path: '/app/:app_id'}, function () {
+    this.route('dags');
+  });
 });
 
 export default Router;

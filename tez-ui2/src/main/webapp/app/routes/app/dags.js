@@ -17,33 +17,19 @@
  */
 
 import Ember from 'ember';
-import LoaderSerializer from './loader';
+import AbstractRoute from '../abstract';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+export default AbstractRoute.extend({
+  title: "DAGs",
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
   },
 
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
-
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
-
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
-
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
+  load: function (/*value, query*/) {
+    return this.get("loader").query('dag', {
+      appID: (this.modelFor("app").id || "").substr(4)
+    });
   }
 });

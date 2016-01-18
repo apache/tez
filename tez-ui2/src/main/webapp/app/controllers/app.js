@@ -17,33 +17,25 @@
  */
 
 import Ember from 'ember';
-import LoaderSerializer from './loader';
 
-export default LoaderSerializer.extend({
-  primaryKey: 'appId',
+import AbstractController from './abstract';
 
-  extractArrayPayload: function (payload) {
-    return payload.app;
-  },
+export default AbstractController.extend({
+  breadcrumbs: Ember.computed("model.appID", "model.app.name", function () {
+    var name = this.get("model.app.name") || this.get("model.appID");
 
-  maps: {
-    entityID: 'appId',
-    attemptID: function(source) {
-      // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
-    },
+    return [{
+      text: `Application [ ${name} ]`,
+      routeName: "app.index",
+      model: this.get("model.entityID")
+    }];
+  }),
 
-    name: 'name',
-    queue: 'queue',
-    user: 'user',
-    type: 'type',
-
-    status: 'appState',
-    finalStatus: 'finalAppStatus',
-
-    startTime: 'startedTime',
-    endTime: 'finishedTime',
-
-    diagnostics: 'otherinfo.diagnostics',
-  }
+  tabs: [{
+    text: "Application Details",
+    routeName: "app.index"
+  }, {
+    text: "DAGs",
+    routeName: "app.dags"
+  }]
 });
