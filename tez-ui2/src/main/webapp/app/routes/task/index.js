@@ -17,28 +17,17 @@
  */
 
 import Ember from 'ember';
-import config from './config/environment';
+import AbstractRoute from '../abstract';
 
-const Router = Ember.Router.extend({
-  location: config.locationType
+export default AbstractRoute.extend({
+  title: "DAG Details",
+
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
+
+  load: function (/*value, query*/) {
+    return this.get("loader").queryRecord('task', this.modelFor("task").id);
+  },
 });
-
-Router.map(function() {
-  this.route('dags', { path: '/' });
-  this.route('dag', {path: '/dag/:dag_id'}, function() {
-    this.route('vertices');
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('task', {path: '/task/:task_id'}, function() {
-    this.route('attempts');
-  });
-  this.route('attempt', {path: '/attempt/:attempt_id'}, function () {});
-  this.route('app', {path: '/app/:app_id'}, function () {});
-});
-
-export default Router;

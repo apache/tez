@@ -21,32 +21,20 @@ import ColumnDefinition from 'em-table/utils/column-definition';
 
 export default TablePageController.extend({
   breadcrumbs: [{
-    text: "All Tasks",
-    routeName: "dag.tasks",
+    text: "Task Attempts",
+    routeName: "task.attempts",
   }],
 
   columns: ColumnDefinition.make([{
     id: 'index',
-    headerTitle: 'Task Index',
+    headerTitle: 'Attempt No',
     contentPath: 'index',
     cellComponentName: 'em-table-linked-cell',
     getCellContent: function (row) {
       return {
-        routeName: "task",
+        routeName: "attempt",
         model: row.get("entityID"),
         text: row.get("index")
-      };
-    }
-  },{
-    id: 'vertexName',
-    headerTitle: 'Vertex Name',
-    contentPath: 'vertexName',
-    cellComponentName: 'em-table-linked-cell',
-    getCellContent: function (row) {
-      return {
-        routeName: "vertex",
-        model: row.get("vertexID"),
-        text: row.get("vertexName")
       };
     }
   },{
@@ -81,5 +69,13 @@ export default TablePageController.extend({
     cellDefinition: {
       type: 'duration'
     }
+  },{
+    id: 'containerID',
+    headerTitle: 'Container',
+    contentPath: 'containerID'
+  },{
+    id: 'nodeID',
+    headerTitle: 'Node',
+    contentPath: 'nodeID'
   }])
 });

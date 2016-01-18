@@ -28,7 +28,15 @@ export default TablePageController.extend({
   columns: ColumnDefinition.make([{
     id: 'index',
     headerTitle: 'Task Index',
-    contentPath: 'index'
+    contentPath: 'index',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "task",
+        model: row.get("entityID"),
+        text: row.get("index")
+      };
+    }
   },{
     id: 'status',
     headerTitle: 'Status',

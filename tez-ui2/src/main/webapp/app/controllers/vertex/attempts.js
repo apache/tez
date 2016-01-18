@@ -28,11 +28,27 @@ export default TablePageController.extend({
   columns: ColumnDefinition.make([{
     id: 'index',
     headerTitle: 'Attempt No',
-    contentPath: 'index'
+    contentPath: 'index',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "attempt",
+        model: row.get("entityID"),
+        text: row.get("index")
+      };
+    }
   },{
     id: 'taskIndex',
     headerTitle: 'Task Index',
-    contentPath: 'taskIndex'
+    contentPath: 'taskIndex',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "task",
+        model: row.get("taskID"),
+        text: row.get("taskIndex")
+      };
+    }
   },{
     id: 'status',
     headerTitle: 'Status',

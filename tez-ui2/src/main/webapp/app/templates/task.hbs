@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,31 +14,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
-import config from './config/environment';
-
-const Router = Ember.Router.extend({
-  location: config.locationType
-});
-
-Router.map(function() {
-  this.route('dags', { path: '/' });
-  this.route('dag', {path: '/dag/:dag_id'}, function() {
-    this.route('vertices');
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('task', {path: '/task/:task_id'}, function() {
-    this.route('attempts');
-  });
-  this.route('attempt', {path: '/attempt/:attempt_id'}, function () {});
-  this.route('app', {path: '/app/:app_id'}, function () {});
-});
-
-export default Router;
+{{tab-n-refresh tabs=tabs}}
+{{outlet}}

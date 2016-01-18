@@ -17,28 +17,20 @@
  */
 
 import Ember from 'ember';
-import config from './config/environment';
 
-const Router = Ember.Router.extend({
-  location: config.locationType
+import { moduleFor, test } from 'ember-qunit';
+
+moduleFor('controller:task', 'Unit | Controller | vertex', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
 });
 
-Router.map(function() {
-  this.route('dags', { path: '/' });
-  this.route('dag', {path: '/dag/:dag_id'}, function() {
-    this.route('vertices');
-    this.route('tasks');
-    this.route('attempts');
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K
   });
-  this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('task', {path: '/task/:task_id'}, function() {
-    this.route('attempts');
-  });
-  this.route('attempt', {path: '/attempt/:attempt_id'}, function () {});
-  this.route('app', {path: '/app/:app_id'}, function () {});
-});
 
-export default Router;
+  assert.ok(controller);
+  assert.ok(controller.breadcrumbs);
+  assert.ok(controller.tabs);
+});

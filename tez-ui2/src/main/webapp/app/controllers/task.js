@@ -17,28 +17,35 @@
  */
 
 import Ember from 'ember';
-import config from './config/environment';
 
-const Router = Ember.Router.extend({
-  location: config.locationType
+import AbstractController from './abstract';
+
+export default AbstractController.extend({
+  breadcrumbs: Ember.computed("model.dag", function () {
+    var dagName = this.get("model.dag.name"),
+        vertexName = this.get("model.vertexName"),
+        taskIndex = this.get("model.index");
+
+    return [{
+      text: `DAG [ ${dagName} ]`,
+      routeName: "dag.index",
+      model: this.get("model.dagID")
+    },{
+      text: `Vertex [ ${vertexName} ]`,
+      routeName: "vertex.index",
+      model: this.get("model.vertexID")
+    },{
+      text: `Task [ ${taskIndex} ]`,
+      routeName: "task.index",
+      model: this.get("model.entityID")
+    }];
+  }),
+
+  tabs: [{
+    text: "Task Details",
+    routeName: "task.index"
+  }, {
+    text: "Task Attempts",
+    routeName: "task.attempts"
+  }]
 });
-
-Router.map(function() {
-  this.route('dags', { path: '/' });
-  this.route('dag', {path: '/dag/:dag_id'}, function() {
-    this.route('vertices');
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
-    this.route('tasks');
-    this.route('attempts');
-  });
-  this.route('task', {path: '/task/:task_id'}, function() {
-    this.route('attempts');
-  });
-  this.route('attempt', {path: '/attempt/:attempt_id'}, function () {});
-  this.route('app', {path: '/app/:app_id'}, function () {});
-});
-
-export default Router;
