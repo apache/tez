@@ -26,5 +26,7 @@ export default TimelineSerializer.extend({
     buildTime: 'otherinfo.tezVersion.buildTime',
     tezRevision: 'otherinfo.tezVersion.revision',
     tezVersion: 'otherinfo.tezVersion.version',
+
+    configs: 'otherinfo.config',
   }
 });

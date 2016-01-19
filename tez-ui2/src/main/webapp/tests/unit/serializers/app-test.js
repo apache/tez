@@ -18,7 +18,7 @@
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('serializer:task', 'Unit | Serializer | task', {
+moduleFor('serializer:app', 'Unit | Serializer | app', {
   // Specify the other units that are required for this test.
   // needs: ['serializer:task']
 });

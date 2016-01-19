@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dag/counters', 'Unit | Controller | vertex/index', {
+moduleFor('controller:dag/counters', 'Unit | Controller | dag/counters', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });

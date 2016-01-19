@@ -45,6 +45,7 @@ Router.map(function() {
   });
   this.route('app', {path: '/app/:app_id'}, function () {
     this.route('dags');
+    this.route('configs');
   });
 });
 

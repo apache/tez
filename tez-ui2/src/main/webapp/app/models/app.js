@@ -49,4 +49,6 @@ export default TimelineModel.extend({
   buildTime: DS.attr("string"),
   tezRevision: DS.attr("string"),
   tezVersion: DS.attr("string"),
+
+  configs: DS.attr("object"),
 });

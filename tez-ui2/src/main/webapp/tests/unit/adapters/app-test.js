@@ -18,7 +18,7 @@
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('adapter:app', 'Unit | Adapter | dag', {
+moduleFor('adapter:app', 'Unit | Adapter | app', {
   // Specify the other units that are required for this test.
   // needs: ['serializer:foo']
 });

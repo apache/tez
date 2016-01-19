@@ -37,5 +37,8 @@ export default AbstractController.extend({
   }, {
     text: "DAGs",
     routeName: "app.dags"
+  }, {
+    text: "Configurations",
+    routeName: "app.configs"
   }]
 });

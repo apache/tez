@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:task/attempts', 'Unit | Controller | vertex/attempts', {
+moduleFor('controller:task/attempts', 'Unit | Controller | task/attempts', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });

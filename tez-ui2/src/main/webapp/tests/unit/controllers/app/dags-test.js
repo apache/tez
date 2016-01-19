@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:app/dags', 'Unit | Controller | vertex/attempts', {
+moduleFor('controller:app/dags', 'Unit | Controller | app/dags', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });

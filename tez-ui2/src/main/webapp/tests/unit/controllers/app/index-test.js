@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:app/index', 'Unit | Controller | vertex/index', {
+moduleFor('controller:app/index', 'Unit | Controller | app/index', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });

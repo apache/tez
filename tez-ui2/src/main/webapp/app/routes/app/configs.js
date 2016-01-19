@@ -17,18 +17,17 @@
  */
 
 import Ember from 'ember';
+import AbstractRoute from '../abstract';
 
-import { moduleFor, test } from 'ember-qunit';
+export default AbstractRoute.extend({
+  title: "Application Details",
 
-moduleFor('controller:attempt/index', 'Unit | Controller | attempt/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
-
-  assert.ok(controller);
+  load: function (/*value, query*/) {
+    return this.get("loader").queryRecord('app', this.modelFor("app").id);
+  },
 });

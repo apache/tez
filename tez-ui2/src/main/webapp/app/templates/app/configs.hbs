@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,21 +14,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
+{{#if loaded}}
+  {{em-table
+  columns=columns
+  rows=configs
 
-import { moduleFor, test } from 'ember-qunit';
+  rowCount=configs.length
+  definition=definition
 
-moduleFor('controller:attempt/index', 'Unit | Controller | attempt/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  enablePagination=false
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K
-  });
-
-  assert.ok(controller);
-});
+  searchAction="searchChanged"
+  sortAction="sortChanged"
+  }}
+{{else}}
+  {{partial "partials/loading-anim"}}
+{{/if}}

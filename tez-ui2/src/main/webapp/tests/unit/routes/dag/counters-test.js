@@ -18,7 +18,7 @@
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('route:dag/counters', 'Unit | Route | dag/index', {
+moduleFor('route:dag/counters', 'Unit | Route | dag/counters', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });

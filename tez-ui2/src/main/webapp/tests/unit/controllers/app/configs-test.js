@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:attempt/index', 'Unit | Controller | attempt/index', {
+moduleFor('controller:app/configs', 'Unit | Controller | app/configs', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
@@ -31,4 +31,9 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
+  assert.ok(controller.breadcrumbs);
+  assert.ok(controller.columns);
+  assert.ok(controller.configs);
+
+  assert.ok(controller.get("searchText"), "tez");
 });

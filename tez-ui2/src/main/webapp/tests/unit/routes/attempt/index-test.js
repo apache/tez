@@ -18,7 +18,7 @@
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('route:attempt/index', 'Unit | Route | vertex/index', {
+moduleFor('route:attempt/index', 'Unit | Route | attempt/index', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
