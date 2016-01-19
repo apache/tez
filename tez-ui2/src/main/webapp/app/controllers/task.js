@@ -45,6 +45,9 @@ export default AbstractController.extend({
     text: "Task Details",
     routeName: "task.index"
   }, {
+    text: "Task Counters",
+    routeName: "task.counters"
+  }, {
     text: "Task Attempts",
     routeName: "task.attempts"
   }]

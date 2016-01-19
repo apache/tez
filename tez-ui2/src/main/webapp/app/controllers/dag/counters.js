@@ -16,35 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import CountersPageController from '../counters-page';
 
-import AbstractController from './abstract';
-
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
-
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
-
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
+export default CountersPageController.extend({
+  breadcrumbs: [{
     text: "DAG Counters",
-    routeName: "dag.counters"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+    routeName: "dag.counters",
+  }],
 });

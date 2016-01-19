@@ -49,5 +49,8 @@ export default AbstractController.extend({
   tabs: [{
     text: "Attempt Details",
     routeName: "attempt.index"
+  },{
+    text: "Attempt Counters",
+    routeName: "attempt.counters"
   }]
 });

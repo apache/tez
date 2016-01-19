@@ -40,6 +40,9 @@ export default AbstractController.extend({
     text: "Vertex Details",
     routeName: "vertex.index"
   }, {
+    text: "Vertex Counters",
+    routeName: "vertex.counters"
+  }, {
     text: "Tasks",
     routeName: "vertex.tasks"
   }, {

@@ -16,35 +16,31 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleFor, test } from 'ember-qunit';
 
-import AbstractController from './abstract';
-
-export default AbstractController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
-
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index",
-      model: this.get("model.entityID")
-    }];
-  }),
-
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index"
-  }, {
-    text: "DAG Counters",
-    routeName: "dag.counters"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+moduleFor('route:dag/counters', 'Unit | Route | dag/index', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
 });
+
+test('Basic creation test', function(assert) {
+  let route = this.subject();
+
+  assert.ok(route);
+  assert.ok(route.title);
+  assert.ok(route.setupController);
+  assert.ok(route.load);
+});
+
+test('setupController test', function(assert) {
+  assert.expect(1);
+
+  let route = this.subject({
+    startCrumbBubble: function () {
+      assert.ok(true);
+    }
+  });
+
+  route.setupController({}, {});
+});
+
