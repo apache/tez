@@ -849,16 +849,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       try {
         processorClosed = true;
         processor.close();
-        LOG.info("Closed processor for vertex={}, index={}, interruptedStatus={}",
+        LOG.info("Closed processor for vertex={}, index={}",
             processor
             .getContext().getTaskVertexName(),
-            processor.getContext().getTaskVertexIndex(),
-            Thread.currentThread().isInterrupted());
-        maybeResetInterruptStatus();
-      } catch (InterruptedException ie) {
-        //reset the status
-        LOG.info("Resetting interrupt for processor");
-        Thread.currentThread().interrupt();
+            processor.getContext().getTaskVertexIndex());
       } catch (Throwable e) {
         LOG.warn(
             "Ignoring Exception when closing processor(cleanup). Exception class={}, message={}" +
