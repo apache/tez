@@ -18,9 +18,11 @@
 
 {{#if loaded}}
   {{em-table
-    columns=columns
+    columns=visibleColumns
     rows=model
     rowCount=rowCount
+
+    headerComponentNames=headerComponentNames
 
     enableSearch=false
     enableSort=false

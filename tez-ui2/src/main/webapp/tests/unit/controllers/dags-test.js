@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('controller:dags', 'Unit | Controller | dags', {
@@ -27,6 +29,7 @@ test('Basic creation test', function(assert) {
   assert.expect(2 + 2);
 
   let controller = this.subject({
+    initVisibleColumns: Ember.K,
     send: function (name, query) {
       assert.equal(name, "setBreadcrumbs");
       assert.ok(query);

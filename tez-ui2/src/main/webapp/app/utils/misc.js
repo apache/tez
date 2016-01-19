@@ -16,21 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-});
+export default function isIOCounter(name) {
+  name = name.split('/')[0];
+  return name.match('_INPUT_') || name.match('_OUTPUT_');
+}

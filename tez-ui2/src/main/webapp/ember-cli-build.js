@@ -33,6 +33,7 @@ module.exports = function(defaults) {
      destDir: '/config'
   });
 
+  app.import('bower_components/bootstrap/dist/js/bootstrap.js');
   app.import('bower_components/jquery-ui/jquery-ui.js');
   app.import('bower_components/jquery-ui/ui/tooltip.js');
 

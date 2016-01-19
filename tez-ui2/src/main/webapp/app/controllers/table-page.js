@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +21,9 @@ import Ember from 'ember';
 
 import PageController from './page';
 import TableDefinition from 'em-table/utils/table-definition';
+import isIOCounter from '../utils/misc';
+
+var MoreObject = more.Object;
 
 export default PageController.extend({
   queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
@@ -29,6 +33,12 @@ export default PageController.extend({
   sortOrder: "",
   pageNo: 1,
 
+  headerComponentNames: ['em-table-search-ui', 'table-controls', 'em-table-pagination-ui'],
+
+  visibleColumnIDs: {},
+  columnSelectorTitle: 'Column Selector',
+  columnSelectorMessage: "",
+
   definition: Ember.computed(function () {
     return TableDefinition.create({
       rowCount: this.get("rowCount"),
@@ -36,6 +46,29 @@ export default PageController.extend({
       sortColumnId: this.get("sortColumnId"),
       sortOrder: this.get("sortOrder"),
       pageNo: this.get("pageNo")
+    });
+  }),
+
+  storageID: Ember.computed("name", function () {
+    return this.get("name") + ":visibleColumnIDs";
+  }),
+
+  initVisibleColumns: Ember.on("init", Ember.observer("columns", function () { //To reset on entity change
+    var visibleColumnIDs = this.get("localStorage").get(this.get("storageID")) || {};
+
+    this.get('columns').forEach(function (config) {
+      if(visibleColumnIDs[config.id] !== false) {
+        visibleColumnIDs[config.id] = true;
+      }
+    });
+
+    this.set('visibleColumnIDs', visibleColumnIDs);
+  })),
+
+  visibleColumns: Ember.computed('visibleColumnIDs', 'columns', function() {
+    var visibleColumnIDs = this.visibleColumnIDs;
+    return this.get('columns').filter(function (column) {
+      return visibleColumnIDs[column.get("id")];
     });
   }),
 
@@ -56,5 +89,32 @@ export default PageController.extend({
     pageChanged: function (pageNum) {
       this.set("pageNo", pageNum);
     },
+
+    // Column selection actions
+    openColumnSelector: function () {
+      this.send("openModal", "column-selector", {
+        title: this.get('columnSelectorTitle'),
+        targetObject: this,
+        content: {
+          message: this.get('columnSelectorMessage'),
+          columns: this.get('columns'),
+          visibleColumnIDs: this.get('visibleColumnIDs')
+        }
+      });
+    },
+    columnsSelected: function (visibleColumnIDs) {
+      var columnIDs = {};
+
+      MoreObject.forEach(visibleColumnIDs, function (key, value) {
+        if(!isIOCounter(key)) {
+          columnIDs[key] = value;
+        }
+      });
+
+      if(!MoreObject.equals(columnIDs, this.get("visibleColumnIDs"))) {
+        this.get("localStorage").set(this.get("storageID"), columnIDs);
+        this.set('visibleColumnIDs', columnIDs);
+      }
+    }
   }
 });

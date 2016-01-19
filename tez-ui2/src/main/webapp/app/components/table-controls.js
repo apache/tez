@@ -18,19 +18,12 @@
 
 import Ember from 'ember';
 
-import { moduleFor, test } from 'ember-qunit';
+export default Ember.Component.extend({
+  classNames: ['table-controls'],
 
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
+  actions: {
+    cogClicked: function () {
+      this.get('targetObject.targetObject').send('openColumnSelector');
+    }
+  }
 });

@@ -35,6 +35,32 @@ export default Ember.Route.extend({
     },
     bubbleBreadcrumbs: function (breadcrumbs) {
       this.set("controller.breadcrumbs", breadcrumbs);
+    },
+
+    // Modal window actions
+    openModal: function (componentName, options) {
+      options = options || {};
+      this.render(options.modalName || "simple-modal", {
+        into: 'application',
+        outlet: 'modal',
+        model: {
+          title: options.title,
+          componentName: componentName,
+          content: options.content,
+          targetObject: options.targetObject
+        }
+      });
+      Ember.run.later(function () {
+        Ember.$(".simple-modal").modal();
+      });
+    },
+    destroyModal: function () {
+      Ember.run.later(this, function () {
+        this.disconnectOutlet({
+          outlet: 'modal',
+          parentView: 'application'
+        });
+      });
     }
   }
 });

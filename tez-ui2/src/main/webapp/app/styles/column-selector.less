@@ -16,21 +16,50 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+.column-selector {
+  .message {
+    text-align: right;
+    font-size: 10px;
+  }
 
-import { moduleFor, test } from 'ember-qunit';
+  .selection-list {
+    border-bottom: 1px solid @border-color;
 
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+    .highlight {
+      background-color: @bg-lite;
+    }
+    .select-option, .search-option {
+      border-top: 1px dotted @border-color;
+      padding: 5px 15px;
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
+      .checkbox {
+        display: inline-block;
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-});
+        margin-right: 10px;
+        float: left;
+        vertical-align: middle;
+      }
+    }
+    .search-option {
+      border: none;
+
+      .form-group {
+        display: inline-block;
+
+        width: 100%;
+        margin: 0px;
+      }
+
+      .select-all {
+        display: inline-block;
+
+        height: 15px;
+        margin-top: 3px;
+      }
+    }
+  }
+}
+.form-actions {
+  padding: 10px;
+  text-align: right;
+}

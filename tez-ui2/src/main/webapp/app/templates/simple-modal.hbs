@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,23 +14,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
-
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-});
+<div class="modal fade simple-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">{{model.title}}</h4>
+      </div>
+      {{#if model.componentName}}
+        {{component model.componentName content=model.content targetObject=model.targetObject}}
+      {{/if}}
+    </div>
+  </div>
+</div>

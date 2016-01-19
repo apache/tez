@@ -21,3 +21,4 @@ ALL CHANGES:
   TEZ-3048. Tez UI 2: Make PhantomJS a local dependency for build tests
   TEZ-3042. Tez UI 2: Create Counters pages
   TEZ-3043. Tez UI 2: Create configurations page
+  TEZ-3049. Tez UI 2: Add column selector

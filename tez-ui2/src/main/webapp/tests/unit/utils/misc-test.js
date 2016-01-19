@@ -16,21 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import isIOCounter from '../../../utils/misc';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Utility | misc');
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
+  assert.ok(isIOCounter);
 });

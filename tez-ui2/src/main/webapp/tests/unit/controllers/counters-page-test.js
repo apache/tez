@@ -27,7 +27,8 @@ moduleFor('controller:counters-page', 'Unit | Controller | counters page', {
 
 test('Basic creation test', function(assert) {
   let controller = this.subject({
-    send: Ember.K
+    send: Ember.K,
+    initVisibleColumns: Ember.K
   });
 
   assert.ok(controller);
@@ -38,6 +39,7 @@ test('Basic creation test', function(assert) {
 test('counters test', function(assert) {
   let controller = this.subject({
     send: Ember.K,
+    initVisibleColumns: Ember.K,
     model: {
       counterGroups: [{
         counterGroupName: "a.b.foo",

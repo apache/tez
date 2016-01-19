@@ -18,15 +18,17 @@
 
 {{#if loaded}}
   {{em-table
-  columns=columns
-  rows=model
+    columns=visibleColumns
+    rows=model
 
-  definition=definition
+    headerComponentNames=headerComponentNames
 
-  searchAction="searchChanged"
-  sortAction="sortChanged"
-  rowAction="rowsChanged"
-  pageAction="pageChanged"
+    definition=definition
+
+    searchAction="searchChanged"
+    sortAction="sortChanged"
+    rowAction="rowsChanged"
+    pageAction="pageChanged"
   }}
 {{else}}
   {{partial "partials/loading-anim"}}

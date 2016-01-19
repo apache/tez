@@ -16,21 +16,28 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+moduleForComponent('table-controls', 'Integration | Component | table controls', {
+  integration: true
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
+  // Set any properties with this.set('myProperty', 'value');
+  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+
+  this.render(hbs`{{table-controls}}`);
+
+  assert.equal(this.$().text().trim(), '');
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#table-controls}}
+      template block text
+    {{/table-controls}}
+  `);
+
+  assert.equal(this.$().text().trim(), '');
 });

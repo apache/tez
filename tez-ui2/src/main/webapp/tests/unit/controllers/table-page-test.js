@@ -27,7 +27,8 @@ moduleFor('controller:table-page', 'Unit | Controller | table page', {
 
 test('Basic creation test', function(assert) {
   let controller = this.subject({
-    send: Ember.K
+    send: Ember.K,
+    initVisibleColumns: Ember.K
   });
 
   assert.ok(controller);

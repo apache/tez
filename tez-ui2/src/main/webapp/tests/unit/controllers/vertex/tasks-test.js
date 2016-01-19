@@ -22,12 +22,13 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('controller:vertex/tasks', 'Unit | Controller | vertex/tasks', {
   // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+  // needs: ['service:local-storage']
 });
 
 test('Basic creation test', function(assert) {
   let controller = this.subject({
-    send: Ember.K
+    send: Ember.K,
+    initVisibleColumns: Ember.K
   });
 
   assert.ok(controller);

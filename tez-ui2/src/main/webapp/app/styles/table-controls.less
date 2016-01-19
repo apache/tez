@@ -16,21 +16,13 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+@import "shared";
 
-import { moduleFor, test } from 'ember-qunit';
+.table-controls {
+  .left-delim;
 
-moduleFor('controller:vertex/counters', 'Unit | Controller | vertex/counters', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  cursor: pointer;
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-});
+  float: right;
+  font-size: 24px;
+}
