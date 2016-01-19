@@ -19,6 +19,7 @@
 
 Releases
 ------------
+-   [Apache Tez 0.8.2](./apache-tez-0-8-2.html) (Jan 19, 2016)
 -   [Apache Tez 0.8.1-alpha](./apache-tez-0-8-1-alpha.html) (Oct 12, 2015)
 -   [Apache Tez 0.8.0-alpha](./apache-tez-0-8-0-alpha.html) (Sep 01, 2015)
 -   [Apache Tez 0.7.0](./apache-tez-0-7-0.html) (May 18, 2015)
