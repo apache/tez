@@ -410,7 +410,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
   private ContainerTask getContainerTask(ContainerId containerId) throws IOException {
     ContainerInfo containerInfo = registeredContainers.get(containerId);
-    ContainerTask task = null;
+    ContainerTask task;
     if (containerInfo == null) {
       if (getContext().isKnownContainer(containerId)) {
         LOG.info("Container with id: " + containerId
@@ -422,6 +422,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       task = TASK_FOR_INVALID_JVM;
     } else {
       synchronized (containerInfo) {
+        getContext().containerAlive(containerId);
         if (containerInfo.taskSpec != null) {
           if (!containerInfo.taskPulled) {
             containerInfo.taskPulled = true;

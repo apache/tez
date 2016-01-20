@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3053. Containers timeout if they do not receive a task within the container timeout interval.
   TEZ-2898. tez tools : swimlanes.py is broken.
   TEZ-2937. Can Processor.close() be called after closing inputs and outputs?
   TEZ-3037. History URL should be set regardless of which history logging service is enabled.
