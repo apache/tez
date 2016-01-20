@@ -16,19 +16,35 @@
  * limitations under the License.
  */
 
+@import "../../bower_components/snippet-ss/less/force";
+@import "../../bower_components/snippet-ss/less/effects";
+
 .column-selector {
   .message {
-    text-align: right;
-    font-size: 10px;
+    position: absolute;
+    font-size: 12px;
+    padding: 1px;
+    left: 15px;
+  }
+
+  .highlight {
+    background-color: @bg-lite;
+  }
+  .per-io {
+    color: @text-green;
   }
 
   .selection-list {
     border-bottom: 1px solid @border-color;
 
-    .highlight {
-      background-color: @bg-lite;
+    .options {
+      .force-scrollbar;
+
+      max-height: 500px;
+      overflow: auto;
     }
-    .select-option, .search-option {
+
+    .select-option, .filter-option {
       border-top: 1px dotted @border-color;
       padding: 5px 15px;
 
@@ -40,7 +56,7 @@
         vertical-align: middle;
       }
     }
-    .search-option {
+    .filter-option {
       border: none;
 
       .form-group {

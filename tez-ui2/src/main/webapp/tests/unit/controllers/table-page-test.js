@@ -40,8 +40,25 @@ test('Basic creation test', function(assert) {
   assert.equal(controller.sortOrder, "");
   assert.equal(controller.pageNo, 1);
 
+  assert.ok(controller.headerComponentNames);
+  assert.ok(controller.visibleColumnIDs);
+  assert.ok(controller.columnSelectorTitle);
+  assert.ok(controller.definition);
+
+  assert.ok(controller.storageID);
+  assert.ok(controller.initVisibleColumns);
+
+  assert.ok(controller.columns);
+  assert.ok(controller.allColumns);
+  assert.ok(controller.visibleColumns);
+
+  assert.ok(controller.getCounterColumns);
+
   assert.ok(controller.actions.searchChanged);
   assert.ok(controller.actions.sortChanged);
   assert.ok(controller.actions.rowsChanged);
   assert.ok(controller.actions.pageChanged);
+
+  assert.ok(controller.actions.openColumnSelector);
+  assert.ok(controller.actions.columnsSelected);
 });

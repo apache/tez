@@ -26,7 +26,7 @@ moduleFor('controller:dags', 'Unit | Controller | dags', {
 });
 
 test('Basic creation test', function(assert) {
-  assert.expect(2 + 2);
+  assert.expect(2 + 3);
 
   let controller = this.subject({
     initVisibleColumns: Ember.K,
@@ -38,4 +38,5 @@ test('Basic creation test', function(assert) {
 
   assert.ok(controller);
   assert.ok(controller.columns);
+  assert.ok(controller.getCounterColumns);
 });

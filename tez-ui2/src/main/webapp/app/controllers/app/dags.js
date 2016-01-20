@@ -95,4 +95,7 @@ export default TablePageController.extend({
     }
   }]),
 
+  getCounterColumns: function () {
+    return this._super().concat(this.get('env.app.tables.defaultColumns.dagCounters'));
+  }
 });

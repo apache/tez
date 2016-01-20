@@ -18,5 +18,6 @@
 
 export default function isIOCounter(name) {
   name = name.split('/')[0];
-  return name.match('_INPUT_') || name.match('_OUTPUT_');
+  name = name.substr(name.indexOf('_') + 1);
+  return !!(name.match('_INPUT_') || name.match('_OUTPUT_'));
 }

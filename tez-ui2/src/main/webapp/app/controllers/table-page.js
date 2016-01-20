@@ -23,6 +23,8 @@ import PageController from './page';
 import TableDefinition from 'em-table/utils/table-definition';
 import isIOCounter from '../utils/misc';
 
+import CounterColumnDefinition from '../utils/counter-column-definition';
+
 var MoreObject = more.Object;
 
 export default PageController.extend({
@@ -32,6 +34,8 @@ export default PageController.extend({
   sortColumnId: "",
   sortOrder: "",
   pageNo: 1,
+
+  columns: [],
 
   headerComponentNames: ['em-table-search-ui', 'table-controls', 'em-table-pagination-ui'],
 
@@ -65,12 +69,23 @@ export default PageController.extend({
     this.set('visibleColumnIDs', visibleColumnIDs);
   })),
 
-  visibleColumns: Ember.computed('visibleColumnIDs', 'columns', function() {
+  allColumns: Ember.computed("columns", function () {
+    var columns = this.get("columns"),
+        counters = this.getCounterColumns();
+
+    return columns.concat(CounterColumnDefinition.make(counters));
+  }),
+
+  visibleColumns: Ember.computed('visibleColumnIDs', 'allColumns', function() {
     var visibleColumnIDs = this.visibleColumnIDs;
-    return this.get('columns').filter(function (column) {
+    return this.get('allColumns').filter(function (column) {
       return visibleColumnIDs[column.get("id")];
     });
   }),
+
+  getCounterColumns: function () {
+    return this.get('env.app.tables.defaultColumns.counters');
+  },
 
   actions: {
     searchChanged: function (searchText) {
@@ -97,7 +112,7 @@ export default PageController.extend({
         targetObject: this,
         content: {
           message: this.get('columnSelectorMessage'),
-          columns: this.get('columns'),
+          columns: this.get('allColumns'),
           visibleColumnIDs: this.get('visibleColumnIDs')
         }
       });

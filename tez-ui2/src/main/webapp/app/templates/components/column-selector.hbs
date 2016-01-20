@@ -16,11 +16,8 @@
  * limitations under the License.
 }}
 
-<div class="message">
-  {{{content.message}}}
-</div>
 <div class="selection-list">
-  <div class="search-option highlight">
+  <div class="filter-option highlight">
     <div class="form-group">
       {{input class="form-control" placeholder="Filter..." value=searchText}}
     </div>
@@ -31,18 +28,23 @@
       &nbsp;Select All
     </div>
   </div>
-  {{#if filteredOptions.length}}
-    {{#each filteredOptions as |option|}}
-      <div class="select-option {{option.css}}">
-        {{input type="checkbox" classNames='checkbox' checked=option.selected}}
-        {{option.displayText}}
-      </div>
-    {{/each}}
-  {{else}}
-    <h4>&nbsp;No options available...</h4>
-  {{/if}}
+  <div class="options">
+    {{#if filteredOptions.length}}
+      {{#each filteredOptions as |option|}}
+        <div class="select-option {{option.css}}">
+          {{input type="checkbox" classNames='checkbox' checked=option.selected}}
+          {{option.displayText}}
+        </div>
+      {{/each}}
+    {{else}}
+      <h4>&nbsp;No options available...</h4>
+    {{/if}}
+  </div>
 </div>
 <div class="form-actions">
+  <span class="message">
+    {{{content.message}}}
+  </span>
   <button type="button" class="btn btn-primary" {{action "ok"}} data-dismiss="modal" aria-label="Close">Ok</button>
   <button type="button" class="btn" data-dismiss="modal" aria-label="Close">Cancel</button>
 </div>

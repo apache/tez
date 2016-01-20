@@ -34,11 +34,11 @@ export default Ember.Component.extend({
         highlight = false,
         visibleColumnIDs = this.get('content.visibleColumnIDs') || {};
 
-    return this.get('content.columns').map(function (config) {
+    return this.get('content.columns').map(function (definition) {
       var css = '';
 
-      highlight = highlight ^ (config.get("counterGroupName") !== group);
-      group = config.counterGroupName;
+      highlight = highlight ^ (Ember.get(definition, "counterGroupName") !== group);
+      group = Ember.get(definition, "counterGroupName");
 
       if(highlight) {
         css += ' highlight';
@@ -48,10 +48,10 @@ export default Ember.Component.extend({
       }
 
       return Ember.Object.create({
-        id: config.get("id"),
-        displayText: config.get("headerTitle"),
+        id: Ember.get(definition, "id"),
+        displayText: Ember.get(definition, "headerTitle"),
         css: css,
-        selected: visibleColumnIDs[config.id]
+        selected: visibleColumnIDs[Ember.get(definition, "id")]
       });
     });
   }),
@@ -71,7 +71,6 @@ export default Ember.Component.extend({
 
   selectedColumnIDs: Ember.computed("options", function () {
     var columnIds = {};
-
     this.get('options').forEach(function (option) {
       columnIds[option.get("id")] = option.get('selected');
     });

@@ -34,4 +34,5 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+  assert.ok(controller.getCounterColumns);
 });

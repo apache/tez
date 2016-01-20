@@ -19,7 +19,9 @@
 import TablePageController from '../table-page';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
-export default TablePageController.extend({
+import AutoCounterColumn from '../../mixins/auto-counter-column';
+
+export default TablePageController.extend(AutoCounterColumn, {
   breadcrumbs: [{
     text: "Task Attempts",
     routeName: "task.attempts",
