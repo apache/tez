@@ -220,6 +220,10 @@ license:
   - tez-common-*.jar
   - tez-dag-*.jar
   - tez-examples-*.jar
+  - tez-ext-service-tests-*.jar
+  - tez-history-parser-*.jar
+  - tez-javadoc-tools-*.jar
+  - tez-job-analyzer-*.jar
   - tez-mapreduce-*.jar
   - tez-mbeans-resource-calculator-*.jar
   - tez-runtime-internals-*.jar
@@ -227,6 +231,7 @@ license:
   - tez-tests-*.jar
   - tez-yarn-timeline-history-*.jar
   - tez-yarn-timeline-history-with-acls-*.jar
+  - hadoop-shim-*.jar
   - avro-*.jar
   - async-http-client-*.jar
   - apacheds-i18n-*.jar
@@ -264,7 +269,7 @@ license:
   - hadoop-yarn-server-web-proxy-*.jar
   - httpclient-*.jar
   - httpcore-*.jar
-  - htrace-*.jar
+  - htrace-core-*.jar
   - jackson-core-asl-*.jar
   - jackson-jaxrs-*.jar
   - jackson-mapper-asl-*.jar
@@ -278,7 +283,9 @@ license:
   - jetty-6.1.*.jar - Copyright 2001-2005 Mort Bay Consulting Pty. Ltd.
   - jetty-utils-6.1.*.jar - Copyright 2001-2005 Mort Bay Consulting Pty. Ltd.
   - log4j-*.jar
+  - metrics-core-*.jar
   - netty-*.jar
+  - RoaringBitmap-*.jar
   - snappy-java-*.jar
   - stax-api-1.0.1.jar
   - xercesImpl-*.jar

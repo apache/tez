@@ -220,6 +220,10 @@ license:
   - tez-common-*.jar
   - tez-dag-*.jar
   - tez-examples-*.jar
+  - tez-ext-service-tests-*.jar
+  - tez-history-parser-*.jar
+  - tez-javadoc-tools-*.jar
+  - tez-job-analyzer-*.jar
   - tez-mapreduce-*.jar
   - tez-mbeans-resource-calculator-*.jar
   - tez-runtime-internals-*.jar
@@ -227,6 +231,8 @@ license:
   - tez-tests-*.jar
   - tez-yarn-timeline-history-*.jar
   - tez-yarn-timeline-history-with-acls-*.jar
+  - hadoop-shim-*.jar
+  - async-http-client-*.jar
   - commons-cli-*.jar
   - commons-collections-*.jar
   - commons-io-*.jar 
@@ -242,6 +248,8 @@ license:
   - jettison-*.jar - Copyright 2006 Envoi Solutions LLC
   - jetty-6.1.*.jar 
   - jetty-utils-6.1.*.jar 
+  - metrics-core-*.jar
+  - RoaringBitmap-*.jar
 
 -----------------------------------------------------------------------
 Dual Licensed under Common Development And Disribution License (CDDL - Version 1.1)
