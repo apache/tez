@@ -197,7 +197,7 @@ class AMLog(object):
 	def init(self):
 		ID=r'[^\]]*'
 		TS=r'[0-9:\-, ]*'
-		MAIN_RE=r'^(?P<ts>%(ts)s) INFO [(?P<thread>%(id)s)] (org.apache.tez.dag.)?history.HistoryEventHandler: [HISTORY][DAG:(?P<dag>%(id)s)][Event:(?P<event>%(id)s)]: (?P<args>.*)'
+		MAIN_RE=r'^(?P<ts>%(ts)s) [?INFO]? [(?P<thread>%(id)s)] \|?(org.apache.tez.dag.)?history.HistoryEventHandler\|?: [HISTORY][DAG:(?P<dag>%(id)s)][Event:(?P<event>%(id)s)]: (?P<args>.*)'
 		MAIN_RE = MAIN_RE.replace('[','\[').replace(']','\]')
 		MAIN_RE = MAIN_RE % {'ts' : TS, 'id' : ID}
 		self.MAIN_RE = re.compile(MAIN_RE)

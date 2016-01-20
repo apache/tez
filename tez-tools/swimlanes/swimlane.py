@@ -179,7 +179,8 @@ def main(argv):
 			x2 = marginRight+xdomain(c.finish)
 			y2 = y1 + laneSize - 2
 			locality = (c.kvs.has_key("DATA_LOCAL_TASKS") * 1) + (c.kvs.has_key("RACK_LOCAL_TASKS")*2)
-			link = c.kvs["completedLogs"]
+			#CompletedLogs may not be present in latest tez logs
+			link = c.kvs.get("completedLogs", "")
 			svg.rect(x1, y1, x2, y2, title=c.name, style="fill: %s; stroke: #ccc;" % (colour), link=link)
 			if locality > 1: # rack-local (no-locality isn't counted)
 				svg.rect(x1, y2-4, x2, y2, style="fill: #f00; fill-opacity: 0.5;", link=link)
