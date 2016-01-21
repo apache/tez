@@ -1732,7 +1732,18 @@ public class DAGAppMaster extends AbstractService {
         LOG.debug("Service dependency: " + dependency.getName() + " notify" +
                   " for service: " + service.getName());
       }
-      if (dependency.isInState(Service.STATE.STARTED)) {
+      Throwable dependencyError = dependency.getFailureCause();
+      if (dependencyError != null) {
+        synchronized(this) {
+          dependenciesFailed = true;
+          if(LOG.isDebugEnabled()) {
+            LOG.debug("Service: " + service.getName() + " will fail to start"
+                + " as dependent service " + dependency.getName()
+                + " failed to start: " + dependencyError);
+          }
+          this.notifyAll();
+        }
+      } else if (dependency.isInState(Service.STATE.STARTED)) {
         if(dependenciesStarted.incrementAndGet() == dependencies.size()) {
           synchronized(this) {
             if(LOG.isDebugEnabled()) {
@@ -1741,17 +1752,6 @@ public class DAGAppMaster extends AbstractService {
             canStart = true;
             this.notifyAll();
           }
-        }
-      } else if (!service.isInState(Service.STATE.STARTED)
-          && dependency.getFailureState() != null) {
-        synchronized(this) {
-          dependenciesFailed = true;
-          if(LOG.isDebugEnabled()) {
-            LOG.debug("Service: " + service.getName() + " will fail to start"
-                + " as dependent service " + dependency.getName()
-                + " failed to start");
-          }
-          this.notifyAll();
         }
       }
     }
@@ -1786,9 +1786,12 @@ public class DAGAppMaster extends AbstractService {
 
   private static class ServiceThread extends Thread {
     final ServiceWithDependency serviceWithDependency;
-    Throwable error = null;
-    public ServiceThread(ServiceWithDependency serviceWithDependency) {
+    final Map<Service, ServiceWithDependency> services;
+    volatile Throwable error = null;
+    public ServiceThread(ServiceWithDependency serviceWithDependency,
+        Map<Service, ServiceWithDependency> services) {
       this.serviceWithDependency = serviceWithDependency;
+      this.services = services;
       this.setName("ServiceThread:" + serviceWithDependency.service.getName());
     }
 
@@ -1800,7 +1803,14 @@ public class DAGAppMaster extends AbstractService {
       try {
         serviceWithDependency.start();
       } catch (Throwable t) {
+        // AbstractService does not notify listeners if something throws, so
+        // notify dependent services explicitly to prevent hanging.
+        // AbstractService only records fault causes for exceptions, not
+        // errors, so dependent services will proceed thinking startup
+        // succeeded if an error is thrown. The error will be noted when the
+        // main thread joins the ServiceThread.
         error = t;
+        notifyDependentServices();
       } finally {
         if(LOG.isDebugEnabled()) {
           LOG.debug("Service: " + serviceWithDependency.service.getName() +
@@ -1810,6 +1820,14 @@ public class DAGAppMaster extends AbstractService {
       if(LOG.isDebugEnabled()) {
         LOG.debug("Service thread completed for "
             + serviceWithDependency.service.getName());
+      }
+    }
+
+    private void notifyDependentServices() {
+      for (ServiceWithDependency otherSvc : services.values()) {
+        if (otherSvc.dependencies.contains(serviceWithDependency.service)) {
+          otherSvc.stateChanged(serviceWithDependency.service);
+        }
       }
     }
   }
@@ -1824,7 +1842,7 @@ public class DAGAppMaster extends AbstractService {
       for(ServiceWithDependency sd : services.values()) {
         // start the service. If this fails that service
         // will be stopped and an exception raised
-        ServiceThread st = new ServiceThread(sd);
+        ServiceThread st = new ServiceThread(sd, services);
         threads.add(st);
       }
 
