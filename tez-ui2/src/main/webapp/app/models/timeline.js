@@ -67,7 +67,7 @@ export default AbstractModel.extend({
   counterGroups: DS.attr('object'),
   counterHash: Ember.computed("counterGroups", function () {
     var counterHash = {},
-        counterGroups = this.get("counterGroups");
+        counterGroups = this.get("counterGroups") || [];
 
     counterGroups.forEach(function (group) {
       var counters = group.counters,

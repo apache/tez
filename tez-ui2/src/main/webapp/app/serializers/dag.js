@@ -106,7 +106,7 @@ export default TimelineSerializer.extend({
   maps: {
     name: 'primaryfilters.dagName.0',
 
-    user: 'primaryfilters.user.0',
+    submitter: 'primaryfilters.user.0',
     contextID: 'primaryfilters.callerId.0',
 
     atsStatus: getStatus,

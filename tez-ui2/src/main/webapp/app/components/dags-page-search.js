@@ -19,28 +19,26 @@
 import Ember from 'ember';
 
 export default Ember.Component.extend({
-  init: function () {
-    this._super();
-    this.setApplication();
-  },
+  classNames: ['dags-page-search'],
 
-  autoRefreshEnabled: true,
-
-  setApplication: function () {
-    var application = this.get("targetObject.container").lookup('controller:application');
-    this.set("application", application);
-  },
-
-  normalizedTabs: Ember.computed("tabs", "application.currentPath", function () {
-    var tabs = this.get("tabs") || [],
-        activeRouteName = this.get("application.currentPath");
-
-    return tabs.map(function (tab) {
-      return {
-        text: tab.text,
-        routeName: tab.routeName,
-        active: tab.routeName === activeRouteName
-      };
-    });
-  })
+  actions: {
+    dagNameChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'dagName', value);
+    },
+    dagIDChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'dagID', value);
+    },
+    submitterChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'submitter', value);
+    },
+    statusChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'status', value);
+    },
+    appIDChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'appID', value);
+    },
+    contextIDChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'contextID', value);
+    },
+  }
 });

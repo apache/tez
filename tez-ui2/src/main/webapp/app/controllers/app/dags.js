@@ -42,9 +42,9 @@ export default TablePageController.extend({
     headerTitle: 'Id',
     contentPath: 'entityID'
   },{
-    id: 'user',
+    id: 'submitter',
     headerTitle: 'Submitter',
-    contentPath: 'user'
+    contentPath: 'submitter'
   },{
     id: 'status',
     headerTitle: 'Status',

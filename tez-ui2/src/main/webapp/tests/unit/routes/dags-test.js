@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:dags', 'Unit | Route | dags', {
@@ -28,7 +29,30 @@ test('Basic creation test', function(assert) {
 
   assert.ok(route);
   assert.ok(route.title);
+
+  assert.ok(route.queryParams);
   assert.ok(route.loaderQueryParams);
   assert.ok(route.setupController);
   assert.ok(route.load);
+
+  assert.ok(route.filterRecords);
+});
+
+test('filterRecords test', function(assert) {
+  let route = this.subject(),
+      testRecords = [Ember.Object.create({
+        name: "test"
+      }), Ember.Object.create({
+
+      }),Ember.Object.create({
+        name: "notest"
+      })],
+      testQuery = {
+        dagName: "test"
+      };
+
+  let filteredRecords = route.filterRecords(testRecords, testQuery);
+
+  assert.equal(filteredRecords.length, 1);
+  assert.equal(filteredRecords[0].name, "test");
 });

@@ -1,4 +1,4 @@
-{{!
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,28 +14,32 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-}}
+ */
 
-{{tab-n-refresh tabs=tabs autoRefreshEnabled=false}}
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-    rowCount=rowCount
+moduleForComponent('dags-page-search', 'Integration | Component | dags page search', {
+  integration: true
+});
 
-    classNames="all-dags-table"
+test('Basic creation test', function(assert) {
 
-    headerComponentNames=headerComponentNames
+  // Set any properties with this.set('myProperty', 'value');
+  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
 
-    definition=definition
-    enableSort=false
+  this.render(hbs`{{dags-page-search}}`);
 
-    searchAction="searchChanged"
-    sortAction="sortChanged"
-    rowAction="rowsChanged"
-    pageAction="pageChanged"
-  }}
-{{else}}
-  {{partial "partials/loading-anim"}}
-{{/if}}
+  assert.equal(this.$("input").length, 5);
+  assert.equal(this.$("select").length, 1);
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#dags-page-search}}
+      template block text
+    {{/dags-page-search}}
+  `);
+
+  assert.equal(this.$("input").length, 5);
+  assert.equal(this.$("select").length, 1);
+});

@@ -16,12 +16,40 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import TablePageController from './table-page';
 import ColumnDefinition from 'em-table/utils/column-definition';
+import TableDefinition from 'em-table/utils/table-definition';
 
 export default TablePageController.extend({
 
+  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "contextID", "pageNo"],
+  dagName: "",
+  dagID: "",
+  submitter: "",
+  status: "",
+  appID: "",
+  contextID: "",
+  pageNo: 1,
+
   breadcrumbs: [],
+
+  headerComponentNames: ['dags-page-search', 'table-controls', 'dags-pagination-ui'],
+
+  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "contextID", "pageNo", function () {
+    return TableDefinition.create({
+      dagName: this.get("dagName"),
+      dagID: this.get("dagID"),
+      submitter: this.get("submitter"),
+      status: this.get("status"),
+      appID: this.get("appID"),
+      contextID: this.get("contextID"),
+
+      pageNum: this.get("pageNo"),
+      rowCountOptions: [5, 10, 25, 50, 100, 250, 500]
+    });
+  }),
 
   columns: ColumnDefinition.make([{
     id: 'name',
@@ -40,9 +68,9 @@ export default TablePageController.extend({
     headerTitle: 'Id',
     contentPath: 'entityID'
   },{
-    id: 'user',
+    id: 'submitter',
     headerTitle: 'Submitter',
-    contentPath: 'user'
+    contentPath: 'submitter'
   },{
     id: 'status',
     headerTitle: 'Status',
@@ -107,5 +135,12 @@ export default TablePageController.extend({
 
   getCounterColumns: function () {
     return this._super().concat(this.get('env.app.tables.defaultColumns.dagCounters'));
+  },
+
+  actions: {
+    searchChanged: function (propertyName, value) {
+      this.set(propertyName, value);
+    },
   }
+
 });

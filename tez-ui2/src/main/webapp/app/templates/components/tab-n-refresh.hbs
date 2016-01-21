@@ -26,9 +26,11 @@
   {{/each}}
   <span class="refresh-ui">
     <span class="text-elements">
-      {{input type="checkbox" name="autoEnabled" checked=autoEnabled}}
-      Auto Refresh
-      <br/>
+      <span class="auto-refresh {{unless autoRefreshEnabled 'no-visible'}}">
+        {{input type="checkbox" name="autoEnabled" checked=autoEnabled}}
+        Auto Refresh
+        <br/>
+      </span>
       {{#if displayTime}}
         Last refreshed at <b>{{displayTime}}</b>
       {{else}}

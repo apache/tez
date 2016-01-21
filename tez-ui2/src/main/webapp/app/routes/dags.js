@@ -20,17 +20,33 @@ import Ember from 'ember';
 
 import AbstractRoute from './abstract';
 
+const REFRESH = {refreshModel: true};
+
 export default AbstractRoute.extend({
   title: "All DAGs",
 
   queryParams: {
-    rowCount: {
-      refreshModel: true
-    }
+    dagName: REFRESH,
+    dagID: REFRESH,
+    submitter: REFRESH,
+    status: REFRESH,
+    appID: REFRESH,
+    contextID: REFRESH,
+    pageNo: REFRESH,
+
+    rowCount: REFRESH,
   },
 
   loaderQueryParams: {
-    rowCount: "rowCount"
+    dagName: "dagName",
+    dagID: "dagID",
+    user: "submitter",
+    status: "status",
+    appID: "appID",
+    contextID: "contextID",
+
+    pageNo: "pageNo",
+    limit: "rowCount",
   },
 
   setupController: function (controller, model) {
@@ -38,7 +54,43 @@ export default AbstractRoute.extend({
     Ember.run.later(this, "startCrumbBubble");
   },
 
+  // Client side filtering to ensure that records are relevant after status correction
+  filterRecords: function (records, query) {
+    query = {
+      name: query.dagName,
+      entityID: query.dagID,
+      submitter: query.submitter,
+      status: query.status,
+      appID: query.appID,
+      contextID: query.contextID
+    };
+
+    return records.filter(function (record) {
+      for(var propName in query) {
+        if(query[propName] && query[propName] !== record.get(propName)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  },
+
   load: function (value, query) {
-    return this.get("loader").query('dag', query);
+    var loader,
+        that = this;
+
+    if(query.dagID) {
+      that.set("loadedRecords", []);
+      loader = this.get("loader").queryRecord('dag', query.dagID).then(function (record) {
+        return [record];
+      });
+    }
+    else {
+      loader = this.get("loader").query('dag', query);
+    }
+
+    return loader.then(function (records) {
+      return that.filterRecords(records, query);
+    });
   }
 });

@@ -40,7 +40,7 @@ import TimelineModel from './timeline';
 export default TimelineModel.extend({
   name: DS.attr("string"),
 
-  user: DS.attr("string"),
+  submitter: DS.attr("string"),
   contextID: DS.attr("string"),
 
   domain: DS.attr("string"),

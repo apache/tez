@@ -16,32 +16,32 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:dags', 'Unit | Controller | dags', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+moduleForComponent('dags-pagination-ui', 'Integration | Component | dags pagination ui', {
+  integration: true
 });
 
 test('Basic creation test', function(assert) {
-  assert.expect(2 + 3 + 4);
 
-  let controller = this.subject({
-    initVisibleColumns: Ember.K,
-    send: function (name, query) {
-      assert.equal(name, "setBreadcrumbs");
-      assert.ok(query);
-    }
+  // Set any properties with this.set('myProperty', 'value');
+  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+
+  this.set("rowCountOptions", {
+    rowCountOptions: [1, 2]
   });
 
-  assert.ok(controller);
-  assert.ok(controller.columns);
-  assert.ok(controller.getCounterColumns);
+  this.render(hbs`{{dags-pagination-ui rowCountOptions=rowCountOptions}}`);
 
-  assert.ok(controller.queryParams);
-  assert.ok(controller.headerComponentNames);
-  assert.ok(controller.definition);
-  assert.ok(controller.actions.searchChanged);
+  assert.equal(this.$('select').length, 1);
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#dags-pagination-ui rowCountOptions=rowCountOptions}}
+      template block text
+    {{/dags-pagination-ui}}
+  `);
+
+  assert.equal(this.$('select').length, 1);
 });

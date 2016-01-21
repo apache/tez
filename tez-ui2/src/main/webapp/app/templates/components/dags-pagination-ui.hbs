@@ -16,26 +16,12 @@
  * limitations under the License.
 }}
 
-{{tab-n-refresh tabs=tabs autoRefreshEnabled=false}}
-
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-    rowCount=rowCount
-
-    classNames="all-dags-table"
-
-    headerComponentNames=headerComponentNames
-
-    definition=definition
-    enableSort=false
-
-    searchAction="searchChanged"
-    sortAction="sortChanged"
-    rowAction="rowsChanged"
-    pageAction="pageChanged"
-  }}
-{{else}}
-  {{partial "partials/loading-anim"}}
-{{/if}}
+<div class='row-select'>
+  <select class="form-control" onchange={{action "rowSelected" value="target.value"}}>
+    {{#each rowCountOptions as |option|}}
+      <option value={{option.value}} selected={{option.selected}}>
+        {{option.value}} Rows
+      </option>
+    {{/each}}
+  </select>
+</div>

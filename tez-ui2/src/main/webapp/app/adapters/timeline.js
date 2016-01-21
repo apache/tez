@@ -31,7 +31,12 @@ export default AbstractAdapter.extend({
     taskID: 'TEZ_TASK_ID',
     attemptID: 'TEZ_TASK_ATTEMPT_ID',
     hiveQueryID: 'HIVE_QUERY_ID',
-    appID: 'applicationId'
+    appID: 'applicationId',
+
+    dagName: 'dagName',
+    user: "user",
+    status: "status",
+    contextID: "callerId"
   },
 
   stringifyFilters: function (filters) {

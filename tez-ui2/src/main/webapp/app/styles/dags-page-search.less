@@ -1,4 +1,4 @@
-{{!
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,28 +14,37 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-}}
+ */
 
-{{tab-n-refresh tabs=tabs autoRefreshEnabled=false}}
+@media screen and (min-width: 1500px) {
+  .dags-page-search{
+    float: left;
+    width: 1000px;
 
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-    rowCount=rowCount
+    .form-group {
+      margin-bottom: 0px;
+    }
+  }
 
-    classNames="all-dags-table"
+  .all-dags-table {
+    .pagination-ui, .table-controls {
+      margin-top: 21px;
+    }
+  }
+}
 
-    headerComponentNames=headerComponentNames
+.dags-page-search {
+  text-align: justify;
 
-    definition=definition
-    enableSort=false
 
-    searchAction="searchChanged"
-    sortAction="sortChanged"
-    rowAction="rowsChanged"
-    pageAction="pageChanged"
-  }}
-{{else}}
-  {{partial "partials/loading-anim"}}
-{{/if}}
+  .search-element {
+    display: inline-block;
+    width: 16.66%;
+
+    padding-left: 3px;
+  }
+
+  .dag-name {
+    padding-left: 0px;
+  }
+}
