@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES
+  TEZ-3036. Tez AM can hang on startup with no indication of error
   TEZ-3052. Task internal error due to Invalid event: T_ATTEMPT_FAILED at FAILED
   TEZ-3046. Compilation issue in tez-runtime-internals of branch-0.7
   TEZ-2937. Can Processor.close() be called after closing inputs and outputs?
