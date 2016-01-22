@@ -12,11 +12,11 @@
     "qunit": "~1.19.0",
     "more-js": "*",
     "bootstrap": "~3.3.5",
-    "snippet-ss": "*",
     "font-awesome": "~4.5.0",
     "jquery-ui": "1.11.4",
     "moment": "^2.8.0",
     "moment-timezone": "^0.5.0",
-    "numeral": "1.5.3"
+    "numeral": "1.5.3",
+    "snippet-ss": "~1.11.0"
   }
 }

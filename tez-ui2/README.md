@@ -20,6 +20,10 @@ You will need the following things properly installed on your computer.
 * In tez/tez-ui2/src/main/webapp
 * `npm install`
 
+## Configuring
+* By default timeline is expected at localhost:8188 & RM at localhost:8088
+* You can point the UI to custom locations by setting the environment variables in src/main/webapp/config/configs.env
+
 ## Running / Development
 
 * `ember server`

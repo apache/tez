@@ -48,8 +48,8 @@
   },
   "dependencies": {
     "broccoli-funnel": "^1.0.1",
-    "em-helpers": "0.5.7",
-    "em-table": "0.3.7",
+    "em-helpers": "0.5.8",
+    "em-table": "0.3.8",
     "ember-cli-htmlbars": "^1.0.1",
     "ember-cli-less": "^1.4.0",
     "phantomjs": "^1.9.19"
