@@ -1785,15 +1785,23 @@ public class TaskAttemptImpl implements TaskAttempt,
   public void setLastEventSent(TezEvent lastEventSent) {
     writeLock.lock();
     try {
-      DataEventDependencyInfo info = new DataEventDependencyInfo(
+      // TEZ-3066 ideally Heartbeat just happens in FAIL_IN_PROGRESS & KILL_IN_PROGRESS,
+      // add other states here just in case. create TEZ-3068 for a more elegant solution.
+      if (!EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+        TaskAttemptStateInternal.KILL_IN_PROGRESS,
+        TaskAttemptStateInternal.FAILED,
+        TaskAttemptStateInternal.KILLED,
+        TaskAttemptStateInternal.SUCCEEDED).contains(getInternalState())) {
+        DataEventDependencyInfo info = new DataEventDependencyInfo(
           lastEventSent.getEventReceivedTime(), lastEventSent.getSourceInfo().getTaskAttemptID());
-      // task attempt id may be null for input data information events
-      if (appendNextDataEvent) {
-        appendNextDataEvent = false;
-        lastDataEvents.add(info);
-      } else {
-        // over-write last event - array list makes it quick
-        lastDataEvents.set(lastDataEvents.size() - 1, info);
+        // task attempt id may be null for input data information events
+        if (appendNextDataEvent) {
+          appendNextDataEvent = false;
+          lastDataEvents.add(info);
+        } else {
+          // over-write last event - array list makes it quick
+          lastDataEvents.set(lastDataEvents.size() - 1, info);
+        }
       }
     } finally {
       writeLock.unlock();
