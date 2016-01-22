@@ -42,5 +42,11 @@ export default Ember.Component.extend({
         active: tab.routeName === activeRouteName
       };
     });
-  })
+  }),
+
+  actions: {
+    refresh: function () {
+      this.get('targetObject').send('reload');
+    }
+  }
 });

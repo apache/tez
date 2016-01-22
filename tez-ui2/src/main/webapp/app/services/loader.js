@@ -81,7 +81,7 @@ export default Ember.Service.extend({
     return parts.join(":");
   },
 
-  queryRecord: function(type, id, query, urlParams, options) {
+  queryRecord: function(type, id, options, query, urlParams) {
     var entity = this.entityFor(type),
         cache = this.get("cache"),
         cacheKey = this.getCacheKey(type, query, id),
@@ -104,13 +104,13 @@ export default Ember.Service.extend({
       params: query,
       urlParams: urlParams
     }).then(function (record) {
-      return entity.loadRelations(that, record);
+      return entity.loadRelations(that, record, options, urlParams);
     });
 
     cache.set(cacheKey, record);
     return record;
   },
-  query: function(type, query, urlParams, options) {
+  query: function(type, query, options, urlParams) {
     var entity = this.entityFor(type),
         cache = this.get("cache"),
         cacheKey = this.getCacheKey(type, query),
@@ -133,7 +133,7 @@ export default Ember.Service.extend({
       urlParams: urlParams
     }).then(function (records) {
       return Ember.RSVP.all(records.map(function (record) {
-        return entity.loadRelations(that, record);
+        return entity.loadRelations(that, record, options, urlParams);
       })).then(function () {
        return records;
       });

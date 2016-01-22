@@ -31,13 +31,13 @@
         Auto Refresh
         <br/>
       </span>
-      {{#if displayTime}}
-        Last refreshed at <b>{{displayTime}}</b>
+      {{#if loadTime}}
+        Last refreshed at <b>{{txt loadTime type="date" format="DD MMM YYYY HH:mm:ss"}}</b>
       {{else}}
         Load time not available!
       {{/if}}
     </span>
-    <button type="button" class="btn btn-success">
+    <button type="button" class="btn btn-success" {{action "refresh"}}>
       <i class='fa fa-refresh'></i> Refresh
     </button>
   </span>

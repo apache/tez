@@ -22,12 +22,14 @@ import AbstractRoute from '../abstract';
 export default AbstractRoute.extend({
   title: "Application Details",
 
+  loaderNamespace: "app",
+
   setupController: function (controller, model) {
     this._super(controller, model);
     Ember.run.later(this, "startCrumbBubble");
   },
 
-  load: function (/*value, query*/) {
-    return this.get("loader").queryRecord('app', this.modelFor("app").id);
+  load: function (value, query, options) {
+    return this.get("loader").queryRecord('app', this.modelFor("app").get("id"), options);
   },
 });

@@ -23,8 +23,8 @@ var MoreObject = more.Object;
 
 export default Ember.Object.extend({
 
-  loadRelations: function (loader, model) {
-    var needsPromise = this.loadNeeds(loader, model);
+  loadRelations: function (loader, model, options, urlParams) {
+    var needsPromise = this.loadNeeds(loader, model, options, urlParams);
 
     if(needsPromise) {
       return needsPromise.then(function () {
@@ -51,15 +51,15 @@ export default Ember.Object.extend({
     return Ember.Object.create(need);
   },
 
-  loadNeeds: function (loader, parentModel) {
+  loadNeeds: function (loader, parentModel, options, urlParams) {
     var needLoaders = [],
         that = this,
         needs = parentModel.get("needs");
 
     if(needs) {
-      MoreObject.forEach(needs, function (name, options) {
-        var need = that.normalizeNeed(name, options),
-            needLoader = loader.queryRecord(need.type, parentModel.get(need.idKey));
+      MoreObject.forEach(needs, function (name, needOptions) {
+        var need = that.normalizeNeed(name, needOptions),
+            needLoader = loader.queryRecord(need.type, parentModel.get(need.idKey), null, options, urlParams);
 
         needLoader.then(function (model) {
           parentModel.set(need.name, model);

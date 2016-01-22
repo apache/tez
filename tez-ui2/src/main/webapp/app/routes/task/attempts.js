@@ -22,14 +22,16 @@ import AbstractRoute from '../abstract';
 export default AbstractRoute.extend({
   title: "Task Attempts",
 
+  loaderNamespace: "task",
+
   setupController: function (controller, model) {
     this._super(controller, model);
     Ember.run.later(this, "startCrumbBubble");
   },
 
-  load: function (/*value, query*/) {
+  load: function (value, query, options) {
     return this.get("loader").query('attempt', {
-      taskID: this.modelFor("task").id
-    });
+      taskID: this.modelFor("task").get("id")
+    }, options);
   }
 });

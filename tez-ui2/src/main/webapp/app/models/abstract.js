@@ -19,17 +19,21 @@
 import DS from 'ember-data';
 
 export default DS.Model.extend({
-  timeStamp: null,
+  loadTime: null,
 
   mergedProperties: ["needs"],
 
-  refreshTimestamp: function () {
-    this.set('timeStamp', new Date());
+  refreshLoadTime: function () {
+    this.set('loadTime', new Date());
   },
 
-  actions: {
-    didUpdate: function () {
-      this.refreshTimestamp();
-    }
-  }
+  //TODO - Find a better alternative to detect property change in a model
+  _notifyProperties: function (keys) {
+    this.refreshLoadTime();
+    return this._super(keys);
+  },
+
+  didLoad: function () {
+    this.refreshLoadTime();
+  },
 });

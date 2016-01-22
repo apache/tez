@@ -16,14 +16,43 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import { moduleForModel, test } from 'ember-qunit';
 
 moduleForModel('abstract', 'Unit | Model | abstract', {
   // Specify the other units that are required for this test.
-  needs: []
+  // needs: []
 });
 
 test('Basic test for existence', function(assert) {
   let model = this.subject();
+
   assert.ok(model);
+  assert.ok(model.mergedProperties);
+  assert.ok(model.refreshLoadTime);
+
+  assert.ok(model._notifyProperties);
+  assert.ok(model.didLoad);
+});
+
+test('_notifyProperties test - will fail if _notifyProperties implementation is changed in ember-data', function(assert) {
+  let model = this.subject();
+
+  Ember._beginPropertyChanges = Ember.beginPropertyChanges;
+
+  assert.expect(1 + 1);
+  // refreshLoadTime will be called by us & beginPropertyChanges by ember data
+
+  Ember.beginPropertyChanges = function () {
+    assert.ok(true);
+    Ember._beginPropertyChanges();
+  };
+  model.refreshLoadTime = function () {
+    assert.ok(true);
+  };
+
+  model._notifyProperties([]);
+
+  Ember.beginPropertyChanges = Ember._beginPropertyChanges;
 });

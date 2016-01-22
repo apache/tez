@@ -18,6 +18,8 @@
  */
 
 import Ember from 'ember';
+import DS from 'ember-data';
+
 import LoaderService from '../services/loader';
 import UnlinkedPromise from '../errors/unlinked-promise';
 import NameMixin from '../mixins/name';
@@ -27,6 +29,7 @@ var MoreObject = more.Object;
 export default Ember.Route.extend(NameMixin, {
   title: null, // Must be set by inheriting class
 
+  loaderNamespace: null,
   isLoading: false,
   currentPromiseId: null,
   loadedValue: null,
@@ -35,10 +38,20 @@ export default Ember.Route.extend(NameMixin, {
   breadcrumbs: null,
   childCrumbs: null,
 
+  currentQuery: {},
+
   loaderQueryParams: {},
 
+  init: function () {
+    var namespace = this.get("loaderNamespace");
+    if(namespace) {
+      this.setLoader(namespace);
+    }
+  },
+
   model: function(params/*, transition*/) {
-    Ember.run.later(this, "loadData", this.queryFromParams(params));
+    this.set("currentQuery", this.queryFromParams(params));
+    Ember.run.later(this, "loadData");
   },
 
   queryFromParams: function (params) {
@@ -63,46 +76,66 @@ export default Ember.Route.extend(NameMixin, {
     this.setDocTitle();
   },
 
-  checkAndCall: function (id, functionName, query, value) {
+  checkAndCall: function (id, functionName, query, options, value) {
     if(id === this.get("currentPromiseId")) {
-      return this[functionName](value, query);
+      return this[functionName](value, query, options);
     }
     else {
       throw new UnlinkedPromise();
     }
   },
 
-  loadData: function (query) {
-    var promiseId = Math.random();
+  loadData: function (options) {
+    var promiseId = Math.random(),
+        query = this.get("currentQuery");
+
+    options = options || {};
 
     this.set('currentPromiseId', promiseId);
 
     return Ember.RSVP.resolve().
-      then(this.checkAndCall.bind(this, promiseId, "setLoading", query)).
-      then(this.checkAndCall.bind(this, promiseId, "beforeLoad", query)).
-      then(this.checkAndCall.bind(this, promiseId, "load", query)).
-      then(this.checkAndCall.bind(this, promiseId, "afterLoad", query)).
-      then(this.checkAndCall.bind(this, promiseId, "setValue", query));
+      then(this.checkAndCall.bind(this, promiseId, "setLoading", query, options)).
+      then(this.checkAndCall.bind(this, promiseId, "beforeLoad", query, options)).
+      then(this.checkAndCall.bind(this, promiseId, "load", query, options)).
+      then(this.checkAndCall.bind(this, promiseId, "afterLoad", query, options)).
+      then(this.checkAndCall.bind(this, promiseId, "setValue", query, options));
   },
 
-  setLoading: function () {
+  setLoading: function (/*query, options*/) {
     this.set('isLoading', true);
     this.set('controller.isLoading', true);
   },
-  beforeLoad: function (value) {
+  beforeLoad: function (value/*, query, options*/) {
     return value;
   },
-  load: function (value) {
+  load: function (value/*, query, options*/) {
     return value;
   },
-  afterLoad: function (value) {
+  afterLoad: function (value/*, query, options*/) {
     return value;
   },
-  setValue: function (value) {
+  setValue: function (value/*, query, options*/) {
     this.set('loadedValue', value);
+
     this.set('isLoading', false);
     this.set('controller.isLoading', false);
+
+    this.send("setLoadTime", this.getLoadTime(value));
+
     return value;
+  },
+
+  getLoadTime: function (value) {
+    if(value instanceof DS.RecordArray) {
+      value = value.get("content.0.record");
+    }
+    else if(Array.isArray(value)) {
+      value = value[0];
+    }
+
+    if(value) {
+      return Ember.get(value, "loadTime");
+    }
   },
 
   _setControllerModel: Ember.observer("loadedValue", function () {
@@ -135,6 +168,9 @@ export default Ember.Route.extend(NameMixin, {
     bubbleBreadcrumbs: function (crumbs) {
       crumbs.unshift.apply(crumbs, this.get("breadcrumbs"));
       return true;
+    },
+    reload: function () {
+      Ember.run.later(this, "loadData", {reload: true});
     }
   }
 });

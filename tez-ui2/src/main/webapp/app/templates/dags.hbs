@@ -16,7 +16,7 @@
  * limitations under the License.
 }}
 
-{{tab-n-refresh tabs=tabs autoRefreshEnabled=false}}
+{{tab-n-refresh tabs=tabs autoRefreshEnabled=false loadTime=loadTime}}
 
 {{#if loaded}}
   {{em-table
@@ -37,5 +37,5 @@
     pageAction="pageChanged"
   }}
 {{else}}
-  {{partial "partials/loading-anim"}}
+  {{partial "loading"}}
 {{/if}}

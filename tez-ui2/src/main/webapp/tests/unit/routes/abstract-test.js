@@ -48,6 +48,7 @@ test('Basic creation test', function(assert) {
   assert.ok(route.afterLoad);
   assert.ok(route.setValue);
 
+  assert.ok(route.getLoadTime);
   assert.ok(route._setControllerModel);
   assert.ok(route.setLoader);
 
@@ -78,19 +79,21 @@ test('queryFromParams test', function(assert) {
 test('checkAndCall test', function(assert) {
   let route = this.subject(),
       testValue = {},
-      testQuery = {};
+      testQuery = {},
+      testOptions = {};
 
-  assert.expect(2 + 1);
+  assert.expect(3 + 1);
 
-  route.testFunction = function (value, query) {
+  route.testFunction = function (value, query, options) {
     assert.equal(value, testValue, "Value check for id 1");
     assert.equal(query, testQuery, "Query check for id 1");
+    assert.equal(options, testOptions, "Options check for id 1");
   };
   route.currentPromiseId = 1;
 
-  route.checkAndCall(1, "testFunction", testQuery, testValue);
+  route.checkAndCall(1, "testFunction", testQuery, testOptions, testValue);
   assert.throws(function () {
-    route.checkAndCall(2, "testFunction", testQuery, testValue);
+    route.checkAndCall(2, "testFunction", testQuery, testOptions, testValue);
   });
 });
 
@@ -98,10 +101,10 @@ test('loadData test - Hook sequence check', function(assert) {
   let route = this.subject();
 
   // Bind poilyfill
-  Function.prototype.bind = function (context, val1, val2, val3) {
+  Function.prototype.bind = function (context, val1, val2, val3, val4) {
     var that = this;
     return function (val) {
-      return that.call(context, val1, val2, val3, val);
+      return that.call(context, val1, val2, val3, val4, val);
     };
   };
 
@@ -137,10 +140,10 @@ test('loadData test - ID change check with exception throw', function(assert) {
   let route = this.subject();
 
   // Bind poilyfill
-  Function.prototype.bind = function (context, val1, val2, val3) {
+  Function.prototype.bind = function (context, val1, val2, val3, val4) {
     var that = this;
     return function (val) {
-      return that.call(context, val1, val2, val3, val);
+      return that.call(context, val1, val2, val3, val4, val);
     };
   };
 
@@ -207,6 +210,17 @@ test('setValue test', function(assert) {
   assert.equal(route.setValue(testVal), testVal);
   assert.equal(route.get("loadedValue"), testVal);
   assert.equal(route.get("isLoading"), false);
+});
+
+test('getLoadTime test', function(assert) {
+  let route = this.subject(),
+      testTime = Date.now(),
+      testRecord = {
+        loadTime: testTime
+      };
+
+  assert.equal(route.getLoadTime(testRecord), testTime);
+  assert.equal(route.getLoadTime([testRecord]), testTime);
 });
 
 test('_setControllerModel test', function(assert) {

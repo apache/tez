@@ -75,22 +75,28 @@ export default AbstractRoute.extend({
     });
   },
 
-  load: function (value, query) {
+  load: function (value, query, options) {
     var loader,
         that = this;
 
     if(query.dagID) {
       that.set("loadedRecords", []);
-      loader = this.get("loader").queryRecord('dag', query.dagID).then(function (record) {
+      loader = this.get("loader").queryRecord('dag', query.dagID, options).then(function (record) {
         return [record];
       });
     }
     else {
-      loader = this.get("loader").query('dag', query);
+      loader = this.get("loader").query('dag', query, options);
     }
 
     return loader.then(function (records) {
       return that.filterRecords(records, query);
     });
+  },
+
+  actions: {
+    setLoadTime: function (time) {
+      this.set("controller.loadTime", time);
+    }
   }
 });

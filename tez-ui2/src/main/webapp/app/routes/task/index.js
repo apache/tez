@@ -22,12 +22,14 @@ import AbstractRoute from '../abstract';
 export default AbstractRoute.extend({
   title: "DAG Details",
 
+  loaderNamespace: "task",
+
   setupController: function (controller, model) {
     this._super(controller, model);
     Ember.run.later(this, "startCrumbBubble");
   },
 
-  load: function (/*value, query*/) {
-    return this.get("loader").queryRecord('task', this.modelFor("task").id);
+  load: function (value, query, options) {
+    return this.get("loader").queryRecord('task', this.modelFor("task").get("id"), options);
   },
 });

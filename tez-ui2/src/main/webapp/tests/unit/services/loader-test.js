@@ -180,6 +180,7 @@ test('getCacheKey test', function(assert) {
 test('queryRecord test', function(assert) {
   let service = this.subject(),
       testNameSpace = "ns",
+      testOptions = {},
       testQueryParams = {},
       testUrlParams = {},
       testType = "type",
@@ -187,7 +188,7 @@ test('queryRecord test', function(assert) {
       testID = 1,
       cacheKey = service.getCacheKey(testType, testQueryParams, testID);
 
-  assert.expect(3 + 5 + 3);
+  assert.expect(1 + 4 + 5 + 3);
 
   service.nameSpace = testNameSpace;
   service.checkRequisite = Ember.K;
@@ -195,9 +196,11 @@ test('queryRecord test', function(assert) {
     assert.equal(type, testType);
 
     return {
-      loadRelations: function (thisService, record) {
+      loadRelations: function (thisService, record, options, urlParams) {
         assert.equal(thisService, service);
         assert.equal(record, testRecord);
+        assert.equal(options, testOptions);
+        assert.equal(urlParams, testUrlParams);
 
         return record;
       }
@@ -216,7 +219,7 @@ test('queryRecord test', function(assert) {
 
   service.cache = Ember.Object.create();
   assert.notOk(service.get("cache").get(cacheKey));
-  service.queryRecord(testType, testID, testQueryParams, testUrlParams).then(function (record) {
+  service.queryRecord(testType, testID, testOptions, testQueryParams, testUrlParams).then(function (record) {
     assert.equal(record, testRecord);
   });
   assert.ok(service.get("cache").get(cacheKey));
@@ -225,6 +228,7 @@ test('queryRecord test', function(assert) {
 test('query test', function(assert) {
   let service = this.subject(),
       testNameSpace = "ns",
+      testOptions = {},
       testQueryParams = {},
       testUrlParams = {},
       testType = "type",
@@ -232,7 +236,7 @@ test('query test', function(assert) {
       testRecords = [testRecord, testRecord],
       cacheKey = service.getCacheKey(testType, testQueryParams);
 
-  assert.expect(1 + (2 + 2) + 4 + 3);
+  assert.expect(1 + (4 + 4) + 4 + 3);
 
   service.nameSpace = testNameSpace;
   service.checkRequisite = Ember.K;
@@ -240,9 +244,11 @@ test('query test', function(assert) {
     assert.equal(type, testType);
 
     return {
-      loadRelations: function (thisService, record) {
+      loadRelations: function (thisService, record, options, urlParams) {
         assert.equal(thisService, service);
         assert.equal(record, testRecord);
+        assert.equal(options, testOptions);
+        assert.equal(urlParams, testUrlParams);
 
         return record;
       }
@@ -260,7 +266,7 @@ test('query test', function(assert) {
 
   service.cache = Ember.Object.create();
   assert.notOk(service.get("cache").get(cacheKey));
-  service.query(testType, testQueryParams, testUrlParams).then(function (records) {
+  service.query(testType, testQueryParams, testOptions, testUrlParams).then(function (records) {
     assert.equal(records, testRecords);
   });
   assert.ok(service.get("cache").get(cacheKey));

@@ -27,5 +27,11 @@ export default AbstractRoute.extend({
 
   model: function (params) {
     return this.get("loader").queryRecord('attempt', this.queryFromParams(params).id);
+  },
+
+  actions: {
+    setLoadTime: function (time) {
+      this.set("controller.loadTime", time);
+    }
   }
 });
