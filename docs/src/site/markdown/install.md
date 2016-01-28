@@ -86,7 +86,7 @@ Replace x.y.z with the tez release number that you are using. E.g. 0.5.0
         ```
     -   Please note the "*" which is an important requirement when
         setting up classpaths for directories containing jar files.
-6.  There is a basic example of using an MRR job in the tez-examples.jar.
+6.  There is a basic example of using an MR job in the tez-examples.jar.
     Refer to OrderedWordCount.java in the source code. To run this
     example:
 
