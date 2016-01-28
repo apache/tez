@@ -31,7 +31,6 @@ export default AbstractModel.extend({
     }
   },
 
-  entityID: DS.attr("string"),
   appID: Ember.computed("entityID", function () {
     var idParts = this.get("entityID").split("_");
     return `application_${idParts[1]}_${idParts[2]}`;
@@ -39,7 +38,7 @@ export default AbstractModel.extend({
   app: DS.attr("object"), // Either RMApp or AHSApp
 
   atsStatus: DS.attr("string"),
-  status: Ember.computed("atsStatus", "app.status", function () {
+  status: Ember.computed("atsStatus", "app.status", "app.finalStatus", function () {
     var status = this.get("atsStatus"),
         yarnStatus = this.get("app.status");
 
@@ -53,6 +52,7 @@ export default AbstractModel.extend({
 
     return this.get("app.finalStatus");
   }),
+
   progress: Ember.computed("status", function () {
     return this.get("status") === "SUCCEEDED" ? 1 : null;
   }),
@@ -64,10 +64,11 @@ export default AbstractModel.extend({
     return duration > 0 ? duration : null;
   }),
 
-  counterGroups: DS.attr('object'),
-  counterHash: Ember.computed("counterGroups", function () {
+  // Hash will be created only on demand, till then counters will be stored in _counterGroups
+  _counterGroups: DS.attr('object'),
+  counterGroupsHash: Ember.computed("_counterGroups", function () {
     var counterHash = {},
-        counterGroups = this.get("counterGroups") || [];
+        counterGroups = this.get("_counterGroups") || [];
 
     counterGroups.forEach(function (group) {
       var counters = group.counters,

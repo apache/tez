@@ -34,6 +34,7 @@ test('Basic creation test', function(assert) {
     });
 
     assert.ok(!!model);
+    assert.ok(!!model.needs.am);
     assert.equal(model.get("queue"), testQueue);
   });
 });

@@ -19,7 +19,7 @@
 import AbstractRoute from './abstract';
 
 export default AbstractRoute.extend({
-  title: "Vertex",
+  title: "Attempt",
 
   loaderQueryParams: {
     id: "attempt_id"

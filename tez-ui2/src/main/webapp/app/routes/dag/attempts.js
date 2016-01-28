@@ -17,9 +17,9 @@
  */
 
 import Ember from 'ember';
-import AbstractRoute from '../abstract';
+import MultiAmPollsterRoute from '../multi-am-pollster';
 
-export default AbstractRoute.extend({
+export default MultiAmPollsterRoute.extend({
   title: "All Task Attempts",
 
   loaderNamespace: "dag",

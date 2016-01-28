@@ -19,12 +19,12 @@
 
 import Ember from 'ember';
 
-import TablePageController from '../table-page';
+import TableController from '../table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
 var MoreObject = more.Object;
 
-export default TablePageController.extend({
+export default TableController.extend({
   searchText: "tez",
 
   breadcrumbs: [{

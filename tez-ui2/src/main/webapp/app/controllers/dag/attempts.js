@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import TablePageController from '../table-page';
+import MultiTableController from '../multi-table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
-export default TablePageController.extend({
+export default MultiTableController.extend({
   breadcrumbs: [{
     text: "All Task Attempts",
     routeName: "dag.attempts",
@@ -65,7 +65,8 @@ export default TablePageController.extend({
     id: 'status',
     headerTitle: 'Status',
     contentPath: 'status',
-    cellComponentName: 'em-table-status-cell'
+    cellComponentName: 'em-table-status-cell',
+    observePath: true
   },{
     id: 'progress',
     headerTitle: 'Progress',

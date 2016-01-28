@@ -27,9 +27,22 @@ test('Basic creation test', function(assert) {
   let model = this.subject();
 
   assert.ok(model);
-  assert.ok(model.index);
+
+  assert.ok(model.needs.dag);
+  assert.ok(model.needs.am);
+
+  assert.ok(model.taskID);
   assert.ok(model.taskIndex);
+
+  assert.ok(model.vertexID);
+  assert.ok(model.vertexIndex);
   assert.ok(model.vertexName);
+
+  assert.ok(model.dagID);
+  assert.ok(model.dag);
+
+  assert.ok(model.containerID);
+  assert.ok(model.nodeID);
 });
 
 test('index test', function(assert) {
@@ -45,7 +58,7 @@ test('taskIndex test', function(assert) {
         taskID: "1_2_3",
       });
 
-  assert.equal(model.get("taskIndex"), "2_3");
+  assert.equal(model.get("taskIndex"), "3");
 });
 
 test('vertexName test', function(assert) {

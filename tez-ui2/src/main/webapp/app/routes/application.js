@@ -37,6 +37,11 @@ export default Ember.Route.extend({
       this.set("controller.breadcrumbs", breadcrumbs);
     },
 
+    error: function (error) {
+      // Display error bar
+      Ember.Logger.error(error);
+    },
+
     // Modal window actions
     openModal: function (componentName, options) {
       options = options || {};

@@ -17,9 +17,9 @@
  */
 
 import Ember from 'ember';
-import AbstractRoute from '../abstract';
+import SingleAmPollsterRoute from '../single-am-pollster';
 
-export default AbstractRoute.extend({
+export default SingleAmPollsterRoute.extend({
   title: "Application Details",
 
   loaderNamespace: "app",
@@ -27,6 +27,10 @@ export default AbstractRoute.extend({
   setupController: function (controller, model) {
     this._super(controller, model);
     Ember.run.later(this, "startCrumbBubble");
+  },
+
+  onRecordPoll: function () {
+    this.reload();
   },
 
   load: function (value, query, options) {

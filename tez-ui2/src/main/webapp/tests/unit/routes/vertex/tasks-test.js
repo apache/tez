@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:vertex/tasks', 'Unit | Route | vertex/tasks', {
@@ -24,7 +26,10 @@ moduleFor('route:vertex/tasks', 'Unit | Route | vertex/tasks', {
 });
 
 test('Basic creation test', function(assert) {
-  let route = this.subject();
+  let route = this.subject({
+    initVisibleColumns: Ember.K,
+    getCounterColumns: Ember.K
+  });
 
   assert.ok(route);
   assert.ok(route.title);

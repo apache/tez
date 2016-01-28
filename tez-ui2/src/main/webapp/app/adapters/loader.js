@@ -25,7 +25,7 @@ export default DS.RESTAdapter.extend({
   _isLoader: true,
 
   buildURL: function(modelName, id, snapshot, requestType, query, params) {
-    var url = this._super(modelName, id, snapshot, null, query);
+    var url = this._super(modelName, id, snapshot, requestType, query);
     return params ? MoreString.fmt(url, params) : url;
   },
 

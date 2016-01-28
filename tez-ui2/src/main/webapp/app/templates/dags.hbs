@@ -16,7 +16,7 @@
  * limitations under the License.
 }}
 
-{{tab-n-refresh tabs=tabs autoRefreshEnabled=false loadTime=loadTime}}
+{{tab-n-refresh tabs=tabs autoRefreshVisible=false loadTime=loadTime}}
 
 {{#if loaded}}
   {{em-table
@@ -33,7 +33,7 @@
 
     searchAction="searchChanged"
     sortAction="sortChanged"
-    rowAction="rowsChanged"
+    rowAction="rowCountChanged"
     pageAction="pageChanged"
   }}
 {{else}}

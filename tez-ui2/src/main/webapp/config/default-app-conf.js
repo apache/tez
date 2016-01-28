@@ -20,6 +20,8 @@ module.exports = { // Tez App configurations
   buildVersion: "",
   isStandalone: true, // Must be set false while running in wrapped mode
   rowLoadLimit: 9007199254740991,
+  pollingInterval: 3000,
+
   hosts: {
     timeline: 'localhost:8188',
     rm: 'localhost:8088',
@@ -29,7 +31,7 @@ module.exports = { // Tez App configurations
       timeline: 'ws/v1/timeline',
       appHistory: 'ws/v1/applicationhistory',
       rm: 'ws/v1/cluster',
-      am: 'proxy/{app_id}/ws/v{version}/tez',
+      am: 'proxy/{app_id}/ws/v2/tez',
     },
     web: {
       rm: 'cluster'
@@ -45,6 +47,15 @@ module.exports = { // Tez App configurations
       hiveQuery: 'HIVE_QUERY_ID',
 
       app: 'TEZ_APPLICATION'
+    },
+    am: {
+      "dag-am": 'dagInfo',
+      "vertex-am": 'verticesInfo',
+      "task-am": 'tasksInfo',
+      "attempt-am": 'attemptsInfo',
+    },
+    rm: {
+      "app-rm": "apps"
     }
   },
   hrefs: {

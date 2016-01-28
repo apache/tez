@@ -47,6 +47,8 @@ Router.map(function() {
     this.route('dags');
     this.route('configs');
   });
+  this.route('multi-am-pollster');
+  this.route('single-am-pollster');
 });
 
 export default Router;

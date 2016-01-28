@@ -28,7 +28,10 @@ moduleFor('controller:vertex/tasks', 'Unit | Controller | vertex/tasks', {
 test('Basic creation test', function(assert) {
   let controller = this.subject({
     send: Ember.K,
-    initVisibleColumns: Ember.K
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    }
   });
 
   assert.ok(controller);

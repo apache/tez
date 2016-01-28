@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-import CountersPageController from '../counters-page';
+import CountersTableController from '../counters-table';
 
-export default CountersPageController.extend({
+export default CountersTableController.extend({
   breadcrumbs: [{
     text: "Vertex Counters",
     routeName: "vertex.counters",

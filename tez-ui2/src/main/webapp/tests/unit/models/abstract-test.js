@@ -34,6 +34,11 @@ test('Basic test for existence', function(assert) {
 
   assert.ok(model._notifyProperties);
   assert.ok(model.didLoad);
+
+  assert.ok(model.entityID);
+  assert.ok(model.index);
+  assert.ok(model.status);
+  assert.ok(model.isComplete);
 });
 
 test('_notifyProperties test - will fail if _notifyProperties implementation is changed in ember-data', function(assert) {

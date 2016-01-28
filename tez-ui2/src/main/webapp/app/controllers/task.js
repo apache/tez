@@ -18,12 +18,12 @@
 
 import Ember from 'ember';
 
-import AbstractController from './abstract';
+import ParentController from './parent';
 
-export default AbstractController.extend({
+export default ParentController.extend({
   breadcrumbs: Ember.computed("model.dag", function () {
     var dagName = this.get("model.dag.name"),
-        vertexName = this.get("model.vertexName"),
+        vertexName = this.get("model.vertexName") || this.get("model.vertexIndex"),
         taskIndex = this.get("model.index");
 
     return [{

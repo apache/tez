@@ -16,15 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 import AbstractController from './abstract';
 
 export default AbstractController.extend({
-  // Must be set from route
-  isLoading: false,
-
-  loaded: Ember.computed("model", "isLoading", function () {
-    return this.get("model") && !this.get("isLoading");
-  }),
+  // Any page specific
 });

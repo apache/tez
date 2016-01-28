@@ -68,7 +68,7 @@ export default Ember.Route.extend(NameMixin, {
   },
 
   setDocTitle: function () {
-    Ember.$(document).attr('title', this.get('title'));
+    Ember.$(document).attr('title', "Tez UI : " + this.get('title'));
   },
 
   setupController: function (controller, model) {
@@ -171,6 +171,9 @@ export default Ember.Route.extend(NameMixin, {
     },
     reload: function () {
       Ember.run.later(this, "loadData", {reload: true});
-    }
+    },
+    willTransition: function () {
+      this.set("loadedValue", null);
+    },
   }
 });

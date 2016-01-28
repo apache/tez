@@ -37,7 +37,7 @@ test('Basic creation test', function(assert) {
   assert.ok(CounterColumnDefinition.make);
 
   assert.equal(definition.observePath, true);
-  assert.equal(definition.contentPath, "counterHash");
+  assert.equal(definition.contentPath, "counterGroupsHash");
 });
 
 test('getCellContent, getSearchValue & getSortValue test', function(assert) {
@@ -46,7 +46,7 @@ test('getCellContent, getSearchValue & getSortValue test', function(assert) {
       testCounterValue = "val",
       testContent = {},
       testRow = {
-        counterHash: testContent
+        counterGroupsHash: testContent
       };
 
   testContent[testGroupName] = {};

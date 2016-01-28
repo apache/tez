@@ -18,9 +18,9 @@
 
 import Ember from 'ember';
 
-import AbstractController from './abstract';
+import ParentController from './parent';
 
-export default AbstractController.extend({
+export default ParentController.extend({
   breadcrumbs: Ember.computed("model", function () {
     var name = this.get("model.name");
 

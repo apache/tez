@@ -19,45 +19,48 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 
-import TimelineModel from './timeline';
-/*
-  Inherited properties
+import AMTimelineModel from './am-timeline';
 
-  entityID - String
-  appID - Computed from entityID
-
-  status - String
-  progress - Computed from status
-
-  startTime - Number
-  endTime - Number
-  duration - Computed from start & end times
-
-  counterGroups - Array
-  counterHash - Computed from counterGroups
-*/
-
-export default TimelineModel.extend({
+export default AMTimelineModel.extend({
   needs: {
     dag: {
       type: "dag",
       idKey: "dagID",
       silent: true
+    },
+    am: {
+      type: "attemptAm",
+      idKey: "entityID",
+      loadType: "demand",
+      queryParams: function (model) {
+        var vertexIndex = parseInt(model.get("vertexIndex")),
+            taskIndex = parseInt(model.get("taskIndex")),
+            attemptIndex = parseInt(model.get("index"));
+        return {
+          attemptID: `${vertexIndex}_${taskIndex}_${attemptIndex}`,
+          dagID: parseInt(model.get("dag.index")),
+          counters: "*"
+        };
+      },
+      urlParams: function (model) {
+        return {
+          app_id: model.get("appID")
+        };
+      }
     }
   },
 
-  index: Ember.computed("entityID", function () {
-    var idParts = this.get("entityID").split("_");
-    return idParts[Math.max(idParts.length - 1, 1)];
-  }),
-
   taskID: DS.attr('string'),
   taskIndex: Ember.computed("taskID", function () {
-    var idParts = this.get("taskID").split("_");
-    return idParts.slice(Math.max(idParts.length - 2, 1)).join("_");
+    var id = this.get("taskID") || "";
+    return id.substr(id.lastIndexOf('_') + 1);
   }),
 
   vertexID: DS.attr('string'),
+  vertexIndex: Ember.computed("vertexID", function () {
+    var id = this.get("vertexID") || "";
+    return id.substr(id.lastIndexOf('_') + 1);
+  }),
   vertexName: Ember.computed("vertexID", "dag", function () {
     var vertexID = this.get("vertexID");
     return this.get(`dag.vertexIdNameMap.${vertexID}`);

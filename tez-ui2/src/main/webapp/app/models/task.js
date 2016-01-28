@@ -19,39 +19,41 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 
-import TimelineModel from './timeline';
-/*
-  Inherited properties
+import AMTimelineModel from './am-timeline';
 
-  entityID - String
-  appID - Computed from entityID
-
-  status - String
-  progress - Computed from status
-
-  startTime - Number
-  endTime - Number
-  duration - Computed from start & end times
-
-  counterGroups - Array
-  counterHash - Computed from counterGroups
-*/
-
-export default TimelineModel.extend({
+export default AMTimelineModel.extend({
   needs: {
     dag: {
       type: "dag",
       idKey: "dagID",
       silent: true
+    },
+    am: {
+      type: "taskAm",
+      idKey: "entityID",
+      loadType: "demand",
+      queryParams: function (model) {
+        var vertexIndex = parseInt(model.get("vertexIndex")),
+            taskIndex = parseInt(model.get("index"));
+        return {
+          taskID: `${vertexIndex}_${taskIndex}`,
+          dagID: parseInt(model.get("dag.index")),
+          counters: "*"
+        };
+      },
+      urlParams: function (model) {
+        return {
+          app_id: model.get("appID")
+        };
+      }
     }
   },
 
-  index: Ember.computed("entityID", function () {
-    var idParts = this.get("entityID").split("_");
-    return idParts.slice(Math.max(idParts.length - 2, 1)).join("_");
-  }),
-
   vertexID: DS.attr('string'),
+  vertexIndex: Ember.computed("vertexID", function () {
+    var id = this.get("vertexID") || "";
+    return id.substr(id.lastIndexOf('_') + 1);
+  }),
   vertexName: Ember.computed("vertexID", "dag", function () {
     var vertexID = this.get("vertexID");
     return this.get(`dag.vertexIdNameMap.${vertexID}`);

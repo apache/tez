@@ -17,9 +17,9 @@
  */
 
 import Ember from 'ember';
-import AbstractRoute from '../abstract';
+import SingleAmPollsterRoute from '../single-am-pollster';
 
-export default AbstractRoute.extend({
+export default SingleAmPollsterRoute.extend({
   title: "DAG Details",
 
   loaderNamespace: "dag",

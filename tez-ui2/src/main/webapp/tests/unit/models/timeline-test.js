@@ -43,8 +43,8 @@ test('Basic creation test', function(assert) {
   assert.ok(model.endTime);
   assert.ok(model.duration);
 
-  assert.ok(model.counterGroups);
-  assert.ok(model.counterHash);
+  assert.ok(model._counterGroups);
+  assert.ok(model.counterGroupsHash);
 });
 
 test('appID test', function(assert) {
@@ -92,7 +92,7 @@ test('duration test', function(assert) {
   });
 });
 
-test('counterHash test', function(assert) {
+test('counterGroupsHash test', function(assert) {
   let model = this.subject(),
       testCounterGroup = [{
         counterGroupName: "group_1",
@@ -115,10 +115,10 @@ test('counterHash test', function(assert) {
       }];
 
   Ember.run(function () {
-    model.set("counterGroups", testCounterGroup);
-    assert.equal(model.get("counterHash.group_1.counter_1_1"), "value_1_1");
-    assert.equal(model.get("counterHash.group_1.counter_1_2"), "value_1_2");
-    assert.equal(model.get("counterHash.group_2.counter_2_1"), "value_2_1");
-    assert.equal(model.get("counterHash.group_2.counter_2_2"), "value_2_2");
+    model.set("_counterGroups", testCounterGroup);
+    assert.equal(model.get("counterGroupsHash.group_1.counter_1_1"), "value_1_1");
+    assert.equal(model.get("counterGroupsHash.group_1.counter_1_2"), "value_1_2");
+    assert.equal(model.get("counterGroupsHash.group_2.counter_2_1"), "value_2_1");
+    assert.equal(model.get("counterGroupsHash.group_2.counter_2_2"), "value_2_2");
   });
 });

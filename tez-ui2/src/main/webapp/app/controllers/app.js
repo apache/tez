@@ -18,9 +18,9 @@
 
 import Ember from 'ember';
 
-import AbstractController from './abstract';
+import ParentController from './parent';
 
-export default AbstractController.extend({
+export default ParentController.extend({
   breadcrumbs: Ember.computed("model.appID", "model.app.name", function () {
     var name = this.get("model.app.name") || this.get("model.appID");
 

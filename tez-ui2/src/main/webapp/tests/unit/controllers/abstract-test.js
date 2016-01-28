@@ -34,6 +34,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.name);
   assert.ok(controller.crumbObserver);
   assert.ok(controller.setBreadcrumbs);
+  assert.ok(controller.loaded);
 });
 
 test('init test', function(assert) {

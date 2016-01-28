@@ -42,6 +42,7 @@ function mapObject(hash, map) {
 export default DS.JSONSerializer.extend({
   _isLoader: true,
 
+  mergedProperties: ["maps"],
   maps: null,
 
   extractId: function (modelClass, resourceHash) {

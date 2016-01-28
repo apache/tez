@@ -25,5 +25,7 @@ moduleForModel('ahs-app', 'Unit | Model | ahs app', {
 
 test('Basic creation test', function(assert) {
   let model = this.subject();
+
   assert.ok(!!model);
+  assert.ok(!!model.duration);
 });

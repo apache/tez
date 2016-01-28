@@ -43,7 +43,7 @@ var CounterColumnDefinition = ColumnDefinition.extend({
   counterGroupName: "",
 
   observePath: true,
-  contentPath: "counterHash",
+  contentPath: "counterGroupsHash",
 
   getCellContent: getCounterContent,
   getSearchValue: getCounterContent,

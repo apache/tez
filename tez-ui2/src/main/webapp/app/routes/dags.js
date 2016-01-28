@@ -75,18 +75,18 @@ export default AbstractRoute.extend({
     });
   },
 
-  load: function (value, query, options) {
+  load: function (value, query/*, options*/) {
     var loader,
         that = this;
 
     if(query.dagID) {
       that.set("loadedRecords", []);
-      loader = this.get("loader").queryRecord('dag', query.dagID, options).then(function (record) {
+      loader = this.get("loader").queryRecord('dag', query.dagID, {reload: true}).then(function (record) {
         return [record];
       });
     }
     else {
-      loader = this.get("loader").query('dag', query, options);
+      loader = this.get("loader").query('dag', query, {reload: true});
     }
 
     return loader.then(function (records) {

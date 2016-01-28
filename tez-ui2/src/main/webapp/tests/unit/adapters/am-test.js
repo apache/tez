@@ -28,4 +28,23 @@ test('Basic creation test', function(assert) {
 
   assert.ok(adapter);
   assert.equal(adapter.serverName, "am");
+
+  assert.ok(adapter.queryRecord);
+});
+
+test('queryRecord test', function(assert) {
+  let testStore = {},
+      testType = {},
+      testQuery = {},
+
+      adapter = this.subject({
+        query: function (store, type, query) {
+          assert.equal(store, testStore);
+          assert.equal(type, testType);
+          assert.equal(query, testQuery);
+        }
+      });
+
+  assert.expect(3);
+  adapter.queryRecord(testStore, testType, testQuery);
 });

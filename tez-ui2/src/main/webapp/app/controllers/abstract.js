@@ -24,13 +24,18 @@ export default Ember.Controller.extend(NameMixin, {
   // Must be set by inheriting classes
   breadcrumbs: null,
 
-  // Must be set from route
+  // Must be set from abstract route
   loadTime: null,
+  isLoading: false,
 
   init: function () {
     this._super();
     Ember.run.later(this, "setBreadcrumbs");
   },
+
+  loaded: Ember.computed("model", "isLoading", function () {
+    return this.get("model") && !this.get("isLoading");
+  }),
 
   crumbObserver: Ember.observer("breadcrumbs", function () {
     Ember.run.later(this, "setBreadcrumbs");

@@ -39,16 +39,16 @@ export default Ember.Mixin.create({
 
     if(records) {
       records.forEach(function (record) {
-        let counterGroups = Ember.get(record, 'counterGroups');
+        let counterGroupsHash = Ember.get(record, 'counterGroupsHash');
 
-        if(counterGroups) {
-          counterGroups.forEach(function (group) {
+        if(counterGroupsHash) {
+          MoreObject.forEach(counterGroupsHash, function (groupName, countersHash) {
             var groupHash =
-                counterHash[group.counterGroupName] =
-                counterHash[group.counterGroupName] || {};
+                counterHash[groupName] =
+                counterHash[groupName] || {};
 
-            group.counters.forEach(function (counter) {
-              groupHash[counter.counterName] = counter.counterName;
+            MoreObject.forEach(countersHash, function (counterName) {
+              groupHash[counterName] = counterName;
             });
           });
         }

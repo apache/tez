@@ -26,3 +26,4 @@ ALL CHANGES:
   TEZ-3064. Tez UI 2: Add All DAGs filters
   TEZ-3059. Tez UI 2: Make refresh functional
   TEZ-3070. Tez UI 2: Jenkins build is failing
+  TEZ-3060. Tez UI 2: Activate auto-refresh

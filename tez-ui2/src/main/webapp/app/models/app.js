@@ -20,22 +20,6 @@ import Ember from 'ember';
 import DS from 'ember-data';
 
 import TimelineModel from './timeline';
-/*
-  Inherited properties
-
-  entityID - String
-  appID - Computed from entityID
-
-  status - String
-  progress - Computed from status
-
-  startTime - Number
-  endTime - Number
-  duration - Computed from start & end times
-
-  counterGroups - Array
-  counterHash - Computed from counterGroups
-*/
 
 export default TimelineModel.extend({
   appID: Ember.computed("entityID", function () {

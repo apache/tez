@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import { moduleForModel, test } from 'ember-qunit';
 
 moduleForModel('vertex', 'Unit | Model | vertex', {
@@ -27,6 +29,10 @@ test('Basic creation test', function(assert) {
   let model = this.subject();
 
   assert.ok(model);
+
+  assert.ok(model.needs.dag);
+  assert.ok(model.needs.am);
+
   assert.ok(model.runningTasks);
   assert.ok(model.pendingTasks);
 });
@@ -34,15 +40,19 @@ test('Basic creation test', function(assert) {
 test('runningTasks test', function(assert) {
   let model = this.subject();
 
-  assert.equal(model.get("runningTasks"), null);
-  model.set("status", "SUCCEEDED");
-  assert.equal(model.get("runningTasks"), 0);
+  Ember.run(function () {
+    assert.equal(model.get("runningTasks"), null);
+    model.set("status", "SUCCEEDED");
+    assert.equal(model.get("runningTasks"), 0);
+  });
 });
 
 test('pendingTasks test', function(assert) {
   let model = this.subject();
 
-  assert.equal(model.get("pendingTasks"), null);
-  model.set("status", "SUCCEEDED");
-  assert.equal(model.get("pendingTasks"), 0);
+  Ember.run(function () {
+    assert.equal(model.get("pendingTasks"), null);
+    model.set("status", "SUCCEEDED");
+    assert.equal(model.get("pendingTasks"), 0);
+  });
 });

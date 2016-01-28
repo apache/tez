@@ -54,17 +54,17 @@ export default Ember.Service.extend({
     );
   },
 
-  lookup: function (type, name) {
+  lookup: function (type, name, options) {
     name = Ember.String.dasherize(name);
-    return this.get("container").lookup(type + ":" + name);
+    return this.get("container").lookup(type + ":" + name, options);
   },
 
   entityFor: function (entityName) {
     var entity = this.lookup("entitie", entityName);
     if(!entity) {
-      entity = this.lookup("entitie", "entity");
+      entity = this.lookup("entitie", "entity", { singleton: false });
+      entity.set("name", entityName);
     }
-    entity.name = entityName;
     return entity;
   },
 
@@ -78,68 +78,61 @@ export default Ember.Service.extend({
       parts.push(JSON.stringify(query));
     }
 
-    return parts.join(":");
+    return parts.join(":").replace(/\./g, ":");
+  },
+
+  loadNeed: function (record, needName, options, queryParams, urlParams) {
+    var entity = this.entityFor(record.get("constructor.modelName"));
+    return entity.loadNeed(this, record, needName, options, queryParams, urlParams);
+  },
+
+  normalizeOptions: function (options) {
+    options = options || {};
+
+    if(!options.cache){
+      options = Ember.$.extend({}, options);
+      options.cache = options.reload ? Ember.Object.create() : this.get("cache");
+    }
+
+    return options;
   },
 
   queryRecord: function(type, id, options, query, urlParams) {
     var entity = this.entityFor(type),
-        cache = this.get("cache"),
         cacheKey = this.getCacheKey(type, query, id),
-        that = this,
         record;
 
     this.checkRequisite(type);
 
-    options = options || {};
-    if(!options.reload) {
-      record = cache.get(cacheKey);
-      if(record) {
-        return record;
-      }
+    options = this.normalizeOptions(options);
+
+    record = options.cache.get(cacheKey);
+    if(record) {
+      return record;
     }
 
-    record = this.get('store').queryRecord(type, {
-      id: id,
-      nameSpace: this.get('nameSpace'),
-      params: query,
-      urlParams: urlParams
-    }).then(function (record) {
-      return entity.loadRelations(that, record, options, urlParams);
-    });
+    record = entity.queryRecord(this, id, options, query, urlParams);
+    options.cache.set(cacheKey, record);
 
-    cache.set(cacheKey, record);
     return record;
   },
   query: function(type, query, options, urlParams) {
     var entity = this.entityFor(type),
-        cache = this.get("cache"),
         cacheKey = this.getCacheKey(type, query),
-        that = this,
         records;
 
     this.checkRequisite(type);
 
-    options = options || {};
-    if(!options.reload) {
-      records = cache.get(cacheKey);
-      if(records) {
-        return records;
-      }
+    options = this.normalizeOptions(options);
+
+    records = options.cache.get(cacheKey);
+    if(records) {
+      return records;
     }
 
-    records = this.get('store').query(type, {
-      nameSpace: this.get('nameSpace'),
-      params: query,
-      urlParams: urlParams
-    }).then(function (records) {
-      return Ember.RSVP.all(records.map(function (record) {
-        return entity.loadRelations(that, record, options, urlParams);
-      })).then(function () {
-       return records;
-      });
-    });
+    records = entity.query(this, query, options, urlParams);
+    options.cache.set(cacheKey, records);
 
-    cache.set(cacheKey, records);
     return records;
   }
 });

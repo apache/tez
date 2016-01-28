@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import TablePageController from '../table-page';
+import MultiTableController from '../multi-table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
 import AutoCounterColumn from '../../mixins/auto-counter-column';
 
-export default TablePageController.extend(AutoCounterColumn, {
+export default MultiTableController.extend(AutoCounterColumn, {
   breadcrumbs: [{
     text: "Task Attempts",
     routeName: "vertex.attempts",
@@ -55,7 +55,8 @@ export default TablePageController.extend(AutoCounterColumn, {
     id: 'status',
     headerTitle: 'Status',
     contentPath: 'status',
-    cellComponentName: 'em-table-status-cell'
+    cellComponentName: 'em-table-status-cell',
+    observePath: true
   },{
     id: 'progress',
     headerTitle: 'Progress',

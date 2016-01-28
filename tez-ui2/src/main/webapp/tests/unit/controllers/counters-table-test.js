@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:counters-page', 'Unit | Controller | counters page', {
+moduleFor('controller:counters-table', 'Unit | Controller | counters table', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
@@ -34,40 +34,33 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.columns);
   assert.ok(controller.counters);
+  assert.ok(controller._countersObserver);
+
 });
 
-test('counters test', function(assert) {
+test('counters & _countersObserver test', function(assert) {
   let controller = this.subject({
     send: Ember.K,
     initVisibleColumns: Ember.K,
     model: {
-      counterGroups: [{
-        counterGroupName: "a.b.foo",
-        counters: [{
-          counterName: "Foo Name 1",
-          counterValue: "Value 1"
-        },{
-          counterName: "Foo Name 2",
-          counterValue: "Value 2"
-        },{
-          counterName: "Foo Name 3",
-          counterValue: "Value 3"
-        },]
-      },{
-        counterGroupName: "a.b.bar",
-        counters: [{
-          counterName: "Bar Name 1",
-          counterValue: "Value 1"
-        },{
-          counterName: "Bar Name 2",
-          counterValue: "Value 2"
-        },{
-          counterName: "Bar Name 3",
-          counterValue: "Value 3"
-        },]
-      }]
+      counterGroupsHash: {
+        "foo": {
+          "Foo Name 1": "Value 1",
+          "Foo Name 2": "Value 2",
+          "Foo Name 3": "Value 3"
+        },
+        "bar": {
+          "Bar Name 1": "Value 1",
+          "Bar Name 2": "Value 2",
+          "Bar Name 3": "Value 3"
+        }
+      }
     }
   });
+
+  assert.equal(controller.countersCount, 0);
+
+  controller._countersObserver();
 
   assert.equal(controller.get("counters.0.groupName"), "foo");
   assert.equal(controller.get("counters.0.counterName"), "Foo Name 1");
@@ -93,5 +86,6 @@ test('counters test', function(assert) {
   assert.equal(controller.get("counters.5.groupName"), "bar");
   assert.equal(controller.get("counters.5.counterName"), "Bar Name 3");
   assert.equal(controller.get("counters.5.counterValue"), "Value 3");
-});
 
+  assert.equal(controller.countersCount, 6);
+});

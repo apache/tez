@@ -20,6 +20,7 @@ import registerWithContainer from "ember-cli-auto-register/register";
 
 export function initialize(application) {
   registerWithContainer("entity", application);
+  application.inject('entitie', 'store', 'service:store');
 }
 
 export default {

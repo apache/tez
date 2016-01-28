@@ -22,8 +22,6 @@ import DS from 'ember-data';
 import AbstractModel from './abstract';
 
 export default AbstractModel.extend({
-  entityID: DS.attr('string'),
-
   attemptID: DS.attr('string'),
 
   name: DS.attr('string'),

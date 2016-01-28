@@ -19,7 +19,7 @@
 
 import Ember from 'ember';
 
-import PageController from './page';
+import AbstractController from './abstract';
 import TableDefinition from 'em-table/utils/table-definition';
 import isIOCounter from '../utils/misc';
 
@@ -27,7 +27,7 @@ import CounterColumnDefinition from '../utils/counter-column-definition';
 
 var MoreObject = more.Object;
 
-export default PageController.extend({
+export default AbstractController.extend({
   queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
   rowCount: 10,
   searchText: "",
@@ -97,12 +97,15 @@ export default PageController.extend({
         sortOrder
       });
     },
-    rowsChanged: function (rowCount) {
-      // Change to rows action in em-table
+    rowCountChanged: function (rowCount) {
       this.set("rowCount", rowCount);
     },
     pageChanged: function (pageNum) {
       this.set("pageNo", pageNum);
+    },
+
+    rowsChanged: function (rows) {
+      this.send("setPollingRecords", rows);
     },
 
     // Column selection actions

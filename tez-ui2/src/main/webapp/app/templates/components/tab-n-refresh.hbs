@@ -26,13 +26,13 @@
   {{/each}}
   <span class="refresh-ui">
     <span class="text-elements">
-      <span class="auto-refresh {{unless autoRefreshEnabled 'no-visible'}}">
-        {{input type="checkbox" name="autoEnabled" checked=autoEnabled}}
+      <span class="auto-refresh {{unless autoRefreshVisible 'no-visible'}}">
+        {{input type="checkbox" name="autoEnabled" checked=autoRefreshEnabled}}
         Auto Refresh
         <br/>
       </span>
       {{#if loadTime}}
-        Last refreshed at <b>{{txt loadTime type="date" format="DD MMM YYYY HH:mm:ss"}}</b>
+        Last refreshed at <b>{{txt loadTime type="date"}}</b>
       {{else}}
         Load time not available!
       {{/if}}

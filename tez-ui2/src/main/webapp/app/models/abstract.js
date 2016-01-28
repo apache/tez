@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import DS from 'ember-data';
 
 export default DS.Model.extend({
@@ -36,4 +37,24 @@ export default DS.Model.extend({
   didLoad: function () {
     this.refreshLoadTime();
   },
+
+  entityID: DS.attr("string"),
+
+  index: Ember.computed("entityID", function () {
+    var id = this.get("entityID") || "";
+    return id.substr(id.lastIndexOf('_') + 1);
+  }),
+
+  status: DS.attr("string"),
+  isComplete: Ember.computed("status", function () {
+    switch(this.get("status")) {
+      case "SUCCEEDED":
+      case "FINISHED":
+      case "FAILED":
+      case "KILLED":
+        return true;
+    }
+    return false;
+  }),
+
 });

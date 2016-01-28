@@ -21,5 +21,7 @@ import AbstractAdapter from './abstract';
 export default AbstractAdapter.extend({
   serverName: "am",
 
-  // Any am specific adapter changes must be added here
+  queryRecord: function(store, type, query) {
+    return this.query(store, type, query);
+  },
 });

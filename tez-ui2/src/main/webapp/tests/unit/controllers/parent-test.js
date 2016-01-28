@@ -17,10 +17,9 @@
  */
 
 import Ember from 'ember';
-
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:table-page', 'Unit | Controller | table page', {
+moduleFor('controller:parent', 'Unit | Controller | parent', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
@@ -32,33 +31,6 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
-  assert.ok(controller.queryParams);
-
-  assert.equal(controller.rowCount, 10);
-  assert.equal(controller.searchText, "");
-  assert.equal(controller.sortColumnId, "");
-  assert.equal(controller.sortOrder, "");
-  assert.equal(controller.pageNo, 1);
-
-  assert.ok(controller.headerComponentNames);
-  assert.ok(controller.visibleColumnIDs);
-  assert.ok(controller.columnSelectorTitle);
-  assert.ok(controller.definition);
-
-  assert.ok(controller.storageID);
-  assert.ok(controller.initVisibleColumns);
-
-  assert.ok(controller.columns);
-  assert.ok(controller.allColumns);
-  assert.ok(controller.visibleColumns);
-
-  assert.ok(controller.getCounterColumns);
-
-  assert.ok(controller.actions.searchChanged);
-  assert.ok(controller.actions.sortChanged);
-  assert.ok(controller.actions.rowsChanged);
-  assert.ok(controller.actions.pageChanged);
-
-  assert.ok(controller.actions.openColumnSelector);
-  assert.ok(controller.actions.columnsSelected);
+  assert.ok(controller.polling);
+  assert.ok(controller.actions.autoRefreshChanged);
 });

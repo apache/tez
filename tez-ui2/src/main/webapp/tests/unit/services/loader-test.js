@@ -142,30 +142,32 @@ test('entityFor test', function(assert) {
     }
     if(name === "entity") {
       assert.equal(type, "entitie");
-      return {
-        actualName: "entity"
-      };
+      return Ember.Object.create({
+        actualName: "entity",
+        name: name
+      });
     }
   };
   entity = service.entityFor(testName);
   assert.equal(entity.actualName, "entity", "Default lookups succeeded");
-  assert.equal(entity.name, testName, "Default lookups succeeded");
+  assert.equal(entity.get("name"), testName, "Default lookups succeeded");
 
   // Primary lookups succeeded
   service.lookup = function (type, name) {
     if(name === testName) {
       assert.equal(type, "entitie");
-      return {
-        actualName: name
-      };
+      return Ember.Object.create({
+        actualName: name,
+        name: name
+      });
     }
     if(name === "entity") {
       assert.equal(type, "entitie"); // Shouldn't be called
     }
   };
   entity = service.entityFor(testName);
-  assert.equal(entity.name, testName, "Default lookups succeeded");
-  assert.equal(entity.name, testName, "Default lookups succeeded");
+  assert.equal(entity.get("name"), testName, "Default lookups succeeded");
+  assert.equal(entity.get("name"), testName, "Default lookups succeeded");
 });
 
 test('getCacheKey test', function(assert) {
@@ -180,7 +182,7 @@ test('getCacheKey test', function(assert) {
 test('queryRecord test', function(assert) {
   let service = this.subject(),
       testNameSpace = "ns",
-      testOptions = {},
+      testOptions = {opt: 1},
       testQueryParams = {},
       testUrlParams = {},
       testType = "type",
@@ -188,7 +190,7 @@ test('queryRecord test', function(assert) {
       testID = 1,
       cacheKey = service.getCacheKey(testType, testQueryParams, testID);
 
-  assert.expect(1 + 4 + 5 + 3);
+  assert.expect(1 + 5 + 3);
 
   service.nameSpace = testNameSpace;
   service.checkRequisite = Ember.K;
@@ -196,25 +198,16 @@ test('queryRecord test', function(assert) {
     assert.equal(type, testType);
 
     return {
-      loadRelations: function (thisService, record, options, urlParams) {
-        assert.equal(thisService, service);
-        assert.equal(record, testRecord);
-        assert.equal(options, testOptions);
-        assert.equal(urlParams, testUrlParams);
+      queryRecord: function (loader, id, options, query, urlParams) {
+        assert.equal(loader, service, "Loader");
+        assert.equal(id, testID, "id");
+        assert.equal(options.opt, testOptions.opt, "options");
+        assert.equal(query, testQueryParams, "query");
+        assert.equal(urlParams, testUrlParams, "urlParams");
 
-        return record;
+        return Ember.RSVP.resolve(testRecord);
       }
     };
-  };
-  service.get("store").queryRecord = function (type, query) {
-    assert.equal(type, testType);
-
-    assert.equal(query.id, testID);
-    assert.equal(query.nameSpace, testNameSpace);
-    assert.equal(query.params, testQueryParams);
-    assert.equal(query.urlParams, testUrlParams);
-
-    return Ember.RSVP.resolve(testRecord);
   };
 
   service.cache = Ember.Object.create();
@@ -228,7 +221,7 @@ test('queryRecord test', function(assert) {
 test('query test', function(assert) {
   let service = this.subject(),
       testNameSpace = "ns",
-      testOptions = {},
+      testOptions = {opt: 1},
       testQueryParams = {},
       testUrlParams = {},
       testType = "type",
@@ -236,7 +229,7 @@ test('query test', function(assert) {
       testRecords = [testRecord, testRecord],
       cacheKey = service.getCacheKey(testType, testQueryParams);
 
-  assert.expect(1 + (4 + 4) + 4 + 3);
+  assert.expect(1 + 4 + 3);
 
   service.nameSpace = testNameSpace;
   service.checkRequisite = Ember.K;
@@ -244,24 +237,15 @@ test('query test', function(assert) {
     assert.equal(type, testType);
 
     return {
-      loadRelations: function (thisService, record, options, urlParams) {
-        assert.equal(thisService, service);
-        assert.equal(record, testRecord);
-        assert.equal(options, testOptions);
-        assert.equal(urlParams, testUrlParams);
+      query: function (loader, query, options, urlParams) {
+        assert.equal(loader, service, "Loader");
+        assert.equal(options.opt, testOptions.opt, "options");
+        assert.equal(query, testQueryParams, "query");
+        assert.equal(urlParams, testUrlParams, "urlParams");
 
-        return record;
+        return Ember.RSVP.resolve(testRecords);
       }
     };
-  };
-  service.get("store").query = function (type, query) {
-    assert.equal(type, testType);
-
-    assert.equal(query.nameSpace, testNameSpace);
-    assert.equal(query.params, testQueryParams);
-    assert.equal(query.urlParams, testUrlParams);
-
-    return Ember.RSVP.resolve(testRecords);
   };
 
   service.cache = Ember.Object.create();

@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,10 +19,15 @@
 
 import Ember from 'ember';
 
-import TablePageController from './table-page';
+import TableController from './table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
-export default TablePageController.extend({
+var MoreObject = more.Object;
+
+export default TableController.extend({
+  counters: Ember.A(),
+  countersCount: 0, // Because Ember.Array doesn't handle length well
+
   columns: ColumnDefinition.make([{
     id: 'groupName',
     headerTitle: 'Group Name',
@@ -34,30 +40,35 @@ export default TablePageController.extend({
     id: 'counterValue',
     headerTitle: 'Counter Value',
     contentPath: 'counterValue',
+    observePath: true
   }]),
 
-  counters: Ember.computed("model.counterGroups", function () {
-    var counterGroups = this.get("model.counterGroups"),
-        counterRows = [];
+  _countersObserver: Ember.observer("model.counterGroupsHash", function () {
+    var counterGroupsHash = this.get("model.counterGroupsHash"),
+        counters = this.get("counters"),
+        counterIndex = 0;
 
-    if(counterGroups) {
-      counterGroups.forEach(function (group) {
-        var counterGroupName = group.counterGroupName,
-            counters = group.counters;
+    if(counterGroupsHash) {
+      MoreObject.forEach(counterGroupsHash, function (groupName, countersHash) {
+        if(countersHash) {
+          MoreObject.forEach(countersHash, function (counterName, counterValue) {
+            let counterRow = counters.get(counterIndex);
+            if(!counterRow) {
+              counterRow = Ember.Object.create();
+              counters.push(counterRow);
+            }
 
-        if(counters) {
-          counterGroupName = counterGroupName.substr(counterGroupName.lastIndexOf('.') + 1);
-          counters.forEach(function (counter) {
-            counterRows.push(Ember.Object.create({
-              groupName: counterGroupName,
-              counterName: counter.counterName,
-              counterValue: counter.counterValue
-            }));
+            counterRow.setProperties({
+              groupName: groupName,
+              counterName: counterName,
+              counterValue: counterValue
+            });
+            counterIndex++;
           });
         }
       });
     }
 
-    return Ember.A(counterRows);
+    this.set("countersCount", counterIndex);
   })
 });

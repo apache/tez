@@ -24,12 +24,17 @@ export default Ember.Component.extend({
     this.setApplication();
   },
 
-  autoRefreshEnabled: true,
+  autoRefreshEnabled: false,
+  autoRefreshVisible: true,
 
   setApplication: function () {
     var application = this.get("targetObject.container").lookup('controller:application');
     this.set("application", application);
   },
+
+  autoRefreshObserver: Ember.observer("autoRefreshEnabled", function () {
+    this.get('targetObject').send('autoRefreshChanged', this.get("autoRefreshEnabled"));
+  }),
 
   normalizedTabs: Ember.computed("tabs", "application.currentPath", function () {
     var tabs = this.get("tabs") || [],

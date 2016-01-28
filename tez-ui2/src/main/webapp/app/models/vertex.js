@@ -19,30 +19,31 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 
-import TimelineModel from './timeline';
-/*
-  Inherited properties
+import AMTimelineModel from './am-timeline';
 
-  entityID - String
-  appID - Computed from entityID
-
-  status - String
-  progress - Computed from status
-
-  startTime - Number
-  endTime - Number
-  duration - Computed from start & end times
-
-  counterGroups - Array
-  counterHash - Computed from counterGroups
-*/
-
-export default TimelineModel.extend({
+export default AMTimelineModel.extend({
   needs: {
     dag: {
       type: "dag",
       idKey: "dagID",
       silent: true
+    },
+    am: {
+      type: "vertexAm",
+      idKey: "entityID",
+      loadType: "demand",
+      queryParams: function (model) {
+        return {
+          vertexID: parseInt(model.get("index")),
+          dagID: parseInt(model.get("dag.index")),
+          counters: "*"
+        };
+      },
+      urlParams: function (model) {
+        return {
+          app_id: model.get("appID")
+        };
+      }
     }
   },
 

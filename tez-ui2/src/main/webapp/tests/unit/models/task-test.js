@@ -27,9 +27,15 @@ test('Basic creation test', function(assert) {
   let model = this.subject();
 
   assert.ok(model);
-  assert.ok(model.needs);
-  assert.ok(model.index);
+  assert.ok(model.needs.dag);
+  assert.ok(model.needs.am);
+
+  assert.ok(model.vertexID);
+  assert.ok(model.vertexIndex);
   assert.ok(model.vertexName);
+
+  assert.ok(model.dagID);
+  assert.ok(model.dag);
 });
 
 test('index test', function(assert) {
@@ -37,7 +43,7 @@ test('index test', function(assert) {
         entityID: "1_2_3",
       });
 
-  assert.equal(model.get("index"), "2_3");
+  assert.equal(model.get("index"), "3");
 });
 
 test('vertexName test', function(assert) {
