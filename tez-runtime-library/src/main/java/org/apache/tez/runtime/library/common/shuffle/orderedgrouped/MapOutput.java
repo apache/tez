@@ -47,17 +47,14 @@ class MapOutput {
   private final int id;
   private final Type type;
   private InputAttemptIdentifier attemptIdentifier;
-  private final long size;
 
   private final boolean primaryMapOutput;
   private final FetchedInputAllocatorOrderedGrouped callback;
 
   // MEMORY
-  private final byte[] memory;
   private BoundedByteArrayOutputStream byteStream;
 
   // DISK
-  private final FileSystem localFS;
   private final Path tmpOutputPath;
   private final FileChunk outputPath;
   private OutputStream disk;
@@ -71,18 +68,13 @@ class MapOutput {
     this.callback = callback;
     this.primaryMapOutput = primaryMapOutput;
 
-    this.localFS = fs;
-    this.size = size;
-
     // Other type specific values
 
     if (type == Type.MEMORY) {
       // since we are passing an int from createMemoryMapOutput, its safe to cast to int
       this.byteStream = new BoundedByteArrayOutputStream((int)size);
-      this.memory = byteStream.getBuffer();
     } else {
       this.byteStream = null;
-      this.memory = null;
     }
 
     this.tmpOutputPath = tmpOutputPath;
@@ -97,7 +89,6 @@ class MapOutput {
     } else {
       this.outputPath = null;
     }
-
   }
 
   public static MapOutput createDiskMapOutput(InputAttemptIdentifier attemptIdentifier,
@@ -107,7 +98,7 @@ class MapOutput {
       IOException {
     FileSystem fs = FileSystem.getLocal(conf).getRaw();
     Path outputpath = mapOutputFile.getInputFileForWrite(
-        attemptIdentifier.getInputIdentifier().getInputIndex(), attemptIdentifier.getSpillEventId(), size);
+        attemptIdentifier.getInputIdentifier(), attemptIdentifier.getSpillEventId(), size);
     // Files are not clobbered due to the id being appended to the outputPath in the tmpPath,
     // otherwise fetches for the same task but from different attempts would clobber each other.
     Path tmpOuputPath = outputpath.suffix(String.valueOf(fetcher));
@@ -115,7 +106,7 @@ class MapOutput {
 
     MapOutput mapOutput = new MapOutput(Type.DISK, attemptIdentifier, callback, size, outputpath, offset,
         primaryMapOutput, fs, tmpOuputPath);
-    mapOutput.disk = mapOutput.localFS.create(tmpOuputPath);
+    mapOutput.disk = fs.create(tmpOuputPath);
 
     return mapOutput;
   }
@@ -160,7 +151,7 @@ class MapOutput {
   }
 
   public byte[] getMemory() {
-    return memory;
+    return byteStream.getBuffer();
   }
 
   public BoundedByteArrayOutputStream getArrayStream() {
@@ -180,14 +171,19 @@ class MapOutput {
   }
 
   public long getSize() {
-    return size;
+    if (type == Type.MEMORY) {
+      return byteStream.getLimit();
+    } else if (type == Type.DISK || type == Type.DISK_DIRECT) {
+      return outputPath.getLength();
+    }
+    return -1;
   }
 
   public void commit() throws IOException {
     if (type == Type.MEMORY) {
       callback.closeInMemoryFile(this);
     } else if (type == Type.DISK) {
-      localFS.rename(tmpOutputPath, outputPath.getPath());
+      callback.getLocalFileSystem().rename(tmpOutputPath, outputPath.getPath());
       callback.closeOnDiskFile(outputPath);
     } else if (type == Type.DISK_DIRECT) {
       callback.closeOnDiskFile(outputPath);
@@ -198,10 +194,10 @@ class MapOutput {
   
   public void abort() {
     if (type == Type.MEMORY) {
-      callback.unreserve(memory.length);
+      callback.unreserve(byteStream.getBuffer().length);
     } else if (type == Type.DISK) {
       try {
-        localFS.delete(tmpOutputPath, false);
+        callback.getLocalFileSystem().delete(tmpOutputPath, true);
       } catch (IOException ie) {
         LOG.info("failure to clean up " + tmpOutputPath, ie);
       }
@@ -223,9 +219,9 @@ class MapOutput {
         return 0;
       }
       
-      if (o1.size < o2.size) {
+      if (o1.getSize() < o2.getSize()) {
         return -1;
-      } else if (o1.size > o2.size) {
+      } else if (o1.getSize() > o2.getSize()) {
         return 1;
       }
       

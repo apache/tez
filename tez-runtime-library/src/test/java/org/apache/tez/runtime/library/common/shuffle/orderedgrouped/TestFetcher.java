@@ -53,7 +53,6 @@ import com.google.common.collect.Lists;
 import org.apache.tez.http.HttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -116,7 +115,7 @@ public class TestFetcher {
     doReturn("src vertex").when(inputContext).getSourceVertexName();
 
     MapHost mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
-    InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(new InputIdentifier(0), 0, "attempt");
+    InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(0, 0, "attempt");
     mapHost.addKnownMap(inputAttemptIdentifier);
     List<InputAttemptIdentifier> mapsForHost = Lists.newArrayList(inputAttemptIdentifier);
     doReturn(mapsForHost).when(scheduler).getMapsForHost(mapHost);
@@ -484,36 +483,36 @@ public class TestFetcher {
   @Test(timeout = 5000)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
-      new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+      new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
           //duplicate entry
-      new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+      new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
       // pipeline shuffle based identifiers, with multiple attempts
-      new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(new InputIdentifier(1), 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+      new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
+      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
-      new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
           false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
-      new InputAttemptIdentifier(new InputIdentifier(2), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+      new InputAttemptIdentifier(2, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
           false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
     };
     InputAttemptIdentifier[] expectedSrcAttempts = {
-      new InputAttemptIdentifier(new InputIdentifier(0), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+      new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
       // pipeline shuffle based identifiers
-      new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(new InputIdentifier(1), 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+      new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
+      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
           false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
-      new InputAttemptIdentifier(new InputIdentifier(1), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
           false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
-      new InputAttemptIdentifier(new InputIdentifier(2), 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+      new InputAttemptIdentifier(2, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
           false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
     };
 

@@ -27,7 +27,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 @Private
 public class InputAttemptIdentifier {
 
-  private final InputIdentifier inputIdentifier;
+  private final int inputIdentifier;
   private final int attemptNumber;
   private final String pathComponent;
   private final boolean shared;
@@ -49,18 +49,18 @@ public class InputAttemptIdentifier {
   private final int spillEventId;
 
   public InputAttemptIdentifier(int inputIndex, int attemptNumber) {
-    this(new InputIdentifier(inputIndex), attemptNumber, null);
+    this(inputIndex, attemptNumber, null);
   }
 
-  public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent) {
+  public InputAttemptIdentifier(int inputIdentifier, int attemptNumber, String pathComponent) {
     this(inputIdentifier, attemptNumber, pathComponent, false);
   }
 
-  public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent, boolean shared) {
+  public InputAttemptIdentifier(int inputIdentifier, int attemptNumber, String pathComponent, boolean shared) {
     this(inputIdentifier, attemptNumber, pathComponent, shared, SPILL_INFO.FINAL_MERGE_ENABLED, -1);
   }
 
-  public InputAttemptIdentifier(InputIdentifier inputIdentifier, int attemptNumber, String pathComponent,
+  public InputAttemptIdentifier(int inputIdentifier, int attemptNumber, String pathComponent,
       boolean shared, SPILL_INFO fetchTypeInfo, int spillEventId) {
     this.inputIdentifier = inputIdentifier;
     this.attemptNumber = attemptNumber;
@@ -74,15 +74,7 @@ public class InputAttemptIdentifier {
     }
   }
 
-  public InputAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent) {
-    this(new InputIdentifier(taskIndex), attemptNumber, pathComponent);
-  }
-
-  public InputAttemptIdentifier(int taskIndex, int attemptNumber, String pathComponent, boolean shared) {
-    this(new InputIdentifier(taskIndex), attemptNumber, pathComponent, shared);
-  }
-
-  public InputIdentifier getInputIdentifier() {
+  public int getInputIdentifier() {
     return this.inputIdentifier;
   }
 
@@ -117,8 +109,7 @@ public class InputAttemptIdentifier {
     final int prime = 31;
     int result = 1;
     result = prime * result + attemptNumber;
-    result = prime * result
-        + ((inputIdentifier == null) ? 0 : inputIdentifier.hashCode());
+    result = prime * result + inputIdentifier;
     return result;
   }
 
@@ -133,10 +124,7 @@ public class InputAttemptIdentifier {
     InputAttemptIdentifier other = (InputAttemptIdentifier) obj;
     if (attemptNumber != other.attemptNumber)
       return false;
-    if (inputIdentifier == null) {
-      if (other.inputIdentifier != null)
-        return false;
-    } else if (!inputIdentifier.equals(other.inputIdentifier))
+    if (inputIdentifier != other.inputIdentifier)
       return false;
     // do not compare pathComponent as they may not always be present
     return true;

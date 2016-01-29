@@ -50,7 +50,6 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -89,7 +88,7 @@ public class TestShuffleScheduler {
       // Schedule all copies.
       for (int i = 0; i < numInputs; i++) {
         InputAttemptIdentifier inputAttemptIdentifier =
-            new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+            new InputAttemptIdentifier(i, 0, "attempt_");
         scheduler.addKnownMapOutput("host" + i, 10000, 1, "hostUrl", inputAttemptIdentifier);
         identifiers[i] = inputAttemptIdentifier;
       }
@@ -134,7 +133,7 @@ public class TestShuffleScheduler {
 
       for (int i = 0; i < numInputs; i++) {
         InputAttemptIdentifier inputAttemptIdentifier =
-            new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+            new InputAttemptIdentifier(i, 0, "attempt_");
         scheduler.addKnownMapOutput("host" + i, 10000, 1, "hostUrl", inputAttemptIdentifier);
         identifiers[i] = inputAttemptIdentifier;
       }
@@ -191,7 +190,7 @@ public class TestShuffleScheduler {
     //Generate 320 events
     for (int i = 0; i < 320; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes),
           10000, i, "hostUrl", inputAttemptIdentifier);
     }
@@ -199,7 +198,7 @@ public class TestShuffleScheduler {
     //100 succeeds
     for (int i = 0; i < 100; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -210,14 +209,14 @@ public class TestShuffleScheduler {
     //99 fails
     for (int i = 100; i < 199; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
           + ":" + 10000, ""), false, true, false);
     }
 
 
     InputAttemptIdentifier inputAttemptIdentifier =
-        new InputAttemptIdentifier(new InputIdentifier(200), 0, "attempt_");
+        new InputAttemptIdentifier(200, 0, "attempt_");
 
     //Should fail here and report exception as reducer is not healthy
     scheduler.copyFailed(inputAttemptIdentifier, new MapHost(200, "host" + (200 %
@@ -260,7 +259,7 @@ public class TestShuffleScheduler {
     //Generate 0-200 events
     for (int i = 0; i < 200; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes),
           10000, i, "hostUrl", inputAttemptIdentifier);
     }
@@ -269,7 +268,7 @@ public class TestShuffleScheduler {
     //Generate 200-320 events with empty partitions
     for (int i = 200; i < 320; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copySucceeded(inputAttemptIdentifier, null, 0, 0, 0, null, true);
     }
     //120 are successful. so remaining is 200
@@ -279,7 +278,7 @@ public class TestShuffleScheduler {
     //200 pending to be downloaded. Download 190.
     for (int i = 0; i < 190; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -292,7 +291,7 @@ public class TestShuffleScheduler {
     //10 fails
     for (int i = 190; i < 200; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
           + ":" + 10000, ""), false, true, false);
     }
@@ -304,7 +303,7 @@ public class TestShuffleScheduler {
     scheduler.lastProgressTime = System.currentTimeMillis() - 250000;
 
     InputAttemptIdentifier inputAttemptIdentifier =
-        new InputAttemptIdentifier(new InputIdentifier(190), 0, "attempt_");
+        new InputAttemptIdentifier(190, 0, "attempt_");
     scheduler.copyFailed(inputAttemptIdentifier, new MapHost(190, "host" +
         (190 % totalProducerNodes)
         + ":" + 10000, ""), false, true, false);
@@ -317,7 +316,7 @@ public class TestShuffleScheduler {
     //fail to download 50 more times across attempts
     for (int i = 190; i < 200; i++) {
       inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
           + ":" + 10000, ""), false, true, false);
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
@@ -338,7 +337,7 @@ public class TestShuffleScheduler {
     //fail another 30
     for (int i = 110; i < 120; i++) {
       inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
           + ":" + 10000, ""), false, true, false);
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
@@ -376,7 +375,7 @@ public class TestShuffleScheduler {
     //Generate 320 events
     for (int i = 0; i < 320; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes),
           10000, i, "hostUrl", inputAttemptIdentifier);
     }
@@ -384,7 +383,7 @@ public class TestShuffleScheduler {
     //319 succeeds
     for (int i = 0; i < 319; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -394,7 +393,7 @@ public class TestShuffleScheduler {
 
     //1 fails (last fetch)
     InputAttemptIdentifier inputAttemptIdentifier =
-        new InputAttemptIdentifier(new InputIdentifier(319), 0, "attempt_");
+        new InputAttemptIdentifier(319, 0, "attempt_");
     scheduler.copyFailed(inputAttemptIdentifier, new MapHost(319, "host" + (319 % totalProducerNodes)
         + ":" + 10000, ""), false, true, false);
 
@@ -441,7 +440,7 @@ public class TestShuffleScheduler {
     //Generate 320 events
     for (int i = 0; i < 320; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes),
           10000, i, "hostUrl", inputAttemptIdentifier);
     }
@@ -449,7 +448,7 @@ public class TestShuffleScheduler {
     //Tasks fail in 20% of nodes 3 times, but are able to proceed further
     for (int i = 0; i < 64; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
 
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i %
           totalProducerNodes) + ":" + 10000, ""), false, true, false);
@@ -470,7 +469,7 @@ public class TestShuffleScheduler {
       //319 succeeds
     for (int i = 64; i < 319; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -480,7 +479,7 @@ public class TestShuffleScheduler {
 
     //1 fails (last fetch)
     InputAttemptIdentifier inputAttemptIdentifier =
-        new InputAttemptIdentifier(new InputIdentifier(319), 0, "attempt_");
+        new InputAttemptIdentifier(319, 0, "attempt_");
     scheduler.copyFailed(inputAttemptIdentifier, new MapHost(319, "host" + (319 % totalProducerNodes)
         + ":" + 10000, ""), false, true, false);
 
@@ -536,7 +535,7 @@ public class TestShuffleScheduler {
     //Generate 319 events (last event has not arrived)
     for (int i = 0; i < 319; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes),
           10000, i, "hostUrl", inputAttemptIdentifier);
     }
@@ -544,7 +543,7 @@ public class TestShuffleScheduler {
     //318 succeeds
     for (int i = 0; i < 319; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -554,7 +553,7 @@ public class TestShuffleScheduler {
 
     //1 fails (last fetch)
     InputAttemptIdentifier inputAttemptIdentifier =
-        new InputAttemptIdentifier(new InputIdentifier(318), 0, "attempt_");
+        new InputAttemptIdentifier(318, 0, "attempt_");
     scheduler.copyFailed(inputAttemptIdentifier, new MapHost(318, "host" + (318 % totalProducerNodes)
         + ":" + 10000, ""), false, true, false);
 
@@ -615,7 +614,7 @@ public class TestShuffleScheduler {
     //Generate 320 events (last event has not arrived)
     for (int i = 0; i < 320; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes),
           10000, i, "hostUrl", inputAttemptIdentifier);
     }
@@ -623,7 +622,7 @@ public class TestShuffleScheduler {
     //10 succeeds
     for (int i = 0; i < 10; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -634,7 +633,7 @@ public class TestShuffleScheduler {
     //5 fetches fail once
     for (int i = 10; i < 15; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
           + ":" + 10000, ""), false, true, false);
     }
@@ -648,7 +647,7 @@ public class TestShuffleScheduler {
     //5 fetches fail repeatedly
     for (int i = 10; i < 15; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
           + ":" + 10000, ""), false, true, false);
       scheduler.copyFailed(inputAttemptIdentifier, new MapHost(i, "host" + (i % totalProducerNodes)
@@ -691,7 +690,7 @@ public class TestShuffleScheduler {
     //Generate 320 events
     for (int i = 0; i < 320; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.addKnownMapOutput("host" + (i % totalProducerNodes), 10000, i,
           "hostUrl", inputAttemptIdentifier);
     }
@@ -699,7 +698,7 @@ public class TestShuffleScheduler {
     //100 succeeds
     for (int i = 0; i < 100; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       MapOutput mapOutput = MapOutput
           .createMemoryMapOutput(inputAttemptIdentifier, mock(FetchedInputAllocatorOrderedGrouped.class),
               100, false);
@@ -711,7 +710,7 @@ public class TestShuffleScheduler {
     //99 fails
     for (int i = 100; i < 199; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+          new InputAttemptIdentifier(i, 0, "attempt_");
       scheduler.copyFailed(inputAttemptIdentifier,
           new MapHost(i, "host" + (i % totalProducerNodes) + ":" + 10000, ""),
           false, true, false);
@@ -754,7 +753,7 @@ public class TestShuffleScheduler {
     final ShuffleSchedulerForTest scheduler = createScheduler(startTime, 1, shuffle);
 
     InputAttemptIdentifier inputAttemptIdentifier =
-        new InputAttemptIdentifier(new InputIdentifier(0), 0, "attempt_");
+        new InputAttemptIdentifier(0, 0, "attempt_");
     scheduler.addKnownMapOutput("host0", 10000, 0, "hostUrl", inputAttemptIdentifier);
 
     assertTrue(scheduler.pendingHosts.size() == 1);
@@ -801,7 +800,7 @@ public class TestShuffleScheduler {
 
       for (int i = 0; i < numInputs; i++) {
         InputAttemptIdentifier inputAttemptIdentifier =
-            new InputAttemptIdentifier(new InputIdentifier(i), 0, "attempt_");
+            new InputAttemptIdentifier(i, 0, "attempt_");
         scheduler.addKnownMapOutput("host" + i, 10000, 1, "hostUrl", inputAttemptIdentifier);
         identifiers[i] = inputAttemptIdentifier;
       }

@@ -16,6 +16,7 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import java.io.IOException;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.FileChunk;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
@@ -28,6 +29,8 @@ public interface FetchedInputAllocatorOrderedGrouped {
                                         int fetcherId) throws IOException;
 
   void closeInMemoryFile(MapOutput mapOutput);
+
+  FileSystem getLocalFileSystem();
 
   void closeOnDiskFile(FileChunk file);
 

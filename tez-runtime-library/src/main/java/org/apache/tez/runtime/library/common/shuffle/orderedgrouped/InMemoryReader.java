@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,9 +38,103 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 @InterfaceStability.Unstable
 public class InMemoryReader extends Reader {
 
+  private static class ByteArrayDataInput extends ByteArrayInputStream implements DataInput {
+
+    public ByteArrayDataInput(byte buf[], int offset, int length) {
+      super(buf, offset, length);
+    }
+
+    public void reset(byte[] input, int start, int length) {
+      this.buf = input;
+      this.count = start+length;
+      this.mark = start;
+      this.pos = start;
+    }
+
+    public byte[] getData() { return buf; }
+    public int getPosition() { return pos; }
+    public int getLength() { return count; }
+    public int getMark() { return mark; }
+
+    @Override
+    public void readFully(byte[] b) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void readFully(byte[] b, int off, int len) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int skipBytes(int n) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean readBoolean() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public byte readByte() throws IOException {
+      return (byte)read();
+    }
+
+    @Override
+    public int readUnsignedByte() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public short readShort() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int readUnsignedShort() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public char readChar() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int readInt() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long readLong() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public float readFloat() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public double readDouble() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String readLine() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String readUTF() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+  }
+
   private final InputAttemptIdentifier taskAttemptId;
   private final MergeManager merger;
-  DataInputBuffer memDataIn = new DataInputBuffer();
+  ByteArrayDataInput memDataIn;
   private int start;
   private int length;
   private int originalKeyPos;
@@ -49,12 +144,12 @@ public class InMemoryReader extends Reader {
       int length)
       throws IOException {
     super(null, length - start, null, null, null, false, 0, -1);
-    this.merger = merger;
     this.taskAttemptId = taskAttemptId;
+    this.merger = merger;
 
     buffer = data;
     bufferSize = (int) length;
-    memDataIn.reset(buffer, start, length);
+    memDataIn = new ByteArrayDataInput(buffer, start, length);
     this.start = start;
     this.length = length;
   }
@@ -160,7 +255,6 @@ public class InMemoryReader extends Reader {
 
   public void close() {
     // Release
-    dataIn = null;
     buffer = null;
     // Inform the MergeManager
     if (merger != null) {

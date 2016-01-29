@@ -67,7 +67,6 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.FetchResult;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
@@ -111,7 +110,7 @@ public class ShuffleManager implements FetcherCallback {
   
   private final BlockingQueue<FetchedInput> completedInputs;
   private final AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
-  private final Set<InputIdentifier> completedInputSet;
+  private final Set<Integer> completedInputSet;
   private final ConcurrentMap<String, InputHost> knownSrcHosts;
   private final BlockingQueue<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
@@ -171,7 +170,7 @@ public class ShuffleManager implements FetcherCallback {
 
   //To track shuffleInfo events when finalMerge is disabled OR pipelined shuffle is enabled in source.
   @VisibleForTesting
-  final Map<InputIdentifier, ShuffleEventInfo> shuffleInfoEventsMap;
+  final Map<Integer, ShuffleEventInfo> shuffleInfoEventsMap;
 
   // TODO More counters - FetchErrors, speed?
   
@@ -205,7 +204,7 @@ public class ShuffleManager implements FetcherCallback {
     
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
-    completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<InputIdentifier, Boolean>(numInputs));
+    completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>(numInputs));
     /**
      * In case of pipelined shuffle, it is possible to get multiple FetchedInput per attempt.
      * We do not know upfront the number of spills from source.
@@ -266,7 +265,7 @@ public class ShuffleManager implements FetcherCallback {
 
     Arrays.sort(this.localDisks);
 
-    shuffleInfoEventsMap = new ConcurrentHashMap<InputIdentifier, ShuffleEventInfo>();
+    shuffleInfoEventsMap = new ConcurrentHashMap<Integer, ShuffleEventInfo>();
 
     LOG.info(srcNameTrimmed + ": numInputs=" + numInputs + ", compressionCodec="
         + (codec == null ? "NoCompressionCodec" : codec.getClass().getName()) + ", numFetchers="
@@ -479,7 +478,7 @@ public class ShuffleManager implements FetcherCallback {
       return;
     }
 
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
     if (shuffleInfoEventsMap.get(inputIdentifier) == null) {
       shuffleInfoEventsMap.put(inputIdentifier, new ShuffleEventInfo(srcAttemptIdentifier));
     }
@@ -501,7 +500,7 @@ public class ShuffleManager implements FetcherCallback {
 
   public void addCompletedInputWithNoData(
       InputAttemptIdentifier srcAttemptIdentifier) {
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
     if (LOG.isDebugEnabled()) {
       LOG.debug("No input data exists for SrcTask: " + inputIdentifier + ". Marking as complete.");
     }
@@ -558,7 +557,7 @@ public class ShuffleManager implements FetcherCallback {
 
 
     ShuffleEventInfo(InputAttemptIdentifier input) {
-      this.id = input.getInputIdentifier().getInputIndex() + "_" + input.getAttemptNumber();
+      this.id = input.getInputIdentifier() + "_" + input.getAttemptNumber();
       this.eventsProcessed = new BitSet();
       this.attemptNum = input.getAttemptNumber();
     }
@@ -594,7 +593,7 @@ public class ShuffleManager implements FetcherCallback {
   public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
       FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
       throws IOException {
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
 
     // Count irrespective of whether this is a copy of an already fetched input
     lock.lock();
@@ -706,7 +705,7 @@ public class ShuffleManager implements FetcherCallback {
       return;
     }
 
-    InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
     ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(inputIdentifier);
 
     //for empty partition case
@@ -769,9 +768,9 @@ public class ShuffleManager implements FetcherCallback {
         "Fetch failure while fetching from "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
             inputContext.getSourceVertexName(),
-            srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
+            srcAttemptIdentifier.getInputIdentifier(),
             srcAttemptIdentifier.getAttemptNumber()),
-        srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
+        srcAttemptIdentifier.getInputIdentifier(),
         srcAttemptIdentifier.getAttemptNumber());
 
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);

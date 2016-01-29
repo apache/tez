@@ -496,7 +496,7 @@ public class IFile {
 
     protected byte[] buffer = null;
     protected int bufferSize = DEFAULT_BUFFER_SIZE;
-    protected DataInputStream dataIn;
+    protected DataInputStream dataIn = null;
 
     protected int recNo = 1;
     protected int originalKeyLength;
@@ -583,7 +583,9 @@ public class IFile {
         this.in = null;
       }
 
-      this.dataIn = new DataInputStream(this.in);
+      if (in != null) {
+        this.dataIn = new DataInputStream(this.in);
+      }
       this.readRecordsCounter = readsCounter;
       this.bytesReadCounter = bytesReadCounter;
       this.fileLength = length;

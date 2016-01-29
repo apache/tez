@@ -132,7 +132,6 @@ import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

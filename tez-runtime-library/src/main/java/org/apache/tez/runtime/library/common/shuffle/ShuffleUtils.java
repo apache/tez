@@ -498,7 +498,7 @@ public class ShuffleUtils {
   private static String toShortString(InputAttemptIdentifier inputAttemptIdentifier) {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
-    sb.append(inputAttemptIdentifier.getInputIdentifier().getInputIndex());
+    sb.append(inputAttemptIdentifier.getInputIdentifier());
     sb.append(", ").append(inputAttemptIdentifier.getAttemptNumber());
     sb.append(", ").append(inputAttemptIdentifier.getPathComponent());
     if (inputAttemptIdentifier.getFetchTypeInfo()

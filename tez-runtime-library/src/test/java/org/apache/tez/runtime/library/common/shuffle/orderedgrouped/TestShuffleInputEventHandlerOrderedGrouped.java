@@ -17,7 +17,6 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.Before;
 import org.junit.Test;
@@ -165,7 +164,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     int inputIdx = 0;
     Event dme1 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0);
     InputAttemptIdentifier id1 =
-        new InputAttemptIdentifier(new InputIdentifier(inputIdx), attemptNum,
+        new InputAttemptIdentifier(inputIdx, attemptNum,
             PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
     handler.handleEvents(Collections.singletonList(dme1));
     String baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
@@ -176,7 +175,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     //Send final_update event.
     Event dme2 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, false, 1);
     InputAttemptIdentifier id2 =
-        new InputAttemptIdentifier(new InputIdentifier(inputIdx), attemptNum,
+        new InputAttemptIdentifier(inputIdx, attemptNum,
             PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 1);
     handler.handleEvents(Collections.singletonList(dme2));
     baseUri = handler.getBaseURI(HOST, PORT, attemptNum).toString();
@@ -202,14 +201,14 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     inputIdx = 1;
     Event dme3 = createDataMovementEvent(attemptNum, inputIdx, null, false, true,
         true, 1);
-    InputAttemptIdentifier id3 = new InputAttemptIdentifier(new InputIdentifier(inputIdx),
+    InputAttemptIdentifier id3 = new InputAttemptIdentifier(inputIdx,
         attemptNum, PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE,
         0);
     handler.handleEvents(Collections.singletonList(dme3));
     //Send final_update event (empty partition directly invoking copySucceeded).
-    InputAttemptIdentifier id4 = new InputAttemptIdentifier(new InputIdentifier(inputIdx),
+    InputAttemptIdentifier id4 = new InputAttemptIdentifier(inputIdx,
         attemptNum, PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 1);
-    assertTrue(!scheduler.isInputFinished(id4.getInputIdentifier().getInputIndex()));
+    assertTrue(!scheduler.isInputFinished(id4.getInputIdentifier()));
     scheduler.copySucceeded(id4, null, 0, 0, 0, null, false);
     assertTrue(!scheduler.isDone()); //we haven't downloaded another id yet
     //Let the incremental event pass
@@ -229,7 +228,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(Collections.singletonList(dme1));
 
     InputAttemptIdentifier id1 =
-        new InputAttemptIdentifier(new InputIdentifier(inputIdx), attemptNum,
+        new InputAttemptIdentifier(inputIdx, attemptNum,
             PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
 
     verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(baseUri), eq(id1));
@@ -243,7 +242,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(Collections.singletonList(dme2));
 
     InputAttemptIdentifier id2 =
-        new InputAttemptIdentifier(new InputIdentifier(inputIdx), attemptNum,
+        new InputAttemptIdentifier(inputIdx, attemptNum,
             PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
     verify(scheduler, times(1)).reportExceptionForInput(any(IOException.class));
   }

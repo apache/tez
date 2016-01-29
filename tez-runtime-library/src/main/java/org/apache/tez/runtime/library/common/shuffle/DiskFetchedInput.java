@@ -50,7 +50,7 @@ public class DiskFetchedInput extends FetchedInput {
 
     this.localFS = FileSystem.getLocal(conf).getRaw();
     this.outputPath = filenameAllocator.getInputFileForWrite(
-        this.inputAttemptIdentifier.getInputIdentifier().getInputIndex(), this
+        this.inputAttemptIdentifier.getInputIdentifier(), this
             .inputAttemptIdentifier.getSpillEventId(), actualSize);
     // Files are not clobbered due to the id being appended to the outputPath in the tmpPath,
     // otherwise fetches for the same task but from different attempts would clobber each other.
