@@ -51,8 +51,11 @@ test('pendingTasks test', function(assert) {
   let model = this.subject();
 
   Ember.run(function () {
+    model.set("totalTasks", null);
     assert.equal(model.get("pendingTasks"), null);
+    model.set("totalTasks", 2);
+    model.set("_successfulTasks", 1);
     model.set("status", "SUCCEEDED");
-    assert.equal(model.get("pendingTasks"), 0);
+    assert.equal(model.get("pendingTasks"), 1);
   });
 });

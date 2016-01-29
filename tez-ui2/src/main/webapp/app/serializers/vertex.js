@@ -33,12 +33,12 @@ export default TimelineSerializer.extend({
     lastTaskFinishTime: 'otherinfo.stats.lastTaskFinishTime',
 
     totalTasks: 'otherinfo.numTasks',
-    failedTasks: 'otherinfo.numFailedTasks',
-    successfulTasks: 'otherinfo.numSucceededTasks',
-    killedTasks: 'otherinfo.numKilledTasks',
+    _failedTasks: 'otherinfo.numFailedTasks',
+    _successfulTasks: 'otherinfo.numSucceededTasks',
+    _killedTasks: 'otherinfo.numKilledTasks',
 
-    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
-    killedTaskAttempts: 'otherinfo.numKilledTaskAttempts',
+    _failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
+    _killedTaskAttempts: 'otherinfo.numKilledTaskAttempts',
 
     minDuration:  'otherinfo.stats.minTaskDuration',
     maxDuration:  'otherinfo.stats.maxTaskDuration',

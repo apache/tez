@@ -16,35 +16,35 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleFor, test } from 'ember-qunit';
 
-import ParentController from './parent';
+moduleFor('route:dag/index/index', 'Unit | Route | dag/index/index', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-export default ParentController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+test('Basic creation test', function(assert) {
+  let route = this.subject();
 
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index.index",
-      model: this.get("model.entityID")
-    }];
-  }),
+  assert.ok(route);
+  assert.ok(route.title);
+  assert.ok(route.loaderNamespace);
+  assert.ok(route.setupController);
+  assert.ok(route.load);
 
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index.index"
-  }, {
-    text: "DAG Counters",
-    routeName: "dag.counters"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+  assert.ok(route._canPollObserver);
+  assert.ok(route.actions.reload);
+  assert.ok(route.actions.willTransition);
+});
+
+test('setupController test', function(assert) {
+  assert.expect(1);
+
+  let route = this.subject({
+    startCrumbBubble: function () {
+      assert.ok(true);
+    }
+  });
+
+  route.setupController({}, {});
 });

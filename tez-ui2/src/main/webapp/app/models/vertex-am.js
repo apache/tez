@@ -16,7 +16,17 @@
  * limitations under the License.
  */
 
+import DS from 'ember-data';
+
 import AMModel from './am';
 
 export default AMModel.extend({
+
+  totalTasks: DS.attr("number"),
+  successfulTasks: DS.attr("number"),
+  runningTasks: DS.attr("number"),
+  pendingTasks: DS.attr("number"),
+  failedTaskAttempts: DS.attr("number"),
+  killedTaskAttempts: DS.attr("number"),
+
 });

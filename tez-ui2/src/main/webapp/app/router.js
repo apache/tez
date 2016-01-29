@@ -30,6 +30,7 @@ Router.map(function() {
     this.route('tasks');
     this.route('attempts');
     this.route('counters');
+    this.route('index', function() {});
   });
   this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
     this.route('tasks');

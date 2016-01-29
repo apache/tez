@@ -19,5 +19,12 @@
 import AMSerializer from './am';
 
 export default AMSerializer.extend({
-  payloadNamespace: "vertices"
+  payloadNamespace: "vertices",
+
+  maps: {
+    successfulTasks: "succeededTasks",
+    runningTasks: "runningTasks",
+    failedTaskAttempts: "failedTaskAttempts",
+    killedTaskAttempts: "killedTaskAttempts",
+  }
 });

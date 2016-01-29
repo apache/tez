@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +19,10 @@
 
 import Ember from 'ember';
 
-const STATE_STORAGE_KEY = "pollingIsActive";
+const STATE_STORAGE_KEY = "pollingIsActive",
+      DEFAULT_LABEL = "default_label";
+
+var MoreObject = more.Object;
 
 export default Ember.Service.extend({
   localStorage: Ember.inject.service("localStorage"),
@@ -30,8 +34,8 @@ export default Ember.Service.extend({
   isPolling: false,
   scheduleID: null,
 
-  poll: null,
-  pollContext: null,
+  polls: {},
+  pollCount: 0,
 
   initState: Ember.on("init", function () {
     Ember.run.later(this, function () {
@@ -43,16 +47,23 @@ export default Ember.Service.extend({
     this.callPoll();
   }),
 
-  isReady: Ember.computed("active", "poll", function () {
-    return this.get("active") && this.get("poll");
+  isReady: Ember.computed("active", "pollCount", function () {
+    return !!(this.get("active") && this.get("pollCount"));
   }),
 
   callPoll: function () {
     var that = this;
     this.unSchedulePoll();
     if(this.get("isReady") && !this.get("isPolling")) {
+      var pollsPromises = [];
+
       this.set("isPolling", true);
-      this.get("poll").call(this.get("pollContext")).finally(function () {
+
+      MoreObject.forEach(this.get("polls"), function (label, pollDef) {
+        pollsPromises.push(pollDef.callback.call(pollDef.context));
+      });
+
+      Ember.RSVP.allSettled(pollsPromises).finally(function () {
         that.set("isPolling", false);
         that.schedulePoll();
       });
@@ -66,18 +77,29 @@ export default Ember.Service.extend({
     clearTimeout(this.get("scheduleID"));
   },
 
-  setPoll: function (pollFunction, context) {
-    this.setProperties({
-      pollContext: context,
-      poll: pollFunction,
-    });
+  setPoll: function (pollFunction, context, label) {
+    var polls = this.get("polls"),
+        pollCount;
+
+    label = label || DEFAULT_LABEL;
+    polls[label] = {
+      context: context,
+      callback: pollFunction,
+    };
+    this.set("pollCount", pollCount = Object.keys(polls).length);
+
     this.callPoll();
   },
-  resetPoll: function () {
-    this.unSchedulePoll();
-    this.setProperties({
-      poll: null,
-      pollContext: null
-    });
+  resetPoll: function (label) {
+    var polls = this.get("polls"),
+        pollCount;
+
+    label = label || DEFAULT_LABEL;
+    delete polls[label];
+    this.set("pollCount", pollCount = Object.keys(polls).length);
+
+    if(!pollCount) {
+      this.unSchedulePoll();
+    }
   }
 });
