@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES
+  TEZ-3076. Reduce merge memory overhead to support large number of in-memory mapoutputs
   TEZ-3066. TaskAttemptFinishedEvent ConcurrentModificationException in recovery or history logging services.
   TEZ-3036. Tez AM can hang on startup with no indication of error
   TEZ-3052. Task internal error due to Invalid event: T_ATTEMPT_FAILED at FAILED

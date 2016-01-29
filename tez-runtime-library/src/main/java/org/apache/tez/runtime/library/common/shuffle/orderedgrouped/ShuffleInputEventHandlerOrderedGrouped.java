@@ -37,7 +37,6 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 
@@ -170,7 +169,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
       InputAttemptIdentifier.SPILL_INFO info = (lastEvent) ? InputAttemptIdentifier.SPILL_INFO
           .FINAL_UPDATE : InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE;
       srcAttemptIdentifier =
-          new InputAttemptIdentifier(new InputIdentifier(dmEvent.getTargetIndex()), dmEvent
+          new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent
               .getVersion(), pathComponent, false, info, spillEventId);
     } else {
       srcAttemptIdentifier =

@@ -52,7 +52,6 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
@@ -82,7 +81,7 @@ class ShuffleScheduler {
   //To track shuffleInfo events when finalMerge is disabled in source or pipelined shuffle is
   // enabled in source.
   @VisibleForTesting
-  final Map<InputIdentifier, ShuffleEventInfo> pipelinedShuffleInfoEventsMap;
+  final Map<Integer, ShuffleEventInfo> pipelinedShuffleInfoEventsMap;
 
   @VisibleForTesting
   final Set<MapHost> pendingHosts = new HashSet<MapHost>();
@@ -236,7 +235,7 @@ class ShuffleScheduler {
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
 
-    pipelinedShuffleInfoEventsMap = new HashMap<InputIdentifier, ShuffleEventInfo>();
+    pipelinedShuffleInfoEventsMap = new HashMap<Integer, ShuffleEventInfo>();
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
         + "maxFetchFailuresBeforeReporting=" + maxFetchFailuresBeforeReporting
@@ -274,7 +273,7 @@ class ShuffleScheduler {
 
 
     ShuffleEventInfo(InputAttemptIdentifier input) {
-      this.id = input.getInputIdentifier().getInputIndex() + "_" + input.getAttemptNumber();
+      this.id = input.getInputIdentifier() + "_" + input.getAttemptNumber();
       this.eventsProcessed = new BitSet();
       this.attemptNum = input.getAttemptNumber();
     }
@@ -312,7 +311,7 @@ class ShuffleScheduler {
                                          ) throws IOException {
 
     inputContext.notifyProgress();
-    if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex())) {
+    if (!isInputFinished(srcAttemptIdentifier.getInputIdentifier())) {
       if (!isLocalFetch) {
         /**
          * Reset it only when it is a non-local-disk copy.
@@ -350,10 +349,10 @@ class ShuffleScheduler {
        */
       if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
         remainingMaps.decrementAndGet();
-        setInputFinished(srcAttemptIdentifier.getInputIdentifier().getInputIndex());
+        setInputFinished(srcAttemptIdentifier.getInputIdentifier());
         numFetchedSpills++;
       } else {
-        InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+        int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
         //Allow only one task attempt to proceed.
         if (!validateInputAttemptForPipelinedShuffle(srcAttemptIdentifier)) {
           return;
@@ -378,7 +377,7 @@ class ShuffleScheduler {
         //check if we downloaded all spills pertaining to this InputAttemptIdentifier
         if (eventInfo.isDone()) {
           remainingMaps.decrementAndGet();
-          setInputFinished(inputIdentifier.getInputIndex());
+          setInputFinished(inputIdentifier);
           pipelinedShuffleInfoEventsMap.remove(inputIdentifier);
           if (LOG.isTraceEnabled()) {
             LOG.trace("Removing : " + srcAttemptIdentifier + ", pending: " +
@@ -405,7 +404,7 @@ class ShuffleScheduler {
       if (LOG.isDebugEnabled()) {
         LOG.debug("src task: "
             + TezRuntimeUtils.getTaskAttemptIdentifier(
-                inputContext.getSourceVertexName(), srcAttemptIdentifier.getInputIdentifier().getInputIndex(),
+                inputContext.getSourceVertexName(), srcAttemptIdentifier.getInputIdentifier(),
                 srcAttemptIdentifier.getAttemptNumber()) + " done");
       }
     } else {
@@ -524,7 +523,7 @@ class ShuffleScheduler {
       String errorMsg = "Failed " + attemptFailures + " times trying to "
           + "download from " + TezRuntimeUtils.getTaskAttemptIdentifier(
           inputContext.getSourceVertexName(),
-          srcAttempt.getInputIdentifier().getInputIndex(),
+          srcAttempt.getInputIdentifier(),
           srcAttempt.getAttemptNumber()) + ". threshold=" + abortFailureLimit;
       IOException ioe = new IOException(errorMsg);
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
@@ -583,15 +582,15 @@ class ShuffleScheduler {
         srcNameTrimmed + ": " + "Reporting fetch failure for InputIdentifier: "
             + srcAttempt + " taskAttemptIdentifier: " + TezRuntimeUtils
             .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                srcAttempt.getInputIdentifier().getInputIndex(),
+                srcAttempt.getInputIdentifier(),
                 srcAttempt.getAttemptNumber()) + " to AM.");
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
     failedEvents.add(InputReadErrorEvent.create(
         "Fetch failure for " + TezRuntimeUtils
             .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                srcAttempt.getInputIdentifier().getInputIndex(),
+                srcAttempt.getInputIdentifier(),
                 srcAttempt.getAttemptNumber()) + " to jobtracker.",
-        srcAttempt.getInputIdentifier().getInputIndex(),
+        srcAttempt.getInputIdentifier(),
         srcAttempt.getAttemptNumber()));
 
     inputContext.sendEvents(failedEvents);
@@ -855,7 +854,7 @@ class ShuffleScheduler {
   
   private boolean inputShouldBeConsumed(InputAttemptIdentifier id) {
     return (!obsoleteInputs.contains(id) && 
-             !isInputFinished(id.getInputIdentifier().getInputIndex()));
+             !isInputFinished(id.getInputIdentifier()));
   }
 
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
@@ -870,7 +869,7 @@ class ShuffleScheduler {
       // This may be removed after TEZ-914
       InputAttemptIdentifier id = listItr.next();
       if (inputShouldBeConsumed(id)) {
-        Integer inputNumber = Integer.valueOf(id.getInputIdentifier().getInputIndex());
+        Integer inputNumber = Integer.valueOf(id.getInputIdentifier());
         List<InputAttemptIdentifier> oldIdList = dedupedList.get(inputNumber);
 
         if (oldIdList == null || oldIdList.isEmpty()) {

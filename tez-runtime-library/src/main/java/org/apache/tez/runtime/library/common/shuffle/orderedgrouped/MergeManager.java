@@ -489,7 +489,11 @@ public class MergeManager {
              ", inMemoryMergedMapOutputs.size() -> " + 
              inMemoryMergedMapOutputs.size());
   }
-  
+
+  public FileSystem getLocalFileSystem() {
+    return localFS;
+  }
+
   public synchronized void closeOnDiskFile(FileChunk file) {
     //including only path & offset for valdiations.
     for (FileChunk fileChunk : onDiskMapOutputs) {
@@ -654,7 +658,7 @@ public class MergeManager {
       // All disk writes done by this merge are overhead - due to the lack of
       // adequate memory to keep all segments in memory.
       Path outputPath = mapOutputFile.getInputFileForWrite(
-          srcTaskIdentifier.getInputIdentifier().getInputIndex(), srcTaskIdentifier.getSpillEventId(),
+          srcTaskIdentifier.getInputIdentifier(), srcTaskIdentifier.getSpillEventId(),
           mergeOutputSize).suffix(Constants.MERGED_OUTPUT_PREFIX);
 
       Writer writer = null;
@@ -774,7 +778,7 @@ public class MergeManager {
       if (file0.isLocalFile()) {
         // This is setup the same way a type DISK MapOutput is setup when fetching.
         namePart = mapOutputFile.getSpillFileName(
-            file0.getInputAttemptIdentifier().getInputIdentifier().getInputIndex(),
+            file0.getInputAttemptIdentifier().getInputIdentifier(),
             file0.getInputAttemptIdentifier().getSpillEventId());
       } else {
         namePart = file0.getPath().getName().toString();
@@ -929,7 +933,7 @@ public class MergeManager {
     long inMemToDiskBytes = 0;
     boolean mergePhaseFinished = false;
     if (inMemoryMapOutputs.size() > 0) {
-      int srcTaskId = inMemoryMapOutputs.get(0).getAttemptIdentifier().getInputIdentifier().getInputIndex();
+      int srcTaskId = inMemoryMapOutputs.get(0).getAttemptIdentifier().getInputIdentifier();
       inMemToDiskBytes = createInMemorySegments(inMemoryMapOutputs,
                                                 memDiskSegments,
                                                 this.postMergeMemLimit);

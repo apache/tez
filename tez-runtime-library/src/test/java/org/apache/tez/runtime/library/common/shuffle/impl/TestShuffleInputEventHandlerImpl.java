@@ -53,7 +53,6 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.InputIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
@@ -215,7 +214,7 @@ public class TestShuffleInputEventHandlerImpl {
     Event dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expectedId1 = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+    InputAttemptIdentifier expectedId1 = new InputAttemptIdentifier(1, 0,
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
     verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId1), eq(0));
 
@@ -223,7 +222,7 @@ public class TestShuffleInputEventHandlerImpl {
     dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expectedId2 = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+    InputAttemptIdentifier expectedId2 = new InputAttemptIdentifier(1, 0,
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
     verify(shuffleManager, times(2)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId2), eq(0));
 
@@ -252,7 +251,7 @@ public class TestShuffleInputEventHandlerImpl {
     Event dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 1);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expected = new InputAttemptIdentifier(new InputIdentifier(1), 1,
+    InputAttemptIdentifier expected = new InputAttemptIdentifier(1, 1,
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
     verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expected), eq(0));
 
@@ -283,14 +282,14 @@ public class TestShuffleInputEventHandlerImpl {
     Event dme = createDataMovementEvent(true, 0, 1, 0, false, bitSet, 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expected = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+    InputAttemptIdentifier expected = new InputAttemptIdentifier(1, 0,
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
     verify(shuffleManager, times(1)).addCompletedInputWithNoData(expected);
 
     //0--> 1 with spill id 1 (attemptNum 0)
     handler.handleEvents(Collections.singletonList(dme));
     dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 0);
-    expected = new InputAttemptIdentifier(new InputIdentifier(1), 0,
+    expected = new InputAttemptIdentifier(1, 0,
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
     verify(shuffleManager, times(2)).addCompletedInputWithNoData(expected);
 
