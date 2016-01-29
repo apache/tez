@@ -16,7 +16,9 @@ set pig.splitCombination false;
 set tez.grouping.min-size 52428800;
 set tez.grouping.max-size 52428800;
 
-register 'tfile-parser-1.0-SNAPSHOT.jar';
+/* Register all tez jars. Replace $TEZ_HOME, $TEZ_TFILE_DIR with absolute path */
+register '$TEZ_HOME/*.jar';
+register '$TEZ_TFILE_DIR/tfile-parser-1.0-SNAPSHOT.jar';
 raw = load '/app-logs/root/logs/application_1411511669099_0769/*' using org.apache.tez.tools.TFileLoader() as (machine:chararray, key:chararray, line:chararray);
 filterByLine = FILTER raw BY (key MATCHES '.*container_1411511669099_0769_01_000001.*')
                    AND (line MATCHES '.*Shuffle.*');
