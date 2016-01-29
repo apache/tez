@@ -15,12 +15,12 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez 0.8.1-alpha</title></head>
+<head><title>Apache Tez&trade; 0.8.1-alpha</title></head>
 
-Apache Tez 0.8.1-alpha
+Apache Tez&trade; 0.8.1-alpha
 ----------------------
 
-- [Release Artifacts](http://www.apache.org/dyn/closer.lua/tez/0.8.1-alpha/)
+- [Download Release Artifacts](http://archive.apache.org/dist/tez/0.8.1-alpha/)
 - [Release Notes](0.8.1-alpha/release-notes.txt)
 - Documentation
     - [API Javadocs](0.8.1-alpha/tez-api-javadocs/index.html) : Documentation for the Tez APIs

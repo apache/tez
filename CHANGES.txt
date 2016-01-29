@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3081. Update tez website for trademarks feedback.
   TEZ-3076. Reduce merge memory overhead to support large number of in-memory mapoutputs
   TEZ-3079. Fix tez-tfile parser documentation.
   TEZ-3066. TaskAttemptFinishedEvent ConcurrentModificationException in recovery or history logging services.

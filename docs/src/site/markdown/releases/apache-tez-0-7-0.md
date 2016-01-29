@@ -15,12 +15,12 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez 0.7.0</title></head>
+<head><title>Apache Tez&trade; 0.7.0</title></head>
 
-Apache Tez 0.7.0
+Apache Tez&trade; 0.7.0
 ----------------
 
-- [Release Artifacts](http://www.apache.org/dyn/closer.lua/tez/0.7.0/)
+- [Download Release Artifacts](http://www.apache.org/dyn/closer.lua/tez/0.7.0/)
 - [Release Notes](0.7.0/release-notes.txt)
 - Documentation
     - [API Javadocs](0.7.0/tez-api-javadocs/index.html) : Documentation for the Tez APIs

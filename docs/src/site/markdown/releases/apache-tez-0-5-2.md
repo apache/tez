@@ -15,12 +15,12 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez 0.5.2</title></head>
+<head><title>Apache Tez&trade; 0.5.2</title></head>
 
-Apache Tez 0.5.2
+Apache Tez&trade; 0.5.2
 ----------------
 
-- [Release Artifacts](http://archive.apache.org/dist/tez/0.5.2/)
+- [Download Release Artifacts](http://archive.apache.org/dist/tez/0.5.2/)
 - [Release Notes](0.5.2/release-notes.txt)
 - Documentation (See 0.5.3 documentation)
 

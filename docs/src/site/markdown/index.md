@@ -15,15 +15,15 @@
    limitations under the License.
 -->
 
-<head><title>Welcome to Apache Tez</title></head>
+<head><title>Welcome to Apache Tez&trade;</title></head>
 
 Introduction
 ------------
 
-The Apache Tez project is aimed at building an application framework
+The Apache Tez&trade; project is aimed at building an application framework
 which allows for a complex directed-acyclic-graph of tasks for processing
 data. It is currently built atop
-[Apache Hadoop YARN](http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html)
+[Apache Hadoop YARN](http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html).
 
 The 2 main design themes for Tez are:
 
@@ -45,3 +45,4 @@ multiple MR jobs, now in a single Tez job as shown below.
 ![Flow for a Hive or Pig Query on MapReduce](./images/PigHiveQueryOnMR.png)
 ![Flow for a Hive or Pig Query on Tez](./images/PigHiveQueryOnTez.png)
 
+To download the Apache Tez software, go to the [Releases](./releases/index.html) page.
