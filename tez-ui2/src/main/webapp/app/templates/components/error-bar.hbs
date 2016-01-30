@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,25 +14,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import AbstractRoute from './abstract';
-
-export default AbstractRoute.extend({
-  title: "DAG",
-
-  loaderQueryParams: {
-    id: "dag_id"
-  },
-
-  model: function (params) {
-    return this.get("loader").queryRecord('dag', this.queryFromParams(params).id).
-      catch(this.onLoadFailure.bind(this));
-  },
-
-  actions: {
-    setLoadTime: function (time) {
-      this.set("controller.loadTime", time);
-    }
-  }
-});
+<div class="message" {{action "toggleDetailsDisplay"}}>
+  <i class="fa fa-exclamation-circle"></i>
+  {{#if code}}
+    <b>{{code}}</b> :
+  {{/if}}
+  {{message}}
+  <i class="show-details fa {{if showDetails 'fa-minus-circle' 'fa-plus-circle'}}"></i>
+</div>
+<div class="details {{if showDetails "visible"}}">{{{details}}}{{#if stack}}<b>Stack:</b>
+    {{stack}}
+  {{/if}}
+</div>
+<i class="close-button fa fa-arrow-circle-down" {{action "close"}}></i>

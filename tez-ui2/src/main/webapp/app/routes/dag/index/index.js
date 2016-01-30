@@ -44,8 +44,13 @@ export default MultiAmPollsterRoute.extend({
     }
   }),
 
+  updateLoadTime: function (value) {
+    return value;
+  },
+
   actions: {
     reload: function () {
+      this._super();
       return true;
     },
     willTransition: function () {

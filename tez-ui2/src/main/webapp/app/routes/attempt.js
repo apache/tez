@@ -26,7 +26,8 @@ export default AbstractRoute.extend({
   },
 
   model: function (params) {
-    return this.get("loader").queryRecord('attempt', this.queryFromParams(params).id);
+    return this.get("loader").queryRecord('attempt', this.queryFromParams(params).id).
+      catch(this.onLoadFailure.bind(this));
   },
 
   actions: {

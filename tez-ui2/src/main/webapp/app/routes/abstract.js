@@ -98,7 +98,8 @@ export default Ember.Route.extend(NameMixin, {
       then(this.checkAndCall.bind(this, promiseId, "beforeLoad", query, options)).
       then(this.checkAndCall.bind(this, promiseId, "load", query, options)).
       then(this.checkAndCall.bind(this, promiseId, "afterLoad", query, options)).
-      then(this.checkAndCall.bind(this, promiseId, "setValue", query, options));
+      then(this.checkAndCall.bind(this, promiseId, "setValue", query, options)).
+      catch(this.onLoadFailure.bind(this));
   },
 
   setLoading: function (/*query, options*/) {
@@ -123,6 +124,15 @@ export default Ember.Route.extend(NameMixin, {
     this.send("setLoadTime", this.getLoadTime(value));
 
     return value;
+  },
+  onLoadFailure: function (error) {
+    if(error instanceof UnlinkedPromise) {
+      Ember.Logger.warn("Slow down, you are refreshing too fast!");
+    }
+    else {
+      this.send("error", error);
+      throw(error);
+    }
   },
 
   getLoadTime: function (value) {

@@ -78,6 +78,7 @@ test('loadAllNeeds basic test', function(assert) {
   let adapter = this.subject(),
       loader,
       testModel = Ember.Object.create({
+        refreshLoadTime: Ember.K,
         needs: {
           app: "appID",
           foo: "fooID"
@@ -115,6 +116,7 @@ test('loadAllNeeds silent=false test', function(assert) {
   let adapter = this.subject(),
       loader,
       testModel = Ember.Object.create({
+        refreshLoadTime: Ember.K,
         needs: {
           app: {
             idKey: "appID",
@@ -142,6 +144,7 @@ test('loadAllNeeds silent=true test', function(assert) {
   let adapter = this.subject(),
       loader,
       testModel = Ember.Object.create({
+        refreshLoadTime: Ember.K,
         needs: {
           app: {
             idKey: "appID",

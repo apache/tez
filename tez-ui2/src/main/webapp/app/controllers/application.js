@@ -25,6 +25,8 @@ const BREADCRUMB_PREFIX = [{
 
 export default Ember.Controller.extend({
   breadcrumbs: null,
+  appError: null,
+
   prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
     var prefix = BREADCRUMB_PREFIX,
     breadcrumbs = this.get('breadcrumbs');

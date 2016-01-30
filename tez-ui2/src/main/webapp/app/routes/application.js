@@ -38,7 +38,7 @@ export default Ember.Route.extend({
     },
 
     error: function (error) {
-      // Display error bar
+      this.set("controller.appError", error);
       Ember.Logger.error(error);
     },
 

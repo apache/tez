@@ -25,19 +25,18 @@ export default AbstractRoute.extend({
   polledRecords: null,
 
   // Must be implemented by inheriting classes
-  onRecordPoll: Ember.K,
-  onPollSuccess: Ember.K,
-  onPollFailure: Ember.K,
+  onRecordPoll: function (val) {return val;},
+  onPollSuccess: function (val) {return val;},
+  onPollFailure: function (err) {throw(err);},
 
   pollData: function () {
     var polledRecords = this.get("polledRecords");
 
     if(!this.get("isLoading") && polledRecords) {
       polledRecords = polledRecords.map(this.onRecordPoll.bind(this));
-      return Ember.RSVP.all(polledRecords).then(
-        this.onPollSuccess.bind(this),
-        this.onPollFailure.bind(this)
-      );
+      return Ember.RSVP.all(polledRecords).
+      then(this.updateLoadTime.bind(this)).
+      then(this.onPollSuccess.bind(this), this.onPollFailure.bind(this));
     }
     return Ember.RSVP.reject();
   },
@@ -45,6 +44,11 @@ export default AbstractRoute.extend({
   canPoll: Ember.computed("polledRecords", "loadedValue", function () {
     return this.get("polledRecords") && this.get("loadedValue");
   }),
+
+  updateLoadTime: function (value) {
+    this.send("setLoadTime", this.getLoadTime(value));
+    return value;
+  },
 
   _canPollInit: Ember.on("init", function () {
     // This sets a flag that ensures that the _canPollObserver is called whenever

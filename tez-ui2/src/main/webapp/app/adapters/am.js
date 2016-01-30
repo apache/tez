@@ -20,6 +20,7 @@ import AbstractAdapter from './abstract';
 
 export default AbstractAdapter.extend({
   serverName: "am",
+  outOfReachMessage: "Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.",
 
   queryRecord: function(store, type, query) {
     return this.query(store, type, query);

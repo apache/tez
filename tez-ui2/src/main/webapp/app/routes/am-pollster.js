@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import PollsterRoute from './pollster';
 
 var MoreObject = more.Object;
@@ -45,13 +47,11 @@ export default PollsterRoute.extend({
         that.reload();
       }
       else {
-        error.message = "Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
         that.send("error", error);
       }
     }, function (error) {
-      error.message = "Resource Manager (RM) is out of reach. Either it's down, or CORS is not enabled.";
       that.send("error", error);
-      that.reload();
+      Ember.run.later(that, "reload", this.get("polling.interval") * 3);
     });
   },
 

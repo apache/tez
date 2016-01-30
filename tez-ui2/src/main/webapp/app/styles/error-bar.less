@@ -1,0 +1,102 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.error-bar {
+  position: fixed;
+  z-index: 1000;
+
+  padding: 9px 30px;
+  min-height: 50px;
+  width: 100%;
+
+  bottom: -50px;
+  opacity: 0;
+  height: 50px;
+
+  &.visible {
+    bottom: -10px;
+    opacity: 1;
+    height: auto;
+  }
+
+  transition: all .2s cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  transition-property: bottom, opacity, height;
+  -webkit-transition: all .2s cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  -webkit-transition-property: bottom, opacity, height;
+
+  border-top: 1px @border-lite solid;
+  background-color: #F5F5DC;
+  color: @text-red;
+
+  .message, .details {
+    overflow: scroll;
+    max-height: 100px;
+
+    text-align: left;
+  }
+
+  .details {
+    display: none;
+    visibility: hidden;
+
+    margin-bottom: 10px;
+
+    border-top: 1px @border-lite solid;
+
+    .force-scrollbar;
+    white-space: pre-line;
+
+    &.visible {
+      display: block;
+    }
+  }
+
+  .close-button, .show-details {
+    position: absolute;
+    top: 12px;
+
+    color: @text-color;
+    opacity: .7;
+
+    &:hover {
+      cursor: pointer;
+      opacity: 1;
+    }
+  }
+
+  .close-button {
+    right: 30px;
+  }
+
+  .show-details {
+    right: 45px;
+    visibility: hidden;
+  }
+
+  &.details-available {
+    .message {
+      cursor: pointer;
+    }
+    .details {
+      visibility: visible;
+    }
+    .show-details {
+      visibility: visible;
+    }
+  }
+}

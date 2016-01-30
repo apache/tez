@@ -24,6 +24,7 @@ var MoreObject = more.Object;
 
 export default AbstractAdapter.extend({
   serverName: "timeline",
+  outOfReachMessage: "Timeline server (ATS) is out of reach. Either it's down, or CORS is not enabled.",
 
   filters: {
     dagID: 'TEZ_DAG_ID',

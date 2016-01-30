@@ -52,4 +52,19 @@ export default LoaderAdapter.extend({
     Ember.assert(`Path not found for type:${type} to server:${serverName}`, path);
     return path;
   },
+
+  normalizeErrorResponse: function(status, headers, payload) {
+    var response;
+
+    if(payload && payload.exception && !payload.errors) {
+      payload = `${payload.exception}\n${payload.message}\n${payload.javaClassName}`;
+      response = this._super(status, headers, payload);
+    }
+    else {
+      response = this._super(status, headers, payload);
+      Ember.set(response, '0.title', this.get("outOfReachMessage"));
+    }
+
+    return response;
+  }
 });

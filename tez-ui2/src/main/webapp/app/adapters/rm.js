@@ -20,6 +20,7 @@ import AbstractAdapter from './abstract';
 
 export default AbstractAdapter.extend({
   serverName: "rm",
+  outOfReachMessage: "Resource Manager (RM) is out of reach. Either it's down, or CORS is not enabled.",
 
   // Any rm specific adapter changes must be added here
 });

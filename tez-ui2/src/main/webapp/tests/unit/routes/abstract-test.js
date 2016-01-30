@@ -18,8 +18,6 @@
 
 import Ember from 'ember';
 
-import UnlinkedPromise from '../../../errors/unlinked-promise';
-
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:abstract', 'Unit | Route | abstract', {
@@ -174,8 +172,8 @@ test('loadData test - ID change check with exception throw', function(assert) {
 
   route.loadData().then(function () {
     assert.notOk("Shouldn't be called");
-  }).catch(function (e) {
-    assert.ok(e instanceof UnlinkedPromise, "Exception thrown");
+  }).catch(function () {
+    assert.ok(true, "Exception thrown");
   });
 });
 

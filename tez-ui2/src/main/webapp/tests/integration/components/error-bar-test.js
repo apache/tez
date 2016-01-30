@@ -16,23 +16,28 @@
  * limitations under the License.
  */
 
-import AbstractRoute from './abstract';
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-export default AbstractRoute.extend({
-  title: "DAG",
+moduleForComponent('error-bar', 'Integration | Component | error bar', {
+  integration: true
+});
 
-  loaderQueryParams: {
-    id: "dag_id"
-  },
+test('Basic creation test', function(assert) {
 
-  model: function (params) {
-    return this.get("loader").queryRecord('dag', this.queryFromParams(params).id).
-      catch(this.onLoadFailure.bind(this));
-  },
+  // Set any properties with this.set('myProperty', 'value');
+  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
 
-  actions: {
-    setLoadTime: function (time) {
-      this.set("controller.loadTime", time);
-    }
-  }
+  this.render(hbs`{{error-bar}}`);
+
+  assert.equal(this.$().text().trim(), '');
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#error-bar}}
+      template block text
+    {{/error-bar}}
+  `);
+
+  assert.equal(this.$().text().trim(), '');
 });

@@ -23,7 +23,6 @@
       <div class="lr-margin content">
         {{#link-to 'application' class="logo"}}
           <img src="assets/images/logo.png" width="70px"/>
-          <span>{{unbound App.env.version}}</span>
         {{/link-to}}
 
         <div class="breadcrumb-container">
@@ -64,3 +63,5 @@
 </div>
 
 {{outlet "modal"}}
+
+{{error-bar error=appError}}
