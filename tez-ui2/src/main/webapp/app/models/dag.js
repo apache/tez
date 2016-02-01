@@ -44,7 +44,6 @@ export default AMTimelineModel.extend({
   name: DS.attr("string"),
 
   submitter: DS.attr("string"),
-  contextID: DS.attr("string"),
 
   // Serialize when required
   vertices: DS.attr('object'),
@@ -58,4 +57,9 @@ export default AMTimelineModel.extend({
   }),
 
   vertexIdNameMap: DS.attr("object"),
+
+  callerID: DS.attr("string"),
+  callerType: DS.attr("string"),
+  callerInfo: DS.attr("string"),
+
 });

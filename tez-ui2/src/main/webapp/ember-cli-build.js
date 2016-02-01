@@ -52,5 +52,10 @@ module.exports = function(defaults) {
   app.import('bower_components/FileSaver/FileSaver.js');
   app.import('bower_components/zip.js/WebContent/zip.js');
 
+  app.import('bower_components/codemirror/lib/codemirror.js');
+  app.import('bower_components/codemirror/mode/sql/sql.js');
+  app.import('bower_components/codemirror/mode/pig/pig.js');
+  app.import('bower_components/codemirror/lib/codemirror.css');
+
   return app.toTree(new MergeTrees([configEnv, zipWorker]));
 };

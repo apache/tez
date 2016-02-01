@@ -24,27 +24,27 @@ import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "contextID", "pageNo"],
+  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID", "pageNo"],
   dagName: "",
   dagID: "",
   submitter: "",
   status: "",
   appID: "",
-  contextID: "",
+  callerID: "",
   pageNo: 1,
 
   breadcrumbs: [],
 
   headerComponentNames: ['dags-page-search', 'table-controls', 'dags-pagination-ui'],
 
-  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "contextID", "pageNo", function () {
+  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "callerID", "pageNo", function () {
     return TableDefinition.create({
       dagName: this.get("dagName"),
       dagID: this.get("dagID"),
       submitter: this.get("submitter"),
       status: this.get("status"),
       appID: this.get("appID"),
-      contextID: this.get("contextID"),
+      callerID: this.get("callerID"),
 
       pageNum: this.get("pageNo"),
       rowCountOptions: [5, 10, 25, 50, 100, 250, 500]
@@ -121,9 +121,13 @@ export default TableController.extend({
     headerTitle: 'Queue',
     contentPath: 'queue'
   },{
-    id: 'contextID',
-    headerTitle: 'Context ID',
-    contentPath: 'contextID'
+    id: 'callerID',
+    headerTitle: 'Caller ID',
+    contentPath: 'callerID'
+  },{
+    id: 'callerType',
+    headerTitle: 'Caller Type',
+    contentPath: 'callerType'
   },{
     id: 'logs',
     headerTitle: 'Logs',

@@ -83,9 +83,9 @@ export default MultiTableController.extend({
     headerTitle: 'Queue',
     contentPath: 'queue'
   },{
-    id: 'contextID',
+    id: 'callerID',
     headerTitle: 'Context ID',
-    contentPath: 'contextID'
+    contentPath: 'callerID'
   },{
     id: 'logs',
     headerTitle: 'Logs',

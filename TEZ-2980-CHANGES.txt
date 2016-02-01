@@ -31,3 +31,4 @@ ALL CHANGES:
   TEZ-3069. Tez UI 2: Make error bar fully functional
   TEZ-3062. Tez UI 2: Integrate graphical view
   TEZ-3058. Tez UI 2: Add download data functionality
+  TEZ-3084. Tez UI 2: Display caller type and info

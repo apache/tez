@@ -107,7 +107,6 @@ export default TimelineSerializer.extend({
     name: 'primaryfilters.dagName.0',
 
     submitter: 'primaryfilters.user.0',
-    contextID: 'primaryfilters.callerId.0',
 
     atsStatus: getStatus,
     // progress
@@ -125,6 +124,28 @@ export default TimelineSerializer.extend({
     // queue
     containerLogs: getContainerLogs,
 
-    vertexIdNameMap: getIdNameMap
-  }
+    vertexIdNameMap: getIdNameMap,
+
+    callerID: 'primaryfilters.callerId.0',
+    callerType: 'callerType',
+    callerInfo: 'callerInfo',
+  },
+
+  extractAttributes: function (modelClass, resourceHash) {
+    var data = resourceHash.data,
+        dagInfo = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagInfo");
+
+    if(dagInfo) {
+      let infoObj = {};
+      try{
+        infoObj = JSON.parse(dagInfo);
+      }catch(e){}
+
+      data.callerType = Ember.get(infoObj, "context");
+      data.callerInfo = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
+    }
+
+    return this._super(modelClass, resourceHash);
+  },
+
 });

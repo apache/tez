@@ -37,7 +37,7 @@ export default AbstractAdapter.extend({
     dagName: 'dagName',
     user: "user",
     status: "status",
-    contextID: "callerId"
+    callerID: "callerId"
   },
 
   stringifyFilters: function (filters) {

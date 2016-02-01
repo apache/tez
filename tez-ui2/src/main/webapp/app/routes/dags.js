@@ -31,7 +31,7 @@ export default AbstractRoute.extend({
     submitter: REFRESH,
     status: REFRESH,
     appID: REFRESH,
-    contextID: REFRESH,
+    callerID: REFRESH,
     pageNo: REFRESH,
 
     rowCount: REFRESH,
@@ -43,7 +43,7 @@ export default AbstractRoute.extend({
     user: "submitter",
     status: "status",
     appID: "appID",
-    contextID: "contextID",
+    callerID: "callerID",
 
     pageNo: "pageNo",
     limit: "rowCount",
@@ -62,7 +62,7 @@ export default AbstractRoute.extend({
       submitter: query.submitter,
       status: query.status,
       appID: query.appID,
-      contextID: query.contextID
+      callerID: query.callerID
     };
 
     return records.filter(function (record) {
@@ -90,7 +90,13 @@ export default AbstractRoute.extend({
     }
 
     return loader.then(function (records) {
-      return that.filterRecords(records, query);
+      records = that.filterRecords(records, query);
+      records.forEach(function (record) {
+        if(record.get("status") === "RUNNING") {
+          that.get("loader").loadNeed(record, "am", {reload: true});
+        }
+      });
+      return records;
     });
   },
 

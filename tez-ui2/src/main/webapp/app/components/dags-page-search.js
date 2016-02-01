@@ -37,8 +37,8 @@ export default Ember.Component.extend({
     appIDChanged: function (value) {
       this.get('targetObject.targetObject').send('searchChanged', 'appID', value);
     },
-    contextIDChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'contextID', value);
+    callerIDChanged: function (value) {
+      this.get('targetObject.targetObject').send('searchChanged', 'callerID', value);
     },
   }
 });
