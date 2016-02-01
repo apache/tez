@@ -29,3 +29,4 @@ ALL CHANGES:
   TEZ-3060. Tez UI 2: Activate auto-refresh
   TEZ-3061. Tez UI 2: Display in-progress vertex table in DAG details
   TEZ-3069. Tez UI 2: Make error bar fully functional
+  TEZ-3062. Tez UI 2: Integrate graphical view

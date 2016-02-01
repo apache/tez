@@ -18,36 +18,29 @@
 
 import Ember from 'ember';
 
-import ParentController from './parent';
+import { moduleFor, test } from 'ember-qunit';
 
-export default ParentController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var name = this.get("model.name");
+moduleFor('controller:dag/graphical', 'Unit | Controller | dag/graphical', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-    return [{
-      text: `DAG [ ${name} ]`,
-      routeName: "dag.index.index",
-      model: this.get("model.entityID")
-    }];
-  }),
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    }
+  });
 
-  tabs: [{
-    text: "DAG Details",
-    routeName: "dag.index.index"
-  }, {
-    text: "DAG Counters",
-    routeName: "dag.counters"
-  }, {
-    text: "Graphical View",
-    routeName: "dag.graphical"
-  }, {
-    text: "All Vertices",
-    routeName: "dag.vertices"
-  }, {
-    text: "All Tasks",
-    routeName: "dag.tasks"
-  }, {
-    text: "All Task Attempts",
-    routeName: "dag.attempts"
-  }]
+  assert.ok(controller);
+
+  assert.ok(controller.columnSelectorTitle);
+  assert.ok(controller.breadcrumbs);
+  assert.ok(controller.columns);
+
+  assert.ok(controller.redirect);
+  assert.ok(controller.actions.entityClicked);
+  assert.ok(controller.viewData);
 });

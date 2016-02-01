@@ -22,6 +22,7 @@ import AbstractRoute from './abstract';
 export default AbstractRoute.extend({
   polling: Ember.inject.service("pollster"),
 
+  // Todo - Change name to recordsToPoll
   polledRecords: null,
 
   // Must be implemented by inheriting classes

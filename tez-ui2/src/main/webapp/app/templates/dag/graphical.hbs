@@ -1,0 +1,14 @@
+{{#if loaded}}
+  <br/>
+  <div id="graphical-view-component-container">
+    {{em-tgraph
+      data=viewData
+      vertexProperties=visibleColumns
+      entityClicked='entityClicked'
+      configure='openColumnSelector'
+    }}
+    <div class="dag-view-legend">Refresh updates only the tooltip values. When sources & sinks are hidden, double click green bubble to toggle visibility locally.</div>
+  </div>
+{{else}}
+  {{partial "loading"}}
+{{/if}}

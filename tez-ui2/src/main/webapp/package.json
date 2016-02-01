@@ -23,6 +23,7 @@
   "devDependencies": {
     "bower": "^1.7.1",
     "broccoli-asset-rev": "^2.2.0",
+    "em-tgraph": "0.0.3",
     "ember-bootstrap": "0.5.1",
     "ember-cli": "1.13.13",
     "ember-cli-app-version": "^1.0.0",

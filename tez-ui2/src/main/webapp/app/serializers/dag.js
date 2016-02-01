@@ -116,6 +116,10 @@ export default TimelineSerializer.extend({
     endTime: getEndTime,
     // duration
 
+    vertices: 'otherinfo.dagPlan.vertices',
+    edges: 'otherinfo.dagPlan.edges',
+    vertexGroups: 'otherinfo.dagPlan.vertexGroups',
+
     // appID
     domain: 'domain',
     // queue

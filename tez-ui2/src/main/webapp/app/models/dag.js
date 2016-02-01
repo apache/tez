@@ -46,6 +46,11 @@ export default AMTimelineModel.extend({
   submitter: DS.attr("string"),
   contextID: DS.attr("string"),
 
+  // Serialize when required
+  vertices: DS.attr('object'),
+  edges: DS.attr('object'),
+  vertexGroups: DS.attr('object'),
+
   domain: DS.attr("string"),
   containerLogs: DS.attr("object"),
   queue: Ember.computed("app", function () {

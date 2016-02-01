@@ -100,6 +100,7 @@ var Entity = Ember.Object.extend(NameMixin, {
     needLoader.then(function (model) {
       parentModel.refreshLoadTime();
       parentModel.set(needOptions.name, model);
+      return model;
     });
 
     if(needOptions.silent) {

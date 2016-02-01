@@ -31,6 +31,7 @@ Router.map(function() {
     this.route('attempts');
     this.route('counters');
     this.route('index', function() {});
+    this.route('graphical');
   });
   this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
     this.route('tasks');
