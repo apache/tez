@@ -16,22 +16,15 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+.zip-download-modal {
+  .message {
+    padding: 10px 15px;
 
-@import "tooltip";
-
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
-
-// Pages
-@import "page-layout";
-@import "details-page";
+    .fa-spinner {
+      color: green;
+    }
+    .fa-exclamation-circle {
+      color: red;
+    }
+  }
+}

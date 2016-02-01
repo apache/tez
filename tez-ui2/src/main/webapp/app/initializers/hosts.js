@@ -19,6 +19,7 @@
 export function initialize(application) {
   application.inject('controller', 'hosts', 'service:hosts');
   application.inject('adapter', 'hosts', 'service:hosts');
+  application.inject('route', 'hosts', 'service:hosts');
 }
 
 export default {

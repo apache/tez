@@ -30,6 +30,12 @@ test('Basic creation test', function(assert) {
   assert.ok(route.pageReset);
   assert.ok(route.actions.didTransition);
   assert.ok(route.actions.bubbleBreadcrumbs);
+
+  assert.ok(route.actions.error);
+
+  assert.ok(route.actions.openModal);
+  assert.ok(route.actions.closeModal);
+  assert.ok(route.actions.destroyModal);
 });
 
 test('Test didTransition action', function(assert) {

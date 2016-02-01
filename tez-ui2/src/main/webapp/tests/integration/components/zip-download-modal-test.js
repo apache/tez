@@ -16,22 +16,31 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-@import "tooltip";
+moduleForComponent('zip-download-modal', 'Integration | Component | zip download modal', {
+  integration: true
+});
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
+test('Basic creation test', function(assert) {
+  var testID = "dag_a",
+      expectedMessage = "Downloading data for dag: " + testID;
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  this.set("content", {
+    dag: {
+      entityID: testID
+    }
+  });
 
-// Pages
-@import "page-layout";
-@import "details-page";
+  this.render(hbs`{{zip-download-modal content=content}}`);
+  assert.equal(this.$(".message").text().trim(), expectedMessage);
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#zip-download-modal content=content}}
+      template block text
+    {{/zip-download-modal}}
+  `);
+  assert.equal(this.$(".message").text().trim(), expectedMessage);
+});

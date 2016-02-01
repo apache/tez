@@ -21,16 +21,22 @@
 
 var Funnel = require("broccoli-funnel");
 var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+var MergeTrees = require('broccoli-merge-trees');
 
 module.exports = function(defaults) {
   var app = new EmberApp(defaults, {
     storeConfigInMeta: false
   });
 
-  var extraAssets = new Funnel('config', {
+  var configEnv = new Funnel('config', {
      srcDir: '/',
      include: ['*.env'],
      destDir: '/config'
+  });
+  var zipWorker = new Funnel('bower_components/zip.js', {
+     srcDir: '/WebContent',
+     include: ['z-worker.js', 'deflate.js', 'inflate.js'],
+     destDir: '/assets/zip'
   });
 
   app.import("bower_components/snippet-ss/less/force.less");
@@ -43,5 +49,8 @@ module.exports = function(defaults) {
 
   app.import('bower_components/more-js/dist/more.js');
 
-  return app.toTree(extraAssets);
+  app.import('bower_components/FileSaver/FileSaver.js');
+  app.import('bower_components/zip.js/WebContent/zip.js');
+
+  return app.toTree(new MergeTrees([configEnv, zipWorker]));
 };

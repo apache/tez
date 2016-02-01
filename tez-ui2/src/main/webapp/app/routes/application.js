@@ -59,6 +59,9 @@ export default Ember.Route.extend({
         Ember.$(".simple-modal").modal();
       });
     },
+    closeModal: function () {
+      Ember.$(".simple-modal").modal("hide");
+    },
     destroyModal: function () {
       Ember.run.later(this, function () {
         this.disconnectOutlet({

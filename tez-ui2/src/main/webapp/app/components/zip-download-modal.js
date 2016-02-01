@@ -16,22 +16,28 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import Ember from 'ember';
 
-@import "tooltip";
+export default Ember.Component.extend({
+  classNames: ['zip-download-modal'],
+  content: null,
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
+  _onSuccess: Ember.observer("content.downloader.succeeded", function () {
+    if(this.get("content.downloader.succeeded")) {
+      Ember.run.later(this, "close");
+    }
+  }),
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  close: function () {
+    Ember.$(".simple-modal").modal("hide");
+  },
 
-// Pages
-@import "page-layout";
-@import "details-page";
+  actions: {
+    cancel: function () {
+      var downloader = this.get("content.downloader");
+      if(downloader) {
+        downloader.cancel();
+      }
+    }
+  }
+});

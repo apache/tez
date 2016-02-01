@@ -39,11 +39,13 @@ export default MultiAmPollsterRoute.extend({
     var loadedValue = this.get("loadedValue"),
         records = [];
 
-    loadedValue.forEach(function (record) {
-      records.push(record);
-    });
+    if(loadedValue) {
+      loadedValue.forEach(function (record) {
+        records.push(record);
+      });
 
-    this.set("polledRecords", records);
+      this.set("polledRecords", records);
+    }
     Ember.run.later(this, "setViewHeight", 100);
   }),
 

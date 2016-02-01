@@ -16,22 +16,11 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import downloadDagZip from '../../../utils/download-dag-zip';
+import { module, test } from 'qunit';
 
-@import "tooltip";
+module('Unit | Utility | download dag zip');
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
-
-// Pages
-@import "page-layout";
-@import "details-page";
+test('Basic creation test', function(assert) {
+  assert.ok(downloadDagZip);
+});

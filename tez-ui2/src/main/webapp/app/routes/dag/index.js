@@ -19,6 +19,8 @@
 import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
+import downloadDAGZip from '../../utils/download-dag-zip';
+
 export default SingleAmPollsterRoute.extend({
   title: "DAG Details",
 
@@ -32,5 +34,25 @@ export default SingleAmPollsterRoute.extend({
   load: function (value, query, options) {
     return this.get("loader").queryRecord('dag', this.modelFor("dag").get("id"), options);
   },
+
+  actions: {
+    downloadDagJson: function () {
+      var dag = this.get("loadedValue"),
+          downloader = downloadDAGZip(dag, {
+            batchSize: 500,
+            timelineHost: this.get("hosts.timeline"),
+            timelineNamespace: this.get("env.app.namespaces.webService.timeline")
+          }),
+          modalContent = Ember.Object.create({
+            dag: dag,
+            downloader: downloader
+          });
+
+      this.send("openModal", "zip-download-modal", {
+        title: "Download data",
+        content: modalContent
+      });
+    }
+  }
 
 });
