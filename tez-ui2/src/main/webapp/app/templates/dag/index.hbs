@@ -78,6 +78,17 @@
     {{caller-info type=model.callerType info=model.callerInfo}}
   {{/if}}
 
+  {{#if model.diagnostics}}
+    <div class="panel panel-danger">
+      <div class="panel-heading">
+        Diagnostics
+      </div>
+      <div class="diagnostics">
+        {{{model.diagnostics}}}
+      </div>
+    </div>
+  {{/if}}
+
   {{outlet}}
 
 {{else}}

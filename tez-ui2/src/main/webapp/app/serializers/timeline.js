@@ -16,7 +16,19 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import LoaderSerializer from './loader';
+
+function getDiagnostics(source) {
+  var diagnostics = Ember.get(source, 'otherinfo.diagnostics') || "";
+
+  diagnostics = diagnostics.replace(/\t/g, "&emsp;&emsp;");
+  diagnostics = diagnostics.replace(/\[/g, "<div>&#187; ");
+  diagnostics = diagnostics.replace(/\]/g, "</div>");
+
+  return diagnostics;
+}
 
 export default LoaderSerializer.extend({
   primaryKey: 'entity',
@@ -32,6 +44,8 @@ export default LoaderSerializer.extend({
 
     startTime: 'otherinfo.startTime',
     endTime: 'otherinfo.endTime',
+
+    diagnostics: getDiagnostics,
 
     _counterGroups: 'otherinfo.counters.counterGroups'
   }

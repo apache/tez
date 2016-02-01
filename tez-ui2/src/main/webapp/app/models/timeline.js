@@ -82,5 +82,8 @@ export default AbstractModel.extend({
     });
 
     return counterHash;
-  })
+  }),
+
+  diagnostics: DS.attr('string'),
+
 });

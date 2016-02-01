@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
+@import "bower_components/snippet-ss/less/no";
+
 .detail-list {
   display: inline-block;
 
   margin: 0 10px 10px 0;
 
   table-layout: fixed;
-  white-space: nowrap;
 
   .progress {
     margin-bottom: 0px;
@@ -40,6 +41,11 @@
 
   td {
     padding: 0px 20px 0px 0px;
+    white-space: nowrap;
+
+    .ember-view {
+      display: inline;
+    }
   }
 
   td:first-child {

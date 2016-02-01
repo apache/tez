@@ -62,6 +62,18 @@
       </tr>
     </tbody>
   </table>
+
+  {{#if model.diagnostics}}
+    <div class="panel panel-danger">
+      <div class="panel-heading">
+        Diagnostics
+      </div>
+      <div class="diagnostics">
+        {{{model.diagnostics}}}
+      </div>
+    </div>
+  {{/if}}
+
 {{else}}
   {{partial "loading"}}
 {{/if}}

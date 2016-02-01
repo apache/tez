@@ -106,6 +106,11 @@ export default AMTimelineModel.extend({
   maxDuration: DS.attr('number'),
   avgDuration: DS.attr('number'),
 
+  firstTasksToStart: DS.attr("object"),
+  lastTasksToFinish: DS.attr("object"),
+  shortestDurationTasks: DS.attr("object"),
+  longestDurationTasks: DS.attr("object"),
+
   processorClassName: DS.attr('string'),
 
   dagID: DS.attr('string'),

@@ -32,4 +32,5 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
+  assert.ok(controller.trackingURL);
 });

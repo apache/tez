@@ -44,6 +44,11 @@ export default TimelineSerializer.extend({
     maxDuration:  'otherinfo.stats.maxTaskDuration',
     avgDuration:  'otherinfo.stats.avgTaskDuration',
 
+    firstTasksToStart:  'otherinfo.stats.firstTasksToStart',
+    lastTasksToFinish:  'otherinfo.stats.lastTasksToFinish',
+    shortestDurationTasks:  'otherinfo.stats.shortestDurationTasks',
+    longestDurationTasks:  'otherinfo.stats.longestDurationTasks',
+
     processorClassName: getProcessorClass,
 
     dagID: 'primaryfilters.TEZ_DAG_ID.0',

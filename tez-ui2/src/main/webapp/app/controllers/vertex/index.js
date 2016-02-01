@@ -16,7 +16,35 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import PageController from '../page';
 
+function taskLinkComputerFactory(name) {
+  return Ember.computed(name, function () {
+    var tasks = this.get(name);
+
+    if(tasks) {
+      return tasks.map(function (task) {
+        return {
+          routeName: 'task',
+          model: task,
+          text: task
+        };
+      });
+    }
+  });
+}
+
 export default PageController.extend({
+
+  pathname: Ember.computed(function() {
+    return window.location.pathname;
+  }).volatile(),
+
+  firstTasksToStart: taskLinkComputerFactory("model.firstTasksToStart"),
+  lastTasksToFinish: taskLinkComputerFactory("model.lastTasksToFinish"),
+  shortestDurationTasks: taskLinkComputerFactory("model.shortestDurationTasks"),
+  longestDurationTasks: taskLinkComputerFactory("model.longestDurationTasks"),
+
 });
