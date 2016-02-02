@@ -18,6 +18,7 @@
 
 package org.apache.tez.tools;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +33,14 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 /**
- * Simple record reader which reads the TFile and emits it as key, value pair
+ * Simple record reader which reads the TFile and emits it as key, value pair.
+ * If value has multiple lines, read one line at a time.
  */
 public class TFileRecordReader extends RecordReader<Text, Text> {
 
@@ -43,16 +48,21 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
 
   private long start, end;
 
-  private Path splitPath;
+  @VisibleForTesting
+  protected Path splitPath;
   private FSDataInputStream fin;
-  private TFile.Reader reader;
-  private TFile.Reader.Scanner scanner;
+
+  @VisibleForTesting
+  protected TFile.Reader reader;
+  @VisibleForTesting
+  protected TFile.Reader.Scanner scanner;
 
   private Text key = new Text();
   private Text value = new Text();
 
-  private BytesWritable valueBytesWritable = new BytesWritable();
   private BytesWritable keyBytesWritable = new BytesWritable();
+
+  private BufferedReader currentValueReader;
 
   @Override public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
@@ -69,22 +79,46 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
     scanner = reader.createScannerByByteRange(start, fileSplit.getLength());
   }
 
+  private void populateKV(TFile.Reader.Scanner.Entry entry) throws IOException {
+    entry.getKey(keyBytesWritable);
+    //splitpath contains the machine name. Create the key as splitPath + realKey
+    String keyStr = new StringBuilder()
+        .append(splitPath.getName()).append(":")
+        .append(new String(keyBytesWritable.getBytes()))
+        .toString();
+
+    /**
+     * In certain cases, values can be huge (files > 2 GB). Stream is
+     * better to handle such scenarios.
+     */
+    currentValueReader = new BufferedReader(
+        new InputStreamReader(entry.getValueStream()));
+    key.set(keyStr);
+    String line = currentValueReader.readLine();
+    value.set((line == null) ? "" : line);
+  }
+
   @Override public boolean nextKeyValue() throws IOException, InterruptedException {
-    valueBytesWritable.setSize(0);
-    if (!scanner.advance()) {
+    if (currentValueReader != null) {
+      //Still at the old entry reading line by line
+      String line = currentValueReader.readLine();
+      if (line != null) {
+        value.set(line);
+        return true;
+      } else {
+        //Read through all lines in the large value stream. Move to next KV.
+        scanner.advance();
+      }
+    }
+
+    try {
+      populateKV(scanner.entry());
+      return true;
+    } catch(EOFException eofException) {
+      key = null;
       value = null;
       return false;
     }
-    TFile.Reader.Scanner.Entry entry = scanner.entry();
-    //populate key, value
-    entry.getKey(keyBytesWritable);
-    StringBuilder k = new StringBuilder();
-    //split path contains the machine name. Create the key as splitPath + realKey
-    k.append(splitPath.getName()).append(":").append(new String(keyBytesWritable.getBytes()));
-    key.set(k.toString());
-    entry.getValue(valueBytesWritable);
-    value.set(valueBytesWritable.getBytes());
-    return true;
   }
 
   @Override public Text getCurrentKey() throws IOException, InterruptedException {

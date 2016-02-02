@@ -19,16 +19,11 @@
 package org.apache.tez.tools;
 
 import com.google.common.base.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.pig.Expression;
@@ -36,17 +31,15 @@ import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
-import org.apache.pig.StoreFunc;
-import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigFileInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.regex.Pattern;
 
 /**
@@ -57,74 +50,46 @@ public class TFileLoader extends FileInputLoadFunc implements LoadMetadata {
 
   private static final Logger LOG = LoggerFactory.getLogger(TFileLoader.class);
 
-  private TFileRecordReader recReader = null;
+  protected TFileRecordReader recReader = null;
 
-  private BufferedReader bufReader;
   private Text currentKey;
   private final TupleFactory tupleFactory = TupleFactory.getInstance();
 
   private final Pattern PATTERN = Pattern.compile(":");
 
-  /**
-   * We get one complete TFile per KV read.
-   * Add a BufferedReader so that we can scan a line at a time.
-   *
-   * @throws java.io.IOException
-   * @throws InterruptedException
-   */
-  //TODO: tasks can sometime throw OOM when single TFile is way too large. Adjust mem accordinly.
-  private void setupReader() throws IOException, InterruptedException {
-    if (recReader.nextKeyValue() && bufReader == null) {
-      currentKey = recReader.getCurrentKey();
-      Text val = recReader.getCurrentValue();
-      bufReader = new BufferedReader(new StringReader(val.toString()));
-    }
-  }
-
   @Override
   public Tuple getNext() throws IOException {
     try {
-      String line = readLine();
-      if (line != null) {
-        //machine, key, line
-        Tuple tuple = tupleFactory.newTuple(3);
-        if (currentKey != null) {
-          String[] data = PATTERN.split(currentKey.toString());
-          if (data == null || data.length != 2) {
-            LOG.warn("unable to parse " + currentKey.toString());
-            return null;
-          }
-          tuple.set(0, data[0]);
-          tuple.set(1, data[1]);
-        } else {
-          tuple.set(0, "");
-          tuple.set(1, "");
-        }
-        tuple.set(2, line); //line
-        return tuple;
+      if (!recReader.nextKeyValue()) {
+        return null;
       }
-    } catch (IOException e) {
-      return null;
+
+      currentKey = recReader.getCurrentKey();
+      String line = recReader.getCurrentValue().toString();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("currentKey: " + currentKey
+                + ", line=" + line);
+      }
+      //Tuple would be of format: machine, key, line
+      Tuple tuple = tupleFactory.newTuple(3);
+      if (currentKey != null) {
+        String[] data = PATTERN.split(currentKey.toString());
+        if (data == null || data.length != 2) {
+          LOG.warn("unable to parse " + currentKey.toString());
+          return null;
+        }
+        tuple.set(0, data[0]);
+        tuple.set(1, data[1]);
+      } else {
+        tuple.set(0, "");
+        tuple.set(1, "");
+      }
+      //set the line field
+      tuple.set(2, line);
+      return tuple;
     } catch (InterruptedException e) {
       return null;
     }
-    return null;
-  }
-
-  private String readLine() throws IOException, InterruptedException {
-    String line = null;
-    if (bufReader == null) {
-      setupReader();
-    }
-    line = bufReader.readLine();
-    if (line == null) { //end of stream. Move to the next reader
-      bufReader = null;
-      setupReader();
-      if (bufReader != null) {
-        line = bufReader.readLine();
-      }
-    }
-    return line;
   }
 
   public static class TFileInputFormat extends
