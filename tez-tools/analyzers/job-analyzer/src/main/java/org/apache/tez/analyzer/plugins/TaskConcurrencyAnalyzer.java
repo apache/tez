@@ -80,8 +80,28 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
        */
       TreeMultiset<TimeInfo> timeInfoSet = TreeMultiset.create(new Comparator<TimeInfo>() {
         @Override public int compare(TimeInfo o1, TimeInfo o2) {
-          return (o1.timestamp < o2.timestamp) ? -1 :
-              ((o1.timestamp == o2.timestamp) ? 0 : 1);
+          if (o1.timestamp < o2.timestamp) {
+            return -1;
+          }
+
+          if (o1.timestamp > o2.timestamp) {
+            return 1;
+          }
+
+          if (o1.timestamp == o2.timestamp) {
+            //check event type
+            if (o1.eventType.equals(o2.eventType)) {
+              return 0;
+            }
+
+            if (o1.eventType.equals(EventType.START)
+                && o2.eventType.equals(EventType.FINISH)) {
+              return -1;
+            } else {
+              return 1;
+            }
+          }
+          return 0;
         }
       });
 
