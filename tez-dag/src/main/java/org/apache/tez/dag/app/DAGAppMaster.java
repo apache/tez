@@ -280,6 +280,7 @@ public class DAGAppMaster extends AbstractService {
   private final UserGroupInformation appMasterUgi;
 
   private AtomicBoolean sessionStopped = new AtomicBoolean(false);
+  private final Object idleStateLock = new Object();
   private long sessionTimeoutInterval;
   private long lastDAGCompletionTime;
   private Timer dagSubmissionTimer;
@@ -811,7 +812,6 @@ public class DAGAppMaster extends AbstractService {
             // Leaving the taskSchedulerEventHandler here for now. Doesn't generate new events.
             // However, eventually it needs to be moved out.
             this.taskSchedulerManager.dagCompleted();
-            state = DAGAppMasterState.IDLE;
           } else {
             LOG.info("Session shutting down now.");
             this.taskSchedulerManager.setShouldUnregisterFlag();
@@ -851,6 +851,10 @@ public class DAGAppMaster extends AbstractService {
       TezDAGID.clearCache();
       LOG.info("Completed cleanup for DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
           cleanupEvent.getDag().getID());
+      synchronized (idleStateLock) {
+        state = DAGAppMasterState.IDLE;
+        idleStateLock.notify();
+      }
       break;
     case NEW_DAG_SUBMITTED:
       // Inform sub-components that a new DAG has been submitted.
@@ -1331,21 +1335,33 @@ public class DAGAppMaster extends AbstractService {
       throw new SessionNotRunning("AM unable to accept new DAG submissions."
           + " In the process of shutting down");
     }
+
+    // dag is in cleanup when dag state is completed but AM state is still RUNNING
+    synchronized (idleStateLock) {
+      while (currentDAG != null && currentDAG.isComplete() && state == DAGAppMasterState.RUNNING) {
+        try {
+          LOG.info("wait for previous dag cleanup");
+          idleStateLock.wait();
+        } catch (InterruptedException e) {
+          throw new TezException(e);
+        }
+      }
+    }
+
     synchronized (this) {
       if (this.versionMismatch) {
         throw new TezException("Unable to accept DAG submissions as the ApplicationMaster is"
             + " incompatible with the client. " + versionMismatchDiagnostics);
       }
+      if (state.equals(DAGAppMasterState.ERROR)
+              || sessionStopped.get()) {
+        throw new SessionNotRunning("AM unable to accept new DAG submissions."
+                + " In the process of shutting down");
+      }
       if (currentDAG != null
-          && !state.equals(DAGAppMasterState.IDLE)) {
+          && !currentDAG.isComplete()) {
         throw new TezException("App master already running a DAG");
       }
-      if (state.equals(DAGAppMasterState.ERROR)
-          || sessionStopped.get()) {
-        throw new SessionNotRunning("AM unable to accept new DAG submissions."
-            + " In the process of shutting down");
-      }
-
       // RPC server runs in the context of the job user as it was started in
       // the job user's UGI context
       LOG.info("Starting DAG submitted via RPC: " + dagPlan.getName());
@@ -2445,7 +2461,6 @@ public class DAGAppMaster extends AbstractService {
     }
 
     startDAGExecution(newDAG, lrDiff);
-
     // set state after curDag is set
     this.state = DAGAppMasterState.RUNNING;
   }

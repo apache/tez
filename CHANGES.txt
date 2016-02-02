@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2307. Possible wrong error message when submitting new dag
   TEZ-2974. Tez tools: TFileRecordReader in tez-tools should support reading >2 GB tfiles.
   TEZ-3081. Update tez website for trademarks feedback.
   TEZ-3076. Reduce merge memory overhead to support large number of in-memory mapoutputs
@@ -325,6 +326,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-2307. Possible wrong error message when submitting new dag.
   TEZ-3076. Reduce merge memory overhead to support large number of in-memory mapoutputs
   TEZ-3066. TaskAttemptFinishedEvent ConcurrentModificationException in recovery or history logging services.
   TEZ-3036. Tez AM can hang on startup with no indication of error
