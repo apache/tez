@@ -16,52 +16,17 @@
  * limitations under the License.
  */
 
-.dags-page-search {
-  text-align: justify;
+const POM_FILE = "../../../pom.xml";
+var fs = require('fs');
 
-  margin-bottom: 5px;
-
-  .search-element {
-    display: inline-block;
-    width: 16.66%;
-
-    padding-left: 3px;
-
-    label {
-      margin-bottom: 2px;
-    }
-
-    select {
-      top: -1px;
-      position: relative;
-    }
-  }
-
-  .dag-name {
-    padding-left: 0px;
-  }
+function fetchVersion() {
+  try {
+    var fileData = fs.readFileSync(POM_FILE, 'ascii');
+    // Feel this is better than parsing the whole xml
+    return fileData.substring(fileData.indexOf("<version>") + 9, fileData.indexOf("</version>"));
+  }catch(e){}
 }
 
-.all-dags-table {
-  .pagination-ui, .table-controls {
-    margin-top: -5px;
-    margin-bottom: 5px;
-  }
-}
-
-@media screen and (min-width: 1300px) {
-  .dags-page-search{
-    float: left;
-    width: 1000px;
-
-    .form-group {
-      margin-bottom: 0px;
-    }
-  }
-
-  .all-dags-table {
-    .pagination-ui, .table-controls {
-      margin-top: 21px;
-    }
-  }
-}
+module.exports = {
+  version: fetchVersion()
+};

@@ -38,8 +38,13 @@ export default Ember.Service.extend({
   pollCount: 0,
 
   initState: Ember.on("init", function () {
+    var state = this.get("localStorage").get(STATE_STORAGE_KEY);
+
+    if(state === undefined || state === null) {
+      state = true;
+    }
     Ember.run.later(this, function () {
-      this.set("active", this.get("localStorage").get(STATE_STORAGE_KEY));
+      this.set("active", state);
     });
   }),
   stateObserver: Ember.observer("active", function () {

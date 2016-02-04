@@ -30,7 +30,7 @@ Router.map(function() {
     this.route('tasks');
     this.route('attempts');
     this.route('counters');
-    this.route('index', function() {});
+    this.route('index', {path: '/'}, function() {});
     this.route('graphical');
   });
   this.route('vertex', {path: '/vertex/:vertex_id'}, function() {
@@ -45,6 +45,7 @@ Router.map(function() {
   this.route('attempt', {path: '/attempt/:attempt_id'}, function () {
     this.route('counters');
   });
+  this.route('app', {path: '/tez-app/:app_id'}, function () {}); // Alias for backward compatibility with Tez UI V1
   this.route('app', {path: '/app/:app_id'}, function () {
     this.route('dags');
     this.route('configs');

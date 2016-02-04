@@ -28,6 +28,8 @@ export default Ember.Component.extend({
 
   codeMirror: null,
 
+  classNames: ['caller-info'],
+
   mode: Ember.computed("type", function () {
     switch(this.get("type")) {
       case 'Hive':

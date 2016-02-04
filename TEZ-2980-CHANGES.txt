@@ -33,3 +33,4 @@ ALL CHANGES:
   TEZ-3058. Tez UI 2: Add download data functionality
   TEZ-3084. Tez UI 2: Display caller type and info
   TEZ-3080. Tez UI 2: Ensure UI 2 is in-line with UI 1
+  TEZ-3092. Tez UI 2: Tuneups & Improvements

@@ -64,7 +64,8 @@ export default Ember.Service.extend({
   }),
 
   am: Ember.computed(function () {
-    return this.normalizeURL(this.get("env.app.hosts.rm"));
+    var url = this.get("env.app.hosts.rmProxy") || this.get("env.app.hosts.rm");
+    return this.normalizeURL(url);
   }),
 
 });

@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
+var buildInfo = require('./build-info');
+
 module.exports = { // Tez App configurations
-  buildVersion: "",
+  buildVersion: buildInfo.version || "",
   isStandalone: true, // Must be set false while running in wrapped mode
   rowLoadLimit: 9007199254740991,
   pollingInterval: 3000,
