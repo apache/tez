@@ -54,7 +54,7 @@ test('pendingTasks test', function(assert) {
     model.set("totalTasks", null);
     assert.equal(model.get("pendingTasks"), null);
     model.set("totalTasks", 2);
-    model.set("_successfulTasks", 1);
+    model.set("_succeededTasks", 1);
     model.set("status", "SUCCEEDED");
     assert.equal(model.get("pendingTasks"), 1);
   });

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import MultiTableController from '../../multi-table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 
@@ -50,9 +52,9 @@ export default MultiTableController.extend({
     contentPath: 'totalTasks',
     observePath: true
   },{
-    id: 'successfulTasks',
-    headerTitle: 'Successful Tasks',
-    contentPath: 'successfulTasks',
+    id: 'succeededTasks',
+    headerTitle: 'Succeeded Tasks',
+    contentPath: 'succeededTasks',
     observePath: true
   },{
     id: 'runningTasks',
@@ -74,6 +76,54 @@ export default MultiTableController.extend({
     headerTitle: 'Killed Task Attempts',
     contentPath: 'killedTaskAttempts',
     observePath: true
-  }])
+  }]),
+
+  stats: Ember.computed("model.@each.loadTime", function () {
+    var vertices = this.get("model");
+
+    if(vertices) {
+      let succeededVertices = 0,
+          succeededTasks = 0,
+          totalTasks =0,
+
+          failedTasks = 0,
+          killedTasks = 0,
+          failedTaskAttempts = 0,
+          killedTaskAttempts = 0;
+
+      vertices.forEach(function (vertex) {
+        if(vertex.get("status") === "SUCCEEDED") {
+          succeededVertices++;
+        }
+
+        succeededTasks += vertex.get("succeededTasks");
+        totalTasks += vertex.get("totalTasks");
+
+        failedTasks += vertex.get("failedTasks");
+        killedTasks += vertex.get("killedTasks");
+
+        failedTaskAttempts += vertex.get("failedTaskAttempts");
+        killedTaskAttempts += vertex.get("killedTaskAttempts");
+      });
+
+      return {
+        succeededVertices: succeededVertices,
+        totalVertices: vertices.get("length"),
+
+        succeededTasks: succeededTasks,
+        totalTasks: totalTasks,
+
+        failedTasks: failedTasks,
+        killedTasks: killedTasks,
+
+        failedTaskAttempts: failedTaskAttempts,
+        killedTaskAttempts: killedTaskAttempts
+      };
+    }
+  }),
+
+  beforeSort: function () {
+    return true;
+  }
 
 });

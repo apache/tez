@@ -16,26 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-import { moduleFor, test } from 'ember-qunit';
-
-moduleFor('controller:vertex/attempts', 'Unit | Controller | vertex/attempts', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
+moduleForComponent('stats-link', 'Integration | Component | stats link', {
+  integration: true
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
-  });
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  this.render(hbs`{{stats-link}}`);
+  assert.equal(this.$().text().trim(), 'Not Available!');
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#stats-link}}
+      template block text
+    {{/stats-link}}
+  `);
+  assert.equal(this.$().text().trim(), 'Not Available!');
 });

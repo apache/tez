@@ -35,11 +35,11 @@
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{txt model.app.startTime type="date"}}</td>
+        <td>{{date-formatter content=model.startTime}}</td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{txt model.app.endTime type="date"}}</td>
+        <td>{{date-formatter content=model.endTime}}</td>
       </tr>
       <tr>
         <td>Duration</td>
@@ -47,6 +47,7 @@
       </tr>
       </tbody>
     </table>
+
     <table class='detail-list'>
       <thead>
       <tr>
@@ -76,8 +77,8 @@
       </tr>
       </tbody>
     </table>
-    <br/>
   {{/if}}
+
   <table class='detail-list'>
     <thead>
       <tr>

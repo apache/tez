@@ -43,6 +43,8 @@ export default AbstractController.extend({
   columnSelectorTitle: 'Column Selector',
   columnSelectorMessage: "",
 
+  polling: Ember.inject.service("pollster"),
+
   definition: Ember.computed(function () {
     return TableDefinition.create({
       rowCount: this.get("rowCount"),
@@ -69,11 +71,37 @@ export default AbstractController.extend({
     this.set('visibleColumnIDs', visibleColumnIDs);
   })),
 
+  beforeSort: function (columnDefinition) {
+    if(this.get("polling.isReady")) {
+      let columnName = columnDefinition.get("headerTitle");
+      switch(columnDefinition.get("contentPath")) {
+        case "counterGroupsHash":
+          columnName = "Counters";
+          /* falls through */
+        case "status":
+        case "progress":
+          this.send("openModal", {
+            title: "Cannot sort!",
+            content: `Sorting on ${columnName} is disabled for running DAGs!`
+          });
+          return false;
+      }
+    }
+    return true;
+  },
+
   allColumns: Ember.computed("columns", function () {
     var columns = this.get("columns"),
-        counters = this.getCounterColumns();
+        counters = this.getCounterColumns(),
+        beforeSort = this.get("beforeSort").bind(this);
 
-    return columns.concat(CounterColumnDefinition.make(counters));
+    columns = columns.concat(CounterColumnDefinition.make(counters));
+
+    columns.forEach(function (column) {
+      column.set("beforeSort", beforeSort);
+    });
+
+    return columns;
   }),
 
   visibleColumns: Ember.computed('visibleColumnIDs', 'allColumns', function() {

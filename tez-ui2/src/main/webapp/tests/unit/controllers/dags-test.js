@@ -30,6 +30,7 @@ test('Basic creation test', function(assert) {
 
   let controller = this.subject({
     initVisibleColumns: Ember.K,
+    beforeSort: {bind: Ember.K},
     send: function (name, query) {
       assert.equal(name, "setBreadcrumbs");
       assert.ok(query);

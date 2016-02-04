@@ -27,6 +27,7 @@ moduleFor('controller:multi-table', 'Unit | Controller | multi table', {
 test('Basic creation test', function(assert) {
   let controller = this.subject({
     send: Ember.K,
+    beforeSort: {bind: Ember.K},
     initVisibleColumns: Ember.K,
     localStorage: Ember.Object.create(),
     getCounterColumns: function () {

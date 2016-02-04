@@ -42,6 +42,10 @@
         <td>{{model.entityID}}</td>
       </tr>
       <tr>
+        <td>Name</td>
+        <td>{{model.name}}</td>
+      </tr>
+      <tr>
         <td>Submitter</td>
         <td>{{model.submitter}}</td>
       </tr>
@@ -55,11 +59,11 @@
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{txt model.startTime type="date"}}</td>
+        <td>{{date-formatter content=model.startTime}}</td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{txt model.endTime type="date"}}</td>
+        <td>{{date-formatter content=model.endTime}}</td>
       </tr>
       <tr>
         <td>Duration</td>

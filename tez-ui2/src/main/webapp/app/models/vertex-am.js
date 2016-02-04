@@ -23,7 +23,7 @@ import AMModel from './am';
 export default AMModel.extend({
 
   totalTasks: DS.attr("number"),
-  successfulTasks: DS.attr("number"),
+  succeededTasks: DS.attr("number"),
   runningTasks: DS.attr("number"),
   pendingTasks: DS.attr("number"),
   failedTaskAttempts: DS.attr("number"),

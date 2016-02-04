@@ -48,6 +48,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.storageID);
   assert.ok(controller.initVisibleColumns);
 
+  assert.ok(controller.beforeSort);
   assert.ok(controller.columns);
   assert.ok(controller.allColumns);
   assert.ok(controller.visibleColumns);

@@ -77,16 +77,12 @@ export default MultiTableController.extend({
     id: 'startTime',
     headerTitle: 'Start Time',
     contentPath: 'startTime',
-    cellDefinition: {
-      type: 'date'
-    }
+    cellComponentName: 'date-formatter',
   },{
     id: 'endTime',
     headerTitle: 'End Time',
     contentPath: 'endTime',
-    cellDefinition: {
-      type: 'date'
-    }
+    cellComponentName: 'date-formatter',
   },{
     id: 'duration',
     headerTitle: 'Duration',

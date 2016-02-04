@@ -64,13 +64,13 @@ export default AMTimelineModel.extend({
 
   totalTasks: DS.attr('number'),
   _failedTasks: DS.attr('number'),
-  _successfulTasks: DS.attr('number'),
+  _succeededTasks: DS.attr('number'),
   _killedTasks: DS.attr('number'),
   failedTasks: Ember.computed("am.failedTasks", "_failedTasks",
     valueComputerFactory("am.failedTasks", "_failedTasks")
   ),
-  successfulTasks: Ember.computed("am.successfulTasks", "_successfulTasks",
-    valueComputerFactory("am.successfulTasks", "_successfulTasks")
+  succeededTasks: Ember.computed("am.succeededTasks", "_succeededTasks",
+    valueComputerFactory("am.succeededTasks", "_succeededTasks")
   ),
   killedTasks: Ember.computed("am.killedTasks", "_killedTasks",
     valueComputerFactory("am.killedTasks", "_killedTasks")
@@ -83,12 +83,12 @@ export default AMTimelineModel.extend({
     }
     return  runningTasks;
   }),
-  pendingTasks: Ember.computed("totalTasks", "successfulTasks", "runningTasks", function () {
+  pendingTasks: Ember.computed("totalTasks", "succeededTasks", "runningTasks", function () {
     var pendingTasks = null,
         runningTasks = this.get("runningTasks"),
         totalTasks = this.get("totalTasks");
     if(totalTasks!== null && runningTasks !== null) {
-      pendingTasks = totalTasks - this.get("successfulTasks") - runningTasks;
+      pendingTasks = totalTasks - this.get("succeededTasks") - runningTasks;
     }
     return pendingTasks;
   }),

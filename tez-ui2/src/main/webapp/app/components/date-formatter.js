@@ -18,24 +18,13 @@
 
 import Ember from 'ember';
 
-import { moduleFor, test } from 'ember-qunit';
+export default Ember.Component.extend({
 
-moduleFor('controller:vertex/attempts', 'Unit | Controller | vertex/attempts', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  classNames: ["date-formatter"],
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
-  });
+  content: null,
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  env: Ember.inject.service('env'),
+  timeZone: Ember.computed.oneWay('env.app.timeZone'),
+
 });

@@ -22,7 +22,7 @@ export default AMSerializer.extend({
   payloadNamespace: "vertices",
 
   maps: {
-    successfulTasks: "succeededTasks",
+    succeededTasks: "succeededTasks",
     runningTasks: "runningTasks",
     failedTaskAttempts: "failedTaskAttempts",
     killedTaskAttempts: "killedTaskAttempts",

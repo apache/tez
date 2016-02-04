@@ -42,15 +42,28 @@
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{txt model.startTime type="date"}}</td>
+        <td>{{date-formatter content=model.startTime}}</td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{txt model.endTime type="date"}}</td>
+        <td>{{date-formatter content=model.endTime}}</td>
       </tr>
       <tr>
         <td>Duration</td>
         <td>{{txt model.duration type="duration"}}</td>
+      </tr>
+    </tbody>
+  </table>
+  <table class='detail-list'>
+    <thead>
+    <tr>
+      <th colspan=2>Stats</th>
+    </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Failed Task Attempts</td>
+        <td>{{stats-link value=model.failedTaskAttempts routeName="vertex.attempts" statsType="FAILED"}}</td>
       </tr>
     </tbody>
   </table>

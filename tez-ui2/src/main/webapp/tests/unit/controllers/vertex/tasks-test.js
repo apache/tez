@@ -28,6 +28,7 @@ moduleFor('controller:vertex/tasks', 'Unit | Controller | vertex/tasks', {
 test('Basic creation test', function(assert) {
   let controller = this.subject({
     send: Ember.K,
+    beforeSort: {bind: Ember.K},
     initVisibleColumns: Ember.K,
     getCounterColumns: function () {
       return [];

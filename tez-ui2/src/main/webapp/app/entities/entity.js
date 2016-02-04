@@ -98,15 +98,15 @@ var Entity = Ember.Object.extend(NameMixin, {
     );
 
     needLoader.then(function (model) {
-      parentModel.refreshLoadTime();
       parentModel.set(needOptions.name, model);
+      parentModel.refreshLoadTime();
       return model;
     });
 
     if(needOptions.silent) {
       needLoader = needLoader.catch(function () {
-        parentModel.refreshLoadTime();
         parentModel.set(needOptions.name, null);
+        parentModel.refreshLoadTime();
       });
     }
 

@@ -45,6 +45,12 @@ export default Ember.Route.extend({
     // Modal window actions
     openModal: function (componentName, options) {
       options = options || {};
+
+      if(typeof componentName === "object") {
+        options = componentName;
+        componentName = null;
+      }
+
       this.render(options.modalName || "simple-modal", {
         into: 'application',
         outlet: 'modal',

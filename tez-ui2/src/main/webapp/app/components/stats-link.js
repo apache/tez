@@ -18,24 +18,16 @@
 
 import Ember from 'ember';
 
-import { moduleFor, test } from 'ember-qunit';
+export default Ember.Component.extend({
+  value: null,
+  routeName: null,
+  statsType: null,
 
-moduleFor('controller:vertex/attempts', 'Unit | Controller | vertex/attempts', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
+  searchText: Ember.computed.oneWay("statsType"),
+  _statsType: Ember.computed("statsType", function () {
+    var type = this.get("statsType");
+    if(type) {
+      return Ember.String.capitalize(type.toLowerCase());
     }
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
+  })
 });

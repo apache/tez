@@ -20,7 +20,7 @@
   <table class='detail-list'>
     <thead>
       <tr>
-        <th colspan=2>Description</th>
+        <th colspan=2>Details</th>
       </tr>
     </thead>
     <tbody>
@@ -36,18 +36,6 @@
         <td>Processor Class</td>
         <td>{{model.processorClassName}}</td>
       </tr>
-    </tbody>
-  </table>
-
-  <br/>
-
-  <table class='detail-list'>
-    <thead>
-      <tr>
-        <th colspan=2>Details</th>
-      </tr>
-    </thead>
-    <tbody>
       <tr>
         <td>Status</td>
         <td>{{em-table-status-cell content=model.status}}</td>
@@ -58,20 +46,46 @@
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{txt model.startTime type="date"}}</td>
+        <td>{{date-formatter content=model.startTime}}</td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{txt model.endTime type="date"}}</td>
+        <td>{{date-formatter content=model.endTime}}</td>
       </tr>
       <tr>
         <td>Duration</td>
         <td>{{txt model.duration type="duration"}}</td>
       </tr>
+    </tbody>
+  </table>
+
+  <table class='detail-list'>
+    <thead>
+      <tr>
+        <th colspan=2>Stats</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Total Tasks</td>
+        <td>{{txt model.totalTasks type="number"}}</td>
+      </tr>
+      <tr>
+        <td>Succeeded Tasks</td>
+        <td>{{stats-link value=model.succeededTasks routeName="vertex.tasks" statsType="SUCCEEDED"}}</td>
+      </tr>
+      <tr>
+        <td>Failed Tasks</td>
+        <td>{{stats-link value=model.failedTasks routeName="vertex.tasks" statsType="FAILED"}}</td>
+      </tr>
+      <tr>
+        <td>Killed Tasks</td>
+        <td>{{stats-link value=model.killedTasks routeName="vertex.tasks" statsType="KILLED"}}</td>
+      </tr>
       <tr>
         <td>First Task Start Time</td>
         <td>
-          {{txt model.firstTaskStartTime type="date"}}
+          {{date-formatter content=model.firstTaskStartTime}}
           {{#if firstTasksToStart}}
             [{{em-table-linked-cell content=firstTasksToStart}}]
           {{/if}}
@@ -80,60 +94,11 @@
       <tr>
         <td>Last Task Finish Time</td>
         <td>
-          {{txt model.lastTaskFinishTime type="date"}}
+          {{date-formatter content=model.lastTaskFinishTime}}
           {{#if lastTasksToFinish}}
             [{{em-table-linked-cell content=lastTasksToFinish}}]
           {{/if}}
         </td>
-      </tr>
-    </tbody>
-  </table>
-
-  <br/>
-
-  <table class='detail-list'>
-    <thead>
-      <tr>
-        <th colspan=2>Tasks of this Vertex</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Total Tasks</td>
-          <td>
-            <a href="{{pathname}}/tasks">{{txt model.totalTasks type="number"}} Tasks</a>
-          </td>
-      </tr>
-      <tr>
-        <td>Successful Tasks</td>
-        {{#if model.successfulTasks}}
-          <td>
-            <a href="{{pathname}}/tasks?searchText=SUCCEEDED">{{txt model.successfulTasks type="number"}} Succeeded</a>
-          </td>
-        {{else}}
-          <td>{{txt model.successfulTasks type="number"}}</td>
-        {{/if}}
-      </tr>
-      <tr>
-        <td>Failed Tasks</td>
-        {{#if model.failedTasks}}
-          <td>
-            <a href="{{pathname}}/tasks?searchText=FAILED">{{txt model.failedTasks type="number"}} Failed</a>
-          </td>
-        {{else}}
-          <td>{{txt model.failedTasks type="number"}}</td>
-        {{/if}}
-      </tr>
-      <tr>
-        <td>Killed Tasks</td>
-        {{#if model.killedTasks}}
-          <td>
-            <a href="{{pathname}}/tasks?searchText=KILLED">{{txt model.killedTasks type="number"}} Killed</a>
-          </td>
-        {{else}}
-          <td>{{txt model.killedTasks type="number"}}</td>
-        {{/if}}
-
       </tr>
       <tr>
         <td>Average Duration</td>

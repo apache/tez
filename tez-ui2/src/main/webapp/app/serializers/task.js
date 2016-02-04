@@ -22,5 +22,7 @@ export default TimelineSerializer.extend({
   maps: {
     vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
     dagID: 'primaryfilters.TEZ_DAG_ID.0',
+
+    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts'
   }
 });

@@ -34,7 +34,7 @@ export default TimelineSerializer.extend({
 
     totalTasks: 'otherinfo.numTasks',
     _failedTasks: 'otherinfo.numFailedTasks',
-    _successfulTasks: 'otherinfo.numSucceededTasks',
+    _succeededTasks: 'otherinfo.numSucceededTasks',
     _killedTasks: 'otherinfo.numKilledTasks',
 
     _failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',

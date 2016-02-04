@@ -27,6 +27,8 @@
       </div>
       {{#if model.componentName}}
         {{component model.componentName content=model.content targetObject=model.targetObject}}
+      {{else}}
+        <div class="modal-body">{{model.content}}</div>
       {{/if}}
     </div>
   </div>

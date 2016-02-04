@@ -32,7 +32,7 @@
         <br/>
       </span>
       {{#if loadTime}}
-        Last refreshed at <b>{{txt loadTime type="date"}}</b>
+        Last refreshed at <b>{{date-formatter content=loadTime}}</b>
       {{else}}
         Load time not available!
       {{/if}}

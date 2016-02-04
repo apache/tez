@@ -51,7 +51,7 @@ export default PollsterRoute.extend({
       }
     }, function (error) {
       that.send("error", error);
-      Ember.run.later(that, "reload", this.get("polling.interval") * 3);
+      Ember.run.later(that, "reload", that.get("polling.interval") * 3);
     });
   },
 
