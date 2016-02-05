@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES
+  TEZ-3093. CriticalPathAnalyzer should be accessible via zeppelin
   TEZ-3089. TaskConcurrencyAnalyzer can return negative task count with very large jobs
   TEZ-2307. Possible wrong error message when submitting new dag
   TEZ-3076. Reduce merge memory overhead to support large number of in-memory mapoutputs

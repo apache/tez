@@ -62,6 +62,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   }
 
   public static final String DRAW_SVG = "tez.critical-path-analyzer.draw-svg";
+  public static final String SVG_DIR = "output-dir";
 
   public static class CriticalPathStep {
     public enum EntityType {
@@ -111,6 +112,10 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   public CriticalPathAnalyzer() {
   }
 
+  public CriticalPathAnalyzer(Configuration conf) {
+    setConf(conf);
+  }
+
   @Override 
   public void analyze(DagInfo dagInfo) throws TezException {
     // get all attempts in the dag and find the last failed/succeeded attempt.
@@ -152,7 +157,11 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   
   private void saveCriticalPathAsSVG(DagInfo dagInfo) {
     SVGUtils svg = new SVGUtils();
-    String outputFileName = getOutputDir() + File.separator + dagInfo.getDagId() + ".svg";
+    String outputDir = getOutputDir();
+    if (outputDir == null) {
+      outputDir = getConf().get(SVG_DIR);
+    }
+    String outputFileName = outputDir + File.separator + dagInfo.getDagId() + ".svg";
     System.out.println("Writing output to: " + outputFileName);
     svg.saveCriticalPathAsSVG(dagInfo, outputFileName, criticalPath);
   }
