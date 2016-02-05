@@ -62,7 +62,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
   }
 
   public static final String DRAW_SVG = "tez.critical-path-analyzer.draw-svg";
-  public static final String SVG_DIR = "output-dir";
+  public static final String OUTPUT_DIR = "output-dir";
 
   public static class CriticalPathStep {
     public enum EntityType {
@@ -159,7 +159,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     SVGUtils svg = new SVGUtils();
     String outputDir = getOutputDir();
     if (outputDir == null) {
-      outputDir = getConf().get(SVG_DIR);
+      outputDir = getConf().get(OUTPUT_DIR);
     }
     String outputFileName = outputDir + File.separator + dagInfo.getDagId() + ".svg";
     System.out.println("Writing output to: " + outputFileName);
