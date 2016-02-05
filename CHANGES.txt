@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3093. CriticalPathAnalyzer should be accessible via zeppelin.
   TEZ-3089. TaskConcurrencyAnalyzer can return negative task count with very large jobs.
   TEZ-2307. Possible wrong error message when submitting new dag
   TEZ-2974. Tez tools: TFileRecordReader in tez-tools should support reading >2 GB tfiles.
