@@ -9,18 +9,19 @@
     "ember-qunit": "0.4.16",
     "ember-qunit-notifications": "0.1.0",
     "loader.js": "3.3.0",
-    "qunit": "~1.19.0",
-    "more-js": "*",
-    "bootstrap": "~3.3.5",
-    "font-awesome": "~4.5.0",
+    "qunit": "1.19.0",
+    "more-js": "0.8.2",
+    "bootstrap": "3.3.6",
+    "font-awesome": "4.5.0",
+    "jquery": "2.1.4",
     "jquery-ui": "1.11.4",
-    "moment": "^2.8.0",
-    "moment-timezone": "^0.5.0",
+    "moment": "2.11.1",
+    "moment-timezone": "0.5.0",
     "numeral": "1.5.3",
-    "snippet-ss": "~1.11.0",
-    "jquery-mousewheel": "~3.1.13",
+    "snippet-ss": "1.11.0",
+    "jquery-mousewheel": "3.1.13",
     "FileSaver": "#230de7d",
     "zip.js": "#1bead0a",
-    "codemirror": "~5.11.0"
+    "codemirror": "5.11.0"
   }
 }
