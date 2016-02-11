@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -312,6 +313,7 @@ public class TestMultiMRInput {
     doReturn(1).when(inputContext).getTaskAttemptNumber();
     doReturn(1).when(inputContext).getTaskIndex();
     doReturn(1).when(inputContext).getTaskVertexIndex();
+    doReturn(UUID.randomUUID().toString()).when(inputContext).getUniqueIdentifier();
     doReturn("taskVertexName").when(inputContext).getTaskVertexName();
     doReturn(UserPayload.create(ByteBuffer.wrap(payload))).when(inputContext).getUserPayload();
     return inputContext;

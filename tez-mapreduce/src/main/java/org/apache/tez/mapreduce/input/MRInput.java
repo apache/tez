@@ -82,7 +82,21 @@ import com.google.common.collect.Lists;
  */
 @Public
 public class MRInput extends MRInputBase {
-  
+
+  @Private public static final String TEZ_MAPREDUCE_DAG_INDEX = "tez.mapreduce.dag.index";
+  @Private public static final String TEZ_MAPREDUCE_DAG_NAME = "tez.mapreduce.dag.name";
+  @Private public static final String TEZ_MAPREDUCE_VERTEX_INDEX = "tez.mapreduce.vertex.index";
+  @Private public static final String TEZ_MAPREDUCE_VERTEX_NAME = "tez.mapreduce.vertex.name";
+  @Private public static final String TEZ_MAPREDUCE_TASK_INDEX = "tez.mapreduce.task.index";
+  @Private public static final String TEZ_MAPREDUCE_TASK_ATTEMPT_INDEX = "tez.mapreduce.task.attempt.index";
+  @Private public static final String TEZ_MAPREDUCE_INPUT_INDEX = "tez.mapreduce.input.index";
+  @Private public static final String TEZ_MAPREDUCE_INPUT_NAME = "tez.mapreduce.input.name";
+  @Private public static final String TEZ_MAPREDUCE_APPLICATION_ID = "tez.mapreduce.application.id";
+  @Private public static final String TEZ_MAPREDUCE_UNIQUE_IDENTIFIER = "tez.mapreduce.unique.identifier";
+  @Private public static final String TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER = "tez.mapreduce.dag.attempt.number";
+
+
+
   /**
    * Helper class to configure {@link MRInput}
    *

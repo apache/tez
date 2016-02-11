@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
+import org.apache.tez.runtime.api.InputContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -705,6 +706,129 @@ public class MRInputHelpers {
     }
     userPayloadBuilder.setGroupingEnabled(isGrouped);
     return UserPayload.create(userPayloadBuilder.build().toByteString().asReadOnlyByteBuffer());
+  }
+
+
+  private static String getStringProperty(Configuration conf, String propertyName) {
+    Preconditions.checkNotNull(conf, "Configuration must be provided");
+    String propertyString = conf.get(propertyName);
+    Preconditions.checkNotNull(propertyString,
+        "Property " + propertyName + " not found in provided configuration");
+    return propertyString;
+  }
+
+  private static int getIntProperty(Configuration conf, String propertyName) {
+    return Integer.parseInt(getStringProperty(conf, propertyName));
+  }
+
+  /**
+   * @see {@link InputContext#getDagIdentifier}
+   * @param conf configuration instance
+   * @return dag index
+   */
+  @Public
+  public static int getDagIndex(Configuration conf) {
+    return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_DAG_INDEX);
+  }
+
+  /**
+   * * @see {@link InputContext#getTaskVertexIndex}
+   * @param conf configuration instance
+   * @return vertex index
+   */
+  @Public
+  public static int getVertexIndex(Configuration conf) {
+    return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_VERTEX_INDEX);
+  }
+
+  /**
+   * @see {@link InputContext#getTaskIndex}
+   * @param conf configuration instance
+   * @return task index
+   */
+  @Public
+  public static int getTaskIndex(Configuration conf) {
+    return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_TASK_INDEX);
+  }
+
+  /**
+   * @see {@link InputContext#getTaskAttemptNumber}
+   * @param conf configuration instance
+   * @return task attempt index
+   */
+  @Public
+  public static int getTaskAttemptIndex(Configuration conf) {
+    return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_TASK_ATTEMPT_INDEX);
+  }
+
+  /**
+   * @see {@link InputContext#getInputIndex}
+   * @param conf configuration instance
+   * @return input index
+   */
+  @Public
+  public static int getInputIndex(Configuration conf) {
+    return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_INPUT_INDEX);
+  }
+
+  /**
+   * @see {@link InputContext#getDAGName}
+   * @param conf configuration instance
+   * @return dag name
+   */
+  @Public
+  public static String getDagName(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_DAG_NAME);
+  }
+
+  /**
+   * @see {@link InputContext#getTaskVertexName}
+   * @param conf configuration instance
+   * @return vertex name
+   */
+  @Public
+  public static String getVertexName(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_VERTEX_NAME);
+  }
+
+  /**
+   * @see {@link InputContext#getSourceVertexName}
+   * @param conf configuration instance
+   * @return source name
+   */
+  @Public
+  public static String getInputName(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_INPUT_NAME);
+  }
+
+  /**
+   * @see {@link InputContext#getApplicationId}
+   * @param conf configuration instance
+   * @return applicationId as a string
+   */
+  @Public
+  public static String getApplicationIdString(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_APPLICATION_ID);
+  }
+
+  /**
+   * @see {@link InputContext#getUniqueIdentifier}
+   * @param conf configuration instance
+   * @return unique identifier for the input
+   */
+  @Public
+  public static String getUniqueIdentifier(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_UNIQUE_IDENTIFIER);
+  }
+
+  /**
+   * @see {@link InputContext#getDAGAttemptNumber}
+   * @param conf configuration instance
+   * @return attempt number
+   */
+  @Public
+  public static int getDagAttemptNumber(Configuration conf) {
+    return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER);
   }
 
 }
