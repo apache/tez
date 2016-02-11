@@ -116,6 +116,8 @@ public class Shuffle implements ExceptionReporter {
       Class<? extends CompressionCodec> codecClass =
           ConfigUtils.getIntermediateInputCompressorClass(conf, DefaultCodec.class);
       codec = ReflectionUtils.newInstance(codecClass, conf);
+      // Work around needed for HADOOP-12191. Avoids the native initialization synchronization race
+      codec.getDecompressorType();
     } else {
       codec = null;
     }
