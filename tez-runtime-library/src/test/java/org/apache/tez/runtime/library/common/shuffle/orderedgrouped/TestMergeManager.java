@@ -29,12 +29,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
 import com.google.common.collect.Sets;
+
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -52,6 +55,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.junit.After;
@@ -172,6 +176,76 @@ public class TestMergeManager {
         new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
             t0exceptionReporter, initialMemoryAvailable, null, false, -1);
     Assert.assertTrue(mergeManager.postMergeMemLimit == initialMemoryAvailable);
+  }
+
+  @Test(timeout=20000)
+  public void testIntermediateMemoryMergeAccounting() throws Exception {
+    Configuration conf = new TezConfiguration(defaultConf);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, true);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 2);
+
+    Path localDir = new Path(workDir, "local");
+    Path srcDir = new Path(workDir, "srcData");
+    localFs.mkdirs(localDir);
+    localFs.mkdirs(srcDir);
+
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDir.toString());
+
+    FileSystem localFs = FileSystem.getLocal(conf);
+    LocalDirAllocator localDirAllocator =
+        new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    InputContext inputContext = createMockInputContext(UUID.randomUUID().toString());
+
+    ExceptionReporter exceptionReporter = mock(ExceptionReporter.class);
+
+    MergeManager mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+            exceptionReporter, 2000000, null, false, -1);
+    mergeManager.configureAndStart();
+
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    byte[] data1 = generateData(conf, 10);
+    byte[] data2 = generateData(conf, 20);
+    MapOutput firstMapOutput = mergeManager.reserve(null, data1.length, data1.length, 0);
+    MapOutput secondMapOutput = mergeManager.reserve(null, data2.length, data2.length, 0);
+    assertEquals(MapOutput.Type.MEMORY, firstMapOutput.getType());
+    assertEquals(MapOutput.Type.MEMORY, secondMapOutput.getType());
+    assertEquals(0, mergeManager.getCommitMemory());
+    assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
+
+    System.arraycopy(data1, 0, firstMapOutput.getMemory(), 0, data1.length);
+    System.arraycopy(data2, 0, secondMapOutput.getMemory(), 0, data2.length);
+
+    secondMapOutput.commit();
+    assertEquals(data2.length, mergeManager.getCommitMemory());
+    assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
+    firstMapOutput.commit();
+
+    mergeManager.waitForMemToMemMerge();
+    assertEquals(data1.length + data2.length, mergeManager.getCommitMemory());
+    assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
+  }
+
+  private byte[] generateData(Configuration conf, int numEntries) throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
+    IFile.Writer writer =
+        new IFile.Writer(conf, fsdos, IntWritable.class, IntWritable.class, null, null, null);
+    for (int i = 0; i < numEntries; ++i) {
+      writer.append(new IntWritable(i), new IntWritable(i));
+    }
+    writer.close();
+    int compressedLength = (int)writer.getCompressedLength();
+    int rawLength = (int)writer.getRawLength();
+    byte[] data = new byte[rawLength];
+    ShuffleUtils.shuffleToMemory(data, new ByteArrayInputStream(baos.toByteArray()),
+        rawLength, compressedLength, null, false, 0, LOG, "sometask");
+    return data;
   }
 
   class InterruptingThread implements Runnable {
