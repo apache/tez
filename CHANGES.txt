@@ -6,6 +6,7 @@ Release 0.8.3: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3107. tez-tools: Log warn msgs in case ATS has wrong values (e.g startTime > finishTime).
   TEZ-3104. Tez fails on Bzip2 intermediate output format on hadoop 2.7.1 and earlier
   TEZ-3090. MRInput should make dagIdentifier, vertexIdentifier, etc available to the InputFormat jobConf.
   TEZ-3093. CriticalPathAnalyzer should be accessible via zeppelin.

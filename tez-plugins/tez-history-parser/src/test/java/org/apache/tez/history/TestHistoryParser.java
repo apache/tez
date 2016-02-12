@@ -249,6 +249,7 @@ public class TestHistoryParser {
         WordCount.TokenProcessor.class.getName()));
     assertTrue(dagInfo.getVertex(SUMMATION).getProcessorClassName()
         .equals(WordCount.SumProcessor.class.getName()));
+    assertTrue(dagInfo.getFinishTime() > dagInfo.getStartTime());
     assertTrue(dagInfo.getEdges().size() == 1);
     EdgeInfo edgeInfo = dagInfo.getEdges().iterator().next();
     assertTrue(edgeInfo.getDataMovementType().
@@ -269,6 +270,7 @@ public class TestHistoryParser {
       assertTrue(vertexInfo.getStartRequestedTime() > 0);
       assertTrue(vertexInfo.getStartTime() > 0);
       assertTrue(vertexInfo.getFinishTime() > 0);
+      assertTrue(vertexInfo.getFinishTime() > vertexInfo.getStartTime());
       long finishTime = 0;
       for (TaskInfo taskInfo : vertexInfo.getTasks()) {
         assertTrue(taskInfo.getNumberOfTaskAttempts() == 1);
@@ -280,6 +282,7 @@ public class TestHistoryParser {
         assertTrue(taskInfo.getSuccessfulTaskAttempts().size() > 0);
         assertTrue(taskInfo.getFailedTaskAttempts().size() == 0);
         assertTrue(taskInfo.getKilledTaskAttempts().size() == 0);
+        assertTrue(taskInfo.getFinishTime() > taskInfo.getStartTime());
         List<TaskAttemptInfo> attempts = taskInfo.getTaskAttempts();
         if (vertexInfo.getVertexName().equals(TOKENIZER)) {
           // get the last task to finish and track its successful attempt
@@ -304,6 +307,7 @@ public class TestHistoryParser {
           assertTrue(attemptInfo.getCreationTime() > 0);
           assertTrue(attemptInfo.getAllocationTime() > 0);
           assertTrue(attemptInfo.getStartTime() > 0);
+          assertTrue(attemptInfo.getFinishTime() > attemptInfo.getStartTime());
         }
       }
       assertTrue(vertexInfo.getLastTaskToFinish() != null);
@@ -748,6 +752,7 @@ public class TestHistoryParser {
       assertTrue(vertexInfo.getFirstTaskToStart() != null);
       assertTrue(vertexInfo.getSucceededTasksCount() > 0);
       assertTrue(vertexInfo.getTasks().size() > 0);
+      assertTrue(vertexInfo.getFinishTime() > vertexInfo.getStartTime());
     }
 
     for (TaskInfo taskInfo : vertexInfo.getTasks()) {
@@ -781,6 +786,7 @@ public class TestHistoryParser {
           taskInfo.getStartTimeInterval() > 0 && taskInfo.getStartTime() > taskInfo.getStartTimeInterval());
       assertTrue(taskInfo.getSuccessfulAttemptId() != null);
       assertTrue(taskInfo.getSuccessfulTaskAttempt() != null);
+      assertTrue(taskInfo.getFinishTime() > taskInfo.getStartTime());
     }
     assertTrue(taskInfo.getTaskId() != null);
 

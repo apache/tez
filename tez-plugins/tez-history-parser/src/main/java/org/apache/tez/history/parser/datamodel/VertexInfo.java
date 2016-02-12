@@ -28,8 +28,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -45,6 +48,8 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 @Public
 @Evolving
 public class VertexInfo extends BaseInfo {
+
+  private static final Log LOG = LogFactory.getLog(VertexInfo.class);
 
   private final String vertexId;
   private final String vertexName;
@@ -98,9 +103,42 @@ public class VertexInfo extends BaseInfo {
     JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
     initRequestedTime = otherInfoNode.optLong(Constants.INIT_REQUESTED_TIME);
     startRequestedTime = otherInfoNode.optLong(Constants.START_REQUESTED_TIME);
-    startTime = otherInfoNode.optLong(Constants.START_TIME);
-    initTime = otherInfoNode.optLong(Constants.INIT_TIME);
-    finishTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+
+    long sTime = otherInfoNode.optLong(Constants.START_TIME);
+    long iTime = otherInfoNode.optLong(Constants.INIT_TIME);
+    long eTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+    if (eTime < sTime) {
+      LOG.warn("Vertex has got wrong start/end values. "
+          + "startTime=" + sTime + ", endTime=" + eTime + ". Will check "
+          + "timestamps in DAG started/finished events");
+
+      // Check if events VERTEX_STARTED, VERTEX_FINISHED can be made use of
+      for(Event event : eventList) {
+        switch (HistoryEventType.valueOf(event.getType())) {
+        case VERTEX_INITIALIZED:
+          iTime = event.getAbsoluteTime();
+          break;
+        case VERTEX_STARTED:
+          sTime = event.getAbsoluteTime();
+          break;
+        case VERTEX_FINISHED:
+          eTime = event.getAbsoluteTime();
+          break;
+        default:
+          break;
+        }
+      }
+
+      if (eTime < sTime) {
+        LOG.warn("Vertex has got wrong start/end values in events as well. "
+            + "startTime=" + sTime + ", endTime=" + eTime);
+      }
+    }
+    startTime = sTime;
+    finishTime = eTime;
+    initTime = iTime;
+
+
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
     numTasks = otherInfoNode.optInt(Constants.NUM_TASKS);
     failedTasks = otherInfoNode.optInt(Constants.NUM_FAILED_TASKS);
