@@ -1255,6 +1255,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   void logJobHistoryFinishedEvent(TezCounters counters) throws IOException {
     Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
+    if (finishTime < startTime) {
+      LOG.warn("DAG finish time is smaller than start time. "
+          + "startTime=" + startTime
+          + ", finishTime=" + finishTime
+      );
+    }
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         finishTime, DAGState.SUCCEEDED, "", counters,
         this.userName, this.dagName, taskStats, this.appContext.getApplicationAttemptId());
@@ -1264,7 +1270,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   void logJobHistoryUnsuccesfulEvent(DAGState state, TezCounters counters) throws IOException {
     Map<String, Integer> taskStats = constructTaskStats(getDAGProgress());
-
+    if (finishTime < startTime) {
+      LOG.warn("DAG finish time is smaller than start time. "
+          + "startTime=" + startTime
+          + ", finishTime=" + finishTime
+      );
+    }
     DAGFinishedEvent finishEvt = new DAGFinishedEvent(dagId, startTime,
         clock.getTime(), state,
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),

@@ -29,8 +29,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -45,6 +48,8 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 @Public
 @Evolving
 public class TaskInfo extends BaseInfo {
+
+  private static final Log LOG = LogFactory.getLog(TaskInfo.class);
 
   private final long startTime;
   private final long endTime;
@@ -70,8 +75,36 @@ public class TaskInfo extends BaseInfo {
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
-    startTime = otherInfoNode.optLong(Constants.START_TIME);
-    endTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+
+    long sTime = otherInfoNode.optLong(Constants.START_TIME);
+    long eTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+    if (eTime < sTime) {
+      LOG.warn("Task has got wrong start/end values. "
+          + "startTime=" + sTime + ", endTime=" + eTime + ". Will check "
+          + "timestamps in DAG started/finished events");
+
+      // Check if events TASK_STARTED, TASK_FINISHED can be made use of
+      for(Event event : eventList) {
+        switch (HistoryEventType.valueOf(event.getType())) {
+        case TASK_STARTED:
+          sTime = event.getAbsoluteTime();
+          break;
+        case TASK_FINISHED:
+          eTime = event.getAbsoluteTime();
+          break;
+        default:
+          break;
+        }
+      }
+
+      if (eTime < sTime) {
+        LOG.warn("Task has got wrong start/end values in events as well. "
+            + "startTime=" + sTime + ", endTime=" + eTime);
+      }
+    }
+    startTime = sTime;
+    endTime = eTime;
+
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
     successfulAttemptId = StringInterner.weakIntern(
         otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID));

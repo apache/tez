@@ -35,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -98,8 +99,36 @@ public class DagInfo extends BaseInfo {
 
     //Parse additional Info
     JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
-    startTime = otherInfoNode.optLong(Constants.START_TIME);
-    endTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+
+    long sTime = otherInfoNode.optLong(Constants.START_TIME);
+    long eTime= otherInfoNode.optLong(Constants.FINISH_TIME);
+    if (eTime < sTime) {
+      LOG.warn("DAG has got wrong start/end values. "
+          + "startTime=" + sTime + ", endTime=" + eTime + ". Will check "
+          + "timestamps in DAG started/finished events");
+
+      // Check if events DAG_STARTED, DAG_FINISHED can be made use of
+      for(Event event : eventList) {
+        switch (HistoryEventType.valueOf(event.getType())) {
+        case DAG_STARTED:
+          sTime = event.getAbsoluteTime();
+          break;
+        case DAG_FINISHED:
+          eTime = event.getAbsoluteTime();
+          break;
+        default:
+          break;
+        }
+      }
+
+      if (eTime < sTime) {
+        LOG.warn("DAG has got wrong start/end values in events as well. "
+            + "startTime=" + sTime + ", endTime=" + eTime);
+      }
+    }
+    startTime = sTime;
+    endTime = eTime;
+
     //TODO: Not getting populated correctly for lots of jobs.  Verify
     submitTime = otherInfoNode.optLong(Constants.START_REQUESTED_TIME);
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);

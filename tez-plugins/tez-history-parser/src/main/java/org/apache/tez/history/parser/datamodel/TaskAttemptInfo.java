@@ -24,12 +24,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.history.parser.utils.Utils;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -45,6 +48,8 @@ import static org.apache.hadoop.classification.InterfaceAudience.Public;
 @Public
 @Evolving
 public class TaskAttemptInfo extends BaseInfo {
+
+  private static final Log LOG = LogFactory.getLog(TaskAttemptInfo.class);
 
   private static final String SUCCEEDED = StringInterner.weakIntern(TaskAttemptState.SUCCEEDED.name());
 
@@ -95,8 +100,36 @@ public class TaskAttemptInfo extends BaseInfo {
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
-    startTime = otherInfoNode.optLong(Constants.START_TIME);
-    endTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+
+    long sTime = otherInfoNode.optLong(Constants.START_TIME);
+    long eTime = otherInfoNode.optLong(Constants.FINISH_TIME);
+    if (eTime < sTime) {
+      LOG.warn("TaskAttemptInfo has got wrong start/end values. "
+          + "startTime=" + sTime + ", endTime=" + eTime + ". Will check "
+          + "timestamps in DAG started/finished events");
+
+      // Check if events TASK_STARTED, TASK_FINISHED can be made use of
+      for(Event event : eventList) {
+        switch (HistoryEventType.valueOf(event.getType())) {
+        case TASK_ATTEMPT_STARTED:
+          sTime = event.getAbsoluteTime();
+          break;
+        case TASK_ATTEMPT_FINISHED:
+          eTime = event.getAbsoluteTime();
+          break;
+        default:
+          break;
+        }
+      }
+
+      if (eTime < sTime) {
+        LOG.warn("TaskAttemptInfo has got wrong start/end values in events as well. "
+            + "startTime=" + sTime + ", endTime=" + eTime);
+      }
+    }
+    startTime = sTime;
+    endTime = eTime;
+
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
     creationTime = otherInfoNode.optLong(Constants.CREATION_TIME);
     creationCausalTA = StringInterner.weakIntern(
