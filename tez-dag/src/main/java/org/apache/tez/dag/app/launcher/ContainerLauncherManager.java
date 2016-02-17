@@ -44,6 +44,8 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.ContainerLauncherEvent;
 import org.apache.tez.dag.app.rm.ContainerLauncherLaunchRequestEvent;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,16 +60,9 @@ public class ContainerLauncherManager extends AbstractService
   final ContainerLauncherContext containerLauncherContexts[];
   protected final ServicePluginLifecycleAbstractService[] containerLauncherServiceWrappers;
   private final AppContext appContext;
+  private final boolean isIncompleteCtor;
 
-  @VisibleForTesting
-  public ContainerLauncherManager(ContainerLauncher containerLauncher, AppContext context) {
-    super(ContainerLauncherManager.class.getName());
-    this.appContext = context;
-    containerLaunchers = new ContainerLauncherWrapper[] {new ContainerLauncherWrapper(containerLauncher)};
-    containerLauncherContexts = new ContainerLauncherContext[] {containerLauncher.getContext()};
-    containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[]{
-        new ServicePluginLifecycleAbstractService<>(containerLauncher)};
-  }
+
 
   // Accepting conf to setup final parameters, if required.
   public ContainerLauncherManager(AppContext context,
@@ -77,6 +72,7 @@ public class ContainerLauncherManager extends AbstractService
                                   boolean isPureLocalMode) throws TezException {
     super(ContainerLauncherManager.class.getName());
 
+    this.isIncompleteCtor = false;
     this.appContext = context;
     Preconditions.checkArgument(
         containerLauncherDescriptors != null && !containerLauncherDescriptors.isEmpty(),
@@ -89,12 +85,31 @@ public class ContainerLauncherManager extends AbstractService
     for (int i = 0; i < containerLauncherDescriptors.size(); i++) {
       UserPayload userPayload = containerLauncherDescriptors.get(i).getUserPayload();
       ContainerLauncherContext containerLauncherContext =
-          new ContainerLauncherContextImpl(context, taskCommunicatorManagerInterface, userPayload);
+          new ContainerLauncherContextImpl(context, this, taskCommunicatorManagerInterface, userPayload, i);
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = new ContainerLauncherWrapper(createContainerLauncher(containerLauncherDescriptors.get(i), context,
           containerLauncherContext, taskCommunicatorManagerInterface, workingDirectory, i, isPureLocalMode));
       containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(containerLaunchers[i].getContainerLauncher());
     }
+  }
+
+  @VisibleForTesting
+  public ContainerLauncherManager(AppContext context) {
+    super(ContainerLauncherManager.class.getName());
+    this.isIncompleteCtor = true;
+    this.appContext = context;
+    containerLaunchers = new ContainerLauncherWrapper[1];
+    containerLauncherContexts = new ContainerLauncherContext[1];
+    containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[1];
+  }
+
+  // To be used with the constructor which accepts the AppContext only, and is for testing.
+  @VisibleForTesting
+  public void setContainerLauncher(ContainerLauncher containerLauncher) {
+    Preconditions.checkState(isIncompleteCtor == true, "Can only be used with the Test constructor");
+    containerLaunchers[0] = new ContainerLauncherWrapper(containerLauncher);
+    containerLauncherContexts[0] = containerLauncher.getContext();
+    containerLauncherServiceWrappers[0] = new ServicePluginLifecycleAbstractService<>(containerLauncher);
   }
 
   @VisibleForTesting
@@ -233,6 +248,30 @@ public class ContainerLauncherManager extends AbstractService
                   msg, e));
         }
         break;
+    }
+  }
+
+  public void reportError(int containerLauncherIndex, ServicePluginError servicePluginError,
+                          String diagnostics,
+                          DagInfo dagInfo) {
+    if (servicePluginError.getErrorType() == ServicePluginError.ErrorType.PERMANENT) {
+      String msg = "Fatal Error reported by ContainerLauncher"
+          + ", containerLauncher=" +
+          Utils.getContainerLauncherIdentifierString(containerLauncherIndex, appContext)
+          + ", servicePluginError=" + servicePluginError
+          + ", diagnostics= " + (diagnostics == null ? "" : diagnostics);
+      LOG.error(msg);
+      sendEvent(
+          new DAGAppMasterEventUserServiceFatalError(
+              DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR,
+              msg, null));
+    } else {
+      Utils
+          .processNonFatalServiceErrorReport(
+              Utils.getContainerLauncherIdentifierString(containerLauncherIndex, appContext),
+              servicePluginError,
+              diagnostics, dagInfo,
+              appContext, "ContainerLauncher");
     }
   }
 

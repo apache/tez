@@ -24,7 +24,7 @@ package org.apache.tez.dag.app.dag;
 public enum VertexTerminationCause {
 
   /** DAG was killed  */
-  DAG_KILL(VertexState.KILLED),
+  DAG_TERMINATED(VertexState.KILLED),
 
   /** Other vertex failed causing DAG to fail thus killing this vertex  */
   OTHER_VERTEX_FAILURE(VertexState.KILLED),

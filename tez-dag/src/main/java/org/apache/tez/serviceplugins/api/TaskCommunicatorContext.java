@@ -36,7 +36,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
@@ -44,7 +43,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 // Do not make calls into this from within a held lock.
 
 // TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
-public interface TaskCommunicatorContext {
+public interface TaskCommunicatorContext extends ServicePluginContextBase {
 
   // TODO TEZ-2003 (post) TEZ-2666 Enhancements to API
   // - Consolidate usage of IDs
@@ -57,12 +56,6 @@ public interface TaskCommunicatorContext {
   // - Maybe add book-keeping as a helper library, instead of each impl tracking container to task etc.
   // - Handling of containres / tasks which no longer exist in the system (formalized interface instead of a shouldDie notification)
 
-  /**
-   * Get the UserPayload that was configured while setting up the task communicator
-   *
-   * @return the initially configured user payload
-   */
-  UserPayload getInitialUserPayload();
 
   /**
    * Get the application attempt id for the running application. Relevant when running under YARN
@@ -170,11 +163,14 @@ public interface TaskCommunicatorContext {
    */
   void registerForVertexStateUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
 
+  // TODO TEZ-3120 Remove deprecated methods
   /**
    * Get the name of the currently executing dag
    *
    * @return the name of the currently executing dag
+   * @deprecated replaced by {@link TaskCommunicatorContext#getCurrentDagInfo}
    */
+  @Deprecated
   String getCurrentDagName();
 
   /**
@@ -183,10 +179,13 @@ public interface TaskCommunicatorContext {
    */
   String getCurrentAppIdentifier();
 
+  // TODO TEZ-3120 Remove deprecated methods
   /**
    * Get the identifier for the currently executing dag.
    * @return a numerical identifier for the currently running DAG. This is unique within the currently running application.
+   * @deprecated replaced by {@link TaskCommunicatorContext#getCurrentDagInfo}
    */
+  @Deprecated
   int getCurrentDagIdenitifer();
 
   /**
@@ -237,4 +236,5 @@ public interface TaskCommunicatorContext {
    * @return time when the current dag started executing
    */
   long getDagStartTime();
+
 }

@@ -24,6 +24,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -68,6 +70,8 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
@@ -283,9 +287,10 @@ class TestTaskSchedulerHelpers {
     }
 
     @Override
-    public void onError(Throwable t) {
+    public void reportError(@Nonnull ServicePluginError servicePluginError, String message,
+                            DagInfo dagInfo) {
       invocations++;
-      real.onError(t);
+      real.reportError(servicePluginError, message, dagInfo);
     }
 
     @Override
@@ -325,6 +330,12 @@ class TestTaskSchedulerHelpers {
     @Override
     public ApplicationAttemptId getApplicationAttemptId() {
       return real.getApplicationAttemptId();
+    }
+
+    @Nullable
+    @Override
+    public DagInfo getCurrentDagInfo() {
+      return real.getCurrentDagInfo();
     }
 
     @Override

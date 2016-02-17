@@ -33,6 +33,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,6 +50,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.io.IOExceptionWithCause;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
@@ -74,6 +76,7 @@ import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerContextDr
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableContext;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.PreemptionMatcher;
+import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
 import org.junit.After;
@@ -503,10 +506,14 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
     verify(mockApp).nodesUpdated(mockUpdatedNodes);
 
-    Exception mockException = mock(Exception.class);
+    ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
+    Exception mockException = new IOException("mockexception");
     scheduler.onError(mockException);
     drainableAppCallback.drain();
-    verify(mockApp).onError(mockException);
+    verify(mockApp)
+        .reportError(eq(YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR), argumentCaptor.capture(),
+            any(DagInfo.class));
+    assertTrue(argumentCaptor.getValue().contains("mockexception"));
 
     scheduler.onShutdownRequest();
     drainableAppCallback.drain();
@@ -1220,10 +1227,14 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
     verify(mockApp).nodesUpdated(mockUpdatedNodes);
 
-    Exception mockException = mock(Exception.class);
+
+    ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
+    Exception mockException = new IOException("mockexception");
     scheduler.onError(mockException);
     drainableAppCallback.drain();
-    verify(mockApp).onError(mockException);
+    verify(mockApp).reportError(eq(YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR), argumentCaptor.capture(),
+            any(DagInfo.class));
+    assertTrue(argumentCaptor.getValue().contains("mockexception"));
 
     scheduler.onShutdownRequest();
     drainableAppCallback.drain();

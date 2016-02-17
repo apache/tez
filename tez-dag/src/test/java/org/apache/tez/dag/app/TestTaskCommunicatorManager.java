@@ -23,11 +23,13 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -42,6 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -49,6 +52,11 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
+import org.apache.tez.dag.helpers.DagInfoImplForTest;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
+import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.TezConstants;
@@ -62,6 +70,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,7 +82,7 @@ public class TestTaskCommunicatorManager {
 
   @Before
   @After
-  public void reset() {
+  public void resetForNextTest() {
     TaskCommManagerForMultipleCommTest.reset();
   }
 
@@ -233,6 +242,71 @@ public class TestTaskCommunicatorManager {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
+  public void testReportFailureFromTaskCommunicator() throws TezException {
+    String dagName = DAG_NAME;
+    EventHandler eventHandler = mock(EventHandler.class);
+    AppContext appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    doReturn("testTaskCommunicator").when(appContext).getTaskCommunicatorName(0);
+    doReturn(eventHandler).when(appContext).getEventHandler();
+
+    DAG dag = mock(DAG.class);
+    TezDAGID dagId = TezDAGID.getInstance(ApplicationId.newInstance(1, 0), DAG_INDEX);
+    doReturn(dagName).when(dag).getName();
+    doReturn(dagId).when(dag).getID();
+    doReturn(dag).when(appContext).getCurrentDAG();
+
+    NamedEntityDescriptor<TaskCommunicatorDescriptor> namedEntityDescriptor =
+        new NamedEntityDescriptor<>("testTaskCommunicator", TaskCommForFailureTest.class.getName());
+    List<NamedEntityDescriptor> list = new LinkedList<>();
+    list.add(namedEntityDescriptor);
+
+
+    TaskCommunicatorManager taskCommManager =
+        new TaskCommunicatorManager(appContext, mock(TaskHeartbeatHandler.class),
+            mock(ContainerHeartbeatHandler.class), list);
+    try {
+      taskCommManager.init(new Configuration());
+      taskCommManager.start();
+
+      taskCommManager.registerRunningContainer(mock(ContainerId.class), 0);
+      ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+
+      Event rawEvent = argumentCaptor.getValue();
+      assertTrue(rawEvent instanceof DAGEventTerminateDag);
+      DAGEventTerminateDag killEvent = (DAGEventTerminateDag) rawEvent;
+      assertTrue(killEvent.getDiagnosticInfo().contains("ReportError"));
+      assertTrue(killEvent.getDiagnosticInfo()
+          .contains(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE.name()));
+      assertTrue(killEvent.getDiagnosticInfo().contains("[0:testTaskCommunicator]"));
+
+
+      reset(eventHandler);
+
+      taskCommManager.dagComplete(dag);
+
+      argumentCaptor = ArgumentCaptor.forClass(Event.class);
+
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+      rawEvent = argumentCaptor.getValue();
+
+      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      DAGAppMasterEventUserServiceFatalError event =
+          (DAGAppMasterEventUserServiceFatalError) rawEvent;
+      assertEquals(DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR, event.getType());
+      assertTrue(event.getDiagnosticInfo().contains("ReportedFatalError"));
+      assertTrue(
+          event.getDiagnosticInfo().contains(ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
+      assertTrue(event.getDiagnosticInfo().contains("[0:testTaskCommunicator]"));
+
+    } finally {
+      taskCommManager.stop();
+    }
+
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
   public void testTaskCommunicatorUserError() {
     TaskCommunicatorContextImpl taskCommContext = mock(TaskCommunicatorContextImpl.class);
     TaskCommunicator taskCommunicator = mock(TaskCommunicator.class, new ExceptionAnswer());
@@ -312,7 +386,6 @@ public class TestTaskCommunicatorManager {
       }
     }
   }
-
 
   static class TaskCommManagerForMultipleCommTest extends TaskCommunicatorManager {
 
@@ -457,6 +530,65 @@ public class TestTaskCommunicatorManager {
 
     @Override
     public Object getMetaInfo() {
+      return null;
+    }
+  }
+
+  private static final String DAG_NAME = "dagName";
+  private static final int DAG_INDEX = 1;
+  public static class TaskCommForFailureTest extends TaskCommunicator {
+
+    public TaskCommForFailureTest(
+        TaskCommunicatorContext taskCommunicatorContext) {
+      super(taskCommunicatorContext);
+    }
+
+    @Override
+    public void registerRunningContainer(ContainerId containerId, String hostname, int port) throws
+        ServicePluginException {
+      getContext()
+          .reportError(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE, "ReportError", new DagInfoImplForTest(DAG_INDEX, DAG_NAME));
+    }
+
+    @Override
+    public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason,
+                                     @Nullable String diagnostics) throws ServicePluginException {
+
+    }
+
+    @Override
+    public void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
+                                           Map<String, LocalResource> additionalResources,
+                                           Credentials credentials, boolean credentialsChanged,
+                                           int priority) throws ServicePluginException {
+
+    }
+
+    @Override
+    public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID,
+                                             TaskAttemptEndReason endReason,
+                                             @Nullable String diagnostics) throws
+        ServicePluginException {
+
+    }
+
+    @Override
+    public InetSocketAddress getAddress() throws ServicePluginException {
+      return null;
+    }
+
+    @Override
+    public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws ServicePluginException {
+
+    }
+
+    @Override
+    public void dagComplete(int dagIdentifier) throws ServicePluginException {
+      getContext().reportError(ServicePluginErrorDefaults.INCONSISTENT_STATE, "ReportedFatalError", null);
+    }
+
+    @Override
+    public Object getMetaInfo() throws ServicePluginException {
       return null;
     }
   }

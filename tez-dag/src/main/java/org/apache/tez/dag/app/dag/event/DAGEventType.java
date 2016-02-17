@@ -23,8 +23,8 @@ package org.apache.tez.dag.app.dag.event;
  */
 public enum DAGEventType {
 
-  //Producer:Client
-  DAG_KILL,
+  //Producer: ServicePluginManagers , Client (KILL)
+  DAG_TERMINATE,
 
   //Producer:AM
   DAG_INIT,

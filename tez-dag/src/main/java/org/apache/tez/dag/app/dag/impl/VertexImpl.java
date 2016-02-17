@@ -3206,7 +3206,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       VertexEventTermination vet = (VertexEventTermination) event;
       VertexTerminationCause trigger = vet.getTerminationCause();
       switch(trigger){
-        case DAG_KILL : vertex.tryEnactKill(trigger, TaskTerminationCause.DAG_KILL); break;
+        case DAG_TERMINATED: vertex.tryEnactKill(trigger, TaskTerminationCause.DAG_KILL); break;
         case OWN_TASK_FAILURE: vertex.tryEnactKill(trigger, TaskTerminationCause.OTHER_TASK_FAILURE); break;
         case ROOT_INPUT_INIT_FAILURE:
         case COMMIT_FAILURE:

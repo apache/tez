@@ -33,6 +33,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.tez.Utils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.UserPayload;
@@ -591,6 +593,30 @@ public class TaskCommunicatorManager extends AbstractService implements
   @Override
   public TaskCommunicatorWrapper getTaskCommunicator(int taskCommIndex) {
     return taskCommunicators[taskCommIndex];
+  }
+
+  @Override
+  public void reportError(int taskCommIndex, ServicePluginError servicePluginError,
+                          String diagnostics,
+                          DagInfo dagInfo) {
+    if (servicePluginError.getErrorType() == ServicePluginError.ErrorType.PERMANENT) {
+      String msg = "Fatal Error reported by TaskCommunicator"
+          + ", communicator=" + Utils.getTaskCommIdentifierString(taskCommIndex, context)
+          + ", servicePluginError=" + servicePluginError
+          + ", diagnostics= " + (diagnostics == null ? "" : diagnostics);
+      LOG.error(msg + ", Diagnostics=" + diagnostics);
+      sendEvent(
+          new DAGAppMasterEventUserServiceFatalError(
+              DAGAppMasterEventType.TASK_COMMUNICATOR_SERVICE_FATAL_ERROR,
+              msg, null));
+    } else {
+      Utils
+          .processNonFatalServiceErrorReport(
+              Utils.getTaskCommIdentifierString(taskCommIndex, context), servicePluginError,
+              diagnostics,
+              dagInfo, context,
+              "TaskCommunicator");
+    }
   }
 
   private void pingContainerHeartbeatHandler(ContainerId containerId) {

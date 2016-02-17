@@ -28,11 +28,13 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -71,9 +73,11 @@ import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
 import org.apache.tez.dag.app.dag.impl.TaskImpl;
 import org.apache.tez.dag.app.dag.impl.VertexImpl;
@@ -84,16 +88,19 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.AMContainerState;
 import org.apache.tez.dag.app.web.WebUIService;
+import org.apache.tez.dag.helpers.DagInfoImplForTest;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -539,6 +546,81 @@ public class TestTaskSchedulerManager {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
+  public void testReportFailureFromTaskScheduler() {
+    String dagName = DAG_NAME;
+    Configuration conf = new TezConfiguration();
+    String taskSchedulerName = "testTaskScheduler";
+    String expIdentifier = "[0:" + taskSchedulerName + "]";
+    EventHandler eventHandler = mock(EventHandler.class);
+    AppContext appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    doReturn(taskSchedulerName).when(appContext).getTaskSchedulerName(0);
+    doReturn(eventHandler).when(appContext).getEventHandler();
+    doReturn(conf).when(appContext).getAMConf();
+    InetSocketAddress address = new InetSocketAddress("host", 55000);
+
+    DAGClientServer dagClientServer = mock(DAGClientServer.class);
+    doReturn(address).when(dagClientServer).getBindAddress();
+
+    DAG dag = mock(DAG.class);
+    TezDAGID dagId = TezDAGID.getInstance(ApplicationId.newInstance(1, 0), DAG_INDEX);
+    doReturn(dagName).when(dag).getName();
+    doReturn(dagId).when(dag).getID();
+    doReturn(dag).when(appContext).getCurrentDAG();
+
+    NamedEntityDescriptor<TaskSchedulerDescriptor> namedEntityDescriptor =
+        new NamedEntityDescriptor<>(taskSchedulerName, TaskSchedulerForFailureTest.class.getName());
+    List<NamedEntityDescriptor> list = new LinkedList<>();
+    list.add(namedEntityDescriptor);
+
+    TaskSchedulerManager taskSchedulerManager =
+        new TaskSchedulerManager(appContext, dagClientServer, eventHandler,
+            mock(ContainerSignatureMatcher.class), mock(WebUIService.class), list, false) {
+          @Override
+          TaskSchedulerContext wrapTaskSchedulerContext(TaskSchedulerContext rawContext) {
+            // Avoid wrapping in threads
+            return rawContext;
+          }
+        };
+    try {
+      taskSchedulerManager.init(new TezConfiguration());
+      taskSchedulerManager.start();
+
+      taskSchedulerManager.getTotalResources(0);
+      ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+
+      Event rawEvent = argumentCaptor.getValue();
+      assertTrue(rawEvent instanceof DAGEventTerminateDag);
+      DAGEventTerminateDag killEvent = (DAGEventTerminateDag) rawEvent;
+      assertTrue(killEvent.getDiagnosticInfo().contains("ReportError"));
+      assertTrue(killEvent.getDiagnosticInfo()
+          .contains(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE.name()));
+      assertTrue(killEvent.getDiagnosticInfo().contains(expIdentifier));
+
+
+      reset(eventHandler);
+      taskSchedulerManager.getAvailableResources(0);
+      argumentCaptor = ArgumentCaptor.forClass(Event.class);
+
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+      rawEvent = argumentCaptor.getValue();
+
+      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      DAGAppMasterEventUserServiceFatalError event =
+          (DAGAppMasterEventUserServiceFatalError) rawEvent;
+      assertEquals(DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR, event.getType());
+      assertTrue(event.getDiagnosticInfo().contains("ReportedFatalError"));
+      assertTrue(
+          event.getDiagnosticInfo().contains(ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
+      assertTrue(event.getDiagnosticInfo().contains(expIdentifier));
+
+    } finally {
+      taskSchedulerManager.stop();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
   public void testTaskSchedulerUserError() {
     TaskScheduler taskScheduler = mock(TaskScheduler.class, new ExceptionAnswer());
 
@@ -796,6 +878,85 @@ public class TestTaskSchedulerManager {
     @Override
     public boolean hasUnregistered() {
       return false;
+    }
+  }
+
+  private static final String DAG_NAME = "dagName";
+  private static final int DAG_INDEX = 1;
+  public static class TaskSchedulerForFailureTest extends TaskScheduler {
+
+    public TaskSchedulerForFailureTest(TaskSchedulerContext taskSchedulerContext) {
+      super(taskSchedulerContext);
+    }
+
+    @Override
+    public Resource getAvailableResources() throws ServicePluginException {
+      getContext().reportError(ServicePluginErrorDefaults.INCONSISTENT_STATE, "ReportedFatalError", null);
+      return Resource.newInstance(1024, 1);
+    }
+
+    @Override
+    public Resource getTotalResources() throws ServicePluginException {
+      getContext()
+          .reportError(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE, "ReportError", new DagInfoImplForTest(DAG_INDEX, DAG_NAME));
+      return Resource.newInstance(1024, 1);
+    }
+
+    @Override
+    public int getClusterNodeCount() throws ServicePluginException {
+      return 0;
+    }
+
+    @Override
+    public void blacklistNode(NodeId nodeId) throws ServicePluginException {
+
+    }
+
+    @Override
+    public void unblacklistNode(NodeId nodeId) throws ServicePluginException {
+
+    }
+
+    @Override
+    public void allocateTask(Object task, Resource capability, String[] hosts, String[] racks,
+                             Priority priority, Object containerSignature,
+                             Object clientCookie) throws
+        ServicePluginException {
+
+    }
+
+    @Override
+    public void allocateTask(Object task, Resource capability, ContainerId containerId,
+                             Priority priority, Object containerSignature,
+                             Object clientCookie) throws
+        ServicePluginException {
+
+    }
+
+    @Override
+    public boolean deallocateTask(Object task, boolean taskSucceeded,
+                                  TaskAttemptEndReason endReason,
+                                  @Nullable String diagnostics) throws ServicePluginException {
+      return false;
+    }
+
+    @Override
+    public Object deallocateContainer(ContainerId containerId) throws ServicePluginException {
+      return null;
+    }
+
+    @Override
+    public void setShouldUnregister() throws ServicePluginException {
+
+    }
+
+    @Override
+    public boolean hasUnregistered() throws ServicePluginException {
+      return false;
+    }
+
+    @Override
+    public void dagComplete() throws ServicePluginException {
     }
   }
 }

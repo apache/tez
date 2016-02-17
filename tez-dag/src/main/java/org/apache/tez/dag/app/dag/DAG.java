@@ -36,11 +36,12 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.serviceplugins.api.DagInfo;
 
 /**
  * Main interface to interact with the job.
  */
-public interface DAG {
+public interface DAG extends DagInfo {
 
   TezDAGID getID();
   Map<String, LocalResource> getLocalResources();

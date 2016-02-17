@@ -72,9 +72,11 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
+import org.apache.tez.dag.app.dag.DAGTerminationCause;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -711,8 +713,8 @@ public class DAGAppMaster extends AbstractService {
       state = DAGAppMasterState.ERROR;
       errDiagnostics = "Error in the TaskScheduler. Shutting down. ";
       addDiagnostic(errDiagnostics
-          + "Error=" + ExceptionUtils.getStackTrace(schedulingServiceErrorEvent.getThrowable()));
-      LOG.error(errDiagnostics, schedulingServiceErrorEvent.getThrowable());
+          + "Error=" + schedulingServiceErrorEvent.getDiagnosticInfo());
+      LOG.error(errDiagnostics);
       shutdownHandler.shutdown();
       break;
     case TASK_COMMUNICATOR_SERVICE_FATAL_ERROR:
@@ -724,7 +726,7 @@ public class DAGAppMaster extends AbstractService {
       Throwable error = usfe.getError();
       errDiagnostics = "Service Error: " + usfe.getDiagnosticInfo()
           + ", eventType=" + event.getType()
-          + ", exception=" + ExceptionUtils.getStackTrace(usfe.getError());
+          + ", exception=" + (usfe.getError() == null ? "None" : ExceptionUtils.getStackTrace(usfe.getError()));
       LOG.error(errDiagnostics, error);
       addDiagnostic(errDiagnostics);
 
@@ -1291,16 +1293,16 @@ public class DAGAppMaster extends AbstractService {
         + oldState + " new state: " + state);
   }
 
-  public void shutdownTezAM() throws TezException {
+  public void shutdownTezAM(String dagKillmessage) throws TezException {
     sessionStopped.set(true);
     synchronized (this) {
       this.taskSchedulerManager.setShouldUnregisterFlag();
       if (currentDAG != null
           && !currentDAG.isComplete()) {
-        //send a DAG_KILL message
+        //send a DAG_TERMINATE message
         LOG.info("Sending a kill event to the current DAG"
             + ", dagId=" + currentDAG.getID());
-        tryKillDAG(currentDAG);
+        tryKillDAG(currentDAG, dagKillmessage);
       } else {
         LOG.info("No current running DAG, shutting down the AM");
         if (isSession && !state.equals(DAGAppMasterState.ERROR)) {
@@ -1376,13 +1378,13 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @SuppressWarnings("unchecked")
-  public void tryKillDAG(DAG dag) throws TezException {
+  public void tryKillDAG(DAG dag, String message) throws TezException {
     try {
       logDAGKillRequestEvent(dag.getID(), false);
     } catch (IOException e) {
       throw new TezException(e);
     }
-    dispatcher.getEventHandler().handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dag.getID(), DAGTerminationCause.DAG_KILL, message));
   }
   
   private Map<String, LocalResource> getAdditionalLocalResourceDiff(
@@ -2235,10 +2237,10 @@ public class DAGAppMaster extends AbstractService {
     if (currentTime < (lastDAGCompletionTime + sessionTimeoutInterval)) {
       return;
     }
-    LOG.info("Session timed out"
+    String message = "Session timed out"
         + ", lastDAGCompletionTime=" + lastDAGCompletionTime + " ms"
-        + ", sessionTimeoutInterval=" + sessionTimeoutInterval + " ms");
-    shutdownTezAM();
+        + ", sessionTimeoutInterval=" + sessionTimeoutInterval + " ms";
+    shutdownTezAM(message);
   }
 
   public boolean isSession() {

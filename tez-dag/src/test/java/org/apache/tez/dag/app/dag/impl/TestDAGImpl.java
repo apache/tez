@@ -21,7 +21,6 @@ package org.apache.tez.dag.app.dag.impl;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +40,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.slf4j.Logger;
@@ -1641,8 +1641,7 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    dispatcher.getEventHandler().handle(
-        new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, DAGTerminationCause.DAG_KILL, null));
     dispatcher.await();
 
     Assert.assertEquals(DAGState.KILLED, dag.getState());
@@ -1654,9 +1653,18 @@ public class TestDAGImpl {
 
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testKillRunningDAG() {
+    _testTerminateRunningDAG(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testServiceErrorRunningDAG() {
+    _testTerminateRunningDAG(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void _testTerminateRunningDAG(DAGTerminationCause terminationCause) {
     initDAG(dag);
     startDAG(dag);
     dispatcher.await();
@@ -1674,7 +1682,7 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
     Assert.assertEquals(VertexState.RUNNING, v1.getState());
 
-    dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
 
     Assert.assertEquals(DAGState.TERMINATING, dag.getState());
@@ -1817,7 +1825,7 @@ public class TestDAGImpl {
       dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
           TezVertexID.getInstance(dagId, 5), VertexState.FAILED));
     } else if (testState == DAGStatus.State.KILLED) {
-      dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+      dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, DAGTerminationCause.DAG_KILL, null));
     } else if (testState == DAGStatus.State.ERROR) {
       dispatcher.getEventHandler().handle(new DAGEventStartDag(dagId, new LinkedList<URL>()));
     } else {
@@ -1871,11 +1879,21 @@ public class TestDAGImpl {
     }
   }
 
+
+  @Test(timeout = 5000)
+  public void testDAGKill() {
+    _testDAGTerminate(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testDAGServiceError() {
+    _testDAGTerminate(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
   // Couple of vertices succeed. DAG_KILLED processed, which causes the rest of the vertices to be
   // marked as KILLED.
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
-  public void testDAGKill() {
+  private void _testDAGTerminate(DAGTerminationCause terminationCause) {
     initDAG(dag);
     startDAG(dag);
     dispatcher.await();
@@ -1887,10 +1905,10 @@ public class TestDAGImpl {
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
-    dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
-    Assert.assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
+    Assert.assertEquals(terminationCause, dag.getTerminationCause());
     Assert.assertEquals(2, dag.getSuccessfulVertices());
 
     int killedCount = 0;
@@ -1902,16 +1920,25 @@ public class TestDAGImpl {
     Assert.assertEquals(4, killedCount);
 
     for (Vertex v : dag.getVertices().values()) {
-      Assert.assertEquals(VertexTerminationCause.DAG_KILL, v.getTerminationCause());
+      Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v.getTerminationCause());
     }
 
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
+  @Test(timeout = 5000)
+  public void testDAGKillVertexSuccessAfterTerminated() {
+    _testDAGKillVertexSuccessAfterTerminated(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testDAGServiceErrorVertexSuccessAfterTerminated() {
+    _testDAGKillVertexSuccessAfterTerminated(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
   // Vertices succeed after a DAG kill has been processed. Should be ignored.
   @SuppressWarnings("unchecked")
-  @Test(timeout = 5000)
-  public void testDAGKillVertexSuccessAfterKill() {
+  private void _testDAGKillVertexSuccessAfterTerminated(DAGTerminationCause terminationCause) {
     initDAG(dag);
     startDAG(dag);
     dispatcher.await();
@@ -1923,10 +1950,10 @@ public class TestDAGImpl {
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
-    dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
 
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
+    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
 
     // Vertex SUCCESS gets processed after the DAG has reached the KILLED state. Should be ignored.
     for (int i = 2; i < 6; ++i) {
@@ -1943,18 +1970,27 @@ public class TestDAGImpl {
     }
     Assert.assertEquals(4, killedCount);
 
-    Assert.assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+    Assert.assertEquals(terminationCause, dag.getTerminationCause());
     Assert.assertEquals(2, dag.getSuccessfulVertices());
     for (Vertex v : dag.getVertices().values()) {
-      Assert.assertEquals(VertexTerminationCause.DAG_KILL, v.getTerminationCause());
+      Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v.getTerminationCause());
     }
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
-  // Vertex KILLED after a DAG_KILLED is issued. Termination reason should be DAG_KILLED
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testDAGKillPending() {
+    _testDAGKillPending(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testDAGServiceErrorPending() {
+    _testDAGKillPending(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
+  // Vertex KILLED after a DAG_KILLED is issued. Termination reason should be DAG_KILLED
+  @SuppressWarnings("unchecked")
+  private void _testDAGKillPending(DAGTerminationCause terminationCause) {
     initDAG(dag);
     startDAG(dag);
     dispatcher.await();
@@ -1972,17 +2008,17 @@ public class TestDAGImpl {
           TezVertexID.getInstance(dagId, i), VertexState.SUCCEEDED));
     }
     dispatcher.await();
-    dispatcher.getEventHandler().handle(new DAGEvent(dagId, DAGEventType.DAG_KILL));
+    dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dagId, terminationCause, null));
     dispatcher.await();
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
+    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
 
     dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
         TezVertexID.getInstance(dagId, 5), VertexState.KILLED));
     dispatcher.await();
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
+    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
     Assert.assertEquals(5, dag.getSuccessfulVertices());
     Assert.assertEquals(dag.getVertex(TezVertexID.getInstance(dagId, 5)).getTerminationCause(),
-        VertexTerminationCause.DAG_KILL);
+        VertexTerminationCause.DAG_TERMINATED);
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 

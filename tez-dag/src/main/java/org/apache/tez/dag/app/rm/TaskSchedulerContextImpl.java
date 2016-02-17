@@ -14,10 +14,12 @@
 
 package org.apache.tez.dag.app.rm;
 
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -29,6 +31,8 @@ import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
 public class TaskSchedulerContextImpl implements TaskSchedulerContext {
@@ -94,11 +98,6 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   }
 
   @Override
-  public void onError(Throwable t) {
-    taskSchedulerManager.onError(schedulerId, t);
-  }
-
-  @Override
   public float getProgress() {
     return taskSchedulerManager.getProgress(schedulerId);
   }
@@ -139,6 +138,12 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
     return appContext.getApplicationAttemptId();
   }
 
+  @Nullable
+  @Override
+  public DagInfo getCurrentDagInfo() {
+    return appContext.getCurrentDAG();
+  }
+
   @Override
   public String getAppHostName() {
     return appHostName;
@@ -174,5 +179,12 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
       default:
         throw new TezUncheckedException("Unexpected state " + appContext.getAMState());
     }
+  }
+
+  @Override
+  public void reportError(ServicePluginError servicePluginError, String diagnostics,
+                          DagInfo dagInfo) {
+    Preconditions.checkNotNull(servicePluginError, "ServicePluginError must be specified");
+    taskSchedulerManager.reportError(schedulerId, servicePluginError, diagnostics, dagInfo);
   }
 }

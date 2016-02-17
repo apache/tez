@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ContainerSignatureMatcher;
-import org.apache.tez.dag.api.UserPayload;
 
 /**
  * Context for a {@link TaskScheduler}
@@ -42,7 +41,7 @@ import org.apache.tez.dag.api.UserPayload;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public interface TaskSchedulerContext {
+public interface TaskSchedulerContext extends ServicePluginContextBase {
 
   class AppFinalStatus {
     public final FinalApplicationStatus exitStatus;
@@ -136,14 +135,6 @@ public interface TaskSchedulerContext {
   );
 
   /**
-   * Indicate to the framework that the scheduler has run into an error. This will cause
-   * the DAG and application to be killed.
-   *
-   * @param t the relevant error
-   */
-  void onError(Throwable t);
-
-  /**
    * Inform the framework that the scheduler has determined that a previously allocated container
    * needs to be preempted
    *
@@ -162,13 +153,6 @@ public interface TaskSchedulerContext {
 
 
   // Getters
-
-  /**
-   * Get the UserPayload that was configured while setting up the scheduler
-   *
-   * @return the initially configured user payload
-   */
-  UserPayload getInitialUserPayload();
 
   /**
    * Get the tracking URL for the application. Primarily relevant to YARN
@@ -234,4 +218,5 @@ public interface TaskSchedulerContext {
    * @return the app master state
    */
   AMState getAMState();
+
 }

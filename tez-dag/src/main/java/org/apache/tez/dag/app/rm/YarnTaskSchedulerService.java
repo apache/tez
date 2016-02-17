@@ -35,7 +35,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hadoop.yarn.api.records.ContainerState;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
@@ -916,7 +916,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
       LOG.error("Got TaskSchedulerError, " + ExceptionUtils.getStackTrace(t));
       return;
     }
-    getContext().onError(t);
+    LOG.error("Got Error from RMClient", t);
+    getContext().reportError(YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR, StringUtils.stringifyException(t),
+        null);
   }
 
   @Override

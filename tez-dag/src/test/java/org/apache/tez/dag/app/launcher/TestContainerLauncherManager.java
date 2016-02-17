@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
@@ -52,15 +53,21 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.app.rm.ContainerLauncherLaunchRequestEvent;
 import org.apache.tez.dag.app.rm.ContainerLauncherStopRequestEvent;
+import org.apache.tez.dag.helpers.DagInfoImplForTest;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;
+import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 import org.apache.tez.serviceplugins.api.ServicePluginException;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -244,6 +251,75 @@ public class TestContainerLauncherManager {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
+  public void testReportFailureFromContainerLauncher() throws ServicePluginException, TezException {
+    final String dagName = DAG_NAME;
+    final int dagIndex = DAG_INDEX;
+    TezDAGID dagId = TezDAGID.getInstance(ApplicationId.newInstance(0, 0), dagIndex);
+    DAG dag = mock(DAG.class);
+    doReturn(dagName).when(dag).getName();
+    doReturn(dagId).when(dag).getID();
+    EventHandler eventHandler = mock(EventHandler.class);
+    AppContext appContext = mock(AppContext.class);
+    doReturn(eventHandler).when(appContext).getEventHandler();
+    doReturn(dag).when(appContext).getCurrentDAG();
+    doReturn("testlauncher").when(appContext).getContainerLauncherName(0);
+
+    NamedEntityDescriptor<TaskCommunicatorDescriptor> taskCommDescriptor =
+        new NamedEntityDescriptor<>("testlauncher", ContainerLauncherForTest.class.getName());
+    List<NamedEntityDescriptor> list = new LinkedList<>();
+    list.add(taskCommDescriptor);
+    ContainerLauncherManager containerLauncherManager =
+        new ContainerLauncherManager(appContext, mock(TaskCommunicatorManagerInterface.class), "",
+            list, false);
+
+    try {
+      ContainerLaunchContext clc1 = mock(ContainerLaunchContext.class);
+      Container container1 = mock(Container.class);
+      ContainerLauncherLaunchRequestEvent launchRequestEvent =
+          new ContainerLauncherLaunchRequestEvent(clc1, container1, 0, 0, 0);
+
+
+      containerLauncherManager.handle(launchRequestEvent);
+
+      ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+
+      Event rawEvent = argumentCaptor.getValue();
+      assertTrue(rawEvent instanceof DAGAppMasterEventUserServiceFatalError);
+      DAGAppMasterEventUserServiceFatalError event =
+          (DAGAppMasterEventUserServiceFatalError) rawEvent;
+      assertEquals(DAGAppMasterEventType.CONTAINER_LAUNCHER_SERVICE_FATAL_ERROR, event.getType());
+      assertTrue(event.getDiagnosticInfo().contains("ReportedFatalError"));
+      assertTrue(
+          event.getDiagnosticInfo().contains(ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
+      assertTrue(event.getDiagnosticInfo().contains("[0:testlauncher]"));
+
+      reset(eventHandler);
+      // stop container
+
+      ContainerId containerId2 = mock(ContainerId.class);
+      NodeId nodeId2 = mock(NodeId.class);
+      ContainerLauncherStopRequestEvent stopRequestEvent =
+          new ContainerLauncherStopRequestEvent(containerId2, nodeId2, null, 0, 0, 0);
+
+      argumentCaptor = ArgumentCaptor.forClass(Event.class);
+
+      containerLauncherManager.handle(stopRequestEvent);
+      verify(eventHandler, times(1)).handle(argumentCaptor.capture());
+      rawEvent = argumentCaptor.getValue();
+      assertTrue(rawEvent instanceof DAGEventTerminateDag);
+      DAGEventTerminateDag killEvent = (DAGEventTerminateDag) rawEvent;
+      assertTrue(killEvent.getDiagnosticInfo().contains("ReportError"));
+      assertTrue(killEvent.getDiagnosticInfo()
+          .contains(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE.name()));
+      assertTrue(killEvent.getDiagnosticInfo().contains("[0:testlauncher]"));
+    } finally {
+      containerLauncherManager.stop();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
   public void testContainerLauncherUserError() throws ServicePluginException {
 
     ContainerLauncher containerLauncher = mock(ContainerLauncher.class);
@@ -256,7 +332,8 @@ public class TestContainerLauncherManager {
     Configuration conf = new Configuration(false);
 
     ContainerLauncherManager containerLauncherManager =
-        new ContainerLauncherManager(containerLauncher, appContext);
+        new ContainerLauncherManager(appContext);
+    containerLauncherManager.setContainerLauncher(containerLauncher);
     try {
       containerLauncherManager.init(conf);
       containerLauncherManager.start();
@@ -434,6 +511,28 @@ public class TestContainerLauncherManager {
     @Override
     public void stopContainer(ContainerStopRequest stopRequest) {
 
+    }
+  }
+
+  private static final String DAG_NAME = "dagName";
+  private static final int DAG_INDEX = 1;
+  public static class ContainerLauncherForTest extends ContainerLauncher {
+
+    public ContainerLauncherForTest(
+        ContainerLauncherContext containerLauncherContext) {
+      super(containerLauncherContext);
+    }
+
+    @Override
+    public void launchContainer(ContainerLaunchRequest launchRequest) throws
+        ServicePluginException {
+      getContext().reportError(ServicePluginErrorDefaults.INCONSISTENT_STATE, "ReportedFatalError", null);
+    }
+
+    @Override
+    public void stopContainer(ContainerStopRequest stopRequest) throws ServicePluginException {
+      getContext()
+          .reportError(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE, "ReportError", new DagInfoImplForTest(DAG_INDEX, DAG_NAME));
     }
   }
 

@@ -26,6 +26,9 @@ public enum DAGTerminationCause {
 
   /** DAG was directly killed.   */
   DAG_KILL(DAGState.KILLED),
+
+  /** A service plugin indicated an error */
+  SERVICE_PLUGIN_ERROR(DAGState.FAILED),
   
   /** A vertex failed. */ 
   VERTEX_FAILURE(DAGState.FAILED),

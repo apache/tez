@@ -38,6 +38,8 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
@@ -844,9 +846,36 @@ public class TaskSchedulerManager extends AbstractService implements
     return dagAppMaster.getProgress();
   }
 
-  public void onError(int schedulerId, Throwable t) {
-    LOG.info("Error reported by scheduler {} - {}", schedulerId, t);
-    sendEvent(new DAGAppMasterEventSchedulingServiceError(t));
+  public void reportError(int taskSchedulerIndex, ServicePluginError servicePluginError,
+                          String diagnostics,
+                          DagInfo dagInfo) {
+    if (servicePluginError == YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR) {
+      LOG.info("Error reported by scheduler {} - {}",
+          Utils.getTaskSchedulerIdentifierString(taskSchedulerIndex, appContext) + ": " +
+              diagnostics);
+      if (taskSchedulerDescriptors[taskSchedulerIndex].getClassName()
+          .equals(YarnTaskSchedulerService.class.getName())) {
+        LOG.warn(
+            "Reporting a SchedulerServiceError to the DAGAppMaster since the error" +
+                " was reported by the default YARN Task Scheduler");
+        sendEvent(new DAGAppMasterEventSchedulingServiceError(diagnostics));
+      }
+    } else if (servicePluginError.getErrorType() == ServicePluginError.ErrorType.PERMANENT) {
+      String msg = "Fatal error reported by TaskScheduler"
+          + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(taskSchedulerIndex, appContext)
+          + ", servicePluginError=" + servicePluginError
+          + ", diagnostics= " + (diagnostics == null ? "" : diagnostics);
+      LOG.error(msg);
+      sendEvent(
+          new DAGAppMasterEventUserServiceFatalError(
+              DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR,
+              msg, null));
+    } else {
+      Utils.processNonFatalServiceErrorReport(
+          Utils.getTaskSchedulerIdentifierString(taskSchedulerIndex, appContext),
+          servicePluginError, diagnostics, dagInfo,
+          appContext, "TaskScheduler");
+    }
   }
 
   public void dagCompleted() {
@@ -964,5 +993,4 @@ public class TaskSchedulerManager extends AbstractService implements
 
     return historyUrl;
   }
-
 }

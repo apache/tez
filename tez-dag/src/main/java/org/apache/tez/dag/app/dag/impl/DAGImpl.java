@@ -43,7 +43,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
-import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
@@ -253,8 +253,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               EnumSet.of(DAGState.INITED, DAGState.FAILED),
               DAGEventType.DAG_INIT,
               new InitTransition())
-          .addTransition(DAGState.NEW, DAGState.KILLED,
-              DAGEventType.DAG_KILL,
+          .addTransition(DAGState.NEW, EnumSet.of(DAGState.KILLED, DAGState.FAILED),
+              DAGEventType.DAG_TERMINATE,
               new KillNewJobTransition())
           .addTransition(DAGState.NEW, DAGState.ERROR,
               DAGEventType.INTERNAL_ERROR,
@@ -269,8 +269,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           .addTransition(DAGState.INITED, DAGState.RUNNING,
               DAGEventType.DAG_START,
               new StartTransition())
-          .addTransition(DAGState.INITED, DAGState.KILLED,
-              DAGEventType.DAG_KILL,
+          .addTransition(DAGState.INITED, EnumSet.of(DAGState.KILLED, DAGState.FAILED),
+              DAGEventType.DAG_TERMINATE,
               new KillInitedJobTransition())
           .addTransition(DAGState.INITED, DAGState.ERROR,
               DAGEventType.INTERNAL_ERROR,
@@ -287,7 +287,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               DAGEventType.DAG_VERTEX_RERUNNING,
               new VertexReRunningTransition())
           .addTransition(DAGState.RUNNING, DAGState.TERMINATING,
-              DAGEventType.DAG_KILL, new DAGKilledTransition())
+              DAGEventType.DAG_TERMINATE, new DAGKilledTransition())
           .addTransition(DAGState.RUNNING, DAGState.RUNNING,
               DAGEventType.DAG_DIAGNOSTIC_UPDATE,
               DIAGNOSTIC_UPDATE_TRANSITION)
@@ -311,7 +311,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               DAGEventType.DAG_COMMIT_COMPLETED,
               COMMIT_COMPLETED_TRANSITION)
           .addTransition(DAGState.COMMITTING, DAGState.TERMINATING, 
-              DAGEventType.DAG_KILL,
+              DAGEventType.DAG_TERMINATE,
               new DAGKilledWhileCommittingTransition())
           .addTransition(
               DAGState.COMMITTING,
@@ -354,7 +354,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
               // Ignore-able events
           .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
-              EnumSet.of(DAGEventType.DAG_KILL,
+              EnumSet.of(DAGEventType.DAG_TERMINATE,
                          DAGEventType.DAG_VERTEX_RERUNNING,
                          DAGEventType.DAG_SCHEDULER_UPDATE))
 
@@ -370,7 +370,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
-              EnumSet.of(DAGEventType.DAG_KILL,
+              EnumSet.of(DAGEventType.DAG_TERMINATE,
                   DAGEventType.DAG_SCHEDULER_UPDATE,
                   DAGEventType.DAG_VERTEX_COMPLETED))
 
@@ -386,7 +386,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(DAGState.FAILED, DAGState.FAILED,
-              EnumSet.of(DAGEventType.DAG_KILL,
+              EnumSet.of(DAGEventType.DAG_TERMINATE,
                   DAGEventType.DAG_START,
                   DAGEventType.DAG_VERTEX_RERUNNING,
                   DAGEventType.DAG_SCHEDULER_UPDATE,
@@ -404,7 +404,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               INTERNAL_ERROR_TRANSITION)
           // Ignore-able events
           .addTransition(DAGState.KILLED, DAGState.KILLED,
-              EnumSet.of(DAGEventType.DAG_KILL,
+              EnumSet.of(DAGEventType.DAG_TERMINATE,
                   DAGEventType.DAG_START,
                   DAGEventType.DAG_VERTEX_RERUNNING,
                   DAGEventType.DAG_SCHEDULER_UPDATE,
@@ -415,7 +415,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
               DAGState.ERROR,
               DAGState.ERROR,
               EnumSet.of(
-                  DAGEventType.DAG_KILL,
+                  DAGEventType.DAG_TERMINATE,
                   DAGEventType.DAG_INIT,
                   DAGEventType.DAG_START,
                   DAGEventType.DAG_VERTEX_COMPLETED,
@@ -1424,6 +1424,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   @Override
+  public int getIndex() {
+    return dagId.getId();
+  }
+
+  @Override
   public String getName() {
     return dagName;
   }
@@ -1836,28 +1841,41 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
+  private void addDiagnostics(DiagnosableEvent event) {
+    if (event.getDiagnosticInfo() != null && !event.getDiagnosticInfo().isEmpty()) {
+      addDiagnostic(event.getDiagnosticInfo());
+    }
+  }
+
   // Task-start has been moved out of InitTransition, so this arc simply
   // hardcodes 0 for both map and reduce finished tasks.
-  private static class KillNewJobTransition
-      implements SingleArcTransition<DAGImpl, DAGEvent> {
+  private static class KillNewJobTransition implements
+      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
     @Override
-    public void transition(DAGImpl dag, DAGEvent dagEvent) {
+    public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
+      DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
       dag.setFinishTime();
-      dag.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
-      dag.finished(DAGState.KILLED);
+      dag.trySetTerminationCause(event.getTerminationCause());
+      dag.addDiagnostic("Dag received [" + event.getType() + ", " + event.getTerminationCause() +
+          "] in NEW state.");
+      dag.addDiagnostics(event);
+      return dag.finished(event.getTerminationCause().getFinishedState());
     }
 
   }
 
-  private static class KillInitedJobTransition
-      implements SingleArcTransition<DAGImpl, DAGEvent> {
+  private static class KillInitedJobTransition implements
+      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
     @Override
-    public void transition(DAGImpl dag, DAGEvent dagEvent) {
-      dag.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
-      dag.addDiagnostic("Job received Kill in INITED state.");
-      dag.finished(DAGState.KILLED);
+    public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
+      DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
+      dag.trySetTerminationCause(event.getTerminationCause());
+      dag.addDiagnostic("Dag received [" + event.getType() + ", " + event.getTerminationCause() +
+          "] in INITED state.");
+      dag.addDiagnostics(event);
+      return dag.finished(event.getTerminationCause().getFinishedState());
     }
 
   }
@@ -1865,11 +1883,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private static class DAGKilledTransition
       implements SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
-      String msg = "Job received Kill while in RUNNING state.";
+    public void transition(DAGImpl job, DAGEvent dagEvent) {
+      DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
+      String msg = "Dag received [" + event.getType() + ", " + event.getTerminationCause() +
+          "] in RUNNING state.";
       LOG.info(msg);
       job.addDiagnostic(msg);
-      job.enactKill(DAGTerminationCause.DAG_KILL, VertexTerminationCause.DAG_KILL);
+      job.addDiagnostics(event);
+      job.enactKill(event.getTerminationCause(), VertexTerminationCause.DAG_TERMINATED);
       // Commit may happen when dag is still in RUNNING (vertex group commit)
       job.cancelCommits();
       // TODO Metrics
@@ -1883,12 +1904,15 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     implements SingleArcTransition<DAGImpl, DAGEvent> {
 
     @Override
-    public void transition(DAGImpl dag, DAGEvent event) {
-      String diag = "DAG received Kill while in COMMITTING state.";
+    public void transition(DAGImpl dag, DAGEvent dagEvent) {
+      DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
+      String diag = "Dag received [" + event.getType() + ", " + event.getTerminationCause() +
+          "] in COMMITTING state.";
       LOG.info(diag);
       dag.addDiagnostic(diag);
+      dag.addDiagnostics(event);
       dag.cancelCommits();
-      dag.trySetTerminationCause(DAGTerminationCause.DAG_KILL);
+      dag.trySetTerminationCause(event.getTerminationCause());
     }
   }
 

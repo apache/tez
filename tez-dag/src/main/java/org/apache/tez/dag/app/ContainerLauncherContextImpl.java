@@ -14,6 +14,8 @@
 
 package org.apache.tez.dag.app;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -21,7 +23,10 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -39,15 +44,22 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
 
   private static final Logger LOG = LoggerFactory.getLogger(ContainerLauncherContextImpl.class);
   private final AppContext context;
+  private final ContainerLauncherManager containerLauncherManager;
   private final TaskCommunicatorManagerInterface tal;
   private final UserPayload initialUserPayload;
+  private final int containerLauncherIndex;
 
-  public ContainerLauncherContextImpl(AppContext appContext, TaskCommunicatorManagerInterface tal, UserPayload initialUserPayload) {
+  public ContainerLauncherContextImpl(AppContext appContext, ContainerLauncherManager containerLauncherManager,
+                                      TaskCommunicatorManagerInterface tal,
+                                      UserPayload initialUserPayload, int containerLauncherIndex) {
     Preconditions.checkNotNull(appContext, "AppContext cannot be null");
+    Preconditions.checkNotNull(appContext, "ContainerLauncherManager cannot be null");
     Preconditions.checkNotNull(tal, "TaskCommunicator cannot be null");
     this.context = appContext;
+    this.containerLauncherManager = containerLauncherManager;
     this.tal = tal;
     this.initialUserPayload = initialUserPayload;
+    this.containerLauncherIndex = containerLauncherIndex;
   }
 
   @Override
@@ -103,6 +115,12 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
     return context.getApplicationAttemptId();
   }
 
+  @Nullable
+  @Override
+  public DagInfo getCurrentDagInfo() {
+    return context.getCurrentDAG();
+  }
+
   @Override
   public Object getTaskCommunicatorMetaInfo(String taskCommName) {
     int taskCommId = context.getTaskCommunicatorIdentifier(taskCommName);
@@ -119,5 +137,12 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
     }
     return null;
   }
+
+  @Override
+  public void reportError(ServicePluginError servicePluginError, String message, DagInfo dagInfo) {
+    Preconditions.checkNotNull(servicePluginError, "ServiceError must be specified");
+    containerLauncherManager.reportError(containerLauncherIndex, servicePluginError, message, dagInfo);
+  }
+
 
 }

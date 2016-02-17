@@ -84,6 +84,7 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
+import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
@@ -711,11 +712,11 @@ public class TestCommit {
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // kill dag which will trigger the vertex killed event
-    dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
+    dag.handle(new DAGEventTerminateDag(dag.getID(), DAGTerminationCause.DAG_KILL, null));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v1.getState());
     Assert.assertTrue(v1.commitFutures.isEmpty());
-    Assert.assertEquals(VertexTerminationCause.DAG_KILL,
+    Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED,
         v1.getTerminationCause());
     Assert.assertEquals(DAGState.KILLED, dag.getState());
     Assert
@@ -1514,10 +1515,20 @@ public class TestCommit {
     // Assert.assertEquals(0, v3OutputCommitter.abortCounter);
   }
 
-  // Kill dag while it is in COMMITTING in the case of
-  // TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is true
+
   @Test(timeout = 5000)
   public void testDAGKilledWhileCommitting1_OnDAGSuccess() throws Exception {
+    _testDAGTerminatedWhileCommitting1_OnDAGSuccess(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testServiceErrorWhileCommitting1_OnDAGSuccess() throws Exception {
+    _testDAGTerminatedWhileCommitting1_OnDAGSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
+  // Kill dag while it is in COMMITTING in the case of
+  // TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is true
+  private void _testDAGTerminatedWhileCommitting1_OnDAGSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
     setupDAG(createDAGPlan(true, true));
@@ -1534,14 +1545,14 @@ public class TestCommit {
     v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
-    dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
-    waitUntil(dag, DAGState.KILLED);
+    dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
+    waitUntil(dag, terminationCause.getFinishedState());
 
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v3.getState());
     Assert
-        .assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+        .assertEquals(terminationCause, dag.getTerminationCause());
     Assert.assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
@@ -1569,10 +1580,20 @@ public class TestCommit {
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  // Kill dag while it is in COMMITTING in the case of
-  // TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is false
+
   @Test(timeout = 5000)
   public void testDAGKilledWhileCommitting1_OnVertexSuccess() throws Exception {
+    _testDAGTerminatedWhileCommitting1_OnVertexSuccess(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testServiceErrorWhileCommitting1_OnVertexSuccess() throws Exception {
+    _testDAGTerminatedWhileCommitting1_OnVertexSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
+  // Kill dag while it is in COMMITTING in the case of
+  // TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is false
+  private void _testDAGTerminatedWhileCommitting1_OnVertexSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
     setupDAG(createDAGPlan(true, true));
@@ -1596,15 +1617,15 @@ public class TestCommit {
     v3OutputCommitter.unblockCommit();
     // dag go to COMMITTING due to the pending commit of v12Out
     waitUntil(dag, DAGState.COMMITTING);
-    dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
-    waitUntil(dag, DAGState.KILLED);
+    dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
+    waitUntil(dag, terminationCause.getFinishedState());
 
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v3.getState());
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
+    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
     Assert
-        .assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+        .assertEquals(terminationCause, dag.getTerminationCause());
     Assert.assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 1);
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
@@ -1631,9 +1652,18 @@ public class TestCommit {
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  // DAG killed while dag is still in RUNNING and vertex is in COMMITTING
   @Test(timeout = 5000)
   public void testDAGKilledWhileRunning_OnVertexSuccess() throws Exception {
+    _testDAGKilledWhileRunning_OnVertexSuccess(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testServiceErrorWhileRunning_OnVertexSuccess() throws Exception {
+    _testDAGKilledWhileRunning_OnVertexSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
+  // DAG killed while dag is still in RUNNING and vertex is in COMMITTING
+  private void _testDAGKilledWhileRunning_OnVertexSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
     setupDAG(createDAGPlan(true, true));
@@ -1652,17 +1682,17 @@ public class TestCommit {
     Assert.assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
-    dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
-    waitUntil(dag, DAGState.KILLED);
+    dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
+    waitUntil(dag, terminationCause.getFinishedState());
 
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
     Assert.assertEquals(VertexState.KILLED, v3.getState());
-    Assert.assertEquals(VertexTerminationCause.DAG_KILL, v3.getTerminationCause());
+    Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v3.getTerminationCause());
     Assert.assertTrue(v3.commitFutures.isEmpty());
-    Assert.assertEquals(DAGState.KILLED, dag.getState());
+    Assert.assertEquals(terminationCause.getFinishedState(), dag.getState());
     Assert
-        .assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+        .assertEquals(terminationCause, dag.getTerminationCause());
     Assert.assertTrue(dag.commitFutures.isEmpty());
     // commit uv12 may not have started, so can't verify the VertexGroupCommitStartedEvent
     historyEventHandler.verifyVertexGroupCommitFinishedEvent("uv12", 0);
@@ -1903,10 +1933,19 @@ public class TestCommit {
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  // test commit will be canceled no matter it is started or still in the threadpool
-  // ControlledThreadPoolExecutor is used for to not schedule the commits
   @Test(timeout = 5000)
   public void testCommitCanceled_OnDAGSuccess() throws Exception {
+    _testCommitCanceled_OnDAGSuccess(DAGTerminationCause.DAG_KILL);
+  }
+
+  @Test(timeout = 5000)
+  public void testCommitCanceled_OnDAGSuccess2() throws Exception {
+    _testCommitCanceled_OnDAGSuccess(DAGTerminationCause.SERVICE_PLUGIN_ERROR);
+  }
+
+  // test commit will be canceled no matter it is started or still in the threadpool
+  // ControlledThreadPoolExecutor is used for to not schedule the commits
+  private void _testCommitCanceled_OnDAGSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
     setupDAG(createDAGPlan(true, true));
@@ -1931,10 +1970,10 @@ public class TestCommit {
     // mean the commits have been submitted to ThreadPool
     Assert.assertEquals(2, dag.commitFutures.size());
 
-    dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_KILL));
-    waitUntil(dag, DAGState.KILLED);
+    dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
+    waitUntil(dag, terminationCause.getFinishedState());
     
-    Assert.assertEquals(DAGTerminationCause.DAG_KILL, dag.getTerminationCause());
+    Assert.assertEquals(terminationCause, dag.getTerminationCause());
     // mean the commits have been canceled
     Assert.assertTrue(dag.commitFutures.isEmpty());
     historyEventHandler.verifyVertexGroupCommitStartedEvent("uv12", 0);

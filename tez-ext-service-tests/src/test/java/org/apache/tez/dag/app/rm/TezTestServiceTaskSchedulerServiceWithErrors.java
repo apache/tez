@@ -16,18 +16,25 @@ package org.apache.tez.dag.app.rm;
 
 import javax.annotation.Nullable;
 
+import java.io.IOException;
+
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.app.ErrorPluginConfiguration;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
 public class TezTestServiceTaskSchedulerServiceWithErrors extends TaskScheduler {
+
+  private final ErrorPluginConfiguration conf;
+
   public TezTestServiceTaskSchedulerServiceWithErrors(
-      TaskSchedulerContext taskSchedulerContext) {
+      TaskSchedulerContext taskSchedulerContext) throws IOException, ClassNotFoundException {
     super(taskSchedulerContext);
+    conf = ErrorPluginConfiguration.toErrorPluginConfiguration(taskSchedulerContext.getInitialUserPayload());
   }
 
   @Override
@@ -47,35 +54,37 @@ public class TezTestServiceTaskSchedulerServiceWithErrors extends TaskScheduler 
 
   @Override
   public void blacklistNode(NodeId nodeId) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public void unblacklistNode(NodeId nodeId) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public void allocateTask(Object task, Resource capability, String[] hosts, String[] racks,
                            Priority priority, Object containerSignature, Object clientCookie) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public void allocateTask(Object task, Resource capability, ContainerId containerId,
                            Priority priority, Object containerSignature, Object clientCookie) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason,
                                 @Nullable String diagnostics) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
+    return true;
   }
 
   @Override
   public Object deallocateContainer(ContainerId containerId) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
+    return null;
   }
 
   @Override

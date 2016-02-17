@@ -112,7 +112,7 @@ public class TestDAGClientHandler {
     }
     dagClientHandler.tryKillDAG("dag_9999_0001_1");
     ArgumentCaptor<DAG> eventCaptor = ArgumentCaptor.forClass(DAG.class);
-    verify(mockDagAM, times(1)).tryKillDAG(eventCaptor.capture());
+    verify(mockDagAM, times(1)).tryKillDAG(eventCaptor.capture(), eq("Kill Dag request received from client"));
     assertEquals(1, eventCaptor.getAllValues().size());
     assertTrue(eventCaptor.getAllValues().get(0) instanceof DAG);
     assertEquals("dag_9999_0001_1",  ((DAG)eventCaptor.getAllValues().get(0)).getID().toString());
@@ -125,7 +125,7 @@ public class TestDAGClientHandler {
     
     // shutdown
     dagClientHandler.shutdownAM();
-    verify(mockDagAM).shutdownTezAM();
+    verify(mockDagAM).shutdownTezAM(eq("AM Shutdown request received from client"));
   }
   
 }

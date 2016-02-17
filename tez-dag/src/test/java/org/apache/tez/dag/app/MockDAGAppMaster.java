@@ -520,10 +520,12 @@ public class MockDAGAppMaster extends DAGAppMaster {
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
+    ContainerLauncherManager clManager = new ContainerLauncherManager(getContext());
     ContainerLauncherContext containerLauncherContext =
-        new ContainerLauncherContextImpl(getContext(), getTaskCommunicatorManager(), userPayload);
+        new ContainerLauncherContextImpl(getContext(), clManager, getTaskCommunicatorManager(), userPayload, 0);
     containerLauncher = new MockContainerLauncher(launcherGoFlag, containerLauncherContext);
-    return new ContainerLauncherManager(containerLauncher, getContext());
+    clManager.setContainerLauncher(containerLauncher);
+    return clManager;
   }
 
   @Override

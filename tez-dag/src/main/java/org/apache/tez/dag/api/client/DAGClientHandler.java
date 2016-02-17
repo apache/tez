@@ -112,7 +112,7 @@ public class DAGClientHandler {
   public void tryKillDAG(String dagIdStr) throws TezException {
     DAG dag = getDAG(dagIdStr);
     LOG.info("Sending client kill to dag: " + dagIdStr);
-    dagAppMaster.tryKillDAG(dag);
+    dagAppMaster.tryKillDAG(dag, "Kill Dag request received from client");
   }
 
   public synchronized String submitDAG(DAGPlan dagPlan,
@@ -120,10 +120,11 @@ public class DAGClientHandler {
     return dagAppMaster.submitDAGToAppMaster(dagPlan, additionalAmResources);
   }
 
+  // Only to be invoked by the DAGClient.
   public synchronized void shutdownAM() throws TezException {
     LOG.info("Received message to shutdown AM");
     if (dagAppMaster != null) {
-      dagAppMaster.shutdownTezAM();
+      dagAppMaster.shutdownTezAM("AM Shutdown request received from client");
     }
   }
 

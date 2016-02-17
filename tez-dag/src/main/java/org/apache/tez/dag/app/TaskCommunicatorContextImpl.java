@@ -14,6 +14,7 @@
 
 package org.apache.tez.dag.app;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Set;
@@ -28,6 +29,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.rm.container.AMContainer;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.serviceplugins.api.TaskHeartbeatRequest;
@@ -143,6 +146,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
         this);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public String getCurrentDagName() {
     return getDag().getName();
@@ -153,9 +157,16 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     return context.getApplicationID().toString();
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public int getCurrentDagIdenitifer() {
     return getDag().getID().getId();
+  }
+
+  @Nullable
+  @Override
+  public DagInfo getCurrentDagInfo() {
+    return getDag();
   }
 
   @Override
@@ -200,6 +211,12 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   @Override
   public long getDagStartTime() {
     return getDag().getStartTime();
+  }
+
+  @Override
+  public void reportError(@Nonnull ServicePluginError servicePluginError, String message, DagInfo dagInfo) {
+    Preconditions.checkNotNull(servicePluginError, "ServicePluginError must be set");
+    taskCommunicatorManager.reportError(taskCommunicatorIndex, servicePluginError, message, dagInfo);
   }
 
   @Override

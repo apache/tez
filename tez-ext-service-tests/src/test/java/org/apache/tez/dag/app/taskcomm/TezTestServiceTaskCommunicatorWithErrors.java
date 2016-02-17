@@ -15,6 +15,7 @@
 package org.apache.tez.dag.app.taskcomm;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
@@ -22,6 +23,8 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.dag.app.ErrorPluginConfiguration;
+import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
@@ -31,20 +34,24 @@ import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 
 public class TezTestServiceTaskCommunicatorWithErrors extends TaskCommunicator {
+
+  private final ErrorPluginConfiguration conf;
+
   public TezTestServiceTaskCommunicatorWithErrors(
-      TaskCommunicatorContext taskCommunicatorContext) {
+      TaskCommunicatorContext taskCommunicatorContext) throws IOException, ClassNotFoundException {
     super(taskCommunicatorContext);
+    conf = ErrorPluginConfiguration.toErrorPluginConfiguration(taskCommunicatorContext.getInitialUserPayload());
   }
 
   @Override
   public void registerRunningContainer(ContainerId containerId, String hostname, int port) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason,
                                    @Nullable String diagnostics) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
@@ -52,14 +59,14 @@ public class TezTestServiceTaskCommunicatorWithErrors extends TaskCommunicator {
                                          Map<String, LocalResource> additionalResources,
                                          Credentials credentials, boolean credentialsChanged,
                                          int priority) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID,
                                            TaskAttemptEndReason endReason,
                                            @Nullable String diagnostics) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
@@ -69,7 +76,7 @@ public class TezTestServiceTaskCommunicatorWithErrors extends TaskCommunicator {
 
   @Override
   public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
@@ -78,6 +85,7 @@ public class TezTestServiceTaskCommunicatorWithErrors extends TaskCommunicator {
 
   @Override
   public Object getMetaInfo() {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
+    return null;
   }
 }

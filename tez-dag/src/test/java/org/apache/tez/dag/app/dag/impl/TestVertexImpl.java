@@ -143,7 +143,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
@@ -189,7 +188,6 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
-import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.test.EdgeManagerForTest;
 import org.apache.tez.test.VertexManagerPluginForTest;
@@ -206,7 +204,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.internal.util.collections.Sets;
 
@@ -2515,10 +2512,10 @@ public class TestVertexImpl {
 
   private void killVertex(VertexImpl v) {
     dispatcher.getEventHandler().handle(
-        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
+        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_TERMINATED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
-    Assert.assertEquals(v.getTerminationCause(), VertexTerminationCause.DAG_KILL);
+    Assert.assertEquals(v.getTerminationCause(), VertexTerminationCause.DAG_TERMINATED);
   }
 
   private void startVertex(VertexImpl v,
@@ -3322,7 +3319,7 @@ public class TestVertexImpl {
         StringUtils.join(v3.getDiagnostics(), ",").toLowerCase(Locale.ENGLISH);
     assertTrue(diagnostics.contains(
         "vertex received kill while in running state"));
-    Assert.assertEquals(VertexTerminationCause.DAG_KILL, v3.getTerminationCause());
+    Assert.assertEquals(VertexTerminationCause.DAG_TERMINATED, v3.getTerminationCause());
     assertTrue(diagnostics.contains(v3.getTerminationCause().name().toLowerCase(Locale.ENGLISH)));
   }
 
@@ -3334,7 +3331,7 @@ public class TestVertexImpl {
     startVertex(v);
 
     dispatcher.getEventHandler().handle(
-        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
+        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_TERMINATED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
 
@@ -3359,7 +3356,7 @@ public class TestVertexImpl {
     startVertex(v);
 
     dispatcher.getEventHandler().handle(
-        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_KILL));
+        new VertexEventTermination(v.getVertexId(), VertexTerminationCause.DAG_TERMINATED));
     dispatcher.await();
     Assert.assertEquals(VertexState.KILLED, v.getState());
 

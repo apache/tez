@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.rm;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
 /**
@@ -97,8 +101,9 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   }
 
   @Override
-  public void onError(Throwable t) {
-    executorService.submit(new OnErrorCallable(real, t));
+  public void reportError(@Nonnull ServicePluginError servicePluginError, String message,
+                          DagInfo dagInfo) {
+    executorService.submit(new ReportErrorCallable(real, servicePluginError, message, dagInfo));
   }
 
   @Override
@@ -156,6 +161,12 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     return real.getApplicationAttemptId();
   }
 
+  @Nullable
+  @Override
+  public DagInfo getCurrentDagInfo() {
+    return real.getCurrentDagInfo();
+  }
+
   @Override
   public String getAppHostName() {
     return real.getAppHostName();
@@ -175,6 +186,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   public AMState getAMState() {
     return real.getAMState();
   }
+
   // End of getters which do not need to go through a thread. Underlying implementation
   // does not use locks.
 
@@ -301,19 +313,24 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     }
   }
 
-  static class OnErrorCallable extends TaskSchedulerContextCallbackBase implements
-      Callable<Void> {
+  static class ReportErrorCallable extends TaskSchedulerContextCallbackBase implements Callable<Void> {
 
-    private final Throwable throwable;
+    private final ServicePluginError servicePluginError;
+    private final String message;
+    private final DagInfo dagInfo;
 
-    public OnErrorCallable(TaskSchedulerContext app, Throwable throwable) {
+    public ReportErrorCallable(TaskSchedulerContext app,
+                               ServicePluginError servicePluginError, String message,
+                               DagInfo dagInfo) {
       super(app);
-      this.throwable = throwable;
+      this.servicePluginError = servicePluginError;
+      this.message = message;
+      this.dagInfo = dagInfo;
     }
 
     @Override
     public Void call() throws Exception {
-      app.onError(throwable);
+      app.reportError(servicePluginError, message, dagInfo);
       return null;
     }
   }

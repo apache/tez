@@ -854,7 +854,8 @@ public class TestMockDAGAppMaster {
 
     tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    mockApp.handle(new DAGAppMasterEventSchedulingServiceError(new RuntimeException("Mock error")));
+    mockApp.handle(new DAGAppMasterEventSchedulingServiceError(
+        org.apache.hadoop.util.StringUtils.stringifyException(new RuntimeException("Mock error"))));
 
     while(!mockApp.getShutdownHandler().wasShutdownInvoked()) {
       Thread.sleep(100);

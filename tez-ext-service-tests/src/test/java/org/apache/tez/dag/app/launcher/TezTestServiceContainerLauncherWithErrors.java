@@ -14,24 +14,33 @@
 
 package org.apache.tez.dag.app.launcher;
 
+import java.io.IOException;
+
+import org.apache.tez.dag.app.ErrorPluginConfiguration;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;
+import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 
 public class TezTestServiceContainerLauncherWithErrors extends ContainerLauncher {
+
+  private final ErrorPluginConfiguration conf;
+
   public TezTestServiceContainerLauncherWithErrors(
-      ContainerLauncherContext containerLauncherContext) {
+      ContainerLauncherContext containerLauncherContext) throws IOException,
+      ClassNotFoundException {
     super(containerLauncherContext);
+    conf = ErrorPluginConfiguration.toErrorPluginConfiguration(containerLauncherContext.getInitialUserPayload());
   }
 
   @Override
   public void launchContainer(ContainerLaunchRequest launchRequest) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
   public void stopContainer(ContainerStopRequest stopRequest) {
-    throw new RuntimeException("Simulated Error");
+    ErrorPluginConfiguration.processError(conf, getContext());
   }
 }

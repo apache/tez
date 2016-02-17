@@ -18,17 +18,18 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-public class DAGAppMasterEventSchedulingServiceError extends DAGAppMasterEvent {
+public class DAGAppMasterEventSchedulingServiceError extends DAGAppMasterEvent
+    implements DiagnosableEvent {
 
-  private final Throwable throwable;
+  private final String diagnostics;
 
-  public DAGAppMasterEventSchedulingServiceError(Throwable t) {
+  public DAGAppMasterEventSchedulingServiceError(String diagnostics) {
     super(DAGAppMasterEventType.SCHEDULING_SERVICE_ERROR);
-    this.throwable = t;
+    this.diagnostics = diagnostics;
   }
 
-  public Throwable getThrowable() {
-    return throwable;
+  @Override
+  public String getDiagnosticInfo() {
+   return diagnostics;
   }
-
 }
