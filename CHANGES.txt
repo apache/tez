@@ -26,6 +26,7 @@ ALL CHANGES:
   TEZ-2937. Can Processor.close() be called after closing inputs and outputs?
   TEZ-3037. History URL should be set regardless of which history logging service is enabled.
   TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
+  TEZ-3101. Tez UI: Task attempt log link doesn't have the correct protocol.
 
 Release 0.8.2: 2016-01-19
 

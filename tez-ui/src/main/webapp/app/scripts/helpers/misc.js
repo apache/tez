@@ -638,7 +638,7 @@ App.Helpers.misc = {
    * @param queryParams {Object} Params to be added
    * @return modified path
    */
-  modifyUrl: function (url, path, queryParams) {
+  modifyUrl: function (url, path, queryParams, protocol) {
     var urlParts = url.split('?'),
         params = {};
 
@@ -666,7 +666,13 @@ App.Helpers.misc = {
 
     urlParts[0] += path || '';
 
-    return urlParts[1] ? '%@?%@'.fmt(urlParts[0], urlParts[1]) : urlParts[0];
+    url = urlParts[1] ? '%@?%@'.fmt(urlParts[0], urlParts[1]) : urlParts[0];
+
+    if(url.indexOf("://") === -1 && protocol) {
+      url = "%@://%@".fmt(protocol, url);
+    }
+
+    return url;
   },
 
   constructLogLinks: function (attempt, yarnAppState, amUser) {
@@ -675,18 +681,20 @@ App.Helpers.misc = {
         logLinks = {},
         params = amUser ? {
           "user.name": amUser
-        } : {};
+        } : {},
+        RMWebUrl = App.env.RMWebUrl || "",
+        currentProtocol = location.protocol,
+        protocol = App.env.yarnProtocol ||
+            RMWebUrl.substr(0, RMWebUrl.indexOf("://")) ||
+            currentProtocol.substr(0, currentProtocol.length - 1);
 
     if(attempt) {
-      link = attempt.get('inProgressLog') || attempt.get('completedLog');
+      link = attempt.get('inProgressLog');
       if(link) {
         if(!link.match("/syslog_")) {
           path = "/syslog_" + attempt.get('id');
-          if(amUser) {
-            path += "/" + amUser;
-          }
         }
-        logLinks.viewUrl = App.Helpers.misc.modifyUrl(link, path, params);
+        logLinks.viewUrl = App.Helpers.misc.modifyUrl(link, path, params, protocol);
       }
 
       link = attempt.get('completedLog');
@@ -695,9 +703,6 @@ App.Helpers.misc = {
 
         if(!link.match("/syslog_")) {
           path = "/syslog_" + attempt.get('id');
-          if(amUser) {
-            path += "/" + amUser;
-          }
         }
 
         logLinks.downloadUrl = App.Helpers.misc.modifyUrl(link, path, params);

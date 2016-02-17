@@ -43,6 +43,14 @@ App.setConfigs({
      * For configuration see http://momentjs.com/timezone/docs/
      */
     //timezone: "UTC",
+
+    /*
+     * yarnProtocol:
+     * If specified, this protocol would be used to construct node manager log links.
+     * Possible values: http, https
+     * Default value: If not specified, protocol of RMWebUrl will be used
+     */
+    //yarnProtocol: "<value>",
   },
 
   /*
