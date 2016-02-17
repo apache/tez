@@ -85,6 +85,21 @@ export default MultiTableController.extend({
     headerTitle: 'Tasks',
     contentPath: 'totalTasks',
   },{
+    id: 'succeededTasks',
+    headerTitle: 'Succeeded Tasks',
+    contentPath: 'succeededTasks',
+    observePath: true
+  },{
+    id: 'runningTasks',
+    headerTitle: 'Running Tasks',
+    contentPath: 'runningTasks',
+    observePath: true
+  },{
+    id: 'pendingTasks',
+    headerTitle: 'Pending Tasks',
+    contentPath: 'pendingTasks',
+    observePath: true
+  },{
     id: 'processorClassName',
     headerTitle: 'Processor Class',
     contentPath: 'processorClassName',

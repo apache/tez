@@ -45,7 +45,7 @@ export default AbstractController.extend({
 
   polling: Ember.inject.service("pollster"),
 
-  definition: Ember.computed(function () {
+  definition: Ember.computed("model", function () {
     return TableDefinition.create({
       rowCount: this.get("rowCount"),
       searchText: this.get("searchText"),

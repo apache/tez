@@ -80,9 +80,43 @@ export default MultiTableController.extend({
     headerTitle: 'Tasks',
     contentPath: 'totalTasks',
   },{
+    id: 'succeededTasks',
+    headerTitle: 'Succeeded Tasks',
+    contentPath: 'succeededTasks',
+    observePath: true
+  },{
+    id: 'runningTasks',
+    headerTitle: 'Running Tasks',
+    contentPath: 'runningTasks',
+    observePath: true
+  },{
+    id: 'pendingTasks',
+    headerTitle: 'Pending Tasks',
+    contentPath: 'pendingTasks',
+    observePath: true
+  },{
     id: 'processorClassName',
     headerTitle: 'Processor Class',
     contentPath: 'processorClassName',
-  }])
+  }]),
+
+  beforeSort: function (columnDefinition) {
+    if(this._super(columnDefinition)) {
+      if(this.get("polling.isReady")) {
+        let columnName = columnDefinition.get("headerTitle");
+        switch(columnDefinition.get("contentPath")) {
+          case "succeededTasks":
+          case "runningTasks":
+          case "pendingTasks":
+            this.send("openModal", {
+              title: "Cannot sort!",
+              content: `Sorting on ${columnName} is disabled for running DAGs!`
+            });
+            return false;
+        }
+      }
+    }
+    return true;
+  }
 
 });

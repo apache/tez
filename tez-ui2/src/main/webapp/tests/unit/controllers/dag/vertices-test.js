@@ -38,4 +38,47 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+  assert.ok(controller.beforeSort);
+});
+
+test('beforeSort test', function(assert) {
+  let controller = this.subject({
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    },
+    polling: {
+      isReady: true
+    },
+    send: function (actionName) {
+      if(actionName === "openModal") {
+        assert.ok(true);
+      }
+    }
+  });
+
+  // Bind poilyfill
+  Function.prototype.bind = function (context) {
+    var that = this;
+    return function (val) {
+      return that.call(context, val);
+    };
+  };
+
+  assert.expect(1 + 3 + 3);
+
+  assert.ok(controller.beforeSort(Ember.Object.create({
+    contentPath: "NonDisabledColumn"
+  })), "NonDisabledColumn");
+
+  assert.notOk(controller.beforeSort(Ember.Object.create({
+    contentPath: "succeededTasks"
+  })), "succeededTasks");
+  assert.notOk(controller.beforeSort(Ember.Object.create({
+    contentPath: "runningTasks"
+  })), "runningTasks");
+  assert.notOk(controller.beforeSort(Ember.Object.create({
+    contentPath: "pendingTasks"
+  })), "pendingTasks");
+
 });
