@@ -174,19 +174,24 @@ public class Edge {
             + getEdgeInfo(), e);
       }
     }
-    destinationMetaInfo = new EventMetaData(EventProducerConsumerType.INPUT, 
-        destinationVertex.getName(), 
-        sourceVertex.getName(), 
-        null);
+    synchronized (this) {
+      destinationMetaInfo = new EventMetaData(EventProducerConsumerType.INPUT,
+              destinationVertex.getName(),
+              sourceVertex.getName(),
+              null);
+    }
   }
 
-  public synchronized void setEdgeProperty(EdgeProperty newEdgeProperty) throws AMUserCodeException {
-    this.edgeProperty = newEdgeProperty;
-    boolean wasUnInitialized = (edgeManager == null);
-    try {
-      createEdgeManager();
-    } catch (TezException e) {
-      throw new AMUserCodeException(Source.EdgeManager, e);
+  public void setEdgeProperty(EdgeProperty newEdgeProperty) throws AMUserCodeException {
+    boolean wasUnInitialized;
+    synchronized (this) {
+      this.edgeProperty = newEdgeProperty;
+      wasUnInitialized = (edgeManager == null);
+      try {
+        createEdgeManager();
+      } catch (TezException e) {
+        throw new AMUserCodeException(Source.EdgeManager, e);
+      }
     }
     initialize();
     if (wasUnInitialized) {
@@ -199,7 +204,7 @@ public class Edge {
   
   // Test only method for creating specific scenarios
   @VisibleForTesting
-  synchronized void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor)
+  void setCustomEdgeManager(EdgeManagerPluginDescriptor descriptor)
       throws AMUserCodeException {
     EdgeProperty modifiedEdgeProperty =
         EdgeProperty.create(descriptor,
@@ -210,22 +215,28 @@ public class Edge {
     setEdgeProperty(modifiedEdgeProperty);
   }
   
-  public synchronized void routingToBegin() throws AMUserCodeException {
-    if (edgeManagerContext.getDestinationVertexNumTasks() == 0) {
-      routingNeeded = false;
-    } else if (edgeManagerContext.getDestinationVertexNumTasks() < 0) {
-      throw new TezUncheckedException(
-          "Internal error. Not expected to route events to a destination until parallelism is determined" +
-          " sourceVertex=" + sourceVertex.getLogIdentifier() +
-          " edgeManager=" + edgeManager.getClass().getName());
+  public void routingToBegin() throws AMUserCodeException {
+    int numDestTasks = edgeManagerContext.getDestinationVertexNumTasks();
+    synchronized (this) {
+      if (numDestTasks == 0) {
+        routingNeeded = false;
+      } else if (numDestTasks < 0) {
+        throw new TezUncheckedException(
+                "Internal error. Not expected to route events to a destination until parallelism is determined" +
+                        " sourceVertex=" + sourceVertex.getLogIdentifier() +
+                        " edgeManager=" + edgeManager.getClass().getName());
+      }
+      if (edgeManager instanceof EdgeManagerPluginOnDemand) {
+        onDemandRouting = true;
+      }
     }
-    if (edgeManager instanceof EdgeManagerPluginOnDemand) {
-      onDemandRouting = true;
+
+    if (onDemandRouting) {
       try {
-        ((EdgeManagerPluginOnDemand)edgeManager).prepareForRouting();
+        ((EdgeManagerPluginOnDemand) edgeManager).prepareForRouting();
       } catch (Exception e) {
         throw new AMUserCodeException(Source.EdgeManager,
-            "Fail to prepareForRouting " + getEdgeInfo(), e);
+                "Fail to prepareForRouting " + getEdgeInfo(), e);
       }
     }
     
