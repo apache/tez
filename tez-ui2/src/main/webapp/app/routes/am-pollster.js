@@ -44,15 +44,20 @@ export default PollsterRoute.extend({
 
     this.get("loader").queryRecord("appRm", record.get("appID"), {reload: true}).then(function (appRm) {
       if(appRm.get('isComplete')) {
-        that.reload();
+        that.scheduleReload();
       }
       else {
         that.send("error", error);
       }
     }, function (error) {
       that.send("error", error);
-      Ember.run.later(that, "reload", that.get("polling.interval") * 3);
+      that.scheduleReload();
     });
+  },
+
+  scheduleReload: function () {
+    this.set("polledRecords", null);
+    Ember.run.debounce(this, "reload", this.get("polling.interval") * 2);
   },
 
   reload: function () {

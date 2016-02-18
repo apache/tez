@@ -22,6 +22,14 @@ import DS from 'ember-data';
 import TimelineModel from './timeline';
 
 export default TimelineModel.extend({
+  needs:{
+    app: {
+      type: ["AhsApp", "appRm"],
+      idKey: "appID",
+      silent: true
+    }
+  },
+
   appID: Ember.computed("entityID", function () {
     return this.get("entityID").substr(4);
   }),

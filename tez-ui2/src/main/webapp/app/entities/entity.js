@@ -88,27 +88,46 @@ var Entity = Ember.Object.extend(NameMixin, {
     return Ember.Object.create(need, overrides);
   },
 
-  _loadNeed: function (loader, parentModel, needOptions, options) {
-    var needLoader = loader.queryRecord(
-      needOptions.type,
+  _loadNeed: function (loader, parentModel, needOptions, options, index) {
+    var needLoader,
+        that = this,
+        types = needOptions.type,
+        type;
+
+    if(!Array.isArray(types)) {
+      types = [types];
+    }
+
+    index = index || 0;
+    type = types[index];
+
+    needLoader = loader.queryRecord(
+      type,
       parentModel.get(needOptions.idKey),
       options,
       needOptions.queryParams,
       needOptions.urlParams
     );
 
-    needLoader.then(function (model) {
+    needLoader = needLoader.then(function (model) {
       parentModel.set(needOptions.name, model);
       parentModel.refreshLoadTime();
       return model;
     });
 
-    if(needOptions.silent) {
-      needLoader = needLoader.catch(function () {
+    needLoader = needLoader.catch(function (err) {
+      if(++index < types.length) {
+        return that._loadNeed(loader, parentModel, needOptions, options, index);
+      }
+
+      if(needOptions.silent) {
         parentModel.set(needOptions.name, null);
         parentModel.refreshLoadTime();
-      });
-    }
+      }
+      else {
+        throw(err);
+      }
+    });
 
     return needLoader;
   },

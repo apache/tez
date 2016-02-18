@@ -25,7 +25,7 @@ export default AbstractModel.extend({
 
   needs:{
     app: {
-      type: "AhsApp",
+      type: ["appRm", "AhsApp"],
       idKey: "appID",
       silent: true
     }

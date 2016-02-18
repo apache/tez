@@ -37,3 +37,4 @@ ALL CHANGES:
   TEZ-3095. Tez UI 2: Tuneups & Improvements
   TEZ-3088. Tez UI 2: Licenses of all the packages used by Tez Ui must be documented
   TEZ-2916. Tez UI 2: Show counts of running tasks on the DAG visualization page
+  TEZ-3125. Tez UI 2: All auto-refresh pages refresh multiple times shortly after application complete

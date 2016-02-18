@@ -93,7 +93,9 @@ export default AbstractRoute.extend({
       records = that.filterRecords(records, query);
       records.forEach(function (record) {
         if(record.get("status") === "RUNNING") {
-          that.get("loader").loadNeed(record, "am", {reload: true});
+          that.get("loader").loadNeed(record, "am", {reload: true}).catch(function () {
+            record.set("am", null);
+          });
         }
       });
       return records;

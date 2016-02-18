@@ -38,6 +38,11 @@ export default AMTimelineModel.extend({
           app_id: model.get("appID")
         };
       }
+    },
+    app: {
+      type: ["AhsApp", "appRm"],
+      idKey: "appID",
+      silent: true
     }
   },
 

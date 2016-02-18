@@ -167,3 +167,97 @@ test('loadAllNeeds silent=true test', function(assert) {
   });
 });
 
+test('_loadNeed single string type test', function(assert) {
+  let adapter = this.subject(),
+      loader,
+      testModel = Ember.Object.create({
+        refreshLoadTime: Ember.K,
+        needs: {
+          app: {
+            type: "appRm",
+            idKey: "appID",
+            silent: true
+          },
+        },
+        appID: 1,
+      });
+
+  assert.expect(2 + 1);
+
+  loader = {
+    queryRecord: function (type, id) {
+      assert.equal(id, testModel.get("appID"));
+      assert.equal(type, "appRm");
+      return Ember.RSVP.resolve();
+    }
+  };
+  adapter.loadAllNeeds(loader, testModel).then(function (val) {
+    assert.ok(val);
+  });
+});
+
+test('_loadNeed multiple type test', function(assert) {
+  let adapter = this.subject(),
+      loader,
+      testModel = Ember.Object.create({
+        refreshLoadTime: Ember.K,
+        needs: {
+          app: {
+            type: ["AhsApp", "appRm"],
+            idKey: "appID",
+            silent: true
+          },
+        },
+        appID: 1,
+      });
+
+  assert.expect(2 * 2 + 1);
+
+  loader = {
+    queryRecord: function (type, id) {
+      assert.equal(id, testModel.get("appID"));
+
+      if(type === "AhsApp") {
+        assert.ok(true);
+        return Ember.RSVP.reject();
+      }
+      else {
+        assert.equal(type, "appRm");
+        return Ember.RSVP.resolve();
+      }
+    }
+  };
+  adapter.loadAllNeeds(loader, testModel).then(function (val) {
+    assert.ok(val);
+  });
+});
+
+test('_loadNeed test with silent false', function(assert) {
+  let adapter = this.subject(),
+      loader,
+      testModel = Ember.Object.create({
+        refreshLoadTime: Ember.K,
+        needs: {
+          app: {
+            type: ["AhsApp"],
+            idKey: "appID",
+            silent: false
+          },
+        },
+        appID: 1,
+      }),
+      testErr = {};
+
+  assert.expect(2 + 1);
+
+  loader = {
+    queryRecord: function (type, id) {
+      assert.equal(id, testModel.get("appID"));
+      assert.equal(type, "AhsApp");
+      return Ember.RSVP.reject(testErr);
+    }
+  };
+  adapter.loadAllNeeds(loader, testModel).catch(function (err) {
+    assert.equal(err, testErr);
+  });
+});

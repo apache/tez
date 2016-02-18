@@ -29,6 +29,7 @@ test('Basic creation test', function(assert) {
   assert.ok(route);
   assert.ok(route.onRecordPoll);
   assert.ok(route.onPollFailure);
+  assert.ok(route.scheduleReload);
   assert.ok(route.reload);
   assert.ok(route.actions.countersToPollChanged);
 });
