@@ -1,12 +1,15 @@
 Apache Tez Change Log
 =====================
 
+Release 0.7.1: Unreleased
+
 INCOMPATIBLE CHANGES
   TEZ-2679. Admin forms of launch env settings
   TEZ-2949. Allow duplicate dag names within session for Tez.
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES
+  TEZ-3123. Containers can get re-used even with conflicting local resources.
   TEZ-3117. Deadlock in Edge and Vertex code
   TEZ-3107. tez-tools: Log warn msgs in case ATS has wrong values (e.g startTime > finishTime).
   TEZ-3103. Shuffle can hang when memory to memory merging enabled
