@@ -2337,11 +2337,12 @@ public class YarnTaskSchedulerService extends TaskScheduler
       // Merge the container signatures to account for any changes to the container
       // footprint. For example, re-localization of additional resources will
       // cause the held container's signature to change.
-      lastAssignedContainerSignature = taskInfo.getCookie().getContainerSignature();
-      if (lastTaskInfo != null && lastTaskInfo.getCookie().getContainerSignature() != null) {
+      if (lastAssignedContainerSignature != null) {
         lastAssignedContainerSignature = signatureMatcher.union(
-            lastTaskInfo.getCookie().getContainerSignature(),
+            lastAssignedContainerSignature,
             taskInfo.getCookie().getContainerSignature());
+      } else {
+        lastAssignedContainerSignature = taskInfo.getCookie().getContainerSignature();
       }
       lastTaskInfo = taskInfo;
     }
