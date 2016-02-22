@@ -26,4 +26,5 @@ Apache Tez&trade; 0.8.1-alpha
     - [API Javadocs](0.8.1-alpha/tez-api-javadocs/index.html) : Documentation for the Tez APIs
     - [Runtime Library Javadocs](0.8.1-alpha/tez-runtime-library-javadocs/index.html) : Documentation for built-in implementations of useful Inputs, Outputs, Processors etc. written based on the Tez APIs 
     - [Tez Mapreduce Javadocs](0.8.1-alpha/tez-mapreduce-javadocs/index.html) : Documentation for built-in implementations of Mapreduce compatible Inputs, Outputs, Processors etc. written based on the Tez APIs 
-
+    - [Tez Configuration](0.8.1-alpha/tez-api-javadocs/configs/TezConfiguration.html) : Documentation for configurations of Tez. These configurations are typically specified in tez-site.xml.
+    - [Tez Runtime Configuration](0.8.1-alpha/tez-runtime-library-javadocs/configs/TezRuntimeConfiguration.html) : Documentation for runtime configurations of Tez. These configurations are typically specified by job submitters.
