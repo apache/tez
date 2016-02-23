@@ -44,7 +44,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
  */
 public class FaultToleranceTestRunner {
   
-  static String TEST_ROOT_DIR = "tmp";
+  static String DEFAULT_FT_STAGING_DIR = "tmp";
+  static String FT_STAGING_DIR = "tez.test-fault-tolerance.staging-dir";
   Configuration conf = null;
   TezClient tezSession = null;
   Resource defaultResource = Resource.newInstance(100, 0);
@@ -57,8 +58,16 @@ public class FaultToleranceTestRunner {
        tezConf = new TezConfiguration(new YarnConfiguration(this.conf));
     }
     FileSystem defaultFs = FileSystem.get(tezConf);
-    
-    Path remoteStagingDir = defaultFs.makeQualified(new Path(TEST_ROOT_DIR, String
+
+    Path testRootDir;
+    if (tezConf.get(FT_STAGING_DIR) != null
+        && !tezConf.get(FT_STAGING_DIR).isEmpty()) {
+      testRootDir = new Path(tezConf.get(FT_STAGING_DIR));
+    } else {
+      testRootDir = new Path(DEFAULT_FT_STAGING_DIR);
+    }
+
+    Path remoteStagingDir = defaultFs.makeQualified(new Path(testRootDir, String
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(tezConf, remoteStagingDir);
     

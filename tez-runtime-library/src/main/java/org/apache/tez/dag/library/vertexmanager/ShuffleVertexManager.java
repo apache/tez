@@ -1004,7 +1004,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       throw new IllegalArgumentException(
           "Invalid values for slowStartMinSrcCompletionFraction"
               + "/slowStartMaxSrcCompletionFraction. Min cannot be < 0, max cannot be > 1,"
-              + " and max cannot be < min.");
+              + " and max cannot be < min."
+              + ", configuredMin=" + slowStartMinSrcCompletionFraction
+              + ", configuredMax=" + slowStartMaxSrcCompletionFraction);
     }
 
     enableAutoParallelism = conf
