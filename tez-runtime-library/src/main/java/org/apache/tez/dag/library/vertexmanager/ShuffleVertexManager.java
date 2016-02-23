@@ -706,6 +706,12 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       }
     }
 
+    LOG.info("Expected output: " + expectedTotalSourceTasksOutputSize + " based on actual output: "
+        + completedSourceTasksOutputSize + " from " + numVertexManagerEventsReceived + " vertex manager events. "
+        + " desiredTaskInputSize: " + desiredTaskInputDataSize + " max slow start tasks:"
+        + (totalNumBipartiteSourceTasks * slowStartMaxSrcCompletionFraction) + " num sources completed:"
+        + numBipartiteSourceTasksCompleted);
+
     int desiredTaskParallelism = 
         (int)(
             (expectedTotalSourceTasksOutputSize+desiredTaskInputDataSize-1)/
@@ -713,16 +719,22 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     if(desiredTaskParallelism < minTaskParallelism) {
       desiredTaskParallelism = minTaskParallelism;
     }
-    
+
     if(desiredTaskParallelism >= currentParallelism) {
+      LOG.info("Not reducing auto parallelism for vertex: " + getContext().getVertexName()
+          + " since the desired parallelism of " + desiredTaskParallelism
+          + " is greater than or equal to the current parallelism of " + pendingTasks.size());
       return true;
     }
-    
+
     // most shufflers will be assigned this range
     basePartitionRange = currentParallelism/desiredTaskParallelism;
     
     if (basePartitionRange <= 1) {
       // nothing to do if range is equal 1 partition. shuffler does it by default
+      LOG.info("Not reducing auto parallelism for vertex: " + getContext().getVertexName()
+          + " by less than half since combining two inputs will potentially break the desired task input size of "
+          + desiredTaskInputDataSize);
       return true;
     }
     
@@ -732,15 +744,9 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     int finalTaskParallelism = (remainderRangeForLastShuffler > 0) ?
           (numShufflersWithBaseRange + 1) : (numShufflersWithBaseRange);
 
-    LOG.info("Reduce auto parallelism for vertex: " + getContext().getVertexName()
-        + " to " + finalTaskParallelism + " from " + pendingTasks.size() 
-        + " . Expected output: " + expectedTotalSourceTasksOutputSize 
-        + " based on actual output: " + completedSourceTasksOutputSize
-        + " from " + numVertexManagerEventsReceived + " vertex manager events. "
-        + " desiredTaskInputSize: " + desiredTaskInputDataSize + " max slow start tasks:" +
-        (totalNumBipartiteSourceTasks * slowStartMaxSrcCompletionFraction) + " num sources completed:" +
-        numBipartiteSourceTasksCompleted);
-          
+    LOG.info("Reducing auto parallelism for vertex: " + getContext().getVertexName()
+        + " from " + pendingTasks.size() + " to " + finalTaskParallelism);
+
     if(finalTaskParallelism < currentParallelism) {
       // final parallelism is less than actual parallelism
       Map<String, EdgeProperty> edgeProperties =
