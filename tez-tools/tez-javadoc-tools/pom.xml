@@ -33,6 +33,14 @@
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+    </dependency>
   </dependencies>
 
   <profiles>
