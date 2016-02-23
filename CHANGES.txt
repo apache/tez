@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-3134. tez-dag should depend on commons-collections4.
   TEZ-3126. Log reason for not reducing parallelism
   TEZ-3131. Support a way to override test_root_dir for FaultToleranceTestRunner.
   TEZ-3067. Links to tez configs documentation should be bubbled up to top-level release page.
