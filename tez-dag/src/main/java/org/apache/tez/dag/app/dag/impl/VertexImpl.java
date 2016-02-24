@@ -1861,12 +1861,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
 
   void logJobHistoryVertexInitializedEvent() {
-    // TODO Vertex init may happen multiple times, so it is possible to have multiple VertexInitializedEvent
-    VertexInitializedEvent initEvt = new VertexInitializedEvent(vertexId, vertexName,
-        initTimeRequested, initedTime, numTasks,
-        getProcessorName(), getAdditionalInputs(), initGeneratedEvents);
-    this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(getDAGId(), initEvt));
+    if (recoveryData == null || !recoveryData.shouldSkipInit()) {
+      VertexInitializedEvent initEvt = new VertexInitializedEvent(vertexId, vertexName,
+              initTimeRequested, initedTime, numTasks,
+              getProcessorName(), getAdditionalInputs(), initGeneratedEvents);
+      this.appContext.getHistoryHandler().handle(
+              new DAGHistoryEvent(getDAGId(), initEvt));
+    }
   }
 
   void logJobHistoryVertexStartedEvent() {

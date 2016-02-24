@@ -20,6 +20,8 @@ package org.apache.tez.test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.codec.binary.Base64;
@@ -164,7 +166,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
         throws IOException {
       if (shutdownCondition.timing.equals(TIMING.PRE)
           && appContext.getApplicationAttemptId().getAttemptId() == 1
-          && shouldShutdown(event)) {
+          && shutdownCondition.match(event.getHistoryEvent())) {
         recoveryService.shutdown();
       }
     }
@@ -173,18 +175,10 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
     public void postHandleRecoveryEvent(DAGHistoryEvent event)
         throws IOException {
       if (shutdownCondition.timing.equals(TIMING.POST)
-          && appContext.getApplicationAttemptId().getAttemptId() == 1
-          && shouldShutdown(event)) {
+         && appContext.getApplicationAttemptId().getAttemptId() == 1
+         && shutdownCondition.match(event.getHistoryEvent())) {
         recoveryService.shutdown();
       }
-    }
-
-    private boolean shouldShutdown(DAGHistoryEvent event) {
-      // only check whether to shutdown when it is the first AM attempt
-      if (appContext.getApplicationAttemptId().getAttemptId() >= 2) {
-        return false;
-      }
-      return shutdownCondition.match(event.getHistoryEvent());
     }
  
     @Override
@@ -385,6 +379,106 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
     
     public HistoryEventType getEventType() {
       return event.getEventType();
+    }
+  }
+
+  public static class MultipleRoundRecoveryEventHook extends RecoveryServiceHook {
+
+    public static final String MULTIPLE_ROUND_SHUTDOWN_CONDITION = "tez.test.recovery.multiple_round_shutdown_condition";
+    private MultipleRoundShutdownCondition shutdownCondition;
+    private int attemptId;
+
+    public MultipleRoundRecoveryEventHook(RecoveryServiceWithEventHandlingHook recoveryService, AppContext appContext) {
+      super(recoveryService, appContext);
+      this.shutdownCondition = new MultipleRoundShutdownCondition();
+      try {
+        Preconditions.checkArgument(recoveryService.getConfig().get(MULTIPLE_ROUND_SHUTDOWN_CONDITION) != null,
+                MULTIPLE_ROUND_SHUTDOWN_CONDITION + " is not set in TezConfiguration");
+        this.shutdownCondition.deserialize(recoveryService.getConfig().get(MULTIPLE_ROUND_SHUTDOWN_CONDITION));
+      } catch (IOException e) {
+        throw new TezUncheckedException("Can not initialize MultipleRoundShutdownCondition", e);
+      }
+      this.attemptId = appContext.getApplicationAttemptId().getAttemptId();
+    }
+
+    @Override
+    public void preHandleRecoveryEvent(DAGHistoryEvent event) throws IOException {
+      if (attemptId <= shutdownCondition.size()) {
+        SimpleShutdownCondition condition = shutdownCondition.getSimpleShutdownCondition(attemptId - 1);
+        if (condition.timing.equals(TIMING.PRE)
+                && condition.match(event.getHistoryEvent())) {
+          recoveryService.shutdown();
+        }
+      }
+    }
+
+    @Override
+    public void postHandleRecoveryEvent(DAGHistoryEvent event) throws IOException {
+      for (int i=0;i<shutdownCondition.size();++i) {
+        SimpleShutdownCondition condition = shutdownCondition.getSimpleShutdownCondition(i);
+        LOG.info("condition:" + condition.getEvent().getEventType() + ":" + condition.getHistoryEvent());
+      }
+      if (attemptId <= shutdownCondition.size()) {
+        SimpleShutdownCondition condition = shutdownCondition.getSimpleShutdownCondition(attemptId - 1);
+
+        LOG.info("event:" + event.getHistoryEvent().getEventType());
+        if (condition.timing.equals(TIMING.POST)
+                && condition.match(event.getHistoryEvent())) {
+          recoveryService.shutdown();
+        }
+      }
+    }
+
+    @Override
+    public void preHandleSummaryEvent(HistoryEventType eventType, SummaryEvent summaryEvent) throws IOException {
+
+    }
+
+    @Override
+    public void postHandleSummaryEvent(HistoryEventType eventType, SummaryEvent summaryEvent) throws IOException {
+
+    }
+  }
+
+  public static class MultipleRoundShutdownCondition {
+
+    private List<SimpleShutdownCondition> shutdownConditionList;
+
+    public MultipleRoundShutdownCondition() {
+
+    }
+
+    public MultipleRoundShutdownCondition(List<SimpleShutdownCondition> shutdownConditionList) {
+      this.shutdownConditionList = shutdownConditionList;
+    }
+
+    public String serialize() throws IOException {
+      StringBuilder builder = new StringBuilder();
+      for (int i=0; i< shutdownConditionList.size(); ++i) {
+        builder.append(shutdownConditionList.get(i).serialize());
+        if (i!=shutdownConditionList.size()-1) {
+          builder.append(";");
+        }
+      }
+      return builder.toString();
+    }
+
+    public MultipleRoundShutdownCondition deserialize(String str) throws IOException {
+      String[] splits = str.split(";");
+      shutdownConditionList = new ArrayList<SimpleShutdownCondition>();
+      for (String split : splits) {
+        SimpleShutdownCondition condition = new SimpleShutdownCondition();
+        shutdownConditionList.add(condition.deserialize(split));
+      }
+      return this;
+    }
+
+    public SimpleShutdownCondition getSimpleShutdownCondition(int index) {
+      return shutdownConditionList.get(index);
+    }
+
+    public int size() {
+      return shutdownConditionList.size();
     }
   }
 }

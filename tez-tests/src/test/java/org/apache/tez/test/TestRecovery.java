@@ -301,6 +301,56 @@ public class TestRecovery {
 
   }
 
+  private void testOrderedWordCountMultipleRoundRecoverying(
+          RecoveryServiceWithEventHandlingHook.MultipleRoundShutdownCondition shutdownCondition,
+          boolean enableAutoParallelism, boolean generateSplitInClient) throws Exception {
+
+    for (int i=0; i<shutdownCondition.size(); i++) {
+      SimpleShutdownCondition condition = shutdownCondition.getSimpleShutdownCondition(i);
+      LOG.info("ShutdownCondition:" + condition.getEventType()
+              + ", event=" + condition.getEvent());
+    }
+
+    String inputDirStr = "/tmp/owc-input/";
+    Path inputDir = new Path(inputDirStr);
+    Path stagingDirPath = new Path("/tmp/owc-staging-dir");
+    remoteFs.mkdirs(inputDir);
+    remoteFs.mkdirs(stagingDirPath);
+    TestTezJobs.generateOrderedWordCountInput(inputDir, remoteFs);
+
+    String outputDirStr = "/tmp/owc-output/";
+    Path outputDir = new Path(outputDirStr);
+
+    TezConfiguration tezConf = new TezConfiguration(miniTezCluster.getConfig());
+    tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
+    tezConf.set(TezConfiguration.TEZ_AM_RECOVERY_SERVICE_CLASS,
+            RecoveryServiceWithEventHandlingHook.class.getName());
+    tezConf.set(
+            RecoveryServiceWithEventHandlingHook.AM_RECOVERY_SERVICE_HOOK_CLASS,
+            RecoveryServiceWithEventHandlingHook.MultipleRoundRecoveryEventHook.class.getName());
+    tezConf.set(RecoveryServiceWithEventHandlingHook.MultipleRoundRecoveryEventHook.MULTIPLE_ROUND_SHUTDOWN_CONDITION,
+            shutdownCondition.serialize());
+    tezConf.setBoolean(
+            ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
+            enableAutoParallelism);
+    tezConf.setBoolean(
+            RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED, false);
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+    tezConf.setBoolean(
+            TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE, false);
+    OrderedWordCount job = new OrderedWordCount();
+    if (generateSplitInClient) {
+      Assert
+              .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
+                      "-generateSplitInClient", inputDirStr, outputDirStr, "5"}, null) == 0);
+    } else {
+      Assert
+              .assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{
+                      inputDirStr, outputDirStr, "5"}, null) == 0);
+    }
+    TestTezJobs.verifyOutput(outputDir, remoteFs);
+  }
+
   @Test(timeout = 1800000)
   public void testRecovery_HashJoin() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(),
@@ -501,4 +551,77 @@ public class TestRecovery {
     assertTrue(shutdownCondition.match(lastEvent));
   }
 
+  @Test(timeout = 1800000)
+  public void testTwoRoundsRecoverying() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(),
+            1);
+    TezDAGID dagId = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexId0 = TezVertexID.getInstance(dagId, 0);
+    TezVertexID vertexId1 = TezVertexID.getInstance(dagId, 1);
+    TezVertexID vertexId2 = TezVertexID.getInstance(dagId, 2);
+    ContainerId containerId = ContainerId.newInstance(
+            ApplicationAttemptId.newInstance(appId, 1), 1);
+    NodeId nodeId = NodeId.newInstance("localhost", 10);
+    List<TezEvent> initGeneratedEvents = Lists.newArrayList(
+            new TezEvent(InputDataInformationEvent.createWithObjectPayload(0, new Object()), null));
+
+
+    List<SimpleShutdownCondition> shutdownConditions = Lists.newArrayList(
+
+            new SimpleShutdownCondition(TIMING.POST, new DAGInitializedEvent(
+                    dagId, 0L, "username", "dagName", null)),
+            new SimpleShutdownCondition(TIMING.POST, new DAGStartedEvent(dagId,
+                    0L, "username", "dagName")),
+            new SimpleShutdownCondition(TIMING.POST,
+                    new VertexInitializedEvent(vertexId0, "Tokenizer", 0L, 0L, 0,
+                            "", null, initGeneratedEvents)),
+            new SimpleShutdownCondition(TIMING.POST, new VertexStartedEvent(
+                    vertexId0, 0L, 0L)),
+            new SimpleShutdownCondition(TIMING.POST,
+                    new VertexConfigurationDoneEvent(vertexId0, 0L, 2, null, null,
+                            null, true)),
+            new SimpleShutdownCondition(TIMING.POST, new TaskStartedEvent(
+                    TezTaskID.getInstance(vertexId0, 0), "vertexName", 0L, 0L)),
+            new SimpleShutdownCondition(TIMING.POST,
+                    new TaskAttemptStartedEvent(TezTaskAttemptID.getInstance(
+                            TezTaskID.getInstance(vertexId0, 0), 0), "vertexName", 0L,
+                            containerId, nodeId, "", "", "")),
+            new SimpleShutdownCondition(TIMING.POST, new TaskFinishedEvent(
+                    TezTaskID.getInstance(vertexId0, 0), "vertexName", 0L, 0L,
+                    null, TaskState.SUCCEEDED, "", new TezCounters(), 0)),
+            new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
+                    vertexId0, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
+                    VertexState.SUCCEEDED, "", new TezCounters(),
+                    new VertexStats(), new HashMap<String, Integer>())),
+            new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
+                    vertexId1, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
+                    VertexState.SUCCEEDED, "", new TezCounters(),
+                    new VertexStats(), new HashMap<String, Integer>())),
+            new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
+                    vertexId2, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
+                    VertexState.SUCCEEDED, "", new TezCounters(),
+                    new VertexStats(), new HashMap<String, Integer>())),
+            new SimpleShutdownCondition(TIMING.POST, new DAGFinishedEvent(
+                    dagId, 0L, 0L, DAGState.SUCCEEDED, "", new TezCounters(),
+                    "username", "dagName", new HashMap<String, Integer>(),
+                    ApplicationAttemptId.newInstance(appId, 1), null))
+
+    );
+
+    Random rand = new Random();
+    for (int i = 0; i < shutdownConditions.size() - 1; i++) {
+      // randomly choose half of the test scenario to avoid
+      // timeout.
+      if (rand.nextDouble()<0.5) {
+        int nextSimpleConditionIndex = i + 1 + rand.nextInt(shutdownConditions.size() - i - 1);
+        if (nextSimpleConditionIndex == shutdownConditions.size() - 1) {
+          testOrderedWordCountMultipleRoundRecoverying(
+                  new RecoveryServiceWithEventHandlingHook.MultipleRoundShutdownCondition(
+                          Lists.newArrayList(shutdownConditions.get(i), shutdownConditions.get(nextSimpleConditionIndex)))
+                  , true,
+                  shutdownConditions.get(i).getHistoryEvent().getEventType() == HistoryEventType.VERTEX_STARTED);
+        }
+      }
+    }
+  }
 }
