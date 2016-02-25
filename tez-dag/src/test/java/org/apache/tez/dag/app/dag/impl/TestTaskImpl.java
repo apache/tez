@@ -56,7 +56,9 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
@@ -643,6 +645,33 @@ public class TestTaskImpl {
     Assert.assertEquals(mockDestId, newAttempt.getSchedulingCausalTA());
   }
 
+  @SuppressWarnings("rawtypes")
+  @Test(timeout = 5000)
+  public void testTaskSucceedAndRetroActiveKilled() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
+
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt().getID(),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
+
+    // The task should now have succeeded
+    assertTaskSucceededState();
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+        eq(mockTask.getLastAttempt().getID().getId()));
+
+    eventHandler.events.clear();
+    // Now kill the attempt after it has succeeded
+    mockTask.handle(new TaskEventTAUpdate(mockTask.getLastAttempt()
+        .getID(), TaskEventType.T_ATTEMPT_KILLED));
+
+    // The task should still be in the scheduled state
+    assertTaskScheduledState();
+    Event event = eventHandler.events.get(0);
+    Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
+  }
+
   @Test(timeout = 5000)
   public void testDiagnostics_KillNew(){
     TezTaskID taskId = getNewTaskID();
@@ -732,6 +761,66 @@ public class TestTaskImpl {
         TaskEventType.T_ATTEMPT_SUCCEEDED));
     assertEquals(TaskState.FAILED, mockTask.getState());
     assertEquals(2, mockTask.getAttemptList().size());
+  }
+
+  @Test(timeout = 20000)
+  public void testSpeculatedThenRetroactiveFailure() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    MockTaskAttemptImpl firstAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(firstAttempt.getID());
+    updateAttemptState(firstAttempt, TaskAttemptState.RUNNING);
+
+    // Add a speculative task attempt
+    mockTask.handle(new TaskEventTAUpdate(firstAttempt.getID(),
+        TaskEventType.T_ADD_SPEC_ATTEMPT));
+    MockTaskAttemptImpl specAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(specAttempt.getID());
+    updateAttemptState(specAttempt, TaskAttemptState.RUNNING);
+    assertEquals(2, mockTask.getAttemptList().size());
+
+    // Have the first task succeed
+    eventHandler.events.clear();
+    mockTask.handle(new TaskEventTAUpdate(firstAttempt.getID(),
+        TaskEventType.T_ATTEMPT_SUCCEEDED));
+
+    // The task should now have succeeded and sent kill to other attempt
+    assertTaskSucceededState();
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+        eq(firstAttempt.getID().getId()));
+    @SuppressWarnings("rawtypes")
+    Event event = eventHandler.events.get(eventHandler.events.size()-1);
+    assertEquals(TaskAttemptEventType.TA_KILL_REQUEST, event.getType());
+    assertEquals(specAttempt.getID(),
+        ((TaskAttemptEventKillRequest) event).getTaskAttemptID());
+
+    // Emulate the spec attempt being killed
+    mockTask.handle(new TaskEventTAUpdate(specAttempt.getID(),
+        TaskEventType.T_ATTEMPT_KILLED));
+    assertTaskSucceededState();
+
+    // Now fail the attempt after it has succeeded
+    TezTaskAttemptID mockDestId = mock(TezTaskAttemptID.class);
+    TezEvent mockTezEvent = mock(TezEvent.class);
+    EventMetaData meta = new EventMetaData(EventProducerConsumerType.INPUT, "Vertex", "Edge", mockDestId);
+    when(mockTezEvent.getSourceInfo()).thenReturn(meta);
+    TaskAttemptEventOutputFailed outputFailedEvent =
+        new TaskAttemptEventOutputFailed(mockDestId, mockTezEvent, 1);
+    eventHandler.events.clear();
+    mockTask.handle(new TaskEventTAUpdate(firstAttempt.getID(),
+        TaskEventType.T_ATTEMPT_FAILED, outputFailedEvent));
+
+    // The task should still be in the scheduled state
+    assertTaskScheduledState();
+    event = eventHandler.events.get(eventHandler.events.size()-1);
+    Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
+
+    // There should be a new attempt, and report of output read error
+    // should be the causal TA
+    List<MockTaskAttemptImpl> attempts = mockTask.getAttemptList();
+    Assert.assertEquals(3, attempts.size());
+    MockTaskAttemptImpl newAttempt = attempts.get(2);
+    Assert.assertEquals(mockDestId, newAttempt.getSchedulingCausalTA());
   }
 
   // TODO Add test to validate the correct commit attempt.

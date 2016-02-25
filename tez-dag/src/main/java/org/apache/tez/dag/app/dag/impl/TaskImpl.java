@@ -1268,14 +1268,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       TaskEventTAUpdate attemptEvent = (TaskEventTAUpdate) event;
       TezTaskAttemptID attemptId = attemptEvent.getTaskAttemptID();
-      if(task.successfulAttempt == attemptId) {
-        // successful attempt is now killed. reschedule
-        // tell the job about the rescheduling
-        unSucceed(task);
-        task.handleTaskAttemptCompletion(
-            attemptId,
-            TaskAttemptStateInternal.KILLED);
-        task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));
+      TaskStateInternal resultState = TaskStateInternal.SUCCEEDED;
+      if(task.successfulAttempt.equals(attemptId)) {
         // typically we are here because this map task was run on a bad node and
         // we want to reschedule it on a different node.
         // Depending on whether there are previous failed attempts or not this
@@ -1284,14 +1278,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // from the map splitInfo. So the bad node might be sent as a location
         // to the RM. But the RM would ignore that just like it would ignore
         // currently pending container requests affinitized to bad nodes.
-        task.addAndScheduleAttempt(attemptId);
-        return TaskStateInternal.SCHEDULED;
-      } else {
-        // nothing to do
-        LOG.info("Ignoring kill of attempt: " + attemptId + " because attempt: " +
-            task.successfulAttempt + " is already successful");
-        return TaskStateInternal.SUCCEEDED;
+        unSucceed(task);
+        task.eventHandler.handle(new VertexEventTaskReschedule(task.taskId));
+        resultState = TaskStateInternal.SCHEDULED;
       }
+      ATTEMPT_KILLED_TRANSITION.transition(task, event);
+      return resultState;
     }
   }
 

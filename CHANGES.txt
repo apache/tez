@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-3102. Fetch failure of a speculated task causes job hang
   TEZ-3124. Running task hangs due to missing event to initialize input in recovery.
   TEZ-3135. tez-ext-service-tests, tez-plugins/tez-yarn-timeline-history and tez-tools/tez-javadoc-tools missing dependencies.
   TEZ-3134. tez-dag should depend on commons-collections4.
@@ -384,6 +385,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-3102. Fetch failure of a speculated task causes job hang
   TEZ-3126. Log reason for not reducing parallelism
   TEZ-3123. Containers can get re-used even with conflicting local resources.
   TEZ-3117. Deadlock in Edge and Vertex code
