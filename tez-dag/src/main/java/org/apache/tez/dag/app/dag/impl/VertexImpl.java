@@ -274,6 +274,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       new VertexStateChangedCallback();
 
   private VertexState recoveredState = VertexState.NEW;
+  private boolean isInRecovery = false;
+
   @VisibleForTesting
   List<TezEvent> recoveredEvents = new ArrayList<TezEvent>();
   private boolean vertexAlreadyInitialized = false;
@@ -2598,6 +2600,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     public VertexState transition(VertexImpl vertex, VertexEvent vertexEvent) {
       VertexEventRecoverVertex recoverEvent = (VertexEventRecoverVertex) vertexEvent;
       VertexState desiredState = recoverEvent.getDesiredState();
+      vertex.isInRecovery = true;
 
       switch (desiredState) {
         case RUNNING:
@@ -2993,6 +2996,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     @Override
     public VertexState transition(VertexImpl vertex, VertexEvent vertexEvent) {
+      vertex.isInRecovery = true;
       VertexEventSourceVertexRecovered sourceRecoveredEvent =
           (VertexEventSourceVertexRecovered) vertexEvent;
       // Use distance from root from Recovery events as upstream vertices may not
@@ -3626,7 +3630,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       // this start event can only come directly from the DAG. That means this
       // is a top level vertex of the dag
       Preconditions.checkState(
-          (vertex.sourceVertices == null || vertex.sourceVertices.isEmpty()),
+          (vertex.sourceVertices == null || vertex.sourceVertices.isEmpty() || vertex.isInRecovery),
           "Vertex: " + vertex.logIdentifier + " got invalid start event");
       vertex.startSignalPending = true;
       vertex.startTimeRequested = vertex.clock.getTime();
