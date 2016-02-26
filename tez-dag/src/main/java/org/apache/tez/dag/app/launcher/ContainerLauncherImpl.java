@@ -331,22 +331,12 @@ public class ContainerLauncherImpl extends AbstractService implements
     eventHandlingThread.start();
   }
 
-  private void shutdownAllContainers() {
-    for (Container ct : this.containers.values()) {
-      if (ct != null) {
-        ct.kill();
-      }
-    }
-  }
-
   @Override
   public void serviceStop() {
     if(!serviceStopped.compareAndSet(false, true)) {
       LOG.info("Ignoring multiple stops");
       return;
     }
-    // shutdown any containers that might be left running
-    shutdownAllContainers();
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
     }
