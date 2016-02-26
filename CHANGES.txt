@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-3128. Avoid stopping containers on the AM shutdown thread.
   TEZ-3129. Tez task and task attempt UI needs application fails with NotFoundException
   TEZ-3114. Shuffle OOM due to EventMetaData flood
   TEZ-1911. MergeManager's unconditionalReserve() should check for memory limits before allocating.
