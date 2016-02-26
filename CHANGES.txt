@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES
+  TEZ-3129. Tez task and task attempt UI needs application fails with NotFoundException
   TEZ-3114. Shuffle OOM due to EventMetaData flood
   TEZ-3102. Fetch failure of a speculated task causes job hang
   TEZ-3137. Tez task failed with illegal state exception in recovery
