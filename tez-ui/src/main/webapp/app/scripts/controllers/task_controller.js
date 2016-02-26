@@ -64,7 +64,10 @@ App.TaskController = App.PollingController.extend(App.Helpers.DisplayHelper, App
     var dagLoader = this.store.find('dag', task.get('dagID'));
     var vertexLoader = this.store.find('vertex', task.get('vertexID'));
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId);
-    var appDetailLoader = App.Helpers.misc.loadApp(this.store, applicationId);
+    var appDetailLoader = App.Helpers.misc.loadApp(this.store, applicationId)
+      .then(function(app) {
+        task.set('appDetail', app);
+      }).catch(function(){});
 
     task.set('progress', undefined);
     var allLoaders = Em.RSVP.hash({
@@ -78,7 +81,6 @@ App.TaskController = App.PollingController.extend(App.Helpers.DisplayHelper, App
       task.set('vertex', results.vertex);
       task.set('vertex.dag', results.dag);
       task.set('tezApp', results.tezApp);
-      task.set('appDetail', results.appDetail);
     }).finally(function() {
       that.set('loading', false);
     });

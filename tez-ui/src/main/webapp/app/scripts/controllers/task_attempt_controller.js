@@ -74,7 +74,10 @@ App.TaskAttemptController = App.BaseController.extend(App.Helpers.DisplayHelper,
     var dagLoader = this.store.find('dag', attempt.get('dagID'));
     var vertexLoader = this.store.find('vertex', attempt.get('vertexID'));
     var taskLoader = this.store.find('task', attempt.get('taskID'));
-    var appDetailLoader = App.Helpers.misc.loadApp(this.store, applicationId);
+    var appDetailLoader = App.Helpers.misc.loadApp(this.store, applicationId)
+      .then(function(app) {
+        attempt.set('appDetail', app);
+      }).catch(function(){});
 
     var allLoaders = Em.RSVP.hash({
       dag: dagLoader,
@@ -86,7 +89,6 @@ App.TaskAttemptController = App.BaseController.extend(App.Helpers.DisplayHelper,
       attempt.set('task', results.task);
       attempt.set('task.vertex', results.vertex);
       attempt.set('task.vertex.dag', results.dag);
-      attempt.set('appDetail', results.appDetail);
     }).finally(function() {
       that.set('loading', false);
     });
