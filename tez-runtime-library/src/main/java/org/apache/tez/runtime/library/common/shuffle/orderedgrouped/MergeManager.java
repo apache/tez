@@ -51,7 +51,6 @@ import org.apache.tez.runtime.library.common.sort.impl.TezMerger;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
-import org.apache.tez.runtime.library.hadoop.compat.NullProgressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -92,11 +92,13 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   };
   private final Combiner combiner;  
   
-  private final Set<MapOutput> inMemoryMergedMapOutputs = 
+  @VisibleForTesting
+  final Set<MapOutput> inMemoryMergedMapOutputs =
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
   private final IntermediateMemoryToMemoryMerger memToMemMerger;
 
-  private final Set<MapOutput> inMemoryMapOutputs = 
+  @VisibleForTesting
+  final Set<MapOutput> inMemoryMapOutputs =
     new TreeSet<MapOutput>(new MapOutput.MapOutputComparator());
   private final InMemoryMerger inMemoryMerger;
 
@@ -644,18 +646,57 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
       InputAttemptIdentifier dummyMapId = inputs.get(0).getAttemptIdentifier(); 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
-      long mergeOutputSize = 
-        createInMemorySegments(inputs, inMemorySegments, 0);
+
+      MapOutput mergedMapOutputs = null;
+
+      long mergeOutputSize = 0l;
+      //Lock manager so that fetcher threads can not change the mem size
+      synchronized (manager) {
+
+        Iterator<MapOutput> it = inputs.iterator();
+        while(it.hasNext() && !Thread.currentThread().isInterrupted()) {
+          MapOutput mo = it.next();
+          if ((mergeOutputSize + mo.getSize() + usedMemory) > memoryLimit) {
+            //Search for smaller segments that can fit into existing mem
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Size is greater than usedMemory. "
+                  + "mergeOutputSize=" + mergeOutputSize
+                  + ", moSize=" + mo.getSize()
+                  + ", usedMemory=" + usedMemory
+                  + ", memoryLimit=" + memoryLimit);
+            }
+            continue;
+          } else {
+            mergeOutputSize += mo.getSize();
+            IFile.Reader reader = new InMemoryReader(MergeManager.this,
+                mo.getAttemptIdentifier(), mo.getMemory(), 0, mo.getMemory().length);
+            inMemorySegments.add(new Segment(reader, true,
+                (mo.isPrimaryMapOutput() ? mergedMapOutputsCounter : null)));
+            it.remove();
+            LOG.debug("Added segment for merging. mergeOutputSize=" + mergeOutputSize);
+          }
+        }
+
+        //Add any unused MapOutput back
+        inMemoryMapOutputs.addAll(inputs);
+
+        if (inMemorySegments.size() <= 1) {
+          return; //no need to proceed further.
+        }
+
+        mergedMapOutputs = unconditionalReserve(dummyMapId, mergeOutputSize, false);
+      }
+
       int noInMemorySegments = inMemorySegments.size();
 
-      MapOutput mergedMapOutputs =
-        unconditionalReserve(dummyMapId, mergeOutputSize, false);
-      
-      Writer writer = 
-        new InMemoryWriter(mergedMapOutputs.getArrayStream());
+      Writer writer = new InMemoryWriter(mergedMapOutputs.getArrayStream());
 
       LOG.info(inputContext.getSourceVertexName() + ": " + "Initiating Memory-to-Memory merge with " + noInMemorySegments +
                " segments of total-size: " + mergeOutputSize);
+
+      if (Thread.currentThread().isInterrupted()) {
+        return; // early exit
+      }
 
       // Nothing will be materialized to disk because the sort factor is being
       // set to the number of in memory segments.
@@ -673,7 +714,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
       LOG.info(inputContext.getSourceVertexName() +
                " Memory-to-Memory merge of the " + noInMemorySegments +
-               " files in-memory complete.");
+               " files in-memory complete with mergeOutputSize=" + mergeOutputSize);
 
       // Note the output of the merge
       closeInMemoryMergedFile(mergedMapOutputs);

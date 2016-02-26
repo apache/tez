@@ -231,6 +231,222 @@ public class TestMergeManager {
     assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
   }
 
+  @Test(timeout = 60000l)
+  public void testIntermediateMemoryMerge() throws Throwable {
+    Configuration conf = new TezConfiguration(defaultConf);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, true);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 3);
+
+    Path localDir = new Path(workDir, "local");
+    Path srcDir = new Path(workDir, "srcData");
+    localFs.mkdirs(localDir);
+    localFs.mkdirs(srcDir);
+
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDir.toString());
+
+    FileSystem localFs = FileSystem.getLocal(conf);
+    LocalDirAllocator localDirAllocator =
+        new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    InputContext inputContext = createMockInputContext(UUID.randomUUID().toString());
+
+    ExceptionReporter exceptionReporter = mock(ExceptionReporter.class);
+
+    MergeManager mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+            exceptionReporter, 2000000, null, false, -1);
+    mergeManager.configureAndStart();
+
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    /**
+     * Test #1
+     * - Have 4 segments where all of them can fit into memory.
+     * - After 3 segment commits, it would trigger mem-to-mem merge.
+     * - All of them can be merged in memory.
+     */
+    byte[] data1 = generateDataBySize(conf, 10);
+    byte[] data2 = generateDataBySize(conf, 20);
+    byte[] data3 = generateDataBySize(conf, 200);
+    byte[] data4 = generateDataBySize(conf, 20000);
+
+    MapOutput mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
+    MapOutput mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
+    MapOutput mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
+    MapOutput mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+
+    assertEquals(MapOutput.Type.MEMORY, mo1.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo2.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo3.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo4.getType());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    //size should be ~20230.
+    assertEquals(data1.length + data2.length + data3.length + data4.length,
+        mergeManager.getUsedMemory());
+
+
+    System.arraycopy(data1, 0, mo1.getMemory(), 0, data1.length);
+    System.arraycopy(data2, 0, mo2.getMemory(), 0, data2.length);
+    System.arraycopy(data3, 0, mo3.getMemory(), 0, data3.length);
+    System.arraycopy(data4, 0, mo4.getMemory(), 0, data4.length);
+
+    //Committing 3 segments should trigger mem-to-mem merge
+    mo1.commit();
+    mo2.commit();
+    mo3.commit();
+    mo4.commit();
+
+    //Wait for mem-to-mem to complete
+    mergeManager.waitForMemToMemMerge();
+
+    assertEquals(1, mergeManager.inMemoryMergedMapOutputs.size());
+    assertEquals(1, mergeManager.inMemoryMapOutputs.size());
+
+    mergeManager.close();
+
+
+    /**
+     * Test #2
+     * - Have 4 segments where all of them can fit into memory, but one of
+     * them would be big enough that it can not be fit in memory during
+     * mem-to-mem merging.
+     *
+     * - After 3 segment commits, it would trigger mem-to-mem merge.
+     * - Smaller segments which can be fit in additional memory allocated gets
+     * merged.
+     */
+    mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+            exceptionReporter, 2000000, null, false, -1);
+    mergeManager.configureAndStart();
+
+    //Single shuffle limit is 25% of 2000000
+    data1 = generateDataBySize(conf, 10);
+    data2 = generateDataBySize(conf, 400000);
+    data3 = generateDataBySize(conf, 400000);
+    data4 = generateDataBySize(conf, 400000);
+
+    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+
+    assertEquals(MapOutput.Type.MEMORY, mo1.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo2.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo3.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo4.getType());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    assertEquals(data1.length + data2.length + data3.length + data4.length,
+        mergeManager.getUsedMemory());
+
+    System.arraycopy(data1, 0, mo1.getMemory(), 0, data1.length);
+    System.arraycopy(data2, 0, mo2.getMemory(), 0, data2.length);
+    System.arraycopy(data3, 0, mo3.getMemory(), 0, data3.length);
+    System.arraycopy(data4, 0, mo4.getMemory(), 0, data4.length);
+
+    //Committing 3 segments should trigger mem-to-mem merge
+    mo1.commit();
+    mo2.commit();
+    mo3.commit();
+    mo4.commit();
+
+    //Wait for mem-to-mem to complete
+    mergeManager.waitForMemToMemMerge();
+
+    /**
+     * Already all segments are in memory which is around 120000. It
+     * would not be able to allocate more than 800000 for mem-to-mem. So it
+     * would pick up only 2 small segments which can be accomodated within
+     * 800000.
+     */
+    assertEquals(1, mergeManager.inMemoryMergedMapOutputs.size());
+    assertEquals(2, mergeManager.inMemoryMapOutputs.size());
+
+    mergeManager.close();
+
+    /**
+     * Test #3
+     * - Set number of segments for merging to 4.
+     * - Have 4 in-memory segments of size 400000 each
+     * - Committing 4 segments would trigger mem-to-mem
+     * - But none of them can be merged as there is no enough head room for
+     * merging in memory.
+     */
+    mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+            exceptionReporter, 2000000, null, false, -1);
+    mergeManager.configureAndStart();
+
+    //Single shuffle limit is 25% of 2000000
+    data1 = generateDataBySize(conf, 400000);
+    data2 = generateDataBySize(conf, 400000);
+    data3 = generateDataBySize(conf, 400000);
+    data4 = generateDataBySize(conf, 400000);
+
+    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+
+    assertEquals(MapOutput.Type.MEMORY, mo1.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo2.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo3.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo4.getType());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    assertEquals(data1.length + data2.length + data3.length + data4.length,
+        mergeManager.getUsedMemory());
+
+    System.arraycopy(data1, 0, mo1.getMemory(), 0, data1.length);
+    System.arraycopy(data2, 0, mo2.getMemory(), 0, data2.length);
+    System.arraycopy(data3, 0, mo3.getMemory(), 0, data3.length);
+    System.arraycopy(data4, 0, mo4.getMemory(), 0, data4.length);
+
+    //Committing 3 segments should trigger mem-to-mem merge
+    mo1.commit();
+    mo2.commit();
+    mo3.commit();
+    mo4.commit();
+
+    //Wait for mem-to-mem to complete
+    mergeManager.waitForMemToMemMerge();
+
+    // None of them can be merged as new mem needed for mem-to-mem can't
+    // accomodate any segements
+    assertEquals(0, mergeManager.inMemoryMergedMapOutputs.size());
+    assertEquals(4, mergeManager.inMemoryMapOutputs.size());
+
+    mergeManager.close();
+
+  }
+
+  private byte[] generateDataBySize(Configuration conf, int rawLen) throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
+    IFile.Writer writer =
+        new IFile.Writer(conf, fsdos, IntWritable.class, IntWritable.class, null, null, null);
+    int i = 0;
+    while(true) {
+      writer.append(new IntWritable(i), new IntWritable(i));
+      i++;
+      if (writer.getRawLength() > rawLen) {
+        break;
+      }
+    }
+    writer.close();
+    int compressedLength = (int)writer.getCompressedLength();
+    int rawLength = (int)writer.getRawLength();
+    byte[] data = new byte[rawLength];
+    ShuffleUtils.shuffleToMemory(data, new ByteArrayInputStream(baos.toByteArray()),
+        rawLength, compressedLength, null, false, 0, LOG, "sometask");
+    return data;
+  }
+
   private byte[] generateData(Configuration conf, int numEntries) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
