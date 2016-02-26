@@ -43,7 +43,6 @@ public class TestDeprecatedKeys {
     jobConf.setFloat(MRJobConfig.SHUFFLE_MERGE_PERCENT, 0.22f);
     jobConf.setBoolean(MRJobConfig.REDUCE_MEMTOMEM_ENABLED, true);
     jobConf.setFloat(MRJobConfig.REDUCE_INPUT_BUFFER_PERCENT, 0.33f);
-    jobConf.setInt(MRJobConfig.TASK_TIMEOUT, 1000);
 
     MRHelpers.translateMRConfToTez(jobConf);
 
@@ -65,7 +64,6 @@ public class TestDeprecatedKeys {
     assertEquals(0.33f,
         jobConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT, 0),
         0.01f);
-    assertEquals(1000, jobConf.getInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS, 2000));
   }
 
   @Test(timeout = 5000)
@@ -78,7 +76,6 @@ public class TestDeprecatedKeys {
     jobConf.setInt(MRJobConfig.IO_SORT_MB, 100);
     jobConf.setInt(MRJobConfig.COUNTERS_MAX_KEY, 100);
     jobConf.setFloat(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, 0.95f);
-    jobConf.setInt(MRJobConfig.TASK_TIMEOUT, 1000);
 
     jobConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 1000);
     jobConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 200);
@@ -103,7 +100,6 @@ public class TestDeprecatedKeys {
     jobConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "DefaultSorter");
     jobConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, "groupComparator");
     jobConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS, "SecondaryComparator");
-    jobConf.setInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS, 2000);
 
     jobConf.setBoolean(MRJobConfig.MAP_OUTPUT_COMPRESS, false);
     jobConf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, true);
@@ -135,7 +131,6 @@ public class TestDeprecatedKeys {
     assertEquals("DefaultSorter", jobConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, ""));
     assertTrue(jobConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false));
     assertEquals(0.95f, jobConf.getFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, 0.0f), 0.0f);
-    assertEquals(2000, jobConf.getInt(TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS, 2000));
 
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD));
     assertNull(jobConf.get(MRConfig.MAPRED_IFILE_READAHEAD_BYTES));
@@ -161,7 +156,6 @@ public class TestDeprecatedKeys {
     assertNull(jobConf.get(MRJobConfig.GROUP_COMPARATOR_CLASS));
     assertNull(jobConf.get("map.sort.class"));
     assertNull(jobConf.get(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART));
-    assertNull(jobConf.get(MRJobConfig.TASK_TIMEOUT));
   }
 
 }
