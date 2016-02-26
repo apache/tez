@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-3114. Shuffle OOM due to EventMetaData flood
   TEZ-1911. MergeManager's unconditionalReserve() should check for memory limits before allocating.
   TEZ-3102. Fetch failure of a speculated task causes job hang
   TEZ-3124. Running task hangs due to missing event to initialize input in recovery.
@@ -386,6 +387,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES
+  TEZ-3114. Shuffle OOM due to EventMetaData flood
   TEZ-3102. Fetch failure of a speculated task causes job hang
   TEZ-3126. Log reason for not reducing parallelism
   TEZ-3123. Containers can get re-used even with conflicting local resources.

@@ -715,6 +715,17 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 500;
   
   /**
+   * Int value. Maximum number of pending task events before a task will stop
+   * asking for more events in the task heartbeat.
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_TASK_MAX_EVENT_BACKLOG = TEZ_TASK_PREFIX +
+      "max-event-backlog";
+  public static final int TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT = 10000;
+
+  /**
    * Long value. Interval, in milliseconds, within which any of the tasks Input/Processor/Output 
    * components need to make successive progress notifications. If the progress is not notified 
    * for this interval then the task will be considered hung and terminated.

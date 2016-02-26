@@ -153,6 +153,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final ExecutionContext ExecutionContext;
   private final long memAvailable;
   private final HadoopShim hadoopShim;
+  private final int maxEventBacklog;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
@@ -203,6 +204,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.ExecutionContext = ExecutionContext;
     this.memAvailable = memAvailable;
     this.hadoopShim = hadoopShim;
+    this.maxEventBacklog = tezConf.getInt(TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG,
+        TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT);
   }
 
   /**
@@ -727,6 +730,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       return false;
     }
     return true;
+  }
+
+  @Override
+  public int getMaxEventsToHandle() {
+    return Math.max(0, maxEventBacklog - eventsToBeProcessed.size());
   }
 
   @Override

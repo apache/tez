@@ -21,13 +21,16 @@ package org.apache.tez.runtime.task;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,6 +48,7 @@ import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -110,6 +114,43 @@ public class TestTaskReporter {
 
   }
   
+  @Test(timeout = 10000)
+  public void testEventThrottling() throws Exception {
+    TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
+    LogicalIOProcessorRuntimeTask mockTask = mock(LogicalIOProcessorRuntimeTask.class);
+    when(mockTask.getMaxEventsToHandle()).thenReturn(10000, 1);
+    when(mockTask.getVertexName()).thenReturn("vertexName");
+    when(mockTask.getTaskAttemptID()).thenReturn(mockTaskAttemptId);
+
+    TezTaskUmbilicalProtocol mockUmbilical = mock(TezTaskUmbilicalProtocol.class);
+    TezHeartbeatResponse resp1 = new TezHeartbeatResponse(createEvents(5));
+    resp1.setLastRequestId(1);
+    TezHeartbeatResponse resp2 = new TezHeartbeatResponse(createEvents(1));
+    resp2.setLastRequestId(2);
+    resp2.setShouldDie();
+    when(mockUmbilical.heartbeat(isA(TezHeartbeatRequest.class))).thenReturn(resp1, resp2);
+
+    // Setup the sleep time to be way higher than the test timeout
+    TaskReporter.HeartbeatCallable heartbeatCallable =
+        new TaskReporter.HeartbeatCallable(mockTask, mockUmbilical, 100000, 100000, 5,
+            new AtomicLong(0),
+            "containerIdStr");
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      Future<Boolean> result = executor.submit(heartbeatCallable);
+      Assert.assertFalse(result.get());
+    } finally {
+      executor.shutdownNow();
+    }
+
+    ArgumentCaptor<TezHeartbeatRequest> captor = ArgumentCaptor.forClass(TezHeartbeatRequest.class);
+    verify(mockUmbilical, times(2)).heartbeat(captor.capture());
+    TezHeartbeatRequest req = captor.getValue();
+    Assert.assertEquals(2, req.getRequestId());
+    Assert.assertEquals(1, req.getMaxEvents());
+  }
+
   @Test (timeout=5000)
   public void testStatusUpdateAfterInitializationAndCounterFlag() {
     TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
