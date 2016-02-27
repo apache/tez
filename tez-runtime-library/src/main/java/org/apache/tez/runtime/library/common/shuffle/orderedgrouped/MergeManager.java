@@ -598,13 +598,13 @@ public class MergeManager {
         Iterator<MapOutput> it = inputs.iterator();
         while(it.hasNext() && !Thread.currentThread().isInterrupted()) {
           MapOutput mo = it.next();
-          if ((mergeOutputSize + mo.getSize() + usedMemory) > memoryLimit) {
+          if ((mergeOutputSize + mo.getSize() + manager.getUsedMemory()) > memoryLimit) {
             //Search for smaller segments that can fit into existing mem
             if (LOG.isDebugEnabled()) {
               LOG.debug("Size is greater than usedMemory. "
                   + "mergeOutputSize=" + mergeOutputSize
                   + ", moSize=" + mo.getSize()
-                  + ", usedMemory=" + usedMemory
+                  + ", usedMemory=" + manager.getUsedMemory()
                   + ", memoryLimit=" + memoryLimit);
             }
             continue;
@@ -1105,7 +1105,7 @@ public class MergeManager {
   }
 
   @VisibleForTesting
-  long getUsedMemory() {
+  synchronized long getUsedMemory() {
     return usedMemory;
   }
 
