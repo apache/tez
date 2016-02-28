@@ -25,7 +25,13 @@ var MergeTrees = require('broccoli-merge-trees');
 
 module.exports = function(defaults) {
   var app = new EmberApp(defaults, {
-    storeConfigInMeta: false
+    storeConfigInMeta: false,
+    minifyCSS: {
+      enabled: false
+    },
+    minifyJS: {
+      enabled: false
+    }
   });
 
   var configEnv = new Funnel('config', {

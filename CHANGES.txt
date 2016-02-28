@@ -43,6 +43,7 @@ ALL CHANGES:
   TEZ-3037. History URL should be set regardless of which history logging service is enabled.
   TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
   TEZ-3101. Tez UI: Task attempt log link doesn't have the correct protocol.
+  TEZ-3143. Tez UI 2: Make the build faster
 
 TEZ-2980: Tez UI 2 - Umbrella:
   TEZ-2982. Tez UI: Create tez-ui2 directory and get a basic dummy page working in ember 2.2
