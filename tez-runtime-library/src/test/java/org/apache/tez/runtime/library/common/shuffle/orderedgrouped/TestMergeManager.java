@@ -420,6 +420,65 @@ public class TestMergeManager {
 
     mergeManager.close();
 
+    /**
+     * Test #4
+     * - Set number of segments for merging to 4.
+     * - Have 4 in-memory segments of size {490000,490000,490000,230000}
+     * - Committing 4 segments would trigger mem-to-mem
+     * - But only 300000 can fit into memory. This should not be
+     * merged as there is no point in merging single segment. It should be
+     * added back to the inMemorySegments
+     */
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 4);
+    mergeManager =
+        new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+            exceptionReporter, 2000000, null, false, -1);
+    mergeManager.configureAndStart();
+
+    //Single shuffle limit is 25% of 2000000
+    data1 = generateDataBySize(conf, 490000);
+    data2 = generateDataBySize(conf, 490000);
+    data3 = generateDataBySize(conf, 490000);
+    data4 = generateDataBySize(conf, 230000);
+
+    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+
+    assertTrue(mergeManager.getUsedMemory() >= (490000 + 490000 + 490000 + 23000));
+
+    assertEquals(MapOutput.Type.MEMORY, mo1.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo2.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo3.getType());
+    assertEquals(MapOutput.Type.MEMORY, mo4.getType());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    assertEquals(data1.length + data2.length + data3.length + data4.length,
+        mergeManager.getUsedMemory());
+
+    System.arraycopy(data1, 0, mo1.getMemory(), 0, data1.length);
+    System.arraycopy(data2, 0, mo2.getMemory(), 0, data2.length);
+    System.arraycopy(data3, 0, mo3.getMemory(), 0, data3.length);
+    System.arraycopy(data4, 0, mo4.getMemory(), 0, data4.length);
+
+    //Committing 4 segments should trigger mem-to-mem merge
+    mo1.commit();
+    mo2.commit();
+    mo3.commit();
+    mo4.commit();
+
+    //4 segments were there originally in inMemoryMapOutput.
+    int numberOfMapOutputs = 4;
+
+    //Wait for mem-to-mem to complete. Since only 1 segment (230000) can fit
+    //into memory, it should return early
+    mergeManager.waitForMemToMemMerge();
+
+    //Check if inMemorySegment has got the MapOutput back for merging later
+    assertEquals(numberOfMapOutputs, mergeManager.inMemoryMapOutputs.size());
+
+    mergeManager.close();
   }
 
   private byte[] generateDataBySize(Configuration conf, int rawLen) throws IOException {

@@ -596,6 +596,7 @@ public class MergeManager {
       synchronized (manager) {
 
         Iterator<MapOutput> it = inputs.iterator();
+        MapOutput lastAddedMapOutput = null;
         while(it.hasNext() && !Thread.currentThread().isInterrupted()) {
           MapOutput mo = it.next();
           if ((mergeOutputSize + mo.getSize() + manager.getUsedMemory()) > memoryLimit) {
@@ -614,6 +615,7 @@ public class MergeManager {
                 mo.getAttemptIdentifier(), mo.getMemory(), 0, mo.getMemory().length);
             inMemorySegments.add(new Segment(reader, true,
                 (mo.isPrimaryMapOutput() ? mergedMapOutputsCounter : null)));
+            lastAddedMapOutput = mo;
             it.remove();
             LOG.debug("Added segment for merging. mergeOutputSize=" + mergeOutputSize);
           }
@@ -622,8 +624,12 @@ public class MergeManager {
         //Add any unused MapOutput back
         inMemoryMapOutputs.addAll(inputs);
 
+        //Exit early, if 0 or 1 segment is available
         if (inMemorySegments.size() <= 1) {
-          return; //no need to proceed further.
+          if (lastAddedMapOutput != null) {
+            inMemoryMapOutputs.add(lastAddedMapOutput);
+          }
+          return;
         }
 
         mergedMapOutputs = unconditionalReserve(dummyMapId, mergeOutputSize, false);
