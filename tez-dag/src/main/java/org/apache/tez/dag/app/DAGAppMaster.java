@@ -1207,7 +1207,11 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public void shutdownTezAM() throws TezException {
-    sessionStopped.set(true);
+    if (!sessionStopped.compareAndSet(false, true)) {
+      // No need to shutdown twice.
+      // Return with a no-op if shutdownTezAM has been invoked earlier.
+      return;
+    }
     synchronized (this) {
       this.taskSchedulerEventHandler.setShouldUnregisterFlag();
       if (currentDAG != null
