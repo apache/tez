@@ -697,6 +697,8 @@ public class TestHistoryParser {
       assertTrue(versionInfo.getBuildTime() != null);
     }
 
+    assertTrue(dagInfo.getUserName() != null);
+    assertTrue(!dagInfo.getUserName().isEmpty());
     assertTrue(dagInfo.getStartTime() > 0);
     assertTrue(dagInfo.getFinishTimeInterval() > 0);
     assertTrue(dagInfo.getStartTimeInterval() == 0);

@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3149. Tez-tools: Add username in DagInfo
   TEZ-2988. DAGAppMaster::shutdownTezAM should return with a no-op if it has been invoked earlier.
   TEZ-3147. Intermediate mem-to-mem: Fix early exit when only one segment can fit into memory
   TEZ-1911. MergeManager's unconditionalReserve() should check for memory limits before allocating.
