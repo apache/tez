@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-2988. DAGAppMaster::shutdownTezAM should return with a no-op if it has been invoked earlier.
   TEZ-3147. Intermediate mem-to-mem: Fix early exit when only one segment can fit into memory
   TEZ-3141. mapreduce.task.timeout is not translated to container heartbeat timeout
   TEZ-3128. Avoid stopping containers on the AM shutdown thread.
@@ -392,6 +393,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2988. DAGAppMaster::shutdownTezAM should return with a no-op if it has been invoked earlier.
   TEZ-3141. mapreduce.task.timeout is not translated to container heartbeat timeout
   TEZ-3129. Tez task and task attempt UI needs application fails with NotFoundException
   TEZ-3114. Shuffle OOM due to EventMetaData flood
