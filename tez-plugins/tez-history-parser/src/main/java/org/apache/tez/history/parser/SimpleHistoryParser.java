@@ -114,6 +114,7 @@ public class SimpleHistoryParser extends BaseParser {
     Map<String, JSONObject> taskJsonMap = Maps.newHashMap();
     Map<String, JSONObject> attemptJsonMap = Maps.newHashMap();
     TezDAGID tezDAGID = TezDAGID.fromString(dagId);
+    String userName = null;
     while (scanner.hasNext()) {
       String line = scanner.next();
       JSONObject jsonObject = new JSONObject(line);
@@ -133,6 +134,20 @@ public class SimpleHistoryParser extends BaseParser {
         }
         JSONObject otherInfo = jsonObject.optJSONObject(Constants.OTHER_INFO);
         JSONObject dagOtherInfo = dagJson.getJSONObject(Constants.OTHER_INFO);
+        JSONArray relatedEntities = dagJson.optJSONArray(Constants
+            .RELATED_ENTITIES);
+        //UserName is present in related entities
+        // {"entity":"userXYZ","entitytype":"user"}
+        if (relatedEntities != null) {
+          for (int i = 0; i < relatedEntities.length(); i++) {
+            JSONObject subEntity = relatedEntities.getJSONObject(i);
+            String subEntityType = subEntity.optString(Constants.ENTITY_TYPE);
+            if (subEntityType != null && subEntityType.equals(Constants.USER)) {
+              userName = subEntity.getString(Constants.ENTITY);
+              break;
+            }
+          }
+        }
         populateOtherInfo(otherInfo, dagOtherInfo);
         break;
       case Constants.TEZ_VERTEX_ID:
@@ -181,6 +196,7 @@ public class SimpleHistoryParser extends BaseParser {
     scanner.close();
     if (dagJson != null) {
       this.dagInfo = DagInfo.create(dagJson);
+      setUserName(userName);
     } else {
       LOG.error("Dag is not yet parsed. Looks like partial file.");
       throw new TezException(

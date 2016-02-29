@@ -66,6 +66,7 @@ public class DagInfo extends BaseInfo {
   private final int numVertices;
   private final String status;
   private final String diagnostics;
+  private String userName;
   private VersionInfo versionInfo;
   private CallerContext callerContext;
 
@@ -102,6 +103,7 @@ public class DagInfo extends BaseInfo {
 
     long sTime = otherInfoNode.optLong(Constants.START_TIME);
     long eTime= otherInfoNode.optLong(Constants.FINISH_TIME);
+    userName = otherInfoNode.optString(Constants.USER);
     if (eTime < sTime) {
       LOG.warn("DAG has got wrong start/end values. "
           + "startTime=" + sTime + ", endTime=" + eTime + ". Will check "
@@ -610,6 +612,14 @@ public class DagInfo extends BaseInfo {
 
   public final int getFailedTaskCount() {
     return failedTasks;
+  }
+
+  public final String getUserName() {
+    return userName;
+  }
+
+  final void setUserName(String userName) {
+    this.userName = userName;
   }
 
 }

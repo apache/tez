@@ -111,4 +111,9 @@ public abstract class BaseParser {
       }
     });
   }
+
+  protected void setUserName(String userName) {
+    Preconditions.checkArgument(dagInfo != null, "DagInfo can not be null");
+    dagInfo.setUserName(userName);
+  }
 }
