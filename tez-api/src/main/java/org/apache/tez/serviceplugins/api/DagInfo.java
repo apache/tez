@@ -14,6 +14,8 @@
 
 package org.apache.tez.serviceplugins.api;
 
+import org.apache.hadoop.security.Credentials;
+
 public interface DagInfo {
 
   /**
@@ -27,4 +29,10 @@ public interface DagInfo {
    * @return the name of the dag
    */
   String getName();
+
+  /**
+   * Get credentials for the dag.
+   * @return the credentials for the dag.
+   */
+  Credentials getCredentials();
 }

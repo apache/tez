@@ -86,8 +86,6 @@ public interface DAG extends DagInfo {
 
   boolean isComplete();
 
-  Credentials getCredentials();
-  
   UserGroupInformation getDagUGI();
 
   ACLManager getACLManager();

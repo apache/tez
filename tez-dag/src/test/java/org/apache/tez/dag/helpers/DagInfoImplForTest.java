@@ -14,6 +14,7 @@
 
 package org.apache.tez.dag.helpers;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.tez.serviceplugins.api.DagInfo;
 
 public class DagInfoImplForTest implements DagInfo {
@@ -34,5 +35,10 @@ public class DagInfoImplForTest implements DagInfo {
   @Override
   public String getName() {
     return name;
+  }
+
+  @Override
+  public Credentials getCredentials() {
+    return null;
   }
 }
