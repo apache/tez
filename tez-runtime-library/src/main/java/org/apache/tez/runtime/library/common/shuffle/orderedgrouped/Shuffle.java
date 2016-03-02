@@ -150,8 +150,6 @@ public class Shuffle implements ExceptionReporter {
         + (codec == null ? "None" : codec.getClass().getName())
         + ", ifileReadAhead: " + ifileReadAhead);
 
-    boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-      TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
     startTime = System.currentTimeMillis();
     merger = new MergeManager(
         this.conf,
@@ -188,8 +186,7 @@ public class Shuffle implements ExceptionReporter {
 
     eventHandler= new ShuffleInputEventHandlerOrderedGrouped(
         inputContext,
-        scheduler,
-        sslShuffle);
+        scheduler);
     
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleAndMergeRunner {" + srcNameTrimmed + "}").build());

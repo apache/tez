@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-3115. Shuffle string handling adds significant memory overhead
   TEZ-3151. Expose DAG credentials to plugins.
   TEZ-3149. Tez-tools: Add username in DagInfo.
   TEZ-2988. DAGAppMaster::shutdownTezAM should return with a no-op if it has been invoked earlier.
@@ -395,6 +396,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-3115. Shuffle string handling adds significant memory overhead
   TEZ-3149. Tez-tools: Add username in DagInfo.
   TEZ-2988. DAGAppMaster::shutdownTezAM should return with a no-op if it has been invoked earlier.
   TEZ-3141. mapreduce.task.timeout is not translated to container heartbeat timeout

@@ -57,6 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -79,6 +80,8 @@ public class TestFetcher {
   public static final String SHUFFLE_INPUT_FILE_PREFIX = "shuffle_input_file_";
   public static final String HOST = "localhost";
   public static final int PORT = 65;
+  public static final int DAG_ID = 1;
+  public static final String APP_ID = "application_1234_1";
 
   private TezCounters tezCounters = new TezCounters();
   private TezCounter ioErrsCounter = tezCounters.findCounter(ShuffleScheduler.SHUFFLE_ERR_GRP_NAME,
@@ -114,7 +117,7 @@ public class TestFetcher {
     doReturn(new TezCounters()).when(inputContext).getCounters();
     doReturn("src vertex").when(inputContext).getSourceVertexName();
 
-    MapHost mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
+    MapHost mapHost = new MapHost(HOST, PORT, 0);
     InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(0, 0, "attempt");
     mapHost.addKnownMap(inputAttemptIdentifier);
     List<InputAttemptIdentifier> mapsForHost = Lists.newArrayList(inputAttemptIdentifier);
@@ -124,7 +127,7 @@ public class TestFetcher {
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, false, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
 
     fetcher.call();
     verify(scheduler).getMapsForHost(mapHost);
@@ -147,12 +150,12 @@ public class TestFetcher {
 
     final boolean ENABLE_LOCAL_FETCH = true;
     final boolean DISABLE_LOCAL_FETCH = false;
-    MapHost mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
+    MapHost mapHost = new MapHost(HOST, PORT, 0);
     FetcherOrderedGrouped fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
 
     // when local mode is enabled and host and port matches use local fetch
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
@@ -164,12 +167,12 @@ public class TestFetcher {
     verify(spyFetcher, never()).copyFromHost(any(MapHost.class));
 
     // if hostname does not match use http
-    mapHost = new MapHost(0, HOST + "_OTHER" + ":" + PORT, "baseurl");
+    mapHost = new MapHost(HOST + "_OTHER", PORT, 0);
     fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -179,12 +182,12 @@ public class TestFetcher {
     verify(spyFetcher, times(1)).copyFromHost(mapHost);
 
     // if port does not match use http
-    mapHost = new MapHost(0, HOST + ":" + (PORT + 1), "baseurl");
+    mapHost = new MapHost(HOST, PORT + 1, 0);
     fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -194,11 +197,11 @@ public class TestFetcher {
     verify(spyFetcher, times(1)).copyFromHost(mapHost);
 
     //if local fetch is not enabled
-    mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
+    mapHost = new MapHost(HOST, PORT, 0);
     fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
         null, conf, DISABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
         wrongLengthErrsCounter, badIdErrsCounter,
-        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -219,11 +222,10 @@ public class TestFetcher {
     when(inputContext.getCounters()).thenReturn(new TezCounters());
     when(inputContext.getSourceVertexName()).thenReturn("");
 
-    MapHost host = new MapHost(1, HOST + ":" + PORT,
-        "http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=");
+    MapHost host = new MapHost(HOST, PORT, 1);
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
         null, conf, true, HOST, PORT, "src vertex", host, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter,
-        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
 
@@ -361,13 +363,13 @@ public class TestFetcher {
     InputContext inputContext = mock(InputContext.class);
     when(inputContext.getCounters()).thenReturn(new TezCounters());
     when(inputContext.getSourceVertexName()).thenReturn("");
+    when(inputContext.getApplicationId()).thenReturn(ApplicationId.newInstance(0, 1));
 
     HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
-    final MapHost host = new MapHost(1, HOST + ":" + PORT,
-        "http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=");
+    final MapHost host = new MapHost(HOST, PORT, 1);
     FetcherOrderedGrouped mockFetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
         null, conf, false, HOST, PORT, "src vertex", host, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter,
-        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
 
@@ -379,7 +381,7 @@ public class TestFetcher {
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
     doReturn(true).when(fetcher).setupConnection(any(MapHost.class), any(Collection.class));
 
-    URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), srcAttempts, false);
+    URL url = ShuffleUtils.constructInputURL("http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=", srcAttempts, false);
     fetcher.httpConnection = new FakeHttpConnection(url, null, "", null);
 
     doAnswer(new Answer<MapOutput>() {
@@ -452,14 +454,13 @@ public class TestFetcher {
     doReturn(new byte[10]).when(jobMgr).computeHash(any(byte[].class));
 
     HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
-    final MapHost host = new MapHost(1, HOST + ":" + PORT,
-        "http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=");
+    final MapHost host = new MapHost(HOST, PORT, 1);
     FetcherOrderedGrouped mockFetcher =
         new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger, metrics, shuffle, jobMgr,
             false, 0,
             null, conf, false, HOST, PORT, "src vertex", host, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, true);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, true, false);
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
     fetcher.remaining = new LinkedHashMap<String, InputAttemptIdentifier>();
     final List<InputAttemptIdentifier> srcAttempts = Arrays.asList(
@@ -521,12 +522,12 @@ public class TestFetcher {
     MergeManager merger = mock(MergeManager.class);
     ShuffleClientMetrics metrics = mock(ShuffleClientMetrics.class);
     Shuffle shuffle = mock(Shuffle.class);
-    MapHost mapHost = new MapHost(0, HOST + ":" + PORT, "baseurl");
+    MapHost mapHost = new MapHost(HOST, PORT, 0);
     FetcherOrderedGrouped fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
             null, conf, false, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter,
-            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, false);
+            wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false);
     fetcher.populateRemainingMap(new LinkedList<InputAttemptIdentifier>(Arrays.asList(srcAttempts)));
     Assert.assertEquals(expectedSrcAttempts.length, fetcher.remaining.size());
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.remaining.entrySet().iterator();

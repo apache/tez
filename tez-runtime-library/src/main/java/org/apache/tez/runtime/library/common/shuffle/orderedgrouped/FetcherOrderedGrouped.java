@@ -72,7 +72,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final ExceptionReporter exceptionReporter;
   private final int id;
   private final String logIdentifier;
-  private final String localShuffleHostPort;
+  private final String localShuffleHost;
+  private final int localShufflePort;
+  private final String applicationId;
+ private final int dagId;
   private final MapHost mapHost;
 
   private final int currentPartition;
@@ -82,6 +85,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final JobTokenSecretManager jobTokenSecretManager;
 
   final HttpConnectionParams httpConnectionParams;
+  private final boolean sslShuffle;
 
   @VisibleForTesting
   volatile boolean stopped = false;
@@ -118,7 +122,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                TezCounter wrongMapErrsCounter,
                                TezCounter connectionErrsCounter,
                                TezCounter wrongReduceErrsCounter,
-                               boolean asyncHttp) {
+                               String applicationId,
+                               int dagId,
+                               boolean asyncHttp,
+                               boolean sslShuffle) {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.metrics = metrics;
@@ -134,6 +141,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.wrongMapErrs = wrongMapErrsCounter;
     this.connectionErrs = connectionErrsCounter;
     this.wrongReduceErrs = wrongReduceErrsCounter;
+    this.applicationId = applicationId;
+    this.dagId = dagId;
 
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -145,9 +154,11 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       this.codec = null;
     }
     this.conf = conf;
-    this.localShuffleHostPort = localHostname + ":" + String.valueOf(shufflePort);
+    this.localShuffleHost = localHostname;
+    this.localShufflePort = shufflePort;
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
+    this.sslShuffle = sslShuffle;
 
     this.logIdentifier = "fetcher [" + srcNameTrimmed + "] #" + id;
   }
@@ -157,8 +168,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     try {
       metrics.threadBusy();
 
-      String hostPort = mapHost.getHostIdentifier();
-      if (localDiskFetchEnabled && hostPort.equals(localShuffleHostPort)) {
+      if (localDiskFetchEnabled && mapHost.getHost().equals(localShuffleHost) && mapHost.getPort() == localShufflePort) {
         setupLocalDiskFetch(mapHost);
       } else {
         // Shuffle
@@ -319,8 +329,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       throws IOException {
     boolean connectSucceeded = false;
     try {
-      URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), attempts,
-          httpConnectionParams.isKeepAlive());
+      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
+          host.getPort(), host.getPartitionId(), applicationId, dagId, sslShuffle);
+      URL url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts, httpConnectionParams.isKeepAlive());
       httpConnection = ShuffleUtils.getHttpConnection(asyncHttp, url, httpConnectionParams,
           logIdentifier, jobTokenSecretManager);
       connectSucceeded = httpConnection.connect();
@@ -734,6 +745,5 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       remaining.put(id.toString(), id);
     }
   }
-
 }
 
