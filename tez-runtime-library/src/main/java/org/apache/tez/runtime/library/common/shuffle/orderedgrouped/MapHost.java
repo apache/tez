@@ -32,44 +32,131 @@ class MapHost {
     PENDING,            // Known map outputs which need to be fetched
     PENALIZED           // Host penalized due to shuffle failures
   }
-  
+
+  public static class HostPort {
+
+    final String host;
+    final int port;
+
+    HostPort(String host, int port) {
+      this.host = host;
+      this.port = port;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((host == null) ? 0 : host.hashCode());
+      result = prime * result + port;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      HostPort other = (HostPort) obj;
+      if (host == null) {
+        if (other.host != null)
+          return false;
+      } else if (!host.equals(other.host))
+        return false;
+      if (port != other.port)
+        return false;
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "HostPort [host=" + host + ", port=" + port + "]";
+    }
+  }
+
+  public static class HostPortPartition {
+
+    final String host;
+    final int port;
+    final int partition;
+
+    HostPortPartition(String host, int port, int partition) {
+      this.host = host;
+      this.port = port;
+      this.partition = partition;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((host == null) ? 0 : host.hashCode());
+      result = prime * result + partition;
+      result = prime * result + port;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      HostPortPartition other = (HostPortPartition) obj;
+      if (partition != other.partition)
+        return false;
+      if (host == null) {
+        if (other.host != null)
+          return false;
+      } else if (!host.equals(other.host))
+        return false;
+      if (port != other.port)
+        return false;
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "HostPortPartition [host=" + host + ", port=" + port + ", partition=" + partition + "]";
+    }
+  }
+
   private State state = State.IDLE;
-  private final String hostIdentifier;
-  private final int partitionId;
-  private final String baseUrl;
-  private final String identifier;
+  private final String host;
+  private final int port;
+  private final int partition;
   // Tracks attempt IDs
   private List<InputAttemptIdentifier> maps = new ArrayList<InputAttemptIdentifier>();
   
-  public MapHost(int partitionId, String hostPort, String baseUrl) {
-    this.partitionId = partitionId;
-    this.hostIdentifier = hostPort;
-    this.baseUrl = baseUrl;
-    this.identifier = createIdentifier(hostPort, partitionId);
-  }
-  
-  public static String createIdentifier(String hostName, int partitionId) {
-    return hostName + ":" + Integer.toString(partitionId);
+  public MapHost(String host, int port, int partition) {
+    this.host = host;
+    this.port = port;
+    this.partition = partition;
   }
 
-  public String getIdentifier() {
-    return identifier;
-  }
-  
   public int getPartitionId() {
-    return partitionId;
+    return partition;
   }
 
   public State getState() {
     return state;
   }
 
-  public String getHostIdentifier() {
-    return hostIdentifier;
+  public String getHost() {
+    return host;
   }
 
-  public String getBaseUrl() {
-    return baseUrl;
+  public int getPort() {
+    return port;
+  }
+
+  public String getHostIdentifier() {
+    return host + ":" + port;
   }
 
   public synchronized void addKnownMap(InputAttemptIdentifier srcAttempt) {
@@ -112,7 +199,7 @@ class MapHost {
   
   @Override
   public String toString() {
-    return hostIdentifier;
+    return getHostIdentifier();
   }
   
   /**

@@ -54,6 +54,8 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost.HostPort;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost.HostPortPartition;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
 
 import com.google.common.collect.Lists;
@@ -65,18 +67,62 @@ class ShuffleScheduler {
     }
   };
 
+  public static class PathPartition {
+
+    final String path;
+    final int partition;
+
+    PathPartition(String path, int partition) {
+      this.path = path;
+      this.partition = partition;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((path == null) ? 0 : path.hashCode());
+      result = prime * result + partition;
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      PathPartition other = (PathPartition) obj;
+      if (path == null) {
+        if (other.path != null)
+          return false;
+      } else if (!path.equals(other.path))
+        return false;
+      if (partition != other.partition)
+        return false;
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return "PathPartition [path=" + path + ", partition=" + partition + "]";
+    }
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleScheduler.class);
   static final long INITIAL_PENALTY = 2000L; // 2 seconds
   private static final float PENALTY_GROWTH_RATE = 1.3f;
 
-  private boolean[] finishedMaps;
+  private final BitSet finishedMaps;
   private final int numInputs;
   private final String srcNameTrimmed;
   private int numFetchedSpills;
-  private Map<String, MapHost> mapLocations = new HashMap<String, MapHost>();
+  private Map<HostPortPartition, MapHost> mapLocations = new HashMap<HostPortPartition, MapHost>();
   @VisibleForTesting
-  final ConcurrentMap<String, InputAttemptIdentifier> pathToIdentifierMap
-      = new ConcurrentHashMap<String, InputAttemptIdentifier>();
+  final ConcurrentMap<PathPartition, InputAttemptIdentifier> pathToIdentifierMap
+      = new ConcurrentHashMap<PathPartition, InputAttemptIdentifier>();
 
   //To track shuffleInfo events when finalMerge is disabled in source or pipelined shuffle is
   // enabled in source.
@@ -92,9 +138,9 @@ class ShuffleScheduler {
   private final Referee referee;
   @VisibleForTesting
   final Map<InputAttemptIdentifier, IntWritable> failureCounts = new HashMap<InputAttemptIdentifier,IntWritable>();
-  final Set<String> uniqueHosts = Sets.newHashSet();
-  private final Map<String,IntWritable> hostFailures = 
-    new HashMap<String,IntWritable>();
+  final Set<HostPort> uniqueHosts = Sets.newHashSet();
+  private final Map<HostPort,IntWritable> hostFailures = 
+    new HashMap<HostPort,IntWritable>();
   private final InputContext inputContext;
   private final Shuffle shuffle;
   private final TezCounter shuffledInputsCounter;
@@ -157,7 +203,7 @@ class ShuffleScheduler {
       abortFailureLimit = abortFailureLimitConf;
     }
     remainingMaps = new AtomicInteger(numberOfInputs);
-    finishedMaps = new boolean[remainingMaps.get()]; // default init to false
+    finishedMaps = new BitSet(remainingMaps.get()); // default init to false
 
     this.minFailurePerHost = conf.getInt(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST,
@@ -322,7 +368,7 @@ class ShuffleScheduler {
 
         failureCounts.remove(srcAttemptIdentifier);
         if (host != null) {
-          hostFailures.remove(host.getHostIdentifier());
+          hostFailures.remove(new HostPort(host.getHost(), host.getPort()));
         }
 
         output.commit();
@@ -536,7 +582,7 @@ class ShuffleScheduler {
   private void penalizeHost(MapHost host, int failures) {
     host.penalize();
 
-    String hostPort = host.getHostIdentifier();
+    HostPort hostPort = new HostPort(host.getHost(), host.getPort());
     // TODO TEZ-922 hostFailures isn't really used for anything apart from
     // hasFailedAcrossNodes().Factor it into error
     // reporting / potential blacklisting of hosts.
@@ -611,7 +657,7 @@ class ShuffleScheduler {
         (int) Math.ceil(numUniqueHosts * hostFailureFraction));
     int total = 0;
     boolean failedAcrossNodes = false;
-    for(String host : uniqueHosts) {
+    for(HostPort host : uniqueHosts) {
       IntWritable failures = hostFailures.get(host);
       if (failures != null && failures.get() > minFailurePerHost) {
         total++;
@@ -771,17 +817,13 @@ class ShuffleScheduler {
   public synchronized void addKnownMapOutput(String inputHostName,
                                              int port,
                                              int partitionId,
-                                             String hostUrl,
                                              InputAttemptIdentifier srcAttempt) {
-    String hostPort = (inputHostName + ":" + String.valueOf(port));
-    uniqueHosts.add(hostPort);
-    String identifier = MapHost.createIdentifier(hostPort, partitionId);
-
+    uniqueHosts.add(new HostPort(inputHostName, port));
+    HostPortPartition identifier = new HostPortPartition(inputHostName, port, partitionId);
 
     MapHost host = mapLocations.get(identifier);
     if (host == null) {
-      host = new MapHost(partitionId, hostPort, hostUrl);
-      assert identifier.equals(host.getIdentifier());
+      host = new MapHost(inputHostName, port, partitionId);
       mapLocations.put(identifier, host);
     }
 
@@ -1006,8 +1048,8 @@ class ShuffleScheduler {
     
   }
   
-  private String getIdentifierFromPathAndReduceId(String path, int reduceId) {
-    return path + "_" + reduceId;
+  private PathPartition getIdentifierFromPathAndReduceId(String path, int reduceId) {
+    return new PathPartition(path, reduceId);
   }
   
   /**
@@ -1050,13 +1092,13 @@ class ShuffleScheduler {
 
   void setInputFinished(int inputIndex) {
     synchronized(finishedMaps) {
-      finishedMaps[inputIndex] = true;
+      finishedMaps.set(inputIndex);
     }
   }
   
   boolean isInputFinished(int inputIndex) {
     synchronized (finishedMaps) {
-      return finishedMaps[inputIndex];      
+      return finishedMaps.get(inputIndex);
     }
   }
 }

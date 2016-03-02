@@ -38,6 +38,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
@@ -72,7 +73,9 @@ class FetcherOrderedGrouped extends Thread {
   private final Shuffle shuffle;
   private final int id;
   private final String logIdentifier;
-  private final String localShuffleHostPort;
+  private final String localShuffleHost;
+  private final int localShufflePort;
+  private final String applicationId;
   private static int nextId = 0;
   private int currentPartition = -1;
 
@@ -94,6 +97,7 @@ class FetcherOrderedGrouped extends Thread {
 
   HttpConnection httpConnection;
   HttpConnectionParams httpConnectionParams;
+  private final boolean sslShuffle;
 
   // Initiative value is 0, which means it hasn't retried yet.
   private long retryStartTime = 0;
@@ -127,6 +131,7 @@ class FetcherOrderedGrouped extends Thread {
         ShuffleErrors.CONNECTION.toString());
     wrongReduceErrs = inputContext.getCounters().findCounter(SHUFFLE_ERR_GRP_NAME,
         ShuffleErrors.WRONG_REDUCE.toString());
+    applicationId = inputContext.getApplicationId().toString();
 
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -137,9 +142,12 @@ class FetcherOrderedGrouped extends Thread {
       this.codec = null;
     }
     this.conf = conf;
-    this.localShuffleHostPort = localHostname + ":" + String.valueOf(shufflePort);
+    this.localShuffleHost = localHostname;
+    this.localShufflePort = shufflePort;
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
+    this.sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
 
     this.logIdentifier = "fetcher {" + TezUtilsInternal
         .cleanVertexName(inputContext.getSourceVertexName()) + "} #" + id;
@@ -161,8 +169,7 @@ class FetcherOrderedGrouped extends Thread {
       assignedHost = scheduler.getHost();
       metrics.threadBusy();
 
-      String hostPort = assignedHost.getHostIdentifier();
-      if (localDiskFetchEnabled && hostPort.equals(localShuffleHostPort)) {
+      if (localDiskFetchEnabled && assignedHost.getHost().equals(localShuffleHost) && assignedHost.getPort() == localShufflePort) {
         setupLocalDiskFetch(assignedHost);
       } else {
         // Shuffle
@@ -333,8 +340,9 @@ class FetcherOrderedGrouped extends Thread {
       throws IOException {
     boolean connectSucceeded = false;
     try {
-      URL url = ShuffleUtils.constructInputURL(host.getBaseUrl(), attempts,
-          httpConnectionParams.getKeepAlive());
+      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
+          host.getPort(), host.getPartitionId(), applicationId, sslShuffle);
+      URL url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts, httpConnectionParams.getKeepAlive());
       httpConnection = new HttpConnection(url, httpConnectionParams,
           logIdentifier, jobTokenSecretManager);
       connectSucceeded = httpConnection.connect();
