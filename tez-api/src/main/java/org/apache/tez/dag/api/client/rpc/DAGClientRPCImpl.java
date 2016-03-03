@@ -23,7 +23,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.tez.common.RPCUtil;
+import org.apache.tez.dag.api.SessionNotRunning;
+import org.apache.tez.dag.api.client.DAGClientInternal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -51,7 +54,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
 
 @Private
-public class DAGClientRPCImpl extends DAGClient {
+public class DAGClientRPCImpl extends DAGClientInternal {
 
   private static final Logger LOG = LoggerFactory.getLogger(DAGClientRPCImpl.class);
 
@@ -82,15 +85,15 @@ public class DAGClientRPCImpl extends DAGClient {
 
   @Override
   public DAGStatus getDAGStatus(Set<StatusGetOpts> statusOptions)
-      throws IOException, TezException {
+      throws IOException, TezException, ApplicationNotFoundException {
     return getDAGStatus(statusOptions, 0);
   }
 
 
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
-      long timeout) throws IOException, TezException {
-    if(createAMProxyIfNeeded()) {
+      long timeout) throws IOException, TezException, ApplicationNotFoundException {
+    if (createAMProxyIfNeeded()) {
       try {
         DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
         return dagStatus;
@@ -110,7 +113,8 @@ public class DAGClientRPCImpl extends DAGClient {
   @Override
   public VertexStatus getVertexStatus(String vertexName,
       Set<StatusGetOpts> statusOptions)
-      throws IOException, TezException {
+      throws IOException, TezException, ApplicationNotFoundException {
+
     if(createAMProxyIfNeeded()) {
       try {
         return getVertexStatusViaAM(vertexName, statusOptions);
@@ -133,14 +137,18 @@ public class DAGClientRPCImpl extends DAGClient {
     if(LOG.isDebugEnabled()) {
       LOG.debug("TryKill for app: " + appId + " dag:" + dagId);
     }
-    if(createAMProxyIfNeeded()) {
-      TryKillDAGRequestProto requestProto =
-          TryKillDAGRequestProto.newBuilder().setDagId(dagId).build();
-      try {
-        proxy.tryKillDAG(null, requestProto);
-      } catch (ServiceException e) {
-        resetProxy(e);
+    try {
+      if (createAMProxyIfNeeded()) {
+        TryKillDAGRequestProto requestProto =
+            TryKillDAGRequestProto.newBuilder().setDagId(dagId).build();
+        try {
+          proxy.tryKillDAG(null, requestProto);
+        } catch (ServiceException e) {
+          resetProxy(e);
+        }
       }
+    } catch (ApplicationNotFoundException e) {
+      throw new SessionNotRunning("Application already completed");
     }
   }
 
@@ -217,7 +225,8 @@ public class DAGClientRPCImpl extends DAGClient {
     }
   }
 
-  ApplicationReport getAppReport() throws IOException, TezException {
+  ApplicationReport getAppReport() throws IOException, TezException,
+      ApplicationNotFoundException {
     try {
       ApplicationReport appReport = frameworkClient.getApplicationReport(appId);
       if (LOG.isDebugEnabled()) {
@@ -225,12 +234,15 @@ public class DAGClientRPCImpl extends DAGClient {
             + appReport.getYarnApplicationState());
       }
       return appReport;
+    } catch (ApplicationNotFoundException e) {
+      throw e;
     } catch (YarnException e) {
       throw new TezException(e);
     }
   }
 
-  boolean createAMProxyIfNeeded() throws IOException, TezException {
+  boolean createAMProxyIfNeeded() throws IOException, TezException,
+      ApplicationNotFoundException {
     if(proxy != null) {
       // if proxy exist optimistically use it assuming there is no retry
       return true;

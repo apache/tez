@@ -27,14 +27,15 @@ import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.tez.dag.api.TezException;
 
 /**
- * Class for monitoring the <code>DAG</code> running in a Tez DAG
+ * Private internal class for monitoring the <code>DAG</code> running in a Tez DAG
  * Application Master.
  */
-@Public
-public abstract class DAGClient implements Closeable {
+@Private
+public abstract class DAGClientInternal implements Closeable {
 
   /**
    * Gets DAG execution context for use with logging
@@ -57,7 +58,7 @@ public abstract class DAGClient implements Closeable {
    *                      specified options. To retrieve basic information, this can be null
    */
   public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions)
-      throws IOException, TezException;
+      throws IOException, TezException, ApplicationNotFoundException;
 
   /**
    * Get the status of the specified DAG when it reaches a final state, or the timeout expires.
@@ -72,7 +73,7 @@ public abstract class DAGClient implements Closeable {
    */
   public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout)
-      throws IOException, TezException;
+      throws IOException, TezException, ApplicationNotFoundException;
 
   /**
    * Get the status of a Vertex of a DAG
@@ -81,7 +82,7 @@ public abstract class DAGClient implements Closeable {
    */
   public abstract VertexStatus getVertexStatus(String vertexName,
       Set<StatusGetOpts> statusOptions)
-    throws IOException, TezException;
+    throws IOException, TezException, ApplicationNotFoundException;
 
   /**
    * Kill a running DAG
