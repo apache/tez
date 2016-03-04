@@ -310,7 +310,7 @@ public class Shuffle implements ExceptionReporter {
       TezRawKeyValueIterator kvIter = null;
       inputContext.notifyProgress();
       try {
-        kvIter = merger.close();
+        kvIter = merger.close(true);
       } catch (Throwable e) {
         // Set the throwable so that future.get() sees the reported errror.
         throwable.set(e);
@@ -351,7 +351,7 @@ public class Shuffle implements ExceptionReporter {
   private void cleanupMerger(boolean ignoreErrors) throws Throwable {
     if (!mergerClosed.getAndSet(true)) {
       try {
-        merger.close();
+        merger.close(false);
       } catch (InterruptedException e) {
         if (ignoreErrors) {
           //Reset the status

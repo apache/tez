@@ -553,9 +553,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     return finalMergeComplete;
   }
 
-  public TezRawKeyValueIterator close() throws Throwable {
-    // TODO TEZ-2756. Don't attempt a final merge if close is invoked as a result of a previous
-    // shuffle exception / error.
+  public TezRawKeyValueIterator close(boolean tryFinalMerge) throws Throwable {
     if (!isShutdown.getAndSet(true)) {
       // Wait for on-going merges to complete
       if (memToMemMerger != null) {
@@ -571,18 +569,23 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       inMemoryMapOutputs.clear();
       List<FileChunk> disk = new ArrayList<FileChunk>(onDiskMapOutputs);
       onDiskMapOutputs.clear();
-      try {
-        TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
-        this.finalMergeComplete = true;
-        return kvIter;
-      } catch (InterruptedException e) {
-        //Cleanup the disk segments
-        if (cleanup) {
-          cleanup(localFS, disk);
-          cleanup(localFS, onDiskMapOutputs);
+
+      // Don't attempt a final merge if close is invoked as a result of a previous
+      // shuffle exception / error.
+      if (tryFinalMerge) {
+        try {
+          TezRawKeyValueIterator kvIter = finalMerge(conf, rfs, memory, disk);
+          this.finalMergeComplete = true;
+          return kvIter;
+        } catch (InterruptedException e) {
+          //Cleanup the disk segments
+          if (cleanup) {
+            cleanup(localFS, disk);
+            cleanup(localFS, onDiskMapOutputs);
+          }
+          Thread.currentThread().interrupt(); //reset interrupt status
+          throw e;
         }
-        Thread.currentThread().interrupt(); //reset interrupt status
-        throw e;
       }
     }
     return null;
