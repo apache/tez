@@ -21,10 +21,11 @@ package org.apache.tez.dag.api;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
@@ -32,7 +33,7 @@ import com.google.common.base.Preconditions;
 
 /**
  * Describes a given user code entity. Consists of the name of the class implementing
- * the user logic and a payload that can be used to configure an object instance of 
+ * the user logic and a payload that can be used to configure an object instance of
  * that class. In addition some history information can be set for logging/debugging.
   * <br>This is not supposed to be extended by users. Users are expected to use the derived
   * classes for specific entities
@@ -41,6 +42,7 @@ import com.google.common.base.Preconditions;
 @SuppressWarnings("unchecked")
 public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements Writable {
 
+  private static final int SERIALIZE_BUFFER_SIZE = 8192;
   private UserPayload userPayload = null;
   private String className;
   protected String historyText;
@@ -48,7 +50,7 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
   @Private // for Writable
   public EntityDescriptor() {
   }
-  
+
   public EntityDescriptor(String className) {
     this.className = className;
   }
@@ -91,7 +93,7 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
   public String getClassName() {
     return this.className;
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, className);
@@ -100,17 +102,25 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
     if (bb == null) {
       out.writeInt(-1);
     } else {
-      int size = bb.limit() - bb.position();
+      int size = bb.remaining();
       if (size == 0) {
         out.writeInt(-1);
       } else {
         out.writeInt(size);
-        byte[] bytes = new byte[size];
-        // This modified the ByteBuffer, and primarily works since UserPayload.getByteBuffer
-        // return a new copy each time
-        bb.get(bytes);
-        // TODO: TEZ-305 - should be more efficient by using protobuf serde.
-        out.write(bytes);
+        if (out instanceof DataOutputBuffer) {
+          DataOutputBuffer buf = (DataOutputBuffer) out;
+          buf.write(new ByteBufferDataInput(bb), size);
+        } else {
+          // This code is just for fallback in case serialization is changed to
+          // use something other than DataOutputBuffer.
+          int len;
+          byte[] buf = new byte[SERIALIZE_BUFFER_SIZE];
+          do {
+            len = Math.min(bb.remaining(), SERIALIZE_BUFFER_SIZE);
+            bb.get(buf, 0, len);
+            out.write(buf, 0, len);
+          } while (bb.remaining() > 0);
+        }
       }
       out.writeInt(userPayload.getVersion());
     }
@@ -133,5 +143,77 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
     boolean hasPayload =
         userPayload == null ? false : userPayload.getPayload() == null ? false : true;
     return "ClassName=" + className + ", hasPayload=" + hasPayload;
+  }
+
+  private static class ByteBufferDataInput implements DataInput {
+
+    private final ByteBuffer bb;
+
+    public ByteBufferDataInput(ByteBuffer bb) {
+      this.bb = bb;
+    }
+
+    @Override
+    public void readFully(byte[] b) throws IOException {
+      bb.get(b, 0, bb.remaining());
+    }
+
+    @Override
+    public void readFully(byte[] b, int off, int len) throws IOException {
+      bb.get(b, off, len);
+    }
+
+    @Override
+    public int skipBytes(int n) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public boolean readBoolean() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public byte readByte() throws IOException {
+      return bb.get();
+    }
+    @Override
+    public int readUnsignedByte() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public short readShort() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public int readUnsignedShort() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public char readChar() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public int readInt() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public long readLong() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public float readFloat() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public double readDouble() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public String readLine() throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    @Override
+    public String readUTF() throws IOException {
+      throw new UnsupportedOperationException();
+    }
   }
 }
