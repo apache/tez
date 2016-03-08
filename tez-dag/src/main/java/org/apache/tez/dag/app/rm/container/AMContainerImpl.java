@@ -1032,12 +1032,12 @@ public class AMContainerImpl implements AMContainer {
 
   protected void sendTerminatedToTaskAttempt(
       TezTaskAttemptID taId, String message, TaskAttemptTerminationCause errCause) {
-    sendEvent(new TaskAttemptEventContainerTerminated(taId, message, errCause));
+    sendEvent(new TaskAttemptEventContainerTerminated(containerId, taId, message, errCause));
   }
   
   protected void sendContainerTerminatedBySystemToTaskAttempt(
     TezTaskAttemptID taId, String message, TaskAttemptTerminationCause errorCause) {
-      sendEvent(new TaskAttemptEventContainerTerminatedBySystem(taId, message, errorCause));
+      sendEvent(new TaskAttemptEventContainerTerminatedBySystem(containerId, taId, message, errorCause));
   }
 
   protected void sendTerminatingToTaskAttempt(TezTaskAttemptID taId,

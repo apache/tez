@@ -556,6 +556,22 @@ public class HistoryEventJsonConversion {
       otherInfo.put(ATSConstants.LAST_DATA_EVENTS, 
           DAGUtils.convertDataEventDependencyInfoToJSON(event.getDataEvents()));
     }
+    if (event.getNodeId() != null) {
+      otherInfo.put(ATSConstants.NODE_ID, event.getNodeId().toString());
+    }
+    if (event.getContainerId() != null) {
+      otherInfo.put(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
+    }
+    if (event.getInProgressLogsUrl() != null) {
+      otherInfo.put(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
+    }
+    if (event.getCompletedLogsUrl() != null) {
+      otherInfo.put(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
+    }
+    if (event.getNodeHttpAddress() != null) {
+      otherInfo.put(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
+    }
+
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;

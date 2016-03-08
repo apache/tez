@@ -18,19 +18,27 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventContainerTerminatedBySystem extends TaskAttemptEvent 
   implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
 
+  private final ContainerId containerId;
   private final String diagnostics;
   private final TaskAttemptTerminationCause errorCause;
-  public TaskAttemptEventContainerTerminatedBySystem(TezTaskAttemptID id, String diagnostics,
-      TaskAttemptTerminationCause errorCause) {
+
+  public TaskAttemptEventContainerTerminatedBySystem(ContainerId containerId, TezTaskAttemptID id,
+      String diagnostics, TaskAttemptTerminationCause errorCause) {
     super(id, TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM);
+    this.containerId = containerId;
     this.diagnostics = diagnostics;
     this.errorCause = errorCause;
+  }
+
+  public ContainerId getContainerId() {
+    return containerId;
   }
 
   @Override

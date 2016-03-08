@@ -183,6 +183,9 @@ message TaskAttemptFinishedProto {
   optional TezCountersProto counters = 9;
   optional string error_enum = 10;
   repeated DataEventDependencyInfoProto data_events = 11;
+  optional string container_id = 13;
+  optional string node_id = 14;
+  optional string node_http_address = 15;
 }
 
 message EventMetaDataProto {

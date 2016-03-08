@@ -74,6 +74,7 @@ import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminatedBySystem;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
@@ -1072,23 +1073,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   protected void logJobHistoryAttemptStarted() {
-    final String containerIdStr = containerId.toString();
-    String inProgressLogsUrl = nodeHttpAddress
-       + "/" + "node/containerlogs"
-       + "/" + containerIdStr
-       + "/" + this.appContext.getUser();
-    String completedLogsUrl = "";
-    if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
-        YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED)
-        && conf.get(YarnConfiguration.YARN_LOG_SERVER_URL) != null) {
-      String contextStr = "v_" + getVertex().getName()
-          + "_" + this.attemptId.toString();
-      completedLogsUrl = conf.get(YarnConfiguration.YARN_LOG_SERVER_URL)
-          + "/" + containerNodeId.toString()
-          + "/" + containerIdStr
-          + "/" + contextStr
-          + "/" + this.appContext.getUser();
-    }
+    String inProgressLogsUrl = getInProgressLogsUrl();
+    String completedLogsUrl = getCompletedLogsUrl();
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getVertex().getName(),
         launchTime, containerId, containerNodeId,
@@ -1104,7 +1090,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getVertex().getName(), getLaunchTime(),
         getFinishTime(), TaskAttemptState.SUCCEEDED, null,
-        "", getCounters(), lastDataEvents, creationTime, creationCausalTA, allocationTime);
+        "", getCounters(), lastDataEvents, creationTime, creationCausalTA, allocationTime, null, null, null, null, null);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1113,8 +1099,16 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected void logJobHistoryAttemptUnsuccesfulCompletion(
       TaskAttemptState state) {
     long finishTime = getFinishTime();
+    ContainerId unsuccessfulContainerId = null;
+    NodeId unsuccessfulContainerNodeId = null;
+    String inProgressLogsUrl = null;
+    String completedLogsUrl = null;
     if (finishTime <= 0) {
       finishTime = clock.getTime(); // comes here in case it was terminated before launch
+      unsuccessfulContainerId = containerId;
+      unsuccessfulContainerNodeId = containerNodeId;
+      inProgressLogsUrl = getInProgressLogsUrl();
+      completedLogsUrl = getCompletedLogsUrl();
     }
     TaskAttemptFinishedEvent finishEvt = new TaskAttemptFinishedEvent(
         attemptId, getVertex().getName(), getLaunchTime(),
@@ -1122,10 +1116,41 @@ public class TaskAttemptImpl implements TaskAttempt,
         terminationCause,
         StringUtils.join(
             getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents, 
-        creationTime, creationCausalTA, allocationTime);
+        creationTime, creationCausalTA, allocationTime, unsuccessfulContainerId, unsuccessfulContainerNodeId, inProgressLogsUrl, completedLogsUrl, nodeHttpAddress);
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
+  }
+
+  private String getInProgressLogsUrl() {
+    String inProgressLogsUrl = null;
+    if (containerId != null && nodeHttpAddress != null) {
+      final String containerIdStr = containerId.toString();
+      inProgressLogsUrl = nodeHttpAddress
+          + "/" + "node/containerlogs"
+          + "/" + containerIdStr
+          + "/" + this.appContext.getUser();
+    }
+    return inProgressLogsUrl;
+  }
+
+  private String getCompletedLogsUrl() {
+    String completedLogsUrl = null;
+    if (containerId != null && containerNodeId != null && nodeHttpAddress != null) {
+      final String containerIdStr = containerId.toString();
+      if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
+          YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED)
+          && conf.get(YarnConfiguration.YARN_LOG_SERVER_URL) != null) {
+        String contextStr = "v_" + getVertex().getName()
+            + "_" + this.attemptId.toString();
+        completedLogsUrl = conf.get(YarnConfiguration.YARN_LOG_SERVER_URL)
+            + "/" + containerNodeId.toString()
+            + "/" + containerIdStr
+            + "/" + contextStr
+            + "/" + this.appContext.getUser();
+      }
+    }
+    return completedLogsUrl;
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1244,6 +1269,30 @@ public class TaskAttemptImpl implements TaskAttempt,
         throw new TezUncheckedException("Invalid event received in TerminateTransition"
             + ", requiredClass=TaskAttemptEventTerminationCauseEvent"
             + ", eventClass=" + event.getClass().getName());
+      }
+
+      if (event instanceof TaskAttemptEventContainerTerminated) {
+        TaskAttemptEventContainerTerminated tEvent = (TaskAttemptEventContainerTerminated) event;
+        AMContainer amContainer = ta.appContext.getAllContainers().get(tEvent.getContainerId());
+        Container container = amContainer.getContainer();
+
+        ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
+        ta.container = container;
+        ta.containerId = tEvent.getContainerId();
+        ta.containerNodeId = container.getNodeId();
+        ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
+      }
+
+      if (event instanceof TaskAttemptEventContainerTerminatedBySystem) {
+        TaskAttemptEventContainerTerminatedBySystem tEvent = (TaskAttemptEventContainerTerminatedBySystem) event;
+        AMContainer amContainer = ta.appContext.getAllContainers().get(tEvent.getContainerId());
+        Container container = amContainer.getContainer();
+
+        ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
+        ta.container = container;
+        ta.containerId = tEvent.getContainerId();
+        ta.containerNodeId = container.getNodeId();
+        ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
       }
 
       ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
