@@ -420,7 +420,7 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
 
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID,
+    taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID,
         "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
@@ -487,7 +487,7 @@ public class TestTaskAttempt {
         TaskAttemptState.RUNNING);
     verify(mockHeartbeatHandler).register(taskAttemptID);
 
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, "Terminated",
+    taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "Terminated",
         TaskAttemptTerminationCause.CONTAINER_EXITED));
     assertFalse(
         "InternalError occurred trying to handle TA_CONTAINER_TERMINATED",
@@ -576,7 +576,7 @@ public class TestTaskAttempt {
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
 
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID,
+    taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID,
         "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
@@ -747,7 +747,7 @@ public class TestTaskAttempt {
     assertEquals("0", taImpl.getDiagnostics().get(0));
     assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
 
-    taImpl.handle(new TaskAttemptEventContainerTerminated(taskAttemptID, "1",
+    taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "1",
         TaskAttemptTerminationCause.CONTAINER_EXITED));
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);

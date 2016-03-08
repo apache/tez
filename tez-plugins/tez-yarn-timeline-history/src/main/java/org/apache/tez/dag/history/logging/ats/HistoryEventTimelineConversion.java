@@ -468,6 +468,22 @@ public class HistoryEventTimelineConversion {
       atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENTS, 
           DAGUtils.convertDataEventDependecyInfoToATS(event.getDataEvents()));
     }
+    if (event.getNodeId() != null) {
+      atsEntity.addOtherInfo(ATSConstants.NODE_ID, event.getNodeId().toString());
+    }
+    if (event.getContainerId() != null) {
+      atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
+    }
+    if (event.getInProgressLogsUrl() != null) {
+      atsEntity.addOtherInfo(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
+    }
+    if (event.getCompletedLogsUrl() != null) {
+      atsEntity.addOtherInfo(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
+    }
+    if (event.getNodeHttpAddress() != null) {
+      atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
+    }
+
     return atsEntity;
   }
 

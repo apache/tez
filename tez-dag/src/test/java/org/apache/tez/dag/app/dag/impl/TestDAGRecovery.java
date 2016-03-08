@@ -883,7 +883,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", 0L, 0L, 
         TaskAttemptState.SUCCEEDED, null, "", null, 
-        null, taGeneratedEvents, 0L, null, 0L);
+        null, taGeneratedEvents, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(taStartedEvent, taFinishedEvent);
     Map<TezTaskAttemptID, TaskAttemptRecoveryData> taRecoveryDataMap =
         new HashMap<TezTaskAttemptID, TaskAttemptRecoveryData>();
@@ -941,7 +941,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", ta1LaunchTime, ta1FinishedTime, 
         TaskAttemptState.FAILED, TaskAttemptTerminationCause.CONTAINER_LAUNCH_FAILED, "", null, 
-        null, null, 0L, null, 0L);
+        null, null, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(null, taFinishedEvent);
     doReturn(taRecoveryData).when(dagRecoveryData).getTaskAttemptRecoveryData(ta1t1v1Id);
     
@@ -970,7 +970,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", ta1LaunchTime, ta1FinishedTime, 
         TaskAttemptState.KILLED, TaskAttemptTerminationCause.TERMINATED_BY_CLIENT, "", null, 
-        null, null, 0L, null, 0L);
+        null, null, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(null, taFinishedEvent);
     doReturn(taRecoveryData).when(dagRecoveryData).getTaskAttemptRecoveryData(ta1t1v1Id);
     
@@ -1030,7 +1030,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", ta1LaunchTime, ta1FinishedTime, 
         TaskAttemptState.SUCCEEDED, null, "", null, 
-        null, taGeneratedEvents, 0L, null, 0L);
+        null, taGeneratedEvents, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(taStartedEvent, taFinishedEvent);
     doReturn(taRecoveryData).when(dagRecoveryData).getTaskAttemptRecoveryData(ta1t1v1Id);
 
@@ -1068,7 +1068,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v2Id, "vertex2", ta1LaunchTime, ta1FinishedTime, 
         TaskAttemptState.SUCCEEDED, null, "", null, 
-        null, taGeneratedEvents, 0L, null, 0L);
+        null, taGeneratedEvents, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(taStartedEvent, taFinishedEvent);
     doReturn(taRecoveryData).when(dagRecoveryData).getTaskAttemptRecoveryData(ta1t1v2Id);   
     Map<TezTaskAttemptID, TaskAttemptRecoveryData> taRecoveryDataMap =
@@ -1119,7 +1119,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", ta1LaunchTime, ta1FinishedTime, 
         TaskAttemptState.FAILED, TaskAttemptTerminationCause.INPUT_READ_ERROR, "", null, 
-        null, null, 0L, null, 0L);
+        null, null, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(taStartedEvent, taFinishedEvent);
     doReturn(taRecoveryData).when(dagRecoveryData).getTaskAttemptRecoveryData(ta1t1v1Id);
     
@@ -1150,7 +1150,7 @@ public class TestDAGRecovery {
     TaskAttemptFinishedEvent taFinishedEvent = new TaskAttemptFinishedEvent(
         ta1t1v1Id, "v1", ta1FinishedTime, ta1FinishedTime, 
         TaskAttemptState.KILLED, TaskAttemptTerminationCause.TERMINATED_BY_CLIENT, "", null, 
-        null, null, 0L, null, 0L);
+        null, null, 0L, null, 0L, null, null, null, null, null);
     TaskAttemptRecoveryData taRecoveryData = new TaskAttemptRecoveryData(taStartedEvent, taFinishedEvent);
     doReturn(taRecoveryData).when(dagRecoveryData).getTaskAttemptRecoveryData(ta1t1v1Id);
     

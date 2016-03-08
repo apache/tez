@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-2863. Container, node, and logs not available in UI for tasks that fail to launch
   TEZ-3140. Reduce AM memory usage during serialization
   TEZ-2756. MergeManager close should not try merging files on close if invoked after a shuffle exception.
   TEZ-3156. Tez client keeps trying to talk to RM even if RM does not know about the application.
@@ -399,6 +400,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2863. Container, node, and logs not available in UI for tasks that fail to launch
   TEZ-3140. Reduce AM memory usage during serialization
   TEZ-3156. Tez client keeps trying to talk to RM even if RM does not know about the application.
   TEZ-3115. Shuffle string handling adds significant memory overhead

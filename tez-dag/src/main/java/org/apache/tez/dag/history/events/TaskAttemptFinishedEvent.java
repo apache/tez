@@ -28,6 +28,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -59,7 +62,12 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   private TaskAttemptTerminationCause error;
   private List<DataEventDependencyInfo> dataEvents;
   private List<TezEvent> taGeneratedEvents;
-  
+  private ContainerId containerId;
+  private NodeId nodeId;
+  private String inProgressLogsUrl;
+  private String completedLogsUrl;
+  private String nodeHttpAddress;
+
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
       String vertexName,
       long startTime,
@@ -71,7 +79,12 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       List<TezEvent> taGeneratedEvents,
       long creationTime, 
       TezTaskAttemptID creationCausalTA, 
-      long allocationTime) {
+      long allocationTime,
+      ContainerId containerId,
+      NodeId nodeId,
+      String inProgressLogsUrl,
+      String completedLogsUrl,
+      String nodeHttpAddress) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.creationCausalTA = creationCausalTA;
@@ -85,6 +98,11 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     this.error = error;
     this.dataEvents = dataEvents;
     this.taGeneratedEvents = taGeneratedEvents;
+    this.containerId = containerId;
+    this.nodeId = nodeId;
+    this.inProgressLogsUrl = inProgressLogsUrl;
+    this.completedLogsUrl = completedLogsUrl;
+    this.nodeHttpAddress = nodeHttpAddress;
   }
 
   public TaskAttemptFinishedEvent() {
@@ -140,6 +158,15 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         builder.addTaGeneratedEvents(TezEventUtils.toProto(event));
       }
     }
+    if (containerId != null) {
+      builder.setContainerId(containerId.toString());
+    }
+    if (nodeId != null) {
+      builder.setNodeId(nodeId.toString());
+    }
+    if (nodeHttpAddress != null) {
+      builder.setNodeHttpAddress(nodeHttpAddress);
+    }
     return builder.build();
   }
 
@@ -174,6 +201,15 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       for (TezEventProto eventProto : proto.getTaGeneratedEventsList()) {
         this.taGeneratedEvents.add(TezEventUtils.fromProto(eventProto));
       }
+    }
+    if (proto.hasContainerId()) {
+      this.containerId = ConverterUtils.toContainerId(proto.getContainerId());
+    }
+    if (proto.hasNodeId()) {
+      this.nodeId = ConverterUtils.toNodeId(proto.getNodeId());
+    }
+    if (proto.hasNodeHttpAddress()) {
+      this.nodeHttpAddress = proto.getNodeHttpAddress();
     }
   }
 
@@ -210,6 +246,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         + ", status=" + state.name()
         + ", errorEnum=" + (error != null ? error.name() : "")
         + ", diagnostics=" + diagnostics
+        + ", containerId=" + (containerId != null ? containerId.toString() : "")
+        + ", nodeId=" + (nodeId != null ? nodeId.toString() : "")
+        + ", nodeHttpAddress=" + (nodeHttpAddress != null ? nodeHttpAddress : "")
         + counterStr;
   }
 
@@ -255,5 +294,25 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   public List<TezEvent> getTAGeneratedEvents() {
     return taGeneratedEvents;
+  }
+
+  public ContainerId getContainerId() {
+    return containerId;
+  }
+
+  public NodeId getNodeId() {
+    return nodeId;
+  }
+
+  public String getInProgressLogsUrl() {
+    return inProgressLogsUrl;
+  }
+
+  public String getCompletedLogsUrl() {
+    return completedLogsUrl;
+  }
+
+  public String getNodeHttpAddress() {
+    return nodeHttpAddress;
   }
 }

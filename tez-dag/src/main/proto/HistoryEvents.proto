@@ -190,6 +190,9 @@ message TaskAttemptFinishedProto {
   optional string error_enum = 10;
   repeated DataEventDependencyInfoProto data_events = 11;
   repeated TezEventProto ta_generated_events = 12;
+  optional string container_id = 13;
+  optional string node_id = 14;
+  optional string node_http_address = 15;
 }
 
 message EventMetaDataProto {

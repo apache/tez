@@ -703,7 +703,7 @@ public class TestRecoveryParser {
     TaskAttemptFinishedEvent ta0t2v2FinishedEvent = new TaskAttemptFinishedEvent(
         ta0t2v2Id, "v1", 500L, 600L, 
         TaskAttemptState.SUCCEEDED, null, "", null, 
-        null, null, 0L, null, 0L);
+        null, null, 0L, null, 0L, null, null, null, null, null);
     rService.handle(new DAGHistoryEvent(dagID, ta0t2v2FinishedEvent));
 
     rService.stop();

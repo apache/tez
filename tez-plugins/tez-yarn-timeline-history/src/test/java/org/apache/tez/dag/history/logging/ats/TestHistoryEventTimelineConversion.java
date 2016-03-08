@@ -184,7 +184,8 @@ public class TestHistoryEventTimelineConversion {
         case TASK_ATTEMPT_FINISHED:
           event = new TaskAttemptFinishedEvent(tezTaskAttemptID, "v1", random.nextInt(),
               random.nextInt(), TaskAttemptState.FAILED, TaskAttemptTerminationCause.OUTPUT_LOST,
-              null, null, null, null, 0, null, 0);
+              null, null, null, null, 0, null, 0,
+              containerId, nodeId, null, null, "nodeHttpAddress");
           break;
         case CONTAINER_LAUNCHED:
           event = new ContainerLaunchedEvent(containerId, random.nextInt(),
@@ -519,7 +520,7 @@ public class TestHistoryEventTimelineConversion {
 
     TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(tezTaskAttemptID, vertexName,
         startTime, finishTime, state, error, diagnostics, counters, events, null, creationTime,
-        tezTaskAttemptID, allocationTime);
+        tezTaskAttemptID, allocationTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress");
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
     Assert.assertEquals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), timelineEntity.getEntityType());
@@ -542,7 +543,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(finishTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(11, otherInfo.size());
+    Assert.assertEquals(16, otherInfo.size());
     Assert.assertEquals(tezTaskAttemptID.toString(), 
         timelineEntity.getOtherInfo().get(ATSConstants.CREATION_CAUSAL_ATTEMPT));
     Assert.assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
@@ -559,6 +560,11 @@ public class TestHistoryEventTimelineConversion {
     Map<String, Object> obj3 = (Map<String, Object>) obj2.get(0);
     Assert.assertEquals(events.get(0).getTimestamp(), obj3.get(ATSConstants.TIMESTAMP));
     Assert.assertTrue(otherInfo.containsKey(ATSConstants.COUNTERS));
+    Assert.assertEquals("inProgressURL", otherInfo.get(ATSConstants.IN_PROGRESS_LOGS_URL));
+    Assert.assertEquals("logsURL", otherInfo.get(ATSConstants.COMPLETED_LOGS_URL));
+    Assert.assertEquals(nodeId.toString(), otherInfo.get(ATSConstants.NODE_ID));
+    Assert.assertEquals(containerId.toString(), otherInfo.get(ATSConstants.CONTAINER_ID));
+    Assert.assertEquals("nodeHttpAddress", otherInfo.get(ATSConstants.NODE_HTTP_ADDRESS));
   }
 
   @SuppressWarnings("unchecked")
