@@ -63,6 +63,7 @@ message TryKillDAGResponseProto {
 message SubmitDAGRequestProto {
   optional DAGPlan d_a_g_plan = 1;
   optional PlanLocalResourcesProto additional_am_resources = 2;
+  optional string serializedRequestPath = 3;
 }
 
 message SubmitDAGResponseProto {

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -55,9 +56,9 @@ public class TestDAGClientServer {
     try {
       DAGClientHandler mockDAGClientHander = mock(DAGClientHandler.class);
       ApplicationAttemptId mockAppAttempId = mock(ApplicationAttemptId.class);
-      clientServer = new DAGClientServer(mockDAGClientHander, mockAppAttempId);
       Configuration conf = new Configuration();
       conf.set(TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE, port + "-" + port);
+      clientServer = new DAGClientServer(mockDAGClientHander, mockAppAttempId, mock(FileSystem.class));
       clientServer.init(conf);
       clientServer.start();
       int resultedPort = clientServer.getBindAddress().getPort();

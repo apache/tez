@@ -23,6 +23,9 @@ import java.security.AccessControlException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
@@ -55,9 +58,11 @@ import com.google.protobuf.ServiceException;
 public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProtocolBlockingPB {
 
   DAGClientHandler real;
+  final FileSystem stagingFs;
 
-  public DAGClientAMProtocolBlockingPBServerImpl(DAGClientHandler real) {
+  public DAGClientAMProtocolBlockingPBServerImpl(DAGClientHandler real, FileSystem stagingFs) {
     this.real = real;
+    this.stagingFs = stagingFs;
   }
 
   private UserGroupInformation getRPCUser() throws ServiceException {
@@ -152,6 +157,15 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
     try{
+      if (request.hasSerializedRequestPath()) {
+        // need to deserialize large request from hdfs
+        Path requestPath = new Path(request.getSerializedRequestPath());
+        try (FSDataInputStream fsDataInputStream = stagingFs.open(requestPath)) {
+          request = SubmitDAGRequestProto.parseFrom(fsDataInputStream);
+        } catch (IOException e) {
+          throw wrapException(e);
+        }
+      }
       DAGPlan dagPlan = request.getDAGPlan();
       Map<String, LocalResource> additionalResources = null;
       if (request.hasAdditionalAmResources()) {

@@ -19,6 +19,8 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,6 +44,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
@@ -64,6 +69,7 @@ import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
@@ -154,6 +160,69 @@ public class TestTezClient {
   @Test (timeout = 5000)
   public void testTezclientSession() throws Exception {
     testTezClient(true);
+  }
+
+  @Test (timeout = 5000)
+  public void testTezClientSessionLargeDAGPlan() throws Exception {
+    // request size is within threshold of being serialized
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 10, 10, false);
+    // DAGPlan exceeds the threshold but is still less than max IPC size
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 6*1024*1024, 10, true);
+    // DAGPlan exceeds max IPC size
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 15*1024*1024, 10, true);
+    // amResources exceeds the threshold but is still less than max IPC size
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 10, 6*1024*1024, true);
+    // amResources exceeds max IPC size
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 10, 15*1024*1024, true);
+    // DAGPlan and amResources together exceed threshold but less than IPC size
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 3*1024*1024, 3*1024*1024, true);
+    // DAGPlan and amResources all exceed max IPC size
+    _testTezClientSessionLargeDAGPlan(10*1024*1024, 15*1024*1024, 15*1024*1024, true);
+  }
+
+  private void _testTezClientSessionLargeDAGPlan(int maxIPCMsgSize, int payloadSize, int amResourceSize,
+                                               boolean shouldSerialize) throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, maxIPCMsgSize);
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, "target/"+this.getClass().getName());
+    TezClientForTest client = configureAndCreateTezClient(null, true, conf);
+
+    Map<String, LocalResource> localResourceMap = new HashMap<>();
+    byte[] bytes = new byte[amResourceSize];
+    Arrays.fill(bytes, (byte)1);
+    String lrName = new String(bytes);
+    localResourceMap.put(lrName, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
+        LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
+
+    ProcessorDescriptor processorDescriptor = ProcessorDescriptor.create("P");
+    processorDescriptor.setUserPayload(UserPayload.create(ByteBuffer.allocate(payloadSize)));
+    Vertex vertex = Vertex.create("Vertex", processorDescriptor, 1, Resource.newInstance(1, 1));
+    DAG dag = DAG.create("DAG").addVertex(vertex);
+
+    client.start();
+    client.addAppMasterLocalFiles(localResourceMap);
+    client.submitDAG(dag);
+    client.stop();
+
+    ArgumentCaptor<SubmitDAGRequestProto> captor = ArgumentCaptor.forClass(SubmitDAGRequestProto.class);
+    verify(client.sessionAmProxy).submitDAG((RpcController)any(), captor.capture());
+    SubmitDAGRequestProto request = captor.getValue();
+
+    if (shouldSerialize) {
+      /* we need manually delete the serialized dagplan since staging path here won't be destroyed */
+      Path dagPlanPath = new Path(request.getSerializedRequestPath());
+      FileSystem fs = FileSystem.getLocal(conf);
+      fs.deleteOnExit(dagPlanPath);
+      fs.delete(dagPlanPath, false);
+
+      assertTrue(request.hasSerializedRequestPath());
+      assertFalse(request.hasDAGPlan());
+      assertFalse(request.hasAdditionalAmResources());
+    } else {
+      assertFalse(request.hasSerializedRequestPath());
+      assertTrue(request.hasDAGPlan());
+      assertTrue(request.hasAdditionalAmResources());
+    }
   }
   
   public void testTezClient(boolean isSession) throws Exception {

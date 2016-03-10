@@ -482,7 +482,19 @@ public class DAGAppMaster extends AbstractService {
 
     addIfService(dispatcher, false);
 
-    clientRpcServer = new DAGClientServer(clientHandler, appAttemptID);
+    recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
+    recoveryFS = recoveryDataDir.getFileSystem(conf);
+    currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
+        appAttemptID.getAttemptId());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Stage directory information for AppAttemptId :" + this.appAttemptID
+          + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
+          + " recoveryAttemptDir :" + currentRecoveryDataDir);
+    }
+    recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
+        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
+
+    clientRpcServer = new DAGClientServer(clientHandler, appAttemptID, recoveryFS);
     addIfService(clientRpcServer, true);
 
     taskHeartbeatHandler = createTaskHeartbeatHandler(context, conf);
@@ -588,18 +600,6 @@ public class DAGAppMaster extends AbstractService {
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
-
-    recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
-    recoveryFS = recoveryDataDir.getFileSystem(conf);
-    currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
-        appAttemptID.getAttemptId());
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Stage directory information for AppAttemptId :" + this.appAttemptID
-          + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
-          + " recoveryAttemptDir :" + currentRecoveryDataDir);
-    }
-    recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
-        TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
 
     if (!versionMismatch) {
       if (isSession) {

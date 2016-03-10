@@ -1528,6 +1528,16 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_CLIENT_ASYNCHRONOUS_STOP = TEZ_PREFIX + "client.asynchronous-stop";
   public static final boolean TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT = true;
 
+  /**
+   * Int value. SubmitDAGPlanRequest cannot be larger than Max IPC message size minus this number; otherwise, it will
+   * be serialized to HDFS and we transfer the path to server. Server will deserialize the request from HDFS.
+   */
+  @Private
+  @ConfigurationScope(Scope.CLIENT)
+  @ConfigurationProperty(type="int")
+  public static final String TEZ_IPC_PAYLOAD_RESERVED_BYTES = TEZ_PREFIX + "ipc.payload.reserved.bytes";
+  public static final int TEZ_IPC_PAYLOAD_RESERVED_BYTES_DEFAULT = 5 * 1024 * 1024;
+
   // for Recovery Test
   @Private
   @ConfigurationScope(Scope.TEST)

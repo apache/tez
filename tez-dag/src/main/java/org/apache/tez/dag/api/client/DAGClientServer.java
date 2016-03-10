@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -50,12 +51,14 @@ public class DAGClientServer extends AbstractService {
   DAGClientHandler realInstance;
   Server server;
   InetSocketAddress bindAddress;
+  final FileSystem stagingFs;
 
   public DAGClientServer(DAGClientHandler realInstance,
-      ApplicationAttemptId attemptId) {
+      ApplicationAttemptId attemptId, FileSystem stagingFs) {
     super("DAGClientRPCServer");
     this.realInstance = realInstance;
     this.secretManager = new ClientToAMTokenSecretManager(attemptId, null);
+    this.stagingFs = stagingFs;
   }
 
   @Override
@@ -65,7 +68,7 @@ public class DAGClientServer extends AbstractService {
       InetSocketAddress addr = new InetSocketAddress(0);
 
       DAGClientAMProtocolBlockingPBServerImpl service =
-          new DAGClientAMProtocolBlockingPBServerImpl(realInstance);
+          new DAGClientAMProtocolBlockingPBServerImpl(realInstance, stagingFs);
 
       BlockingService blockingService =
                 DAGClientAMProtocol.newReflectiveBlockingService(service);
