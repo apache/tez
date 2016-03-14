@@ -1545,4 +1545,15 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "test.recovery-service-class";
   @Private
   public static final String TEZ_AM_RECOVERY_SERVICE_CLASS_DEFAULT = "org.apache.tez.dag.history.recovery.RecoveryService";
+
+  /**
+   * Boolean value. Default false.
+   * By default, configured values for the Summary Entity Types for Timeline will
+   * not be respected and be overridden by the Timeline History Service.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_ATS_V15_OVERRIDE_SUMMARY_TYPES =
+      TEZ_PREFIX + "am.ats.v15.override.summary-types";
+  public static final boolean TEZ_AM_ATS_V15_OVERRIDE_SUMMARY_TYPES_DEFAULT = true;
 }

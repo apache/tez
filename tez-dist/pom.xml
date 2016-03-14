@@ -103,7 +103,6 @@
           <artifactId>tez-yarn-timeline-history-with-acls</artifactId>
           <version>${project.version}</version>
         </dependency>
-        <!--
         <dependency>
           <groupId>org.apache.tez</groupId>
           <artifactId>tez-yarn-timeline-history-with-fs</artifactId>
@@ -113,7 +112,7 @@
           <groupId>org.apache.tez</groupId>
           <artifactId>tez-yarn-timeline-cache-plugin</artifactId>
           <version>${project.version}</version>
-        </dependency> -->
+        </dependency>
         <dependency>
           <groupId>org.apache.tez</groupId>
           <artifactId>hadoop-shim-2.8</artifactId>

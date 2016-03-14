@@ -46,6 +46,15 @@
         <module>job-analyzer</module>
       </modules>
     </profile>
+    <profile>
+      <id>hadoop28</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>job-analyzer</module>
+      </modules>
+    </profile>
   </profiles>
 
 </project>

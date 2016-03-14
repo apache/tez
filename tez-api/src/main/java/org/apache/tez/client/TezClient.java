@@ -144,6 +144,10 @@ public class TezClient {
       "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
+  private static final String atsv15HistoryLoggingServiceClassName =
+      "org.apache.tez.dag.history.logging.ats.ATSV15HistoryLoggingService";
+  private static final String atsV15HistoryACLManagerClassName =
+      "org.apache.tez.dag.history.ats.acls.ATSV15HistoryACLPolicyManager";
 
   private TezClient(String name, TezConfiguration tezConf) {
     this(name, tezConf, tezConf.getBoolean(
@@ -364,23 +368,35 @@ public class TezClient {
 
     ///need additional check for historyACLPolicyManager because tests could stub historyACLPolicyManager
     ///before tezclient start. If there is already a stubbed historyACLPolicyManager, we don't overwrite it
-    if (this.amConfig.getTezConfiguration().get(
-        TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
-        .equals(atsHistoryLoggingServiceClassName) && (historyACLPolicyManager == null)) {
-      LOG.info("Using " + atsHistoryACLManagerClassName + " to manage Timeline ACLs");
-      try {
-        historyACLPolicyManager = ReflectionUtils.createClazzInstance(
-            atsHistoryACLManagerClassName);
-        historyACLPolicyManager.setConf(this.amConfig.getYarnConfiguration());
-      } catch (TezReflectionException e) {
-        if (!amConfig.getTezConfiguration().getBoolean(
-            TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
-            TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
-          LOG.warn("Could not instantiate object for " + atsHistoryACLManagerClassName
-                    + ". ACLs cannot be enforced correctly for history data in Timeline", e);
-          throw e;
+    if (historyACLPolicyManager == null) {
+      //TODO: FIXME: The ACL manager should be retrieved either from the
+      //logging service directly or via a pluggable factory that can
+      //instantiate ACL managers and logging services
+      String logSvcClassName = amConfig.getTezConfiguration().get(
+          TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "");
+      String aclMgrClassName = null;
+      if (logSvcClassName.equals(atsHistoryLoggingServiceClassName)) {
+        aclMgrClassName = atsHistoryACLManagerClassName;
+      } else if (logSvcClassName.equals(
+        atsv15HistoryLoggingServiceClassName)) {
+        aclMgrClassName = atsV15HistoryACLManagerClassName;
+      }
+      if (aclMgrClassName != null) {
+        LOG.info("Using " + aclMgrClassName + " to manage Timeline ACLs");
+        try {
+          historyACLPolicyManager = ReflectionUtils.createClazzInstance(
+              aclMgrClassName);
+          historyACLPolicyManager.setConf(this.amConfig.getYarnConfiguration());
+        } catch (TezReflectionException e) {
+          if (!amConfig.getTezConfiguration().getBoolean(
+              TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
+              TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
+            LOG.warn("Could not instantiate object for " + aclMgrClassName
+                + ". ACLs cannot be enforced correctly for history data in Timeline", e);
+            throw e;
+          }
+          historyACLPolicyManager = null;
         }
-        historyACLPolicyManager = null;
       }
     }
 
@@ -500,7 +516,8 @@ public class TezClient {
 
     TezConfiguration dagClientConf = new TezConfiguration(amConfig.getTezConfiguration());
     Map<String, String> aclConfigs = null;
-    // TEZ_AM_HISTORY_LOGGING_ENABLED is a config setting enable/disable logging of all dags within a session
+    // TEZ_AM_HISTORY_LOGGING_ENABLED is a config setting enable/disable logging of all
+    // dags within a session
     boolean sessionHistoryLoggingEnabled = amConfig.getTezConfiguration().getBoolean(
         TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
         TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);

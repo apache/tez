@@ -50,6 +50,20 @@
         <module>tez-history-parser</module>
       </modules>
     </profile>
+    <profile>
+      <id>hadoop28</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <modules>
+        <module>tez-yarn-timeline-history</module>
+        <module>tez-yarn-timeline-history-with-acls</module>
+        <module>tez-yarn-timeline-cache-plugin</module>
+        <module>tez-yarn-timeline-history-with-fs</module>
+        <module>tez-history-parser</module>
+      </modules>
+    </profile>
+
   </profiles>
 
   <build>

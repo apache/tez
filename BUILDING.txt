@@ -74,8 +74,12 @@ To skip Tests and java docs
 
  $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT -DskipTests -Dmaven.javadoc.skip=true
 
-However, to build against hadoop versions lower than 2.6.0, you will need to do the
+However, to build against hadoop versions lower or higher than 2.6.0, you will need to do the
 following:
+
+For Hadoop version X where X >= 2.8.0
+
+ $ mvn package  -Dhadoop.version=${X} -Phadoop28 -P\!hadoop26
 
 For Hadoop version X where 2.4.0 <= X < 2.6.0
 
