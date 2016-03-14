@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -87,6 +88,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventTezEventUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
@@ -328,6 +330,11 @@ public class TestTaskAttempt {
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null,
         TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
+    assertEquals(TaskAttemptStateInternal.KILL_IN_PROGRESS, taImpl.getInternalState());
+    taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getID(), Collections.EMPTY_LIST));
+    assertFalse(
+        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILL_IN_PROGRESS state",
+        eventHandler.internalError);
     // At some KILLING state.
     taImpl.handle(new TaskAttemptEventKillRequest(taskAttemptID, null,
         TaskAttemptTerminationCause.TERMINATED_BY_CLIENT));
@@ -746,6 +753,12 @@ public class TestTaskAttempt {
     assertEquals(1, taImpl.getDiagnostics().size());
     assertEquals("0", taImpl.getDiagnostics().get(0));
     assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
+
+    assertEquals(TaskAttemptStateInternal.FAIL_IN_PROGRESS, taImpl.getInternalState());
+    taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getID(), Collections.EMPTY_LIST));
+    assertFalse(
+        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in FAIL_IN_PROGRESS state",
+        eventHandler.internalError);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "1",
         TaskAttemptTerminationCause.CONTAINER_EXITED));
@@ -1175,6 +1188,12 @@ public class TestTaskAttempt {
     assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
         taImpl.getState());
     assertEquals(TaskAttemptTerminationCause.NODE_FAILED, taImpl.getTerminationCause());
+
+    assertEquals(TaskAttemptStateInternal.KILLED, taImpl.getInternalState());
+    taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getID(), Collections.EMPTY_LIST));
+    assertFalse(
+        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in KILLED state",
+        eventHandler.internalError);
   }
   
   @Test(timeout = 5000)
