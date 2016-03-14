@@ -541,6 +541,11 @@ public class TezClient {
           serializedSubmitDAGPlanRequestCounter.incrementAndGet());
 
       try (FSDataOutputStream fsDataOutputStream = stagingFs.create(dagPlanPath, false)) {
+        LOG.info("Send dag plan using YARN local resources since it's too large"
+            + ", dag plan size=" + request.getSerializedSize()
+            + ", max dag plan size through IPC=" + maxSubmitDAGRequestSizeThroughIPC
+            + ", max IPC message size= " + amConfig.getTezConfiguration().getInt(
+            CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH_DEFAULT));
         request.writeTo(fsDataOutputStream);
         request = requestBuilder.clear().setSerializedRequestPath(stagingFs.resolvePath(dagPlanPath).toString()).build();
       }
