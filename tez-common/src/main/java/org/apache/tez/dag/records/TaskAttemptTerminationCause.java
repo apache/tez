@@ -23,6 +23,7 @@ public enum TaskAttemptTerminationCause {
   
   TERMINATED_BY_CLIENT, // Killed by client command
   TERMINATED_AT_SHUTDOWN, // Killed due execution shutdown
+  TERMINATED_AT_RECOVERY, // Killed in recovery, due to can not recover running task attempt
   INTERNAL_PREEMPTION, // Killed by Tez to makes space for higher pri work
   EXTERNAL_PREEMPTION, // Killed by the cluster to make space for other work
   TERMINATED_INEFFECTIVE_SPECULATION, // Killed speculative attempt because original succeeded
@@ -42,5 +43,5 @@ public enum TaskAttemptTerminationCause {
   CONTAINER_STOPPED, // Container stopped or released by Tez
   NODE_FAILED, // Node for the container failed
   NODE_DISK_ERROR, // Disk failed on the node runnign the task
-  
+
 }

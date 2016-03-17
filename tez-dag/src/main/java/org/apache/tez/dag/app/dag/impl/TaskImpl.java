@@ -35,6 +35,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1199,7 +1200,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           if (task.successfulAttempt != null) {
             //Found successful attempt
             //Recover data
-            boolean recoveredData = true;
+            String recoverErrorMsg = null;
             if (task.getVertex().getOutputCommitters() != null
                 && !task.getVertex().getOutputCommitters().isEmpty()) {
               for (Entry<String, OutputCommitter> entry
@@ -1209,28 +1210,32 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
                     + ", output=" + entry.getKey());
                 OutputCommitter committer = entry.getValue();
                 if (!committer.isTaskRecoverySupported()) {
-                  LOG.info("Task recovery not supported by committer"
-                      + ", failing task attempt"
+                  recoverErrorMsg = "Task recovery not supported by committer"
+                      + ", failing task attempt";
+                  LOG.info(recoverErrorMsg
                       + ", taskId=" + task.getTaskId()
                       + ", attemptId=" + task.successfulAttempt
                       + ", output=" + entry.getKey());
-                  recoveredData = false;
                   break;
                 }
                 try {
                   committer.recoverTask(task.getTaskId().getId(),
                       task.appContext.getApplicationAttemptId().getAttemptId()-1);
                 } catch (Exception e) {
+                  recoverErrorMsg = "Task recovery failed by committer: "
+                      + ExceptionUtils.getStackTrace(e);
                   LOG.warn("Task recovery failed by committer"
                       + ", taskId=" + task.getTaskId()
                       + ", attemptId=" + task.successfulAttempt
                       + ", output=" + entry.getKey(), e);
-                  recoveredData = false;
                   break;
                 }
               }
             }
-            if (!recoveredData) {
+            if (recoverErrorMsg != null) {
+              task.eventHandler.handle(
+                  new TaskAttemptEventKillRequest(task.successfulAttempt, recoverErrorMsg,
+                      TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY));
               task.successfulAttempt = null;
             } else {
               LOG.info("Recovered a successful attempt"

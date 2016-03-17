@@ -1633,7 +1633,15 @@ public class TaskAttemptImpl implements TaskAttempt,
       MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
     @Override
     public TaskAttemptStateInternal transition(TaskAttemptImpl attempt, TaskAttemptEvent event) {
-      if (attempt.leafVertex) {
+      boolean fromRecovery = false;
+      if (event instanceof TaskAttemptEventTerminationCauseEvent) {
+        TaskAttemptEventTerminationCauseEvent termEvent =
+            (TaskAttemptEventTerminationCauseEvent) event;
+        if (termEvent.getTerminationCause() == TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY) {
+          fromRecovery = true;
+        }
+      }
+      if (!fromRecovery && attempt.leafVertex) {
         return TaskAttemptStateInternal.SUCCEEDED;
       }
       // TODO - TEZ-834. This assumes that the outputs were on that node

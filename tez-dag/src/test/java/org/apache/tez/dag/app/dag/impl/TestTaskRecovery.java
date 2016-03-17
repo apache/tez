@@ -54,6 +54,7 @@ import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEvent;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventRecoverTask;
@@ -623,6 +624,7 @@ public class TestTaskRecovery {
     assertEquals(taId, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    dispatcher.await();
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
@@ -630,6 +632,13 @@ public class TestTaskRecovery {
     assertEquals(0, task.failedAttempts);
     assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
+    // verify kill event is sent to original task attempt
+    assertEquals(2, taEventHandler.getEvents().size());
+    TaskAttemptEvent taEvent = taEventHandler.getEvents().get(1);
+    assertEquals(TaskAttemptEventType.TA_KILL_REQUEST, taEvent.getType());
+    assertEquals(taId, taEvent.getTaskAttemptID());
+    TaskAttemptEventKillRequest taKillEvent = (TaskAttemptEventKillRequest) taEvent;
+    assertEquals(TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY, taKillEvent.getTerminationCause());
   }
 
   /**
@@ -663,6 +672,7 @@ public class TestTaskRecovery {
     assertEquals(taId, task.successfulAttempt);
 
     task.handle(new TaskEventRecoverTask(task.getTaskId()));
+    dispatcher.await();
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());
@@ -670,6 +680,13 @@ public class TestTaskRecovery {
     assertEquals(0, task.failedAttempts);
     assertEquals(1, task.getUncompletedAttemptsCount());
     assertEquals(null, task.successfulAttempt);
+    // verify kill event is sent to original task attempt
+    assertEquals(2, taEventHandler.getEvents().size());
+    TaskAttemptEvent taEvent = taEventHandler.getEvents().get(1);
+    assertEquals(TaskAttemptEventType.TA_KILL_REQUEST, taEvent.getType());
+    assertEquals(taId, taEvent.getTaskAttemptID());
+    TaskAttemptEventKillRequest taKillEvent = (TaskAttemptEventKillRequest) taEvent;
+     assertEquals(TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY, taKillEvent.getTerminationCause());
   }
 
   @Test(timeout = 5000)
