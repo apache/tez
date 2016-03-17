@@ -16,26 +16,31 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import { moduleFor, test } from 'ember-qunit';
 
-@import "tooltip";
+moduleFor('route:dag/swimlane', 'Unit | Route | dag/swimlane', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+test('Basic creation test', function(assert) {
+  let route = this.subject();
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  assert.ok(route);
+  assert.ok(route.title);
+  assert.ok(route.loaderNamespace);
+  assert.ok(route.setupController);
+  assert.ok(route.load);
+});
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+test('setupController test', function(assert) {
+  assert.expect(1);
+
+  let route = this.subject({
+    startCrumbBubble: function () {
+      assert.ok(true);
+    }
+  });
+
+  route.setupController({}, {});
+});

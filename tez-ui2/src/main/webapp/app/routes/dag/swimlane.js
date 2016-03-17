@@ -16,26 +16,22 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import Ember from 'ember';
+import MultiAmPollsterRoute from '../multi-am-pollster';
 
-@import "tooltip";
+export default MultiAmPollsterRoute.extend({
+  title: "Vertex Swimlane",
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+  loaderNamespace: "dag",
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+  load: function (value, query, options) {
+    return this.get("loader").query('vertex', {
+      dagID: this.modelFor("dag").get("id")
+    }, options);
+  }
+});

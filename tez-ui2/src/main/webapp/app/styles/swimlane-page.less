@@ -16,26 +16,56 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+.swimlane-page {
+  .button-panel {
+    .no-select;
 
-@import "tooltip";
+    text-align: right;
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+    height: 30px;
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+    .fa {
+      font-size: 20px;
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+      border-radius: 5px;
+
+      cursor: pointer;
+
+      border-color: @border-lite;
+      background-color: @bg-lite;
+
+      &:hover {
+        color: @bg-lite;
+        background-color: @text-color;
+      }
+    }
+  }
+
+  .fa-compress {
+    display: none;
+  }
+
+  .fullscreen {
+    height: 100%;
+    width: 100%;
+
+    padding: 10px;
+
+    .fa-compress {
+      display: inline-block;
+    }
+    .fa-expand {
+      .no-display;
+    }
+  }
+
+  &:-webkit-full-screen {
+    .fullscreen;
+  }
+  &:fullscreen {
+    .fullscreen;
+  }
+  &:-moz-full-screen {
+    .fullscreen;
+  }
+}

@@ -86,4 +86,6 @@ export default AbstractModel.extend({
 
   diagnostics: DS.attr('string'),
 
+  events: DS.attr('object'),
+
 });

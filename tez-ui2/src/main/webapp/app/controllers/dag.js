@@ -49,5 +49,8 @@ export default ParentController.extend({
   }, {
     text: "All Task Attempts",
     routeName: "dag.attempts"
+  }, {
+    text: "Vertex Swimlane",
+    routeName: "dag.swimlane"
   }]
 });

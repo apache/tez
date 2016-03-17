@@ -47,6 +47,8 @@ export default LoaderSerializer.extend({
 
     diagnostics: getDiagnostics,
 
+    events: 'events',
+
     _counterGroups: 'otherinfo.counters.counterGroups'
   }
 });

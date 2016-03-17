@@ -16,26 +16,30 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import { moduleForComponent, test } from 'ember-qunit';
+import hbs from 'htmlbars-inline-precompile';
 
-@import "tooltip";
+moduleForComponent('em-swimlane-process-name', 'Integration | Component | em swimlane process name', {
+  integration: true
+});
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+test('Basic creation test', function(assert) {
+  var testName = "TestName";
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  this.set("process", {
+    name: testName
+  });
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+  this.render(hbs`{{em-swimlane-process-name process=process}}`);
+
+  assert.equal(this.$().text().trim(), testName);
+
+  // Template block usage:" + EOL +
+  this.render(hbs`
+    {{#em-swimlane-process-name process=process}}
+      template block text
+    {{/em-swimlane-process-name}}
+  `);
+
+  assert.equal(this.$().text().trim(), testName);
+});

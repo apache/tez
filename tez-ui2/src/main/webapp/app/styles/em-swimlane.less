@@ -1,0 +1,109 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@process-height: 30px;
+
+.em-swimlane {
+  position: relative;
+
+  margin: 5px 0px 5px 0px;
+
+  .process-names {
+    width: 100px;
+  }
+  .process-visuals {
+    position: absolute;
+    left: 100px;
+    right: 0px;
+    top: 0px;
+
+    border-left: 1px solid @border-color;
+  }
+}
+
+.em-swimlane-process-name {
+  text-align: right;
+  padding-right: 5px;
+  padding-top: 5px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  height: 30px;
+}
+
+.em-swimlane-process-visual {
+  position: relative;
+  height: 30px;
+
+  cursor: pointer;
+
+  .base-line {
+    position: relative;
+    height: 1px;
+    top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
+    border-top: 1px dotted @border-color;
+  }
+
+  .event-window-line {
+    position: absolute;
+    top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
+    border-top: 1px solid;
+    height: 1px;
+  }
+}
+
+.em-swimlane-event {
+  position: absolute;
+  top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
+
+  .event-bar {
+    position: absolute;
+    top: -10px;
+    height: 20px;
+    border-left: 1px solid;
+  }
+
+  .event-bubble {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    -webkit-transition: top .2s, right .2s, bottom .2s, left .2s; /* Safari */
+    transition: top .2s, right .2s, bottom .2s, left .2s;
+    transition-timing-function: cubic-bezier(.87,-.41,.19,1.44);
+
+    border-radius: 5px;
+
+    background-color: black;
+  }
+}
+
+.em-swimlane-process-visual {
+  &:hover {
+    .event-bubble {
+      top: -5px;
+      right: -6px;
+      bottom: -6px;
+      left: -5px;
+    }
+  }
+}

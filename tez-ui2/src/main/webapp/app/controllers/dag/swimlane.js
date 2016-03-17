@@ -16,26 +16,28 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import Ember from 'ember';
 
-@import "tooltip";
+import MultiTableController from '../multi-table';
+import ColumnDefinition from 'em-table/utils/column-definition';
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+import fullscreen from 'em-tgraph/utils/fullscreen';
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+export default MultiTableController.extend({
+  breadcrumbs: [{
+    text: "Vertex Swimlane",
+    routeName: "dag.swimlane",
+  }],
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+  columns: ColumnDefinition.make([]),
+
+  actions: {
+    toggleFullscreen: function () {
+      var swimlaneElement = Ember.$(".swimlane-page")[0];
+      if(swimlaneElement){
+        fullscreen.toggle(swimlaneElement);
+      }
+    }
+  },
+
+});

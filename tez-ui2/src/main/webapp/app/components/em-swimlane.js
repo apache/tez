@@ -16,26 +16,22 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import Ember from 'ember';
 
-@import "tooltip";
+import ProcessDefinition from '../utils/process-definition';
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+export default Ember.Component.extend({
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  classNames: ["em-swimlane"],
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+  processes: [],
+  processDefinition: ProcessDefinition.create(),
+
+  startTime: null,
+  endTime: null,
+
+  timeWindow: Ember.computed("startTime", "endTime", function () {
+    return Math.max(0, this.get("endTime") - this.get("startTime"));
+  })
+
+});

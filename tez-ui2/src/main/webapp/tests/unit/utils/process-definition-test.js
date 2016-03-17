@@ -16,26 +16,14 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import ProcessDefinition from '../../../utils/process-definition';
+import { module, test } from 'qunit';
 
-@import "tooltip";
+module('Unit | Utility | process definition');
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+test('Basic creation test', function(assert) {
+  let definition = ProcessDefinition.create();
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+  assert.ok(definition);
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+});

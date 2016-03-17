@@ -16,26 +16,26 @@
  * limitations under the License.
  */
 
-// Prerequisites
-@import "colors";
-@import "shared";
+import Ember from 'ember';
 
-@import "tooltip";
+import { moduleFor, test } from 'ember-qunit';
 
-// Components
-@import "tab-n-refresh";
-@import "dags-page-search";
-@import "table-controls";
-@import "error-bar";
-@import "caller-info";
-@import "date-formatter";
-@import "em-swimlane";
+moduleFor('controller:dag/swimlane', 'Unit | Controller | dag/swimlane', {
+  // Specify the other units that are required for this test.
+  // needs: ['controller:foo']
+});
 
-// Modals
-@import "column-selector";
-@import "zip-download-modal";
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    beforeSort: {bind: Ember.K},
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    }
+  });
 
-// Pages
-@import "page-layout";
-@import "details-page";
-@import "swimlane-page";
+  assert.ok(controller);
+  assert.ok(controller.breadcrumbs);
+  assert.ok(controller.columns);
+});
