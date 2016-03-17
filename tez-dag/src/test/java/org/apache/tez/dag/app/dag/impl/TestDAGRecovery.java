@@ -321,6 +321,7 @@ public class TestDAGRecovery {
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
+    when(appContext.getClock()).thenReturn(new SystemClock());
 
     Mockito.doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
@@ -1052,7 +1053,7 @@ public class TestDAGRecovery {
    * V2's committer is not recovery supported
    */
   @Test//(timeout=5000)
-  public void testTARecoverFromSucceeded_OutputCommitterRecoveryNotSupported() {
+  public void testTARecoverFromSucceeded_OutputCommitterRecoveryNotSupported() throws Exception{
     initMockDAGRecoveryDataForTaskAttempt();
     // set up v2 recovery data
     // ta1t1v2: TaskAttemptStartedEvent -> TaskAttemptFinishedEvent(SUCCEEDED)
@@ -1097,8 +1098,8 @@ public class TestDAGRecovery {
     
     TaskImpl task = (TaskImpl)dag.getVertex(v2Id).getTask(t1v2Id);
     TaskAttemptImpl taskAttempt = (TaskAttemptImpl)task.getAttempt(ta1t1v2Id);
-    assertEquals(TaskAttemptStateInternal.SUCCEEDED, taskAttempt.getInternalState());
-    historyEventHandler.verifyHistoryEvent(0, HistoryEventType.TASK_ATTEMPT_FINISHED);
+    assertEquals(TaskAttemptStateInternal.KILLED, taskAttempt.getInternalState());
+    historyEventHandler.verifyHistoryEvent(1, HistoryEventType.TASK_ATTEMPT_FINISHED);
     assertEquals(TaskStateInternal.RUNNING, task.getInternalState());
     // new task attempt is scheduled
     assertEquals(2, task.getAttempts().size());

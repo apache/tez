@@ -79,7 +79,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminated;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventContainerTerminatedBySystem;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTezEventUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
@@ -172,7 +171,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final Lock writeLock;
   protected final AppContext appContext;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
-  private final TaskAttemptRecoveryData recoveryData;
+  private TaskAttemptRecoveryData recoveryData;
   private long launchTime = 0;
   private long finishTime = 0;
   private String trackerName;
@@ -1663,7 +1662,10 @@ public class TaskAttemptImpl implements TaskAttempt,
       MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
     @Override
     public TaskAttemptStateInternal transition(TaskAttemptImpl attempt, TaskAttemptEvent event) {
-      if (attempt.leafVertex) {
+      boolean fromRecovery = (event instanceof RecoveryEvent
+          && ((RecoveryEvent) event).isFromRecovery());
+      attempt.recoveryData = null;
+      if (!fromRecovery && attempt.leafVertex) {
         return TaskAttemptStateInternal.SUCCEEDED;
       }
       // TODO - TEZ-834. This assumes that the outputs were on that node

@@ -35,6 +35,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,7 @@ import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
@@ -982,10 +984,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private static class AttemptSucceededTransition
       implements MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
 
-    private boolean recoverSuccessTaskAttempt(TaskImpl task) {
+    private String recoverSuccessTaskAttempt(TaskImpl task) {
       // Found successful attempt
       // Recover data
-      boolean recoveredData = true;
+      String errorMsg = null;
       if (task.getVertex().getOutputCommitters() != null
           && !task.getVertex().getOutputCommitters().isEmpty()) {
         for (Entry<String, OutputCommitter> entry
@@ -995,28 +997,29 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
               + ", output=" + entry.getKey());
           OutputCommitter committer = entry.getValue();
           if (!committer.isTaskRecoverySupported()) {
-            LOG.info("Task recovery not supported by committer"
-                + ", failing task attempt"
+            errorMsg = "Task recovery not supported by committer"
+                + ", failing task attempt";
+            LOG.info(errorMsg
                 + ", taskId=" + task.getTaskId()
                 + ", attemptId=" + task.successfulAttempt
                 + ", output=" + entry.getKey());
-            recoveredData = false;
             break;
           }
           try {
             committer.recoverTask(task.getTaskId().getId(),
                 task.appContext.getApplicationAttemptId().getAttemptId()-1);
           } catch (Exception e) {
+            errorMsg = "Task recovery failed by committer: "
+                + ExceptionUtils.getStackTrace(e);
             LOG.warn("Task recovery failed by committer"
                 + ", taskId=" + task.getTaskId()
                 + ", attemptId=" + task.successfulAttempt
                 + ", output=" + entry.getKey(), e);
-            recoveredData = false;
             break;
           }
         }
       }
-      return recoveredData;
+      return errorMsg;
     }
 
     @Override
@@ -1026,13 +1029,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // recovery. In that case just reschedule new attempt if numFailedAttempts does not exceeded maxFailedAttempts.
       if (task.recoveryData!= null
           && task.recoveryData.isTaskAttemptSucceeded(successTaId)) {
-        boolean recoveredData = recoverSuccessTaskAttempt(task);
-        if (!recoveredData) {
-          // Move this TA to KILLED (TEZ-2958)
-          LOG.info("Can not recovery the successful task attempt, schedule new task attempt,"
+        String errorMsg = recoverSuccessTaskAttempt(task);
+        if (errorMsg != null) {
+          LOG.info("Can not recover the successful task attempt, schedule new task attempt,"
               + "taskId=" + task.getTaskId());
           task.successfulAttempt = null;
           task.addAndScheduleAttempt(successTaId);
+          task.eventHandler.handle(new TaskAttemptEventAttemptKilled(successTaId,
+              errorMsg, TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY, true));
           return TaskStateInternal.RUNNING;
         } else {
           task.successfulAttempt = successTaId;

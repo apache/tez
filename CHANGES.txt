@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-2958. Recovered TA, whose commit cannot be recovered, should move to killed state
   TEZ-2936. Create ATS implementation that enables support for YARN-4265 (ATS v1.5)
   TEZ-3148. Invalid event TA_TEZ_EVENT_UPDATE on TaskAttempt.
   TEZ-3105. TezMxBeanResourceCalculator does not work on IBM JDK 7 or 8 causing Tez failures.
@@ -404,6 +405,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-2958. Recovered TA, whose commit cannot be recovered, should move to killed state
   TEZ-3105. TezMxBeanResourceCalculator does not work on IBM JDK 7 or 8 causing Tez failures.
   TEZ-2863. Container, node, and logs not available in UI for tasks that fail to launch
   TEZ-3140. Reduce AM memory usage during serialization
