@@ -19,6 +19,8 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -634,5 +636,19 @@ public class TestTezClient {
     long end = System.currentTimeMillis();
     verify(client.mockYarnClient, atLeast(2)).getApplicationReport(client.mockAppId);
     Assert.assertTrue("Stop ended before timeout", end - start > HARD_KILL_TIMEOUT);
+  }
+
+  @Test(timeout = 5000)
+  public void testSubmitHostPopulated() throws YarnException, IOException, ServiceException, TezException {
+
+    TezConfiguration conf = new TezConfiguration();
+    configureAndCreateTezClient(conf);
+    InetAddress ip = InetAddress.getLocalHost();
+    if (ip != null) {
+      Assert.assertEquals(ip.getCanonicalHostName(), conf.get(TezConfiguration.TEZ_SUBMIT_HOST));
+      Assert.assertEquals(ip.getHostAddress(), conf.get(TezConfiguration.TEZ_SUBMIT_HOST_ADDRESS));
+    } else {
+      Assert.fail("Failed to retrieve local host information");
+    }
   }
 }

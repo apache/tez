@@ -19,6 +19,8 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -182,6 +184,16 @@ public class TezClient {
     this.isSession = isSession;
     // Set in conf for local mode AM to figure out whether in session mode or not
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
+    try {
+      InetAddress ip = InetAddress.getLocalHost();
+      if (ip != null) {
+        tezConf.set(TezConfiguration.TEZ_SUBMIT_HOST, ip.getCanonicalHostName());
+        tezConf.set(TezConfiguration.TEZ_SUBMIT_HOST_ADDRESS, ip.getHostAddress());
+      }
+    } catch (UnknownHostException e) {
+      LOG.warn("The host name of the client the tez application was submitted from was unable to be retrieved", e);
+    }
+
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
     this.apiVersionInfo = new TezApiVersionInfo();
     this.servicePluginsDescriptor = servicePluginsDescriptor;
