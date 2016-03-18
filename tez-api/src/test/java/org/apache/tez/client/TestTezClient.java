@@ -19,6 +19,8 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -494,4 +496,17 @@ public class TestTezClient {
     client.start();
   }
 
+  @Test(timeout = 5000)
+  public void testSubmitHostPopulated() throws YarnException, IOException, ServiceException, TezException {
+
+    TezConfiguration conf = new TezConfiguration();
+    configureAndCreateTezClient(conf);
+    InetAddress ip = InetAddress.getLocalHost();
+    if (ip != null) {
+      Assert.assertEquals(ip.getCanonicalHostName(), conf.get(TezConfiguration.TEZ_SUBMIT_HOST));
+      Assert.assertEquals(ip.getHostAddress(), conf.get(TezConfiguration.TEZ_SUBMIT_HOST_ADDRESS));
+    } else {
+      Assert.fail("Failed to retrieve local host information");
+    }
+  }
 }

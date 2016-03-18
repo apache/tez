@@ -1017,6 +1017,20 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_QUEUE_NAME = TEZ_PREFIX + "queue.name";
 
+  /**
+   * String value. Set automatically by the client. The host name of the client the Tez application was submitted from.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_SUBMIT_HOST = TEZ_PREFIX + "submit.host";
+
+  /**
+   * String value. Set automatically by the client. The host address of the client the Tez application was submitted from.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_SUBMIT_HOST_ADDRESS = TEZ_PREFIX + "submit.host.address";
+
   @Unstable
   /**
    * Boolean value. Generate debug artifacts like DAG plan in text format.
