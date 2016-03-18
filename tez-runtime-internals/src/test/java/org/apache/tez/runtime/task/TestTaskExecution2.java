@@ -225,6 +225,7 @@ public class TestTaskExecution2 {
           TezException.class.getName() + ": " + TezException.class.getSimpleName());
       // Failure detected as a result of fall off from the run method. abort isn't required.
       assertFalse(TestProcessor.wasAborted());
+      assertTrue(taskRunner.task.getCounters().countCounters() != 0);
     } finally {
       executor.shutdownNow();
     }
@@ -261,6 +262,7 @@ public class TestTaskExecution2 {
               + "Unable to load class: NotExitedProcessor");
       // Failure detected as a result of fall off from the run method. abort isn't required.
       assertFalse(TestProcessor.wasAborted());
+      assertTrue(taskRunner.task.getCounters().countCounters() != 0);
     } finally {
       executor.shutdownNow();
     }
@@ -298,6 +300,7 @@ public class TestTaskExecution2 {
           IOException.class.getName() + ": " + IOException.class.getSimpleName());
       // Failure detected as a result of fall off from the run method. abort isn't required.
       assertFalse(TestProcessor.wasAborted());
+      assertTrue(taskRunner.task.getCounters().countCounters() != 0);
     } finally {
       executor.shutdownNow();
     }

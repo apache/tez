@@ -72,6 +72,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
           } else {
             LOG.info("Stopped before running the processor taskAttemptId={}",
                 task.getTaskAttemptID());
+            task.setFrameworkCounters();
             return new TaskRunner2CallableResult(null);
           }
 
@@ -81,6 +82,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
             task.setFrameworkCounters();
           } else {
             LOG.info("Stopped before closing the processor, taskAttemptId={}", task.getTaskAttemptID());
+            task.setFrameworkCounters();
             return new TaskRunner2CallableResult(null);
           }
           LOG.info("Task completed, taskAttemptId={}, askedToStop={}", task.getTaskAttemptID(), stopRequested.get());
@@ -93,6 +95,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
       if (t instanceof UndeclaredThrowableException) {
         t = t.getCause();
       }
+      task.setFrameworkCounters();
       return new TaskRunner2CallableResult(t);
     } finally {
       // If a stop was requested. Make sure the interrupt status is set during the cleanup.
