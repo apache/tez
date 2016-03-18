@@ -67,6 +67,7 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -218,6 +219,7 @@ public class TestTaskExecution {
 
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskFailedEvent("Failure while running task:org.apache.tez.dag.api.TezException: TezException");
+      umbilical.verifyTaskFailedCounter();
     } finally {
       executor.shutdownNow();
     }
@@ -599,6 +601,26 @@ public class TestTaskExecution {
       } finally {
         umbilicalLock.unlock();
       }
+    }
+
+    public void verifyTaskFailedCounter() {
+      umbilicalLock.lock();
+
+      boolean counterFound = false;
+      for (TezEvent event : requestEvents) {
+        if (event.getEvent() instanceof TaskStatusUpdateEvent) {
+          TaskStatusUpdateEvent statusUpdateEvent = (TaskStatusUpdateEvent)event.getEvent();
+          if (statusUpdateEvent.getCounters() != null) {
+            counterFound = true;
+            if (statusUpdateEvent.getCounters().countCounters() == 0) {
+              fail("Counters are not fully updated and sent for failed task");
+            }
+          }
+        }
+      }
+      assertTrue(counterFound);
+
+      umbilicalLock.unlock();
     }
 
     public void verifyTaskFailedEvent(String diagnostics) {

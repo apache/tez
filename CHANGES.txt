@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3166. Fix a few cases where counters aren't fully updated and sent for failed tasks. Only adds tests.
   TEZ-2958. Recovered TA, whose commit cannot be recovered, should move to killed state
   TEZ-3105. TezMxBeanResourceCalculator does not work on IBM JDK 7 or 8 causing Tez failures.
   TEZ-2863. Container, node, and logs not available in UI for tasks that fail to launch
