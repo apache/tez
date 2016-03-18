@@ -19,6 +19,18 @@
 import Ember from 'ember';
 
 import ProcessDefinition from '../utils/process-definition';
+import Process from '../utils/process';
+
+function getVibrantHSL(colorNum, totalColors) {
+  if (totalColors < 1){
+    totalColors = 1;
+  }
+  return {
+    h: colorNum * (360 / totalColors) % 360,
+    s: 100 - (colorNum % 2) * 30,
+    l: 40
+  };
+}
 
 export default Ember.Component.extend({
 
@@ -30,8 +42,75 @@ export default Ember.Component.extend({
   startTime: null,
   endTime: null,
 
+  eventBars: [],
+
   timeWindow: Ember.computed("startTime", "endTime", function () {
     return Math.max(0, this.get("endTime") - this.get("startTime"));
+  }),
+
+  normalizedProcesses: Ember.computed("processes.@each.blockers", function () {
+    var processes = this.get("processes"),
+        processCount = processes.length,
+        normalizedProcesses,
+        idHash = {},
+        containsBlockers = false;
+
+    // Validate and reset blocking
+    processes.forEach(function (process) {
+      if(!(process instanceof Process)) {
+        Ember.Logger.error("em-swimlane : Unknown type, must be of type Process");
+      }
+
+      if(process.get("blockers.length")) {
+        containsBlockers = true;
+      }
+      process.set("blocking", Ember.A());
+    });
+
+    if(containsBlockers) {
+      normalizedProcesses = [];
+
+      // Recreate blocking list
+      processes.forEach(function (process) {
+        var blockers = process.get("blockers");
+        if(blockers) {
+          blockers.forEach(function (blocker) {
+            blocker.get("blocking").push(process);
+          });
+        }
+      });
+
+      // Give an array of the processes in blocking order
+      processes.forEach(function (process) {
+        if(process.get("blocking.length") === 0) { // The root processes
+          normalizedProcesses.push(process);
+          normalizedProcesses.push.apply(normalizedProcesses, process.getAllBlockers());
+        }
+      });
+      normalizedProcesses.reverse();
+      normalizedProcesses = normalizedProcesses.filter(function (process, index) {
+        // Filters out the recurring processes in the list (after graph traversal), we just
+        // need the top processes
+        var id = process.get("_id");
+        if(idHash[id] === undefined) {
+          idHash[id] = index;
+        }
+        return idHash[id] === index;
+      });
+    }
+    else {
+      normalizedProcesses = processes;
+    }
+
+    // Set process colors & index
+    normalizedProcesses.forEach(function (process, index) {
+      process.setProperties({
+        color: getVibrantHSL(index, processCount),
+        index: index
+      });
+    });
+
+    return Ember.A(normalizedProcesses);
   })
 
 });

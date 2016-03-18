@@ -21,24 +21,30 @@ import Ember from 'ember';
 export default Ember.Component.extend({
 
   process: null,
-  event: null,
+  blocking: null,
+  events: null,
 
-  classNames: ["em-swimlane-event"],
+  classNames: ["em-swimlane-blocking-event"],
 
-  didInsertElement: Ember.observer("event.pos", function () {
-    var color = this.get("process").getColor();
+  blockingEvent: Ember.computed("events.length", "process.blockingEventName", function () {
+    var events = this.get("events"),
+        blockingEventName = this.get("process.blockingEventName");
 
-    this.$().css({
-      "left": this.get("event.pos") + "%"
+    return events.find(function (event) {
+      return event.name === blockingEventName;
     });
-    this.$(".event-line").css("border-color", color);
-    this.$(".event-bubble").css("border-color", color);
   }),
 
-  actions: {
-    showTooltip: function () {
-      console.log(this.get("event.name"));
-    }
-  }
+  didInsertElement: Ember.observer("blockingEvent", function () {
+    var blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
+
+    this.$().css({
+      "left": this.get("blockingEvent.pos") + "%"
+    });
+    this.$(".event-line").css({
+      "height": `${blockerEventHeight}px`,
+      "border-color": this.get("process").getColor()
+    });
+  }),
 
 });

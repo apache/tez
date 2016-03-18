@@ -26,17 +26,18 @@ export default Ember.Component.extend({
   endTime: 0,
   timeWindow: 0,
 
-  events: [],
+  normalizedEvents: [],
   startEvent: null,
   endEvent: null,
 
+  eventBars: [],
   classNames: ["em-swimlane-process-visual"],
 
   didInsertElement: function () {
     Ember.run.later(this, "normalizeEvents");
   },
 
-  normalizeEvents: Ember.observer("process.events.@each.timestamp", "startTime", "timeWindow", function () {
+  normalizeEvents: Ember.observer("process.events.@each.time", "startTime", "timeWindow", function () {
     var events = Ember.get(this.get("process"), "events") || [],
         startEvent,
         endEvent,
@@ -45,8 +46,7 @@ export default Ember.Component.extend({
         timeWindow = this.get("timeWindow");
 
     events = events.map(function (event) {
-      var position = ((event.timestamp - startTime) / timeWindow) * 100;
-
+      var position = ((event.time - startTime) / timeWindow) * 100;
       event = {
         name: event.name,
         text: event.text || event.name,
@@ -65,7 +65,7 @@ export default Ember.Component.extend({
     });
 
     this.setProperties({
-      events: events,
+      normalizedEvents: events,
       startEvent: startEvent,
       endEvent: endEvent
     });
@@ -75,6 +75,7 @@ export default Ember.Component.extend({
     this.$(".event-window-line").css({
       left: this.get("startEvent.pos") + "%",
       right: (100 - this.get("endEvent.pos")) + "%",
+      "background-color": this.get("process").getColor()
     });
   })
 

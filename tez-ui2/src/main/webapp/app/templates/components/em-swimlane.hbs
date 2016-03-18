@@ -17,14 +17,15 @@
 }}
 
 <div class="process-names">
-  {{#each processes as |process|}}
+  {{#each normalizedProcesses as |process|}}
     {{em-swimlane-process-name process=process definition=processDefinition}}
   {{/each}}
 </div><div class="process-visuals">
-  {{#each processes as |process|}}
+  {{#each normalizedProcesses as |process|}}
     {{em-swimlane-process-visual
       process=process
       definition=processDefinition
+      eventBars=eventBars
       startTime=startTime
       endTime=endTime
       timeWindow=timeWindow

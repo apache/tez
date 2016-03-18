@@ -38,4 +38,49 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+  assert.ok(controller.processes);
+  assert.ok(controller.eventBars);
+});
+
+test('Process test', function(assert) {
+
+  var vertices = [Ember.Object.create({
+    name: "v1"
+  }), Ember.Object.create({
+    name: "v2"
+  }), Ember.Object.create({
+    name: "v3"
+  }), Ember.Object.create({
+    name: "v4"
+  })];
+  vertices.firstObject = {
+    dag: {
+      edges: [{
+        inputVertexName: "v1",
+        outputVertexName: "v3"
+      }, {
+        inputVertexName: "v2",
+        outputVertexName: "v3"
+      }, {
+        inputVertexName: "v3",
+        outputVertexName: "v4"
+      }]
+    }
+  };
+
+  let controller = this.subject({
+    send: Ember.K,
+    beforeSort: {bind: Ember.K},
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    },
+    model: vertices
+  });
+
+  var processes = controller.get("processes");
+
+  assert.equal(processes[2].blockers[0].vertex, vertices[0]);
+  assert.equal(processes[2].blockers[1].vertex, vertices[1]);
+  assert.equal(processes[3].blockers[0].vertex, vertices[2]);
 });

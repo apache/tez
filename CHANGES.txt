@@ -1885,6 +1885,7 @@ ALL CHANGES
   TEZ-642. Fix poms for release. (hitesh)
   TEZ-643. Change getProgress APIs to return some form of progress and 1.0f once the map or reduce phase complete. (sseth)
   TEZ-3160. Tez UI 2: Swimlane - Create swimlane page & component (sree)
+  TEZ-3170. Tez UI 2: Swimlane - Display computed events, event bars & dependencies (sree)
 
 Release 0.2.0-incubating: 2013-11-30
 

@@ -17,11 +17,18 @@
 }}
 
 <div class="base-line"></div>
-{{#each events as |event|}}
-  {{em-swimlane-event
-  title=event.text
-  position=event.pos
-  time=event.time
-  }}
-{{/each}}
 <div class="event-window-line"></div>
+{{#each process.blocking as |blocking|}}
+  {{em-swimlane-blocking-event process=process blocking=blocking events=normalizedEvents}}
+{{/each}}
+{{#each eventBars as |bar index|}}
+  {{em-swimlane-event-bar
+    events=normalizedEvents
+    bar=bar
+    barIndex=index
+    bars=eventBars
+    process=process}}
+{{/each}}
+{{#each normalizedEvents as |event|}}
+  {{em-swimlane-event process=process event=event}}
+{{/each}}

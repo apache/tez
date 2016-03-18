@@ -20,6 +20,7 @@ import Ember from 'ember';
 
 import MultiTableController from '../multi-table';
 import ColumnDefinition from 'em-table/utils/column-definition';
+import VertexProcess from '../../utils/vertex-process';
 
 import fullscreen from 'em-tgraph/utils/fullscreen';
 
@@ -40,4 +41,38 @@ export default MultiTableController.extend({
     }
   },
 
+  processes: Ember.computed("model", function () {
+    var processes = [],
+        processHash = {},
+
+        dagPlanEdges = this.get("model.firstObject.dag.edges");
+
+    // Create process instances for each vertices
+    this.get("model").forEach(function (vertex) {
+      var process = VertexProcess.create({
+        vertex: vertex,
+        blockers: Ember.A()
+      });
+      processHash[vertex.get("name")] = process;
+      processes.push(process);
+    });
+
+    // Add process(vertex) dependencies based on dagPlan
+    dagPlanEdges.forEach(function (edge) {
+      var process = processHash[edge.outputVertexName];
+      if(process) {
+        process.blockers.push(processHash[edge.inputVertexName]);
+      }
+    });
+
+    return Ember.A(processes);
+  }),
+
+  eventBars: [{
+    fromEvent: "VERTEX_TASK_START",
+    toEvent: "VERTEX_TASK_FINISH",
+  }, {
+    fromEvent: "BLOCKING_VERTICES_COMPLETE",
+    toEvent: "VERTEX_TASK_FINISH",
+  }]
 });

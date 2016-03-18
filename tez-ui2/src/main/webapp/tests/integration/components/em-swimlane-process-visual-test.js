@@ -21,14 +21,14 @@ import hbs from 'htmlbars-inline-precompile';
 
 import wait from 'ember-test-helpers/wait';
 
+import Process from 'tez-ui/utils/process';
+
 moduleForComponent('em-swimlane-process-visual', 'Integration | Component | em swimlane process visual', {
   integration: true
 });
 
 test('Basic creation test', function(assert) {
-  this.set("process", {
-    events: []
-  });
+  this.set("process", Process.create());
 
   this.render(hbs`{{em-swimlane-process-visual process=process}}`);
 
@@ -47,18 +47,19 @@ test('Basic creation test', function(assert) {
 });
 
 test('Events test', function(assert) {
-  this.set("process", {
+  this.set("process", Process.create({
     events: [{
-      timestamp: 5
+      time: 5
     }, {
-      timestamp: 7
+      time: 7
     }]
-  });
+  }));
 
   this.render(hbs`{{em-swimlane-process-visual process=process startTime=0 timeWindow=10}}`);
 
   return wait().then(() => {
     var events = this.$(".em-swimlane-event");
+
 
     assert.equal(events.length, 2);
     assert.equal(events.eq(0).attr("style").trim(), "left: 50%;", "em-swimlane-event 1 left");

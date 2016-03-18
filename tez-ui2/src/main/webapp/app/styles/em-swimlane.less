@@ -25,14 +25,13 @@
 
   .process-names {
     width: 100px;
+    border-right: 1px solid @border-color;
   }
   .process-visuals {
     position: absolute;
     left: 100px;
     right: 0px;
     top: 0px;
-
-    border-left: 1px solid @border-color;
   }
 }
 
@@ -52,20 +51,32 @@
   position: relative;
   height: 30px;
 
+  margin-left: 10px;
+
   cursor: pointer;
 
   .base-line {
     position: relative;
     height: 1px;
+    margin-left: -10px;
     top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
     border-top: 1px dotted @border-color;
   }
 
   .event-window-line {
     position: absolute;
-    top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
-    border-top: 1px solid;
-    height: 1px;
+    top: unit(unit(@process-height) * 0.5 - 1, get-unit(@process-height));
+    height: 3px;
+  }
+
+  .event-bar {
+    position: absolute;
+    top: unit((unit(@process-height) * 0.5) - 10, get-unit(@process-height));
+    height: 20px;
+    background-color: @border-lite;
+    border-radius: 2px;
+    border: 1px solid;
+    margin-right: -1px;
   }
 }
 
@@ -73,10 +84,10 @@
   position: absolute;
   top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
 
-  .event-bar {
+  .event-line {
     position: absolute;
-    top: -10px;
-    height: 20px;
+    top: -9px;
+    height: 18px;
     border-left: 1px solid;
   }
 
@@ -87,23 +98,36 @@
     bottom: 0;
     left: 0;
 
-    -webkit-transition: top .2s, right .2s, bottom .2s, left .2s; /* Safari */
-    transition: top .2s, right .2s, bottom .2s, left .2s;
-    transition-timing-function: cubic-bezier(.87,-.41,.19,1.44);
+    -webkit-transition: top .2s, right .2s, bottom .2s, left .2s, border-width .2s; /* Safari */
+    transition: top .2s, right .2s, bottom .2s, left .2s, border-width .2s;
+    transition-timing-function: cubic-bezier(1.44);
 
-    border-radius: 5px;
+    border-radius: 7px;
+    border: 0px solid;
+    background-color: white;
+  }
+}
 
-    background-color: black;
+.em-swimlane-blocking-event {
+  position: absolute;
+  top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
+
+  .event-line {
+    position: absolute;
+    top: 0px;
+    border-left: 1px solid;
   }
 }
 
 .em-swimlane-process-visual {
   &:hover {
     .event-bubble {
-      top: -5px;
-      right: -6px;
-      bottom: -6px;
-      left: -5px;
+      top: -7px;
+      right: -8px;
+      bottom: -8px;
+      left: -7px;
+
+      border: 2px solid;
     }
   }
 }
