@@ -89,7 +89,11 @@
         </tr>
         <tr>
           <td>{{t 'common.time.duration'}}</td>
+          {{#if hasFirstTaskStarted}}
+          <td>{{formatDuration firstTaskStartTime endTime}}</td>
+          {{else}}
           <td>{{formatDuration startTime endTime}}</td>
+          {{/if}}
         </tr>
         {{#if hasFirstTaskStarted}}
           <tr>

@@ -194,8 +194,8 @@ App.Vertex = App.AbstractEntity.extend({
    * @return {Number} Duration in milliseconds.
    */
   duration: function () {
-    return App.Helpers.date.duration(this.get('startTime'), this.get('endTime'))
-  }.property('startTime', 'endTime'),
+    return App.Helpers.date.duration(this.get('firstTaskStartTime') || this.get('startTime'), this.get('endTime'))
+  }.property('startTime', 'firstTaskStartTime', 'endTime'),
 
   /**
    * Each Tez vertex can perform arbitrary application specific computations
