@@ -20,50 +20,46 @@ import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
 import wait from 'ember-test-helpers/wait';
+import Ember from 'ember';
 
 import Process from 'tez-ui/utils/process';
 
-moduleForComponent('em-swimlane-process-visual', 'Integration | Component | em swimlane process visual', {
+moduleForComponent('em-swimlane-process-line', 'Integration | Component | em swimlane process line', {
   integration: true
 });
 
 test('Basic creation test', function(assert) {
   this.set("process", Process.create());
 
-  this.render(hbs`{{em-swimlane-process-visual process=process}}`);
+  this.render(hbs`{{em-swimlane-process-line process=process}}`);
 
-  assert.ok(this.$(".base-line"));
-  assert.ok(this.$(".event-window"));
+  assert.equal(this.$().text().trim(), '');
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#em-swimlane-process-visual process=process}}
+    {{#em-swimlane-process-line process=process}}
       template block text
-    {{/em-swimlane-process-visual}}
+    {{/em-swimlane-process-line}}
   `);
 
-  assert.ok(this.$(".base-line"));
-  assert.ok(this.$(".event-window"));
+  assert.equal(this.$().text().trim(), '');
 });
 
-test('Events test', function(assert) {
-  this.set("process", Process.create({
-    events: [{
-      time: 5
-    }, {
-      time: 7
-    }]
-  }));
+test('start-end event test', function(assert) {
+  var startEvent = Ember.Object.create({
+        pos: 50
+      }),
+      endEvent = Ember.Object.create({
+        pos: 70
+      });
 
-  this.render(hbs`{{em-swimlane-process-visual process=process startTime=0 timeWindow=10}}`);
+  this.set("process", Process.create());
+  this.set("startEvent", startEvent);
+  this.set("endEvent", endEvent);
+
+  this.render(hbs`{{em-swimlane-process-line process=process startEvent=startEvent endEvent=endEvent}}`);
 
   return wait().then(() => {
-    var events = this.$(".em-swimlane-event");
-
-    assert.equal(events.length, 2);
-    assert.equal(events.eq(0).attr("style").trim(), "left: 50%;", "em-swimlane-event 1 left");
-    assert.equal(events.eq(1).attr("style").trim(), "left: 70%;", "em-swimlane-event 2 left");
-
     assert.equal(this.$(".process-line").eq(0).attr("style").trim(), "left: 50%; right: 30%;", "process-line");
   });
 });

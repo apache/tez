@@ -1,0 +1,117 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.em-tooltip {
+  .no-select;
+  .no-mouse;
+
+  position: fixed;
+  width: 820px; //2 * (td width + padding)
+
+  top: 10px;
+  left: 20px;
+
+  .bubble-container {
+    margin-bottom: 5px;
+
+    .bubble {
+      display: inline-block;
+      max-width: 820px;
+      margin-left: -11px; // Border radius + arrow margin-left
+
+      position: relative;
+      padding: 10px;
+
+      font-family: helvetica;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border-radius: 5px;
+
+      .tip-title, .tip-desc, .tip-props {
+        border-top: 1px solid rgba(255, 255, 255, 0.4);
+        text-align: center;
+
+        padding: 0px 2px;
+
+        &:first-child {
+          border-top: none;
+        }
+      }
+
+      .tip-title {
+        font-size: 1.1em;
+      }
+
+      .tip-props {
+        table {
+          display: inline;
+          table-layout:fixed;
+
+          td {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            max-width: 400px;
+
+            text-align: right;
+          }
+          td:nth-child(1) {
+            padding-right: 10px;
+            text-align: left;
+          }
+          td:nth-child(2) {
+            text-align: right;
+            padding-left: 10px;
+            border-left: 1px solid rgba(255, 255, 255, 0.4);
+          }
+        }
+      }
+    }
+  }
+
+  &.below:after, &.above:before {
+    display: block;
+    box-sizing: border-box;
+
+    font-size: 12px;
+    line-height: 9px;
+
+    color: rgba(0, 0, 0, 0.8);
+    margin-left: -6px; // Half of font size
+  }
+
+  &.above {
+    margin-top: 20px;
+
+    &:before {
+      margin-bottom: -2px;
+      content: "\25B2";
+    }
+  }
+
+  &.below {
+    .bubble-container {
+      margin-top: 5px;
+      margin-bottom: 0px;
+    }
+
+    &:after {
+      content: "\25BC";
+    }
+  }
+}

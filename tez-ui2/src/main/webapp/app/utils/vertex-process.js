@@ -36,6 +36,8 @@ export default Process.extend({
 
   blockingEventName: "VERTEX_FINISHED",
 
+  getVisibleProps: null,
+
   events: Ember.computed(
     "vertex.events.@each.timestamp",
     "vertex.firstTaskStartTime",
@@ -45,7 +47,7 @@ export default Process.extend({
       var events = this.get("vertex.events").map(function (event) {
         return {
           name: event.eventtype,
-          test: EVENT_TEXTS[event.eventtype],
+          text: EVENT_TEXTS[event.eventtype],
           time: event.timestamp
         };
       }),
@@ -57,7 +59,7 @@ export default Process.extend({
         let type = "VERTEX_TASK_START";
         events.push({
           name: type,
-          test: EVENT_TEXTS[type],
+          text: EVENT_TEXTS[type],
           time: firstTaskStartTime
         });
       }
@@ -66,7 +68,7 @@ export default Process.extend({
         let type = "VERTEX_TASK_FINISH";
         events.push({
           name: type,
-          test: EVENT_TEXTS[type],
+          text: EVENT_TEXTS[type],
           time: lastTaskFinishTime
         });
       }
@@ -75,7 +77,7 @@ export default Process.extend({
         let type = "BLOCKING_VERTICES_COMPLETE";
         events.push({
           name: type,
-          test: EVENT_TEXTS[type],
+          text: EVENT_TEXTS[type],
           time: unblockTime
         });
       }
@@ -105,5 +107,46 @@ export default Process.extend({
 
     return time;
   }),
+
+  getTooltipContents: function (type, options) {
+    var contents,
+        that = this;
+
+    switch(type) {
+      case "event-bar":
+      case "process-line":
+        let properties = this.getVisibleProps().map(function (definition) {
+          return {
+            name: definition.get("headerTitle"),
+            value: that.get("vertex").get(definition.get("contentPath")),
+            type: Ember.get(definition, "cellDefinition.type"),
+            format: Ember.get(definition, "cellDefinition.format")
+          };
+        });
+
+        contents = [{
+          title: this.get("name"),
+          properties: properties
+        }];
+      break;
+      case "event":
+        contents = options.events.map(function (event) {
+          return {
+            title: event.text,
+            properties: [{
+              name: "Type",
+              value: event.name,
+            }, {
+              name: "Time",
+              value: event.time,
+              type: "date"
+            }]
+          };
+        });
+      break;
+    }
+
+    return contents;
+  }
 
 });

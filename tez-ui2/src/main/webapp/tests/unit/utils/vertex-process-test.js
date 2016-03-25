@@ -34,6 +34,8 @@ test('Basic creation test', function(assert) {
 
   assert.ok(process.events);
   assert.ok(process.unblockTime);
+
+  assert.ok(process.getTooltipContents);
 });
 
 test('unblockTime test', function(assert) {
@@ -95,4 +97,82 @@ test('events test', function(assert) {
 
   assert.equal(process.get("events.length"), 5);
   assert.equal(process.get("events.4.time"), 30);
+});
+
+test('getTooltipContents-event test', function(assert) {
+  var process = VertexProcess.create();
+
+  var eventTooltip = process.getTooltipContents("event", {
+    events: [{
+      text: "TestEventText1",
+      name: "TestEventName1",
+      time: 10
+    }, {
+      text: "TestEventText2",
+      name: "TestEventName2",
+      time: 20
+    }]
+  });
+
+  assert.equal(eventTooltip.length, 2);
+
+  assert.equal(eventTooltip[0].title, "TestEventText1");
+  assert.equal(eventTooltip[0].properties.length, 2);
+  assert.equal(eventTooltip[0].properties[0].name, "Type");
+  assert.equal(eventTooltip[0].properties[0].value, "TestEventName1");
+  assert.equal(eventTooltip[0].properties[1].name, "Time");
+  assert.equal(eventTooltip[0].properties[1].value, 10);
+
+  assert.equal(eventTooltip[1].title, "TestEventText2");
+  assert.equal(eventTooltip[1].properties.length, 2);
+  assert.equal(eventTooltip[1].properties[0].name, "Type");
+  assert.equal(eventTooltip[1].properties[0].value, "TestEventName2");
+  assert.equal(eventTooltip[1].properties[1].name, "Time");
+  assert.equal(eventTooltip[1].properties[1].value, 20);
+
+});
+
+test('getTooltipContents-process test', function(assert) {
+  var process = VertexProcess.create({
+    name: "TestName",
+    vertex: Ember.Object.create({
+      prop1: "val1",
+      prop2: "val2",
+      prop3: "val3"
+    }),
+    getVisibleProps: function () {
+      return [Ember.Object.create({
+        id: "prop1",
+        headerTitle: "Prop 1",
+        contentPath: "prop1"
+      }), Ember.Object.create({
+        id: "prop2",
+        headerTitle: "Prop 2",
+        contentPath: "prop2"
+      })];
+    }
+  });
+
+  var processTooltip = process.getTooltipContents("event-bar")[0];
+  assert.equal(processTooltip.title, "TestName");
+
+  assert.equal(processTooltip.properties.length, 2);
+
+  assert.equal(processTooltip.properties[0].name, "Prop 1");
+  assert.equal(processTooltip.properties[0].value, "val1");
+
+  assert.equal(processTooltip.properties[1].name, "Prop 2");
+  assert.equal(processTooltip.properties[1].value, "val2");
+
+  processTooltip = process.getTooltipContents("process-line")[0];
+  assert.equal(processTooltip.title, "TestName");
+
+  assert.equal(processTooltip.properties.length, 2);
+
+  assert.equal(processTooltip.properties[0].name, "Prop 1");
+  assert.equal(processTooltip.properties[0].value, "val1");
+
+  assert.equal(processTooltip.properties[1].name, "Prop 2");
+  assert.equal(processTooltip.properties[1].value, "val2");
+
 });

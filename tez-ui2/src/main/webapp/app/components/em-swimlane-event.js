@@ -35,10 +35,23 @@ export default Ember.Component.extend({
     this.$(".event-bubble").css("border-color", color);
   }),
 
-  actions: {
-    showTooltip: function () {
-      console.log(this.get("event.name"));
-    }
+  sendMouseAction: function (name, mouseEvent) {
+    this.sendAction(name, "event", this.get("process"), {
+      mouseEvent: mouseEvent,
+      events: [this.get("event")]
+    });
+  },
+
+  mouseEnter: function (mouseEvent) {
+    this.sendMouseAction("showTooltip", mouseEvent);
+  },
+
+  mouseLeave: function (mouseEvent) {
+    this.sendMouseAction("hideTooltip", mouseEvent);
+  },
+
+  mouseUp: function (mouseEvent) {
+    this.sendMouseAction("click", mouseEvent);
   }
 
 });

@@ -21,8 +21,25 @@ import Ember from 'ember';
 export default Ember.Component.extend({
 
   process: null,
-  definition: null,
 
   classNames: ["em-swimlane-process-name"],
+
+  sendMouseAction: function (name, mouseEvent) {
+    this.sendAction(name, "process-name", this.get("process"), {
+      mouseEvent: mouseEvent,
+    });
+  },
+
+  mouseEnter: function (mouseEvent) {
+    this.sendMouseAction("showTooltip", mouseEvent);
+  },
+
+  mouseLeave: function (mouseEvent) {
+    this.sendMouseAction("hideTooltip", mouseEvent);
+  },
+
+  mouseUp: function (mouseEvent) {
+    this.sendMouseAction("click", mouseEvent);
+  }
 
 });

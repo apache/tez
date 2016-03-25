@@ -21,37 +21,20 @@ import Ember from 'ember';
 export default Ember.Component.extend({
 
   process: null,
-  blocking: null,
-  events: null,
+  startEvent: null,
+  endEvent: null,
 
-  classNames: ["em-swimlane-blocking-event"],
-
-  blockingEvent: Ember.computed("events.length", "process.blockingEventName", function () {
-    var events = this.get("events"),
-        blockingEventName = this.get("process.blockingEventName");
-
-    return events.find(function (event) {
-      return event.name === blockingEventName;
-    });
-  }),
-
-  didInsertElement: Ember.observer("blockingEvent", function () {
-    var blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
-
-    this.$().css({
-      "left": this.get("blockingEvent.pos") + "%"
-    });
-    this.$(".event-line").css({
-      "height": `${blockerEventHeight}px`,
-      "border-color": this.get("process").getColor()
+  didInsertElement: Ember.observer("startEvent.pos", "endEvent.pos", function () {
+    this.$(".process-line").css({
+      left: this.get("startEvent.pos") + "%",
+      right: (100 - this.get("endEvent.pos")) + "%",
+      "background-color": this.get("process").getColor()
     });
   }),
 
   sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "blocking-event", this.get("process"), {
+    this.sendAction(name, "process-line", this.get("process"), {
       mouseEvent: mouseEvent,
-      blocking: this.get("blocking"),
-      blockingEvent: this.get("blockingEvent")
     });
   },
 
@@ -62,5 +45,10 @@ export default Ember.Component.extend({
   mouseLeave: function (mouseEvent) {
     this.sendMouseAction("hideTooltip", mouseEvent);
   },
+
+  mouseUp: function (mouseEvent) {
+    this.sendMouseAction("click", mouseEvent);
+  }
+
 
 });

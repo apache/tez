@@ -96,6 +96,13 @@ export default Ember.Object.extend({
     parentHash[currentId] = false;
 
     return blockers;
+  },
+
+  getTooltipContents: function (type/*, options*/) {
+    return [{
+      title: this.get("name"),
+      description: "Mouse on : " + type
+    }];
   }
 
 });

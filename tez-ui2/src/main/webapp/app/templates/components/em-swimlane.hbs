@@ -18,17 +18,27 @@
 
 <div class="process-names">
   {{#each normalizedProcesses as |process|}}
-    {{em-swimlane-process-name process=process definition=processDefinition}}
-  {{/each}}
-</div><div class="process-visuals">
-  {{#each normalizedProcesses as |process|}}
-    {{em-swimlane-process-visual
+    {{em-swimlane-process-name
       process=process
-      definition=processDefinition
-      eventBars=eventBars
-      startTime=startTime
-      endTime=endTime
-      timeWindow=timeWindow
+      click="click"
     }}
   {{/each}}
+</div><div class="process-visuals">
+  <div class="zoom-panel">
+    {{#each normalizedProcesses as |process|}}
+      {{em-swimlane-process-visual
+        process=process
+        definition=processDefinition
+        eventBars=eventBars
+        startTime=startTime
+        endTime=endTime
+        timeWindow=timeWindow
+        showTooltip="showTooltip"
+        hideTooltip="hideTooltip"
+        click="click"
+      }}
+    {{/each}}
+  </div>
 </div>
+
+{{em-tooltip contents=tooltipContents}}

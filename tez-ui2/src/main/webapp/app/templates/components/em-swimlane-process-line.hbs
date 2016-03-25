@@ -16,28 +16,4 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  <div class="swimlane-page">
-    <div class="button-panel">
-      <div class="zoom-range">
-        {{zoom}}%
-        {{input type="range" value=zoom min=100 max=1000}}
-      </div>
-      <i class='fa fa-cog fa-border' {{action 'openColumnSelector'}} title="Customize vertex tooltip"></i>
-      <i class='fa fa-expand fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
-      <i class='fa fa-compress fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
-    </div>
-
-    {{em-swimlane
-      columns=visibleColumns
-      processes=processes
-      eventBars=eventBars
-      startTime=model.firstObject.dag.startTime
-      endTime=model.firstObject.dag.endTime
-      zoom=zoom
-      click="click"
-    }}
-  </div>
-{{else}}
-  {{partial "loading"}}
-{{/if}}
+<div class="process-line"></div>

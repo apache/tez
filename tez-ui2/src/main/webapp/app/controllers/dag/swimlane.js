@@ -25,32 +25,96 @@ import VertexProcess from '../../utils/vertex-process';
 import fullscreen from 'em-tgraph/utils/fullscreen';
 
 export default MultiTableController.extend({
+
+  zoom: 100,
+
   breadcrumbs: [{
     text: "Vertex Swimlane",
     routeName: "dag.swimlane",
   }],
 
-  columns: ColumnDefinition.make([]),
-
-  actions: {
-    toggleFullscreen: function () {
-      var swimlaneElement = Ember.$(".swimlane-page")[0];
-      if(swimlaneElement){
-        fullscreen.toggle(swimlaneElement);
-      }
+  columns: ColumnDefinition.make([{
+    id: 'entityID',
+    headerTitle: 'Vertex Id',
+    contentPath: 'entityID'
+  },{
+    id: 'status',
+    headerTitle: 'Status',
+    contentPath: 'status',
+  },{
+    id: 'progress',
+    headerTitle: 'Progress',
+    contentPath: 'progress',
+    cellDefinition: {
+      type: 'number',
+      format: '0%'
     }
-  },
+  },{
+    id: 'startTime',
+    headerTitle: 'Start Time',
+    contentPath: 'startTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'endTime',
+    headerTitle: 'End Time',
+    contentPath: 'endTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'duration',
+    headerTitle: 'Duration',
+    contentPath: 'duration',
+    cellDefinition: {
+      type: 'duration'
+    }
+  },{
+    id: 'firstTaskStartTime',
+    headerTitle: 'First Task Start Time',
+    contentPath: 'firstTaskStartTime',
+    cellDefinition: {
+      type: 'date'
+    }
+  },{
+    id: 'totalTasks',
+    headerTitle: 'Tasks',
+    contentPath: 'totalTasks',
+  },{
+    id: 'succeededTasks',
+    headerTitle: 'Succeeded Tasks',
+    contentPath: 'succeededTasks',
+  },{
+    id: 'runningTasks',
+    headerTitle: 'Running Tasks',
+    contentPath: 'runningTasks',
+  },{
+    id: 'pendingTasks',
+    headerTitle: 'Pending Tasks',
+    contentPath: 'pendingTasks',
+  },{
+    id: 'processorClassName',
+    headerTitle: 'Processor Class',
+    contentPath: 'processorClassName',
+  }]),
 
   processes: Ember.computed("model", function () {
     var processes = [],
         processHash = {},
 
-        dagPlanEdges = this.get("model.firstObject.dag.edges");
+        dagPlanEdges = this.get("model.firstObject.dag.edges"),
+
+        that = this,
+        getVisibleProps = function () {
+          return that.get("visibleColumns");
+        };
 
     // Create process instances for each vertices
     this.get("model").forEach(function (vertex) {
       var process = VertexProcess.create({
         vertex: vertex,
+        getVisibleProps: getVisibleProps,
         blockers: Ember.A()
       });
       processHash[vertex.get("name")] = process;
@@ -74,5 +138,17 @@ export default MultiTableController.extend({
   }, {
     fromEvent: "BLOCKING_VERTICES_COMPLETE",
     toEvent: "VERTEX_TASK_FINISH",
-  }]
+  }],
+
+  actions: {
+    toggleFullscreen: function () {
+      var swimlaneElement = Ember.$(".swimlane-page")[0];
+      if(swimlaneElement){
+        fullscreen.toggle(swimlaneElement);
+      }
+    },
+    click: function (type, process) {
+      this.transitionToRoute('vertex.index', process.get('vertex.entityID'));
+    }
+  }
 });

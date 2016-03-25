@@ -84,3 +84,10 @@ test('Normalization (Blocker based sorting) test - On a graph', function(assert)
   assert.equal(names.eq(3).text().trim(), p3.name);
   assert.equal(names.eq(4).text().trim(), p5.name);
 });
+
+test('Zoom test', function(assert) {
+  this.set("processes", [Process.create()]);
+
+  this.render(hbs`{{em-swimlane processes=processes zoom=500}}`);
+  assert.equal(this.$(".zoom-panel").attr("style").trim(), "width: 500%;");
+});

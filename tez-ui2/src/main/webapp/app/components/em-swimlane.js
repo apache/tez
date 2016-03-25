@@ -44,6 +44,15 @@ export default Ember.Component.extend({
 
   eventBars: [],
 
+  tooltipContents: null,
+
+  zoom: 100,
+
+  didInsertElement: Ember.observer("zoom", function () {
+    var zoom = this.get("zoom");
+    this.$(".zoom-panel").css("width", `${zoom}%`);
+  }),
+
   timeWindow: Ember.computed("startTime", "endTime", function () {
     return Math.max(0, this.get("endTime") - this.get("startTime"));
   }),
@@ -111,6 +120,18 @@ export default Ember.Component.extend({
     });
 
     return Ember.A(normalizedProcesses);
-  })
+  }),
+
+  actions: {
+    showTooltip: function (type, process, options) {
+      this.set("tooltipContents", process.getTooltipContents(type, options));
+    },
+    hideTooltip: function () {
+      this.set("tooltipContents", null);
+    },
+    click: function (type, process, options) {
+      this.sendAction("click", type, process, options);
+    }
+  }
 
 });

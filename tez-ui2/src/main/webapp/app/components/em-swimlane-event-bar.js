@@ -62,6 +62,27 @@ export default Ember.Component.extend({
     else {
       this.$().hide();
     }
-  })
+  }),
+
+  sendMouseAction: function (name, mouseEvent) {
+    this.sendAction(name, "event-bar", this.get("process"), {
+      mouseEvent: mouseEvent,
+      bar: this.get("bar"),
+      fromEvent: this.get("fromEvent"),
+      toEvent: this.get("toEvent")
+    });
+  },
+
+  mouseEnter: function (mouseEvent) {
+    this.sendMouseAction("showTooltip", mouseEvent);
+  },
+
+  mouseLeave: function (mouseEvent) {
+    this.sendMouseAction("hideTooltip", mouseEvent);
+  },
+
+  mouseUp: function (mouseEvent) {
+    this.sendMouseAction("click", mouseEvent);
+  }
 
 });

@@ -29,6 +29,7 @@ test('Basic creation test', function(assert) {
   assert.ok(process.startEvent);
   assert.ok(process.endEvent);
   assert.ok(process.getAllBlockers);
+  assert.ok(process.getTooltipContents);
 });
 
 test('getColor test', function(assert) {

@@ -18,6 +18,8 @@
 
 import Ember from 'ember';
 
+const BUBBLE_RADIUS = 8; // Same as that in css
+
 export default Ember.Component.extend({
   process: null,
   definition: null,
@@ -71,12 +73,38 @@ export default Ember.Component.extend({
     });
   }),
 
-  drawEventWindow: Ember.observer("startEvent.pos", "endEvent.pos", function () {
-    this.$(".event-window-line").css({
-      left: this.get("startEvent.pos") + "%",
-      right: (100 - this.get("endEvent.pos")) + "%",
-      "background-color": this.get("process").getColor()
-    });
-  })
+  actions: {
+    showTooltip: function(type, process, options) {
+
+      if(type === "event") {
+        let mouseEvent = options.mouseEvent,
+            normalizedEvents = this.get("normalizedEvents"),
+            events = [];
+
+        this.$(".em-swimlane-event").each(function (index) {
+          var offset = Ember.$(this).offset();
+
+          if(mouseEvent.clientX >= offset.left - BUBBLE_RADIUS &&
+              mouseEvent.clientX <= offset.left + BUBBLE_RADIUS &&
+              mouseEvent.clientY >= offset.top - BUBBLE_RADIUS &&
+              mouseEvent.clientY <= offset.top + BUBBLE_RADIUS) {
+            events.push(normalizedEvents[index]);
+          }
+        });
+
+        if(events.length) {
+          options.events = events;
+        }
+      }
+
+      this.sendAction("showTooltip", type, process, options);
+    },
+    hideTooltip: function(type, process, options) {
+      this.sendAction("hideTooltip", type, process, options);
+    },
+    click: function (type, process, options) {
+      this.sendAction("click", type, process, options);
+    }
+  }
 
 });

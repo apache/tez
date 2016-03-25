@@ -17,9 +17,23 @@
 }}
 
 <div class="base-line"></div>
-<div class="event-window-line"></div>
+{{em-swimlane-process-line
+  process=process
+  startEvent=startEvent
+  endEvent=endEvent
+  showTooltip="showTooltip"
+  hideTooltip="hideTooltip"
+  click="click"
+}}
 {{#each process.blocking as |blocking|}}
-  {{em-swimlane-blocking-event process=process blocking=blocking events=normalizedEvents}}
+  {{em-swimlane-blocking-event
+    process=process
+    blocking=blocking
+    events=normalizedEvents
+    showTooltip="showTooltip"
+    hideTooltip="hideTooltip"
+    click="click"
+  }}
 {{/each}}
 {{#each eventBars as |bar index|}}
   {{em-swimlane-event-bar
@@ -27,8 +41,18 @@
     bar=bar
     barIndex=index
     bars=eventBars
-    process=process}}
+    process=process
+    showTooltip="showTooltip"
+    hideTooltip="hideTooltip"
+    click="click"
+  }}
 {{/each}}
 {{#each normalizedEvents as |event|}}
-  {{em-swimlane-event process=process event=event}}
+  {{em-swimlane-event
+    process=process
+    event=event
+    showTooltip="showTooltip"
+    hideTooltip="hideTooltip"
+    click="click"
+  }}
 {{/each}}
