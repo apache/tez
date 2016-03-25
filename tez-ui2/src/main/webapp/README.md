@@ -28,27 +28,30 @@ For more information on Tez and the Tez UI - Check the [Tez homepage](http://tez
 
 ## Development
 
-## Prerequisites
+All the following commands must be run inside `src/main/webapp`.
+
+### Prerequisites
 
 You will need the following things properly installed on your computer.
 
-* [Git](http://git-scm.com/)
-* [Node.js](http://nodejs.org/) (with NPM)
-* [Ember CLI](http://www.ember-cli.com/)
+* Install [Node.js](http://nodejs.org/) (with NPM)
+* Install [Bower](http://bower.io/)
+* Install all dependencies by running `npm install` & `bower install`
 
-## Running UI
+### Running UI
 
-* `ember server`
+* `npm start`
 * Visit your app at [http://localhost:4200](http://localhost:4200).
 
 ### Running Tests
 
-* `ember test`
-* `ember test --server`
+* `npm test`
 
 ### Building
 
-* `ember build` (development)
-* `ember build --environment production` (production)
+* `npm run build` (production)
+* Files would be stored in "dist/"
 
-Files would be stored in "dist/"
+### Adding new routes (pages), controllers, components etc.
+
+* Use ember-cli blueprint generator - [Ember CLI](http://ember-cli.com/extending/#generators-and-blueprints)

@@ -34,6 +34,39 @@
     <skipTests>false</skipTests>
   </properties>
 
+  <profiles>
+    <profile>
+      <id>cleanUICache</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-clean-plugin</artifactId>
+            <configuration>
+              <filesets>
+                <fileset>
+                  <directory>${webappDir}/tmp</directory>
+                </fileset>
+                <fileset>
+                  <directory>${webappDir}/node</directory>
+                </fileset>
+                <fileset>
+                  <directory>${webappDir}/node_modules</directory>
+                </fileset>
+                <fileset>
+                  <directory>${webappDir}/bower_components</directory>
+                </fileset>
+              </filesets>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
 
@@ -67,7 +100,7 @@
         </configuration>
       </plugin>
 
-      <!-- NPM Install -->
+      <!-- Install Node & dependencies -->
       <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
@@ -76,7 +109,7 @@
         </configuration>
         <executions>
           <execution>
-            <phase>generate-sources</phase>
+            <phase>generate-resources</phase>
             <id>install node and npm</id>
             <goals>
               <goal>install-node-and-npm</goal>
@@ -87,23 +120,30 @@
             </configuration>
           </execution>
           <execution>
-            <phase>generate-sources</phase>
+            <phase>generate-resources</phase>
             <id>npm install</id>
             <goals>
               <goal>npm</goal>
             </goals>
           </execution>
+          <execution>
+            <phase>generate-resources</phase>
+            <id>bower install</id>
+            <goals>
+              <goal>bower</goal>
+            </goals>
+          </execution>
         </executions>
       </plugin>
 
-      <!-- Bower install & grunt build-->
+      <!-- Build & Test -->
       <plugin>
         <artifactId>exec-maven-plugin</artifactId>
         <groupId>org.codehaus.mojo</groupId>
         <executions>
           <execution>
             <id>ember build</id>
-            <phase>generate-sources</phase>
+            <phase>generate-resources</phase>
             <goals>
               <goal>exec</goal>
             </goals>
@@ -111,15 +151,15 @@
               <workingDirectory>${webappDir}</workingDirectory>
               <executable>${node.executable}</executable>
               <arguments>
-                <argument>node_modules/ember-cli/bin/ember</argument>
-                <argument>build</argument>
-                <argument>-prod</argument>
+                <argument>node/npm/bin/npm-cli</argument>
+                <argument>run</argument>
+                <argument>build:mvn</argument>
               </arguments>
             </configuration>
           </execution>
           <execution>
             <id>ember test</id>
-            <phase>generate-resources</phase>
+            <phase>test</phase>
             <goals>
               <goal>exec</goal>
             </goals>
@@ -128,8 +168,9 @@
               <workingDirectory>${webappDir}</workingDirectory>
               <executable>${node.executable}</executable>
               <arguments>
-                <argument>node_modules/ember-cli/bin/ember</argument>
-                <argument>test</argument>
+                <argument>node/npm/bin/npm-cli</argument>
+                <argument>run</argument>
+                <argument>test:mvn</argument>
               </arguments>
             </configuration>
           </execution>

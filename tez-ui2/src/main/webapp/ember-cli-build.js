@@ -44,10 +44,11 @@ module.exports = function(defaults) {
      include: ['z-worker.js', 'deflate.js', 'inflate.js'],
      destDir: '/assets/zip'
   });
-
-  app.import("bower_components/snippet-ss/less/force.less");
-  app.import("bower_components/snippet-ss/less/effects.less");
-  app.import("bower_components/snippet-ss/less/no.less");
+  var copyFonts = new Funnel('bower_components/font-awesome/', {
+     srcDir: '/fonts',
+     include: ['*.*'],
+     destDir: '/fonts'
+  });
 
   app.import('bower_components/bootstrap/dist/js/bootstrap.js');
   app.import('bower_components/jquery-ui/jquery-ui.js');
@@ -63,5 +64,5 @@ module.exports = function(defaults) {
   app.import('bower_components/codemirror/mode/pig/pig.js');
   app.import('bower_components/codemirror/lib/codemirror.css');
 
-  return app.toTree(new MergeTrees([configEnv, zipWorker]));
+  return app.toTree(new MergeTrees([configEnv, zipWorker, copyFonts]));
 };

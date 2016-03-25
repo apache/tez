@@ -114,6 +114,13 @@ with tez-plugins/tez-yarn-timeline-history-with-acls/src/main/java/org/apache/te
 with tez-plugins/tez-yarn-timeline-history-with-acls/src/test/java/org/apache/tez/tests
 
 ----------------------------------------------------------------------------------
+UI build issues:
+
+In case of issue with UI build, please clean the UI cache.
+
+ $ mvn clean -PcleanUICache
+
+----------------------------------------------------------------------------------
 Protocol Buffer compiler:
 
 The version of Protocol Buffer compiler, protoc, must be 2.5.0 and match the
