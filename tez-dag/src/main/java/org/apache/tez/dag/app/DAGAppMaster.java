@@ -1288,7 +1288,9 @@ public class DAGAppMaster extends AbstractService {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Invoked with additional local resources: " + additionalResources);
       }
-      submittedDAGs.incrementAndGet();
+      if (dagPlan.getName().startsWith(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+        submittedDAGs.incrementAndGet();
+      }
       startDAG(dagPlan, additionalResources);
       return currentDAG.getID().toString();
     }

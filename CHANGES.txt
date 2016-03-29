@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3189. Pre-warm dags should not be counted in submitted dags count by DAGAppMaster.
   TEZ-2967. Vertex start time should be that of first task start time in UI
   TEZ-3175. Add tez client submit host
   TEZ-3166. Fix a few cases where counters aren't fully updated and sent for failed tasks. Only adds tests.
