@@ -44,6 +44,10 @@ public class VertexStats {
     return firstTaskStartTime;
   }
 
+  public void setFirstTaskStartTime(long firstTaskStartTime) {
+    this.firstTaskStartTime = firstTaskStartTime;
+  }
+
   public Set<TezTaskID> getFirstTasksToStart() {
     return Collections.unmodifiableSet(firstTasksToStart);
   }

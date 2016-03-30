@@ -572,6 +572,12 @@ public class AMWebController extends Controller {
     vertexInfo.put("status", vertex.getState().toString());
     vertexInfo.put("progress", Float.toString(vertex.getCompletedTaskProgress()));
 
+    vertexInfo.put("initTime", Long.toString(vertex.getInitTime()));
+    vertexInfo.put("startTime", Long.toString(vertex.getStartTime()));
+    vertexInfo.put("finishTime", Long.toString(vertex.getFinishTime()));
+    vertexInfo.put("firstTaskStartTime", Long.toString(vertex.getFirstTaskStartTime()));
+    vertexInfo.put("lastTaskFinishTime", Long.toString(vertex.getLastTaskFinishTime()));
+
     ProgressBuilder vertexProgress = vertex.getVertexProgress();
     vertexInfo.put("totalTasks", Integer.toString(vertexProgress.getTotalTaskCount()));
     vertexInfo.put("runningTasks", Integer.toString(vertexProgress.getRunningTaskCount()));

@@ -71,4 +71,6 @@ public interface Task {
   public TaskLocationHint getTaskLocationHint();
 
   long getFirstAttemptStartTime();
+
+  long getFinishTime();
 }

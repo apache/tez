@@ -672,6 +672,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   long startedTime; // Time when entering state STARTED
   @VisibleForTesting
   long finishTime;
+  long firstTaskStartTime = -1L;
+  Object firstTaskStartTimeLock = new Object();
   private float progress;
 
   private final TezVertexID vertexId;  //runtime assigned id.
@@ -1203,6 +1205,65 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       VertexStats stats = new VertexStats();
       return updateVertexStats(stats, tasks.values());
 
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public long getInitTime() {
+    readLock.lock();
+    try {
+      return initedTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public long getStartTime() {
+    readLock.lock();
+    try {
+      return startedTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public long getFinishTime() {
+    readLock.lock();
+    try {
+      return finishTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public void reportTaskStartTime(long taskStartTime) {
+    synchronized (firstTaskStartTimeLock) {
+      if (firstTaskStartTime < 0 || taskStartTime < firstTaskStartTime) {
+        firstTaskStartTime = taskStartTime;
+      }
+    }
+  }
+
+  @Override
+  public long getFirstTaskStartTime() {
+    return firstTaskStartTime;
+  }
+
+  @Override
+  public long getLastTaskFinishTime() {
+    readLock.lock();
+    try {
+      if (inTerminalState()) {
+        mayBeConstructFinalFullCounters();
+        return vertexStats.getLastTaskFinishTime();
+      } else {
+        return -1;
+      }
     } finally {
       readLock.unlock();
     }
@@ -1858,7 +1919,6 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   void setFinishTime() {
     finishTime = clock.getTime();
   }
-
 
   void logJobHistoryVertexInitializedEvent() {
     if (recoveryData == null || !recoveryData.shouldSkipInit()) {

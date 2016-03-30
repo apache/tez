@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
 
 ALL CHANGES:
+  TEZ-3173. Update Tez AM REST APIs for more information for each vertex.
   TEZ-3108. Add support for external services to local mode.
   TEZ-3189. Pre-warm dags should not be counted in submitted dags count by DAGAppMaster.
   TEZ-2967. Vertex start time should be that of first task start time in UI

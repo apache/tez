@@ -31,6 +31,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEvent;
+import org.apache.tez.dag.history.HistoryEventHandler;
+import org.apache.tez.dag.history.events.TaskFinishedEvent;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -108,6 +113,7 @@ public class TestTaskImpl {
   private Container mockContainer;
   private AMContainer mockAMContainer;
   private NodeId mockNodeId;
+  private HistoryEventHandler mockHistoryHandler;
 
   private MockTaskImpl mockTask;
   private TaskSpec mockTaskSpec;
@@ -139,10 +145,12 @@ public class TestTaskImpl {
     mockContainer = mock(Container.class);
     mockAMContainer = mock(AMContainer.class);
     mockNodeId = mock(NodeId.class);
+    mockHistoryHandler = mock(HistoryEventHandler.class);
     when(mockContainer.getId()).thenReturn(mockContainerId);
     when(mockContainer.getNodeId()).thenReturn(mockNodeId);
     when(mockAMContainer.getContainer()).thenReturn(mockContainer);
     when(appContext.getAllContainers().get(mockContainerId)).thenReturn(mockAMContainer);
+    when(appContext.getHistoryHandler()).thenReturn(mockHistoryHandler);
     taskResource = Resource.newInstance(1024, 1);
     localResources = new HashMap<String, LocalResource>();
     environment = new HashMap<String, String>();
@@ -620,6 +628,14 @@ public class TestTaskImpl {
     verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
         eq(mockTask.getLastAttempt().getID().getId()));
 
+    ArgumentCaptor<DAGHistoryEvent> argumentCaptor = ArgumentCaptor.forClass(DAGHistoryEvent.class);
+    verify(mockHistoryHandler).handle(argumentCaptor.capture());
+    DAGHistoryEvent dagHistoryEvent = argumentCaptor.getValue();
+    HistoryEvent historyEvent = dagHistoryEvent.getHistoryEvent();
+    assertTrue(historyEvent instanceof TaskFinishedEvent);
+    TaskFinishedEvent taskFinishedEvent = (TaskFinishedEvent)historyEvent;
+    assertEquals(taskFinishedEvent.getFinishTime(), mockTask.getFinishTime());
+
     eventHandler.events.clear();
     // Now fail the attempt after it has succeeded
     TezTaskAttemptID mockDestId = mock(TezTaskAttemptID.class);
@@ -904,6 +920,7 @@ public class TestTaskImpl {
     }
 
     protected void logJobHistoryTaskFinishedEvent() {
+      super.logJobHistoryTaskFinishedEvent();
       taskFinishedEventLogged++;
     }
 

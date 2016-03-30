@@ -381,6 +381,11 @@ public class TestAMWebController {
     doReturn(status).when(mockVertex).getState();
     doReturn(progress).when(mockVertex).getProgress();
     doReturn(pb).when(mockVertex).getVertexProgress();
+    doReturn(1L).when(mockVertex).getInitTime();
+    doReturn(1L).when(mockVertex).getStartTime();
+    doReturn(2L).when(mockVertex).getFinishTime();
+    doReturn(1L).when(mockVertex).getFirstTaskStartTime();
+    doReturn(2L).when(mockVertex).getLastTaskFinishTime();
 
     TezCounters counters = new TezCounters();
     counters.addGroup("g1", "g1");
@@ -417,6 +422,18 @@ public class TestAMWebController {
         vertex2Result.get("killedTaskAttempts"));
     Assert.assertEquals(Integer.toString(progress.getFailedTaskAttemptCount()),
         vertex2Result.get("failedTaskAttempts"));
+    String str0 = Long.toString(mockVertex2.getInitTime());
+    String str1 = vertex2Result.get("initTime");
+    Assert.assertEquals(Long.toString(mockVertex2.getInitTime()),
+        vertex2Result.get("initTime"));
+    Assert.assertEquals(Long.toString(mockVertex2.getStartTime()),
+        vertex2Result.get("startTime"));
+    Assert.assertEquals(Long.toString(mockVertex2.getFinishTime()),
+        vertex2Result.get("finishTime"));
+    Assert.assertEquals(Long.toString(mockVertex2.getFirstTaskStartTime()),
+        vertex2Result.get("firstTaskStartTime"));
+    Assert.assertEquals(Long.toString(mockVertex2.getLastTaskFinishTime()),
+        vertex2Result.get("lastTaskFinishTime"));
   }
 
   //-- Get Tasks Info Tests -----------------------------------------------------------------------
