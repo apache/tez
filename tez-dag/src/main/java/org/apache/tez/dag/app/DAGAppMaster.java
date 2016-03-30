@@ -435,7 +435,6 @@ public class DAGAppMaster extends AbstractService {
         isLocal, defaultPayload);
 
 
-
     LOG.info(buildPluginComponentLog(taskSchedulerDescriptors, taskSchedulers, "TaskSchedulers"));
     LOG.info(buildPluginComponentLog(containerLauncherDescriptors, containerLaunchers, "ContainerLaunchers"));
     LOG.info(buildPluginComponentLog(taskCommunicatorDescriptors, taskCommunicators, "TaskCommunicators"));
@@ -2638,8 +2637,14 @@ public class DAGAppMaster extends AbstractService {
                                           UserPayload defaultPayload,
                                           BiMap<String, Integer> schedulerPluginMap) {
     if (isLocal) {
-      Preconditions.checkState(descriptors.size() == 1 &&
-          descriptors.get(0).getEntityName().equals(TezConstants.getTezUberServicePluginName()));
+      boolean foundUberServiceName = false;
+      for (NamedEntityDescriptor descriptor : descriptors) {
+        if (descriptor.getEntityName().equals(TezConstants.getTezUberServicePluginName())) {
+          foundUberServiceName = true;
+          break;
+        }
+      }
+      Preconditions.checkState(foundUberServiceName);
     } else {
       boolean foundYarn = false;
       for (int i = 0; i < descriptors.size(); i++) {

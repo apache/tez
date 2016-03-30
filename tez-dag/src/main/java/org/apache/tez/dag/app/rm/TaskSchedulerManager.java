@@ -124,7 +124,7 @@ public class TaskSchedulerManager extends AbstractService implements
   @VisibleForTesting
   final ExecutorService appCallbackExecutor;
 
-  private final boolean isPureLocalMode;
+  private final boolean isLocalMode;
   // If running in non local-only mode, the YARN task scheduler will always run to take care of
   // registration with YARN and heartbeats to YARN.
   // Splitting registration and heartbeats is not straight-forward due to the taskScheduler being
@@ -159,7 +159,7 @@ public class TaskSchedulerManager extends AbstractService implements
     this.taskSchedulerDescriptors = null;
     this.webUI = null;
     this.historyUrl = null;
-    this.isPureLocalMode = false;
+    this.isLocalMode = false;
   }
 
   /**
@@ -171,7 +171,7 @@ public class TaskSchedulerManager extends AbstractService implements
    * @param webUI
    * @param schedulerDescriptors the list of scheduler descriptors. Tez internal classes will not have the class names populated.
    *                         An empty list defaults to using the YarnTaskScheduler as the only source.
-   * @param isPureLocalMode whether the AM is running in local mode
+   * @param isLocalMode whether the AM is running in local mode
    */
   @SuppressWarnings("rawtypes")
   public TaskSchedulerManager(AppContext appContext,
@@ -179,7 +179,7 @@ public class TaskSchedulerManager extends AbstractService implements
                               ContainerSignatureMatcher containerSignatureMatcher,
                               WebUIService webUI,
                               List<NamedEntityDescriptor> schedulerDescriptors,
-                              boolean isPureLocalMode) {
+                              boolean isLocalMode) {
     super(TaskSchedulerManager.class.getName());
     Preconditions.checkArgument(schedulerDescriptors != null && !schedulerDescriptors.isEmpty(),
         "TaskSchedulerDescriptors must be specified");
@@ -189,7 +189,7 @@ public class TaskSchedulerManager extends AbstractService implements
     this.containerSignatureMatcher = containerSignatureMatcher;
     this.webUI = webUI;
     this.historyUrl = getHistoryUrl();
-    this.isPureLocalMode = isPureLocalMode;
+    this.isLocalMode = isLocalMode;
     this.appCallbackExecutor = createAppCallbackExecutorService();
     if (this.webUI != null) {
       this.webUI.setHistoryUrl(this.historyUrl);
@@ -579,8 +579,11 @@ public class TaskSchedulerManager extends AbstractService implements
     int j = 0;
     for (int i = 0; i < taskSchedulerDescriptors.length; i++) {
       long customAppIdIdentifier;
-      if (isPureLocalMode || taskSchedulerDescriptors[i].getEntityName().equals(
-          TezConstants.getTezYarnServicePluginName())) { // Use the app identifier from the appId.
+      if ((isLocalMode && taskSchedulerDescriptors[i].getEntityName()
+          .equals(TezConstants.getTezUberServicePluginName()) ||
+          taskSchedulerDescriptors[i].getEntityName()
+              .equals(TezConstants.getTezYarnServicePluginName()))) {
+        // Use the provided appId instead of constructing one for containers.
         customAppIdIdentifier = appContext.getApplicationID().getClusterTimestamp();
       } else {
         customAppIdIdentifier = SCHEDULER_APP_ID_BASE + (j++ * SCHEDULER_APP_ID_INCREMENT);

@@ -88,7 +88,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
   private final Map<String, String> localEnv;
   private final ExecutionContext executionContext;
   private final int numExecutors;
-  private final boolean isPureLocalMode;
+  private final boolean isLocalMode;
 
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
       runningContainers =
@@ -108,7 +108,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
                                 AppContext context,
                                 TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                 String workingDirectory,
-                                boolean isPureLocalMode) throws UnknownHostException {
+                                boolean isLocalMode) throws UnknownHostException {
     // TODO Post TEZ-2003. Most of this information is dynamic and only available after the AM
     // starts up. It's not possible to set these up via a static payload.
     // Will need some kind of mechanism to dynamically crate payloads / bind to parameters
@@ -117,8 +117,8 @@ public class LocalContainerLauncher extends ContainerLauncher {
     this.context = context;
     this.tal = taskCommunicatorManagerInterface;
     this.workingDirectory = workingDirectory;
-    this.isPureLocalMode = isPureLocalMode;
-    if (isPureLocalMode) {
+    this.isLocalMode = isLocalMode;
+    if (isLocalMode) {
       localEnv = Maps.newHashMap();
       AuxiliaryServiceHelper.setServiceDataIntoEnv(
           ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, ByteBuffer.allocate(4).putInt(0), localEnv);
@@ -127,7 +127,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
     }
 
     // Check if the hostname is set in the environment before overriding it.
-    String host = isPureLocalMode ? InetAddress.getLocalHost().getHostName() :
+    String host = isLocalMode ? InetAddress.getLocalHost().getHostName() :
         System.getenv(Environment.NM_HOST.name());
     executionContext = new ExecutionContextImpl(host);
 
@@ -347,7 +347,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
     Map<String, String> containerEnv = new HashMap<String, String>();
     containerEnv.putAll(localEnv);
     // Use the user from env if it's available.
-    String user = isPureLocalMode ? System.getenv(Environment.USER.name()) : context.getUser();
+    String user = isLocalMode ? System.getenv(Environment.USER.name()) : context.getUser();
     containerEnv.put(Environment.USER.name(), user);
 
     long memAvailable;

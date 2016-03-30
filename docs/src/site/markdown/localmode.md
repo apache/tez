@@ -105,3 +105,12 @@ Potential pitfalls when moving from Local Mode to a real cluster
 -   The ObjectRegistry will work within a single task, when running in
     Local Mode. The behaviour would be different on a real cluster,
     where it would work across tasks which share the same container.
+
+Local Mode with External Services
+
+-   When running in local mode, regular container execution is converted
+    to run within the same process, instead of launching containers.
+-   Execution that is configured to run in external services is unaffected,
+    and an attempt is made to make use of these external services for execution.
+    If configured in this manner, make sure that the external services are running
+    when attempting to use local mode.

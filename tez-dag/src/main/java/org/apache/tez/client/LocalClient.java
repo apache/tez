@@ -18,11 +18,13 @@
 
 package org.apache.tez.client;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -44,9 +46,12 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClientHandler;
+import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
@@ -333,16 +338,44 @@ public class LocalClient extends FrameworkClient {
 
     return thread;
   }
-  
+
   // this can be overridden by test code to create a mock app
   @VisibleForTesting
   protected DAGAppMaster createDAGAppMaster(ApplicationAttemptId applicationAttemptId,
-      ContainerId cId, String currentHost, int nmPort, int nmHttpPort,
-      Clock clock, long appSubmitTime, boolean isSession, String userDir,
-      String[] localDirs, String[] logDirs, Credentials credentials, String jobUserName) {
+                                            ContainerId cId, String currentHost, int nmPort,
+                                            int nmHttpPort,
+                                            Clock clock, long appSubmitTime, boolean isSession,
+                                            String userDir,
+                                            String[] localDirs, String[] logDirs,
+                                            Credentials credentials, String jobUserName) throws
+      IOException {
+
+    // Read in additional information about external services
+    AMPluginDescriptorProto amPluginDescriptorProto =
+        getPluginDescriptorInfo(conf, applicationAttemptId.getApplicationId().toString());
+
+
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         new SystemClock(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-        versionInfo.getVersion(), 1, credentials, jobUserName, null);
+        versionInfo.getVersion(), 1, credentials, jobUserName, amPluginDescriptorProto);
+  }
+
+  private AMPluginDescriptorProto getPluginDescriptorInfo(Configuration conf,
+                                                          String applicationIdString) throws
+      IOException {
+    Path tezSysStagingPath = TezCommonUtils
+        .getTezSystemStagingPath(conf, applicationIdString);
+    // Remove the filesystem qualifier.
+    String unqualifiedPath = tezSysStagingPath.toUri().getPath();
+
+    DAGProtos.ConfigurationProto confProto =
+        TezUtilsInternal
+            .readUserSpecifiedTezConfiguration(unqualifiedPath);
+    AMPluginDescriptorProto amPluginDescriptorProto = null;
+    if (confProto.hasAmPluginDescriptor()) {
+      amPluginDescriptorProto = confProto.getAmPluginDescriptor();
+    }
+    return amPluginDescriptorProto;
   }
 
 }

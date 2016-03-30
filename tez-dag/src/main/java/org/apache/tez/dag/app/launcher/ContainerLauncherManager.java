@@ -69,7 +69,7 @@ public class ContainerLauncherManager extends AbstractService
                                   TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                   String workingDirectory,
                                   List<NamedEntityDescriptor> containerLauncherDescriptors,
-                                  boolean isPureLocalMode) throws TezException {
+                                  boolean isLocalMode) throws TezException {
     super(ContainerLauncherManager.class.getName());
 
     this.isIncompleteCtor = false;
@@ -88,7 +88,7 @@ public class ContainerLauncherManager extends AbstractService
           new ContainerLauncherContextImpl(context, this, taskCommunicatorManagerInterface, userPayload, i);
       containerLauncherContexts[i] = containerLauncherContext;
       containerLaunchers[i] = new ContainerLauncherWrapper(createContainerLauncher(containerLauncherDescriptors.get(i), context,
-          containerLauncherContext, taskCommunicatorManagerInterface, workingDirectory, i, isPureLocalMode));
+          containerLauncherContext, taskCommunicatorManagerInterface, workingDirectory, i, isLocalMode));
       containerLauncherServiceWrappers[i] = new ServicePluginLifecycleAbstractService<>(containerLaunchers[i].getContainerLauncher());
     }
   }
@@ -145,7 +145,7 @@ public class ContainerLauncherManager extends AbstractService
                                                 AppContext context,
                                                 TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                 String workingDirectory,
-                                                boolean isPureLocalMode) {
+                                                boolean isLocalMode) {
     LOG.info("Creating LocalContainerLauncher");
     // TODO Post TEZ-2003. LocalContainerLauncher is special cased, since it makes use of
     // extensive internals which are only available at runtime. Will likely require
@@ -154,7 +154,7 @@ public class ContainerLauncherManager extends AbstractService
       return
           new LocalContainerLauncher(containerLauncherContext, context,
               taskCommunicatorManagerInterface,
-              workingDirectory, isPureLocalMode);
+              workingDirectory, isLocalMode);
     } catch (UnknownHostException e) {
       throw new TezUncheckedException(e);
     }
