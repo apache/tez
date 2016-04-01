@@ -192,7 +192,9 @@ public class IFile {
     }
 
     public void close() throws IOException {
-      checkState(!closed.getAndSet(true), "Writer was already closed earlier");
+      if (closed.getAndSet(true)) {
+        throw new IOException("Writer was already closed earlier");
+      }
 
       // When IFile writer is created by BackupStore, we do not have
       // Key and Value classes set. So, check before closing the
@@ -703,7 +705,9 @@ public class IFile {
      */
     protected boolean positionToNextRecord(DataInput dIn) throws IOException {
       // Sanity check
-      checkState(!eof, "Reached EOF. Completed reading %d", bytesRead);
+      if (eof) {
+        throw new IOException(String.format("Reached EOF. Completed reading %d", bytesRead));
+      }
       prevKeyLength = currentKeyLength;
 
       if (prevKeyLength == RLE_MARKER) {
@@ -754,7 +758,9 @@ public class IFile {
         keyBytes = new byte[currentKeyLength << 1];
       }
       int i = readData(keyBytes, 0, currentKeyLength);
-      checkState((i == currentKeyLength), INCOMPLETE_READ, currentKeyLength, i);
+      if (i != currentKeyLength) {
+        throw new IOException(String.format(INCOMPLETE_READ, currentKeyLength, i));
+      }
       key.reset(keyBytes, currentKeyLength);
       bytesRead += currentKeyLength;
       return KeyState.NEW_KEY;
@@ -766,7 +772,9 @@ public class IFile {
         ? new byte[currentValueLength << 1]
         : value.getData();
       int i = readData(valBytes, 0, currentValueLength);
-      checkState((i == currentValueLength), INCOMPLETE_READ, currentValueLength, i);
+      if (i != currentValueLength) {
+        throw new IOException(String.format(INCOMPLETE_READ, currentValueLength, i));
+      }
       value.reset(valBytes, currentValueLength);
 
       // Record the bytes read
@@ -816,13 +824,6 @@ public class IFile {
 
     public void disableChecksumValidation() {
       checksumIn.disableChecksumValidation();
-    }
-  }
-
-  public static void checkState(boolean expression, String format,
-      Object... args) throws IOException {
-    if (!expression) {
-      throw new IOException(String.format(format, args));
     }
   }
 
