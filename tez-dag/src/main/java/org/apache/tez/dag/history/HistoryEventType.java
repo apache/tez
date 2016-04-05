@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.history;
 
+import org.apache.tez.dag.api.TezUncheckedException;
+
 public enum HistoryEventType {
   APP_LAUNCHED,
   AM_LAUNCHED,
@@ -41,5 +43,40 @@ public enum HistoryEventType {
   VERTEX_COMMIT_STARTED,
   VERTEX_GROUP_COMMIT_STARTED,
   VERTEX_GROUP_COMMIT_FINISHED,
-  DAG_RECOVERED
-}
+  DAG_RECOVERED;
+
+  public static boolean isDAGSpecificEvent(HistoryEventType historyEventType) {
+    switch (historyEventType) {
+      case APP_LAUNCHED:
+      case AM_LAUNCHED:
+      case AM_STARTED:
+      case CONTAINER_LAUNCHED:
+      case CONTAINER_STOPPED:
+        return false;
+      case DAG_SUBMITTED:
+      case DAG_INITIALIZED:
+      case DAG_STARTED:
+      case DAG_FINISHED:
+      case DAG_KILL_REQUEST:
+      case VERTEX_INITIALIZED:
+      case VERTEX_STARTED:
+      case VERTEX_CONFIGURE_DONE:
+      case VERTEX_FINISHED:
+      case TASK_STARTED:
+      case TASK_FINISHED:
+      case TASK_ATTEMPT_STARTED:
+      case TASK_ATTEMPT_FINISHED:
+      case DAG_COMMIT_STARTED:
+      case VERTEX_COMMIT_STARTED:
+      case VERTEX_GROUP_COMMIT_STARTED:
+      case VERTEX_GROUP_COMMIT_FINISHED:
+      case DAG_RECOVERED:
+        return true;
+      default:
+        throw new TezUncheckedException("Unhandled history event type: " + historyEventType.name());
+    }
+  }
+
+
+
+  }

@@ -135,6 +135,7 @@ public class TezClient {
   private JavaOptsChecker javaOptsChecker = null;
 
   private int preWarmDAGCounter = 0;
+  private int dagCounter = 0;
 
   /* max submitDAG request size through IPC; beyond this we transfer them in the same way we transfer local resource */
   private int maxSubmitDAGRequestSizeThroughIPC;
@@ -494,6 +495,7 @@ public class TezClient {
    *           if submission timed out
    */  
   public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException {
+    ++dagCounter;
     if (isSession) {
       return submitDAGSession(dag);
     } else {
@@ -536,7 +538,8 @@ public class TezClient {
     if (historyACLPolicyManager != null && sessionHistoryLoggingEnabled) {
       try {
         aclConfigs = historyACLPolicyManager.setupSessionDAGACLs(
-            amConfig.getTezConfiguration(), sessionAppId, dag.getName(), dag.getDagAccessControls());
+            amConfig.getTezConfiguration(), sessionAppId,
+            Integer.toString(dagCounter), dag.getDagAccessControls());
       } catch (HistoryACLPolicyException e) {
         LOG.warn("Disabling history logging for dag " +
           dag.getName() + " due to error in setting up history acls " + e);

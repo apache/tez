@@ -268,7 +268,6 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     }
   }
 
-
   public void handle(DAGHistoryEvent event) {
     if (historyLoggingEnabled && timelineClient != null) {
       eventQueue.add(event);
@@ -326,6 +325,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     for (int i = 0; i < events.size(); ++i) {
       DAGHistoryEvent event = events.get(i);
       String domainId = sessionDomainId;
+
       TezDAGID dagId = event.getDagID();
 
       if (historyACLPolicyManager != null && dagId != null) {
@@ -335,11 +335,19 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       }
 
       entities[i] = HistoryEventTimelineConversion.convertToTimelineEntity(event.getHistoryEvent());
+
       if (historyACLPolicyManager != null) {
-        if (domainId != null && !domainId.isEmpty()) {
-          historyACLPolicyManager.updateTimelineEntityDomain(entities[i], domainId);
+        if (HistoryEventType.isDAGSpecificEvent(event.getHistoryEvent().getEventType())) {
+          if (domainId != null && !domainId.isEmpty()) {
+            historyACLPolicyManager.updateTimelineEntityDomain(entities[i], domainId);
+          }
+        } else {
+          if (sessionDomainId != null && !sessionDomainId.isEmpty()) {
+            historyACLPolicyManager.updateTimelineEntityDomain(entities[i], sessionDomainId);
+          }
         }
       }
+
     }
 
     if (LOG.isDebugEnabled()) {

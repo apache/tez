@@ -298,7 +298,7 @@ public class TestATSHistoryWithACLs {
         Collections.singleton("nobody"), Collections.singleton("nobody_group"));
 
     timelineDomain = getDomain(ATSHistoryACLPolicyManager.DOMAIN_ID_PREFIX
-        + applicationId.toString() + "_TezSleepProcessor");
+        + applicationId.toString() + "_1");
     verifyDomainACLs(timelineDomain,
         Sets.newHashSet("nobody", "nobody2"),
         Sets.newHashSet("nobody_group", "nobody_group2"));
@@ -670,7 +670,7 @@ public class TestATSHistoryWithACLs {
         appEntity.getDomainId());
     if (!sameDomain) {
       assertEquals(ATSHistoryACLPolicyManager.DOMAIN_ID_PREFIX + applicationId.toString()
-          + "_TezSleepProcessor", dagEntity.getDomainId());
+          + "_1", dagEntity.getDomainId());
     } else {
       assertEquals(appEntity.getDomainId(), dagEntity.getDomainId());
     }

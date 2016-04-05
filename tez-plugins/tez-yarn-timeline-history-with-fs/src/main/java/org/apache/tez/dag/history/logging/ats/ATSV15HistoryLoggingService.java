@@ -367,9 +367,16 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
 
     TimelineEntity entity =
         HistoryEventTimelineConversion.convertToTimelineEntity(event.getHistoryEvent());
+
     if (historyACLPolicyManager != null) {
-      if (domainId != null && !domainId.isEmpty()) {
-        historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
+      if (HistoryEventType.isDAGSpecificEvent(event.getHistoryEvent().getEventType())) {
+        if (domainId != null && !domainId.isEmpty()) {
+          historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
+        }
+      } else {
+        if (sessionDomainId != null && !sessionDomainId.isEmpty()) {
+          historyACLPolicyManager.updateTimelineEntityDomain(entity, sessionDomainId);
+        }
       }
     }
 
