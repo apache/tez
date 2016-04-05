@@ -18,31 +18,40 @@
 
 import Ember from 'ember';
 
+const MAX_TEXT_LENGTH = 10;
+
 export default Ember.Component.extend({
 
   process: null,
-  event: null,
 
-  processor: null,
-
-  classNames: ["em-swimlane-event"],
-
-  didInsertElement: Ember.observer("event.time", "processor.timeWindow", function () {
-    var color = this.get("process").getColor();
-
-    this.$().css({
-      "left": this.get("processor").timeToPositionPercent(this.get("event.time")) + "%"
-    });
-    this.$(".event-line").css("border-color", color);
-    this.$(".event-bubble").css("border-color", color);
-  }),
+  classNames: ["em-swimlane-vertex-name"],
 
   sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "event", this.get("process"), {
+    this.sendAction(name, "process-name", this.get("process"), {
       mouseEvent: mouseEvent,
-      events: [this.get("event")]
     });
   },
+
+  progressText: Ember.computed("process.vertex.progress", function () {
+    var percent = parseInt(this.get("process.vertex.progress") * 100);
+    if(!isNaN(percent) && percent > 0 && percent < 100) {
+      return `${percent}%`;
+    }
+  }),
+
+  useEllipsis: Ember.computed("process.name", "progressText", function () {
+    var name = this.get("process.name") || "",
+        progressLength = this.get("progressText.length");
+    progressLength = progressLength ? progressLength + 1 : 0;
+    return  name.length + progressLength - 1 > MAX_TEXT_LENGTH;
+  }),
+
+  processName: Ember.computed("process.name", "progressText", function () {
+    var name = this.get("process.name") || "",
+        progressLength = this.get("progressText.length");
+    progressLength = progressLength ? progressLength + 1 : 0;
+    return name.substr(Math.max(name.length - MAX_TEXT_LENGTH - progressLength, 0));
+  }),
 
   mouseEnter: function (mouseEvent) {
     this.sendMouseAction("showTooltip", mouseEvent);

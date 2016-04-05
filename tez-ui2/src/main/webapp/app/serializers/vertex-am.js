@@ -26,5 +26,11 @@ export default AMSerializer.extend({
     runningTasks: "runningTasks",
     failedTaskAttempts: "failedTaskAttempts",
     killedTaskAttempts: "killedTaskAttempts",
+
+    initTime: "initTime",
+    startTime: "startTime",
+    endTime: "finishTime",
+    firstTaskStartTime: "firstTaskStartTime",
+    lastTaskFinishTime: "lastTaskFinishTime",
   }
 });

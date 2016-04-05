@@ -31,11 +31,10 @@
     {{em-swimlane
       columns=visibleColumns
       processes=processes
-      eventBars=eventBars
-      startTime=model.firstObject.dag.startTime
-      endTime=model.firstObject.dag.endTime
+      nameComponent="em-swimlane-vertex-name"
       zoom=zoom
       click="click"
+      consolidate=true
     }}
   </div>
 {{else}}

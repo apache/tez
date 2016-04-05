@@ -18,87 +18,43 @@
 
 import Ember from 'ember';
 
-const BUBBLE_RADIUS = 8; // Same as that in css
+const BUBBLE_DIA = 10; // Same as that in css
 
 export default Ember.Component.extend({
+
   process: null,
-  definition: null,
+  processor: null,
+  focusedProcess: null,
 
-  startTime: 0,
-  endTime: 0,
-  timeWindow: 0,
-
-  normalizedEvents: [],
-  startEvent: null,
-  endEvent: null,
-
-  eventBars: [],
   classNames: ["em-swimlane-process-visual"],
-
-  didInsertElement: function () {
-    Ember.run.later(this, "normalizeEvents");
-  },
-
-  normalizeEvents: Ember.observer("process.events.@each.time", "startTime", "timeWindow", function () {
-    var events = Ember.get(this.get("process"), "events") || [],
-        startEvent,
-        endEvent,
-
-        startTime = this.get("startTime"),
-        timeWindow = this.get("timeWindow");
-
-    events = events.map(function (event) {
-      var position = ((event.time - startTime) / timeWindow) * 100;
-      event = {
-        name: event.name,
-        text: event.text || event.name,
-        pos: position,
-        time: event.time
-      };
-
-      if(!startEvent || startEvent.pos > position) {
-        startEvent = event;
-      }
-      if(!endEvent || endEvent.pos < position) {
-        endEvent = event;
-      }
-
-      return event;
-    });
-
-    this.setProperties({
-      normalizedEvents: events,
-      startEvent: startEvent,
-      endEvent: endEvent
-    });
-  }),
 
   actions: {
     showTooltip: function(type, process, options) {
 
       if(type === "event") {
-        let mouseEvent = options.mouseEvent,
-            normalizedEvents = this.get("normalizedEvents"),
-            events = [];
+        let clientX = options.mouseEvent.clientX,
+            events = process.get("events"),
+            eventsUnderMouse = [];
 
         this.$(".em-swimlane-event").each(function (index) {
-          var offset = Ember.$(this).offset();
+          var offsetLeft = Ember.$(this).offset().left;
 
-          if(mouseEvent.clientX >= offset.left - BUBBLE_RADIUS &&
-              mouseEvent.clientX <= offset.left + BUBBLE_RADIUS &&
-              mouseEvent.clientY >= offset.top - BUBBLE_RADIUS &&
-              mouseEvent.clientY <= offset.top + BUBBLE_RADIUS) {
-            events.push(normalizedEvents[index]);
+          if(clientX >= offsetLeft - BUBBLE_DIA && clientX <= offsetLeft + BUBBLE_DIA) {
+            eventsUnderMouse.push(events[index]);
           }
         });
 
         if(events.length) {
-          options.events = events;
+          eventsUnderMouse.sort(function (eventA, eventB) {
+            return eventA.time - eventB.time;
+          });
+          options.events = eventsUnderMouse;
         }
       }
 
       this.sendAction("showTooltip", type, process, options);
     },
+
     hideTooltip: function(type, process, options) {
       this.sendAction("hideTooltip", type, process, options);
     },

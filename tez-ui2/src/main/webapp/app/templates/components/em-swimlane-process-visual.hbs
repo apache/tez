@@ -19,8 +19,7 @@
 <div class="base-line"></div>
 {{em-swimlane-process-line
   process=process
-  startEvent=startEvent
-  endEvent=endEvent
+  processor=processor
   showTooltip="showTooltip"
   hideTooltip="hideTooltip"
   click="click"
@@ -29,28 +28,28 @@
   {{em-swimlane-blocking-event
     process=process
     blocking=blocking
-    events=normalizedEvents
+    processor=processor
     showTooltip="showTooltip"
     hideTooltip="hideTooltip"
     click="click"
   }}
 {{/each}}
-{{#each eventBars as |bar index|}}
+{{#each process.eventBars as |bar index|}}
   {{em-swimlane-event-bar
-    events=normalizedEvents
     bar=bar
     barIndex=index
-    bars=eventBars
     process=process
+    processor=processor
     showTooltip="showTooltip"
     hideTooltip="hideTooltip"
     click="click"
   }}
 {{/each}}
-{{#each normalizedEvents as |event|}}
+{{#each process.events as |event|}}
   {{em-swimlane-event
     process=process
     event=event
+    processor=processor
     showTooltip="showTooltip"
     hideTooltip="hideTooltip"
     click="click"

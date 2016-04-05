@@ -20,6 +20,7 @@ import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
 import Process from 'tez-ui/utils/process';
+import Processor from 'tez-ui/utils/processor';
 
 import wait from 'ember-test-helpers/wait';
 
@@ -29,15 +30,16 @@ moduleForComponent('em-swimlane-event', 'Integration | Component | em swimlane e
 
 test('Basic creation test', function(assert) {
   this.set("process", Process.create({}));
+  this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-event process=process}}`);
+  this.render(hbs`{{em-swimlane-event processor=processor process=process}}`);
 
   assert.ok(this.$(".event-bar"));
   assert.ok(this.$(".event-window"));
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#em-swimlane-event process=process}}
+    {{#em-swimlane-event process=process processor=processor}}
       template block text
     {{/em-swimlane-event}}
   `);
@@ -49,10 +51,14 @@ test('Basic creation test', function(assert) {
 test('Event position test', function(assert) {
   this.set("process", Process.create());
   this.set("event", {
-    pos: 60
+    time: 6
   });
+  this.set("processor", Processor.create({
+    startTime: 0,
+    endTime: 10
+  }));
 
-  this.render(hbs`{{em-swimlane-event process=process event=event}}`);
+  this.render(hbs`{{em-swimlane-event processor=processor process=process event=event}}`);
 
   return wait().then(() => {
     assert.equal(this.$(".em-swimlane-event").attr("style").trim(), "left: 60%;", "em-swimlane-event");

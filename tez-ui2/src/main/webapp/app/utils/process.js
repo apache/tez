@@ -23,13 +23,19 @@ export default Ember.Object.extend({
   _id: null,
 
   name: null,
-  events: null,
+  events: [],
+  eventBars: null,
 
   index: 0,
   color: null,
 
   blockers: null, // Array of processes that's blocking the current process
   blocking: null, // Array of processes blocked by the current process
+
+  blockingEventName: null,
+
+  consolidateStartTime: Ember.computed.oneWay("startEvent.time"),
+  consolidateEndTime: Ember.computed.oneWay("endEvent.time"),
 
   init: function () {
     this.set("_id", `process-id-${processIndex}`);
@@ -48,6 +54,14 @@ export default Ember.Object.extend({
       l += 5 + 25 * lightnessFactor;
     }
     return `hsl( ${color.h}, ${color.s}%, ${l}% )`;
+  },
+
+  getBarColor: function (barIndex) {
+    return this.getColor(1 - (barIndex / this.get("eventBars.length")));
+  },
+
+  getConsolidateColor: function () {
+    return this.getColor();
   },
 
   startEvent: Ember.computed("events.@each.time", function () {

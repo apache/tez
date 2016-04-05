@@ -21,11 +21,16 @@
 .em-swimlane {
   position: relative;
 
-  margin: 5px 0px 5px 0px;
+  margin: 5px 0px 40px 0px;
 
   .process-names {
     width: 100px;
     border-right: 1px solid @border-color;
+
+    .consolidated-view-label {
+      margin-top: 20px;
+      padding-bottom: 10px;
+    }
   }
   .process-visuals {
     .force-scrollbar;
@@ -35,6 +40,93 @@
     right: 0px;
     top: 0px;
     overflow: auto;
+
+    .consolidated-view {
+      position: relative;
+      margin: 20px 10px 2px 10px;
+      height: 20px;
+      border: 1px solid @border-color;
+      border-radius: 2px;
+    }
+  }
+
+  .em-swimlane-ruler {
+    margin: 9px 10px 5px 10px;
+
+    .ruler-line {
+      margin: 0px -10px 0px -10px;
+      border-top: 1px solid @border-color;
+    }
+
+    .unit-text {
+      display: inline-block;
+      position: relative;
+      transition: left .5sec ease-out;
+    }
+
+    .mark-container {
+      overflow: hidden;
+      font-size: 0;
+      overflow: hidden;
+      white-space: nowrap;
+
+      .ruler-mark {
+        display: inline-block;
+        border-left: 1px solid @border-color;
+
+        margin-right: -1px;
+        margin-bottom: -2px;
+
+        font-size: 12px;
+
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+
+        .sub-marks {
+          display: block;
+          padding: 0px;
+
+          margin-bottom: -8px;
+
+          li {
+            vertical-align: top;
+            display: inline-block;
+            width: 10%;
+            height: 5px;
+            border-left: 1px solid @border-lite;
+
+            &:first-child {
+              border-left: none;
+            }
+
+            &:nth-child(2n) {
+              height: 8px;
+            }
+            &:nth-child(6) {
+              height: 12px;
+            }
+          }
+        }
+      }
+    }
+
+  }
+}
+
+.em-swimlane-consolidated-process {
+  position: absolute;
+  cursor: pointer;
+
+  top: 0px;
+  bottom: 0px;
+  border: 1px solid white;
+
+  transition: top .2s;
+  &.focused {
+    top: -10px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
   }
 }
 
@@ -54,28 +146,32 @@
   position: relative;
   height: 30px;
 
-  margin: 0px 10px;
+  // Gives a mouse sensitive margin to the left and right,
+  // so that event lines appear with a padding
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
 
   .process-line, .event-bar, .event-bubble {
     cursor: pointer;
   }
-
   .base-line {
     position: relative;
     height: 1px;
-    margin-left: -10px;
+    margin: 0px -10px;
     top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
     border-top: 1px dotted @border-color;
   }
 
-  .process-line {
+  .process-line, .event-bar, .em-swimlane-event, .em-swimlane-blocking-event {
     position: absolute;
+  }
+
+  .process-line {
     top: unit(unit(@process-height) * 0.5 - 1, get-unit(@process-height));
     height: 3px;
   }
 
   .event-bar {
-    position: absolute;
     top: unit((unit(@process-height) * 0.5) - 10, get-unit(@process-height));
     height: 20px;
     background-color: @border-lite;
@@ -85,7 +181,6 @@
   }
 
   .em-swimlane-event {
-    position: absolute;
     top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
 
     .event-line {
@@ -113,7 +208,6 @@
   }
 
   .em-swimlane-blocking-event {
-    position: absolute;
     top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
 
     .event-line {

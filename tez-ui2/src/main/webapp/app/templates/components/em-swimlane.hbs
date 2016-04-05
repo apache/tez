@@ -18,26 +18,45 @@
 
 <div class="process-names">
   {{#each normalizedProcesses as |process|}}
-    {{em-swimlane-process-name
+    {{component nameComponent
       process=process
+      showTooltip="showTooltip"
+      hideTooltip="hideTooltip"
       click="click"
     }}
   {{/each}}
+  <div class="consolidated-view-label">
+    Consolidated
+  </div>
 </div><div class="process-visuals">
   <div class="zoom-panel">
     {{#each normalizedProcesses as |process|}}
-      {{em-swimlane-process-visual
+      {{component visualComponent
         process=process
-        definition=processDefinition
-        eventBars=eventBars
-        startTime=startTime
-        endTime=endTime
-        timeWindow=timeWindow
+        processor=processor
         showTooltip="showTooltip"
         hideTooltip="hideTooltip"
         click="click"
       }}
     {{/each}}
+
+    {{#if consolidate}}
+      <div class="consolidated-view">
+        {{#each normalizedProcesses as |process|}}
+          {{em-swimlane-consolidated-process
+            focusedProcess=focusedProcess
+            process=process
+            processor=processor
+            showTooltip="showTooltip"
+            hideTooltip="hideTooltip"
+            click="click"
+          }}
+        {{/each}}
+      </div>
+    {{/if}}
+
+    {{em-swimlane-ruler scroll=scroll processor=processor zoom=zoom}}
+
   </div>
 </div>
 

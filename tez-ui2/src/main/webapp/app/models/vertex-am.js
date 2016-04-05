@@ -29,4 +29,10 @@ export default AMModel.extend({
   failedTaskAttempts: DS.attr("number"),
   killedTaskAttempts: DS.attr("number"),
 
+  initTime: DS.attr('number'),
+  startTime: DS.attr('number'),
+  endTime: DS.attr('number'),
+  firstTaskStartTime: DS.attr('number'),
+  lastTaskFinishTime: DS.attr('number'),
+
 });

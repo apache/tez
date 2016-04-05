@@ -33,5 +33,19 @@ export default MultiAmPollsterRoute.extend({
     return this.get("loader").query('vertex', {
       dagID: this.modelFor("dag").get("id")
     }, options);
-  }
+  },
+
+  _loadedValueObserver: Ember.observer("loadedValue", function () {
+    var loadedValue = this.get("loadedValue"),
+        records = [];
+
+    if(loadedValue) {
+      loadedValue.forEach(function (record) {
+        records.push(record);
+      });
+
+      this.set("polledRecords", records);
+    }
+  }),
+
 });

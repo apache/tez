@@ -18,7 +18,7 @@
 
 import Ember from 'ember';
 
-const TIP_PADDING = 10, // As in em-tooltip.css
+const TIP_PADDING = 15, // As in em-tooltip.css
       FADE_TIME = 150;
 
 export default Ember.Component.extend({
@@ -29,14 +29,14 @@ export default Ember.Component.extend({
   contents: null,
 
   classNames: ["em-tooltip"],
-  classNameBindings: ["aboveOrBelow"],
+  classNameBindings: ["arrowPos"],
 
   x: 0,
   y: 0,
 
   _contents: null,
   show: false,
-  aboveOrBelow: null,
+  arrowPos: null,
 
   window: null,
   tip: null,
@@ -99,18 +99,14 @@ export default Ember.Component.extend({
   },
 
   getBubbleOffset: function (x, bubbleElement, winWidth) {
-    var bubbleWidth = bubbleElement.width(),
-        bubbleOffset = (bubbleWidth - TIP_PADDING) >> 1;
+    var bubbleWidth = Math.max(bubbleElement.width(), 0),
+        bubbleOffset = bubbleWidth >> 1;
 
-    if(bubbleWidth < 0) {
-      bubbleWidth = 0;
-    }
-
-    if(x - bubbleOffset < 0) {
-      bubbleOffset = x;
+    if(x - bubbleOffset - TIP_PADDING < 0) {
+      bubbleOffset = x - TIP_PADDING;
     }
     else if(x + TIP_PADDING + bubbleOffset > winWidth) {
-      bubbleOffset = x - (winWidth - bubbleWidth);
+      bubbleOffset = x - (winWidth - bubbleWidth) + TIP_PADDING;
     }
 
     return -bubbleOffset;
@@ -129,12 +125,17 @@ export default Ember.Component.extend({
           that = this,
           tip = this.get("tip");
 
-      if(!showAbove) {
-        y -= tip.height();
-        this.set("aboveOrBelow", "below");
+      if(x > TIP_PADDING && x < winWidth - TIP_PADDING) {
+        if(!showAbove) {
+          y -= tip.height();
+          this.set("arrowPos", "below");
+        }
+        else {
+          this.set("arrowPos", "above");
+        }
       }
       else {
-        this.set("aboveOrBelow", "above");
+        this.set("arrowPos", null);
       }
 
       tip.css({

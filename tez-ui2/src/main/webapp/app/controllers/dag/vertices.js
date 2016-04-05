@@ -44,7 +44,7 @@ export default MultiTableController.extend({
   },{
     id: 'status',
     headerTitle: 'Status',
-    contentPath: 'status',
+    contentPath: 'finalStatus',
     cellComponentName: 'em-table-status-cell',
     observePath: true
   },{

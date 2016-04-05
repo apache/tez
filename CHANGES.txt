@@ -1898,6 +1898,7 @@ ALL CHANGES
   TEZ-3170. Tez UI 2: Swimlane - Display computed events, event bars & dependencies (sree)
   TEZ-3152. Tez UI 2: Build fails when run by multiple users or when node_modules is old (sree)
   TEZ-3171. Tez UI 2: Swimlane - Tooltip, zoom & redirection (sree)
+  TEZ-3172. Tez UI: Swimlane - In progress & Shadow (sree)
 
 Release 0.2.0-incubating: 2013-11-30
 

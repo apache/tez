@@ -22,47 +22,58 @@ import hbs from 'htmlbars-inline-precompile';
 import wait from 'ember-test-helpers/wait';
 
 import Process from 'tez-ui/utils/process';
-import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-process-line', 'Integration | Component | em swimlane process line', {
+moduleForComponent('em-swimlane-vertex-name', 'Integration | Component | em swimlane vertex name', {
   integration: true
 });
 
 test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-process-line process=process processor=processor}}`);
-
-  assert.equal(this.$().text().trim(), '');
+  this.render(hbs`{{em-swimlane-vertex-name}}`);
+  assert.equal(this.$().text().trim(), 'Not Available!');
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#em-swimlane-process-line process=process processor=processor}}
+    {{#em-swimlane-vertex-name}}
       template block text
-    {{/em-swimlane-process-line}}
+    {{/em-swimlane-vertex-name}}
   `);
-
-  assert.equal(this.$().text().trim(), '');
+  assert.equal(this.$().text().trim(), 'Not Available!');
 });
 
-test('start-end event test', function(assert) {
+test('Name test', function(assert) {
   this.set("process", Process.create({
-    startEvent: {
-      time: 5
-    },
-    endEvent: {
-      time: 7
+    name: "TestName"
+  }));
+
+  this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
+  return wait().then(() => {
+    assert.equal(this.$(".name-text").text().trim(), 'TestName');
+  });
+});
+
+test('Progress test', function(assert) {
+  this.set("process", Process.create({
+    vertex: {
+      progress: 0.5
     }
   }));
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
+
+  this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
+  return wait().then(() => {
+    assert.equal(this.$().text().trim().substr(0, 3), '50%');
+  });
+});
+
+test('finalStatus test', function(assert) {
+  this.set("process", Process.create({
+    vertex: {
+      finalStatus: "STAT"
+    }
   }));
 
-  this.render(hbs`{{em-swimlane-process-line processor=processor process=process}}`);
-
+  this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
   return wait().then(() => {
-    assert.equal(this.$(".process-line").eq(0).attr("style").trim(), "left: 50%; right: 30%;", "process-line");
+    assert.equal(this.$().text().trim(), 'STAT');
   });
 });

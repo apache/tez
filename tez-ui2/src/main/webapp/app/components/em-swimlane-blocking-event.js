@@ -22,12 +22,14 @@ export default Ember.Component.extend({
 
   process: null,
   blocking: null,
-  events: null,
+
+  processor: null,
 
   classNames: ["em-swimlane-blocking-event"],
 
-  blockingEvent: Ember.computed("events.length", "process.blockingEventName", function () {
-    var events = this.get("events"),
+  blockingEvent: Ember.computed("process.blockingEventName",
+      "process.events.@each.name", function () {
+    var events = this.get("process.events"),
         blockingEventName = this.get("process.blockingEventName");
 
     return events.find(function (event) {
@@ -35,16 +37,21 @@ export default Ember.Component.extend({
     });
   }),
 
-  didInsertElement: Ember.observer("blockingEvent", function () {
-    var blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
+  didInsertElement: Ember.observer("blockingEvent.time", "processor.timeWindow", function () {
+    var blockTime = this.get("blockingEvent.time"),
+        blockerEventHeight;
 
-    this.$().css({
-      "left": this.get("blockingEvent.pos") + "%"
-    });
-    this.$(".event-line").css({
-      "height": `${blockerEventHeight}px`,
-      "border-color": this.get("process").getColor()
-    });
+    if(blockTime && this.get("blocking.endEvent.time") >= blockTime) {
+      blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
+
+      this.$().css({
+        "left": this.get("processor").timeToPositionPercent(blockTime) + "%"
+      });
+      this.$(".event-line").css({
+        "height": `${blockerEventHeight}px`,
+        "border-color": this.get("process").getColor()
+      });
+    }
   }),
 
   sendMouseAction: function (name, mouseEvent) {

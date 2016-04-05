@@ -18,51 +18,83 @@
 
 import Ember from 'ember';
 
-import ProcessDefinition from '../utils/process-definition';
+import Processor from '../utils/processor';
 import Process from '../utils/process';
-
-function getVibrantHSL(colorNum, totalColors) {
-  if (totalColors < 1){
-    totalColors = 1;
-  }
-  return {
-    h: colorNum * (360 / totalColors) % 360,
-    s: 100 - (colorNum % 2) * 30,
-    l: 40
-  };
-}
 
 export default Ember.Component.extend({
 
   classNames: ["em-swimlane"],
 
   processes: [],
-  processDefinition: ProcessDefinition.create(),
+  processor: Processor.create(),
 
-  startTime: null,
-  endTime: null,
-
-  eventBars: [],
+  nameComponent: "em-swimlane-process-name",
+  visualComponent: "em-swimlane-process-visual",
 
   tooltipContents: null,
+  focusedProcess: null,
+  scroll: 0,
+
+  consolidate: false,
 
   zoom: 100,
 
-  didInsertElement: Ember.observer("zoom", function () {
+  startTime: Ember.computed("processes.@each.startEvent", function () {
+    var startTime = this.get("processes.0.startEvent.time");
+    this.get("processes").forEach(function (process) {
+      var time = process.get("startEvent.time");
+      if(startTime > time){
+        startTime = time;
+      }
+    });
+    return startTime;
+  }),
+  endTime: Ember.computed("processes.@each.endEvent", function () {
+    var endTime = this.get("processes.0.endEvent.time");
+    this.get("processes").forEach(function (process) {
+      var time = process.get("endEvent.time");
+      if(endTime < time){
+        endTime = time;
+      }
+    });
+    return endTime;
+  }),
+
+  processorSetup: Ember.on("init", Ember.observer("startTime", "endTime", "processes.length", function () {
+    this.get("processor").setProperties({
+      startTime: this.get("startTime"),
+      endTime: this.get("endTime"),
+      processCount: this.get("processes.length")
+    });
+  })),
+
+  didInsertElement: function () {
+    this.onZoom();
+    this.listenScroll();
+  },
+
+  onZoom: Ember.observer("zoom", function () {
     var zoom = this.get("zoom");
     this.$(".zoom-panel").css("width", `${zoom}%`);
   }),
 
-  timeWindow: Ember.computed("startTime", "endTime", function () {
-    return Math.max(0, this.get("endTime") - this.get("startTime"));
-  }),
+  listenScroll: function () {
+    var that = this;
+    this.$(".process-visuals").scroll(function () {
+      that.set("scroll", Ember.$(this).scrollLeft());
+    });
+  },
+
+  willDestroy: function () {
+    // Release listeners
+  },
 
   normalizedProcesses: Ember.computed("processes.@each.blockers", function () {
     var processes = this.get("processes"),
-        processCount = processes.length,
         normalizedProcesses,
         idHash = {},
-        containsBlockers = false;
+        containsBlockers = false,
+        processor = this.get("processor");
 
     // Validate and reset blocking
     processes.forEach(function (process) {
@@ -114,7 +146,7 @@ export default Ember.Component.extend({
     // Set process colors & index
     normalizedProcesses.forEach(function (process, index) {
       process.setProperties({
-        color: getVibrantHSL(index, processCount),
+        color: processor.createProcessColor(index),
         index: index
       });
     });
@@ -125,9 +157,11 @@ export default Ember.Component.extend({
   actions: {
     showTooltip: function (type, process, options) {
       this.set("tooltipContents", process.getTooltipContents(type, options));
+      this.set("focusedProcess", process);
     },
     hideTooltip: function () {
       this.set("tooltipContents", null);
+      this.set("focusedProcess", null);
     },
     click: function (type, process, options) {
       this.sendAction("click", type, process, options);

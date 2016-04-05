@@ -22,42 +22,15 @@ export default Ember.Component.extend({
 
   content: null,
 
-  statusTypes: {
-    // Basic types
-    "default": "default",
-    "primary": "primary",
-    "success": "success",
-    "info": "info",
-    "warning": "warning",
-    "danger": "danger",
+  classNames: ["em-table-status-cell"],
 
-    // Extended types
-    "new": "default",
-    "inited": "primary",
-    "initializing": "primary",
-    "scheduled": "primary",
-    "start_wait": "primary",
-    "running": "info",
-    "succeeded": "success",
-    "failed": "warning",
-    "fail_in_progress": "warning",
-    "killed": "danger",
-    "kill_wait": "warning",
-    "kill_in_progress": "warning",
-    "error": "danger",
-    "terminating": "warning",
-    "committing": "info",
-  },
+  statusName: Ember.computed("content", function () {
+    var status = this.get("content");
 
-  statusType: Ember.computed("content", function () {
-    var content = this.get("content"),
-        statusType;
-
-    if(content) {
-      content = content.toString().toLowerCase();
-      statusType = this.get(`statusTypes.${content}`) || 'default';
+    if(status) {
+      status = status.toString().dasherize();
+      status = "status-" + status;
     }
-
-    return statusType;
-  })
+    return status;
+  }),
 });

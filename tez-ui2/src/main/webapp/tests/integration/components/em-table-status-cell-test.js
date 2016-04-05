@@ -25,11 +25,7 @@ moduleForComponent('em-table-status-cell', 'Integration | Component | em table s
 
 test('Basic render test', function(assert) {
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
-
   this.render(hbs`{{em-table-status-cell}}`);
-
   assert.equal(this.$().text().trim(), 'Not Available!');
 
   // Template block usage:" + EOL +
@@ -38,18 +34,11 @@ test('Basic render test', function(assert) {
       template block text
     {{/em-table-status-cell}}
   `);
-
   assert.equal(this.$().text().trim(), 'Not Available!');
 });
 
-test('Basic type test', function(assert) {
-  this.render(hbs`{{em-table-status-cell content="SUCCESS"}}`);
-  assert.equal(this.$().text().trim(), 'SUCCESS');
-  assert.equal(this.$("span")[0].className, 'label label-success');
-});
-
-test('Extended type test', function(assert) {
+test('Basic test', function(assert) {
   this.render(hbs`{{em-table-status-cell content="inited"}}`);
   assert.equal(this.$().text().trim(), 'inited');
-  assert.equal(this.$("span")[0].className, 'label label-primary');
+  assert.equal(this.$("span")[0].className, 'status status-inited');
 });

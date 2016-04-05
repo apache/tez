@@ -18,28 +18,44 @@
 
 import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
+import wait from 'ember-test-helpers/wait';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-event-bar', 'Integration | Component | em swimlane event bar', {
+moduleForComponent('em-swimlane-consolidated-process', 'Integration | Component | em swimlane consolidated process', {
   integration: true
 });
 
 test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
-
-  this.render(hbs`{{em-swimlane-event-bar processor=processor process=process}}`);
+  this.render(hbs`{{em-swimlane-consolidated-process}}`);
 
   assert.equal(this.$().text().trim(), '');
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#em-swimlane-event-bar process=process processor=processor}}
+    {{#em-swimlane-consolidated-process}}
       template block text
-    {{/em-swimlane-event-bar}}
+    {{/em-swimlane-consolidated-process}}
   `);
 
   assert.equal(this.$().text().trim(), '');
+});
+
+test('Basic creation test', function(assert) {
+  this.set("process", Process.create({
+    consolidateStartTime: 3,
+    consolidateEndTime: 6
+  }));
+  this.set("processor", Processor.create({
+    startTime: 0,
+    endTime: 10
+  }));
+
+  this.render(hbs`{{em-swimlane-consolidated-process process=process processor=processor}}`);
+
+  return wait().then(() => {
+    assert.equal(this.$(".em-swimlane-consolidated-process").attr("style").trim(),
+        "left: 30%; right: 40%; z-index: 30;");
+  });
 });

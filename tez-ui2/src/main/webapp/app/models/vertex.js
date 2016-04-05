@@ -59,13 +59,33 @@ export default AMTimelineModel.extend({
 
   name: DS.attr('string'),
 
-  firstTaskStartTime: DS.attr('number'),
-  lastTaskFinishTime: DS.attr('number'),
+  _initTime: DS.attr('number'),
+  _startTime: DS.attr('number'),
+  _endTime: DS.attr('number'),
+  _firstTaskStartTime: DS.attr('number'),
+  _lastTaskFinishTime: DS.attr('number'),
+
+  initTime: Ember.computed("am.initTime", "_initTime",
+    valueComputerFactory("am.initTime", "_initTime")
+  ),
+  startTime: Ember.computed("am.startTime", "_startTime",
+    valueComputerFactory("am.startTime", "_startTime")
+  ),
+  endTime: Ember.computed("am.endTime", "_endTime",
+    valueComputerFactory("am.endTime", "_endTime")
+  ),
+  firstTaskStartTime: Ember.computed("am.firstTaskStartTime", "_firstTaskStartTime",
+    valueComputerFactory("am.firstTaskStartTime", "_firstTaskStartTime")
+  ),
+  lastTaskFinishTime: Ember.computed("am.lastTaskFinishTime", "_lastTaskFinishTime",
+    valueComputerFactory("am.lastTaskFinishTime", "_lastTaskFinishTime")
+  ),
 
   totalTasks: DS.attr('number'),
   _failedTasks: DS.attr('number'),
   _succeededTasks: DS.attr('number'),
   _killedTasks: DS.attr('number'),
+
   failedTasks: Ember.computed("am.failedTasks", "_failedTasks",
     valueComputerFactory("am.failedTasks", "_failedTasks")
   ),
@@ -75,6 +95,14 @@ export default AMTimelineModel.extend({
   killedTasks: Ember.computed("am.killedTasks", "_killedTasks",
     valueComputerFactory("am.killedTasks", "_killedTasks")
   ),
+
+  finalStatus: Ember.computed("status", "failedTaskAttempts", function () {
+    var status = this.get("status");
+    if(status === "SUCCEEDED" && this.get("failedTaskAttempts")) {
+      status = "SUCCEEDED_WITH_FAILURES";
+    }
+    return status;
+  }),
 
   runningTasks: Ember.computed("am.runningTasks", "status", function () {
     var runningTasks = this.get("am.runningTasks");

@@ -29,8 +29,11 @@ export default TimelineSerializer.extend({
   maps: {
     name: 'otherinfo.vertexName',
 
-    firstTaskStartTime: 'otherinfo.stats.firstTaskStartTime',
-    lastTaskFinishTime: 'otherinfo.stats.lastTaskFinishTime',
+    _initTime: 'otherinfo.initTime',
+    _startTime: 'otherinfo.startTime',
+    _endTime: 'otherinfo.endTime',
+    _firstTaskStartTime: 'otherinfo.stats.firstTaskStartTime',
+    _lastTaskFinishTime: 'otherinfo.stats.lastTaskFinishTime',
 
     totalTasks: 'otherinfo.numTasks',
     _failedTasks: 'otherinfo.numFailedTasks',

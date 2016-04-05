@@ -16,30 +16,50 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+.em-swimlane-vertex-name {
 
-import Process from 'tez-ui/utils/process';
-import Processor from 'tez-ui/utils/processor';
+  cursor: pointer;
 
-moduleForComponent('em-swimlane-event-bar', 'Integration | Component | em swimlane event bar', {
-  integration: true
-});
+  direction: rtl;
+  text-align: right;
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
+  padding: 5px 5px 0px 0px;
+  white-space: nowrap;
 
-  this.render(hbs`{{em-swimlane-event-bar processor=processor process=process}}`);
+  height: 30px;
 
-  assert.equal(this.$().text().trim(), '');
+  .name-text {
+    display: inline-block;
+    vertical-align: baseline;
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-event-bar process=process processor=processor}}
-      template block text
-    {{/em-swimlane-event-bar}}
-  `);
+    &.ellipsis:after {
+      content:"\2026";
+      margin-right: -4px;
+    }
+  }
 
-  assert.equal(this.$().text().trim(), '');
-});
+  .em-table-status-cell {
+    display: inline-block;
+    vertical-align: text-top;
+
+    direction: ltr;
+
+    .status {
+      display: inline-block;
+
+      padding: 2px;
+
+      width: 16px;
+      height: 16px;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    .status-icon {
+      display: inline-block;
+      width: 12px;
+      margin-top: 2px;
+    }
+  }
+
+}

@@ -20,35 +20,36 @@ import Ember from 'ember';
 
 export default Ember.Component.extend({
 
-  process: null,
-  events: [],
-
-  bars: [],
   bar: null,
   barIndex: 0,
 
+  process: null,
+  processor: null,
+
   classNames: ["em-swimlane-event-bar"],
 
-  fromEvent: Ember.computed("events.length", "bar.fromEvent", function () {
-    var events = this.get("events"),
+  fromEvent: Ember.computed("process.events.@each.name", "bar.fromEvent", function () {
+    var events = this.get("process.events"),
         fromEventName = this.get("bar.fromEvent");
     return events.find(function (event) {
       return event.name === fromEventName;
     });
   }),
-  toEvent: Ember.computed("events.length", "bar.toEvent", function () {
-    var events = this.get("events"),
+  toEvent: Ember.computed("process.events.@each.name", "bar.toEvent", function () {
+    var events = this.get("process.events"),
         toEventName = this.get("bar.toEvent");
     return events.find(function (event) {
       return event.name === toEventName;
     });
   }),
 
-  didInsertElement: Ember.observer("fromEvent.pos", "toEvent.pos", "barIndex", function () {
-    var fromEventPos = this.get("fromEvent.pos"),
-        toEventPos = this.get("toEvent.pos"),
-        color = this.get("bar.color") ||
-            this.get("process").getColor(1 - (this.get("barIndex") / this.get("bars.length")));
+  didInsertElement: Ember.observer("fromEvent.time", "toEvent.time",
+      "barIndex", "processor.timeWindow", function () {
+
+    var processor = this.get("processor"),
+        fromEventPos = processor.timeToPositionPercent(this.get("fromEvent.time")),
+        toEventPos = processor.timeToPositionPercent(this.get("toEvent.time")),
+        color = this.get("bar.color") || this.get("process").getBarColor(this.get("barIndex"));
 
     if(fromEventPos && toEventPos) {
       this.$().show();

@@ -22,6 +22,7 @@ import hbs from 'htmlbars-inline-precompile';
 import wait from 'ember-test-helpers/wait';
 
 import Process from 'tez-ui/utils/process';
+import Processor from 'tez-ui/utils/processor';
 
 moduleForComponent('em-swimlane-process-visual', 'Integration | Component | em swimlane process visual', {
   integration: true
@@ -29,15 +30,16 @@ moduleForComponent('em-swimlane-process-visual', 'Integration | Component | em s
 
 test('Basic creation test', function(assert) {
   this.set("process", Process.create());
+  this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-process-visual process=process}}`);
+  this.render(hbs`{{em-swimlane-process-visual process=process processor=processor}}`);
 
   assert.ok(this.$(".base-line"));
   assert.ok(this.$(".event-window"));
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#em-swimlane-process-visual process=process}}
+    {{#em-swimlane-process-visual processor=processor process=process}}
       template block text
     {{/em-swimlane-process-visual}}
   `);
@@ -54,8 +56,12 @@ test('Events test', function(assert) {
       time: 7
     }]
   }));
+  this.set("processor", Processor.create({
+    startTime: 0,
+    endTime: 10
+  }));
 
-  this.render(hbs`{{em-swimlane-process-visual process=process startTime=0 timeWindow=10}}`);
+  this.render(hbs`{{em-swimlane-process-visual processor=processor process=process startTime=0 timeWindow=10}}`);
 
   return wait().then(() => {
     var events = this.$(".em-swimlane-event");

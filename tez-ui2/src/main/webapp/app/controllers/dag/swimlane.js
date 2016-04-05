@@ -28,6 +28,8 @@ export default MultiTableController.extend({
 
   zoom: 100,
 
+  columnSelectorTitle: 'Customize vertex tooltip',
+
   breadcrumbs: [{
     text: "Vertex Swimlane",
     routeName: "dag.swimlane",
@@ -40,7 +42,7 @@ export default MultiTableController.extend({
   },{
     id: 'status',
     headerTitle: 'Status',
-    contentPath: 'status',
+    contentPath: 'finalStatus',
   },{
     id: 'progress',
     headerTitle: 'Progress',
@@ -124,7 +126,7 @@ export default MultiTableController.extend({
     // Add process(vertex) dependencies based on dagPlan
     dagPlanEdges.forEach(function (edge) {
       var process = processHash[edge.outputVertexName];
-      if(process) {
+      if(process && processHash[edge.inputVertexName]) {
         process.blockers.push(processHash[edge.inputVertexName]);
       }
     });
@@ -132,17 +134,9 @@ export default MultiTableController.extend({
     return Ember.A(processes);
   }),
 
-  eventBars: [{
-    fromEvent: "VERTEX_TASK_START",
-    toEvent: "VERTEX_TASK_FINISH",
-  }, {
-    fromEvent: "BLOCKING_VERTICES_COMPLETE",
-    toEvent: "VERTEX_TASK_FINISH",
-  }],
-
   actions: {
     toggleFullscreen: function () {
-      var swimlaneElement = Ember.$(".swimlane-page")[0];
+      var swimlaneElement = Ember.$(".swimlane-page").get(0);
       if(swimlaneElement){
         fullscreen.toggle(swimlaneElement);
       }

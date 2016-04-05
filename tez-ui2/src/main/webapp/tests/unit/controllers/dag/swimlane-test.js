@@ -36,13 +36,16 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
+  assert.ok(controller.zoom);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
   assert.ok(controller.processes);
-  assert.ok(controller.eventBars);
+
+  assert.ok(controller.actions.toggleFullscreen);
+  assert.ok(controller.actions.click);
 });
 
-test('Process test', function(assert) {
+test('Processes test', function(assert) {
 
   var vertices = [Ember.Object.create({
     name: "v1"

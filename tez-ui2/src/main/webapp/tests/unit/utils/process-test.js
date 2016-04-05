@@ -25,12 +25,29 @@ test('Basic creation test', function(assert) {
   let process = Process.create();
 
   assert.ok(process);
+
+  assert.ok(process.consolidateStartTime);
+  assert.ok(process.consolidateEndTime);
+
+  assert.ok(process.init);
+
+  assert.ok(process.getBarColor);
+  assert.ok(process.getConsolidateColor);
+
   assert.ok(process.getColor);
   assert.ok(process.startEvent);
   assert.ok(process.endEvent);
   assert.ok(process.getAllBlockers);
   assert.ok(process.getTooltipContents);
 });
+
+test('_id test', function(assert) {
+  let nextID = parseInt(Process.create().get("_id").split("-")[2]) + 1;
+
+  let process = Process.create();
+  assert.equal(process.get("_id"), "process-id-" + nextID);
+});
+
 
 test('getColor test', function(assert) {
   let process = Process.create();

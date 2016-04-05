@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,13 +14,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-.table-controls {
-  .left-delim;
-
-  cursor: pointer;
-
-  float: right;
-  font-size: 24px;
-}
+<div class="ruler-line"></div>
+<div class="mark-container">
+  {{#each marks as |mark|}}
+    <div class="ruler-mark" style={{markDef.style}}>
+      <ul class="sub-marks"><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li></ul>
+      &nbsp;{{mark.duration}}
+    </div>
+  {{/each}}
+</div>
+<div class="unit-text" style={{unitTextStyle}}>
+  {{markDef.unit}}
+</div>

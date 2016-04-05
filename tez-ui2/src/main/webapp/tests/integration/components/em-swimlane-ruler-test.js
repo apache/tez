@@ -19,27 +19,52 @@
 import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
-import Process from 'tez-ui/utils/process';
+import wait from 'ember-test-helpers/wait';
+
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-event-bar', 'Integration | Component | em swimlane event bar', {
+moduleForComponent('em-swimlane-ruler', 'Integration | Component | em swimlane ruler', {
   integration: true
 });
 
 test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-event-bar processor=processor process=process}}`);
-
-  assert.equal(this.$().text().trim(), '');
+  this.render(hbs`{{em-swimlane-ruler}}`);
+  assert.equal(this.$().text().trim(), 'Milliseconds');
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#em-swimlane-event-bar process=process processor=processor}}
+    {{#em-swimlane-ruler}}
       template block text
-    {{/em-swimlane-event-bar}}
+    {{/em-swimlane-ruler}}
   `);
+  assert.equal(this.$().text().trim(), 'Milliseconds');
+});
 
-  assert.equal(this.$().text().trim(), '');
+test('Mark test', function(assert) {
+  this.set("processor", Processor.create({
+    startTime: 0,
+    endTime: 1000 * 20,
+  }));
+
+  this.render(hbs`{{em-swimlane-ruler processor=processor zoom=100}}`);
+
+  return wait().then(() => {
+    assert.equal(this.$(".unit-text").text().trim(), 'Seconds');
+    assert.equal(this.$(".ruler-mark").length, 11);
+  });
+});
+
+test('Mark zoom test', function(assert) {
+  this.set("processor", Processor.create({
+    startTime: 0,
+    endTime: 1000 * 20,
+  }));
+
+  this.render(hbs`{{em-swimlane-ruler processor=processor zoom=500}}`);
+
+  return wait().then(() => {
+    assert.equal(this.$(".unit-text").text().trim(), 'Milliseconds');
+    assert.equal(this.$(".ruler-mark").length, 55);
+  });
 });

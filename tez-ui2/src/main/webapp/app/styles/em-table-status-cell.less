@@ -1,0 +1,99 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.fa-icon(@name) {
+  @content: "fa-var-@{name}";
+  &:before {content: @@content}
+}
+
+.em-table-status-cell {
+  overflow: visible !important;
+
+  .status {
+    .label;
+    .label-default;
+  }
+  .status-icon {
+    .fa;
+    .fa-icon(exclamation);
+  }
+
+  .status-new, .status-inited {
+    .status-icon {
+      .fa-icon(plus);
+    }
+  }
+
+  .status-initializing, .status-scheduled, .status-start-wait {
+    .label-primary;
+    .status-icon {
+      .fa-icon(history);
+    }
+  }
+
+  .status-running {
+    .diagonal-stripes-bg;
+    .animate;
+    .label-info;
+    .status-icon {
+      .fa-icon(spinner);
+    }
+  }
+
+  .status-committing {
+    .label-info;
+    .status-icon {
+      .fa-icon(save);
+    }
+  }
+
+  .status-succeeded, .status-succeeded-with-failures {
+    .label-success;
+    .status-icon {
+      .fa-icon(check);
+    }
+  }
+  .status-succeeded-with-failures {
+    .label-warning;
+  }
+
+  .status-terminating {
+    .label-warning;
+    .status-icon {
+      .fa-icon(exclamation-triangle);
+    }
+  }
+
+  .status-failed, .status-fail-in-progress {
+    .label-warning;
+    .status-icon {
+      .fa-icon(exclamation);
+    }
+  }
+
+  .status-kill-wait, .status-kill-in-progress, .status-killed, .status-error {
+    .label-warning;
+    .status-icon {
+      .fa-icon(ban);
+    }
+  }
+  .status-killed, .status-error {
+    .label-danger;
+  }
+
+}

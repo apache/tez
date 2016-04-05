@@ -21,13 +21,17 @@ import Ember from 'ember';
 export default Ember.Component.extend({
 
   process: null,
-  startEvent: null,
-  endEvent: null,
+  processor: null,
 
-  didInsertElement: Ember.observer("startEvent.pos", "endEvent.pos", function () {
+  didInsertElement: Ember.observer("process.startEvent.time",
+      "process.endEvent.time", "processor.timeWindow", function () {
+    var processor = this.get("processor"),
+        startPos = processor.timeToPositionPercent(this.get("process.startEvent.time")),
+        endPos = processor.timeToPositionPercent(this.get("process.endEvent.time"));
+
     this.$(".process-line").css({
-      left: this.get("startEvent.pos") + "%",
-      right: (100 - this.get("endEvent.pos")) + "%",
+      left: startPos + "%",
+      right: (100 - endPos) + "%",
       "background-color": this.get("process").getColor()
     });
   }),

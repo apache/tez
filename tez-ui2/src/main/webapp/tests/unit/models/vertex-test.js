@@ -35,6 +35,14 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.runningTasks);
   assert.ok(model.pendingTasks);
+
+  assert.ok(model.initTime);
+  assert.ok(model.startTime);
+  assert.ok(model.endTime);
+  assert.ok(model.firstTaskStartTime);
+  assert.ok(model.lastTaskFinishTime);
+
+  assert.ok(model.finalStatus);
 });
 
 test('runningTasks test', function(assert) {

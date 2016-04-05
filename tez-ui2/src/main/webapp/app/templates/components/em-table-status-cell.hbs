@@ -17,7 +17,10 @@
 }}
 
 {{#if content}}
-  <span class="label label-{{statusType}}">{{content}}</span>
+  <span class="status {{statusName}}">
+    <i class="status-icon"></i>
+    {{content}}
+  </span>
 {{else}}
   <span class="txt-message"> Not Available! </span>
 {{/if}}
