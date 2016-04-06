@@ -18,11 +18,14 @@
 
 package org.apache.tez.dag.history.events;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
+import org.apache.tez.common.TezConverterUtils;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +60,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
   private long finishTime;
   private TezTaskAttemptID creationCausalTA;
   private TaskAttemptState state;
+  private TaskFailureType taskFailureType;
   private String diagnostics;
   private TezCounters tezCounters;
   private TaskAttemptTerminationCause error;
@@ -73,6 +77,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
       long startTime,
       long finishTime,
       TaskAttemptState state,
+      @Nullable TaskFailureType taskFailureType,
       TaskAttemptTerminationCause error,
       String diagnostics, TezCounters counters, 
       List<DataEventDependencyInfo> dataEvents,
@@ -93,6 +98,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     this.startTime = startTime;
     this.finishTime = finishTime;
     this.state = state;
+    this.taskFailureType = taskFailureType;
     this.diagnostics = diagnostics;
     this.tezCounters = counters;
     this.error = error;
@@ -136,6 +142,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         .setAllocationTime(allocationTime)
         .setStartTime(startTime)
         .setFinishTime(finishTime);
+    if (taskFailureType != null) {
+      builder.setTaskFailureType(TezConverterUtils.failureTypeToProto(taskFailureType));
+    }
     if (creationCausalTA != null) {
       builder.setCreationCausalTA(creationCausalTA.toString());
     }
@@ -177,6 +186,9 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     this.allocationTime = proto.getAllocationTime();
     this.startTime = proto.getStartTime();
     this.finishTime = proto.getFinishTime();
+    if (proto.hasTaskFailureType()) {
+      this.taskFailureType = TezConverterUtils.failureTypeFromProto(proto.getTaskFailureType());
+    }
     if (proto.hasCreationCausalTA()) {
       this.creationCausalTA = TezTaskAttemptID.fromString(proto.getCreationCausalTA());
     }
@@ -244,6 +256,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
         + ", finishTime=" + finishTime
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
+        + ", taskFailureType=" + taskFailureType
         + ", errorEnum=" + (error != null ? error.name() : "")
         + ", diagnostics=" + diagnostics
         + ", containerId=" + (containerId != null ? containerId.toString() : "")
@@ -274,6 +287,10 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   public TaskAttemptState getState() {
     return state;
+  }
+
+  public TaskFailureType getTaskFailureType() {
+    return taskFailureType;
   }
 
   public long getStartTime() {

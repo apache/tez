@@ -33,6 +33,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.tez.Utils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.runtime.api.TaskFailureType;
+import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
@@ -277,7 +279,8 @@ public class TaskCommunicatorManager extends AbstractService implements
           taskAttemptEvent = new TaskAttemptEventStatusUpdate(taskAttemptID,
               (TaskStatusUpdateEvent) tezEvent.getEvent());
         } else if (eventType == EventType.TASK_ATTEMPT_COMPLETED_EVENT
-           || eventType == EventType.TASK_ATTEMPT_FAILED_EVENT) {
+           || eventType == EventType.TASK_ATTEMPT_FAILED_EVENT
+           || eventType == EventType.TASK_ATTEMPT_KILLED_EVENT) {
           taFinishedEvents.add(tezEvent);
         } else {
           if (eventType == EventType.INPUT_READ_ERROR_EVENT) {
@@ -306,6 +309,7 @@ public class TaskCommunicatorManager extends AbstractService implements
         EventMetaData sourceMeta = e.getSourceInfo();
         switch (e.getEventType()) {
         case TASK_ATTEMPT_FAILED_EVENT:
+        case TASK_ATTEMPT_KILLED_EVENT:
           TaskAttemptTerminationCause errCause = null;
           switch (sourceMeta.getEventGenerator()) {
           case INPUT:
@@ -324,12 +328,19 @@ public class TaskCommunicatorManager extends AbstractService implements
             throw new TezUncheckedException("Unknown EventProducerConsumerType: " +
                 sourceMeta.getEventGenerator());
           }
-          TaskAttemptFailedEvent taskFailedEvent =(TaskAttemptFailedEvent) e.getEvent();
-          sendEvent(
-               new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
-                   TaskAttemptEventType.TA_FAILED,
-                  "Error: " + taskFailedEvent.getDiagnostics(),
+          if (e.getEventType() == EventType.TASK_ATTEMPT_FAILED_EVENT) {
+            TaskAttemptFailedEvent taskFailedEvent = (TaskAttemptFailedEvent) e.getEvent();
+            sendEvent(
+                new TaskAttemptEventAttemptFailed(sourceMeta.getTaskAttemptID(),
+                    TaskAttemptEventType.TA_FAILED, taskFailedEvent.getTaskFailureType(),
+                    "Error: " + taskFailedEvent.getDiagnostics(),
                     errCause));
+          } else { // Killed
+            TaskAttemptKilledEvent taskKilledEvent = (TaskAttemptKilledEvent) e.getEvent();
+            sendEvent(
+                new TaskAttemptEventAttemptKilled(sourceMeta.getTaskAttemptID(),
+                    "Error: " + taskKilledEvent.getDiagnostics(), errCause));
+          }
           break;
         case TASK_ATTEMPT_COMPLETED_EVENT:
           sendEvent(
@@ -387,8 +398,9 @@ public class TaskCommunicatorManager extends AbstractService implements
     // TODO TEZ-2003 (post) TEZ-2671 Maybe consider un-registering here itself, since the task is not active anymore,
     // instead of waiting for the unregister to flow through the Container.
     // Fix along the same lines as TEZ-2124 by introducing an explict context.
+    //TODO-3183. Allow the FailureType to be specified
     sendEvent(new TaskAttemptEventAttemptFailed(taskAttemptId,
-        TaskAttemptEventType.TA_FAILED, diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
+        TaskAttemptEventType.TA_FAILED, TaskFailureType.NON_FATAL, diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
         taskAttemptEndReason)));
   }
 

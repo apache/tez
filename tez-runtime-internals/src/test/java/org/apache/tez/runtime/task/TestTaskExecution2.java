@@ -67,6 +67,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -88,6 +89,9 @@ public class TestTaskExecution2 {
   private static final Configuration defaultConf = new Configuration();
   private static final FileSystem localFs;
   private static final Path workDir;
+
+  private static final String FAILURE_START_STRING = "Error while running task ( failure )";
+  private static final String KILL_START_STRING = "Error while running task ( kill )";
 
   private static final ExecutorService taskExecutor = Executors.newFixedThreadPool(1);
 
@@ -135,7 +139,7 @@ public class TestTaskExecution2 {
       // Signal the processor to go through
       TestProcessor.signal();
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false);
+      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false, null);
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskSuccessEvent();
       assertFalse(TestProcessor.wasAborted());
@@ -166,7 +170,7 @@ public class TestTaskExecution2 {
       // Signal the processor to go through
       TestProcessor.signal();
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false);
+      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false, null);
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskSuccessEvent();
       assertFalse(TestProcessor.wasAborted());
@@ -182,7 +186,7 @@ public class TestTaskExecution2 {
       // Signal the processor to go through
       TestProcessor.signal();
       result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false);
+      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false, null);
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskSuccessEvent();
       assertFalse(TestProcessor.wasAborted());
@@ -217,11 +221,11 @@ public class TestTaskExecution2 {
       TestProcessor.awaitStart();
       TestProcessor.signal();
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorTezException(), false);
+      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorTezException(), false, TaskFailureType.NON_FATAL);
 
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskFailedEvent(
-          "Failure while running task",
+          FAILURE_START_STRING,
           TezException.class.getName() + ": " + TezException.class.getSimpleName());
       // Failure detected as a result of fall off from the run method. abort isn't required.
       assertFalse(TestProcessor.wasAborted());
@@ -254,10 +258,10 @@ public class TestTaskExecution2 {
 
       TaskRunner2Result result = taskRunnerFuture.get();
       verifyTaskRunnerResult(result, EndReason.TASK_ERROR,
-          new TezReflectionException("TezReflectionException"), false);
+          new TezReflectionException("TezReflectionException"), false, TaskFailureType.NON_FATAL);
 
       assertNull(taskReporter.currentCallable);
-      umbilical.verifyTaskFailedEvent("Failure while running task",
+      umbilical.verifyTaskFailedEvent(FAILURE_START_STRING,
           ":org.apache.tez.dag.api.TezReflectionException: "
               + "Unable to load class: NotExitedProcessor");
       // Failure detected as a result of fall off from the run method. abort isn't required.
@@ -291,12 +295,12 @@ public class TestTaskExecution2 {
       TestProcessor.awaitStart();
       TestProcessor.signal();
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false);
+      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false, TaskFailureType.NON_FATAL);
 
 
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskFailedEvent(
-          "Failure while running task",
+          FAILURE_START_STRING,
           IOException.class.getName() + ": " + IOException.class.getSimpleName());
       // Failure detected as a result of fall off from the run method. abort isn't required.
       assertFalse(TestProcessor.wasAborted());
@@ -333,7 +337,7 @@ public class TestTaskExecution2 {
       TaskRunner2Result result = taskRunnerFuture.get();
       verifyTaskRunnerResult(result, EndReason.COMMUNICATION_FAILURE,
           new IOException("IOException"),
-          TaskExecutionTestHelpers.HEARTBEAT_EXCEPTION_STRING, false);
+          TaskExecutionTestHelpers.HEARTBEAT_EXCEPTION_STRING, false, TaskFailureType.NON_FATAL);
 
       TestProcessor.awaitCompletion();
       assertTrue(TestProcessor.wasInterrupted());
@@ -371,7 +375,7 @@ public class TestTaskExecution2 {
       // Not signaling an actual start to verify task interruption
 
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.CONTAINER_STOP_REQUESTED, null, true);
+      verifyTaskRunnerResult(result, EndReason.CONTAINER_STOP_REQUESTED, null, true, null);
 
 
       TestProcessor.awaitCompletion();
@@ -388,7 +392,7 @@ public class TestTaskExecution2 {
   }
 
   @Test(timeout = 5000)
-  public void testSignalFatalErrorAndLoop() throws IOException, InterruptedException, TezException,
+  public void testSignalDeprecatedFatalErrorAndLoop() throws IOException, InterruptedException, TezException,
       ExecutionException {
 
     ListeningExecutorService executor = null;
@@ -401,7 +405,7 @@ public class TestTaskExecution2 {
       TaskReporter taskReporter = createTaskReporter(appId, umbilical);
 
       TezTaskRunner2 taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
-          TestProcessor.CONF_SIGNAL_FATAL_AND_LOOP);
+          TestProcessor.CONF_SIGNAL_DEPRECATEDFATAL_AND_LOOP);
       // Setup the executor
       Future<TaskRunner2Result> taskRunnerFuture =
           taskExecutor.submit(new TaskRunnerCallable2ForTest(taskRunner));
@@ -413,15 +417,124 @@ public class TestTaskExecution2 {
       // The fatal error should have caused an interrupt.
 
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false);
+      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false, TaskFailureType.NON_FATAL);
 
       TestProcessor.awaitCompletion();
       assertTrue(TestProcessor.wasInterrupted());
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskFailedEvent(
-          "Failure while running task",
+          FAILURE_START_STRING,
           IOException.class.getName() + ": " + IOException.class.getSimpleName());
       // Signal fatal error should cause the processor to fail.
+      assertTrue(TestProcessor.wasAborted());
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testSignalFatalAndThrow() throws IOException, InterruptedException, TezException,
+      ExecutionException {
+
+    ListeningExecutorService executor = null;
+    try {
+      ExecutorService rawExecutor = Executors.newFixedThreadPool(1);
+      executor = MoreExecutors.listeningDecorator(rawExecutor);
+      ApplicationId appId = ApplicationId.newInstance(10000, 1);
+      TaskExecutionTestHelpers.TezTaskUmbilicalForTest
+          umbilical = new TaskExecutionTestHelpers.TezTaskUmbilicalForTest();
+      TaskReporter taskReporter = createTaskReporter(appId, umbilical);
+
+      TezTaskRunner2 taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
+          TestProcessor.CONF_SIGNAL_FATAL_AND_THROW);
+      // Setup the executor
+      Future<TaskRunner2Result> taskRunnerFuture =
+          taskExecutor.submit(new TaskRunnerCallable2ForTest(taskRunner));
+      // Signal the processor to go through
+      TestProcessor.awaitStart();
+      TestProcessor.signal();
+
+      TaskRunner2Result result = taskRunnerFuture.get();
+      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false, TaskFailureType.FATAL);
+
+      TestProcessor.awaitCompletion();
+      assertNull(taskReporter.currentCallable);
+      umbilical.verifyTaskFailedEvent(
+          FAILURE_START_STRING,
+          IOException.class.getName() + ": " + IOException.class.getSimpleName(), TaskFailureType.FATAL);
+      assertTrue(TestProcessor.wasAborted());
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testSignalNonFatalAndThrow() throws IOException, InterruptedException, TezException,
+      ExecutionException {
+
+    ListeningExecutorService executor = null;
+    try {
+      ExecutorService rawExecutor = Executors.newFixedThreadPool(1);
+      executor = MoreExecutors.listeningDecorator(rawExecutor);
+      ApplicationId appId = ApplicationId.newInstance(10000, 1);
+      TaskExecutionTestHelpers.TezTaskUmbilicalForTest
+          umbilical = new TaskExecutionTestHelpers.TezTaskUmbilicalForTest();
+      TaskReporter taskReporter = createTaskReporter(appId, umbilical);
+
+      TezTaskRunner2 taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
+          TestProcessor.CONF_SIGNAL_NON_FATAL_AND_THROW);
+      // Setup the executor
+      Future<TaskRunner2Result> taskRunnerFuture =
+          taskExecutor.submit(new TaskRunnerCallable2ForTest(taskRunner));
+      // Signal the processor to go through
+      TestProcessor.awaitStart();
+      TestProcessor.signal();
+
+      TaskRunner2Result result = taskRunnerFuture.get();
+      verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false, TaskFailureType.NON_FATAL);
+
+      TestProcessor.awaitCompletion();
+      assertNull(taskReporter.currentCallable);
+      umbilical.verifyTaskFailedEvent(
+          FAILURE_START_STRING,
+          IOException.class.getName() + ": " + IOException.class.getSimpleName(), TaskFailureType.NON_FATAL);
+      assertTrue(TestProcessor.wasAborted());
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testTaskSelfKill() throws IOException, InterruptedException, TezException,
+      ExecutionException {
+
+    ListeningExecutorService executor = null;
+    try {
+      ExecutorService rawExecutor = Executors.newFixedThreadPool(1);
+      executor = MoreExecutors.listeningDecorator(rawExecutor);
+      ApplicationId appId = ApplicationId.newInstance(10000, 1);
+      TaskExecutionTestHelpers.TezTaskUmbilicalForTest
+          umbilical = new TaskExecutionTestHelpers.TezTaskUmbilicalForTest();
+      TaskReporter taskReporter = createTaskReporter(appId, umbilical);
+
+      TezTaskRunner2 taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
+          TestProcessor.CONF_SELF_KILL_AND_COMPLETE);
+      // Setup the executor
+      Future<TaskRunner2Result> taskRunnerFuture =
+          taskExecutor.submit(new TaskRunnerCallable2ForTest(taskRunner));
+      // Signal the processor to go through
+      TestProcessor.awaitStart();
+      TestProcessor.signal();
+
+      TaskRunner2Result result = taskRunnerFuture.get();
+      verifyTaskRunnerResult(result, EndReason.TASK_KILL_REQUEST, createProcessorIOException(), false,
+          null);
+
+      TestProcessor.awaitCompletion();
+      assertNull(taskReporter.currentCallable);
+      umbilical.verifyTaskKilledEvent(
+          KILL_START_STRING,
+          IOException.class.getName() + ": " + IOException.class.getSimpleName());
       assertTrue(TestProcessor.wasAborted());
     } finally {
       executor.shutdownNow();
@@ -452,7 +565,7 @@ public class TestTaskExecution2 {
       taskRunner.killTask();
 
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.KILL_REQUESTED, null, false);
+      verifyTaskRunnerResult(result, EndReason.KILL_REQUESTED, null, false, null);
 
       TestProcessor.awaitCompletion();
       assertTrue(TestProcessor.wasInterrupted());
@@ -492,7 +605,7 @@ public class TestTaskExecution2 {
 
       taskRunner.killTask();
       TaskRunner2Result result = taskRunnerFuture.get();
-      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false);
+      verifyTaskRunnerResult(result, EndReason.SUCCESS, null, false, null);
 
       assertFalse(TestProcessor.wasInterrupted());
       assertNull(taskReporter.currentCallable);
@@ -534,15 +647,17 @@ public class TestTaskExecution2 {
 
   private void verifyTaskRunnerResult(TaskRunner2Result taskRunner2Result,
                                       EndReason expectedEndReason, Throwable expectedThrowable,
-                                      boolean wasShutdownRequested) {
+                                      boolean wasShutdownRequested,
+                                      TaskFailureType taskFailureType) {
     verifyTaskRunnerResult(taskRunner2Result, expectedEndReason, expectedThrowable, null,
-        wasShutdownRequested);
+        wasShutdownRequested, taskFailureType);
   }
 
   private void verifyTaskRunnerResult(TaskRunner2Result taskRunner2Result,
                                       EndReason expectedEndReason, Throwable expectedThrowable,
                                       String expectedExceptionMessage,
-                                      boolean wasShutdownRequested) {
+                                      boolean wasShutdownRequested,
+                                      TaskFailureType taskFailureType) {
     assertEquals(expectedEndReason, taskRunner2Result.getEndReason());
     if (expectedThrowable == null) {
       assertNull(taskRunner2Result.getError());
@@ -557,6 +672,7 @@ public class TestTaskExecution2 {
       }
 
     }
+    assertEquals(taskFailureType, taskRunner2Result.getTaskFailureType());
     assertEquals(wasShutdownRequested, taskRunner2Result.isContainerShutdownRequested());
   }
 

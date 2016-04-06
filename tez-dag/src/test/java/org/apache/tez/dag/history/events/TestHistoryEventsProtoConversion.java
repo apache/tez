@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -60,25 +61,19 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.runtime.api.InputSpecUpdate;
-import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
-import org.apache.tez.runtime.api.impl.EventMetaData;
-import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -494,12 +489,13 @@ public class TestHistoryEventsProtoConversion {
     logEvents(event, deserializedEvent);
   }
 
+  @SuppressWarnings("deprecation")
   private void testTaskAttemptFinishedEvent() throws Exception {
     {
       TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
-          "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED,
+          "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED, TaskFailureType.FATAL,
           null, null, null, null, null, 2048,
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 0), 1024,
@@ -533,6 +529,8 @@ public class TestHistoryEventsProtoConversion {
           deserializedEvent.getNodeId());
       Assert.assertEquals(event.getNodeHttpAddress(),
           deserializedEvent.getNodeHttpAddress());
+      Assert.assertEquals(event.getTaskFailureType(),
+          deserializedEvent.getTaskFailureType());
       logEvents(event, deserializedEvent);
     }
     {
@@ -545,7 +543,7 @@ public class TestHistoryEventsProtoConversion {
       TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
-          "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED,
+          "vertex1", 10001l, 1000434444l, TaskAttemptState.FAILED, TaskFailureType.NON_FATAL,
           TaskAttemptTerminationCause.APPLICATION_ERROR, "diagnose", new TezCounters(), events,
           null, 0, null, 0,
           ContainerId.newInstance(
@@ -575,6 +573,53 @@ public class TestHistoryEventsProtoConversion {
       Assert.assertEquals(events.size(), event.getDataEvents().size());
       Assert.assertEquals(events.get(0).getTimestamp(), event.getDataEvents().get(0).getTimestamp());
       Assert.assertEquals(events.get(0).getTaskAttemptId(), event.getDataEvents().get(0).getTaskAttemptId());
+      Assert.assertEquals(event.getTaskFailureType(), deserializedEvent.getTaskFailureType());
+      logEvents(event, deserializedEvent);
+    }
+    {
+      TezTaskAttemptID taId =
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+              TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 0), 0);
+      long timestamp = 1024L;
+      List<DataEventDependencyInfo> events = Lists.newArrayList();
+      events.add(new DataEventDependencyInfo(timestamp, taId));
+      events.add(new DataEventDependencyInfo(timestamp, taId));
+      TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+              TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
+          "vertex1", 10001l, 1000434444l, TaskAttemptState.KILLED, null,
+          TaskAttemptTerminationCause.APPLICATION_ERROR, "diagnose", new TezCounters(), events,
+          null, 0, null, 0,
+          ContainerId.newInstance(
+              ApplicationAttemptId.newInstance(
+                  ApplicationId.newInstance(0, 1), 1), 1001), NodeId.newInstance(
+          "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
+      TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
+          testProtoConversion(event);
+      Assert.assertEquals(event.getTaskAttemptID(),
+          deserializedEvent.getTaskAttemptID());
+      Assert.assertEquals(event.getFinishTime(),
+          deserializedEvent.getFinishTime());
+      Assert.assertEquals(event.getDiagnostics(),
+          deserializedEvent.getDiagnostics());
+      Assert.assertEquals(event.getState(),
+          deserializedEvent.getState());
+      Assert.assertEquals(event.getCounters(),
+          deserializedEvent.getCounters());
+      Assert.assertEquals(event.getContainerId(),
+          deserializedEvent.getContainerId());
+      Assert.assertEquals(event.getNodeId(),
+          deserializedEvent.getNodeId());
+      Assert.assertEquals(event.getNodeHttpAddress(),
+          deserializedEvent.getNodeHttpAddress());
+      Assert.assertEquals(event.getTaskAttemptError(),
+          deserializedEvent.getTaskAttemptError());
+      Assert.assertEquals(events.size(), event.getDataEvents().size());
+      Assert
+          .assertEquals(events.get(0).getTimestamp(), event.getDataEvents().get(0).getTimestamp());
+      Assert.assertEquals(events.get(0).getTaskAttemptId(),
+          event.getDataEvents().get(0).getTaskAttemptId());
+      Assert.assertEquals(event.getTaskFailureType(), deserializedEvent.getTaskFailureType());
       logEvents(event, deserializedEvent);
     }
   }

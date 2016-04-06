@@ -39,6 +39,7 @@ import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.ObjectRegistry;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
@@ -84,9 +85,10 @@ public class TezTaskRunner2 {
   // TaskRunnerCallable, a failure to heartbeat, or a signalFatalError on the context.
   private volatile Throwable firstException;
   private volatile EventMetaData exceptionSourceInfo;
+  private volatile TaskFailureType firstTaskFailureType;
   private final AtomicBoolean errorReporterToAm = new AtomicBoolean(false);
 
-  private boolean oobSignalErrorInProgress = false;
+  private volatile boolean oobSignalErrorInProgress = false;
   private final Lock oobSignalLock = new ReentrantLock();
   private final Condition oobSignalCondition = oobSignalLock.newCondition();
 
@@ -147,7 +149,7 @@ public class TezTaskRunner2 {
       }
 
       if (future == null) {
-        return logAndReturnEndResult(firstEndReason, firstException, stopContainerRequested.get());
+        return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
       }
 
       TaskRunner2CallableResult executionResult = null;
@@ -161,7 +163,7 @@ public class TezTaskRunner2 {
         synchronized (this) {
           if (isRunningState()) {
             trySettingEndReason(EndReason.TASK_ERROR);
-            registerFirstException(e, null);
+            registerFirstException(TaskFailureType.NON_FATAL, e, null);
             LOG.warn("Exception from RunnerCallable", e);
           }
         }
@@ -172,30 +174,32 @@ public class TezTaskRunner2 {
         case SUCCESS:
           try {
             taskReporter.taskSucceeded(task.getTaskAttemptID());
-            return logAndReturnEndResult(EndReason.SUCCESS, null, stopContainerRequested.get());
+            return logAndReturnEndResult(EndReason.SUCCESS, null, null, stopContainerRequested.get());
           } catch (IOException e) {
             // Comm failure. Task can't do much.
-            handleFinalStatusUpdateFailure(e, true);
-            return logAndReturnEndResult(EndReason.COMMUNICATION_FAILURE, e, stopContainerRequested.get());
+            handleFinalStatusUpdateFailure(e, "success");
+            return logAndReturnEndResult(EndReason.COMMUNICATION_FAILURE, firstTaskFailureType, e, stopContainerRequested.get());
           } catch (TezException e) {
             // Failure from AM. Task can't do much.
-            handleFinalStatusUpdateFailure(e, true);
-            return logAndReturnEndResult(EndReason.COMMUNICATION_FAILURE, e, stopContainerRequested.get());
+            handleFinalStatusUpdateFailure(e, "success");
+            return logAndReturnEndResult(EndReason.COMMUNICATION_FAILURE, firstTaskFailureType, e, stopContainerRequested.get());
           }
         case CONTAINER_STOP_REQUESTED:
           // Don't need to send any more communication updates to the AM.
-          return logAndReturnEndResult(firstEndReason, null, stopContainerRequested.get());
+          return logAndReturnEndResult(firstEndReason, firstTaskFailureType, null, stopContainerRequested.get());
         case KILL_REQUESTED:
-          // Kill is currently not reported to the AM via the TaskRunner. Fix this when the umbilical
-          // supports an indication of kill, if required.
-          return logAndReturnEndResult(firstEndReason, null, stopContainerRequested.get());
+          // This was an external kill called directly on the task runner
+          return logAndReturnEndResult(firstEndReason, firstTaskFailureType, null, stopContainerRequested.get());
+        case TASK_KILL_REQUEST:
+          // Task reported a self kill
+          return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
         case COMMUNICATION_FAILURE:
           // Already seen a communication failure. There's no point trying to report another one.
-          return logAndReturnEndResult(firstEndReason, firstException, stopContainerRequested.get());
+          return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
         case TASK_ERROR:
           // Don't report an error again if it was reported via signalFatalError
           if (errorReporterToAm.get()) {
-            return logAndReturnEndResult(firstEndReason, firstException, stopContainerRequested.get());
+            return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
           } else {
             String message;
             if (firstException instanceof FSError) {
@@ -203,24 +207,24 @@ public class TezTaskRunner2 {
             } else if (firstException instanceof Error) {
               message = "Encountered an Error while executing task: " + task.getTaskAttemptID();
             } else {
-              message = "Failure while running task: " + task.getTaskAttemptID();
+              message = "Error while running task ( failure ) : " + task.getTaskAttemptID();
             }
             try {
-              taskReporter.taskFailed(task.getTaskAttemptID(), firstException, message, exceptionSourceInfo);
-              return logAndReturnEndResult(firstEndReason, firstException, stopContainerRequested.get());
+              taskReporter.taskFailed(task.getTaskAttemptID(), firstTaskFailureType, firstException, message, exceptionSourceInfo);
+              return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
             } catch (IOException e) {
               // Comm failure. Task can't do much.
-              handleFinalStatusUpdateFailure(e, true);
-              return logAndReturnEndResult(firstEndReason, firstException, stopContainerRequested.get());
+              handleFinalStatusUpdateFailure(e, "failure");
+              return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
             } catch (TezException e) {
               // Failure from AM. Task can't do much.
-              handleFinalStatusUpdateFailure(e, true);
-              return logAndReturnEndResult(firstEndReason, firstException, stopContainerRequested.get());
+              handleFinalStatusUpdateFailure(e, "failure");
+              return logAndReturnEndResult(firstEndReason, firstTaskFailureType, firstException, stopContainerRequested.get());
             }
           }
         default:
           LOG.error("Unexpected EndReason. File a bug");
-          return logAndReturnEndResult(EndReason.TASK_ERROR, new RuntimeException("Unexpected EndReason"), stopContainerRequested.get());
+          return logAndReturnEndResult(EndReason.TASK_ERROR, firstTaskFailureType, new RuntimeException("Unexpected EndReason"), stopContainerRequested.get());
 
       }
     } finally {
@@ -257,7 +261,7 @@ public class TezTaskRunner2 {
         if (isRunningState()) {
           if (executionResult.error != null) {
             trySettingEndReason(EndReason.TASK_ERROR);
-            registerFirstException(executionResult.error, null);
+            registerFirstException(TaskFailureType.NON_FATAL, executionResult.error, null);
           } else {
             trySettingEndReason(EndReason.SUCCESS);
             taskComplete.set(true);
@@ -295,8 +299,19 @@ public class TezTaskRunner2 {
   }
 
   private void killTaskInternal() {
+    abortTaskInternal();
+    interruptTaskInternal();
+  }
+
+  private void abortTaskInternal() {
     if (taskRunnerCallable != null) {
       taskKillStartTime = System.currentTimeMillis();
+      taskRunnerCallable.abortTask();
+    }
+  }
+
+  private void interruptTaskInternal() {
+    if (taskRunnerCallable != null) {
       taskRunnerCallable.interruptTask();
     }
   }
@@ -320,56 +335,19 @@ public class TezTaskRunner2 {
     }
 
     @Override
-    public void signalFatalError(TezTaskAttemptID taskAttemptID, Throwable t, String message,
-                                 EventMetaData sourceInfo) {
+    public void signalFailure(TezTaskAttemptID taskAttemptID, TaskFailureType taskFailureType, Throwable t, String message,
+                              EventMetaData sourceInfo) {
       // Fatal error reported by the task.
-      boolean isFirstError = false;
-      synchronized (TezTaskRunner2.this) {
-        if (isRunningState()) {
-          if (trySettingEndReason(EndReason.TASK_ERROR)) {
-            if (t == null) {
-              t = new RuntimeException(
-                  message == null ? "FatalError: No user message or exception specified" : message);
-            }
-            registerFirstException(t, sourceInfo);
-            LOG.info("Received notification of a fatal error which will cause the task to die", t);
-            isFirstError = true;
-            errorReporterToAm.set(true);
-            oobSignalErrorInProgress = true;
-          } else {
-            logErrorIgnored("signalFatalError", message);
-          }
-        } else {
-          logErrorIgnored("signalFatalError", message);
-        }
-      }
-
-      // Informing the TaskReporter here because the running task may not be interruptable.
-      // Has to be outside the lock.
-      if (isFirstError) {
-        logAborting("signalFatalError");
-        killTaskInternal();
-        try {
-          taskReporter.taskFailed(taskAttemptID, t, getTaskDiagnosticsString(t, message), sourceInfo);
-        } catch (IOException e) {
-          // Comm failure. Task can't do much. The main exception is already registered.
-          handleFinalStatusUpdateFailure(e, true);
-        } catch (TezException e) {
-          // Failure from AM. Task can't do much. The main exception is already registered.
-          handleFinalStatusUpdateFailure(e, true);
-        } finally {
-          oobSignalLock.lock();
-          try {
-            // This message is being sent outside of the main thread, which may end up completing before
-            // this thread runs. Make sure the main run thread does not end till this completes.
-            oobSignalErrorInProgress = false;
-            oobSignalCondition.signal();
-          } finally {
-            oobSignalLock.unlock();
-          }
-        }
-      }
+      signalTerminationInternal(taskAttemptID, EndReason.TASK_ERROR, taskFailureType, t, message, sourceInfo, false);
     }
+
+    @Override
+    public void signalKillSelf(TezTaskAttemptID taskAttemptID, Throwable t, String message,
+                               EventMetaData sourceInfo) {
+      signalTerminationInternal(taskAttemptID, EndReason.TASK_KILL_REQUEST, null, t, message, sourceInfo, true);
+
+    }
+
 
     @Override
     public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException {
@@ -397,7 +375,7 @@ public class TezTaskRunner2 {
         if (isRunningState()) {
           LOG.info("TaskReporter reporter error which will cause the task to fail", t);
           if (trySettingEndReason(EndReason.COMMUNICATION_FAILURE)) {
-            registerFirstException(t, null);
+            registerFirstException(TaskFailureType.NON_FATAL, t, null);
             isFirstError = true;
           } else {
             logErrorIgnored("umbilicalFatalError", null);
@@ -436,6 +414,72 @@ public class TezTaskRunner2 {
     }
   }
 
+
+  private void signalTerminationInternal(TezTaskAttemptID taskAttemptID, EndReason endReason,
+                                         TaskFailureType taskFailureType, Throwable t, String message,
+                                         EventMetaData sourceInfo, boolean isKill) {
+    boolean isFirstError = false;
+    String typeString = isKill ? " kill " : " failure ";
+    synchronized (TezTaskRunner2.this) {
+      if (isRunningState()) {
+        if (trySettingEndReason(endReason)) {
+          if (t == null) {
+            String errMessage = message;
+            if (errMessage == null) {
+              errMessage = typeString + " : No user message or exception specified";
+            }
+            t = new RuntimeException(errMessage);
+          }
+          registerFirstException(taskFailureType, t, sourceInfo);
+          LOG.info("Received notification of a " + typeString +
+              " which will cause the task to die", t);
+          isFirstError = true;
+          errorReporterToAm.set(true);
+          oobSignalErrorInProgress = true;
+        } else {
+          logErrorIgnored(typeString, message);
+        }
+      } else {
+        logErrorIgnored(typeString, message);
+      }
+    }
+
+    // Informing the TaskReporter here because the running task may not be interruptable.
+    // Has to be outside the lock.
+    if (isFirstError) {
+      logAborting(typeString);
+      abortTaskInternal();
+      try {
+        if (isKill) {
+          taskReporter
+              .taskKilled(taskAttemptID, t, getTaskDiagnosticsString(t, message, typeString), sourceInfo);
+        } else {
+          taskReporter.taskFailed(taskAttemptID, taskFailureType, t,
+              getTaskDiagnosticsString(t, message, typeString), sourceInfo);
+        }
+      } catch (IOException e) {
+        // Comm failure. Task can't do much. The main exception is already registered.
+        handleFinalStatusUpdateFailure(e, typeString);
+      } catch (TezException e) {
+        // Failure from AM. Task can't do much. The main exception is already registered.
+        handleFinalStatusUpdateFailure(e, typeString);
+      } catch (Exception e) {
+        handleFinalStatusUpdateFailure(e, typeString);
+      } finally {
+        interruptTaskInternal();
+        oobSignalLock.lock();
+        try {
+          // This message is being sent outside of the main thread, which may end up completing before
+          // this thread runs. Make sure the main run thread does not end till this completes.
+          oobSignalErrorInProgress = false;
+          oobSignalCondition.signal();
+        } finally {
+          oobSignalLock.unlock();
+        }
+      }
+    }
+  }
+
   private synchronized boolean trySettingEndReason(EndReason endReason) {
     if (isRunningState()) {
       firstEndReason = endReason;
@@ -445,39 +489,43 @@ public class TezTaskRunner2 {
   }
 
 
-  private void registerFirstException(Throwable t, EventMetaData sourceInfo) {
+  private void registerFirstException(TaskFailureType taskFailureType, Throwable t, EventMetaData sourceInfo) {
     Preconditions.checkState(isRunningState());
     errorSeen.set(true);
     firstException = t;
+    this.firstTaskFailureType = taskFailureType;
     this.exceptionSourceInfo = sourceInfo;
   }
 
 
-  private String getTaskDiagnosticsString(Throwable t, String message) {
+  private String getTaskDiagnosticsString(Throwable t, String message, String typeString) {
     String diagnostics;
     if (t != null && message != null) {
-      diagnostics = "Failure while running task: " + ExceptionUtils.getStackTrace(t) + ", errorMessage="
+      diagnostics = "Error while running task (" + typeString + ") : " + ExceptionUtils.getStackTrace(t) + ", errorMessage="
           + message;
     } else if (t == null && message == null) {
       diagnostics = "Unknown error";
     } else {
-      diagnostics = t != null ? "Failure while running task: " + ExceptionUtils.getStackTrace(t)
+      diagnostics = t != null ? "Error while running task (" + typeString + ") : " + ExceptionUtils.getStackTrace(t)
           : " errorMessage=" + message;
     }
     return diagnostics;
   }
 
-  private TaskRunner2Result logAndReturnEndResult(EndReason endReason, Throwable firstError,
+  private TaskRunner2Result logAndReturnEndResult(EndReason endReason,
+                                                  TaskFailureType taskFailureType,
+                                                  Throwable firstError,
                                                   boolean stopContainerRequested) {
-    TaskRunner2Result result = new TaskRunner2Result(endReason, firstError, stopContainerRequested);
+    TaskRunner2Result result =
+        new TaskRunner2Result(endReason, taskFailureType, firstError, stopContainerRequested);
     LOG.info("TaskRunnerResult for {} : {}  ", task.getTaskAttemptID(), result);
     return result;
   }
 
-  private void handleFinalStatusUpdateFailure(Throwable t, boolean successReportAttempted) {
+  private void handleFinalStatusUpdateFailure(Throwable t, String stateString) {
     // TODO Ideally differentiate between FAILED/KILLED
     LOG.warn("Failure while reporting state= {} to AM",
-        (successReportAttempted ? "success" : "failure/killed"), t);
+        stateString, t);
   }
 
   private void logErrorIgnored(String ignoredEndReason, String errorMessage) {

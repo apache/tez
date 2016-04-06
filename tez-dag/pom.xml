@@ -200,6 +200,7 @@
               <imports>
                 <param>${basedir}/src/main/proto</param>
                 <param>${basedir}/../tez-api/src/main/proto</param>
+                <param>${basedir}/../tez-runtime-internals/src/main/proto</param>
               </imports>
               <source>
                 <directory>${basedir}/src/main/proto</directory>

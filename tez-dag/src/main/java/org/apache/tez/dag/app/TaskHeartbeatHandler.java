@@ -25,6 +25,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.TaskFailureType;
 
 
 /**
@@ -60,7 +61,7 @@ public class TaskHeartbeatHandler extends HeartbeatHandlerBase<TezTaskAttemptID>
   @Override
   protected void handleTimeOut(TezTaskAttemptID attemptId) {
     eventHandler.handle(new TaskAttemptEventAttemptFailed(attemptId,
-        TaskAttemptEventType.TA_TIMED_OUT, "AttemptID:" + attemptId.toString()
+        TaskAttemptEventType.TA_TIMED_OUT, TaskFailureType.NON_FATAL, "AttemptID:" + attemptId.toString()
         + " Timed out after " + timeOut / 1000 + " secs", TaskAttemptTerminationCause.TASK_HEARTBEAT_ERROR));
   }
 }

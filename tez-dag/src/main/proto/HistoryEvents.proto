@@ -22,6 +22,7 @@ option java_generate_equals_and_hash = true;
 
 import "DAGApiRecords.proto";
 import "Events.proto";
+import "RuntimeEvents.proto";
 
 message AMLaunchedProto {
   optional string application_attempt_id = 1;
@@ -185,6 +186,7 @@ message TaskAttemptFinishedProto {
   optional int64 finish_time = 5;
   optional string creation_causal_t_a = 6;
   optional int32 state = 7;
+  optional TaskFailureTypeProto task_failure_type = 16;
   optional string diagnostics = 8;
   optional TezCountersProto counters = 9;
   optional string error_enum = 10;

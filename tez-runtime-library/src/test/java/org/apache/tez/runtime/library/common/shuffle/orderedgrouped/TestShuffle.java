@@ -17,6 +17,7 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -35,6 +36,7 @@ import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.common.Constants;
@@ -76,7 +78,7 @@ public class TestShuffle {
 
       ArgumentCaptor<Throwable> throwableArgumentCaptor = ArgumentCaptor.forClass(Throwable.class);
       ArgumentCaptor<String> stringArgumentCaptor = ArgumentCaptor.forClass(String.class);
-      verify(inputContext, times(1)).fatalError(throwableArgumentCaptor.capture(),
+      verify(inputContext, times(1)).reportFailure(eq(TaskFailureType.NON_FATAL), throwableArgumentCaptor.capture(),
           stringArgumentCaptor.capture());
 
       Throwable t = throwableArgumentCaptor.getValue();

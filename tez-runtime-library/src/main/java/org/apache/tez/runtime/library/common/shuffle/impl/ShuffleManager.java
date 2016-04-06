@@ -46,6 +46,7 @@ import javax.crypto.SecretKey;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -748,7 +749,7 @@ public class ShuffleManager implements FetcherCallback {
 
   private void reportFatalError(Throwable exception, String message) {
     LOG.error(message);
-    inputContext.fatalError(exception, message);
+    inputContext.reportFailure(TaskFailureType.NON_FATAL, exception, message);
   }
 
   @Override
@@ -931,7 +932,7 @@ public class ShuffleManager implements FetcherCallback {
         }
       } else {
         LOG.error(srcNameTrimmed + ": " + "Scheduler failed with error: ", t);
-        inputContext.fatalError(t, "Shuffle Scheduler Failed");
+        inputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Shuffle Scheduler Failed");
       }
     }
     
@@ -988,7 +989,7 @@ public class ShuffleManager implements FetcherCallback {
       } else {
         LOG.error(srcNameTrimmed + ": " + "Fetcher failed with error: ", t);
         shuffleError = t;
-        inputContext.fatalError(t, "Fetch failed");
+        inputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Fetch failed");
         doBookKeepingForFetcherComplete();
       }
     }

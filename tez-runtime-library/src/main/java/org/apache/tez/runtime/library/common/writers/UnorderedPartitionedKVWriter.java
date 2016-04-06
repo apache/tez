@@ -52,6 +52,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
@@ -921,7 +922,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       outputContext.sendEvents(Collections.singletonList(compEvent));
     } catch (IOException e) {
       LOG.error(destNameTrimmed + ": " + "Error in sending pipelined events", e);
-      outputContext.fatalError(e, "Error in sending pipelined events");
+      outputContext.reportFailure(TaskFailureType.NON_FATAL, e, "Error in sending pipelined events");
     }
   }
 
@@ -950,7 +951,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
       } catch (Throwable e) {
         LOG.error(destNameTrimmed + ": " + "Failure while attempting to reset buffer after spill", e);
-        outputContext.fatalError(e, "Failure while attempting to reset buffer after spill");
+        outputContext.reportFailure(TaskFailureType.NON_FATAL, e, "Failure while attempting to reset buffer after spill");
       }
 
       if (!pipelinedShuffle) {
@@ -976,7 +977,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       // Consider removing it in favor of having Tez kill the task
       LOG.error(destNameTrimmed + ": " + "Failure while spilling to disk", t);
       spillException = t;
-      outputContext.fatalError(t, "Failure while spilling to disk");
+      outputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Failure while spilling to disk");
       spillLock.lock();
       try {
         spillInProgress.signal();

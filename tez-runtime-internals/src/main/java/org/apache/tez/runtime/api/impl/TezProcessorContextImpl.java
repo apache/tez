@@ -22,7 +22,6 @@ import com.google.common.base.Preconditions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -33,12 +32,12 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
@@ -97,9 +96,21 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
     notifyProgress();
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
+  }
+
+  @Override
+  public void reportFailure(TaskFailureType taskFailureType, @Nullable Throwable exception,
+                            @Nullable String message) {
+    super.signalFailure(taskFailureType, exception, message, sourceInfo);
+  }
+
+  @Override
+  public void killSelf(@Nullable Throwable exception, @Nullable String message) {
+    super.signalKillSelf(exception, message, sourceInfo);
   }
 
   @Override

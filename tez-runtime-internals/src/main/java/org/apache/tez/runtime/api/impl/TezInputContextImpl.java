@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.InputReadyTracker;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputStatisticsReporter;
@@ -152,9 +153,21 @@ public class TezInputContextImpl extends TezTaskContextImpl
     return sourceVertexName;
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
+  }
+
+  @Override
+  public void reportFailure(TaskFailureType taskFailureType, @Nullable Throwable exception,
+                            @Nullable String message) {
+    super.signalFailure(taskFailureType, exception, message, sourceInfo);
+  }
+
+  @Override
+  public void killSelf(@Nullable Throwable exception, @Nullable String message) {
+    super.signalKillSelf(exception, message, sourceInfo);
   }
 
   @Override

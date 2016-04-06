@@ -20,7 +20,6 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -29,7 +28,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
@@ -50,6 +48,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -229,7 +228,7 @@ public class TestShuffleInputEventHandlerImpl {
     //0--> 1 with spill id 1 (attemptNum 1).  This should report exception
     dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 1);
     handler.handleEvents(Collections.singletonList(dme));
-    verify(inputContext).fatalError(any(Throwable.class), anyString());
+    verify(inputContext).reportFailure(any(TaskFailureType.class), any(Throwable.class), anyString());
   }
 
   /**
@@ -258,7 +257,7 @@ public class TestShuffleInputEventHandlerImpl {
     //Now send attemptNum 0.  This should throw exception, because attempt #1 is already added
     dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
-    verify(inputContext).fatalError(any(Throwable.class), anyString());
+    verify(inputContext).reportFailure(any(TaskFailureType.class), any(Throwable.class), anyString());
   }
 
   /**
@@ -297,7 +296,7 @@ public class TestShuffleInputEventHandlerImpl {
     //Now send attemptNum 1.  This should throw exception, because attempt #1 is already added
     dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 1);
     handler.handleEvents(Collections.singletonList(dme));
-    verify(inputContext).fatalError(any(Throwable.class), anyString());
+    verify(inputContext).reportFailure(any(TaskFailureType.class), any(Throwable.class), anyString());
   }
 
   private Event createDataMovementEvent(boolean addSpillDetails, int srcIdx, int targetIdx,

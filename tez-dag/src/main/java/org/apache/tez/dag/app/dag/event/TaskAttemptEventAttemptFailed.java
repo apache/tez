@@ -18,29 +18,36 @@
 
 package org.apache.tez.dag.app.dag.event;
 
+import com.google.common.base.Preconditions;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.TaskFailureType;
 
 public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent 
   implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent, RecoveryEvent {
 
   private final String diagnostics;
   private final TaskAttemptTerminationCause errorCause;
-  private boolean isFromRecovery = false;
+  private final TaskFailureType taskFailureType;
+  private final boolean isFromRecovery;
 
   /* Accepted Types - FAILED, TIMED_OUT */
   public TaskAttemptEventAttemptFailed(TezTaskAttemptID id,
-      TaskAttemptEventType type, String diagnostics, TaskAttemptTerminationCause errorCause) {
-    super(id, type);
-    this.diagnostics = diagnostics;
-    this.errorCause = errorCause;
+                                       TaskAttemptEventType type, TaskFailureType taskFailureType,
+                                       String diagnostics,
+                                       TaskAttemptTerminationCause errorCause) {
+    this(id, type, taskFailureType, diagnostics, errorCause, false);
   }
 
   /* Accepted Types - FAILED, TIMED_OUT */
   public TaskAttemptEventAttemptFailed(TezTaskAttemptID id,
-      TaskAttemptEventType type, String diagnostics, TaskAttemptTerminationCause errorCause,
-      boolean isFromRecovery) {
-    this(id, type, diagnostics, errorCause);
+                                       TaskAttemptEventType type, TaskFailureType taskFailureType, String diagnostics, TaskAttemptTerminationCause errorCause,
+                                       boolean isFromRecovery) {
+    super(id, type);
+    Preconditions.checkNotNull(taskFailureType, "FailureType must be set for a FAILED task attempt");
+    this.diagnostics = diagnostics;
+    this.errorCause = errorCause;
+    this.taskFailureType = taskFailureType;
     this.isFromRecovery = isFromRecovery;
   }
 
@@ -57,5 +64,9 @@ public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent
   @Override
   public boolean isFromRecovery() {
     return isFromRecovery;
+  }
+
+  public TaskFailureType getTaskFailureType() {
+    return taskFailureType;
   }
 }

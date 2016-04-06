@@ -548,6 +548,9 @@ public class HistoryEventJsonConversion {
     if (event.getTaskAttemptError() != null) {
       otherInfo.put(ATSConstants.TASK_ATTEMPT_ERROR_ENUM, event.getTaskAttemptError().name());
     }
+    if (event.getTaskFailureType() != null) {
+      otherInfo.put(ATSConstants.TASK_FAILURE_TYPE, event.getTaskFailureType().name());
+    }
     otherInfo.put(ATSConstants.DIAGNOSTICS, event.getDiagnostics());
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getCounters()));

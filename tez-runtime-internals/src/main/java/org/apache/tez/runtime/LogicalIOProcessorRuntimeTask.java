@@ -46,6 +46,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.TaskContext;
 import org.apache.tez.runtime.api.impl.TezProcessorContextImpl;
 import org.slf4j.Logger;
@@ -386,6 +387,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
     } finally {
       setTaskDone();
+      // Clear the interrupt status since the task execution is done.
+      Thread.interrupted();
       if (eventRouterThread != null) {
         eventRouterThread.interrupt();
         LOG.info("Joining on EventRouter");
@@ -719,13 +722,16 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       }
     } catch (Throwable t) {
       LOG.warn("Failed to handle event", t);
-      setFatalError(t, "Failed to handle event");
+      registerError();
       EventMetaData sourceInfo = new EventMetaData(
           e.getDestinationInfo().getEventGenerator(),
           taskSpec.getVertexName(), e.getDestinationInfo().getEdgeVertexName(),
           getTaskAttemptID());
       setFrameworkCounters();
-      tezUmbilical.signalFatalError(getTaskAttemptID(),
+      // Signal such errors as RETRIABLE. The user code has an option to report this as something
+      // other than retriable before we get control back.
+      // TODO: Don't catch Throwables.
+      tezUmbilical.signalFailure(getTaskAttemptID(), TaskFailureType.NON_FATAL,
           t, ExceptionUtils.getStackTrace(t), sourceInfo);
       return false;
     }

@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -50,16 +51,23 @@ public class TestUmbilical implements TezUmbilical {
     }
   }
 
-  public List<TezEvent> getEvents() {
-    return this.events;
+  @Override
+  public void signalFailure(TezTaskAttemptID taskAttemptID, TaskFailureType taskFailureType, Throwable t,
+                            String message, EventMetaData sourceInfo) {
+    LOG.info("Received failure from task: " + taskAttemptID
+        + ", Message: " + message
+        + ", taskFailureType=" + taskFailureType);
   }
 
   @Override
-  public void signalFatalError(TezTaskAttemptID taskAttemptID, Throwable t, 
-      String message, EventMetaData sourceInfo) {
-    LOG.info("Received fatal error from task: " + taskAttemptID
+  public void signalKillSelf(TezTaskAttemptID taskAttemptID, Throwable t, String message,
+                             EventMetaData sourceInfo) {
+    LOG.info("Received kill from task: " + taskAttemptID
         + ", Message: " + message);
+  }
 
+  public List<TezEvent> getEvents() {
+    return this.events;
   }
 
   @Override

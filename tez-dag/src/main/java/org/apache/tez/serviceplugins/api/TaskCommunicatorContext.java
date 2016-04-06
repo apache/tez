@@ -141,7 +141,9 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
                   @Nullable String diagnostics);
 
   /**
-   * Inform the framework that a task has failed
+   * Inform the framework that a task has failed. This, at the moment, is always treated as a
+   * an error which will cause a retry of the task to be triggered, if there are enough retry
+   * attempts left.
    *
    * @param taskAttemptId        the relevant task attempt id
    * @param taskAttemptEndReason the reason for the task failure

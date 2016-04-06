@@ -40,6 +40,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
   private final LogicalIOProcessorRuntimeTask task;
   private final UserGroupInformation ugi;
   private final AtomicBoolean stopRequested = new AtomicBoolean(false);
+  private final AtomicBoolean interruptAttempted = new AtomicBoolean(false);
 
   private volatile Thread ownThread;
 
@@ -116,11 +117,17 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
   }
 
 
-  public void interruptTask() {
-    // Ensure the task is only interrupted once.
+  public void abortTask() {
     if (!stopRequested.getAndSet(true)) {
       task.abortTask();
-      if (ownThread != null) {
+    }
+  }
+
+  public void interruptTask() {
+    if (!interruptAttempted.getAndSet(true)) {
+      LogicalIOProcessorRuntimeTask localTask = task;
+      // Send an interrupt only if the task is not done.
+      if (ownThread != null && (localTask != null && !localTask.isTaskDone())) {
         ownThread.interrupt();
       }
     }

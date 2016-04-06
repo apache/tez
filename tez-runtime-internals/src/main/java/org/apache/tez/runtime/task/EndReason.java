@@ -17,7 +17,8 @@ package org.apache.tez.runtime.task;
 public enum EndReason {
   SUCCESS(false),
   CONTAINER_STOP_REQUESTED(false),
-  KILL_REQUESTED(true),
+  KILL_REQUESTED(true), // External kill request
+  TASK_KILL_REQUEST(false), // Kill request originating from the task itself (self-kill)
   COMMUNICATION_FAILURE(false),
   TASK_ERROR(false);
 

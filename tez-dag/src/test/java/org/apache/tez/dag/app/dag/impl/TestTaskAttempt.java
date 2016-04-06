@@ -61,6 +61,10 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.tez.common.MockDNSToSwitchMapping;
+import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
+import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
+import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -117,9 +121,13 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TestTaskAttempt.class);
 
   static public class StubbedFS extends RawLocalFileSystem {
     @Override
@@ -417,9 +425,11 @@ public class TestTaskAttempt {
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
 
-    verifyEventType(
+    Event event = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
+            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+    TaskEventTAFailed failedEvent = (TaskEventTAFailed) event;
+    assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
@@ -453,7 +463,7 @@ public class TestTaskAttempt {
     TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
 
-    MockEventHandler eventHandler = new MockEventHandler();
+    MockEventHandler eventHandler = spy(new MockEventHandler());
     TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
 
     Configuration taskConf = new Configuration();
@@ -486,10 +496,13 @@ public class TestTaskAttempt {
         mockHeartbeatHandler, appCtx, false,
         resource, createFakeContainerContext(), false);
     TezTaskAttemptID taskAttemptID = taImpl.getID();
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
     taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
     // At state STARTING.
     taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
         null));
+    int expectedEventsAtRunning = 3;
+    verify(eventHandler, times(expectedEventsAtRunning)).handle(arg.capture());
     assertEquals("Task attempt is not in running state", taImpl.getState(),
         TaskAttemptState.RUNNING);
     verify(mockHeartbeatHandler).register(taskAttemptID);
@@ -503,6 +516,30 @@ public class TestTaskAttempt {
     assertEquals("Terminated", taImpl.getDiagnostics().get(0));
     assertEquals(TaskAttemptTerminationCause.CONTAINER_EXITED, taImpl.getTerminationCause());
     // TODO Ensure TA_TERMINATING after this is ingored.
+
+    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
+    arg = ArgumentCaptor.forClass(Event.class);
+    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+
+    Event event = verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+    TaskEventTAFailed failedEvent = (TaskEventTAFailed) event;
+    assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
+    verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+    verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+
+    taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID,
+        "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
+    // verify unregister is not invoked again
+    verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
+    int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
+    arg = ArgumentCaptor.forClass(Event.class);
+    verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
   }
 
   @Test(timeout = 5000)
@@ -575,7 +612,7 @@ public class TestTaskAttempt {
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
+            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
@@ -744,7 +781,8 @@ public class TestTaskAttempt {
     
     taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
     
-    taImpl.handle(new TaskAttemptEventAttemptFailed(taskAttemptID, TaskAttemptEventType.TA_FAILED, "0",
+    taImpl.handle(new TaskAttemptEventAttemptFailed(taskAttemptID, TaskAttemptEventType.TA_FAILED,
+        TaskFailureType.NON_FATAL, "0",
         TaskAttemptTerminationCause.APPLICATION_ERROR));
 
     assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
@@ -776,8 +814,117 @@ public class TestTaskAttempt {
 
     Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
-    assertEquals(TaskEventType.T_ATTEMPT_FAILED, e.getType());
+            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+    TaskEventTAFailed failedEvent = (TaskEventTAFailed) e;
+    assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
+    verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+    verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+    verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
+  }
+
+  @Test(timeout = 5000)
+  public void testFailureFatalError() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
+        appId, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+
+    MockEventHandler eventHandler = spy(new MockEventHandler());
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
+
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
+    taskConf.setBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, true);
+
+    locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
+    Resource resource = Resource.newInstance(1024, 1);
+
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    @SuppressWarnings("deprecation")
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
+        new ContainerContextMatcher(), appCtx);
+    containers.addContainerIfNew(container, 0, 0, 0);
+
+    doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
+    doReturn(containers).when(appCtx).getAllContainers();
+
+    TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
+    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        taListener, taskConf, new SystemClock(),
+        mockHeartbeatHandler, appCtx, false,
+        resource, createFakeContainerContext(), false);
+    TezTaskAttemptID taskAttemptID = taImpl.getID();
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
+    // At state STARTING.
+    taImpl.handle(new TaskAttemptEventStartedRemotely(taskAttemptID, contId,
+        null));
+    assertEquals("Task attempt is not in the RUNNING state", taImpl.getState(),
+        TaskAttemptState.RUNNING);
+    verify(mockHeartbeatHandler).register(taskAttemptID);
+
+    int expectedEventsAtRunning = 4;
+    verify(eventHandler, times(expectedEventsAtRunning)).handle(arg.capture());
+    verifyEventType(
+        arg.getAllValues().subList(0,
+            expectedEventsAtRunning), SpeculatorEventTaskAttemptStatusUpdate.class, 1);
+
+    taImpl.handle(new TaskAttemptEventStatusUpdate(taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
+
+    taImpl.handle(new TaskAttemptEventAttemptFailed(taskAttemptID, TaskAttemptEventType.TA_FAILED,
+        TaskFailureType.FATAL, "0",
+        TaskAttemptTerminationCause.APPLICATION_ERROR));
+
+    assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
+        TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    verify(mockHeartbeatHandler).unregister(taskAttemptID);
+    assertEquals(1, taImpl.getDiagnostics().size());
+    assertEquals("0", taImpl.getDiagnostics().get(0));
+    assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
+
+    assertEquals(TaskAttemptStateInternal.FAIL_IN_PROGRESS, taImpl.getInternalState());
+    taImpl.handle(new TaskAttemptEventTezEventUpdate(taImpl.getID(), Collections.EMPTY_LIST));
+    assertFalse(
+        "InternalError occurred trying to handle TA_TEZ_EVENT_UPDATE in FAIL_IN_PROGRESS state",
+        eventHandler.internalError);
+
+    taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID, "1",
+        TaskAttemptTerminationCause.CONTAINER_EXITED));
+    // verify unregister is not invoked again
+    verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
+    assertEquals(2, taImpl.getDiagnostics().size());
+    assertEquals("1", taImpl.getDiagnostics().get(1));
+    // err cause does not change
+    assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
+
+    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 5;
+    arg = ArgumentCaptor.forClass(Event.class);
+    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+
+
+    Event e = verifyEventType(
+        arg.getAllValues().subList(expectedEventsAtRunning,
+            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+    TaskEventTAFailed failedEvent = (TaskEventTAFailed) e;
+    assertEquals(TaskFailureType.FATAL, failedEvent.getTaskFailureType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
@@ -868,6 +1015,7 @@ public class TestTaskAttempt {
     TaskAttemptEventAttemptFailed fEvent = (TaskAttemptEventAttemptFailed) arg.getValue();
     assertEquals(taImpl.getID(), fEvent.getTaskAttemptID());
     assertEquals(TaskAttemptTerminationCause.NO_PROGRESS, fEvent.getTerminationCause());
+    assertEquals(TaskFailureType.NON_FATAL, fEvent.getTaskFailureType());
     taImpl.handle(fEvent);
 
     assertEquals("Task attempt is not in the  FAIL_IN_PROGRESS state", taImpl.getInternalState(),
@@ -982,7 +1130,7 @@ public class TestTaskAttempt {
 
     Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
+            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
     assertEquals(TaskEventType.T_ATTEMPT_SUCCEEDED, e.getType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
@@ -1067,7 +1215,7 @@ public class TestTaskAttempt {
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEventsAfterTerminating), TaskEventTAUpdate.class, 1);
+            expectedEventsAfterTerminating), TaskEventTASucceeded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
@@ -1159,7 +1307,8 @@ public class TestTaskAttempt {
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
+            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
+
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
@@ -1182,7 +1331,7 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsNodeFailure)).handle(arg.capture());
     verifyEventType(
         arg.getAllValues().subList(expectedEvenstAfterTerminating,
-            expectedEventsNodeFailure), TaskEventTAUpdate.class, 1);
+            expectedEventsNodeFailure), TaskEventTAKilled.class, 1);
 
     // Verify still in KILLED state
     assertEquals("Task attempt is not in the  KILLED state", TaskAttemptState.KILLED,
@@ -1266,7 +1415,7 @@ public class TestTaskAttempt {
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAUpdate.class, 1);
+            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
             expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
@@ -1392,6 +1541,7 @@ public class TestTaskAttempt {
     verify(mockHistHandler, times(3)).handle(histArg.capture());
     histEvent = histArg.getValue();
     finishEvent = (TaskAttemptFinishedEvent)histEvent.getHistoryEvent();
+    assertEquals(TaskFailureType.NON_FATAL, finishEvent.getTaskFailureType());
     long newFinishTime = finishEvent.getFinishTime();
     Assert.assertEquals(finishTime, newFinishTime);
 
@@ -1399,9 +1549,11 @@ public class TestTaskAttempt {
     int expectedEventsAfterFetchFailure = expectedEventsTillSucceeded + 2;
     arg.getAllValues().clear();
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(arg.capture());
-    verifyEventType(
+    Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsTillSucceeded,
-            expectedEventsAfterFetchFailure), TaskEventTAUpdate.class, 1);
+            expectedEventsAfterFetchFailure), TaskEventTAFailed.class, 1);
+    TaskEventTAFailed failedEvent = (TaskEventTAFailed) e;
+    assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
 
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 1));
     assertEquals("Task attempt is not in FAILED state, still",
@@ -1614,9 +1766,9 @@ public class TestTaskAttempt {
 
     @Override
     protected void logJobHistoryAttemptUnsuccesfulCompletion(
-        TaskAttemptState state) {
+        TaskAttemptState state, TaskFailureType taskFailureType) {
       taskAttemptFinishedEventLogged++;
-      super.logJobHistoryAttemptUnsuccesfulCompletion(state);
+      super.logJobHistoryAttemptUnsuccesfulCompletion(state, taskFailureType);
     }
     
     @Override

@@ -53,8 +53,10 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.app.rm.AMSchedulerEventType;
+import org.apache.tez.dag.app.dag.event.TaskEventTALaunched;
+import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
@@ -147,7 +149,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
-import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
@@ -3472,6 +3473,7 @@ public class TestVertexImpl {
     ta.handle(new TaskAttemptEventStartedRemotely(ta.getID(), contId, null));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
     ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+        TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.APPLICATION_ERROR));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
@@ -3506,6 +3508,7 @@ public class TestVertexImpl {
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
 
     ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+        TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.INPUT_READ_ERROR));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
@@ -3541,6 +3544,7 @@ public class TestVertexImpl {
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
 
     ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+        TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.OUTPUT_WRITE_ERROR));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
@@ -4643,7 +4647,7 @@ public class TestVertexImpl {
       TezTaskAttemptID taskAttemptId = TezTaskAttemptID.getInstance(taskId, 0);
       TaskImpl task = (TaskImpl)v1.getTask(taskId);
       task.handle(new TaskEvent(taskId, TaskEventType.T_ATTEMPT_LAUNCHED));
-      task.handle(new TaskEventTAUpdate(taskAttemptId, TaskEventType.T_ATTEMPT_SUCCEEDED));
+      task.handle(new TaskEventTASucceeded(taskAttemptId));
       v1.handle(new VertexEventTaskAttemptCompleted(taskAttemptId, TaskAttemptStateInternal.SUCCEEDED));
       v1.handle(new VertexEventTaskCompleted(taskId, TaskState.SUCCEEDED));
       dispatcher.await();
@@ -6242,7 +6246,7 @@ public class TestVertexImpl {
 
     // at least one task attempt is succeed, otherwise input initialize events won't been handled.
     dispatcher.getEventHandler().handle(new TaskEvent(t0_v1, TaskEventType.T_ATTEMPT_LAUNCHED));
-    dispatcher.getEventHandler().handle(new TaskEventTAUpdate(ta0_t0_v1, TaskEventType.T_ATTEMPT_SUCCEEDED));
+    dispatcher.getEventHandler().handle(new TaskEventTASucceeded(ta0_t0_v1));
     dispatcher.getEventHandler()
         .handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezEvent)));
     dispatcher.await();
@@ -6323,10 +6327,8 @@ public class TestVertexImpl {
 
     TezTaskID t1 = TezTaskID.getInstance(v.getVertexId(), 0);
 
-    dispatcher.getEventHandler().handle(new TaskEventTAUpdate(TezTaskAttemptID.getInstance(t1, 0),
-        TaskEventType.T_ATTEMPT_LAUNCHED));
-    dispatcher.getEventHandler().handle(new TaskEventTAUpdate(TezTaskAttemptID.getInstance(t1, 0),
-        TaskEventType.T_ATTEMPT_SUCCEEDED));
+    dispatcher.getEventHandler().handle(new TaskEventTALaunched(TezTaskAttemptID.getInstance(t1, 0)));
+    dispatcher.getEventHandler().handle(new TaskEventTASucceeded(TezTaskAttemptID.getInstance(t1, 0)));
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(t1, TaskState.SUCCEEDED));
     dispatcher.await();
 

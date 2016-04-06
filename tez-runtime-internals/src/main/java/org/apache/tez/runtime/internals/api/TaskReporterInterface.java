@@ -20,6 +20,7 @@ import java.util.Collection;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.task.ErrorReporter;
@@ -32,8 +33,14 @@ public interface TaskReporterInterface {
 
   boolean taskSucceeded(TezTaskAttemptID taskAttemptId) throws IOException, TezException;
 
-  boolean taskFailed(TezTaskAttemptID taskAttemptId, Throwable cause, String diagnostics, EventMetaData srcMeta) throws IOException,
+  boolean taskFailed(TezTaskAttemptID taskAttemptId,
+                              TaskFailureType taskFailureType,
+                              Throwable cause,
+                              String diagnostics, EventMetaData srcMeta) throws IOException,
       TezException;
+
+  boolean taskKilled(TezTaskAttemptID taskAttemtpId, Throwable cause, String diagnostics,
+                     EventMetaData srcMeta) throws IOException, TezException;
 
   void addEvents(TezTaskAttemptID taskAttemptId, Collection<TezEvent> events);
 

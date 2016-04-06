@@ -16,27 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.api.events;
+package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.runtime.api.TaskFailureType;
-import org.apache.tez.runtime.api.Event;
+import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TaskAttemptFailedEvent extends Event {
+@SuppressWarnings("rawtypes")
+public class TaskEventTAKilled extends TaskEventTAUpdate {
 
-  private final String diagnostics;
-  private final TaskFailureType taskFailureType;
+  private final TezAbstractEvent causalEvent;
 
-  public TaskAttemptFailedEvent(String diagnostics, TaskFailureType taskFailureType) {
-    this.diagnostics = diagnostics;
-    this.taskFailureType = taskFailureType;
+  public TaskEventTAKilled(TezTaskAttemptID id, TezAbstractEvent causalEvent) {
+    super(id, TaskEventType.T_ATTEMPT_KILLED);
+    this.causalEvent = causalEvent;
   }
 
-  public String getDiagnostics() {
-    return diagnostics;
+  public TezAbstractEvent getCausalEvent() {
+    return causalEvent;
   }
-
-  public TaskFailureType getTaskFailureType() {
-    return taskFailureType;
-  }
-
 }

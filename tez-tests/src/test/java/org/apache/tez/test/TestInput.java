@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -284,7 +285,7 @@ public class TestInput extends AbstractLogicalInput {
   
   void throwException(String msg) {
     RuntimeException e = new RuntimeException(msg);
-    getContext().fatalError(e , msg);
+    getContext().reportFailure(TaskFailureType.NON_FATAL, e , msg);
     throw e;
   }
   

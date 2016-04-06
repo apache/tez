@@ -16,27 +16,23 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.api.events;
+option java_package = "org.apache.tez.runtime.internals.api.events";
+option java_outer_classname = "SystemEventProtos";
+option java_generate_equals_and_hash = true;
 
-import org.apache.tez.runtime.api.TaskFailureType;
-import org.apache.tez.runtime.api.Event;
+enum TaskFailureTypeProto {
+  FT_NON_FATAL = 0;
+  FT_FATAL = 1;
+}  
 
-public class TaskAttemptFailedEvent extends Event {
+message TaskAttemptFailedEventProto {
+  optional string diagnostics = 1;
+  optional TaskFailureTypeProto task_failure_type = 2;
+}
 
-  private final String diagnostics;
-  private final TaskFailureType taskFailureType;
+message TaskAttemptKilledEventProto {
+  optional string diagnostics = 1;
+}
 
-  public TaskAttemptFailedEvent(String diagnostics, TaskFailureType taskFailureType) {
-    this.diagnostics = diagnostics;
-    this.taskFailureType = taskFailureType;
-  }
-
-  public String getDiagnostics() {
-    return diagnostics;
-  }
-
-  public TaskFailureType getTaskFailureType() {
-    return taskFailureType;
-  }
-
+message TaskAttemptCompletedEventProto {
 }

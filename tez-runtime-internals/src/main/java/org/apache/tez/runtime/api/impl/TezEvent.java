@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.ProtoConverters;
+import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
@@ -41,10 +42,12 @@ import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
+import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptKilledEventProto;
 
 public class TezEvent implements Writable {
 
@@ -79,6 +82,8 @@ public class TezEvent implements Writable {
       eventType = EventType.INPUT_READ_ERROR_EVENT;
     } else if (event instanceof TaskAttemptFailedEvent) {
       eventType = EventType.TASK_ATTEMPT_FAILED_EVENT;
+    } else if (event instanceof TaskAttemptKilledEvent) {
+      eventType = EventType.TASK_ATTEMPT_KILLED_EVENT;
     } else if (event instanceof TaskAttemptCompletedEvent) {
       eventType = EventType.TASK_ATTEMPT_COMPLETED_EVENT;
     } else if (event instanceof InputFailedEvent) {
@@ -168,8 +173,14 @@ public class TezEvent implements Writable {
         TaskAttemptFailedEvent tfEvt = (TaskAttemptFailedEvent) event;
         eventBytes = TaskAttemptFailedEventProto.newBuilder()
             .setDiagnostics(tfEvt.getDiagnostics())
+            .setTaskFailureType(TezConverterUtils.failureTypeToProto(tfEvt.getTaskFailureType()))
             .build().toByteArray();
         break;
+        case TASK_ATTEMPT_KILLED_EVENT:
+          TaskAttemptKilledEvent tkEvent = (TaskAttemptKilledEvent) event;
+          eventBytes = TaskAttemptKilledEventProto.newBuilder()
+              .setDiagnostics(tkEvent.getDiagnostics()).build().toByteArray();
+          break;
       case TASK_ATTEMPT_COMPLETED_EVENT:
         eventBytes = TaskAttemptCompletedEventProto.newBuilder()
             .build().toByteArray();
@@ -236,7 +247,12 @@ public class TezEvent implements Writable {
       case TASK_ATTEMPT_FAILED_EVENT:
         TaskAttemptFailedEventProto tfProto =
             TaskAttemptFailedEventProto.parseFrom(eventBytes);
-        event = new TaskAttemptFailedEvent(tfProto.getDiagnostics());
+        event = new TaskAttemptFailedEvent(tfProto.getDiagnostics(),
+            TezConverterUtils.failureTypeFromProto(tfProto.getTaskFailureType()));
+        break;
+      case TASK_ATTEMPT_KILLED_EVENT:
+        TaskAttemptKilledEventProto tkProto = TaskAttemptKilledEventProto.parseFrom(eventBytes);
+        event = new TaskAttemptKilledEvent(tkProto.getDiagnostics());
         break;
       case TASK_ATTEMPT_COMPLETED_EVENT:
         event = new TaskAttemptCompletedEvent();
@@ -293,4 +309,12 @@ public class TezEvent implements Writable {
     }
   }
 
+  @Override
+  public String toString() {
+    return "TezEvent{" +
+        "eventType=" + eventType +
+        ", sourceInfo=" + sourceInfo +
+        ", destinationInfo=" + destinationInfo +
+        '}';
+  }
 }

@@ -37,6 +37,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.ObjectRegistry;
@@ -214,9 +215,21 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   }
   
   protected void signalFatalError(Throwable t, String message, EventMetaData sourceInfo) {
+    signalFailure(TaskFailureType.NON_FATAL, t, message, sourceInfo);
+  }
+
+  protected void signalFailure(TaskFailureType taskFailureType, Throwable t,
+                               String message, EventMetaData sourceInfo) {
+    Preconditions.checkNotNull(taskFailureType, "TaskFailureType must be specified");
     runtimeTask.setFrameworkCounters();
-    runtimeTask.setFatalError(t, message);
-    tezUmbilical.signalFatalError(taskAttemptID, t, message, sourceInfo);
+    runtimeTask.registerError();
+    tezUmbilical.signalFailure(taskAttemptID, taskFailureType, t, message, sourceInfo);
+  }
+
+  protected void signalKillSelf(Throwable t, String message, EventMetaData sourceInfo) {
+    runtimeTask.setFrameworkCounters();
+    runtimeTask.registerError();
+    tezUmbilical.signalKillSelf(taskAttemptID, t, message, sourceInfo);
   }
 
   @Override

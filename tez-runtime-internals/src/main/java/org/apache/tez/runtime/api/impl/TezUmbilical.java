@@ -21,15 +21,20 @@ package org.apache.tez.runtime.api.impl;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.TaskFailureType;
 
+@Private
 public interface TezUmbilical {
 
-  public void addEvents(Collection<TezEvent> events);
+  void addEvents(Collection<TezEvent> events);
 
-  public void signalFatalError(TezTaskAttemptID taskAttemptID, Throwable t, String message,
-      EventMetaData sourceInfo);
+  void signalFailure(TezTaskAttemptID taskAttemptID, TaskFailureType taskFailureType, Throwable t, String message,
+                     EventMetaData sourceInfo);
 
-  public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;
+  void signalKillSelf(TezTaskAttemptID taskAttemptID, Throwable t, String message, EventMetaData sourceInfo);
+
+  boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException;
 
 }

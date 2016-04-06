@@ -14,19 +14,28 @@
 
 package org.apache.tez.runtime.task;
 
+import org.apache.tez.runtime.api.TaskFailureType;
+
 public class TaskRunner2Result {
   final EndReason endReason;
+  final TaskFailureType taskFailureType;
   final Throwable error;
   final boolean containerShutdownRequested;
 
-  public TaskRunner2Result(EndReason endReason, Throwable error, boolean containerShutdownRequested) {
+  public TaskRunner2Result(EndReason endReason, TaskFailureType taskFailureType,
+                           Throwable error, boolean containerShutdownRequested) {
     this.endReason = endReason;
     this.error = error;
     this.containerShutdownRequested = containerShutdownRequested;
+    this.taskFailureType = taskFailureType;
   }
 
   public EndReason getEndReason() {
     return endReason;
+  }
+
+  public TaskFailureType getTaskFailureType() {
+    return taskFailureType;
   }
 
   public Throwable getError() {
@@ -39,10 +48,15 @@ public class TaskRunner2Result {
 
   @Override
   public String toString() {
-    return "TaskRunner2Result{" +
-        "endReason=" + endReason +
-        ", error=" + error +
-        ", containerShutdownRequested=" + containerShutdownRequested +
-        '}';
+    StringBuilder sb = new StringBuilder();
+    sb.append("TaskRunner2Result{");
+    sb.append("endReason=").append(endReason);
+    sb.append(", containerShutdownRequested=").append(containerShutdownRequested);
+    if (endReason != EndReason.SUCCESS) {
+      sb.append(", failureType=").append(taskFailureType);
+      sb.append(", error=").append(error);
+    }
+    sb.append("}");
+    return sb.toString();
   }
 }

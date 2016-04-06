@@ -23,7 +23,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
@@ -132,12 +134,40 @@ public interface TaskContext {
   public void notifyProgress();
 
   /**
-   * Report a fatal error to the framework. This will cause the entire task to
-   * fail and should not be used for reporting temporary or recoverable errors
+   * Report an error to the framework. This will cause the taskAttempt to fail, and should not be used
+   * to report errors which can be handled locally in the TaskAttempt. A new TaskAttempt will be launched
+   * depending upon how many retries are available for the task.
+   *
+   * @deprecated Replaced by {@link #reportFailure(TaskFailureType, Throwable, String)} (FailureType, Throwable, String)}
+   *
+   * Note: To maintain compatibility, even though this method is named 'fatalError' - this method
+   * operates as {@link #reportFailure(TaskFailureType, Throwable, String)}
+   * with the TaskFailureType set to {@link TaskFailureType#NON_FATAL}.
    *
    * @param exception an exception representing the error
+   * @param message a diagnostic message which may be associated with the error
    */
+  @Deprecated
   public void fatalError(@Nullable Throwable exception, @Nullable String message);
+
+
+  /**
+   * Report an error to the framework. This will cause the entire task to be terminated.
+   *
+   * @param taskFailureType the type of the error
+   * @param exception any exception that may be associated with the error
+   * @param message a diagnostic message which may be associated with the error
+   */
+  void reportFailure(TaskFailureType taskFailureType, @Nullable Throwable exception, @Nullable String message);
+
+  /**
+   * Kill the currently running attempt.
+   * @param exception an associated exception
+   * @param message an associated diagnostic message
+   */
+  @Private
+  @Unstable
+  void killSelf(@Nullable Throwable exception, @Nullable String message);
 
   /**
    * Returns meta-data for the specified service. As an example, when the MR

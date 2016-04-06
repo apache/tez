@@ -16,13 +16,19 @@
  * limitations under the License.
  */
 
-option java_package = "org.apache.tez.runtime.internals.api.events";
-option java_outer_classname = "SystemEventProtos";
-option java_generate_equals_and_hash = true;
+package org.apache.tez.runtime.api.events;
 
-message TaskAttemptFailedEventProto {
-  optional string diagnostics = 1;
-}
+import org.apache.tez.runtime.api.Event;
 
-message TaskAttemptCompletedEventProto {
+public class TaskAttemptKilledEvent extends Event {
+  private final String diagnostics;
+
+  public TaskAttemptKilledEvent(String diagnostics) {
+    this.diagnostics = diagnostics;
+  }
+
+  public String getDiagnostics() {
+    return diagnostics;
+  }
+
 }

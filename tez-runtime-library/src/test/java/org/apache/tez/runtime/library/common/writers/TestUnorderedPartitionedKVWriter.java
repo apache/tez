@@ -45,6 +45,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.protobuf.ByteString;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configurable;
@@ -325,7 +326,7 @@ public class TestUnorderedPartitionedKVWriter {
     }
 
     List<Event> events = kvWriter.close();
-    verify(outputContext, never()).fatalError(any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
     TezCounter outputLargeRecordsCounter = counters.findCounter(TaskCounter.OUTPUT_LARGE_RECORDS);
     assertEquals(numLargeKeys + numLargevalues + numLargeKvPairs,
@@ -493,7 +494,7 @@ public class TestUnorderedPartitionedKVWriter {
 
     assertTrue(events.size() == 1); //the last event which was sent out
 
-    verify(outputContext, never()).fatalError(any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
     // Verify the status of the buffers
     if (numExpectedSpills == 0) {
@@ -651,7 +652,7 @@ public class TestUnorderedPartitionedKVWriter {
     int recordsPerBuffer = sizePerBuffer / sizePerRecordWithOverhead;
     int numExpectedSpills = numRecordsWritten / recordsPerBuffer;
 
-    verify(outputContext, never()).fatalError(any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
     // Verify the status of the buffers
     if (numExpectedSpills == 0) {

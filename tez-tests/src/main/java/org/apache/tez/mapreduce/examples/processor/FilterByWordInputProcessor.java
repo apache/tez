@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.examples.processor;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -57,7 +58,7 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
     Configuration conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
     filterWord = conf.get(FilterLinesByWord.FILTER_PARAM_NAME);
     if (filterWord == null) {
-      getContext().fatalError(null, "No filter word specified");
+      getContext().reportFailure(TaskFailureType.NON_FATAL, null, "No filter word specified");
     }
   }
 

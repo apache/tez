@@ -38,9 +38,7 @@ import com.google.common.collect.Maps;
 
 public abstract class RuntimeTask {
 
-  protected AtomicBoolean hasFatalError = new AtomicBoolean(false);
-  protected AtomicReference<Throwable> fatalError = new AtomicReference<Throwable>();
-  protected String fatalErrorMessage = null;
+  protected final AtomicBoolean errorReported = new AtomicBoolean(false);
   protected float progress;
   protected final TezCounters tezCounters;
   private final Map<String, TezCounters> counterMap = Maps.newConcurrentMap();
@@ -99,10 +97,8 @@ public abstract class RuntimeTask {
     return taskSpec.getVertexName();
   }
 
-  public void setFatalError(Throwable t, String message) {
-    hasFatalError.set(true);
-    this.fatalError.set(t);
-    this.fatalErrorMessage = message;
+  public void registerError() {
+    errorReported.set(true);
   }
   
   public final void notifyProgressInvocation() {
@@ -113,13 +109,9 @@ public abstract class RuntimeTask {
     boolean retVal = progressNotified.getAndSet(false);
     return retVal;
   }
-  
-  public Throwable getFatalError() {
-    return this.fatalError.get();
-  }
 
-  public boolean hadFatalError() {
-    return hasFatalError.get();
+  public boolean wasErrorReported() {
+    return errorReported.get();
   }
 
   public synchronized void setProgress(float progress) {

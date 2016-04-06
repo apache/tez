@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -423,7 +424,7 @@ public class Shuffle implements ExceptionReporter {
       } else {
         LOG.error(srcNameTrimmed + ": " + "ShuffleRunner failed with error", t);
         // In case of an abort / Interrupt - the runtime makes sure that this is ignored.
-        inputContext.fatalError(t, "Shuffle Runner Failed");
+        inputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Shuffle Runner Failed");
         cleanupIgnoreErrors();
       }
     }

@@ -37,6 +37,8 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1166,7 +1168,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
       task.getVertex().incrementFailedTaskAttemptCount();
-      TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      TaskEventTAFailed castEvent = (TaskEventTAFailed) event;
       schedulingCausalTA = castEvent.getTaskAttemptID();
       task.addDiagnosticInfo("TaskAttempt " + castEvent.getTaskAttemptID().getId() + " failed,"
           + " info=" + task.getAttempt(castEvent.getTaskAttemptID()).getDiagnostics());
@@ -1177,7 +1179,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // The attempt would have informed the scheduler about it's failure
 
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
-      if (task.failedAttempts < task.maxFailedAttempts) {
+      if (task.failedAttempts < task.maxFailedAttempts &&
+          castEvent.getTaskFailureType() == TaskFailureType.NON_FATAL) {
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);
@@ -1189,9 +1192,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           task.addAndScheduleAttempt(getSchedulingCausalTA());
         }
       } else {
-        LOG.info("Failing task: " + task.getTaskId()
-            + ", currentFailedAttempts: " + task.failedAttempts + ", maxFailedAttempts: "
-            + task.maxFailedAttempts);
+        if (castEvent.getTaskFailureType() == TaskFailureType.NON_FATAL) {
+          LOG.info(
+              "Failing task: {} due to too many failed attempts. currentFailedAttempts={}, maxFailedAttempts={}",
+              task.getTaskId(), task.failedAttempts, task.maxFailedAttempts);
+        } else {
+          LOG.info(
+              "Failing task: {} due to {} error reported by TaskAttempt. CurrentFailedAttempts={}",
+              task.getTaskId(), TaskFailureType.FATAL, task.failedAttempts);
+        }
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
             TaskAttemptStateInternal.FAILED);
@@ -1225,7 +1234,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.internalError(event.getType());
       }
 
-      TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
+      TaskEventTAFailed castEvent = (TaskEventTAFailed) event;
       TezTaskAttemptID failedAttemptId = castEvent.getTaskAttemptID();
       TaskAttempt failedAttempt = task.getAttempt(failedAttemptId);
       ContainerId containerId = failedAttempt.getAssignedContainerID();

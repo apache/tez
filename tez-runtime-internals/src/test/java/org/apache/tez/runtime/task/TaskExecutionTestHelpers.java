@@ -14,6 +14,7 @@
 
 package org.apache.tez.runtime.task;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -35,11 +36,13 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
+import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
@@ -53,12 +56,29 @@ public class TaskExecutionTestHelpers {
   // Uses static fields for signaling. Ensure only used by one test at a time.
   public static class TestProcessor extends AbstractLogicalIOProcessor {
 
-    public static final byte[] CONF_EMPTY = new byte[] { 0 };
-    public static final byte[] CONF_THROW_IO_EXCEPTION = new byte[] { 1 };
-    public static final byte[] CONF_THROW_TEZ_EXCEPTION = new byte[] { 2 };
-    public static final byte[] CONF_SIGNAL_FATAL_AND_THROW = new byte[] { 4 };
-    public static final byte[] CONF_SIGNAL_FATAL_AND_LOOP = new byte[] { 8 };
-    public static final byte[] CONF_SIGNAL_FATAL_AND_COMPLETE = new byte[] { 16 };
+    private static final int EMPTY = 0;
+    private static final int THROW_IO_EXCEPTION = 1;
+    private static final int THROW_TEZ_EXCEPTION = 2;
+    private static final int SIGNAL_DEPRECATEDFATAL_AND_THROW = 3;
+    private static final int SIGNAL_DEPRECATEDFATAL_AND_LOOP = 4;
+    private static final int SIGNAL_DEPRECATEDFATAL_AND_COMPLETE = 5;
+    private static final int SIGNAL_FATAL_AND_THROW = 6;
+    private static final int SIGNAL_NON_FATAL_AND_THROW = 7;
+    private static final int SELF_KILL_AND_COMPLETE = 8;
+
+    public static final byte[] CONF_EMPTY = new byte[]{EMPTY};
+    public static final byte[] CONF_THROW_IO_EXCEPTION = new byte[]{THROW_IO_EXCEPTION};
+    public static final byte[] CONF_THROW_TEZ_EXCEPTION = new byte[]{THROW_TEZ_EXCEPTION};
+    public static final byte[] CONF_SIGNAL_DEPRECATEDFATAL_AND_THROW =
+        new byte[]{SIGNAL_DEPRECATEDFATAL_AND_THROW};
+    public static final byte[] CONF_SIGNAL_DEPRECATEDFATAL_AND_LOOP =
+        new byte[]{SIGNAL_DEPRECATEDFATAL_AND_LOOP};
+    public static final byte[] CONF_SIGNAL_DEPRECATEDFATAL_AND_COMPLETE =
+        new byte[]{SIGNAL_DEPRECATEDFATAL_AND_COMPLETE};
+    public static final byte[] CONF_SIGNAL_FATAL_AND_THROW = new byte[]{SIGNAL_FATAL_AND_THROW};
+    public static final byte[] CONF_SIGNAL_NON_FATAL_AND_THROW =
+        new byte[]{SIGNAL_NON_FATAL_AND_THROW};
+    public static final byte[] CONF_SELF_KILL_AND_COMPLETE = new byte[]{SELF_KILL_AND_COMPLETE};
 
     private static final Logger LOG = LoggerFactory.getLogger(TestProcessor.class);
 
@@ -77,9 +97,12 @@ public class TaskExecutionTestHelpers {
 
     private boolean throwIOException = false;
     private boolean throwTezException = false;
+    private boolean signalDeprecatedFatalAndThrow = false;
+    private boolean signalDeprecatedFatalAndLoop = false;
+    private boolean signalDeprecatedFatalAndComplete = false;
     private boolean signalFatalAndThrow = false;
-    private boolean signalFatalAndLoop = false;
-    private boolean signalFatalAndComplete = false;
+    private boolean signalNonFatalAndThrow = false;
+    private boolean selfKillAndComplete = false;
 
     public TestProcessor(ProcessorContext context) {
       super(context);
@@ -102,11 +125,14 @@ public class TaskExecutionTestHelpers {
 
     private void parseConf(byte[] bytes) {
       byte b = bytes[0];
-      throwIOException = (b & 1) > 0;
-      throwTezException = (b & 2) > 0;
-      signalFatalAndThrow = (b & 4) > 0;
-      signalFatalAndLoop = (b & 8) > 0;
-      signalFatalAndComplete = (b & 16) > 0;
+      throwIOException = (b == THROW_IO_EXCEPTION);
+      throwTezException = (b == THROW_TEZ_EXCEPTION);
+      signalDeprecatedFatalAndThrow = (b == SIGNAL_DEPRECATEDFATAL_AND_THROW);
+      signalDeprecatedFatalAndLoop = (b == SIGNAL_DEPRECATEDFATAL_AND_LOOP);
+      signalDeprecatedFatalAndComplete = (b == SIGNAL_DEPRECATEDFATAL_AND_COMPLETE);
+      signalFatalAndThrow = (b == SIGNAL_FATAL_AND_THROW);
+      signalNonFatalAndThrow = (b == SIGNAL_NON_FATAL_AND_THROW);
+      selfKillAndComplete = (b == SELF_KILL_AND_COMPLETE);
     }
 
     public static void reset() {
@@ -191,6 +217,7 @@ public class TaskExecutionTestHelpers {
       wasAborted = true;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void run(Map<String, LogicalInput> inputs, Map<String, LogicalOutput> outputs) throws
         Exception {
@@ -212,23 +239,38 @@ public class TaskExecutionTestHelpers {
             throw createProcessorIOException();
           } else if (throwTezException) {
             throw createProcessorTezException();
-          } else if (signalFatalAndThrow) {
-            IOException io = new IOException("FATALERROR");
-            getContext().fatalError(io, "FATALERROR");
+          } else if (signalDeprecatedFatalAndThrow) {
+            IOException io = new IOException(IOException.class.getSimpleName());
+
+            getContext().fatalError(io, IOException.class.getSimpleName());
             throw io;
-          } else if (signalFatalAndComplete) {
-            IOException io = new IOException("FATALERROR");
-            getContext().fatalError(io, "FATALERROR");
+          } else if (signalDeprecatedFatalAndComplete) {
+            IOException io = new IOException(IOException.class.getSimpleName());
+            getContext().fatalError(io, IOException.class.getSimpleName());
             return;
-          } else if (signalFatalAndLoop) {
+          } else if (signalDeprecatedFatalAndLoop) {
             IOException io = createProcessorIOException();
-            getContext().fatalError(io, "FATALERROR");
+            getContext().fatalError(io, IOException.class.getSimpleName());
             LOG.info("looping");
             looping = true;
             loopCondition.signal();
             LOG.info("Waiting for Processor signal again");
             processorCondition.await();
             LOG.info("Received second processor signal");
+          } else if (signalFatalAndThrow) {
+            IOException io = new IOException(IOException.class.getSimpleName());
+            getContext().reportFailure(TaskFailureType.FATAL, io, IOException.class.getSimpleName());
+            LOG.info("throwing");
+            throw io;
+          } else if (signalNonFatalAndThrow) {
+            IOException io = new IOException(IOException.class.getSimpleName());
+            getContext().reportFailure(TaskFailureType.NON_FATAL, io, IOException.class.getSimpleName());
+            LOG.info("throwing");
+            throw io;
+          } else if (selfKillAndComplete) {
+            LOG.info("Reporting kill self");
+            getContext().killSelf(new IOException(IOException.class.getSimpleName()), "SELFKILL");
+            LOG.info("Returning");
           }
         } catch (InterruptedException e) {
           receivedInterrupt = true;
@@ -344,6 +386,10 @@ public class TaskExecutionTestHelpers {
     }
 
     public void verifyTaskFailedEvent(String diagStart, String diagContains) {
+      verifyTaskFailedEvent(diagStart, diagContains, TaskFailureType.NON_FATAL);
+    }
+
+    public void verifyTaskFailedEvent(String diagStart, String diagContains, TaskFailureType taskFailureType) {
       umbilicalLock.lock();
       try {
         for (TezEvent event : requestEvents) {
@@ -352,6 +398,7 @@ public class TaskExecutionTestHelpers {
             if (failedEvent.getDiagnostics().startsWith(diagStart)) {
               if (diagContains != null) {
                 if (failedEvent.getDiagnostics().contains(diagContains)) {
+                  assertEquals(taskFailureType, failedEvent.getTaskFailureType());
                   return;
                 } else {
                   fail("Diagnostic message does not contain expected message. Found [" +
@@ -368,6 +415,35 @@ public class TaskExecutionTestHelpers {
       } finally {
         umbilicalLock.unlock();
       }
+    }
+
+    public void verifyTaskKilledEvent(String diagStart, String diagContains) {
+      umbilicalLock.lock();
+      try {
+        for (TezEvent event : requestEvents) {
+          if (event.getEvent() instanceof TaskAttemptKilledEvent) {
+            TaskAttemptKilledEvent killedEvent =
+                (TaskAttemptKilledEvent) event.getEvent();
+            if (killedEvent.getDiagnostics().startsWith(diagStart)) {
+              if (diagContains != null) {
+                if (killedEvent.getDiagnostics().contains(diagContains)) {
+                  return;
+                } else {
+                  fail("Diagnostic message does not contain expected message. Found [" +
+                      killedEvent.getDiagnostics() + "], Expected: [" + diagContains + "]");
+                }
+              }
+            } else {
+              fail("Diagnostic message does not start with expected message. Found [" +
+                  killedEvent.getDiagnostics() + "], Expected: [" + diagStart + "]");
+            }
+          }
+        }
+        fail("No TaskAttemptKilledEvents sent over umbilical");
+      } finally {
+        umbilicalLock.unlock();
+      }
+
     }
 
     public void verifyTaskSuccessEvent() {

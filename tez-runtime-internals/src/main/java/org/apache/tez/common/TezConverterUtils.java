@@ -24,12 +24,15 @@ import java.net.URISyntaxException;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.runtime.api.TaskFailureType;
+import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskFailureTypeProto;
 
 public class TezConverterUtils {
 
   /**
    * return a {@link URI} from a given url
-   * 
+   *
    * @param url
    *          url to convert
    * @return path from {@link URL}
@@ -59,7 +62,30 @@ public class TezConverterUtils {
     return new TezLocalResource(getURIFromYarnURL(lr.getResource()), lr.getSize(),
         lr.getTimestamp());
   }
-  
+
+  public static TaskFailureType failureTypeFromProto(TaskFailureTypeProto proto) {
+    switch (proto) {
+      case FT_NON_FATAL:
+        return TaskFailureType.NON_FATAL;
+      case FT_FATAL:
+        return TaskFailureType.FATAL;
+      default:
+        throw new TezUncheckedException("Unknown FailureTypeProto: " + proto);
+    }
+  }
+
+  public static TaskFailureTypeProto failureTypeToProto(TaskFailureType taskFailureType) {
+    switch (taskFailureType) {
+
+      case NON_FATAL:
+        return TaskFailureTypeProto.FT_NON_FATAL;
+      case FATAL:
+        return TaskFailureTypeProto.FT_FATAL;
+      default:
+        throw new TezUncheckedException("Unknown FailureType: " + taskFailureType);
+    }
+  }
+
   // @Private
   // public static void writeLocalResource(LocalResource lr, DataOutput out)
   // throws IOException {

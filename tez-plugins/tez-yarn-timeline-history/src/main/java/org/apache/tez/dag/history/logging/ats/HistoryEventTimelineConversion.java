@@ -448,6 +448,9 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addPrimaryFilter(ATSConstants.STATUS, event.getState().name());
 
+    if (event.getTaskFailureType() != null) {
+      atsEntity.addOtherInfo(ATSConstants.TASK_FAILURE_TYPE, event.getTaskFailureType().name());
+    }
     atsEntity.addOtherInfo(ATSConstants.CREATION_TIME, event.getCreationTime());
     atsEntity.addOtherInfo(ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());

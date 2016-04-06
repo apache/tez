@@ -31,7 +31,6 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
-import org.apache.tez.client.CallerContext;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.counters.TezCounters;
@@ -83,6 +82,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -183,7 +183,7 @@ public class TestHistoryEventTimelineConversion {
           break;
         case TASK_ATTEMPT_FINISHED:
           event = new TaskAttemptFinishedEvent(tezTaskAttemptID, "v1", random.nextInt(),
-              random.nextInt(), TaskAttemptState.FAILED, TaskAttemptTerminationCause.OUTPUT_LOST,
+              random.nextInt(), TaskAttemptState.FAILED, TaskFailureType.NON_FATAL, TaskAttemptTerminationCause.OUTPUT_LOST,
               null, null, null, null, 0, null, 0,
               containerId, nodeId, null, null, "nodeHttpAddress");
           break;
@@ -519,7 +519,7 @@ public class TestHistoryEventTimelineConversion {
     events.add(new DataEventDependencyInfo(lastDataEventTime, tezTaskAttemptID));
 
     TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(tezTaskAttemptID, vertexName,
-        startTime, finishTime, state, error, diagnostics, counters, events, null, creationTime,
+        startTime, finishTime, state, TaskFailureType.FATAL, error, diagnostics, counters, events, null, creationTime,
         tezTaskAttemptID, allocationTime, containerId, nodeId, "inProgressURL", "logsURL", "nodeHttpAddress");
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(tezTaskAttemptID.toString(), timelineEntity.getEntityId());
@@ -543,7 +543,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(finishTime, evt.getTimestamp());
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
-    Assert.assertEquals(16, otherInfo.size());
+    Assert.assertEquals(17, otherInfo.size());
     Assert.assertEquals(tezTaskAttemptID.toString(), 
         timelineEntity.getOtherInfo().get(ATSConstants.CREATION_CAUSAL_ATTEMPT));
     Assert.assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
@@ -552,6 +552,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(finishTime, otherInfo.get(ATSConstants.FINISH_TIME));
     Assert.assertEquals(finishTime - startTime, otherInfo.get(ATSConstants.TIME_TAKEN));
     Assert.assertEquals(state.name(), otherInfo.get(ATSConstants.STATUS));
+    Assert.assertEquals(TaskFailureType.FATAL.name(), otherInfo.get(ATSConstants.TASK_FAILURE_TYPE));
     Assert.assertEquals(error.name(), otherInfo.get(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
     Assert.assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
     Map<String, Object> obj1 = (Map<String, Object>)otherInfo.get(ATSConstants.LAST_DATA_EVENTS);
@@ -565,6 +566,17 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(nodeId.toString(), otherInfo.get(ATSConstants.NODE_ID));
     Assert.assertEquals(containerId.toString(), otherInfo.get(ATSConstants.CONTAINER_ID));
     Assert.assertEquals("nodeHttpAddress", otherInfo.get(ATSConstants.NODE_HTTP_ADDRESS));
+
+    TaskAttemptFinishedEvent eventWithNullFailureType =
+        new TaskAttemptFinishedEvent(tezTaskAttemptID, vertexName,
+            startTime, finishTime, state, null, error, diagnostics, counters, events, null,
+            creationTime,
+            tezTaskAttemptID, allocationTime, containerId, nodeId, "inProgressURL", "logsURL",
+            "nodeHttpAddress");
+    TimelineEntity timelineEntityWithNullFailureType =
+        HistoryEventTimelineConversion.convertToTimelineEntity(eventWithNullFailureType);
+    Assert.assertNull(
+        timelineEntityWithNullFailureType.getOtherInfo().get(ATSConstants.TASK_FAILURE_TYPE));
   }
 
   @SuppressWarnings("unchecked")
