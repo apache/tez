@@ -96,7 +96,7 @@ public class TestTaskCommunicatorManager2 {
     wrapper.registerTaskAttempt(containerId2, amContainerTask2);
 
     wrapper.getTaskCommunicatorManager().taskFailed(amContainerTask1.getTask().getTaskAttemptID(),
-        TaskAttemptEndReason.COMMUNICATION_ERROR, "Diagnostics1");
+        TaskFailureType.NON_FATAL, TaskAttemptEndReason.COMMUNICATION_ERROR, "Diagnostics1");
     wrapper.getTaskCommunicatorManager().taskKilled(amContainerTask2.getTask().getTaskAttemptID(),
         TaskAttemptEndReason.EXECUTOR_BUSY, "Diagnostics2");
 
@@ -118,9 +118,10 @@ public class TestTaskCommunicatorManager2 {
 //   TODO TEZ-2003. Verify unregistration from the registered list
   }
 
+  // Tests fatal and non fatal
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
-  public void testTaskAttemptFailureViaHeartbeatNonFatal() throws IOException, TezException {
+  public void testTaskAttemptFailureViaHeartbeat() throws IOException, TezException {
 
     TaskCommunicatorManagerWrapperForTest wrapper = new TaskCommunicatorManagerWrapperForTest();
 
@@ -181,6 +182,53 @@ public class TestTaskCommunicatorManager2 {
     failedEvent = (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
     assertEquals(TaskFailureType.FATAL, failedEvent.getTaskFailureType());
     assertTrue(failedEvent.getDiagnosticInfo().contains("-fatal-"));
+  }
+
+  // Tests fatal and non fatal
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testTaskAttemptFailureViaContext() throws IOException, TezException {
+    TaskCommunicatorManagerWrapperForTest wrapper = new TaskCommunicatorManagerWrapperForTest();
+
+    TaskSpec taskSpec1 = wrapper.createTaskSpec();
+    AMContainerTask amContainerTask1 = new AMContainerTask(taskSpec1, null, null, false, 10);
+
+    TaskSpec taskSpec2 = wrapper.createTaskSpec();
+    AMContainerTask amContainerTask2 = new AMContainerTask(taskSpec2, null, null, false, 10);
+
+    ContainerId containerId1 = wrapper.createContainerId(1);
+    wrapper.registerRunningContainer(containerId1);
+    wrapper.registerTaskAttempt(containerId1, amContainerTask1);
+
+    ContainerId containerId2 = wrapper.createContainerId(2);
+    wrapper.registerRunningContainer(containerId2);
+    wrapper.registerTaskAttempt(containerId2, amContainerTask2);
+
+
+    // non-fatal
+    wrapper.getTaskCommunicatorManager()
+        .taskFailed(taskSpec1.getTaskAttemptID(), TaskFailureType.NON_FATAL,
+            TaskAttemptEndReason.CONTAINER_EXITED, "--non-fatal--");
+    ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(wrapper.getEventHandler(), times(1)).handle(argumentCaptor.capture());
+    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
+    TaskAttemptEventAttemptFailed failedEvent =
+        (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
+    assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
+    assertTrue(failedEvent.getDiagnosticInfo().contains("--non-fatal--"));
+
+    reset(wrapper.getEventHandler());
+
+    // fatal
+    wrapper.getTaskCommunicatorManager()
+        .taskFailed(taskSpec2.getTaskAttemptID(), TaskFailureType.FATAL, TaskAttemptEndReason.OTHER,
+            "--fatal--");
+    argumentCaptor = ArgumentCaptor.forClass(Event.class);
+    verify(wrapper.getEventHandler(), times(1)).handle(argumentCaptor.capture());
+    assertTrue(argumentCaptor.getAllValues().get(0) instanceof TaskAttemptEventAttemptFailed);
+    failedEvent = (TaskAttemptEventAttemptFailed) argumentCaptor.getAllValues().get(0);
+    assertEquals(TaskFailureType.FATAL, failedEvent.getTaskFailureType());
+    assertTrue(failedEvent.getDiagnosticInfo().contains("--fatal--"));
   }
 
   @SuppressWarnings("unchecked")

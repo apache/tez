@@ -38,6 +38,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.TaskFailureType;
 
 
 // Do not make calls into this from within a held lock.
@@ -146,11 +147,13 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
    * attempts left.
    *
    * @param taskAttemptId        the relevant task attempt id
+   * @param taskFailureType      the type of the error
    * @param taskAttemptEndReason the reason for the task failure
    * @param diagnostics          any diagnostics messages which are relevant to the task attempt
    *                             failure
    */
-  void taskFailed(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,
+  void taskFailed(TezTaskAttemptID taskAttemptId, TaskFailureType taskFailureType,
+                  TaskAttemptEndReason taskAttemptEndReason,
                   @Nullable String diagnostics);
 
   /**

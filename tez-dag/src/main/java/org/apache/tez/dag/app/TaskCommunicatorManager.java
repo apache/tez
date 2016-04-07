@@ -391,7 +391,8 @@ public class TaskCommunicatorManager extends AbstractService implements
         taskAttemptEndReason)));
   }
 
-  public void taskFailed(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,
+  public void taskFailed(TezTaskAttemptID taskAttemptId, TaskFailureType taskFailureType,
+                         TaskAttemptEndReason taskAttemptEndReason,
                          String diagnostics) {
     // Regular flow via TaskAttempt will take care of un-registering from the heartbeat handler,
     // and messages from the scheduler will release the container.
@@ -400,7 +401,7 @@ public class TaskCommunicatorManager extends AbstractService implements
     // Fix along the same lines as TEZ-2124 by introducing an explict context.
     //TODO-3183. Allow the FailureType to be specified
     sendEvent(new TaskAttemptEventAttemptFailed(taskAttemptId,
-        TaskAttemptEventType.TA_FAILED, TaskFailureType.NON_FATAL, diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
+        TaskAttemptEventType.TA_FAILED, taskFailureType, diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
         taskAttemptEndReason)));
   }
 
