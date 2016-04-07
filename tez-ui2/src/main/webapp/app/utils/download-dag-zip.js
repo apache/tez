@@ -19,7 +19,7 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 
-zip.workerScriptsPath = "/assets/zip/";
+zip.workerScriptsPath = "assets/zip/";
 
 var IO = {
   /* Allow queuing of downloads and then get a callback once all the downloads are done.

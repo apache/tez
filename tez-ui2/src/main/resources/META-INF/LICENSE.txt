@@ -223,7 +223,7 @@ The Apache TEZ tez-ui bundles the following files under the MIT License:
  - jquery-ui v1.11.4 (http://jqueryui.com/) - Copyright 2014 jQuery Foundation and other contributors
  - jquery-mousewheel v3.1.13 (https://github.com/jquery/jquery-mousewheel) - Copyright 2006, 2014 jQuery Foundation and other contributors, https://jquery.org/
  - CodeMirror 5.11.0 (https://codemirror.net/) - Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
- - FileSaver.js master branch #230de7d (https://github.com/eligrey/FileSaver.js) - Authored by Eli Grey
+ - FileSaver.js master branch #24b303f49213b905ec9062b708f7cd43d56a5dde (https://github.com/eligrey/FileSaver.js) - Authored by Eli Grey
  - moment v2.11.1 (http://momentjs.com/) - Copyright (c) 2011-2015 Tim Wood, Iskren Chernev, Moment.js contributors
  - moment-timezone v0.5.0 (http://momentjs.com/timezone/) - Copyright (c) 2014 Tim Wood
  - font-awesome css/less files v4.5.0 (http://fontawesome.io/) - Created by Dave Gandy
@@ -268,7 +268,7 @@ The Apache Tez tez-ui bundles the following files under BSD licenses:
 
 (3-clause BSD license)
  - D3 v3.5.14 (http://d3js.org/) - Copyright (c) 2010-2014, Michael Bostock
- - zip.js master branch #1bead0a (https://github.com/gildas-lormeau/zip.js)
+ - zip.js master branch #bfd76c66293305faaf9fcbb65b5ff7fe2dbe621a (https://github.com/gildas-lormeau/zip.js)
 
 All rights reserved.
 

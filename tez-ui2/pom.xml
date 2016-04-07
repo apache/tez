@@ -30,7 +30,7 @@
     <webappDir>src/main/webapp</webappDir>
     <node.executable>${basedir}/src/main/webapp/node/node</node.executable>
     <nodeVersion>v0.12.2</nodeVersion>
-    <npmVersion>2.10.0</npmVersion>
+    <npmVersion>2.15.3</npmVersion>
     <skipTests>false</skipTests>
   </properties>
 

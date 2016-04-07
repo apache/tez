@@ -66,6 +66,12 @@ ALL CHANGES:
   TEZ-3032. DAG start time getting logged using system time instead of recorded time in startTime field.
   TEZ-3101. Tez UI: Task attempt log link doesn't have the correct protocol.
   TEZ-3143. Tez UI 2: Make the build faster
+  TEZ-3160. Tez UI 2: Swimlane - Create swimlane page & component (sree)
+  TEZ-3170. Tez UI 2: Swimlane - Display computed events, event bars & dependencies (sree)
+  TEZ-3152. Tez UI 2: Build fails when run by multiple users or when node_modules is old (sree)
+  TEZ-3171. Tez UI 2: Swimlane - Tooltip, zoom & redirection (sree)
+  TEZ-3172. Tez UI: Swimlane - In progress & Shadow (sree)
+  TEZ-3201. Tez-UI build broken (sree)
 
 TEZ-2980: Tez UI 2 - Umbrella:
   TEZ-2982. Tez UI: Create tez-ui2 directory and get a basic dummy page working in ember 2.2
@@ -1897,11 +1903,6 @@ ALL CHANGES
   TEZ-648. Fix Notice file. (hitesh)
   TEZ-642. Fix poms for release. (hitesh)
   TEZ-643. Change getProgress APIs to return some form of progress and 1.0f once the map or reduce phase complete. (sseth)
-  TEZ-3160. Tez UI 2: Swimlane - Create swimlane page & component (sree)
-  TEZ-3170. Tez UI 2: Swimlane - Display computed events, event bars & dependencies (sree)
-  TEZ-3152. Tez UI 2: Build fails when run by multiple users or when node_modules is old (sree)
-  TEZ-3171. Tez UI 2: Swimlane - Tooltip, zoom & redirection (sree)
-  TEZ-3172. Tez UI: Swimlane - In progress & Shadow (sree)
 
 Release 0.2.0-incubating: 2013-11-30
 

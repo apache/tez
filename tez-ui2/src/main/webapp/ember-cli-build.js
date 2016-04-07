@@ -29,6 +29,9 @@ module.exports = function(defaults) {
     minifyCSS: {
       enabled: false
     },
+    fingerprint: {
+      enabled: false
+    },
     minifyJS: {
       enabled: false
     }
@@ -39,7 +42,7 @@ module.exports = function(defaults) {
      include: ['*.env'],
      destDir: '/config'
   });
-  var zipWorker = new Funnel('bower_components/zip.js', {
+  var zipWorker = new Funnel('bower_components/zip', {
      srcDir: '/WebContent',
      include: ['z-worker.js', 'deflate.js', 'inflate.js'],
      destDir: '/assets/zip'
@@ -57,7 +60,7 @@ module.exports = function(defaults) {
   app.import('bower_components/more-js/dist/more.js');
 
   app.import('bower_components/FileSaver/FileSaver.js');
-  app.import('bower_components/zip.js/WebContent/zip.js');
+  app.import('bower_components/zip/WebContent/zip.js');
 
   app.import('bower_components/codemirror/lib/codemirror.js');
   app.import('bower_components/codemirror/mode/sql/sql.js');
