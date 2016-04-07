@@ -165,30 +165,11 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
    */
   void registerForVertexStateUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
 
-  // TODO TEZ-3120 Remove deprecated methods
-  /**
-   * Get the name of the currently executing dag
-   *
-   * @return the name of the currently executing dag
-   * @deprecated replaced by {@link TaskCommunicatorContext#getCurrentDagInfo}
-   */
-  @Deprecated
-  String getCurrentDagName();
-
   /**
    * Get an identifier for the executing context of the DAG.
    * @return a String identifier for the exeucting context.
    */
   String getCurrentAppIdentifier();
-
-  // TODO TEZ-3120 Remove deprecated methods
-  /**
-   * Get the identifier for the currently executing dag.
-   * @return a numerical identifier for the currently running DAG. This is unique within the currently running application.
-   * @deprecated replaced by {@link TaskCommunicatorContext#getCurrentDagInfo}
-   */
-  @Deprecated
-  int getCurrentDagIdenitifer();
 
   /**
    * Get the name of the Input vertices for the specified vertex.

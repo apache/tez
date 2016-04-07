@@ -146,21 +146,9 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
         this);
   }
 
-  @SuppressWarnings("deprecation")
-  @Override
-  public String getCurrentDagName() {
-    return getDag().getName();
-  }
-
   @Override
   public String getCurrentAppIdentifier() {
     return context.getApplicationID().toString();
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override
-  public int getCurrentDagIdenitifer() {
-    return getDag().getID().getId();
   }
 
   @Nullable
