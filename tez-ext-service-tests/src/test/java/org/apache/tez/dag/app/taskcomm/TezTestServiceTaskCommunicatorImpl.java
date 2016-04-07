@@ -191,11 +191,11 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
     builder.setAmPort(getAddress().getPort());
     Credentials taskCredentials = new Credentials();
     // Credentials can change across DAGs. Ideally construct only once per DAG.
-    taskCredentials.addAll(getContext().getCredentials());
+    taskCredentials.addAll(getContext().getAMCredentials());
 
     ByteBuffer credentialsBinary = credentialMap.get(taskSpec.getDAGName());
     if (credentialsBinary == null) {
-      credentialsBinary = serializeCredentials(getContext().getCredentials());
+      credentialsBinary = serializeCredentials(getContext().getAMCredentials());
       credentialMap.putIfAbsent(taskSpec.getDAGName(), credentialsBinary.duplicate());
     } else {
       credentialsBinary = credentialsBinary.duplicate();

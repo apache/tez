@@ -123,7 +123,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     super(taskCommunicatorContext);
     this.taskUmbilical = new TezTaskUmbilicalProtocolImpl();
     this.tokenIdentifier = taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString();
-    this.sessionToken = TokenCache.getSessionToken(taskCommunicatorContext.getCredentials());
+    this.sessionToken = TokenCache.getSessionToken(taskCommunicatorContext.getAMCredentials());
     try {
       conf = TezUtils.createConfFromUserPayload(getContext().getInitialUserPayload());
     } catch (IOException e) {

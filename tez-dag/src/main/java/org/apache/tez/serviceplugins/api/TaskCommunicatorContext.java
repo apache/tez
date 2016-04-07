@@ -70,7 +70,7 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
    *
    * @return credentials
    */
-  Credentials getCredentials();
+  Credentials getAMCredentials();
 
   /**
    * Check whether a running attempt can commit. This provides a leader election mechanism amongst

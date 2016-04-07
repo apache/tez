@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
   TEZ-3029. Add an onError method to service plugin contexts.
   TEZ-3120. Remove TaskCommContext.getCurrentDagName, Identifier.
   TEZ-3183. Change the taskFailed method on plugin contexts to specify the type of failure.
+  TEZ-3199. Rename getCredentials in TaskCommunicatorContext to be less confusing.
 
 ALL CHANGES:
   TEZ-3161. Allow task to report different kinds of errors - fatal / kill.

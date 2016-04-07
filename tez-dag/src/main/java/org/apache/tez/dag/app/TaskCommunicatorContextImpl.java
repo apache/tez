@@ -83,7 +83,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   }
 
   @Override
-  public Credentials getCredentials() {
+  public Credentials getAMCredentials() {
     return context.getAppCredentials();
   }
 

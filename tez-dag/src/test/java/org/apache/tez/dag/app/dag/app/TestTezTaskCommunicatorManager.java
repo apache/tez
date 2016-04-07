@@ -52,7 +52,7 @@ public class TestTezTaskCommunicatorManager {
 
     doReturn(appAttemptId).when(context).getApplicationAttemptId();
     doReturn(userPayload).when(context).getInitialUserPayload();
-    doReturn(new Credentials()).when(context).getCredentials();
+    doReturn(new Credentials()).when(context).getAMCredentials();
 
     TezTaskCommunicatorImpl taskComm = new TezTaskCommunicatorImpl(context);
 
