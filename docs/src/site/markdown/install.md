@@ -19,9 +19,10 @@
 
 Install/Deploy Instructions for Tez
 ---------------------------------------------------------------------------
-Replace x.y.z with the tez release number that you are using. E.g. 0.5.0
+Replace x.y.z with the tez release number that you are using. E.g. 0.5.0. For Tez 
+versions 0.8.3 and higher, Tez needs Hadoop to be of version 2.6.0 or higher.
 
-1.  Deploy Apache Hadoop using either the 2.2.0 release or a compatible 2.x version.
+1.  Deploy Apache Hadoop using version of 2.6.0 or higher.
     -   You need to change the value of the hadoop.version property in the
         top-level pom.xml to match the version of the hadoop branch being used.
         ```

@@ -4,6 +4,7 @@ Apache Tez Change Log
 Release 0.8.3: Unreleased
 
 INCOMPATIBLE CHANGES
+  TEZ-3180. Update master docs to declare hadoop-2.6.x as a minimum requirement.
   TEZ-3029. Add an onError method to service plugin contexts.
   TEZ-3120. Remove TaskCommContext.getCurrentDagName, Identifier.
   TEZ-3183. Change the taskFailed method on plugin contexts to specify the type of failure.

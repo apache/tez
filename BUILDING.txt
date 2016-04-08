@@ -11,6 +11,7 @@ Requirements:
 * Findbugs 2.0.2 or later (if running findbugs)
 * ProtocolBuffer 2.5.0
 * Internet connection for first build (to fetch all dependencies)
+* Hadoop version should be 2.6.0 or higher.
 
 ----------------------------------------------------------------------------------
 Maven main modules:
@@ -63,9 +64,9 @@ Tests options:
 ----------------------------------------------------------------------------------
 Building against a specific version of hadoop:
 
-Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.2.0 or higher.
+Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.6.0 or higher.
 
-By default, it can be compiled against hadoop versions 2.6.0 and higher by just
+By default, it can be compiled against other compatible hadoop versions by just
 specifying the hadoop.version. For example, to build tez against hadoop 3.0.0-SNAPSHOT 
 
  $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT
@@ -81,37 +82,13 @@ For Hadoop version X where X >= 2.8.0
 
  $ mvn package  -Dhadoop.version=${X} -Phadoop28 -P\!hadoop26
 
-For Hadoop version X where 2.4.0 <= X < 2.6.0
-
- $ mvn package  -Dhadoop.version=${X} -Phadoop24 -P\!hadoop26
-
-For Hadoop version X where X < 2.4.0
-
- $ mvn package  -Dhadoop.version=${X} -P\!hadoop24 -P\!hadoop26
-
-For recent versions of Hadoop, you can bundle AWS-S3 (2.6.0+) or Azure (2.7.0+) support 
+For recent versions of Hadoop (which do not bundle aws and azure by default),
+you can bundle AWS-S3 (2.6.0+) or Azure (2.7.0+) support:
 
  $ mvn package -Dhadoop.version=${X} -Paws -Pazure 
 
 Tez also has some shims to provide version-specific implementations for various APIs.
 For more details, please refer to https://cwiki.apache.org/confluence/display/TEZ/HadoopShims
-
-For building on Windows with the hadoop24 profile enabled:
-
-Tez has a couple of symlinks in its codebase. Windows is a bit difficult with
-respect to handling symlinks hence a couple of steps may be needed to be
-able to compile the code. The symlink directories are:
-
-tez-plugins/tez-yarn-timeline-history/src/main/java/org/apache/tez/dag/history/logging/ats
-tez-plugins/tez-yarn-timeline-history/src/test/java/org/apache/tez/tests
-
-To handle these symlinks, wipe these files away and copy the destination dirs
-into the same location:
-
-  - Replace tez-plugins/tez-yarn-timeline-history/src/main/java/org/apache/tez/dag/history/logging/ats
-with tez-plugins/tez-yarn-timeline-history-with-acls/src/main/java/org/apache/tez/dag/history/logging/ats
-  - Replace tez-plugins/tez-yarn-timeline-history/src/test/java/org/apache/tez/tests
-with tez-plugins/tez-yarn-timeline-history-with-acls/src/test/java/org/apache/tez/tests
 
 ----------------------------------------------------------------------------------
 UI build issues:
