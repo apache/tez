@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3188. Move tez.submit.hosts out of TezConfiguration to TezConfigurationConstants.
   TEZ-3196. java.lang.InternalError from decompression codec is fatal to a task during shuffle
   TEZ-3177. Non-DAG events should use the session domain or no domain if the data does not need protection.
   TEZ-3192. IFile#checkState creating unnecessary objects though auto-boxing

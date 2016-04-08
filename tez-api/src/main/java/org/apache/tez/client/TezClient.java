@@ -44,6 +44,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.counters.Limits;
+import org.apache.tez.dag.api.TezConfigurationConstants;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.RPCUtil;
@@ -158,8 +159,8 @@ public class TezClient {
     try {
       InetAddress ip = InetAddress.getLocalHost();
       if (ip != null) {
-        tezConf.set(TezConfiguration.TEZ_SUBMIT_HOST, ip.getCanonicalHostName());
-        tezConf.set(TezConfiguration.TEZ_SUBMIT_HOST_ADDRESS, ip.getHostAddress());
+        tezConf.set(TezConfigurationConstants.TEZ_SUBMIT_HOST, ip.getCanonicalHostName());
+        tezConf.set(TezConfigurationConstants.TEZ_SUBMIT_HOST_ADDRESS, ip.getHostAddress());
       }
     } catch (UnknownHostException e) {
       LOG.warn("The host name of the client the tez application was submitted from was unable to be retrieved", e);
