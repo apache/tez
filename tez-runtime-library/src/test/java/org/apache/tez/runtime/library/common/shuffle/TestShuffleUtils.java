@@ -2,11 +2,15 @@ package org.apache.tez.runtime.library.common.shuffle;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionInputStream;
+import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
@@ -26,13 +30,18 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Random;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -251,5 +260,27 @@ public class TestShuffleUtils {
     Assert.assertTrue("emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet
         .cardinality(), emptyPartitionsBitSet.cardinality() == 10);
 
+  }
+
+  @Test
+  public void testInternalErrorTranslation() throws Exception {
+    String codecErrorMsg = "codec failure";
+    CompressionInputStream mockCodecStream = mock(CompressionInputStream.class);
+    when(mockCodecStream.read(any(byte[].class), anyInt(), anyInt()))
+        .thenThrow(new InternalError(codecErrorMsg));
+    Decompressor mockDecoder = mock(Decompressor.class);
+    CompressionCodec mockCodec = mock(CompressionCodec.class);
+    when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
+    when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
+        .thenReturn(mockCodecStream);
+    byte[] header = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F', (byte) 1};
+    try {
+      ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
+          1024, 128, mockCodec, false, 0, mock(Logger.class), "identifier");
+      Assert.fail("shuffle was supposed to throw!");
+    } catch (IOException e) {
+      Assert.assertTrue(e.getCause() instanceof InternalError);
+      Assert.assertTrue(e.getMessage().contains(codecErrorMsg));
+    }
   }
 }

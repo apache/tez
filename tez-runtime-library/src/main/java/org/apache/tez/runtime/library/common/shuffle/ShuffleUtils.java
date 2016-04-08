@@ -124,6 +124,15 @@ public class ShuffleUtils {
       ioCleanup(input);
       // Re-throw
       throw ioe;
+    } catch (InternalError e) {
+      // Close the streams
+      LOG.info("Failed to read data to memory for " + identifier + ". len=" + compressedLength +
+          ", decomp=" + decompressedLength + ". ExceptionMessage=" + e.getMessage());
+      ioCleanup(input);
+      // The codec for lz0,lz4,snappy,bz2,etc. throw java.lang.InternalError
+      // on decompression failures. Catching and re-throwing as IOException
+      // to allow fetch failure logic to be processed.
+      throw new IOException(e);
     }
   }
   
