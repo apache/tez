@@ -20,7 +20,6 @@ package org.apache.tez.client;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -69,6 +68,7 @@ import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConfigurationConstants;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
@@ -645,8 +645,8 @@ public class TestTezClient {
     configureAndCreateTezClient(conf);
     InetAddress ip = InetAddress.getLocalHost();
     if (ip != null) {
-      Assert.assertEquals(ip.getCanonicalHostName(), conf.get(TezConfiguration.TEZ_SUBMIT_HOST));
-      Assert.assertEquals(ip.getHostAddress(), conf.get(TezConfiguration.TEZ_SUBMIT_HOST_ADDRESS));
+      Assert.assertEquals(ip.getCanonicalHostName(), conf.get(TezConfigurationConstants.TEZ_SUBMIT_HOST));
+      Assert.assertEquals(ip.getHostAddress(), conf.get(TezConfigurationConstants.TEZ_SUBMIT_HOST_ADDRESS));
     } else {
       Assert.fail("Failed to retrieve local host information");
     }

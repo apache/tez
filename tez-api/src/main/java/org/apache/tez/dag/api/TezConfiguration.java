@@ -80,7 +80,12 @@ public class TezConfiguration extends Configuration {
     Configuration.addDeprecation("tez.task.max-events-per-heartbeat.max",
         TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT);
 
-    for (Field field : TezConfiguration.class.getFields()) {
+    setupConfigurationScope(TezConfiguration.class);
+
+  }
+
+  static void setupConfigurationScope(Class<?> clazz) {
+    for (Field field : clazz.getFields()) {
       if (field.isAnnotationPresent(ConfigurationScope.class)) {
         ConfigurationScope confScope = field.getAnnotation(ConfigurationScope.class);
         if (field.getType() == String.class) {
@@ -1105,20 +1110,6 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_AM_APPLICATION_PRIORITY = TEZ_PREFIX + "am.application.priority";
-
-  /**
-   * String value. Set automatically by the client. The host name of the client the Tez application was submitted from.
-   */
-  @Private
-  @ConfigurationScope(Scope.AM)
-  public static final String TEZ_SUBMIT_HOST = TEZ_PREFIX + "submit.host";
-
-  /**
-   * String value. Set automatically by the client. The host address of the client the Tez application was submitted from.
-   */
-  @Private
-  @ConfigurationScope(Scope.AM)
-  public static final String TEZ_SUBMIT_HOST_ADDRESS = TEZ_PREFIX + "submit.host.address";
 
   @Unstable
   /**
