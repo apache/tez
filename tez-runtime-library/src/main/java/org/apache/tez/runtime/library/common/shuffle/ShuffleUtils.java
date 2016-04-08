@@ -123,13 +123,19 @@ public class ShuffleUtils {
         LOG.debug("Read " + shuffleData.length + " bytes from input for "
             + identifier);
       }
-    } catch (IOException ioe) {
+    } catch (InternalError | IOException e) {
       // Close the streams
       LOG.info("Failed to read data to memory for " + identifier + ". len=" + compressedLength +
-          ", decomp=" + decompressedLength + ". ExceptionMessage=" + ioe.getMessage());
+          ", decomp=" + decompressedLength + ". ExceptionMessage=" + e.getMessage());
       ioCleanup(input);
+      if (e instanceof InternalError) {
+        // The codec for lz0,lz4,snappy,bz2,etc. throw java.lang.InternalError
+        // on decompression failures. Catching and re-throwing as IOException
+        // to allow fetch failure logic to be processed.
+        throw new IOException(e);
+      }
       // Re-throw
-      throw ioe;
+      throw e;
     }
   }
   

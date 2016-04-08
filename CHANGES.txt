@@ -10,6 +10,7 @@ INCOMPATIBLE CHANGES
   TEZ-3199. Rename getCredentials in TaskCommunicatorContext to be less confusing.
 
 ALL CHANGES:
+  TEZ-3196. java.lang.InternalError from decompression codec is fatal to a task during shuffle
   TEZ-3161. Allow task to report different kinds of errors - fatal / kill.
   TEZ-3177. Non-DAG events should use the session domain or no domain if the data does not need protection.
   TEZ-3192. IFile#checkState creating unnecessary objects though auto-boxing
@@ -423,6 +424,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-3196. java.lang.InternalError from decompression codec is fatal to a task during shuffle
   TEZ-3177. Non-DAG events should use the session domain or no domain if the data does not need protection.
   TEZ-3192. IFile#checkState creating unnecessary objects though auto-boxing
   TEZ-3189. Pre-warm dags should not be counted in submitted dags count by DAGAppMaster.
