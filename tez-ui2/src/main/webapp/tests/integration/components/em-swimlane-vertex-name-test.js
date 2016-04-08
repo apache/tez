@@ -55,6 +55,7 @@ test('Name test', function(assert) {
 test('Progress test', function(assert) {
   this.set("process", Process.create({
     vertex: {
+      finalStatus: "RUNNING",
       progress: 0.5
     }
   }));

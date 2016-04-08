@@ -17,7 +17,7 @@
 }}
 
 <div class="process-names">
-  {{#each normalizedProcesses as |process|}}
+  {{#each normalizedProcesses key="_id" as |process|}}
     {{component nameComponent
       process=process
       showTooltip="showTooltip"
@@ -30,7 +30,7 @@
   </div>
 </div><div class="process-visuals">
   <div class="zoom-panel">
-    {{#each normalizedProcesses as |process|}}
+    {{#each normalizedProcesses key="_id" as |process|}}
       {{component visualComponent
         process=process
         processor=processor
@@ -42,7 +42,7 @@
 
     {{#if consolidate}}
       <div class="consolidated-view">
-        {{#each normalizedProcesses as |process|}}
+        {{#each normalizedProcesses key="_id" as |process|}}
           {{em-swimlane-consolidated-process
             focusedProcess=focusedProcess
             process=process

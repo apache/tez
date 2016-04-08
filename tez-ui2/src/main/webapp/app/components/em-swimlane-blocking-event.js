@@ -44,12 +44,14 @@ export default Ember.Component.extend({
     if(blockTime && this.get("blocking.endEvent.time") >= blockTime) {
       blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
 
-      this.$().css({
-        "left": this.get("processor").timeToPositionPercent(blockTime) + "%"
-      });
-      this.$(".event-line").css({
-        "height": `${blockerEventHeight}px`,
-        "border-color": this.get("process").getColor()
+      Ember.run.later(this, function () {
+        this.$().css({
+          "left": this.get("processor").timeToPositionPercent(blockTime) + "%"
+        });
+        this.$(".event-line").css({
+          "height": `${blockerEventHeight}px`,
+          "border-color": this.get("process").getColor()
+        });
       });
     }
   }),

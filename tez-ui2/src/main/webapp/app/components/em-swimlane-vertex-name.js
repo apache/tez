@@ -32,10 +32,13 @@ export default Ember.Component.extend({
     });
   },
 
-  progressText: Ember.computed("process.vertex.progress", function () {
-    var percent = parseInt(this.get("process.vertex.progress") * 100);
-    if(!isNaN(percent) && percent > 0 && percent < 100) {
-      return `${percent}%`;
+  progressText: Ember.computed("process.vertex.finalStatus", "process.vertex.progress", function () {
+    if(this.get("process.vertex.finalStatus") === "RUNNING") {
+      let progress = this.get("process.vertex.progress");
+      if(!isNaN(progress)) {
+        let percent = parseInt(progress * 100);
+        return `${percent}%`;
+      }
     }
   }),
 

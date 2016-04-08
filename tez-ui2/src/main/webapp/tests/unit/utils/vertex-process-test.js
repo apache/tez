@@ -34,7 +34,7 @@ test('Basic creation test', function(assert) {
 
   assert.ok(process.events);
   assert.ok(process.eventBars);
-  assert.ok(process.unblockTime);
+  assert.ok(process.unblockDetails);
 
   assert.ok(process.eventsHash);
   assert.ok(process.getTooltipContents);
@@ -44,40 +44,54 @@ test('Basic creation test', function(assert) {
   assert.ok(process.getConsolidateColor);
 });
 
-test('unblockTime test', function(assert) {
-  var process = VertexProcess.create();
-  assert.equal(process.get("unblockTime"), undefined);
+test('unblockDetails test', function(assert) {
+  var process = VertexProcess.create(),
+      testEdge2 = {}, testEdge3 = {}, testEdge4 = {};
+  assert.equal(process.get("unblockDetails"), undefined);
 
   process = VertexProcess.create({
     blockers: [VertexProcess.create({
       vertex: {
+        name: "v1",
         endTime: 10
       }
     }), VertexProcess.create({
       vertex: {
+        name: "v2",
         endTime: 15
       }
     }), VertexProcess.create({
       vertex: {
+        name: "v3",
         endTime: 20
       }
     })]
   });
+  process.get("edgeHash").setProperties({
+    v2: testEdge2,
+    v3: testEdge3,
+    v4: testEdge4
+  });
 
-  assert.ok(process.get("unblockTime"), 20);
+  assert.equal(process.get("unblockDetails.edge"), testEdge3);
+  assert.equal(process.get("unblockDetails.time"), 20);
 
   process.blockers[2].set("vertex", Ember.Object.create({
+    name: "v4",
     endTime: 12
   }));
-  assert.ok(process.get("unblockTime"), 15);
+  assert.equal(process.get("unblockDetails.edge"), testEdge2);
+  assert.equal(process.get("unblockDetails.time"), 15);
 
   process.blockers[2].vertex.set("endTime", 25);
-  assert.ok(process.get("unblockTime"), 25);
+  assert.equal(process.get("unblockDetails.edge"), testEdge4);
+  assert.equal(process.get("unblockDetails.time"), 25);
 });
 
 test('events test', function(assert) {
   var process = VertexProcess.create({
     vertex: Ember.Object.create({
+      name: "v1",
       events: [{
         eventtype: "testEvent1"
         //No timestamp, will be removed
@@ -98,8 +112,8 @@ test('events test', function(assert) {
   assert.equal(process.get("events.0.name"), "testEvent2");
   assert.equal(process.get("events.1.name"), "VERTEX_INITIALIZED");
   assert.equal(process.get("events.2.name"), "VERTEX_STARTED");
-  assert.equal(process.get("events.3.name"), "VERTEX_TASK_START");
-  assert.equal(process.get("events.4.name"), "VERTEX_TASK_FINISH");
+  assert.equal(process.get("events.3.name"), "FIRST_TASK_STARTED");
+  assert.equal(process.get("events.4.name"), "LAST_TASK_FINISHED");
   assert.equal(process.get("events.5.name"), "VERTEX_FINISHED");
 
   assert.equal(process.get("events.0.time"), 10);
@@ -112,6 +126,7 @@ test('events test', function(assert) {
   // unblockTime < firstTaskStartTime, and we don't consider as a relevant event
   process.set("blockers", [VertexProcess.create({
     vertex: Ember.Object.create({
+      name: "v2",
       endTime: 30
     })
   })]);
@@ -119,6 +134,7 @@ test('events test', function(assert) {
 
   process.set("blockers", [VertexProcess.create({
     vertex: Ember.Object.create({
+      name: "v3",
       endTime: 55
     })
   })]);
@@ -129,9 +145,8 @@ test('events test', function(assert) {
 });
 
 test('getTooltipContents-event test', function(assert) {
-  var process = VertexProcess.create();
-
-  var eventTooltip = process.getTooltipContents("event", {
+  var process = VertexProcess.create(),
+      eventTooltip = process.getTooltipContents("event", {
     events: [{
       name: "TestEventName1",
       time: 10
@@ -142,10 +157,23 @@ test('getTooltipContents-event test', function(assert) {
         inf1: "val1",
         inf2: 30
       }
+    }, {
+      name: "TestEventName3",
+      time: 40,
+      edge: {
+        edgeId: "221296172",
+        inputVertexName: "Map 4",
+        outputVertexName: "Map 1",
+        dataMovementType: "BROADCAST",
+        dataSourceType: "PERSISTED",
+        schedulingType: "SEQUENTIAL",
+        edgeSourceClass: "org.apache.tez.runtime.library.output.UnorderedKVOutput",
+        edgeDestinationClass: "org.apache.tez.runtime.library.input.UnorderedKVInput"
+      }
     }]
   });
 
-  assert.equal(eventTooltip.length, 2);
+  assert.equal(eventTooltip.length, 4);
 
   assert.equal(eventTooltip[0].title, "TestEventName1");
   assert.equal(eventTooltip[0].properties.length, 1);
@@ -166,6 +194,29 @@ test('getTooltipContents-event test', function(assert) {
   assert.equal(eventTooltip[1].properties[2].name, "inf2");
   assert.equal(eventTooltip[1].properties[2].value, 30);
   assert.equal(eventTooltip[1].properties[2].type, "number");
+
+  assert.equal(eventTooltip[2].title, "TestEventName3");
+  assert.equal(eventTooltip[2].properties.length, 1);
+  assert.equal(eventTooltip[2].properties[0].name, "Time");
+  assert.equal(eventTooltip[2].properties[0].value, 40);
+  assert.equal(eventTooltip[2].properties[0].type, "date");
+
+  assert.equal(eventTooltip[3].title, "Edge From Final Dependent Vertex");
+  assert.equal(eventTooltip[3].properties.length, 7);
+  assert.equal(eventTooltip[3].properties[0].name, "Input Vertex");
+  assert.equal(eventTooltip[3].properties[0].value, "Map 4");
+  assert.equal(eventTooltip[3].properties[1].name, "Output Vertex");
+  assert.equal(eventTooltip[3].properties[1].value, "Map 1");
+  assert.equal(eventTooltip[3].properties[2].name, "Data Movement");
+  assert.equal(eventTooltip[3].properties[2].value, "BROADCAST");
+  assert.equal(eventTooltip[3].properties[3].name, "Data Source");
+  assert.equal(eventTooltip[3].properties[3].value, "PERSISTED");
+  assert.equal(eventTooltip[3].properties[4].name, "Scheduling");
+  assert.equal(eventTooltip[3].properties[4].value, "SEQUENTIAL");
+  assert.equal(eventTooltip[3].properties[5].name, "Source Class");
+  assert.equal(eventTooltip[3].properties[5].value, "UnorderedKVOutput");
+  assert.equal(eventTooltip[3].properties[6].name, "Destination Class");
+  assert.equal(eventTooltip[3].properties[6].value, "UnorderedKVInput");
 });
 
 test('getTooltipContents-process test', function(assert) {

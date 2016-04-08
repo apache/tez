@@ -51,8 +51,10 @@ test('Basic creation test', function(assert) {
 test('Events test', function(assert) {
   this.set("process", Process.create({
     events: [{
+      name: "event1",
       time: 5
     }, {
+      name: "event2",
       time: 7
     }]
   }));

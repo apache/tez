@@ -52,12 +52,14 @@ export default Ember.Component.extend({
         color = this.get("bar.color") || this.get("process").getBarColor(this.get("barIndex"));
 
     if(fromEventPos && toEventPos) {
-      this.$().show();
-      this.$(".event-bar").css({
-        left: fromEventPos + "%",
-        right: (100 - toEventPos) + "%",
-        "background-color": color,
-        "border-color": this.get("process").getColor()
+      Ember.run.later(this, function () {
+        this.$().show();
+        this.$(".event-bar").css({
+          left: fromEventPos + "%",
+          right: (100 - toEventPos) + "%",
+          "background-color": color,
+          "border-color": this.get("process").getColor()
+        });
       });
     }
     else {

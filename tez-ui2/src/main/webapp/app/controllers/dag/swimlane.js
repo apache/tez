@@ -124,12 +124,15 @@ export default MultiTableController.extend({
     });
 
     // Add process(vertex) dependencies based on dagPlan
-    dagPlanEdges.forEach(function (edge) {
-      var process = processHash[edge.outputVertexName];
-      if(process && processHash[edge.inputVertexName]) {
-        process.blockers.push(processHash[edge.inputVertexName]);
-      }
-    });
+    if(dagPlanEdges) {
+      dagPlanEdges.forEach(function (edge) {
+        var process = processHash[edge.outputVertexName];
+        if(process && processHash[edge.inputVertexName]) {
+          process.blockers.push(processHash[edge.inputVertexName]);
+          process.edgeHash.set(edge.inputVertexName, edge);
+        }
+      });
+    }
 
     return Ember.A(processes);
   }),

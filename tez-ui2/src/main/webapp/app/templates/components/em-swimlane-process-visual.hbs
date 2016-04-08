@@ -24,7 +24,7 @@
   hideTooltip="hideTooltip"
   click="click"
 }}
-{{#each process.blocking as |blocking|}}
+{{#each process.blocking key="_id" as |blocking|}}
   {{em-swimlane-blocking-event
     process=process
     blocking=blocking
@@ -45,7 +45,7 @@
     click="click"
   }}
 {{/each}}
-{{#each process.events as |event|}}
+{{#each process.events key="name" as |event|}}
   {{em-swimlane-event
     process=process
     event=event

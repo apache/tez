@@ -23,7 +23,7 @@ export default Ember.Object.extend({
   _id: null,
 
   name: null,
-  events: [],
+  events: [], // An array of objects with name and time as mandatory(else error) properties.
   eventBars: null,
 
   index: 0,

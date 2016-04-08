@@ -30,11 +30,14 @@ export default Ember.Component.extend({
   didInsertElement: Ember.observer("event.time", "processor.timeWindow", function () {
     var color = this.get("process").getColor();
 
-    this.$().css({
-      "left": this.get("processor").timeToPositionPercent(this.get("event.time")) + "%"
-    });
     this.$(".event-line").css("border-color", color);
     this.$(".event-bubble").css("border-color", color);
+
+    Ember.run.later(this, function () {
+      this.$().css({
+        "left": this.get("processor").timeToPositionPercent(this.get("event.time")) + "%"
+      });
+    });
   }),
 
   sendMouseAction: function (name, mouseEvent) {

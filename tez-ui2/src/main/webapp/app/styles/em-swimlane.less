@@ -17,6 +17,7 @@
  */
 
 @process-height: 30px;
+@event-anim-duration: .2s;
 
 .em-swimlane {
   position: relative;
@@ -169,6 +170,10 @@
   .process-line {
     top: unit(unit(@process-height) * 0.5 - 1, get-unit(@process-height));
     height: 3px;
+
+    left: 0%;
+    right: 100%;
+    transition: left @event-anim-duration ease-out, right @event-anim-duration ease-out;
   }
 
   .event-bar {
@@ -178,10 +183,17 @@
     border-radius: 2px;
     border: 1px solid;
     margin-right: -1px;
+
+    left: 0%;
+    right: 100%;
+    transition: left @event-anim-duration ease-out, right @event-anim-duration ease-out;
   }
 
   .em-swimlane-event {
     top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
+
+    left: 0%;
+    transition: left @event-anim-duration ease-out;
 
     .event-line {
       position: absolute;
@@ -209,6 +221,10 @@
 
   .em-swimlane-blocking-event {
     top: unit(unit(@process-height) * 0.5, get-unit(@process-height));
+
+    left: 0%;
+    height: 0;
+    transition: left @event-anim-duration ease-out, height @event-anim-duration ease-out;
 
     .event-line {
       position: absolute;

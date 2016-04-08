@@ -32,13 +32,20 @@ export default Process.extend({
 
   getVisibleProps: null,
 
+  edgeHash: null,
+
   eventBars: [{
-    fromEvent: "VERTEX_TASK_START",
-    toEvent: "VERTEX_TASK_FINISH",
+    fromEvent: "FIRST_TASK_STARTED",
+    toEvent: "LAST_TASK_FINISHED",
   }, {
     fromEvent: "DEPENDENT_VERTICES_COMPLETE",
-    toEvent: "VERTEX_TASK_FINISH",
+    toEvent: "LAST_TASK_FINISHED",
   }],
+
+  init: function () {
+    this._super();
+    this.set("edgeHash", Ember.Object.create());
+  },
 
   eventsHash: Ember.computed("vertex.events.@each.timestamp", function () {
     var events = {},
@@ -61,7 +68,7 @@ export default Process.extend({
 
   events: Ember.computed("eventsHash",
     "vertex.initTime", "vertex.startTime", "vertex.endTime",
-    "vertex.firstTaskStartTime", "vertex.lastTaskFinishTime", "unblockTime",
+    "vertex.firstTaskStartTime", "vertex.lastTaskFinishTime", "unblockDetails",
     function () {
       var events = [],
           eventsHash = this.get("eventsHash"),
@@ -72,7 +79,7 @@ export default Process.extend({
 
           firstTaskStartTime = this.get("vertex.firstTaskStartTime"),
           lastTaskFinishTime = this.get("vertex.lastTaskFinishTime"),
-          unblockTime = this.get("unblockTime");
+          unblockDetails = this.get("unblockDetails");
 
       if(initTime > 0) {
         eventsHash["VERTEX_INITIALIZED"] = {
@@ -89,22 +96,23 @@ export default Process.extend({
       }
 
       if(firstTaskStartTime > 0) {
-        eventsHash["VERTEX_TASK_START"] = {
-          name: "VERTEX_TASK_START",
+        eventsHash["FIRST_TASK_STARTED"] = {
+          name: "FIRST_TASK_STARTED",
           time: firstTaskStartTime
         };
       }
 
-      if(unblockTime > 0 && unblockTime >= firstTaskStartTime) {
+      if(unblockDetails && unblockDetails.time >= firstTaskStartTime) {
         eventsHash["DEPENDENT_VERTICES_COMPLETE"] = {
           name: "DEPENDENT_VERTICES_COMPLETE",
-          time: unblockTime
+          time: unblockDetails.time,
+          edge: unblockDetails.edge
         };
       }
 
       if(lastTaskFinishTime > 0) {
-        eventsHash["VERTEX_TASK_FINISH"] = {
-          name: "VERTEX_TASK_FINISH",
+        eventsHash["LAST_TASK_FINISHED"] = {
+          name: "LAST_TASK_FINISHED",
           time: lastTaskFinishTime
         };
       }
@@ -124,27 +132,58 @@ export default Process.extend({
     }
   ),
 
-  unblockTime: Ember.computed("blockers.@each.completeTime", function () {
+  unblockDetails: Ember.computed("blockers.@each.completeTime", function () {
     var blockers = this.get("blockers"),
-        time;
+        data = {
+          time: 0
+        };
 
     if(blockers) {
-      time = 0;
-      for(var i = 0, length = blockers.length; i < length; i++) {
-        let blockerComplete = blockers[i].get("completeTime");
+      blockers.every(function (currentBlocker) {
+        var blockerComplete = currentBlocker.get("completeTime");
 
         if(!blockerComplete) {
-          time = undefined;
-          break;
+          this.blocker = undefined;
+          return false;
         }
-        else if(blockerComplete > time) {
-          time = blockerComplete;
+        else if(blockerComplete > this.time) {
+          this.blocker = currentBlocker;
+          this.time = blockerComplete;
         }
-      }
+
+        return true;
+      }, data);
     }
 
-    return time;
+    if(data.blocker) {
+      return {
+        time: data.blocker.get("completeTime"),
+        edge: this.get("edgeHash").get(data.blocker.get("name"))
+      };
+    }
   }),
+
+  getTipProperties: function (propHash, propArray) {
+    propArray = propArray || [];
+
+    MoreObject.forEach(propHash, function (key, value) {
+      if(MoreObject.isString(value)) {
+        propArray.push({
+          name: key,
+          value: value,
+        });
+      }
+      else if (MoreObject.isNumber(value)) {
+        propArray.push({
+          name: key,
+          value: value,
+          type: "number"
+        });
+      }
+    });
+
+    return propArray;
+  },
 
   getTooltipContents: function (type, options) {
     var contents,
@@ -174,6 +213,7 @@ export default Process.extend({
         }];
       break;
       case "event":
+        var edge;
         contents = options.events.map(function (event) {
           var properties = [{
             name: "Time",
@@ -181,28 +221,36 @@ export default Process.extend({
             type: "date"
           }];
 
-          if(event.info) {
-            MoreObject.forEach(event.info, function (key, value) {
-              if(MoreObject.isString(value)) {
-                properties.push({
-                  name: key,
-                  value: value,
-                });
-              }
-              else if (MoreObject.isNumber(value)) {
-                properties.push({
-                  name: key,
-                  value: value,
-                  type: "number"
-                });
-              }
-            });
+          if(event.edge) {
+            edge = event.edge;
           }
+          if(event.info) {
+            properties = this.getTipProperties(event.info, properties);
+          }
+
           return {
             title: event.name,
             properties: properties
           };
-        });
+        }, this);
+
+        if(edge) {
+          let sourceClass = edge.edgeSourceClass || "",
+              destClass = edge.edgeDestinationClass || "";
+
+          contents.push({
+            title: "Edge From Final Dependent Vertex",
+            properties: this.getTipProperties({
+              "Input Vertex": edge.inputVertexName,
+              "Output Vertex": edge.outputVertexName,
+              "Data Movement": edge.dataMovementType,
+              "Data Source": edge.dataSourceType,
+              "Scheduling": edge.schedulingType,
+              "Source Class": sourceClass.substr(sourceClass.lastIndexOf(".") + 1),
+              "Destination Class": destClass.substr(destClass.lastIndexOf(".") + 1),
+            })
+          });
+        }
       break;
     }
 
@@ -210,13 +258,16 @@ export default Process.extend({
   },
 
   consolidateStartTime: Ember.computed("vertex.firstTaskStartTime",
-      "vertex.unblockTime", function () {
-        return Math.max(this.get("vertex.firstTaskStartTime") || 0, this.get("unblockTime") || 0);
+      "unblockDetails.time", function () {
+        return Math.max(
+          this.get("vertex.firstTaskStartTime") || 0,
+          this.get("unblockDetails.time") || 0
+        );
   }),
   consolidateEndTime: Ember.computed.oneWay("vertex.endTime"),
 
   getConsolidateColor: function () {
-    return this.getBarColor(this.get("unblockTime") ? 1 : 0);
+    return this.getBarColor(this.get("unblockDetails") ? 1 : 0);
   },
 
 });
