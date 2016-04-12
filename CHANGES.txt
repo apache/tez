@@ -1,7 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.8.3: 2016-04-14 
+Release 0.8.3: 2016-04-16 
 
 INCOMPATIBLE CHANGES
   TEZ-3180. Update master docs to declare hadoop-2.6.x as a minimum requirement.
