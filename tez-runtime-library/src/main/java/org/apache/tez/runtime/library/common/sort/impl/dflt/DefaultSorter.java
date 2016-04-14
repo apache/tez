@@ -55,6 +55,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezMerger;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
+import org.apache.tez.runtime.library.common.sort.impl.TezMerger.DiskSegment;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 
 import com.google.common.base.Preconditions;
@@ -1287,8 +1288,8 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           outputContext.notifyProgress();
           TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
-          Segment s =
-            new Segment(rfs, filename[i], indexRecord.getStartOffset(),
+          DiskSegment s =
+            new DiskSegment(rfs, filename[i], indexRecord.getStartOffset(),
                              indexRecord.getPartLength(), codec, ifileReadAhead,
                              ifileReadAheadLength, ifileBufferSize, true);
           segmentList.add(i, s);

@@ -6,6 +6,7 @@ Release 0.8.4: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3202. Reduce the memory need for jobs with high number of segments
 
 Release 0.8.3: 2016-04-14 
 
@@ -433,6 +434,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-3202. Reduce the memory need for jobs with high number of segments
   TEZ-3188. Move tez.submit.hosts out of TezConfiguration to TezConfigurationConstants.
   TEZ-3196. java.lang.InternalError from decompression codec is fatal to a task during shuffle
   TEZ-3177. Non-DAG events should use the session domain or no domain if the data does not need protection.

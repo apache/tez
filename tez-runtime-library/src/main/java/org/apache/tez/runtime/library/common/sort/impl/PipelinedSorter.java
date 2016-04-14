@@ -57,6 +57,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
+import org.apache.tez.runtime.library.common.sort.impl.TezMerger.DiskSegment;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.runtime.library.utils.LocalProgress;
 
@@ -730,8 +731,8 @@ public class PipelinedSorter extends ExternalSorter {
           Path spillFilename = spillFilePaths.get(i);
           TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
 
-          Segment s =
-              new Segment(rfs, spillFilename, indexRecord.getStartOffset(),
+          DiskSegment s =
+              new DiskSegment(rfs, spillFilename, indexRecord.getStartOffset(),
                   indexRecord.getPartLength(), codec, ifileReadAhead,
                   ifileReadAheadLength, ifileBufferSize, true);
           segmentList.add(i, s);
