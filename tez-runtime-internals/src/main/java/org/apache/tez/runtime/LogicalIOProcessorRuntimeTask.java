@@ -156,6 +156,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final HadoopShim hadoopShim;
   private final int maxEventBacklog;
 
+  private final boolean initializeProcessorFirst;
+  private final boolean initializeProcessorIOSerially;
+
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> envMap,
@@ -189,8 +192,15 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.eventsToBeProcessed = new LinkedBlockingQueue<TezEvent>();
     this.state.set(State.NEW);
     this.appAttemptNumber = appAttemptNumber;
+    this.initializeProcessorFirst = tezConf.getBoolean(TezConfiguration.TEZ_TASK_INITIALIZE_PROCESSOR_FIRST,
+        TezConfiguration.TEZ_TASK_INITIALIZE_PROCESSOR_FIRST_DEFAULT);
+    this.initializeProcessorIOSerially = tezConf.getBoolean(TezConfiguration.TEZ_TASK_INITIALIZE_PROCESSOR_IO_SERIALLY,
+        TezConfiguration.TEZ_TASK_INITIALIZE_PROCESSOR_IO_SERIALLY_DEFAULT);
     int numInitializers = numInputs + numOutputs; // Processor is initialized in the main thread.
     numInitializers = (numInitializers == 0 ? 1 : numInitializers);
+    if (initializeProcessorIOSerially) {
+      numInitializers = 1;
+    }
     this.initializerExecutor = Executors.newFixedThreadPool(
         numInitializers,
         new ThreadFactoryBuilder().setDaemon(true)
@@ -219,6 +229,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.processorContext = createProcessorContext();
     this.processor = createProcessor(processorDescriptor.getClassName(), processorContext);
 
+    if (initializeProcessorFirst || initializeProcessorIOSerially) {
+      // Initialize processor in the current thread.
+      initializeLogicalIOProcessor();
+    }
     int numTasks = 0;
 
     int inputIndex = 0;
@@ -235,9 +249,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       numTasks++;
     }
 
-    // Initialize processor in the current thread.
-    initializeLogicalIOProcessor();
-
+    if (!(initializeProcessorFirst || initializeProcessorIOSerially)) {
+      // Initialize processor in the current thread.
+      initializeLogicalIOProcessor();
+    }
     int completedTasks = 0;
     while (completedTasks < numTasks) {
       LOG.info("Waiting for " + (numTasks-completedTasks) + " initializers to finish");

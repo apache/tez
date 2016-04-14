@@ -731,6 +731,28 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT = 10000;
 
   /**
+   * Boolean value. Backwards compatibility setting for initializing IO processor before
+   * inputs and outputs.
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_TASK_INITIALIZE_PROCESSOR_FIRST = TEZ_TASK_PREFIX +
+      "initialize-processor-first";
+  public static final boolean TEZ_TASK_INITIALIZE_PROCESSOR_FIRST_DEFAULT = false;
+
+  /**
+   * Boolean value. Backwards compatibility setting for initializing inputs and outputs
+   * serially instead of the parallel default.
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_TASK_INITIALIZE_PROCESSOR_IO_SERIALLY = TEZ_TASK_PREFIX +
+      "initialize-processor-io-serially";
+  public static final boolean TEZ_TASK_INITIALIZE_PROCESSOR_IO_SERIALLY_DEFAULT = false;
+
+  /**
    * Long value. Interval, in milliseconds, within which any of the tasks Input/Processor/Output 
    * components need to make successive progress notifications. If the progress is not notified 
    * for this interval then the task will be considered hung and terminated.
