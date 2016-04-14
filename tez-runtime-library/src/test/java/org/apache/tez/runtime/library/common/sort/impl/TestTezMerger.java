@@ -731,7 +731,7 @@ public class TestTezMerger {
       writer.close();
       InMemoryReader reader = new InMemoryReader(merger, null, stream.getBuffer(), 0, stream.getLimit());
 
-      segmentList.add(new TezMerger.Segment(reader, true, null));
+      segmentList.add(new TezMerger.Segment(reader, null));
     }
     return segmentList;
   }
@@ -756,7 +756,7 @@ public class TestTezMerger {
       int repeatCount = ((i % 2 == 0) && keysPerSegment > 0) ? rnd.nextInt(keysPerSegment) : 0;
       Path ifilePath = writeIFile(keysPerSegment, repeatCount);
 
-      segmentList.add(new TezMerger.Segment(localFs, ifilePath, 0, localFs.getFileStatus
+      segmentList.add(new TezMerger.DiskSegment(localFs, ifilePath, 0, localFs.getFileStatus
           (ifilePath).getLen(), null, false, 1024, 1024, false, null));
     }
     return segmentList;

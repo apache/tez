@@ -61,6 +61,7 @@ import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger;
+import org.apache.tez.runtime.library.common.sort.impl.TezMerger.DiskSegment;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
@@ -442,7 +443,7 @@ public class MergeManager {
     commitMemory -= size;
     usedMemory -= size;
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Notifying unreserve : commitMemory=" + commitMemory + ", usedMemory=" + usedMemory
+      LOG.debug("Notifying unreserve : size=" + size + ", commitMemory=" + commitMemory + ", usedMemory=" + usedMemory
           + ", mergeThreshold=" + mergeThreshold);
     }
     notifyAll();
@@ -613,7 +614,7 @@ public class MergeManager {
             mergeOutputSize += mo.getSize();
             IFile.Reader reader = new InMemoryReader(MergeManager.this,
                 mo.getAttemptIdentifier(), mo.getMemory(), 0, mo.getMemory().length);
-            inMemorySegments.add(new Segment(reader, true,
+            inMemorySegments.add(new Segment(reader,
                 (mo.isPrimaryMapOutput() ? mergedMapOutputsCounter : null)));
             lastAddedMapOutput = mo;
             it.remove();
@@ -816,7 +817,7 @@ public class MergeManager {
         }
         final Path file = fileChunk.getPath();
         approxOutputSize += size;
-        Segment segment = new Segment(rfs, file, offset, size, codec, ifileReadAhead,
+        DiskSegment segment = new DiskSegment(rfs, file, offset, size, codec, ifileReadAhead,
             ifileReadAheadLength, ifileBufferSize, preserve);
         inputSegments.add(segment);
       }
@@ -901,7 +902,7 @@ public class MergeManager {
       IFile.Reader reader = new InMemoryReader(MergeManager.this, 
                                                    mo.getAttemptIdentifier(),
                                                    data, 0, (int)size);
-      inMemorySegments.add(new Segment(reader, true, 
+      inMemorySegments.add(new Segment(reader,
                                             (mo.isPrimaryMapOutput() ? 
                                             mergedMapOutputsCounter : null)));
     }
@@ -1063,7 +1064,7 @@ public class MergeManager {
 
       final long fileOffset = fileChunk.getOffset();
       final boolean preserve = fileChunk.isLocalFile();
-      diskSegments.add(new Segment(fs, file, fileOffset, fileLength, codec, ifileReadAhead,
+      diskSegments.add(new DiskSegment(fs, file, fileOffset, fileLength, codec, ifileReadAhead,
                                    ifileReadAheadLength, ifileBufferSize, preserve, counter));
     }
     LOG.info("Merging " + onDisk.length + " files, " +
@@ -1096,7 +1097,7 @@ public class MergeManager {
         return diskMerge;
       }
       finalSegments.add(new Segment(
-            new RawKVIteratorReader(diskMerge, onDiskBytes), true));
+            new RawKVIteratorReader(diskMerge, onDiskBytes), null));
     }
     // This is doing nothing but creating an iterator over the segments.
     return TezMerger.merge(job, fs, keyClass, valueClass,

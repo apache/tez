@@ -221,115 +221,78 @@ public class TezMerger {
 
   @InterfaceAudience.Private
   @InterfaceStability.Unstable
-  public static class Segment<K extends Object, V extends Object> {
+  static class KeyValueBuffer {
+    private byte[] buf;
+    private int position;
+    private int length;
+
+    public KeyValueBuffer(byte buf[], int position, int length) {
+      reset(buf, position, length);
+    }
+
+    public void reset(byte[] input, int position, int length) {
+      this.buf = input;
+      this.position = position;
+      this.length = length;
+    }
+
+    public byte[] getData() {
+      return buf;
+    }
+
+    public int getPosition() {
+      return position;
+    }
+
+    public int getLength() {
+      return length;
+    }
+  }
+
+  @InterfaceAudience.Private
+  @InterfaceStability.Unstable
+  public static class Segment {
+    static final byte[] EMPTY_BYTES = new byte[0];
     Reader reader = null;
-    final DataInputBuffer key = new DataInputBuffer();
-    
-    FileSystem fs = null;
-    Path file = null;
-    boolean preserve = false; // Signifies whether the segment should be kept after a merge is complete. Checked in the close method.
-    CompressionCodec codec = null;
-    long segmentOffset = 0;
-    long segmentLength = -1;
-    boolean ifileReadAhead;
-    int ifileReadAheadLength;
-    int bufferSize = -1;
-    
+    final KeyValueBuffer key = new KeyValueBuffer(EMPTY_BYTES, 0, 0);
     TezCounter mapOutputsCounter = null;
 
-    public Segment(FileSystem fs, Path file,
-        CompressionCodec codec, boolean ifileReadAhead,
-        int ifileReadAheadLength, int bufferSize, boolean preserve)
-    throws IOException {
-      this(fs, file, codec, ifileReadAhead, ifileReadAheadLength,
-          bufferSize, preserve, null);
-    }
-
-    public Segment(FileSystem fs, Path file,
-                   CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLenth,
-                   int bufferSize, boolean preserve, TezCounter mergedMapOutputsCounter)
-  throws IOException {
-      this(fs, file, 0, fs.getFileStatus(file).getLen(), codec,
-          ifileReadAhead, ifileReadAheadLenth, bufferSize, preserve,
-          mergedMapOutputsCounter);
-    }
-
-    public Segment(FileSystem fs, Path file,
-                   long segmentOffset, long segmentLength,
-                   CompressionCodec codec, boolean ifileReadAhead,
-                   int ifileReadAheadLength,  int bufferSize, 
-                   boolean preserve) throws IOException {
-      this(fs, file, segmentOffset, segmentLength, codec, ifileReadAhead,
-          ifileReadAheadLength, bufferSize, preserve, null);
-    }
-
-    public Segment(FileSystem fs, Path file,
-        long segmentOffset, long segmentLength, CompressionCodec codec,
-        boolean ifileReadAhead, int ifileReadAheadLength, int bufferSize,
-        boolean preserve, TezCounter mergedMapOutputsCounter)
-    throws IOException {
-      this.fs = fs;
-      this.file = file;
-      this.codec = codec;
-      this.preserve = preserve;
-      this.ifileReadAhead = ifileReadAhead;
-      this.ifileReadAheadLength =ifileReadAheadLength;
-      this.bufferSize = bufferSize;
-
-      this.segmentOffset = segmentOffset;
-      this.segmentLength = segmentLength;
-      
-      this.mapOutputsCounter = mergedMapOutputsCounter;
-    }
-    
-    public Segment(Reader reader, boolean preserve) {
-      this(reader, preserve, null);
-    }
-    
-    public Segment(Reader reader, boolean preserve, 
-                   TezCounter mapOutputsCounter) {
+    public Segment(Reader reader, TezCounter mapOutputsCounter) {
       this.reader = reader;
-      this.preserve = preserve;
-      
-      this.segmentLength = reader.getLength();
-      
       this.mapOutputsCounter = mapOutputsCounter;
     }
 
-    void init(TezCounter readsCounter, TezCounter byetsReadCounter) throws IOException {      
-      if (reader == null) { 
-        FSDataInputStream in = fs.open(file);
-        in.seek(segmentOffset);
-        reader = new Reader(in, segmentLength, codec, readsCounter, byetsReadCounter,
-            ifileReadAhead, ifileReadAheadLength, bufferSize);
-      }
+    void init(TezCounter readsCounter, TezCounter bytesReadCounter) throws IOException {
       if (mapOutputsCounter != null) {
         mapOutputsCounter.increment(1);
       }
     }
-    
+
     boolean inMemory() {
-      return fs == null;
+      return true;
     }
-    
-    DataInputBuffer getKey() { return key; }
+
+    KeyValueBuffer getKey() { return key; }
 
     DataInputBuffer getValue(DataInputBuffer value) throws IOException {
       nextRawValue(value);
       return value;
     }
 
-    public long getLength() { 
-      return (reader == null) ?
-        segmentLength : reader.getLength();
+    public long getLength() {
+      return reader.getLength();
     }
-    
-    KeyState readRawKey() throws IOException {
-      return reader.readRawKey(key);
+
+    KeyState readRawKey(DataInputBuffer nextKey) throws IOException {
+      KeyState keyState = reader.readRawKey(nextKey);
+      key.reset(nextKey.getData(), nextKey.getPosition(), nextKey.getLength() - nextKey.getPosition());
+      return keyState;
     }
-    
-    boolean nextRawKey() throws IOException {
-      return reader.nextRawKey(key);
+
+    boolean nextRawKey(DataInputBuffer nextKey) throws IOException {
+      boolean hasNext = reader.nextRawKey(nextKey);
+      key.reset(nextKey.getData(), nextKey.getPosition(), nextKey.getLength() - nextKey.getPosition());
+      return hasNext;
     }
 
     void nextRawValue(DataInputBuffer value) throws IOException {
@@ -342,30 +305,126 @@ public class TezMerger {
         reader = null;
       }
     }
-    
+
     void close() throws IOException {
       closeReader();
-      if (!preserve && fs != null) {
-        fs.delete(file, false);
-      }
     }
 
     public long getPosition() throws IOException {
       return reader.getPosition();
     }
 
-    // This method is used by BackupStore to extract the 
+    // This method is used by BackupStore to extract the
     // absolute position after a reset
     long getActualPosition() throws IOException {
-      return segmentOffset + reader.getPosition();
+      return reader.getPosition();
     }
 
     Reader getReader() {
       return reader;
     }
-    
+
     // This method is used by BackupStore to reinitialize the
     // reader to start reading from a different segment offset
+    void reinitReader(int offset) throws IOException {
+    }
+  }
+
+  @InterfaceAudience.Private
+  @InterfaceStability.Unstable
+  public static class DiskSegment extends Segment {
+
+    FileSystem fs = null;
+    Path file = null;
+    boolean preserve = false; // Signifies whether the segment should be kept after a merge is complete. Checked in the close method.
+    CompressionCodec codec = null;
+    long segmentOffset = 0;
+    long segmentLength = -1;
+    boolean ifileReadAhead;
+    int ifileReadAheadLength;
+    int bufferSize = -1;
+
+    public DiskSegment(FileSystem fs, Path file,
+        CompressionCodec codec, boolean ifileReadAhead,
+        int ifileReadAheadLength, int bufferSize, boolean preserve)
+    throws IOException {
+      this(fs, file, codec, ifileReadAhead, ifileReadAheadLength,
+          bufferSize, preserve, null);
+    }
+
+    public DiskSegment(FileSystem fs, Path file,
+                   CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLenth,
+                   int bufferSize, boolean preserve, TezCounter mergedMapOutputsCounter)
+  throws IOException {
+      this(fs, file, 0, fs.getFileStatus(file).getLen(), codec,
+          ifileReadAhead, ifileReadAheadLenth, bufferSize, preserve,
+          mergedMapOutputsCounter);
+    }
+
+    public DiskSegment(FileSystem fs, Path file,
+                   long segmentOffset, long segmentLength,
+                   CompressionCodec codec, boolean ifileReadAhead,
+                   int ifileReadAheadLength,  int bufferSize, 
+                   boolean preserve) throws IOException {
+      this(fs, file, segmentOffset, segmentLength, codec, ifileReadAhead,
+          ifileReadAheadLength, bufferSize, preserve, null);
+    }
+
+    public DiskSegment(FileSystem fs, Path file,
+        long segmentOffset, long segmentLength, CompressionCodec codec,
+        boolean ifileReadAhead, int ifileReadAheadLength, int bufferSize,
+        boolean preserve, TezCounter mergedMapOutputsCounter)
+    throws IOException {
+      super(null, mergedMapOutputsCounter);
+      this.fs = fs;
+      this.file = file;
+      this.codec = codec;
+      this.preserve = preserve;
+      this.ifileReadAhead = ifileReadAhead;
+      this.ifileReadAheadLength =ifileReadAheadLength;
+      this.bufferSize = bufferSize;
+
+      this.segmentOffset = segmentOffset;
+      this.segmentLength = segmentLength;
+    }
+
+    @Override
+    void init(TezCounter readsCounter, TezCounter bytesReadCounter) throws IOException {
+      super.init(readsCounter, bytesReadCounter);
+      FSDataInputStream in = fs.open(file);
+      in.seek(segmentOffset);
+      reader = new Reader(in, segmentLength, codec, readsCounter, bytesReadCounter, ifileReadAhead,
+          ifileReadAheadLength, bufferSize);
+    }
+
+    @Override
+    boolean inMemory() {
+      return false;
+    }
+
+    @Override
+    public long getLength() {
+      return (reader == null) ?
+        segmentLength : reader.getLength();
+    }
+
+    @Override
+    void close() throws IOException {
+      super.close();
+      if (!preserve && fs != null) {
+        fs.delete(file, false);
+      }
+    }
+    // This method is used by BackupStore to extract the
+    // absolute position after a reset
+    @Override
+    long getActualPosition() throws IOException {
+      return segmentOffset + reader.getPosition();
+    }
+
+    // This method is used by BackupStore to reinitialize the
+    // reader to start reading from a different segment offset
+    @Override
     void reinitReader(int offset) throws IOException {
       if (!inMemory()) {
         closeReader();
@@ -401,8 +460,9 @@ public class TezMerger {
 
     Progressable reporter;
     
-    DataInputBuffer key;
+    final DataInputBuffer key = new DataInputBuffer();
     final DataInputBuffer value = new DataInputBuffer();
+    final DataInputBuffer nextKey = new DataInputBuffer();
     final DataInputBuffer diskIFileValue = new DataInputBuffer();
     
     Segment minSegment;
@@ -440,7 +500,7 @@ public class TezMerger {
       
       for (Path file : inputs) {
         LOG.debug("MergeQ: adding: " + file);
-        segments.add(new Segment(fs, file, codec, ifileReadAhead,
+        segments.add(new DiskSegment(fs, file, codec, ifileReadAhead,
                                       ifileReadAheadLength, ifileBufferSize,
                                       !deleteInputs, 
                                        (file.toString().endsWith(
@@ -516,7 +576,7 @@ public class TezMerger {
           populatePreviousKey();
         }
       }
-      hasNext = reader.readRawKey();
+      hasNext = reader.readRawKey(nextKey);
       long endPos = reader.getPosition();
       totalBytesProcessed += endPos - startPos;
       mergeProgress.set(totalBytesProcessed * progPerByte);
@@ -543,13 +603,12 @@ public class TezMerger {
       Segment nextTop = top();
       if (nextTop != current) {
         //we have a different file. Compare it with previous key
-        DataInputBuffer nextKey = nextTop.getKey();
+        KeyValueBuffer nextKey = nextTop.getKey();
         int compare = compare(nextKey, prevKey);
         if (compare == 0) {
           //Same key is available in the next segment.
           hasNext = KeyState.SAME_KEY;
         }
-        nextKey.reset();
       }
     }
 
@@ -569,7 +628,8 @@ public class TezMerger {
       }
       minSegment = top();
       long startPos = minSegment.getPosition();
-      key = minSegment.getKey();
+      KeyValueBuffer nextKey = minSegment.getKey();
+      key.reset(nextKey.getData(), nextKey.getPosition(), nextKey.getLength());
       if (!minSegment.inMemory()) {
         //When we load the value from an inmemory segment, we reset
         //the "value" DIB in this class to the inmem segment's byte[].
@@ -588,26 +648,27 @@ public class TezMerger {
       long endPos = minSegment.getPosition();
       totalBytesProcessed += endPos - startPos;
       mergeProgress.set(totalBytesProcessed * progPerByte);
+
       return true;
     }
 
-    int compare(DataInputBuffer buf1, DataOutputBuffer buf2) {
-      byte[] b1 = buf1.getData();
+    int compare(KeyValueBuffer nextKey, DataOutputBuffer buf2) {
+      byte[] b1 = nextKey.getData();
       byte[] b2 = buf2.getData();
-      int s1 = buf1.getPosition();
+      int s1 = nextKey.getPosition();
       int s2 = 0;
-      int l1 = buf1.getLength();
+      int l1 = nextKey.getLength();
       int l2 = buf2.getLength();
-      return comparator.compare(b1, s1, (l1 - s1), b2, s2, l2);
+      return comparator.compare(b1, s1, l1, b2, s2, l2);
     }
 
     protected boolean lessThan(Object a, Object b) {
-      DataInputBuffer key1 = ((Segment)a).getKey();
-      DataInputBuffer key2 = ((Segment)b).getKey();
+      KeyValueBuffer key1 = ((Segment)a).getKey();
+      KeyValueBuffer key2 = ((Segment)b).getKey();
       int s1 = key1.getPosition();
-      int l1 = key1.getLength() - s1;
+      int l1 = key1.getLength();
       int s2 = key2.getPosition();
-      int l2 = key2.getLength() - s2;
+      int l2 = key2.getLength();;
 
       return comparator.compare(key1.getData(), s1, l1, key2.getData(), s2, l2) < 0;
     }
@@ -680,7 +741,7 @@ public class TezMerger {
 
             segment.init(readsCounter, bytesReadCounter);
             long startPos = segment.getPosition();
-            boolean hasNext = segment.nextRawKey();
+            boolean hasNext = segment.nextRawKey(nextKey);
             long endPos = segment.getPosition();
             
             if (hasNext) {
@@ -781,7 +842,7 @@ public class TezMerger {
 
           // Add the newly create segment to the list of segments to be merged
           Segment tempSegment = 
-            new Segment(fs, outputFile, codec, ifileReadAhead,
+            new DiskSegment(fs, outputFile, codec, ifileReadAhead,
                 ifileReadAheadLength, ifileBufferSize, false);
 
           // Insert new merged segment into the sorted list

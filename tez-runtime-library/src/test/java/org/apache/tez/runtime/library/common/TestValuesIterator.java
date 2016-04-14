@@ -518,7 +518,7 @@ public class TestValuesIterator {
       }
       IFile.Reader reader = new InMemoryReader(mergeManager, null, bout.getBuffer(), 0,
           bout.getBuffer().length);
-      segments.add(new TezMerger.Segment(reader, true));
+      segments.add(new TezMerger.Segment(reader, null));
 
       data.clear();
       writer.close();
