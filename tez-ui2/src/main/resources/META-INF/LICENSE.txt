@@ -230,7 +230,7 @@ The Apache TEZ tez-ui bundles the following files under the MIT License:
  - ember-bootstrap v0.5.1 (https://github.com/kaliber5/ember-bootstrap) - Copyright 2015 kaliber5 GmbH.
  - snippet-ss v1.11.0 (https://github.com/sreenaths/snippet-ss)
  - em-tgraph v0.0.3 (https://github.com/sreenaths/em-tgraph)
- - em-table v0.3.10 (https://github.com/sreenaths/em-table)
+ - em-table v0.3.11 (https://github.com/sreenaths/em-table)
  - em-helpers v0.5.8 (https://github.com/sreenaths/em-helpers)
  - ember-cli-app-version v1.0.0 (https://github.com/EmberSherpa/ember-cli-app-version) - Authored by Taras Mankovski <tarasm@gmail.com>
  - ember-cli-auto-register v1.1.0 (https://github.com/williamsbdev/ember-cli-auto-register) - Copyright © 2015 Brandon Williams http://williamsbdev.com

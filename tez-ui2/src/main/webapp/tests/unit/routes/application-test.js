@@ -36,6 +36,8 @@ test('Basic creation test', function(assert) {
   assert.ok(route.actions.openModal);
   assert.ok(route.actions.closeModal);
   assert.ok(route.actions.destroyModal);
+
+  assert.ok(route.actions.resetTooltip);
 });
 
 test('Test didTransition action', function(assert) {

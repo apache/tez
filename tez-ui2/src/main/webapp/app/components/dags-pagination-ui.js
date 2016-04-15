@@ -33,6 +33,17 @@ export default Ember.Component.extend({
     return this.get('tableDefinition.pageNum') === this.get('dataProcessor.totalPages');
   }),
 
+  loadButton: Ember.computed("tableDefinition.moreAvailable",
+      "tableDefinition.loadingMore",
+      "tableDefinition.rowCount", function () {
+    var rowCount = this.get("tableDefinition.rowCount"),
+        moreAvailable = this.get("tableDefinition.moreAvailable");
+    return {
+      title: moreAvailable ? `Load ${rowCount} more record(s)` : "All available records loaded",
+      disabled: !moreAvailable || this.get("tableDefinition.loadingMore")
+    };
+  }),
+
   rowCountOptions: Ember.computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {
     var options = this.get('tableDefinition.rowCountOptions'),
         rowCount = this.get('tableDefinition.rowCount');
@@ -53,9 +64,9 @@ export default Ember.Component.extend({
         endPage = totalPages,
         delta = 0;
 
-    if(totalPages > 5) {
-      startPage = pageNum - 2;
-      endPage = pageNum + 2;
+    if(totalPages > 3) {
+      startPage = pageNum - 1;
+      endPage = pageNum + 1;
 
       if(startPage < 1) {
         delta = 1 - startPage;
@@ -87,6 +98,9 @@ export default Ember.Component.extend({
     },
     changePage: function (value) {
       this.get('parentView').send('pageChanged', value);
+    },
+    loadMore: function () {
+      this.get('parentView').sendAction('loadMore');
     }
   }
 });

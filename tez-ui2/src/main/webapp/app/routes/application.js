@@ -22,11 +22,7 @@ export default Ember.Route.extend({
   title: "Application",
 
   pageReset: function () {
-    Ember.$(document).tooltip("destroy");
-    Ember.$(document).tooltip({
-      delay: 20,
-      tooltipClass: 'generic-tooltip'
-    });
+    this.send("resetTooltip");
   },
 
   actions: {
@@ -40,6 +36,14 @@ export default Ember.Route.extend({
     error: function (error) {
       this.set("controller.appError", error);
       Ember.Logger.error(error);
+    },
+
+    resetTooltip: function () {
+      Ember.$(document).tooltip("destroy");
+      Ember.$(document).tooltip({
+        delay: 20,
+        tooltipClass: 'generic-tooltip'
+      });
     },
 
     // Modal window actions

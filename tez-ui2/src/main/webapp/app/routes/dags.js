@@ -32,9 +32,6 @@ export default AbstractRoute.extend({
     status: REFRESH,
     appID: REFRESH,
     callerID: REFRESH,
-    pageNo: REFRESH,
-
-    rowCount: REFRESH,
   },
 
   loaderQueryParams: {
@@ -45,9 +42,10 @@ export default AbstractRoute.extend({
     appID: "appID",
     callerID: "callerID",
 
-    pageNo: "pageNo",
     limit: "rowCount",
   },
+
+  fromId: null,
 
   setupController: function (controller, model) {
     this._super(controller, model);
@@ -77,7 +75,8 @@ export default AbstractRoute.extend({
 
   load: function (value, query/*, options*/) {
     var loader,
-        that = this;
+        that = this,
+        limit = this.get("controller.rowCount") || query.limit;
 
     if(query.dagID) {
       that.set("loadedRecords", []);
@@ -86,10 +85,23 @@ export default AbstractRoute.extend({
       });
     }
     else {
+      query = Ember.$.extend({}, query, {
+        limit: limit + 1
+      });
       loader = this.get("loader").query('dag', query, {reload: true});
     }
 
     return loader.then(function (records) {
+
+      if(records.get("length") > limit) {
+        let lastRecord = records.popObject();
+        that.set("controller.moreAvailable", true);
+        that.set("fromId", lastRecord.get("entityID"));
+      }
+      else {
+        that.set("controller.moreAvailable", false);
+      }
+
       records = that.filterRecords(records, query);
       records.forEach(function (record) {
         if(record.get("status") === "RUNNING") {
@@ -102,9 +114,37 @@ export default AbstractRoute.extend({
     });
   },
 
+  loadNewPage: function () {
+    var query = this.get("currentQuery"),
+        that = this;
+
+    query = Ember.$.extend({}, query, {
+      fromId: this.get("fromId")
+    });
+
+    this.set("controller.loadingMore", true);
+    this.load(null, query).then(function (data) {
+      if(that.get("controller.loadingMore")) {
+        that.set("controller.loadingMore", false);
+        that.get("loadedValue").pushObjects(data);
+      }
+    });
+  },
+
   actions: {
     setLoadTime: function (time) {
       this.set("controller.loadTime", time);
-    }
+    },
+    loadMore: function () {
+      if(this.get("controller.moreAvailable")) {
+        this.send("resetTooltip");
+        this.loadNewPage();
+      }
+    },
+    reload: function () {
+      this.set("controller.loadingMore", false);
+      this.set("controller.pageNum", 1);
+      this._super();
+    },
   }
 });

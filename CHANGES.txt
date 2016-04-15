@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
   TEZ-3202. Reduce the memory need for jobs with high number of segments
   TEZ-3165. Allow Inputs/Outputs to be initialized serially, control processor initialization relative to Inputs/Outputs
+  TEZ-3214. Tez UI 2: Pagination in All DAGs
 
 Release 0.8.3: 2016-04-14 
 

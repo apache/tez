@@ -24,21 +24,33 @@ import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID", "pageNo"],
+  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID"],
   dagName: "",
   dagID: "",
   submitter: "",
   status: "",
   appID: "",
   callerID: "",
-  pageNo: 1,
+
+  // Because pageNo is a query param added by table controller, and in the current design
+  // we don't want page to be a query param as only the first page will be loaded first.
+  pageNum: 1,
 
   breadcrumbs: [],
 
+  moreAvailable: false,
+  loadingMore: false,
+
   headerComponentNames: ['dags-page-search', 'table-controls', 'dags-pagination-ui'],
 
-  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "callerID", "pageNo", function () {
-    return TableDefinition.create({
+  _definition: TableDefinition.create(),
+  // Using computed, as observer won't fire if the property is not used
+  definition: Ember.computed("dagName", "dagID", "submitter", "status",
+      "appID", "callerID", "pageNum", "moreAvailable", "loadingMore", function () {
+
+    var definition = this.get("_definition");
+
+    definition.setProperties({
       dagName: this.get("dagName"),
       dagID: this.get("dagID"),
       submitter: this.get("submitter"),
@@ -46,9 +58,13 @@ export default TableController.extend({
       appID: this.get("appID"),
       callerID: this.get("callerID"),
 
-      pageNum: this.get("pageNo"),
-      rowCountOptions: [5, 10, 25, 50, 100, 250, 500]
+      pageNum: this.get("pageNum"),
+
+      moreAvailable: this.get("moreAvailable"),
+      loadingMore: this.get("loadingMore")
     });
+
+    return definition;
   }),
 
   columns: ColumnDefinition.make([{
@@ -141,6 +157,9 @@ export default TableController.extend({
   actions: {
     searchChanged: function (propertyName, value) {
       this.set(propertyName, value);
+    },
+    pageChanged: function (pageNum) {
+      this.set("pageNum", pageNum);
     },
   }
 

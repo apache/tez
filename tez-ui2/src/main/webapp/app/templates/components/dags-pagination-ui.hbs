@@ -16,8 +16,40 @@
  * limitations under the License.
 }}
 
+<ul class="page-list">
+  <li class="{{unless atFirst 'clickable'}}" {{action 'changePage' 1}}>
+    First
+  </li>
+  {{#each _possiblePages as |page|}}
+    <li class="{{if page.isCurrent 'is-current' 'clickable'}}" {{action 'changePage' page.pageNum}}>
+      {{page.pageNum}}
+    </li>
+  {{/each}}
+  <li title="{{dataProcessor.totalPages}} pages loaded, more are available"  class="{{unless atLast 'clickable'}}" {{action 'changePage' dataProcessor.totalPages}}>
+    {{#if tableDefinition.moreAvailable}}
+      {{dataProcessor.totalPages}} ...
+    {{else}}
+      Last - {{dataProcessor.totalPages}}
+    {{/if}}
+  </li>
+</ul>
+
+<button type="button" title={{loadButton.title}}
+    class="btn {{if loadButton.disabled 'disabled'}} {{if tableDefinition.moreAvailable 'btn-success' 'btn-default'}}"
+    {{action "loadMore" }}>
+  {{#if tableDefinition.moreAvailable}}
+    {{#if tableDefinition.loadingMore}}
+      <i class="fa fa-spinner fa-spin"></i>
+    {{else}}
+      <i class="fa fa-download"></i>
+    {{/if}}
+  {{else}}
+    All loaded!
+  {{/if}}
+</button>
+
 <div class='row-select'>
-  <select class="form-control" onchange={{action "rowSelected" value="target.value"}}>
+  <select title="Select rows to display" class="form-control" onchange={{action "rowSelected" value="target.value"}}>
     {{#each rowCountOptions as |option|}}
       <option value={{option.value}} selected={{option.selected}}>
         {{option.value}} Rows

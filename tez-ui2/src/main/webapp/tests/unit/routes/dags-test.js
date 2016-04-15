@@ -36,6 +36,12 @@ test('Basic creation test', function(assert) {
   assert.ok(route.load);
 
   assert.ok(route.filterRecords);
+
+  assert.ok(route.loadNewPage);
+
+  assert.ok(route.actions.setLoadTime);
+  assert.ok(route.actions.loadMore);
+  assert.ok(route.actions.reload);
 });
 
 test('filterRecords test', function(assert) {
@@ -55,4 +61,69 @@ test('filterRecords test', function(assert) {
 
   assert.equal(filteredRecords.length, 1);
   assert.equal(filteredRecords[0].name, "test");
+});
+
+test('load test', function(assert) {
+  let route = this.subject({
+        filterRecords: function () {
+          return [];
+        },
+        controller: Ember.Object.create(),
+        loader: {
+          query: function (type, query, options) {
+            assert.equal(type, "dag");
+            assert.equal(query.limit, 6);
+            assert.equal(options.reload, true);
+            return {
+              then: function (callback) {
+                callback(Ember.Object.create({
+                  length: 6,
+                  popObject: function () {
+                    assert.ok(true);
+                    return Ember.Object.create();
+                  }
+                }));
+              }
+            };
+          }
+        }
+      }),
+      query = {
+        limit: 5
+      };
+
+  assert.expect(3 + 1);
+
+  route.load(null, query);
+});
+
+test('loadNewPage test', function(assert) {
+  let currentQuery = {
+        val: {}
+      },
+      data = [],
+      fromId = "id1",
+      route = this.subject({
+        controller: Ember.Object.create(),
+        currentQuery: currentQuery,
+        fromId: fromId,
+        loadedValue: {
+          pushObjects: function (objs) {
+            assert.equal(data, objs);
+          }
+        },
+        load: function (value, query) {
+          assert.equal(query.val, currentQuery.val);
+          assert.equal(query.fromId, fromId);
+          return {
+            then: function (callback) {
+              callback(data);
+            }
+          };
+        }
+      });
+
+  assert.expect(1 + 2);
+
+  route.loadNewPage();
 });
