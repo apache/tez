@@ -6,6 +6,7 @@ Release 0.8.4: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3077. TezClient.waitTillReady should support timeout.
   TEZ-3202. Reduce the memory need for jobs with high number of segments
   TEZ-3165. Allow Inputs/Outputs to be initialized serially, control processor initialization relative to Inputs/Outputs
   TEZ-3214. Tez UI 2: Pagination in All DAGs

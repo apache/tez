@@ -25,6 +25,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -37,9 +39,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,6 +53,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -66,6 +71,7 @@ import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.SessionNotReady;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConfigurationConstants;
@@ -362,7 +368,95 @@ public class TestTezClient {
 
     client.stop();
   }
-  
+
+  @Test (timeout=30000)
+  public void testPreWarmWithTimeout() throws Exception {
+    long startTime = 0 , endTime = 0;
+    TezClientForTest client = configureAndCreateTezClient();
+    final TezClientForTest spyClient = spy(client);
+    doCallRealMethod().when(spyClient).start();
+    doCallRealMethod().when(spyClient).stop();
+    spyClient.start();
+
+    when(
+        spyClient.mockYarnClient.getApplicationReport(
+            spyClient.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.RUNNING);
+    when(
+        spyClient.sessionAmProxy.getAMStatus((RpcController) any(),
+            (GetAMStatusRequestProto) any()))
+        .thenReturn(
+            GetAMStatusResponseProto.newBuilder().setStatus(
+                TezAppMasterStatusProto.INITIALIZING).build());
+    PreWarmVertex vertex =
+        PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
+    int timeout = 5000;
+    try {
+      startTime = Time.monotonicNow();
+      spyClient.preWarm(vertex, timeout, TimeUnit.MILLISECONDS);
+      fail("PreWarm should have encountered an Exception!");
+    } catch (SessionNotReady te) {
+      endTime = Time.monotonicNow();
+      assertTrue("Time taken is not as expected",
+          (endTime - startTime) > timeout);
+      verify(spyClient, times(0)).submitDAG(any(DAG.class));
+      Assert.assertTrue("Unexpected Exception message",
+          te.getMessage().contains("Tez AM not ready"));
+
+    }
+
+    when(
+        spyClient.sessionAmProxy.getAMStatus((RpcController) any(),
+            (GetAMStatusRequestProto) any()))
+        .thenReturn(
+            GetAMStatusResponseProto.newBuilder().setStatus(
+                TezAppMasterStatusProto.READY).build());
+    try {
+      startTime = Time.monotonicNow();
+      spyClient.preWarm(vertex, timeout, TimeUnit.MILLISECONDS);
+      endTime = Time.monotonicNow();
+      assertTrue("Time taken is not as expected",
+          (endTime - startTime) <= timeout);
+      verify(spyClient, times(1)).submitDAG(any(DAG.class));
+    } catch (TezException te) {
+      fail("PreWarm should have succeeded!");
+    }
+    Thread amStateThread = new Thread() {
+      @Override
+      public void run() {
+          CountDownLatch latch = new CountDownLatch(1);
+          try {
+            when(
+                spyClient.sessionAmProxy.getAMStatus((RpcController) any(),
+                    (GetAMStatusRequestProto) any()))
+                .thenReturn(
+                    GetAMStatusResponseProto.newBuilder().setStatus(
+                        TezAppMasterStatusProto.INITIALIZING).build());
+            latch.await(1000, TimeUnit.MILLISECONDS);
+            when(
+                spyClient.sessionAmProxy.getAMStatus((RpcController) any(),
+                    (GetAMStatusRequestProto) any()))
+                .thenReturn(
+                    GetAMStatusResponseProto.newBuilder().setStatus(
+                        TezAppMasterStatusProto.READY).build());
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          } catch (ServiceException e) {
+            e.printStackTrace();
+          }
+        }
+      };
+    amStateThread.start();
+    startTime = Time.monotonicNow();
+    spyClient.preWarm(vertex, timeout, TimeUnit.MILLISECONDS);
+    endTime = Time.monotonicNow();
+    assertTrue("Time taken is not as expected",
+        (endTime - startTime) <= timeout);
+    verify(spyClient, times(2)).submitDAG(any(DAG.class));
+    spyClient.stop();
+    client.stop();
+  }
+
   @Test (timeout = 10000)
   public void testMultipleSubmissions() throws Exception {
     testMultipleSubmissionsJob(false);

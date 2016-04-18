@@ -22,9 +22,10 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.NumberFormat;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
@@ -54,6 +55,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.util.Time;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -61,6 +63,7 @@ import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.PreWarmVertex;
+import org.apache.tez.dag.api.SessionNotReady;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -808,25 +811,61 @@ public class TezClient {
    */
   @Unstable
   public synchronized void preWarm(PreWarmVertex preWarmVertex) throws TezException, IOException {
+    preWarm(preWarmVertex, 0, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * API to help pre-allocate containers in session mode. In non-session mode
+   * this is ignored. The pre-allocated containers may be re-used by subsequent
+   * job DAGs to improve performance.
+   * The preWarm vertex should be configured and setup exactly
+   * like the other vertices in the job DAGs so that the pre-allocated
+   * containers may be re-used by the subsequent DAGs to improve performance.
+   * The processor for the preWarmVertex may be used to pre-warm the containers
+   * by pre-loading classes etc. It should be short-running so that pre-warming
+   * does not block real execution. Users can specify their custom processors or
+   * use the PreWarmProcessor from the runtime library.
+   * The parallelism of the preWarmVertex will determine the number of preWarmed
+   * containers.
+   * Pre-warming is best efforts and among other factors is limited by the free
+   * resources on the cluster. Based on the specified timeout value it returns
+   * false if the status is not READY after the wait period.
+   * @param preWarmVertex
+   * @param timeout
+   * @param unit
+   * @throws TezException
+   * @throws IOException
+   */
+  @Unstable
+  public synchronized void preWarm(PreWarmVertex preWarmVertex,
+      long timeout, TimeUnit unit)
+      throws TezException, IOException {
     if (!isSession) {
-      // do nothing for non session mode. This is there to let the code 
+      // do nothing for non session mode. This is there to let the code
       // work correctly in both modes
-      LOG.warn("preWarm is not supported in non-session mode, please use session-mode of TezClient");
+      LOG.warn("preWarm is not supported in non-session mode," +
+          "please use session-mode of TezClient");
       return;
     }
-    
+
     verifySessionStateForSubmission();
     
     DAG dag = org.apache.tez.dag.api.DAG.create(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
         + preWarmDAGCounter++);
     dag.addVertex(preWarmVertex);
 
+    boolean isReady;
     try {
-      waitTillReady();
+      isReady = waitTillReady(timeout, unit);
     } catch (InterruptedException e) {
-      throw new IOException("Interrupted while waiting for AM to become available", e);
+      throw new IOException("Interrupted while waiting for AM to become " +
+          "available", e);
     }
-    submitDAG(dag);
+    if(isReady) {
+      submitDAG(dag);
+    } else {
+      throw new SessionNotReady("Tez AM not ready, could not submit DAG");
+    }
   }
 
   
@@ -841,12 +880,34 @@ public class TezClient {
    */
   @Evolving
   public synchronized void waitTillReady() throws IOException, TezException, InterruptedException {
+    waitTillReady(0, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * Wait till the DAG is ready to be submitted.
+   * In non-session mode this is a no-op since the application can be
+   * immediately submitted.
+   * In session mode, this waits for the session host to be ready to accept
+   * a DAG and returns false if not ready after a configured time wait period.
+   * @param timeout
+   * @param unit
+   * @return true if READY or is not in session mode, false otherwise.
+   * @throws IOException
+   * @throws TezException
+   * @throws InterruptedException
+   */
+  @Evolving
+  public synchronized boolean waitTillReady(long timeout, TimeUnit unit)
+      throws IOException, TezException, InterruptedException {
+    timeout = unit.toMillis(timeout);
     if (!isSession) {
       // nothing to wait for in non-session mode
-      return;
+      return true;
     }
 
     verifySessionStateForSubmission();
+    long startTime = Time.monotonicNow();
+    long timeLimit = startTime + timeout;
     while (true) {
       TezAppMasterStatus status = getAppMasterStatus();
       if (status.equals(TezAppMasterStatus.SHUTDOWN)) {
@@ -854,9 +915,19 @@ public class TezClient {
             + ((diagnostics != null) ? diagnostics : NO_CLUSTER_DIAGNOSTICS_MSG));
       }
       if (status.equals(TezAppMasterStatus.READY)) {
-        return;
+        return true;
       }
-      Thread.sleep(SLEEP_FOR_READY);
+      if (timeout == 0) {
+        Thread.sleep(SLEEP_FOR_READY);
+        continue;
+      }
+      long now = Time.monotonicNow();
+      if (timeLimit > now) {
+        long sleepTime = Math.min(SLEEP_FOR_READY, timeLimit - now);
+        Thread.sleep(sleepTime);
+      } else {
+        return false;
+      }
     }
   }
 
