@@ -942,6 +942,11 @@
           <artifactId>maven-clean-plugin</artifactId>
           <version>3.0.0</version>
         </plugin>
+        <plugin>
+          <groupId>ro.isdc.wro4j</groupId>
+          <artifactId>wro4j-maven-plugin</artifactId>
+          <version>1.7.9</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 

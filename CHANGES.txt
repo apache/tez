@@ -12,6 +12,7 @@ ALL CHANGES:
   TEZ-3214. Tez UI 2: Pagination in All DAGs
   TEZ-3210. Tez UI 2: license should account for numeral, more-js, loader.js , etc
   TEZ-3087. Tez UI 2: Add log links in task & attempt details page
+  TEZ-3146. Tez UI 2: CSS & JS assets in the UI must be minified
 
 Release 0.8.3: 2016-04-14 
 
