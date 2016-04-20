@@ -20,6 +20,7 @@ export function initialize(application) {
   application.inject('controller', 'env', 'service:env');
   application.inject('route', 'env', 'service:env');
   application.inject('adapter', 'env', 'service:env');
+  application.inject('serializer', 'env', 'service:env');
 }
 
 export default {

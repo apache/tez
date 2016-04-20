@@ -23,14 +23,14 @@ import DS from 'ember-data';
 var MoreObject = more.Object;
 
 // TODO - Move to more js
-function mapObject(hash, map) {
+function mapObject(hash, map, thisArg) {
   var mappedObject = Ember.Object.create();
   MoreObject.forEach(map, function (key, value) {
     if(MoreObject.isString(value)) {
       mappedObject.set(key, Ember.get(hash, value));
     }
     else if (MoreObject.isFunction(value)) {
-      mappedObject.set(key, value(hash));
+      mappedObject.set(key, value.call(thisArg, hash));
     }
     else {
       Ember.assert("Unknown mapping value");
@@ -57,7 +57,7 @@ export default DS.JSONSerializer.extend({
   extractAttributes: function (modelClass, resourceHash) {
     var maps = this.get('maps'),
         data = resourceHash.data;
-    return this._super(modelClass, maps ? mapObject(data, maps) : data);
+    return this._super(modelClass, maps ? mapObject(data, maps, this) : data);
   },
   extractRelationships: function (modelClass, resourceHash) {
     return this._super(modelClass, resourceHash.data);

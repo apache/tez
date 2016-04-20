@@ -50,6 +50,11 @@ export default Ember.Service.extend({
   setComputedENVs: function (env) {
     var navigator = window.navigator;
     env.isIE = navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') > 0;
+
+    if(!env.APP.yarnProtocol) {
+      let rmHost = Ember.get(env, "hosts.rm") || "";
+      env.APP.yarnProtocol = rmHost.substr(0, rmHost.indexOf("://")) || window.location.protocol.slice(0, -1);
+    }
   },
 
   app: Ember.computed("ENV.APP", function () {

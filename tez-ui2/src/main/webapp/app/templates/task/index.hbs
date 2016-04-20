@@ -52,8 +52,34 @@
         <td>Duration</td>
         <td>{{txt model.duration type="duration"}}</td>
       </tr>
+      <tr>
+        <td>Logs</td>
+        <td>
+          {{#if attempts}}
+            {{#each attempts as |attempt|}}
+              <dag class="display-block">
+                Attempt {{attempt.index}} :&nbsp;
+                {{#if attempt.logURL}}
+                  <a href={{attempt.logURL}} target="_blank">
+                    <i class="fa fa-file-o" aria-hidden="true"></i> View
+                  </a>
+                  &nbsp;
+                  <a href={{attempt.logURL}} target="_blank" download>
+                    <i class="fa fa-download" aria-hidden="true"></i> Download
+                  </a>
+                {{else}}
+                  <span class="txt-message">Not Available!</span>
+                {{/if}}
+              </dag>
+            {{/each}}
+          {{else}}
+            <i class="fa fa-spinner fa-spin"></i> Loading...
+          {{/if}}
+        </td>
+      </tr>
     </tbody>
   </table>
+
   <table class='detail-list'>
     <thead>
     <tr>
@@ -63,7 +89,7 @@
     <tbody>
       <tr>
         <td>Failed Task Attempts</td>
-        <td>{{stats-link value=model.failedTaskAttempts routeName="vertex.attempts" statsType="FAILED"}}</td>
+        <td>{{stats-link value=model.failedTaskAttempts routeName="task.attempts" statsType="FAILED"}}</td>
       </tr>
     </tbody>
   </table>

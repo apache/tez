@@ -16,7 +16,19 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import TimelineSerializer from './timeline';
+
+function createLogURL(source) {
+  var logURL = Ember.get(source, 'otherinfo.inProgressLogsURL'),
+      attemptID = Ember.get(source, 'entity'),
+      yarnProtocol = this.get('env.app.yarnProtocol');
+
+  if(logURL) {
+    return `${yarnProtocol}://${logURL}/syslog_${attemptID}`;
+  }
+}
 
 export default TimelineSerializer.extend({
   maps: {
@@ -26,5 +38,7 @@ export default TimelineSerializer.extend({
 
     containerID: 'otherinfo.containerId',
     nodeID: 'otherinfo.nodeId',
+
+    logURL: createLogURL
   }
 });

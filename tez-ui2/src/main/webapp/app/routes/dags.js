@@ -45,6 +45,8 @@ export default AbstractRoute.extend({
     limit: "rowCount",
   },
 
+  loaderNamespace: "dags",
+
   fromId: null,
 
   setupController: function (controller, model) {
@@ -144,6 +146,12 @@ export default AbstractRoute.extend({
     reload: function () {
       this.set("controller.loadingMore", false);
       this.set("controller.pageNum", 1);
+      this._super();
+    },
+    willTransition: function () {
+      var loader = this.get("loader");
+      loader.unloadAll("dag");
+      loader.unloadAll("ahs-app");
       this._super();
     },
   }

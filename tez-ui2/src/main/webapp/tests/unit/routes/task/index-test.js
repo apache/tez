@@ -31,6 +31,8 @@ test('Basic creation test', function(assert) {
   assert.ok(route.loaderNamespace);
   assert.ok(route.setupController);
   assert.ok(route.load);
+
+  assert.ok(route.loadAttempts);
 });
 
 test('setupController test', function(assert) {

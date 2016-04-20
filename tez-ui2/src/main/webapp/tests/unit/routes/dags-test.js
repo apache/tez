@@ -42,6 +42,8 @@ test('Basic creation test', function(assert) {
   assert.ok(route.actions.setLoadTime);
   assert.ok(route.actions.loadMore);
   assert.ok(route.actions.reload);
+
+  assert.ok(route.actions.willTransition);
 });
 
 test('filterRecords test', function(assert) {
@@ -69,6 +71,7 @@ test('load test', function(assert) {
           return [];
         },
         controller: Ember.Object.create(),
+        loaderNamespace: undefined,
         loader: {
           query: function (type, query, options) {
             assert.equal(type, "dag");

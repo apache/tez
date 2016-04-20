@@ -71,4 +71,6 @@ export default AMTimelineModel.extend({
 
   containerID: DS.attr('string'),
   nodeID: DS.attr('string'),
+
+  logURL: DS.attr('string'),
 });

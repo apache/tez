@@ -43,6 +43,8 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.containerID);
   assert.ok(model.nodeID);
+
+  assert.ok(model.logURL);
 });
 
 test('index test', function(assert) {

@@ -41,6 +41,8 @@ test('Basic creation test', function(assert) {
 
   assert.ok(service.queryRecord);
   assert.ok(service.query);
+
+  assert.ok(service.unloadAll);
 });
 
 test('_setOptions test', function(assert) {
@@ -254,4 +256,56 @@ test('query test', function(assert) {
     assert.equal(records, testRecords);
   });
   assert.ok(service.get("cache").get(cacheKey));
+});
+
+test('unloadAll test', function(assert) {
+  let testType1 = "a",
+      service = this.subject({
+        nameSpace: "ns",
+        store: {
+          peekAll: function (type) {
+            assert.equal(type, testType1);
+            return [Ember.Object.create({
+              id: "ns:id1",
+              entityID: "id1"
+            }), Ember.Object.create({
+              id: "nsX:id1",
+              entityID: "id1"
+            })];
+          },
+          unloadRecord: function (record) {
+            assert.equal(record.get("entityID"), "id1");
+          }
+        }
+      });
+
+  assert.expect(1 + 1);
+
+  service.unloadAll(testType1, "id2");
+});
+
+test('unloadAll skipID test', function(assert) {
+  let testType1 = "q",
+      service = this.subject({
+        nameSpace: "ns",
+        store: {
+          peekAll: function (type) {
+            assert.equal(type, testType1);
+            return [Ember.Object.create({
+              id: "ns:id1",
+              entityID: "id1"
+            }), Ember.Object.create({
+              id: "ns:id2",
+              entityID: "id2"
+            })];
+          },
+          unloadRecord: function (record) {
+            assert.equal(record.get("entityID"), "id2");
+          }
+        }
+      });
+
+  assert.expect(1 + 1);
+
+  service.unloadAll(testType1, "id1");
 });

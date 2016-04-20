@@ -29,7 +29,19 @@ export default SingleAmPollsterRoute.extend({
     Ember.run.later(this, "startCrumbBubble");
   },
 
+  loadAttempts: function (taskID, options) {
+    var that = this;
+
+    this.get("loader").query('attempt', {
+      taskID: taskID
+    }, options).then(function (attempts) {
+      that.set("controller.attempts", attempts);
+    });
+  },
+
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('task', this.modelFor("task").get("id"), options);
+    var taskID = this.modelFor("task").get("id");
+    this.loadAttempts(taskID, options);
+    return this.get("loader").queryRecord('task', taskID, options);
   },
 });

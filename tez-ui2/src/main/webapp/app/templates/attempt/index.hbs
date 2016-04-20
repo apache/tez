@@ -34,11 +34,11 @@
       </tr>
       <tr>
         <td>Container ID</td>
-        <td>{{model.containerID}}</td>
+        <td>{{txt model.containerID}}</td>
       </tr>
       <tr>
         <td>Node ID</td>
-        <td>{{model.nodeID}}</td>
+        <td>{{txt model.nodeID}}</td>
       </tr>
       <tr>
         <td>Status</td>
@@ -59,6 +59,22 @@
       <tr>
         <td>Duration</td>
         <td>{{txt model.duration type="duration"}}</td>
+      </tr>
+      <tr>
+        <td>Log</td>
+        <td>
+          {{#if model.logURL}}
+            <a href={{model.logURL}} target="_blank">
+              <i class="fa fa-file-o" aria-hidden="true"></i> View
+            </a>
+            &nbsp;
+            <a href={{model.logURL}} target="_blank" download>
+              <i class="fa fa-download" aria-hidden="true"></i> Download
+            </a>
+          {{else}}
+              <span class="txt-message">Not Available!</span>
+          {{/if}}
+        </td>
       </tr>
     </tbody>
   </table>

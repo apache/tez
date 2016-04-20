@@ -134,5 +134,18 @@ export default Ember.Service.extend({
     options.cache.set(cacheKey, records);
 
     return records;
-  }
+  },
+
+  unloadAll: function (type, skipID) {
+    var store = this.get("store"),
+        loaderNS = this.get("nameSpace");
+
+    store.peekAll(type).forEach(function (record) {
+      var id = record.get("id");
+
+      if(id.substr(0, id.indexOf(":")) === loaderNS && record.get("entityID") !== skipID) {
+        store.unloadRecord(record);
+      }
+    });
+  },
 });

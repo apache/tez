@@ -76,5 +76,23 @@ export default MultiTableController.extend(AutoCounterColumn, {
     id: 'nodeID',
     headerTitle: 'Node',
     contentPath: 'nodeID'
+  }, {
+    id: 'log',
+    headerTitle: 'Log',
+    contentPath: 'logURL',
+    cellComponentName: 'em-table-linked-cell',
+    cellDefinition: {
+      target: "_blank"
+    },
+    getCellContent: function (row) {
+      return [{
+        href: row.get("logURL"),
+        text: "View"
+      }, {
+        href: row.get("logURL"),
+        text: "Download",
+        download: true
+      }];
+    }
   }])
 });

@@ -25,7 +25,8 @@
       {{page.pageNum}}
     </li>
   {{/each}}
-  <li title="{{dataProcessor.totalPages}} pages loaded, more are available"  class="{{unless atLast 'clickable'}}" {{action 'changePage' dataProcessor.totalPages}}>
+  <li title="{{dataProcessor.totalPages}} pages loaded{{if tableDefinition.moreAvailable ', more are available'}}"
+      class="{{unless atLast 'clickable'}}" {{action 'changePage' dataProcessor.totalPages}}>
     {{#if tableDefinition.moreAvailable}}
       {{dataProcessor.totalPages}} ...
     {{else}}
@@ -41,7 +42,7 @@
     {{#if tableDefinition.loadingMore}}
       <i class="fa fa-spinner fa-spin"></i>
     {{else}}
-      <i class="fa fa-download"></i>
+      Load
     {{/if}}
   {{else}}
     All loaded!

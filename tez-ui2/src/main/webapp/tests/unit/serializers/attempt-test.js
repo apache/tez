@@ -23,9 +23,26 @@ moduleFor('serializer:attempt', 'Unit | Serializer | attempt', {
   // needs: ['serializer:attempt']
 });
 
-// Replace this with your real tests.
 test('Basic creation test', function(assert) {
   let serializer = this.subject();
 
   assert.ok(serializer);
+  assert.ok(serializer.maps.logURL);
+});
+
+test('logURL test', function(assert) {
+  let serializer = this.subject({
+    env: {
+      app: {
+        yarnProtocol: "ptcl"
+      }
+    }
+  });
+
+  assert.equal(serializer.maps.logURL.call(serializer, {
+    entity: "id_1",
+    otherinfo: {
+      inProgressLogsURL: "abc.com/test/link",
+    }
+  }), "ptcl://abc.com/test/link/syslog_id_1");
 });
