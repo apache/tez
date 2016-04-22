@@ -18,36 +18,26 @@
 
 <ul class="page-list">
   <li class="{{unless atFirst 'clickable'}}" {{action 'changePage' 1}}>
-    First
+    {{#if dataProcessor.processedRows.length}}
+      First
+    {{else}}
+      No Records!
+    {{/if}}
   </li>
   {{#each _possiblePages as |page|}}
     <li class="{{if page.isCurrent 'is-current' 'clickable'}}" {{action 'changePage' page.pageNum}}>
-      {{page.pageNum}}
+      {{#if page.isLoadPage}}
+        {{#if tableDefinition.loadingMore}}
+          <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+        {{else}}
+          {{page.pageNum}}
+        {{/if}}
+      {{else}}
+        {{page.pageNum}}
+      {{/if}}
     </li>
   {{/each}}
-  <li title="{{dataProcessor.totalPages}} pages loaded{{if tableDefinition.moreAvailable ', more are available'}}"
-      class="{{unless atLast 'clickable'}}" {{action 'changePage' dataProcessor.totalPages}}>
-    {{#if tableDefinition.moreAvailable}}
-      {{dataProcessor.totalPages}} ...
-    {{else}}
-      Last - {{dataProcessor.totalPages}}
-    {{/if}}
-  </li>
 </ul>
-
-<button type="button" title={{loadButton.title}}
-    class="btn {{if loadButton.disabled 'disabled'}} {{if tableDefinition.moreAvailable 'btn-success' 'btn-default'}}"
-    {{action "loadMore" }}>
-  {{#if tableDefinition.moreAvailable}}
-    {{#if tableDefinition.loadingMore}}
-      <i class="fa fa-spinner fa-spin"></i>
-    {{else}}
-      Load
-    {{/if}}
-  {{else}}
-    All loaded!
-  {{/if}}
-</button>
 
 <div class='row-select'>
   <select title="Select rows to display" class="form-control" onchange={{action "rowSelected" value="target.value"}}>

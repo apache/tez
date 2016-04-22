@@ -155,8 +155,8 @@ export default TableController.extend({
   },
 
   actions: {
-    searchChanged: function (propertyName, value) {
-      this.set(propertyName, value);
+    search: function (properties) {
+      this.setProperties(properties);
     },
     pageChanged: function (pageNum) {
       this.set("pageNum", pageNum);

@@ -29,21 +29,6 @@ export default Ember.Component.extend({
     return this.get('tableDefinition.pageNum') === 1;
   }),
 
-  atLast: Ember.computed('tableDefinition.pageNum', 'dataProcessor.totalPages', function () {
-    return this.get('tableDefinition.pageNum') === this.get('dataProcessor.totalPages');
-  }),
-
-  loadButton: Ember.computed("tableDefinition.moreAvailable",
-      "tableDefinition.loadingMore",
-      "tableDefinition.rowCount", function () {
-    var rowCount = this.get("tableDefinition.rowCount"),
-        moreAvailable = this.get("tableDefinition.moreAvailable");
-    return {
-      title: moreAvailable ? `Load ${rowCount} more record(s)` : "All available records loaded",
-      disabled: !moreAvailable || this.get("tableDefinition.loadingMore")
-    };
-  }),
-
   rowCountOptions: Ember.computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {
     var options = this.get('tableDefinition.rowCountOptions'),
         rowCount = this.get('tableDefinition.rowCount');
@@ -56,7 +41,9 @@ export default Ember.Component.extend({
     });
   }),
 
-  _possiblePages: Ember.computed('tableDefinition.pageNum', 'dataProcessor.totalPages', function () {
+  _possiblePages: Ember.computed('tableDefinition.pageNum',
+      'tableDefinition.moreAvailable',
+      'dataProcessor.totalPages', function () {
     var pageNum = this.get('tableDefinition.pageNum'),
         totalPages = this.get('dataProcessor.totalPages'),
         possiblePages = [],
@@ -64,7 +51,11 @@ export default Ember.Component.extend({
         endPage = totalPages,
         delta = 0;
 
-    if(totalPages > 3) {
+    if(this.get('tableDefinition.moreAvailable')) {
+      totalPages++;
+    }
+
+    if(totalPages > 1) {
       startPage = pageNum - 1;
       endPage = pageNum + 1;
 
@@ -79,10 +70,14 @@ export default Ember.Component.extend({
       endPage += delta;
     }
 
+    startPage = Math.max(startPage, 1);
+    endPage = Math.min(endPage, totalPages);
+
     while(startPage <= endPage) {
       possiblePages.push({
         isCurrent: startPage === pageNum,
-        pageNum: startPage++
+        isLoadPage: startPage === totalPages,
+        pageNum: startPage++,
       });
     }
 
@@ -97,10 +92,15 @@ export default Ember.Component.extend({
       }
     },
     changePage: function (value) {
-      this.get('parentView').send('pageChanged', value);
+      if(value === 1) {
+        this.get('parentView').sendAction('reload');
+      }
+      else if(this.get('dataProcessor.totalPages') < value) {
+        this.get('parentView').sendAction('loadPage', value);
+      }
+      else {
+        this.get('parentView').send('pageChanged', value);
+      }
     },
-    loadMore: function () {
-      this.get('parentView').sendAction('loadMore');
-    }
   }
 });

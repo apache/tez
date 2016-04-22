@@ -21,24 +21,33 @@ import Ember from 'ember';
 export default Ember.Component.extend({
   classNames: ['dags-page-search'],
 
+  dagName: Ember.computed.oneWay("tableDefinition.dagName"),
+  dagID: Ember.computed.oneWay("tableDefinition.dagID"),
+  submitter: Ember.computed.oneWay("tableDefinition.submitter"),
+  status: Ember.computed.oneWay("tableDefinition.status"),
+  appID: Ember.computed.oneWay("tableDefinition.appID"),
+  callerID: Ember.computed.oneWay("tableDefinition.callerID"),
+
+  sendSearch: function () {
+    this.get('parentView').sendAction('search', {
+      dagName: this.get("dagName"),
+      dagID: this.get("dagID"),
+      submitter: this.get("submitter"),
+      status: this.get("status"),
+      appID: this.get("appID"),
+      callerID: this.get("callerID"),
+    });
+  },
+
   actions: {
-    dagNameChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'dagName', value);
-    },
-    dagIDChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'dagID', value);
-    },
-    submitterChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'submitter', value);
-    },
     statusChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'status', value);
+      this.set("status", value);
     },
-    appIDChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'appID', value);
+    statusKeyPress: function () {
+      this.sendSearch();
     },
-    callerIDChanged: function (value) {
-      this.get('targetObject.targetObject').send('searchChanged', 'callerID', value);
-    },
+    search: function () {
+      this.sendSearch();
+    }
   }
 });

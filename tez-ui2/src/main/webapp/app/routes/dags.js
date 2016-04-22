@@ -32,6 +32,8 @@ export default AbstractRoute.extend({
     status: REFRESH,
     appID: REFRESH,
     callerID: REFRESH,
+
+    rowCount: REFRESH
   },
 
   loaderQueryParams: {
@@ -125,10 +127,11 @@ export default AbstractRoute.extend({
     });
 
     this.set("controller.loadingMore", true);
-    this.load(null, query).then(function (data) {
+    return this.load(null, query).then(function (data) {
       if(that.get("controller.loadingMore")) {
         that.set("controller.loadingMore", false);
         that.get("loadedValue").pushObjects(data);
+        return data;
       }
     });
   },
@@ -137,10 +140,16 @@ export default AbstractRoute.extend({
     setLoadTime: function (time) {
       this.set("controller.loadTime", time);
     },
-    loadMore: function () {
-      if(this.get("controller.moreAvailable")) {
+    loadPage: function (page) {
+      var that = this;
+      if(this.get("controller.moreAvailable") && !this.get("controller.loadingMore")) {
         this.send("resetTooltip");
-        this.loadNewPage();
+        this.loadNewPage().then(function (data) {
+          if(data) {
+            that.set("controller.pageNum", page);
+          }
+          return data;
+        });
       }
     },
     reload: function () {

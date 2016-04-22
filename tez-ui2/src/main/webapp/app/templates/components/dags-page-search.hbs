@@ -19,34 +19,34 @@
 <div class="form-group">
   <div class="search-element dag-name">
     <label for="pwd">DAG Name:</label>
-    <input
-        type="text"
-        class="form-control input-sm"
-        placeholder="Search..."
-        value={{tableDefinition.dagName}}
-        onchange={{action "dagNameChanged" value="target.value"}}>
+    {{input value=dagName
+      type="text"
+      class="form-control input-sm"
+      placeholder="Search..."
+      enter="search"
+    }}
   </div><div class="search-element">
     <label for="pwd">ID:</label>
-    <input
-        type="text"
-        class="form-control input-sm"
-        placeholder="Search..."
-        value={{tableDefinition.dagID}}
-        onchange={{action "dagIDChanged" value="target.value"}}>
+    {{input value=dagID
+      type="text"
+      class="form-control input-sm"
+      placeholder="Search..."
+      enter="search"
+    }}
   </div><div class="search-element">
     <label for="pwd">Submitter:</label>
-    <input
-        type="text"
-        class="form-control input-sm"
-        placeholder="Search..."
-        value={{tableDefinition.submitter}}
-        onchange={{action "submitterChanged" value="target.value"}}>
+    {{input value=submitter
+      type="text"
+      class="form-control input-sm"
+      placeholder="Search..."
+      enter="search"
+    }}
   </div><div class="search-element">
     <label for="pwd">Status:</label>
-    <select
+    <select value={{status}}
         class="form-control input-sm"
-        value={{tableDefinition.status}}
-        onchange={{action "statusChanged" value="target.value"}}>
+        onchange={{action "statusChanged" value="target.value"}}
+        {{action "statusKeyPress" on="keyPress"}}>
       <option value="">All</option>
       <option value="SUBMITTED">Submitted</option>
       <option value="RUNNING">Running</option>
@@ -56,19 +56,22 @@
     </select>
   </div><div class="search-element">
     <label for="pwd">Application ID:</label>
-    <input
-        type="text"
-        class="form-control input-sm"
-        placeholder="Search..."
-        value={{tableDefinition.appID}}
-        onchange={{action "appIDChanged" value="target.value"}}>
+    {{input value=appID
+      type="text"
+      class="form-control input-sm"
+      placeholder="Search..."
+      enter="search"
+    }}
   </div><div class="search-element">
     <label for="pwd">Caller ID:</label>
-    <input
-        type="text"
-        class="form-control input-sm"
-        placeholder="Search..."
-        value={{tableDefinition.callerID}}
-        onchange={{action "callerIDChanged" value="target.value"}}>
+    {{input value=callerID
+      type="text"
+      class="form-control input-sm"
+      placeholder="Search..."
+      enter="search"
+    }}
   </div>
 </div>
+<button type="button" class="btn btn-success" {{action 'search'}}>
+  <i class="fa fa-search" aria-hidden="true"></i>
+</button>

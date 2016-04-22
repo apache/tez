@@ -40,7 +40,7 @@ test('Basic creation test', function(assert) {
   assert.ok(route.loadNewPage);
 
   assert.ok(route.actions.setLoadTime);
-  assert.ok(route.actions.loadMore);
+  assert.ok(route.actions.loadPage);
   assert.ok(route.actions.reload);
 
   assert.ok(route.actions.willTransition);

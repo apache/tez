@@ -35,9 +35,7 @@ test('Basic creation test', function(assert) {
   assert.equal(this.$('select').length, 1);
 
   assert.equal(this.$('.page-list').length, 1);
-  assert.equal(this.$('li').length, 2);
-
-  assert.equal(this.$('.btn').length, 1);
+  assert.equal(this.$('li').length, 1);
 
   // Template block usage:" + EOL +
   this.render(hbs`
@@ -61,16 +59,19 @@ test('Page list test', function(assert) {
   });
   this.set("processor", {
     totalPages: 10,
+    processedRows: {
+      length: 10
+    }
   });
 
   this.render(hbs`{{dags-pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
   return wait().then(() => {
-    assert.equal(this.$('li').length, 5);
+    assert.equal(this.$('li').length, 4);
+    assert.equal(this.$('li').eq(0).text().trim(), "First");
     assert.equal(this.$('li').eq(1).text().trim(), "4");
     assert.equal(this.$('li').eq(2).text().trim(), "5");
     assert.equal(this.$('li').eq(3).text().trim(), "6");
-    assert.equal(this.$('li').eq(4).text().trim(), "10 ...");
   });
 });
 
@@ -85,13 +86,45 @@ test('Page list - moreAvailable false test', function(assert) {
     rowCountOptions: []
   });
   this.set("processor", {
-    totalPages: 10,
+    totalPages: 5,
+    processedRows: {
+      length: 10
+    }
   });
 
   this.render(hbs`{{dags-pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
   return wait().then(() => {
-    assert.equal(this.$('li').length, 5);
-    assert.equal(this.$('li').eq(4).text().trim(), "Last - 10");
+    assert.equal(this.$('li').length, 4);
+    assert.equal(this.$('li').eq(1).text().trim(), "3");
+    assert.equal(this.$('li').eq(2).text().trim(), "4");
+    assert.equal(this.$('li').eq(3).text().trim(), "5");
+  });
+});
+
+test('Page list - moreAvailable true test', function(assert) {
+  this.set("tableDefinition", {
+    pageNum: 5,
+    rowCount: 5,
+
+    loadingMore: false,
+    moreAvailable: true,
+
+    rowCountOptions: []
+  });
+  this.set("processor", {
+    totalPages: 5,
+    processedRows: {
+      length: 10
+    }
+  });
+
+  this.render(hbs`{{dags-pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+
+  return wait().then(() => {
+    assert.equal(this.$('li').length, 4);
+    assert.equal(this.$('li').eq(1).text().trim(), "4");
+    assert.equal(this.$('li').eq(2).text().trim(), "5");
+    assert.equal(this.$('li').eq(3).text().trim(), "6");
   });
 });
