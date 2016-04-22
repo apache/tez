@@ -442,6 +442,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-3224. User payload is not initialized before creating vertex manager plugin.
   TEZ-3165. Allow Inputs/Outputs to be initialized serially, control processor initialization relative to Inputs/Outputs
   TEZ-3202. Reduce the memory need for jobs with high number of segments
   TEZ-3188. Move tez.submit.hosts out of TezConfiguration to TezConfigurationConstants.
