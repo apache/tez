@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
@@ -27,6 +28,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -38,6 +41,8 @@ import java.util.concurrent.Callable;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
@@ -95,6 +100,35 @@ public class TestVertexManager {
     requestCaptor = ArgumentCaptor.forClass(VertexEventInputDataInformation.class);
 
   }
+
+  public static class CheckUserPayloadVertexManagerPlugin extends VertexManagerPlugin {
+    public CheckUserPayloadVertexManagerPlugin(VertexManagerPluginContext context) {
+      super(context);
+      assertNotNull(context.getUserPayload());
+    }
+
+    @Override
+    public void initialize() throws Exception {}
+
+    @Override
+    public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws Exception {}
+
+    @Override
+    public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
+                                        List<Event> events) throws Exception {}
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexManagerPluginCtorAccessUserPayload() throws IOException, TezException {
+    byte[] randomUserPayload = {1,2,3};
+    UserPayload userPayload = UserPayload.create(ByteBuffer.wrap(randomUserPayload));
+    VertexManager vm =
+        new VertexManager(
+            VertexManagerPluginDescriptor.create(CheckUserPayloadVertexManagerPlugin.class
+                .getName()).setUserPayload(userPayload), UserGroupInformation.getCurrentUser(),
+            mockVertex, mockAppContext, mock(StateChangeNotifier.class));
+  }
+
   
   @Test(timeout = 5000)
   public void testOnRootVertexInitialized() throws Exception {
