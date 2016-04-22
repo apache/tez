@@ -384,13 +384,13 @@ public class VertexManager {
     
     pluginContext = new VertexManagerPluginContextImpl();
     Preconditions.checkArgument(pluginDesc != null);
+    payload = pluginDesc.getUserPayload();
+    pluginFailed = new AtomicBoolean(false);
     plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
         new Class[] { VertexManagerPluginContext.class }, new Object[] { pluginContext });
-    payload = pluginDesc.getUserPayload();
     execService = appContext.getExecService();
     eventQueue = new LinkedBlockingQueue<VertexManagerEvent>();
     eventInFlight = new AtomicBoolean(false);
-    pluginFailed = new AtomicBoolean(false);
   }
 
   public VertexManagerPlugin getPlugin() {
