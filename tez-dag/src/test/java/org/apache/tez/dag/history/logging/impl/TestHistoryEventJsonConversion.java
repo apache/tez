@@ -138,7 +138,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
-              random.nextInt(), "proc", null, null);
+              random.nextInt(), "proc", null, null, null);
           break;
         case VERTEX_STARTED:
           event = new VertexStartedEvent(tezVertexID, random.nextInt(), random.nextInt());
@@ -149,7 +149,7 @@ public class TestHistoryEventJsonConversion {
         case VERTEX_FINISHED:
           event = new VertexFinishedEvent(tezVertexID, "v1", 1, random.nextInt(), random.nextInt(),
               random.nextInt(), random.nextInt(), random.nextInt(), VertexState.ERROR,
-              null, null, null, null);
+              null, null, null, null, null);
           break;
         case TASK_STARTED:
           event = new TaskStartedEvent(tezTaskID, "v1", random.nextInt(), random.nextInt());

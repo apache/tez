@@ -53,6 +53,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.TaskEventTALaunched;
 import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
@@ -2354,6 +2355,9 @@ public class TestVertexImpl {
     dispatcher = new DrainDispatcher();
     appContext = mock(AppContext.class);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getContainerLauncherName(anyInt())).thenReturn(
+        TezConstants.getTezYarnServicePluginName());
+
     thh = mock(TaskHeartbeatHandler.class);
     historyEventHandler = mock(HistoryEventHandler.class);
     TaskSchedulerManager taskScheduler = mock(TaskSchedulerManager.class);

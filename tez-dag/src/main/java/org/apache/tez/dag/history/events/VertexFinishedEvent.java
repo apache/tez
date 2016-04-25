@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
+import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
@@ -55,12 +56,14 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
   private boolean fromSummary = false;
   private VertexStats vertexStats;
   private Map<String, Integer> vertexTaskStats;
+  private ServicePluginInfo servicePluginInfo;
 
   public VertexFinishedEvent(TezVertexID vertexId, String vertexName, int numTasks, long initRequestedTime,
                              long initedTime, long startRequestedTime, long startedTime,
                              long finishTime, VertexState state, String diagnostics,
                              TezCounters counters, VertexStats vertexStats,
-                             Map<String, Integer> vertexTaskStats) {
+                             Map<String, Integer> vertexTaskStats,
+                             ServicePluginInfo servicePluginInfo) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
     this.numTasks = numTasks;
@@ -74,6 +77,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
     this.tezCounters = counters;
     this.vertexStats = vertexStats;
     this.vertexTaskStats = vertexTaskStats;
+    this.servicePluginInfo = servicePluginInfo;
   }
 
   public VertexFinishedEvent() {
@@ -147,7 +151,9 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
         + ", counters=" + ( tezCounters == null ? "null" :
           tezCounters.toString().replaceAll("\\n", ", ").replaceAll("\\s+", " "))
         + ", vertexStats=" + (vertexStats == null ? "null" : vertexStats.toString())
-        + ", vertexTaskStats=" + (vertexTaskStats == null ? "null" : vertexTaskStats.toString());
+        + ", vertexTaskStats=" + (vertexTaskStats == null ? "null" : vertexTaskStats.toString())
+        + ", servicePluginInfo="
+        + (servicePluginInfo != null ? servicePluginInfo : "null");
   }
 
   public TezVertexID getVertexID() {
@@ -227,4 +233,9 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
   public boolean isFromSummary() {
     return fromSummary;
   }
+
+  public ServicePluginInfo getServicePluginInfo() {
+    return servicePluginInfo;
+  }
+
 }

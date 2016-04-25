@@ -165,13 +165,13 @@ public class TestRecovery {
                 ApplicationAttemptId.newInstance(appId, 1), null)),
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexInitializedEvent(vertexId0, "Tokenizer", 0L, 0L, 0,
-                    "", null, initGeneratedEvents)),
+                    "", null, initGeneratedEvents, null)),
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexInitializedEvent(vertexId1, "Summation", 0L, 0L, 0,
-                    "", null, null)),
+                    "", null, null, null)),
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexInitializedEvent(vertexId2, "Sorter", 0L, 0L, 0, "",
-                    null, null)),
+                    null, null, null)),
 
             new SimpleShutdownCondition(TIMING.POST,
                 new VertexConfigurationDoneEvent(vertexId0, 0L, 2, null, null,
@@ -194,15 +194,15 @@ public class TestRecovery {
             new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
                 vertexId0, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
                 VertexState.SUCCEEDED, "", new TezCounters(),
-                new VertexStats(), new HashMap<String, Integer>())),
+                new VertexStats(), new HashMap<String, Integer>(), null)),
             new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
                 vertexId1, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
                 VertexState.SUCCEEDED, "", new TezCounters(),
-                new VertexStats(), new HashMap<String, Integer>())),
+                new VertexStats(), new HashMap<String, Integer>(), null)),
             new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
                 vertexId2, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
                 VertexState.SUCCEEDED, "", new TezCounters(),
-                new VertexStats(), new HashMap<String, Integer>())),
+                new VertexStats(), new HashMap<String, Integer>(), null)),
 
             new SimpleShutdownCondition(TIMING.POST, new TaskStartedEvent(
                 TezTaskID.getInstance(vertexId0, 0), "vertexName", 0L, 0L)),
@@ -376,11 +376,11 @@ public class TestRecovery {
             "dagName", new HashMap<String, Integer>(), ApplicationAttemptId
                 .newInstance(appId, 1), null)),
         new SimpleShutdownCondition(TIMING.POST, new VertexInitializedEvent(
-            vertexId0, "hashSide", 0L, 0L, 0, "", null, initGeneratedEvents)),
+            vertexId0, "hashSide", 0L, 0L, 0, "", null, initGeneratedEvents, null)),
         new SimpleShutdownCondition(TIMING.POST, new VertexInitializedEvent(
-            vertexId1, "streamingSide", 0L, 0L, 0, "", null, null)),
+            vertexId1, "streamingSide", 0L, 0L, 0, "", null, null, null)),
         new SimpleShutdownCondition(TIMING.POST, new VertexInitializedEvent(
-            vertexId2, "joiner", 0L, 0L, 0, "", null, null)),
+            vertexId2, "joiner", 0L, 0L, 0, "", null, null, null)),
 
         new SimpleShutdownCondition(TIMING.POST, new VertexStartedEvent(
             vertexId0, 0L, 0L)),
@@ -404,15 +404,15 @@ public class TestRecovery {
         new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
             vertexId0, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
             VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats(),
-            new HashMap<String, Integer>())),
+            new HashMap<String, Integer>(), null)),
         new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
             vertexId1, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
             VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats(),
-            new HashMap<String, Integer>())),
+            new HashMap<String, Integer>(), null)),
         new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
             vertexId2, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
             VertexState.SUCCEEDED, "", new TezCounters(), new VertexStats(),
-            new HashMap<String, Integer>())),
+            new HashMap<String, Integer>(), null)),
 
         new SimpleShutdownCondition(TIMING.POST, new TaskStartedEvent(TezTaskID
             .getInstance(vertexId0, 0), "vertexName", 0L, 0L)),
@@ -574,7 +574,7 @@ public class TestRecovery {
                     0L, "username", "dagName")),
             new SimpleShutdownCondition(TIMING.POST,
                     new VertexInitializedEvent(vertexId0, "Tokenizer", 0L, 0L, 0,
-                            "", null, initGeneratedEvents)),
+                            "", null, initGeneratedEvents, null)),
             new SimpleShutdownCondition(TIMING.POST, new VertexStartedEvent(
                     vertexId0, 0L, 0L)),
             new SimpleShutdownCondition(TIMING.POST,
@@ -592,15 +592,15 @@ public class TestRecovery {
             new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
                     vertexId0, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
                     VertexState.SUCCEEDED, "", new TezCounters(),
-                    new VertexStats(), new HashMap<String, Integer>())),
+                    new VertexStats(), new HashMap<String, Integer>(), null)),
             new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
                     vertexId1, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
                     VertexState.SUCCEEDED, "", new TezCounters(),
-                    new VertexStats(), new HashMap<String, Integer>())),
+                    new VertexStats(), new HashMap<String, Integer>(), null)),
             new SimpleShutdownCondition(TIMING.POST, new VertexFinishedEvent(
                     vertexId2, "vertexName", 1, 0L, 0L, 0L, 0L, 0L,
                     VertexState.SUCCEEDED, "", new TezCounters(),
-                    new VertexStats(), new HashMap<String, Integer>())),
+                    new VertexStats(), new HashMap<String, Integer>(), null)),
             new SimpleShutdownCondition(TIMING.POST, new DAGFinishedEvent(
                     dagId, 0L, 0L, DAGState.SUCCEEDED, "", new TezCounters(),
                     "username", "dagName", new HashMap<String, Integer>(),

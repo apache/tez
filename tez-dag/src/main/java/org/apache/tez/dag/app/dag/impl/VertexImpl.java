@@ -247,6 +247,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @VisibleForTesting
   final int taskCommunicatorIdentifier;
 
+  final ServicePluginInfo servicePluginInfo;
+
+
   //fields initialized in init
 
   @VisibleForTesting
@@ -1009,6 +1012,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       LOG.error("Failed to get index for containerLauncher: " + containerLauncherName);
       throw e;
     }
+    this.servicePluginInfo = new ServicePluginInfo()
+        .setContainerLauncherName(
+            appContext.getContainerLauncherName(this.containerLauncherIdentifier))
+        .setTaskSchedulerName(appContext.getTaskSchedulerName(this.taskSchedulerIdentifier))
+        .setTaskCommunicatorName(appContext.getTaskCommunicatorName(this.taskCommunicatorIdentifier))
+        .setContainerLauncherClassName(
+            appContext.getContainerLauncherClassName(this.containerLauncherIdentifier))
+        .setTaskSchedulerClassName(
+            appContext.getTaskSchedulerClassName(this.taskSchedulerIdentifier))
+        .setTaskCommunicatorClassName(
+            appContext.getTaskCommunicatorClassName(this.taskCommunicatorIdentifier));
 
     StringBuilder sb = new StringBuilder();
     sb.append("Running vertex: ").append(logIdentifier).append(" : ")
@@ -1040,6 +1054,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Override
   public int getTaskCommunicatorIdentifier() {
     return this.taskCommunicatorIdentifier;
+  }
+
+  @Override
+  public ServicePluginInfo getServicePluginInfo() {
+    return servicePluginInfo;
   }
 
   @Override
@@ -1923,8 +1942,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   void logJobHistoryVertexInitializedEvent() {
     if (recoveryData == null || !recoveryData.shouldSkipInit()) {
       VertexInitializedEvent initEvt = new VertexInitializedEvent(vertexId, vertexName,
-              initTimeRequested, initedTime, numTasks,
-              getProcessorName(), getAdditionalInputs(), initGeneratedEvents);
+          initTimeRequested, initedTime, numTasks,
+          getProcessorName(), getAdditionalInputs(), initGeneratedEvents,
+          servicePluginInfo);
       this.appContext.getHistoryHandler().handle(
               new DAGHistoryEvent(getDAGId(), initEvt));
     }
@@ -1989,9 +2009,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     taskStats.put(ATSConstants.NUM_FAILED_TASKS_ATTEMPTS, failedTaskAttemptCount.get());
     taskStats.put(ATSConstants.NUM_KILLED_TASKS_ATTEMPTS, killedTaskAttemptCount.get());
 
-    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, numTasks, initTimeRequested,
-        initedTime, startTimeRequested, startedTime, finishTime, finalState, diagnostics,
-        counters, getVertexStats(), taskStats);
+    VertexFinishedEvent finishEvt = new VertexFinishedEvent(vertexId, vertexName, numTasks,
+        initTimeRequested, initedTime, startTimeRequested, startedTime, finishTime, finalState,
+        diagnostics, counters, getVertexStats(), taskStats, servicePluginInfo);
     this.appContext.getHistoryHandler().handleCriticalEvent(
         new DAGHistoryEvent(getDAGId(), finishEvt));
   }

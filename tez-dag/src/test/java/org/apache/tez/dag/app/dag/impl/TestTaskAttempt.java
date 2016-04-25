@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.dag.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -61,6 +62,7 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.tez.common.MockDNSToSwitchMapping;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
 import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
@@ -139,6 +141,9 @@ public class TestTaskAttempt {
   AppContext appCtx;
   Task mockTask;
   TaskLocationHint locationHint;
+  Vertex mockVertex;
+  ServicePluginInfo servicePluginInfo = new ServicePluginInfo()
+      .setContainerLauncherName(TezConstants.getTezYarnServicePluginName());
 
   @BeforeClass
   public static void setup() {
@@ -148,7 +153,14 @@ public class TestTaskAttempt {
   @Before
   public void setupTest() {
     appCtx = mock(AppContext.class);
+    when(appCtx.getContainerLauncherName(anyInt())).thenReturn(
+        TezConstants.getTezYarnServicePluginName());
+
     mockTask = mock(Task.class);
+    mockVertex = mock(Vertex.class);
+    when(mockTask.getVertex()).thenReturn(mockVertex);
+    when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
+
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
     doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
     LogManager.getRootLogger().setLevel(Level.DEBUG);
@@ -1737,7 +1749,6 @@ public class TestTaskAttempt {
     }
 
     
-    Vertex mockVertex = mock(Vertex.class);
     boolean inputFailedReported = false;
     
     @Override

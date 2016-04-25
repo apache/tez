@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.ServicePluginError;
@@ -46,4 +47,11 @@ public interface TaskCommunicatorManagerInterface {
   TaskCommunicatorWrapper getTaskCommunicator(int taskCommIndex);
 
   void reportError(int taskCommIndex, ServicePluginError servicePluginError, String diagnostics, DagInfo dagName);
+
+  String getTaskCommunicatorClassName(int taskCommId);
+
+  String getInProgressLogsUrl(int taskCommId, TezTaskAttemptID attemptID, NodeId containerNodeId);
+
+  String getCompletedLogsUrl(int taskCommId, TezTaskAttemptID attemptID, NodeId containerNodeId);
+
 }

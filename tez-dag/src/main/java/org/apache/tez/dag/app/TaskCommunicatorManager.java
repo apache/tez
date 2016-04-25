@@ -650,4 +650,34 @@ public class TaskCommunicatorManager extends AbstractService implements
   private void sendEvent(Event<?> event) {
     context.getEventHandler().handle(event);
   }
+
+  @Override
+  public String getTaskCommunicatorClassName(int taskCommId) {
+    return taskCommunicators[taskCommId].getTaskCommunicator().getClass().getName();
+  }
+
+  @Override
+  public String getInProgressLogsUrl(int taskCommId, TezTaskAttemptID attemptID, NodeId containerNodeId) {
+    try {
+      return taskCommunicators[taskCommId].getInProgressLogsUrl(attemptID, containerNodeId);
+    } catch (Exception e) {
+      LOG.warn("Failed to retrieve InProgressLogsUrl from TaskCommunicator,"
+          + ", communicator=" + Utils.getTaskCommIdentifierString(taskCommId, context)
+          + ", attemptId=" + attemptID, e);
+    }
+    return null;
+  }
+
+  @Override
+  public String getCompletedLogsUrl(int taskCommId, TezTaskAttemptID attemptID, NodeId containerNodeId) {
+    try {
+      return taskCommunicators[taskCommId].getCompletedLogsUrl(attemptID, containerNodeId);
+    } catch (Exception e) {
+      LOG.warn("Failed to retrieve CompletedLogsUrl from TaskCommunicator,"
+          + ", communicator=" + Utils.getTaskCommIdentifierString(taskCommId, context)
+          + ", attemptId=" + attemptID, e);
+    }
+    return null;
+  }
+
 }

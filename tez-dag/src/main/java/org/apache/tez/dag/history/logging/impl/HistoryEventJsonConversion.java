@@ -716,6 +716,10 @@ public class HistoryEventJsonConversion {
         otherInfo.put(entry.getKey(), entry.getValue().intValue());
       }
     }
+    if (event.getServicePluginInfo() != null) {
+      otherInfo.put(ATSConstants.SERVICE_PLUGIN,
+          DAGUtils.convertServicePluginToJSON(event.getServicePluginInfo()));
+    }
 
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
@@ -787,6 +791,10 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.INIT_TIME, event.getInitedTime());
     otherInfo.put(ATSConstants.NUM_TASKS, event.getNumTasks());
     otherInfo.put(ATSConstants.PROCESSOR_CLASS_NAME, event.getProcessorName());
+    if (event.getServicePluginInfo() != null) {
+      otherInfo.put(ATSConstants.SERVICE_PLUGIN,
+          DAGUtils.convertServicePluginToJSON(event.getServicePluginInfo()));
+    }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;

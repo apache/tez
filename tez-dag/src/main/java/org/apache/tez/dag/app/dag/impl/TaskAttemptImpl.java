@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
@@ -1107,31 +1108,49 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   private String getInProgressLogsUrl() {
     String inProgressLogsUrl = null;
-    if (containerId != null && nodeHttpAddress != null) {
-      final String containerIdStr = containerId.toString();
-      inProgressLogsUrl = nodeHttpAddress
-          + "/" + "node/containerlogs"
-          + "/" + containerIdStr
-          + "/" + this.appContext.getUser();
+    if (getVertex().getServicePluginInfo().getContainerLauncherName().equals(
+          TezConstants.getTezYarnServicePluginName())
+        || getVertex().getServicePluginInfo().getContainerLauncherName().equals(
+          TezConstants.getTezUberServicePluginName())) {
+      if (containerId != null && nodeHttpAddress != null) {
+        final String containerIdStr = containerId.toString();
+        inProgressLogsUrl = nodeHttpAddress
+            + "/" + "node/containerlogs"
+            + "/" + containerIdStr
+            + "/" + this.appContext.getUser();
+      }
+    } else {
+      inProgressLogsUrl = appContext.getTaskCommunicatorManager().getInProgressLogsUrl(
+          getVertex().getTaskCommunicatorIdentifier(),
+          attemptId, containerNodeId);
     }
     return inProgressLogsUrl;
   }
 
   private String getCompletedLogsUrl() {
     String completedLogsUrl = null;
-    if (containerId != null && containerNodeId != null && nodeHttpAddress != null) {
-      final String containerIdStr = containerId.toString();
-      if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
-          YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED)
-          && conf.get(YarnConfiguration.YARN_LOG_SERVER_URL) != null) {
-        String contextStr = "v_" + getVertex().getName()
-            + "_" + this.attemptId.toString();
-        completedLogsUrl = conf.get(YarnConfiguration.YARN_LOG_SERVER_URL)
-            + "/" + containerNodeId.toString()
-            + "/" + containerIdStr
-            + "/" + contextStr
-            + "/" + this.appContext.getUser();
+    if (getVertex().getServicePluginInfo().getContainerLauncherName().equals(
+          TezConstants.getTezYarnServicePluginName())
+        || getVertex().getServicePluginInfo().getContainerLauncherName().equals(
+          TezConstants.getTezUberServicePluginName())) {
+      if (containerId != null && containerNodeId != null && nodeHttpAddress != null) {
+        final String containerIdStr = containerId.toString();
+        if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
+            YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED)
+            && conf.get(YarnConfiguration.YARN_LOG_SERVER_URL) != null) {
+          String contextStr = "v_" + getVertex().getName()
+              + "_" + this.attemptId.toString();
+          completedLogsUrl = conf.get(YarnConfiguration.YARN_LOG_SERVER_URL)
+              + "/" + containerNodeId.toString()
+              + "/" + containerIdStr
+              + "/" + contextStr
+              + "/" + this.appContext.getUser();
+        }
       }
+    } else {
+      completedLogsUrl = appContext.getTaskCommunicatorManager().getCompletedLogsUrl(
+          getVertex().getTaskCommunicatorIdentifier(),
+          attemptId, containerNodeId);
     }
     return completedLogsUrl;
   }

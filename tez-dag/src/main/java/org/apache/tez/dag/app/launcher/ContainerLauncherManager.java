@@ -279,4 +279,8 @@ public class ContainerLauncherManager extends AbstractService
   private void sendEvent(Event<?> event) {
     appContext.getEventHandler().handle(event);
   }
+
+  public String getContainerLauncherClassName(int containerLauncherIndex) {
+    return containerLaunchers[containerLauncherIndex].getContainerLauncher().getClass().getName();
+  }
 }

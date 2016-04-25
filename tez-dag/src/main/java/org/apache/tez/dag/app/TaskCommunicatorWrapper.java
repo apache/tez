@@ -21,6 +21,7 @@ import java.util.Map;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -80,4 +81,15 @@ public class TaskCommunicatorWrapper {
   public TaskCommunicator getTaskCommunicator() {
     return real;
   }
+
+  public String getInProgressLogsUrl(TezTaskAttemptID attemptID, NodeId containerNodeId)
+      throws Exception {
+    return real.getInProgressLogsUrl(attemptID, containerNodeId);
+  }
+
+  public String getCompletedLogsUrl(TezTaskAttemptID attemptID, NodeId containerNodeId)
+      throws Exception {
+    return real.getCompletedLogsUrl(attemptID, containerNodeId);
+  }
+
 }

@@ -996,4 +996,9 @@ public class TaskSchedulerManager extends AbstractService implements
 
     return historyUrl;
   }
+
+  public String getTaskSchedulerClassName(int taskSchedulerIndex) {
+    return taskSchedulers[taskSchedulerIndex].getTaskScheduler().getClass().getName();
+  }
+
 }

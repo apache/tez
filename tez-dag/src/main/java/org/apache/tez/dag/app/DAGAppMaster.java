@@ -1589,6 +1589,11 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
+    public TaskCommunicatorManagerInterface getTaskCommunicatorManager() {
+      return taskCommunicatorManager;
+    }
+
+    @Override
     public boolean isSession() {
       return isSession;
     }
@@ -1678,6 +1683,22 @@ public class DAGAppMaster extends AbstractService {
     public String getContainerLauncherName(int launcherId) {
       return containerLaunchers.inverse().get(launcherId);
     }
+
+    @Override
+    public String getTaskCommunicatorClassName(int taskCommId) {
+      return taskCommunicatorManager.getTaskCommunicatorClassName(taskCommId);
+    }
+
+    @Override
+    public String getTaskSchedulerClassName(int schedulerId) {
+      return taskSchedulerManager.getTaskSchedulerClassName(schedulerId);
+    }
+
+    @Override
+    public String getContainerLauncherClassName(int launcherId) {
+      return containerLauncherManager.getContainerLauncherClassName(launcherId);
+    }
+
 
     @Override
     public HadoopShim getHadoopShim() {

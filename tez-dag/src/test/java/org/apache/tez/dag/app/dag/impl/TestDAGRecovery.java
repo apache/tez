@@ -700,7 +700,7 @@ public class TestDAGRecovery {
     List<TezEvent> inputGeneratedTezEvents = new ArrayList<TezEvent>();
     VertexInitializedEvent v1InitedEvent = new VertexInitializedEvent(v1Id, 
         "vertex1", 0L, v1InitedTime, 
-        v1NumTask, "", null, inputGeneratedTezEvents);
+        v1NumTask, "", null, inputGeneratedTezEvents, null);
     VertexRecoveryData vertexRecoveryData = new VertexRecoveryData(v1InitedEvent,
         null, null, null, null, false);
     doReturn(vertexRecoveryData).when(dagRecoveryData).getVertexRecoveryData(v1Id);
@@ -732,7 +732,7 @@ public class TestDAGRecovery {
     List<TezEvent> inputGeneratedTezEvents = new ArrayList<TezEvent>();
     VertexInitializedEvent v1InitedEvent = new VertexInitializedEvent(v1Id, 
         "vertex1", 0L, v1InitedTime, 
-        v1NumTask, "", null, inputGeneratedTezEvents);
+        v1NumTask, "", null, inputGeneratedTezEvents, null);
     VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id, 
         0L, v1NumTask, null, null, null, true);
     VertexRecoveryData vertexRecoveryData = new VertexRecoveryData(v1InitedEvent,
@@ -772,7 +772,7 @@ public class TestDAGRecovery {
     List<TezEvent> inputGeneratedTezEvents = new ArrayList<TezEvent>();
     VertexInitializedEvent v1InitedEvent = new VertexInitializedEvent(v1Id, 
         "vertex1", 0L, v1InitedTime, 
-        v1NumTask, "", null, inputGeneratedTezEvents);
+        v1NumTask, "", null, inputGeneratedTezEvents, null);
     VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id, 
         0L, v1NumTask, null, null, null, true);
     VertexStartedEvent v1StartedEvent = new VertexStartedEvent(v1Id, 0L, v1StartedTime);
@@ -803,7 +803,7 @@ public class TestDAGRecovery {
     List<TezEvent> inputGeneratedTezEvents = new ArrayList<TezEvent>();
     VertexInitializedEvent v1InitedEvent = new VertexInitializedEvent(v1Id, 
         "vertex1", 0L, v1InitedTime, 
-        v1NumTask, "", null, inputGeneratedTezEvents);
+        v1NumTask, "", null, inputGeneratedTezEvents, null);
     Map<String, InputSpecUpdate> rootInputSpecs = new HashMap<String, InputSpecUpdate>();
     VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id, 
         0L, v1NumTask, null, null, rootInputSpecs, true);
@@ -911,7 +911,7 @@ public class TestDAGRecovery {
     List<TezEvent> inputGeneratedTezEvents = new ArrayList<TezEvent>();
     VertexInitializedEvent v1InitedEvent = new VertexInitializedEvent(v1Id, 
         "vertex1", 0L, v1InitedTime, 
-        v1NumTask, "", null, inputGeneratedTezEvents);
+        v1NumTask, "", null, inputGeneratedTezEvents, null);
     Map<String, InputSpecUpdate> rootInputSpecs = new HashMap<String, InputSpecUpdate>();
     VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id, 
         0L, v1NumTask, null, null, rootInputSpecs, true);
@@ -1079,7 +1079,7 @@ public class TestDAGRecovery {
 
     VertexInitializedEvent v2InitedEvent = new VertexInitializedEvent(v2Id, 
         "vertex2", 0L, v1InitedTime, 
-        v1NumTask, "", null, null);
+        v1NumTask, "", null, null, null);
     VertexConfigurationDoneEvent v2ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v2Id, 
         0L, v1NumTask, null, null, null, false);
     VertexStartedEvent v2StartedEvent = new VertexStartedEvent(v2Id, 0L, v1StartedTime);
