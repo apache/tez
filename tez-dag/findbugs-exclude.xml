@@ -163,6 +163,8 @@
       <Field name="recoveryEnabled"/>
       <Field name="isLocal"/>
       <Field name="hadoopShim"/>
+      <Field name="containerLauncherManager"/>
+      <Field name="taskCommunicatorManager"/>
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>

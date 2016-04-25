@@ -6,6 +6,7 @@ Release 0.8.4: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3219. Allow service plugins to define log locations link for remotely run task attempts.
   TEZ-3224. User payload is not initialized before creating vertex manager plugin.
   TEZ-3226. Tez UI 2: All DAGs UX improvements.
   TEZ-3077. TezClient.waitTillReady should support timeout.

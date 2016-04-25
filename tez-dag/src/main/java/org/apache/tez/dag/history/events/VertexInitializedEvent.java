@@ -30,6 +30,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
+import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.utils.TezEventUtils;
@@ -51,6 +52,7 @@ public class VertexInitializedEvent implements HistoryEvent {
   private String processorName;
   private Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs;
   private List<TezEvent> initGeneratedEvents;
+  private ServicePluginInfo servicePluginInfo;
 
   public VertexInitializedEvent() {
   }
@@ -59,7 +61,7 @@ public class VertexInitializedEvent implements HistoryEvent {
       String vertexName, long initRequestedTime, long initedTime,
       int numTasks, String processorName,
       Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs,
-      List<TezEvent> initGeneratedEvents) {
+      List<TezEvent> initGeneratedEvents, ServicePluginInfo servicePluginInfo) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
     this.initRequestedTime = initRequestedTime;
@@ -68,6 +70,7 @@ public class VertexInitializedEvent implements HistoryEvent {
     this.processorName = processorName;
     this.additionalInputs = additionalInputs;
     this.initGeneratedEvents = initGeneratedEvents;
+    this.servicePluginInfo = servicePluginInfo;
   }
 
   @Override
@@ -173,7 +176,9 @@ public class VertexInitializedEvent implements HistoryEvent {
         + ", additionalInputsCount="
         + (additionalInputs != null ? additionalInputs.size() : 0)
         + ", initGeneratedEventsCount="
-        + (initGeneratedEvents != null ? initGeneratedEvents.size() : 0);
+        + (initGeneratedEvents != null ? initGeneratedEvents.size() : 0)
+        + ", servicePluginInfo="
+        + (servicePluginInfo != null ? servicePluginInfo : "null");
   }
 
   public TezVertexID getVertexID() {
@@ -208,4 +213,9 @@ public class VertexInitializedEvent implements HistoryEvent {
   public List<TezEvent> getInitGeneratedEvents() {
     return initGeneratedEvents;
   }
+
+  public ServicePluginInfo getServicePluginInfo() {
+    return servicePluginInfo;
+  }
+
 }

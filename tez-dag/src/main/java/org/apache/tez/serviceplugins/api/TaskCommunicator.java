@@ -35,6 +35,7 @@ import java.util.Map;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.ServicePluginLifecycle;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -229,4 +230,25 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
    *                               This will cause the app to shutdown.
    */
   public abstract Object getMetaInfo() throws ServicePluginException;
+
+  /**
+   * Return a URL that can be used as a link to the logs for a running attempt.
+   * @param attemptID Attempt ID for which the log link should be provided
+   * @param containerNodeId Node Id on which the attempt is meant to have run
+   * @return URL to logs for the attempt
+   */
+  public String getInProgressLogsUrl(TezTaskAttemptID attemptID, NodeId containerNodeId) {
+    return null;
+  }
+
+  /**
+   * Return a URL that can be used as a link to the logs for a completed attempt.
+   * @param attemptID Attempt ID for which the log link should be provided
+   * @param containerNodeId Node Id on which the attempt is meant to have run
+   * @return URL to logs for the attempt
+   */
+  public String getCompletedLogsUrl(TezTaskAttemptID attemptID, NodeId containerNodeId) {
+    return null;
+  }
+
 }

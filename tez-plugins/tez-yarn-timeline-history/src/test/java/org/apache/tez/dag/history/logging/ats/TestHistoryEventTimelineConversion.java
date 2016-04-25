@@ -47,6 +47,7 @@ import org.apache.tez.dag.api.records.DAGProtos.CallerContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.app.web.AMWebController;
@@ -157,7 +158,7 @@ public class TestHistoryEventTimelineConversion {
           break;
         case VERTEX_INITIALIZED:
           event = new VertexInitializedEvent(tezVertexID, "v1", random.nextInt(), random.nextInt(),
-              random.nextInt(), "proc", null, null);
+              random.nextInt(), "proc", null, null, null);
           break;
         case VERTEX_STARTED:
           event = new VertexStartedEvent(tezVertexID, random.nextInt(), random.nextInt());
@@ -168,7 +169,7 @@ public class TestHistoryEventTimelineConversion {
         case VERTEX_FINISHED:
           event = new VertexFinishedEvent(tezVertexID, "v1", 1, random.nextInt(), random.nextInt(),
               random.nextInt(), random.nextInt(), random.nextInt(), VertexState.ERROR,
-              null, null, null, null);
+              null, null, null, null, null);
           break;
         case TASK_STARTED:
           event = new TaskStartedEvent(tezTaskID, "v1", random.nextInt(), random.nextInt());
@@ -677,13 +678,19 @@ public class TestHistoryEventTimelineConversion {
         ((Integer) timelineEntity.getOtherInfo().get("BAR")).intValue());
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testConvertVertexInitializedEvent() {
     long initRequestedTime = random.nextLong();
     long initedTime = random.nextLong();
     int numTasks = random.nextInt();
     VertexInitializedEvent event = new VertexInitializedEvent(tezVertexID, "v1", initRequestedTime,
-        initedTime, numTasks, "proc", null, null);
+        initedTime, numTasks, "proc", null, null,
+        new ServicePluginInfo().setContainerLauncherName("abc")
+            .setTaskSchedulerName("def").setTaskCommunicatorName("ghi")
+            .setContainerLauncherClassName("abc1")
+            .setTaskSchedulerClassName("def1")
+            .setTaskCommunicatorClassName("ghi1"));
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
@@ -720,6 +727,25 @@ public class TestHistoryEventTimelineConversion {
         ((Long) timelineEntity.getOtherInfo().get(ATSConstants.INIT_TIME)).longValue());
     Assert.assertEquals(numTasks,
         ((Integer) timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS)).intValue());
+    Assert.assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
+    Assert.assertEquals("abc",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.CONTAINER_LAUNCHER_NAME));
+    Assert.assertEquals("def",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_SCHEDULER_NAME));
+    Assert.assertEquals("ghi",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_COMMUNICATOR_NAME));
+    Assert.assertEquals("abc1",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME));
+    Assert.assertEquals("def1",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_SCHEDULER_CLASS_NAME));
+    Assert.assertEquals("ghi1",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_COMMUNICATOR_CLASS_NAME));
   }
 
   @Test(timeout = 5000)
@@ -756,6 +782,7 @@ public class TestHistoryEventTimelineConversion {
             timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
   }
 
+  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testConvertVertexFinishedEvent() {
     long initRequestedTime = random.nextLong();
@@ -770,7 +797,12 @@ public class TestHistoryEventTimelineConversion {
 
     VertexFinishedEvent event = new VertexFinishedEvent(tezVertexID, "v1", 1, initRequestedTime,
         initedTime, startRequestedTime, startTime, finishTime, VertexState.ERROR,
-        "diagnostics", null, vertexStats, taskStats);
+        "diagnostics", null, vertexStats, taskStats,
+        new ServicePluginInfo().setContainerLauncherName("abc")
+            .setTaskSchedulerName("def").setTaskCommunicatorName("ghi")
+            .setContainerLauncherClassName("abc1")
+            .setTaskSchedulerClassName("def1")
+            .setTaskCommunicatorClassName("ghi1"));
 
     TimelineEntity timelineEntity = HistoryEventTimelineConversion.convertToTimelineEntity(event);
     Assert.assertEquals(EntityTypes.TEZ_VERTEX_ID.name(), timelineEntity.getEntityType());
@@ -801,6 +833,25 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
     Assert.assertEquals("diagnostics",
         timelineEntity.getOtherInfo().get(ATSConstants.DIAGNOSTICS));
+    Assert.assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
+    Assert.assertEquals("abc",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.CONTAINER_LAUNCHER_NAME));
+    Assert.assertEquals("def",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_SCHEDULER_NAME));
+    Assert.assertEquals("ghi",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_COMMUNICATOR_NAME));
+    Assert.assertEquals("abc1",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME));
+    Assert.assertEquals("def1",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_SCHEDULER_CLASS_NAME));
+    Assert.assertEquals("ghi1",
+        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+            ATSConstants.TASK_COMMUNICATOR_CLASS_NAME));
 
     Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.STATS));
 

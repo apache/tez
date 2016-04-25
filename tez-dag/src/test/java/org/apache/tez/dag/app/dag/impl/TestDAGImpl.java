@@ -19,9 +19,9 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -40,6 +40,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShim;
@@ -986,6 +987,8 @@ public class TestDAGImpl {
     doReturn(clusterInfo).when(dagWithCustomEdgeAppContext).getClusterInfo();
     dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDisptacher2());
     dispatcher.register(AMSchedulerEventType.class, new AMSchedulerEventHandler());
+    when(dagWithCustomEdgeAppContext.getContainerLauncherName(anyInt())).thenReturn(
+        TezConstants.getTezYarnServicePluginName());
   }
 
   private void initDAG(DAGImpl impl) {

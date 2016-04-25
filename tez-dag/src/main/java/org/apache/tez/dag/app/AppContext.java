@@ -94,6 +94,8 @@ public interface AppContext {
 
   TaskSchedulerManager getTaskScheduler();
 
+  TaskCommunicatorManagerInterface getTaskCommunicatorManager();
+
   boolean isSession();
 
   boolean isLocal();
@@ -126,6 +128,10 @@ public interface AppContext {
   public String getTaskCommunicatorName(int taskCommId);
   public String getTaskSchedulerName(int schedulerId);
   public String getContainerLauncherName(int launcherId);
+
+  public String getTaskCommunicatorClassName(int taskCommId);
+  public String getTaskSchedulerClassName(int schedulerId);
+  public String getContainerLauncherClassName(int launcherId);
 
   public HadoopShim getHadoopShim();
 

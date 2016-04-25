@@ -515,8 +515,12 @@ public class HistoryEventTimelineConversion {
     atsEntity.addEvent(startEvt);
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
-    atsEntity.addOtherInfo(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
-    atsEntity.addOtherInfo(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
+    if (event.getInProgressLogsUrl() != null) {
+      atsEntity.addOtherInfo(ATSConstants.IN_PROGRESS_LOGS_URL, event.getInProgressLogsUrl());
+    }
+    if (event.getCompletedLogsUrl() != null) {
+      atsEntity.addOtherInfo(ATSConstants.COMPLETED_LOGS_URL, event.getCompletedLogsUrl());
+    }
     atsEntity.addOtherInfo(ATSConstants.NODE_ID, event.getNodeId().toString());
     atsEntity.addOtherInfo(ATSConstants.NODE_HTTP_ADDRESS, event.getNodeHttpAddress());
     atsEntity.addOtherInfo(ATSConstants.CONTAINER_ID, event.getContainerId().toString());
@@ -615,6 +619,10 @@ public class HistoryEventTimelineConversion {
         DAGUtils.convertCountersToATSMap(event.getTezCounters()));
     atsEntity.addOtherInfo(ATSConstants.STATS,
         DAGUtils.convertVertexStatsToATSMap(event.getVertexStats()));
+    if (event.getServicePluginInfo() != null) {
+      atsEntity.addOtherInfo(ATSConstants.SERVICE_PLUGIN,
+          DAGUtils.convertServicePluginToATSMap(event.getServicePluginInfo()));
+    }
 
     final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
     if (vertexTaskStats != null) {
@@ -651,6 +659,10 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.INIT_TIME, event.getInitedTime());
     atsEntity.addOtherInfo(ATSConstants.NUM_TASKS, event.getNumTasks());
     atsEntity.addOtherInfo(ATSConstants.PROCESSOR_CLASS_NAME, event.getProcessorName());
+    if (event.getServicePluginInfo() != null) {
+      atsEntity.addOtherInfo(ATSConstants.SERVICE_PLUGIN,
+          DAGUtils.convertServicePluginToATSMap(event.getServicePluginInfo()));
+    }
 
     return atsEntity;
   }

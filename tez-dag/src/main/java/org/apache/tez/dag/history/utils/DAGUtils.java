@@ -42,6 +42,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanGroupInputEdgeInfo;
+import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
 import org.apache.tez.dag.app.dag.impl.VertexStats;
 import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.history.logging.EntityTypes;
@@ -404,6 +405,34 @@ public class DAGUtils {
 
     return vertexStatsMap;
   }
+
+  public static JSONObject convertServicePluginToJSON(
+      ServicePluginInfo servicePluginInfo) {
+    JSONObject jsonObject = new JSONObject(convertServicePluginToATSMap(servicePluginInfo));
+    return jsonObject;
+  }
+
+  public static Map<String,Object> convertServicePluginToATSMap(
+      ServicePluginInfo servicePluginInfo) {
+    Map<String, Object> servicePluginMap = new LinkedHashMap<String, Object>();
+    if (servicePluginInfo == null) {
+      return servicePluginMap;
+    }
+    servicePluginMap.put(ATSConstants.TASK_SCHEDULER_NAME,
+        servicePluginInfo.getTaskSchedulerName());
+    servicePluginMap.put(ATSConstants.TASK_SCHEDULER_CLASS_NAME,
+        servicePluginInfo.getTaskSchedulerClassName());
+    servicePluginMap.put(ATSConstants.TASK_COMMUNICATOR_NAME,
+        servicePluginInfo.getTaskCommunicatorName());
+    servicePluginMap.put(ATSConstants.TASK_COMMUNICATOR_CLASS_NAME,
+        servicePluginInfo.getTaskCommunicatorClassName());
+    servicePluginMap.put(ATSConstants.CONTAINER_LAUNCHER_NAME,
+        servicePluginInfo.getContainerLauncherName());
+    servicePluginMap.put(ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME,
+        servicePluginInfo.getContainerLauncherClassName());
+    return servicePluginMap;
+  }
+
 
   public static Map<String,Object> convertEdgeProperty(
       EdgeProperty edge) {

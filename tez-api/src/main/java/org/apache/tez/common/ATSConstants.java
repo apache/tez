@@ -90,6 +90,13 @@ public class ATSConstants {
   public static final String LAST_DATA_EVENTS = "lastDataEvents";
   public static final String UPDATED_EDGE_MANAGERS = "updatedEdgeManagers";
   public static final String CREATION_CAUSAL_ATTEMPT = "creationCausalAttempt";
+  public static final String TASK_COMMUNICATOR_NAME = "taskCommunicatorName";
+  public static final String TASK_SCHEDULER_NAME = "taskSchedulerName";
+  public static final String CONTAINER_LAUNCHER_NAME = "containerLauncherName";
+  public static final String TASK_COMMUNICATOR_CLASS_NAME = "taskCommunicatorClassName";
+  public static final String TASK_SCHEDULER_CLASS_NAME = "taskSchedulerClassName";
+  public static final String CONTAINER_LAUNCHER_CLASS_NAME = "containerLauncherClassName";
+  public static final String SERVICE_PLUGIN = "servicePlugin";
 
   /* Counters-related keys */
   public static final String COUNTER_GROUPS = "counterGroups";
