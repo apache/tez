@@ -6,6 +6,7 @@ Release 0.9.0: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3232. Disable randomFailingInputs in testFaulttolerance to unblock other tests.
   TEZ-3219. Allow service plugins to define log locations link for remotely run task attempts.
   TEZ-3224. User payload is not initialized before creating vertex manager plugin.
   TEZ-3226. Tez UI 2: All DAGs UX improvements.

@@ -49,6 +49,7 @@ import org.apache.tez.test.dag.ThreeLevelsFailingDAG;
 import org.apache.tez.test.dag.TwoLevelsFailingDAG;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -754,6 +755,7 @@ public class TestFaultTolerance {
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
+  @Ignore
   @Test (timeout=240000)
   public void testRandomFailingInputs() throws Exception {
     Configuration testConf = new Configuration(false);
