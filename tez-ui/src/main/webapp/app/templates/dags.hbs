@@ -16,104 +16,27 @@
  * limitations under the License.
 }}
 
-<ul class="breadcrumb">
-  <li>{{#link-to 'application'}}<i class="fa fa-home"> All DAGs</i>{{/link-to}} <span class="divider"></span></li>
-</ul>
+{{tab-n-refresh tabs=tabs autoRefreshVisible=false loadTime=loadTime}}
 
-<div class='margin-small-vertical'>
-  {{#unless loading}}
-    {{load-time-component
-      isRefreshable=isRefreshable
-      time=sortedContent.0.timeStamp
-      refresh='refresh'
-    }}
-    <div class='dag-header'>
-      <div class="align-children-left">
-        {{#if visibleFilters.dagName}}
-          <div class='filter-elements'>
-            <div>Dag Name</div>
-            {{input
-              action="filterUpdated"
-              value=boundFilterValues.dagName
-              placeholder="Search..."
-            }}
-          </div>
-        {{/if}}
-        {{#if visibleFilters.id}}
-          <div class='filter-elements'>
-            <div>Id</div>
-            {{input
-              action="filterUpdated"
-              value=boundFilterValues.id
-              placeholder="Search..."
-            }}
-          </div>
-        {{/if}}
-        {{#if visibleFilters.user}}
-          <div class='filter-elements'>
-            <div>Submitter</div>
-            {{input
-              action="filterUpdated"
-              value=boundFilterValues.user
-              placeholder="Search..."
-            }}
-          </div>
-        {{/if}}
-        {{#if visibleFilters.status}}
-          <div class='filter-elements'>
-            <div>Status</div>
-            {{view App.Dropdown
-              optionValuePath='content.id'
-              optionLabelPath='content.label'
-              classNames='inline-display'
-              action='filterUpdated'
-              content=App.Helpers.misc.dagStatusUIOptions
-              value=boundFilterValues.status
-            }}
-          </div>
-        {{/if}}
-        {{#if visibleFilters.appId}}
-          <div class='filter-elements'>
-            <div>Application ID</div>
-            {{input
-              action="filterUpdated"
-              value=boundFilterValues.appId
-              placeholder="Search..."
-            }}
-          </div>
-        {{/if}}
-        {{#if visibleFilters.callerId}}
-          <div class='filter-elements'>
-            <div>Context ID (Hive Query ID or Pig Script ID)</div>
-            {{input
-              action="filterUpdated"
-              value=boundFilterValues.callerId
-              placeholder="Search..."
-            }}
-          </div>
-        {{/if}}
-      </div><div class="align-children-right">
-        {{view App.BasicTableComponent.PaginationView
-          pageNum=page
-          totalPages=lastPage
-          hideLast=true
-        }}
-        <i {{bind-attr class=':fa-action :fa-cog :left-divider'}} {{action 'selectColumns'}}></i>
-      </div>
-    </div>
-    {{basic-table-component
-      columns=columns
-      rows=sortedContent
+{{#if loaded}}
+  {{em-table
+    columns=visibleColumns
+    rows=model
+    rowCount=rowCount
 
-      rowCountBinding='rowCount'
+    classNames="all-dags-table"
 
-      statusMessage=statusMessage
-    }}
-  {{else}}
-    {{partial 'partials/loading-spinner'}}
-    <div class="text-align-center">
-      {{statusMessage}}
-    </div>
-  {{/unless}}
+    headerComponentNames=headerComponentNames
 
-</div>
+    definition=definition
+    enableSort=false
+
+    rowAction="rowCountChanged"
+
+    search="search"
+    loadPage="loadPage"
+    reload="reload"
+  }}
+{{else}}
+  {{partial "loading"}}
+{{/if}}

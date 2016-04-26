@@ -1,8 +1,0 @@
-{
-  "name": "express_server",
-  "version": "0.0.1",
-  "dependencies": {
-    "express": "4.12.1",
-    "jsonconfig": "0.3.0"
-  }
-}

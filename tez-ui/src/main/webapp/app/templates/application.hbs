@@ -16,33 +16,52 @@
  * limitations under the License.
 }}
 
-<div {{bind-attr class="App.env.isStandalone:standalone:wrapped App.env.isIE:ie"}}>
-  <div class="top-wrapper">
-    <div id="top-nav">
-      <div class="navbar navbar-static-top">
-        <div class="navbar-inner">
-          <div class="main-container">
-            {{#link-to 'application' class="logo"}}
-              <img src="img/apache-tez-logo-transparent.png" width="70px"/>
-              <span>{{unbound App.env.version}}</span>
-            {{/link-to}}
-          </div>
+<div class="{{if env.app.isStandalone 'standalone' 'wrapped'}} {{if env.ENV.isIE 'ie'}}">
+  <div class="footer-pusher">
+
+    <div class="header">
+      <div class="lr-margin content">
+        {{#link-to 'application' class="logo"}}
+          <img src="assets/images/logo.png" width="70px"/>
+        {{/link-to}}
+
+        <div class="breadcrumb-container">
+          {{em-breadcrumbs items=prefixedBreadcrumbs}}
+        </div>
+
+        <div class="ui-info">
+          {{#if env.app.buildVersion}}
+            <span>Version <b>{{env.app.buildVersion}}</b></span>
+          {{/if}}
+          <span>
+            <a href={{env.app.hrefs.help}} target="_blank">
+              <i class="fa fa-question-circle"></i>
+            </a>
+          </span>
         </div>
       </div>
     </div>
 
-    <div class="main-container">
+    <div class="lr-margin">
       {{outlet}}
     </div>
     <div class="footer-frame"> </div>
   </div>
 
   <div class="footer">
-    <div class="main-container">
-      <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Licensed under the Apache License, Version 2.0</a>.
-      {{#if App.env.timezone}}
-        <span>Timezone: {{App.env.timezone}}</span>
-      {{/if}}
+    <div class="lr-margin content">
+      <a href={{env.app.hrefs.license}} target="_blank">
+        Licensed under the Apache License, Version 2.0.
+      </a>
+      <div class="ui-info">
+        {{#if env.app.timezone}}
+          <span>Timezone <b>{{env.app.timezone}}</b></span>
+        {{/if}}
+      </div>
     </div>
   </div>
 </div>
+
+{{outlet "modal"}}
+
+{{error-bar error=appError}}

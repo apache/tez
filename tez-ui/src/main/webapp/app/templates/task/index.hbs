@@ -1,95 +1,110 @@
 {{!
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
 }}
 
-<div class="margin-small-vertical">
-  {{load-time-component
-    isRefreshable=isRefreshable
-    time=timeStamp
-    refresh='refresh'
-  }}
-</div>
-<div class='type-table fill-full margin-small-horizontal'>
-	<div class='align-left'>
-		<table class='detail-list'>
- 			<thead>
- 			        <tr>
- 			           <th colspan=2>Task Details</th>
- 			        </tr>
- 			</thead>
-			<tbody>
-				<tr>
- 					<td>Task ID</td>
-					<td>{{id}}</td>
-				</tr>
-				<tr>
-					<td>Vertex ID</td>
-					<td>{{vertexID}}</td>
-				</tr>
-				<tr>
-					<td>{{t 'common.status'}}</td>
-					<td>
-						<i {{bind-attr class=':task-status taskIconStatus'}}></i> {{taskStatus}}
-					</td>
-				</tr>
-        {{#if progress}}
-        <tr>
-          <td>Progress</td>
-          <td>{{bs-progress-animated progressDecimal=progress}}</td>
-        </tr>
-        {{/if}}
-				<tr>
-					<td>{{t 'common.time.start'}}</td>
-					<td>{{formatUnixTimestamp startTime}}</td>
-				</tr>
-				<tr>
-					<td>{{t 'common.time.end'}}</td>
-					<td>{{formatUnixTimestamp endTime}}</td>
-				</tr>
-				<tr>
-					<td>{{t 'common.time.duration'}}</td>
-					<td>{{formatDuration startTime endTime}}</td>
-				</tr>
-        <tr>
-          <td>Logs</td>
-          <td>
-            {{#if logsLink.viewUrl}}
-              <a target="_blank" href='//{{unbound logsLink.viewUrl}}'>View</a>
-              &nbsp;
-            {{/if}}
-            {{#if logsLink.downloadUrl}}
-              <a target="_blank" href='{{unbound logsLink.downloadUrl}}' download type="application/octet-stream">Download</a>
-            {{/if}}
-            {{#unless logsLink.viewUrl}}
-              {{#unless logsLink.downloadUrl}}
-                <span class="message">Not Available!</span>
-              {{/unless}}
-            {{/unless}}
-          </td>
-        </tr>
-			</tbody>
-		</table>
-	</div>
-</div>
+{{#if loaded}}
+  <table class='detail-list'>
+    <thead>
+      <tr>
+        <th colspan=2>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Task ID</td>
+        <td>{{model.entityID}}</td>
+      </tr>
+      <tr>
+        <td>Vertex ID</td>
+        <td>{{model.vertexID}}</td>
+      </tr>
+      <tr>
+        <td>Status</td>
+        <td>{{em-table-status-cell content=model.status}}</td>
+      </tr>
+      <tr>
+        <td>Progress</td>
+        <td>{{em-table-progress-cell content=model.progress}}</td>
+      </tr>
+      <tr>
+        <td>Start Time</td>
+        <td>{{date-formatter content=model.startTime}}</td>
+      </tr>
+      <tr>
+        <td>End Time</td>
+        <td>{{date-formatter content=model.endTime}}</td>
+      </tr>
+      <tr>
+        <td>Duration</td>
+        <td>{{txt model.duration type="duration"}}</td>
+      </tr>
+      <tr>
+        <td>Logs</td>
+        <td>
+          {{#if attempts}}
+            {{#each attempts as |attempt|}}
+              <dag class="display-block">
+                Attempt {{attempt.index}} :&nbsp;
+                {{#if attempt.logURL}}
+                  <a href={{attempt.logURL}} target="_blank">
+                    <i class="fa fa-file-o" aria-hidden="true"></i> View
+                  </a>
+                  &nbsp;
+                  <a href={{attempt.logURL}} target="_blank" download>
+                    <i class="fa fa-download" aria-hidden="true"></i> Download
+                  </a>
+                {{else}}
+                  <span class="txt-message">Not Available!</span>
+                {{/if}}
+              </dag>
+            {{/each}}
+          {{else}}
+            <i class="fa fa-spinner fa-spin"></i> Loading...
+          {{/if}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-{{#if diagnostics}}
-	<div class="margin-small-vertical">
-		{{#bs-panel heading="Diagnostics" collapsible=false dismiss=false type='danger' class="margin-medium-vertical"}}
-			{{formatDiagnostics diagnostics}}
-		{{/bs-panel}}
-	</div>
+  <table class='detail-list'>
+    <thead>
+    <tr>
+      <th colspan=2>Stats</th>
+    </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Failed Task Attempts</td>
+        <td>{{stats-link value=model.failedTaskAttempts routeName="task.attempts" statsType="FAILED"}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  {{#if model.diagnostics}}
+    <div class="panel panel-danger">
+      <div class="panel-heading">
+        Diagnostics
+      </div>
+      <div class="diagnostics">
+        {{{model.diagnostics}}}
+      </div>
+    </div>
+  {{/if}}
+
+{{else}}
+  {{partial "loading"}}
 {{/if}}

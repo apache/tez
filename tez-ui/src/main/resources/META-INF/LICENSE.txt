@@ -215,20 +215,37 @@ licenses.
 
 The Apache TEZ tez-ui bundles the following files under the MIT License:
 
- - antiscroll v1.0.0 (https://github.com/LearnBoost/antiscroll) - Copyright (c) 2011 Guillermo Rauch <guillermo@learnboost.com>
- - bootstrap v3.3.1 (http://getbootstrap.com) - Copyright (c) 2011-2014 Twitter, Inc
- - ember v1.7.0 (http://emberjs.com/) - Copyright (c) 2014 Yehuda Katz, Tom Dale and Ember.js contributors
- - ember-data v1.0.0-beta.11 (https://github.com/emberjs/data) - Copyright (C) 2011-2014 Tilde, Inc. and contributors, Portions Copyright (C) 2011 LivingSocial Inc.
- - ember-json-mapper v1.0.0 (https://github.com/onechiporenko/ember-json-mapper) - Copyright (c) 2014 onechiporenko
- - font-awesome css/less files v4.2.0 (http://fontawesome.io/) - Created by Dave Gandy
- - handlebars v1.3.0 (http://handlebarsjs.com/) - Copyright (C) 2011-2014 by Yehuda Katz
- - jquery v1.10.2 (http://jquery.org) - Copyright 2005, 2014 jQuery Foundation and other contributors
- - jquery-mousewheel v3.1.12 (https://github.com/jquery/jquery-mousewheel) - Copyright 2006, 2014 jQuery Foundation and other contributors, https://jquery.org/
- - jquery-ui v1.11 (http://jqueryui.com/) - Copyright 2014 jQuery Foundation and other contributors
- - moment v2.10.6 (http://momentjs.com/) - Copyright (c) 2011-2015 Tim Wood, Iskren Chernev, Moment.js contributors
- - moment-timezone v0.4.0 (http://momentjs.com/timezone/) - Copyright (c) 2014 Tim Wood
- - FileSaver.js master branch #24b303f49213b905ec9062b708f7cd43d56a5dde (https://github.com/eligrey/FileSaver.js) authors : Eli Grey.
- - CodeMirror 5.2.0 (https://codemirror.net/) authors: Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
+ - ember v2.2.0 (http://emberjs.com/) - Copyright (c) 2014 Yehuda Katz, Tom Dale and Ember.js contributors
+ - ember-data v2.1.0 (https://github.com/emberjs/data) - Copyright (C) 2011-2014 Tilde, Inc. and contributors, Portions Copyright (C) 2011 LivingSocial Inc.
+ - ember-resolver v2.0.3 (https://github.com/ember-cli/ember-resolver) - Copyright (c) 2013 Stefan Penner and Ember App Kit Contributors
+ - ember-load-initializers v0.1.7 (https://github.com/ember-cli/ember-load-initializers) - Copyright (c) 2014 ember-cli Contributors
+ - bootstrap v3.3.6 (http://getbootstrap.com) - Copyright (c) 2011-2014 Twitter, Inc
+ - jquery v2.1.4 (http://jquery.org) - Copyright 2005, 2014 jQuery Foundation and other contributors
+ - jquery-ui v1.11.4 (http://jqueryui.com/) - Copyright 2014 jQuery Foundation and other contributors
+ - jquery-mousewheel v3.1.13 (https://github.com/jquery/jquery-mousewheel) - Copyright 2006, 2014 jQuery Foundation and other contributors, https://jquery.org/
+ - CodeMirror 5.11.0 (https://codemirror.net/) - Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
+ - FileSaver.js master branch #24b303f49213b905ec9062b708f7cd43d56a5dde (https://github.com/eligrey/FileSaver.js) - Authored by Eli Grey
+ - moment v2.12.0 (http://momentjs.com/) - Copyright (c) 2011-2015 Tim Wood, Iskren Chernev, Moment.js contributors
+ - moment-timezone v0.5.0 (http://momentjs.com/timezone/) - Copyright (c) 2014 Tim Wood
+ - font-awesome css/less files v4.5.0 (http://fontawesome.io/) - Created by Dave Gandy
+ - ember-bootstrap v0.5.1 (https://github.com/kaliber5/ember-bootstrap) - Copyright 2015 kaliber5 GmbH.
+ - more-js v0.8.2 (https://github.com/sreenaths/snippet-ss)
+ - snippet-ss v1.11.0 (https://github.com/sreenaths/snippet-ss)
+ - em-tgraph v0.0.4 (https://github.com/sreenaths/em-tgraph)
+ - em-table v0.3.12 (https://github.com/sreenaths/em-table)
+ - em-helpers v0.5.8 (https://github.com/sreenaths/em-helpers)
+ - ember-cli-app-version v1.0.0 (https://github.com/EmberSherpa/ember-cli-app-version) - Authored by Taras Mankovski <tarasm@gmail.com>
+ - ember-cli-auto-register v1.1.0 (https://github.com/williamsbdev/ember-cli-auto-register) - Copyright © 2015 Brandon Williams http://williamsbdev.com
+ - ember-cli-content-security-policy v0.4.0 (https://github.com/rwjblue/ember-cli-content-security-policy)
+ - ember-cli-d3 v1.1.2 (https://github.com/ming-codes/ember-cli-d3) - Authored by Ming Liu
+ - ember-cli-font-awesome v1.4.0 (https://github.com/martndemus/ember-cli-font-awesome) - Authored by Marten Schilstra <mail@martenschilstra.nl>
+ - ember-cli-jquery-ui 0.0.20 (https://github.com/gaurav0/ember-cli-jquery-ui) - Authored by Gaurav Munjal
+ - ember-wormhole v2.10.1 (https://github.com/yapplabs/ember-wormhole) - Copyright (c) 2015
+ - normalize.css v3.0.3 (github.com/necolas/normalize.css) - By Nicolas Gallagher & Jonathan Neal
+ - numeral v1.5.3 (https://github.com/adamwdraper/Numeral-js) - Copyright (c) 2012 Adam Draper
+ - loader.js v3.3.0 (https://github.com/ember-cli/loader.js) - Copyright (c) 2014 Yehuda Katz, Stefan Penner, and contributors
+ - ember-cli-shims v0.0.6 (https://github.com/ember-cli/ember-cli-shims) - Copyright (c) 2014 Stefan Penner and ember-cli Contributors
+ - ember-qunit v0.4.16 (https://github.com/rwjblue/ember-qunit) - Copyright (c) 2014 Ryan Florence
 
 All rights reserved.
 
@@ -257,9 +274,8 @@ THE SOFTWARE.
 The Apache Tez tez-ui bundles the following files under BSD licenses:
 
 (3-clause BSD license)
- - D3 v3.4.11 (http://d3js.org/) - Copyright (c) 2010-2014, Michael Bostock
- - ember-table v0.2.2 (https://github.com/Addepar/ember-table) - Copyright © 2012 Addepar, Inc. All Rights Reserved.
- - zip.js master branch #bfd76c66293305faaf9fcbb65b5ff7fe2dbe621a (https://github.com/gildas-lormeau/zip.js)
+ - D3 v3.5.16 (http://d3js.org/) - Copyright (c) 2010-2014, Michael Bostock
+ - zip.js master branch #bfd76c66293305faaf9fcbb65b5ff7fe2dbe621a (https://github.com/gildas-lormeau/zip.js) - Copyright (c) 2013 Gildas Lormeau
 
 All rights reserved.
 
@@ -295,7 +311,7 @@ POSSIBILITY OF SUCH DAMAGE.
 The Apache Tez tez-ui bundles the following fonts under the
 SIL Open Font License v1.1 (OFT) - http://scripts.sil.org/OFL
 
- - font-awesome fonts v4.2.0 (http://fontawesome.io/) - Created by Dave Gandy
+ - font-awesome fonts v4.5.0 (http://fontawesome.io/) - Created by Dave Gandy
 
 SIL OPEN FONT LICENSE
 

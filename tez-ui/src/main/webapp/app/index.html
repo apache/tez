@@ -15,81 +15,33 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 -->
-<!doctype html>
+
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Tez UI</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="shortcut icon" href="img/tez-favicon.png" type="image/x-icon">
+    {{content-for 'head'}}
 
-    <!-- build:css styles/main.css -->
-    <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/swimlanes.css">
-    <link rel="stylesheet" href="bower_components/ember-table/dist/ember-table.css">
-    <link rel="stylesheet" href="bower_components/font-awesome/css/font-awesome.css">
-    <link rel="stylesheet" href="bower_components/jquery-ui/themes/smoothness/jquery-ui.css">
-    <link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css">
-    <!-- endbuild -->
+    <link rel="shortcut icon" href="assets/images/favicon.png" type="image/x-icon">
 
+    <link rel="stylesheet" href="assets/vendor.css">
+    <link rel="stylesheet" href="assets/tez-ui.css">
+
+    {{content-for 'head-footer'}}
   </head>
-
   <body>
-    <!-- build:js(app) scripts/components.js -->
-    <script src="bower_components/jquery/jquery.js"></script>
-    <script src="bower_components/jquery-ui/jquery-ui.js"></script>
-    <script src="bower_components/bootstrap/js/dropdown.js"></script>
-    <script src="bower_components/bootstrap/js/button.js"></script>
-    <script src="bower_components/jquery-ui/ui/datepicker.js"></script>
-    <script src="bower_components/moment/moment.js"></script>
-    <script src="bower_components/moment-timezone/builds/moment-timezone-with-data-2010-2020.js"></script>
-    <script src="bower_components/handlebars/handlebars.js"></script>
-    <script src="@@ember"></script>
-    <script src="@@ember_data"></script>
-    <script src="bower_components/ember-json-mapper/ember-json-mapper.js"></script>
-    <script src="bower_components/ember-i18n/lib/i18n.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-core.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-basic.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-button.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-modal.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-nav.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-items-action-bar.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-badge.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-label.min.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-progressbar.min.js"></script>
-    <script src="bower_components/antiscroll/antiscroll.js"></script>
-    <script src="bower_components/jquery-mousewheel/jquery.mousewheel.js"></script>
-    <script src="bower_components/ember-table/dist/ember-table.js"></script>
-    <script src="bower_components/ember-addons.bs_for_ember/dist/js/bs-nav.min.js"></script>
-    <script src="bower_components/d3/d3.js"></script>
-    <script src="bower_components/zip.js/WebContent/zip.js"></script>
-    <script src="bower_components/FileSaver.js/FileSaver.min.js"></script>
-    <script src="bower_components/codemirror/lib/codemirror.js"></script>
-    <script src="bower_components/codemirror/mode/sql/sql.js"></script>
-    <script src="bower_components/codemirror/mode/pig/pig.js"></script>
-    <!-- endbuild -->
+    {{content-for 'body'}}
 
-    <!-- build:js(.tmp) scripts/templates.js -->
-    <script src="scripts/compiled-templates.js"></script>
-    <!-- endbuild -->
+    <script src="config/configs.env" integrity=""></script>
 
-    <!-- build:js(.tmp) scripts/main.js -->
-    <script src="scripts/combined-scripts.js"></script>
-    <!-- endbuild -->
+    <script src="assets/vendor.js"></script>
+    <script src="assets/tez-ui.js"></script>
 
-    <script src="scripts/configs.js"></script>
-
-    <div class="error-bar">
-      <div class="main-container">
-        <div class="message-container">
-          <span class="error-icon"></span>&nbsp;
-          <span class="message"></span>
-        </div><div class="close-container">
-          <div class="close">&#65516;</div>
-        </div>
-        <div class="details"></div>
-    </div>
-
+    {{content-for 'body-footer'}}
   </body>
 </html>
-    

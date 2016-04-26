@@ -16,21 +16,5 @@
  * limitations under the License.
 }}
 
-<ul class="breadcrumb">
-  <li>{{#link-to 'application'}}<i class="fa fa-home"> All DAGs</i>{{/link-to}} <span class="divider"></span></li>
-  <li class="active">DAG [ {{name}} ]</li>
-</ul>
-
-{{#unless loading}}
-  <div class='type-table fill-full margin-small'>
-    <div class='pill-container align-right'>
-      {{bs-pills contentBinding='childDisplayViews' selectedBinding='childDisplayViewSelected' size='lg'}}
-    </div>
-
-  </div>
-  <div class='margin-small-vertical'>
-    {{outlet}}
-  </div>
-{{else}}
-  {{partial 'partials/loading-spinner'}}
-{{/unless}}
+{{tab-n-refresh tabs=tabs loadTime=loadTime autoRefreshEnabled=polling.active}}
+{{outlet}}
