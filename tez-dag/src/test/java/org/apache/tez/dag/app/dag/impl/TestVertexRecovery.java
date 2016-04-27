@@ -73,6 +73,7 @@ import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventManagerUserCodeError;
 import org.apache.tez.dag.app.dag.event.VertexEventRecoverVertex;
+import org.apache.tez.dag.app.dag.event.VertexEventSourceVertexRecovered;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.TestVertexImpl.CountingOutputCommitter;
@@ -1336,5 +1337,45 @@ public class TestVertexRecovery {
       assertEquals(TaskState.FAILED, task.getState());
     }
     assertEquals(DAGState.FAILED, dag.getState());
+  }
+
+   @Test (timeout = 5000)
+  public void testRecovery_VInternalError() {
+    // In order to simulate the behavior that VertexManagerError happens in recovering stage, need to start the recovering from
+    // vertex and disable the the eventhandling of DAG (use mock here).
+    dispatcher = new DrainDispatcher();
+    dispatcher.register(DAGEventType.class, mock(EventHandler.class));
+    vertexEventHandler = new VertexEventHanlder();
+    dispatcher.register(VertexEventType.class, vertexEventHandler);
+    taskEventHandler = new TaskEventHandler();
+    dispatcher.register(TaskEventType.class, taskEventHandler);
+    dispatcher.register(TaskAttemptEventType.class,
+        new TaskAttemptEventHandler());
+    dispatcher.init(new Configuration());
+    dispatcher.start();
+    mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    DAGPlan dagPlan = createDAGPlan();
+    dag =
+        new DAGImpl(dagId, new Configuration(), dagPlan,
+            dispatcher.getEventHandler(), mock(TaskAttemptListener.class),
+            new Credentials(), new SystemClock(), user,
+            mock(TaskHeartbeatHandler.class), mockAppContext);
+    when(mockAppContext.getCurrentDAG()).thenReturn(dag);
+    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
+    doReturn(clusterInfo).when(mockAppContext).getClusterInfo();
+    dag.restoreFromEvent(new DAGInitializedEvent(dag.getID(), 0L, "user", "dagName", null));
+    dag.restoreFromEvent(new DAGStartedEvent(dag.getID(), 0L, "user", "dagName"));
+    LOG.info("finish setUp");
+
+    VertexImpl vertex3 = (VertexImpl) dag.getVertex("vertex3");
+
+    vertex3.handle(new VertexEventSourceVertexRecovered(
+        vertex3.getVertexId(),
+        null, VertexState.NEW, null, 0));
+    assertEquals(VertexState.RECOVERING, vertex3.getState());
+
+    vertex3.handle(new VertexEvent(
+        vertex3.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
+    assertEquals(VertexState.ERROR, vertex3.getState());
   }
 }

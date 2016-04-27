@@ -343,6 +343,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           .addTransition(VertexState.NEW, VertexState.ERROR,
               VertexEventType.V_INTERNAL_ERROR,
               INTERNAL_ERROR_TRANSITION)
+          .addTransition(VertexState.RECOVERING, VertexState.ERROR,
+              VertexEventType.V_INTERNAL_ERROR,
+              INTERNAL_ERROR_TRANSITION)
           .addTransition
               (VertexState.RECOVERING,
                   EnumSet.of(VertexState.NEW, VertexState.INITED,
