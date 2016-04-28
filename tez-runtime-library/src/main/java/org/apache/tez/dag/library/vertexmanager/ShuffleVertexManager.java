@@ -909,10 +909,6 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       // vertex not started yet
       return;
     }
-    int numPendingTasks = pendingTasks.size();
-    if (numPendingTasks == 0) {
-      return;
-    }
 
     if (!sourceVerticesScheduled && !canScheduleTasks()) {
       if (LOG.isDebugEnabled()) {
@@ -922,7 +918,8 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
       return;
     }
 
-    if (numBipartiteSourceTasksCompleted == totalNumBipartiteSourceTasks && numPendingTasks > 0) {
+    int numPendingTasks = pendingTasks.size();
+    if (numBipartiteSourceTasksCompleted == totalNumBipartiteSourceTasks) {
       LOG.info("All source tasks assigned. " +
           "Ramping up " + numPendingTasks + 
           " remaining tasks for vertex: " + getContext().getVertexName());
