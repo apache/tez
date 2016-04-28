@@ -71,13 +71,15 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.FetchResult;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher;
-import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
-import org.apache.tez.runtime.library.common.shuffle.InputHost;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
-import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher.FetcherBuilder;
+import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
+import org.apache.tez.runtime.library.common.shuffle.HostPort;
+import org.apache.tez.runtime.library.common.shuffle.InputHost;
+import org.apache.tez.runtime.library.common.shuffle.InputHost.PartitionToInputs;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -104,15 +106,17 @@ public class ShuffleManager implements FetcherCallback {
 
   private final FetchedInputAllocator inputManager;
 
-  private final ListeningExecutorService fetcherExecutor;
+  @VisibleForTesting
+  final ListeningExecutorService fetcherExecutor;
 
   private final ListeningExecutorService schedulerExecutor;
   private final RunShuffleCallable schedulerCallable;
   
   private final BlockingQueue<FetchedInput> completedInputs;
   private final AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
-  private final Set<Integer> completedInputSet;
-  private final ConcurrentMap<String, InputHost> knownSrcHosts;
+  @VisibleForTesting
+  final Set<Integer> completedInputSet;
+  private final ConcurrentMap<HostPort, InputHost> knownSrcHosts;
   private final BlockingQueue<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
   private Set<Fetcher> runningFetchers;
@@ -211,7 +215,7 @@ public class ShuffleManager implements FetcherCallback {
      * We do not know upfront the number of spills from source.
      */
     completedInputs = new LinkedBlockingDeque<FetchedInput>();
-    knownSrcHosts = new ConcurrentHashMap<String, InputHost>();
+    knownSrcHosts = new ConcurrentHashMap<HostPort, InputHost>();
     pendingHosts = new LinkedBlockingQueue<InputHost>();
     obsoletedInputs = Collections.newSetFromMap(new ConcurrentHashMap<InputAttemptIdentifier, Boolean>());
     runningFetchers = Collections.newSetFromMap(new ConcurrentHashMap<Fetcher, Boolean>());
@@ -336,13 +340,15 @@ public class ShuffleManager implements FetcherCallback {
                 }
               }
               if (LOG.isDebugEnabled()) {
-                LOG.debug(srcNameTrimmed + ": " + "Processing pending host: " + inputHost.toDetailedString());
+                LOG.debug(srcNameTrimmed + ": " + "Processing pending host: " +
+                    inputHost.toDetailedString());
               }
-              if (inputHost.getNumPendingInputs() > 0 && !isShutdown.get()) {
+              if (inputHost.getNumPendingPartitions() > 0 && !isShutdown.get()) {
                 Fetcher fetcher = constructFetcherForHost(inputHost, conf);
                 runningFetchers.add(fetcher);
                 if (isShutdown.get()) {
-                  LOG.info(srcNameTrimmed + ": " + "hasBeenShutdown, Breaking out of ShuffleScheduler Loop");
+                  LOG.info(srcNameTrimmed + ": " + "hasBeenShutdown," +
+                      "Breaking out of ShuffleScheduler Loop");
                   break;
                 }
                 ListenableFuture<FetchResult> future = fetcherExecutor
@@ -353,8 +359,9 @@ public class ShuffleManager implements FetcherCallback {
                 }
               } else {
                 if (LOG.isDebugEnabled()) {
-                  LOG.debug(srcNameTrimmed + ": " + "Skipping host: " + inputHost.getIdentifier()
-                      + " since it has no inputs to process");
+                  LOG.debug(srcNameTrimmed + ": " + "Skipping host: " +
+                      inputHost.getIdentifier() +
+                      " since it has no inputs to process");
                 }
               }
             }
@@ -389,8 +396,9 @@ public class ShuffleManager implements FetcherCallback {
     }
     return true;
   }
-  
-  private Fetcher constructFetcherForHost(InputHost inputHost, Configuration conf) {
+
+  @VisibleForTesting
+  Fetcher constructFetcherForHost(InputHost inputHost, Configuration conf) {
 
     Path lockDisk = null;
 
@@ -413,11 +421,12 @@ public class ShuffleManager implements FetcherCallback {
 
     // Remove obsolete inputs from the list being given to the fetcher. Also
     // remove from the obsolete list.
-    List<InputAttemptIdentifier> pendingInputsForHost = inputHost
-        .clearAndGetPendingInputs();
+    PartitionToInputs pendingInputsOfOnePartition = inputHost
+        .clearAndGetOnePartition();
     int includedMaps = 0;
-    for (Iterator<InputAttemptIdentifier> inputIter = pendingInputsForHost
-        .iterator(); inputIter.hasNext();) {
+    for (Iterator<InputAttemptIdentifier> inputIter =
+        pendingInputsOfOnePartition.getInputs().iterator();
+            inputIter.hasNext();) {
       InputAttemptIdentifier input = inputIter.next();
 
       //For pipelined shuffle.
@@ -439,20 +448,23 @@ public class ShuffleManager implements FetcherCallback {
       // Check if max threshold is met
       if (includedMaps >= maxTaskOutputAtOnce) {
         inputIter.remove();
-        inputHost.addKnownInput(input); //add to inputHost
+        //add to inputHost
+        inputHost.addKnownInput(pendingInputsOfOnePartition.getPartition(),
+            input);
       } else {
         includedMaps++;
       }
     }
-    if (inputHost.getNumPendingInputs() > 0) {
+    if (inputHost.getNumPendingPartitions() > 0) {
       pendingHosts.add(inputHost); //add it to queue
     }
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
-        inputHost.getSrcPhysicalIndex(), pendingInputsForHost);
+        pendingInputsOfOnePartition.getPartition(),
+            pendingInputsOfOnePartition.getInputs());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created Fetcher for host: " + inputHost.getHost()
           + ", info: " + inputHost.getAdditionalInfo()
-          + ", with inputs: " + pendingInputsForHost);
+          + ", with inputs: " + pendingInputsOfOnePartition);
     }
     return fetcherBuilder.build();
   }
@@ -461,18 +473,18 @@ public class ShuffleManager implements FetcherCallback {
   
   public void addKnownInput(String hostName, int port,
       InputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
-    String identifier = InputHost.createIdentifier(hostName, port);
+    HostPort identifier = new HostPort(hostName, port);
     InputHost host = knownSrcHosts.get(identifier);
     if (host == null) {
-      host = new InputHost(hostName, port, inputContext.getApplicationId(), srcPhysicalIndex);
-      assert identifier.equals(host.getIdentifier());
+      host = new InputHost(identifier);
       InputHost old = knownSrcHosts.putIfAbsent(identifier, host);
       if (old != null) {
         host = old;
       }
     }
     if (LOG.isDebugEnabled()) {
-      LOG.debug(srcNameTrimmed + ": " + "Adding input: " + srcAttemptIdentifier + ", to host: " + host);
+      LOG.debug(srcNameTrimmed + ": " + "Adding input: " +
+          srcAttemptIdentifier + ", to host: " + host);
     }
 
     if (!validateInputAttemptForPipelinedShuffle(srcAttemptIdentifier)) {
@@ -484,12 +496,13 @@ public class ShuffleManager implements FetcherCallback {
       shuffleInfoEventsMap.put(inputIdentifier, new ShuffleEventInfo(srcAttemptIdentifier));
     }
 
-    host.addKnownInput(srcAttemptIdentifier);
+    host.addKnownInput(srcPhysicalIndex, srcAttemptIdentifier);
     lock.lock();
     try {
       boolean added = pendingHosts.offer(host);
       if (!added) {
-        String errorMessage = "Unable to add host: " + host.getIdentifier() + " to pending queue";
+        String errorMessage = "Unable to add host: " +
+            host.getIdentifier() + " to pending queue";
         LOG.error(errorMessage);
         throw new TezUncheckedException(errorMessage);
       }
@@ -865,7 +878,8 @@ public class ShuffleManager implements FetcherCallback {
    * Fake input that is added to the completed input list in case an input does not have any data.
    *
    */
-  private static class NullFetchedInput extends FetchedInput {
+  @VisibleForTesting
+  static class NullFetchedInput extends FetchedInput {
 
     public NullFetchedInput(InputAttemptIdentifier inputAttemptIdentifier) {
       super(Type.MEMORY, -1, -1, inputAttemptIdentifier, null);
@@ -966,10 +980,12 @@ public class ShuffleManager implements FetcherCallback {
       } else {
         Iterable<InputAttemptIdentifier> pendingInputs = result.getPendingInputs();
         if (pendingInputs != null && pendingInputs.iterator().hasNext()) {
-          InputHost inputHost = knownSrcHosts.get(InputHost.createIdentifier(result.getHost(), result.getPort()));
+          HostPort identifier = new HostPort(result.getHost(),
+              result.getPort());
+          InputHost inputHost = knownSrcHosts.get(identifier);
           assert inputHost != null;
           for (InputAttemptIdentifier input : pendingInputs) {
-            inputHost.addKnownInput(input);
+            inputHost.addKnownInput(result.getPartition(), input);
           }
           inputHost.setAdditionalInfo(result.getAdditionalInfo());
           pendingHosts.add(inputHost);

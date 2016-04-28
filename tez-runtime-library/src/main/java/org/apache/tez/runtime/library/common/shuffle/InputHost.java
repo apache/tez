@@ -19,50 +19,30 @@
 package org.apache.tez.runtime.library.common.shuffle;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 /**
  * Represents a Host with respect to the MapReduce ShuffleHandler.
  * 
- * srcPhysicalIndex / partition is part of this since that only knows how to
- * serve ine partition at a time.
  */
-public class InputHost {
+public class InputHost extends HostPort {
 
-  private final String host;
-  private final int port;
-  private final int srcPhysicalIndex;
-  private final String identifier;
   private String additionalInfo;
 
-  private final BlockingQueue<InputAttemptIdentifier> inputs = new LinkedBlockingQueue<InputAttemptIdentifier>();
+  // Each input host can support more than one partition.
+  // Each partition has a list of inputs for pipelined shuffle.
+  private final Map<Integer, BlockingQueue<InputAttemptIdentifier>>
+      partitionToInputs = new ConcurrentHashMap<>();
 
-  public static String createIdentifier(String host, int port) {
-    return (host + ":" + String.valueOf(port));
-  }
-  
-  public InputHost(String hostName, int port, ApplicationId appId, int srcPhysicalIndex) {
-    this.host = hostName;
-    this.port = port;
-    this.srcPhysicalIndex = srcPhysicalIndex;
-    this.identifier = createIdentifier(hostName, port);
-  }
-
-  public String getHost() {
-    return this.host;
-  }
-
-  public int getPort() {
-    return this.port;
-  }
-  
-  public String getIdentifier() {
-    return this.identifier;
+  public InputHost(HostPort hostPort) {
+    super(hostPort.getHost(), hostPort.getPort());
   }
 
   public void setAdditionalInfo(String additionalInfo) {
@@ -73,70 +53,76 @@ public class InputHost {
     return (additionalInfo == null) ? "" : additionalInfo;
   }
 
-  public int getSrcPhysicalIndex() {
-    return this.srcPhysicalIndex;
+  public int getNumPendingPartitions() {
+    return partitionToInputs.size();
   }
 
-  public int getNumPendingInputs() {
-    return inputs.size();
-  }
-  
-  public void addKnownInput(InputAttemptIdentifier srcAttempt) {
+  public void addKnownInput(Integer partition,
+      InputAttemptIdentifier srcAttempt) {
+    BlockingQueue<InputAttemptIdentifier> inputs =
+        partitionToInputs.get(partition);
+    if (inputs == null) {
+      inputs = new LinkedBlockingQueue<InputAttemptIdentifier>();
+      partitionToInputs.put(partition, inputs);
+    }
     inputs.add(srcAttempt);
   }
 
-  public List<InputAttemptIdentifier> clearAndGetPendingInputs() {
-    List<InputAttemptIdentifier> inputsCopy = new ArrayList<InputAttemptIdentifier>(
-        inputs.size());
-    inputs.drainTo(inputsCopy);
-    return inputsCopy;
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((host == null) ? 0 : host.hashCode());
-    result = prime * result + port;
-    result = prime * result + srcPhysicalIndex;
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
+  public PartitionToInputs clearAndGetOnePartition() {
+    for (Map.Entry<Integer, BlockingQueue<InputAttemptIdentifier>> entry :
+        partitionToInputs.entrySet()) {
+      List<InputAttemptIdentifier> inputs =
+          new ArrayList<InputAttemptIdentifier>(entry.getValue().size());
+      entry.getValue().drainTo(inputs);
+      PartitionToInputs ret = new PartitionToInputs(entry.getKey(), inputs);
+      partitionToInputs.remove(entry.getKey());
+      return ret;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    InputHost other = (InputHost) obj;
-    if (host == null) {
-      if (other.host != null) {
-        return false;
-      }
-    } else if (!host.equals(other.host))
-      return false;
-    if (port != other.port) {
-      return false;
-    }
-    if (srcPhysicalIndex != other.srcPhysicalIndex) {
-      return false;
-    }
-    return true;
+    return null;
   }
 
   public String toDetailedString() {
-    return "InputHost [host=" + host + ", port=" + port + ",srcPhysicalIndex=" + srcPhysicalIndex
-        + ", inputs=" + inputs + "]";
+    return "HostPort=" + super.toString() + ", InputDetails=" +
+        partitionToInputs;
   }
   
   @Override
   public String toString() {
-    return "InputHost [host=" + host + ", port=" + port + ", srcPhysicalIndex=" + srcPhysicalIndex
-        + "]";
+    return "HostPort=" + super.toString() + ", PartitionIds=" +
+        partitionToInputs.keySet();
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object to) {
+    return super.equals(to);
+  }
+
+  public static class PartitionToInputs {
+    private int partition;
+    private List<InputAttemptIdentifier> inputs;
+
+    public PartitionToInputs(int partition,
+        List<InputAttemptIdentifier> input) {
+      this.partition = partition;
+      this.inputs = input;
+    }
+
+    public int getPartition() {
+      return partition;
+    }
+
+    public List<InputAttemptIdentifier> getInputs() {
+      return inputs;
+    }
+
+    @Override
+    public String toString() {
+      return "partition=" + partition + ", inputs=" + inputs;
+    }
   }
 }

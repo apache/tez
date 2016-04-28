@@ -18,7 +18,6 @@
 
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -334,7 +333,7 @@ public class TestShuffleInputEventHandlerImpl {
     DataMovementEventPayloadProto.Builder builder = DataMovementEventPayloadProto.newBuilder();
     builder.setHost(HOST);
     builder.setPort(PORT);
-    builder.setPathComponent("attempttmp");
+    builder.setPathComponent(PATH_COMPONENT);
     if (emptyPartitionByteString != null) {
       builder.setEmptyPartitions(emptyPartitionByteString);
     }

@@ -102,8 +102,19 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   // Parameters to track work.
   private List<InputAttemptIdentifier> srcAttempts;
   @VisibleForTesting
+  public List<InputAttemptIdentifier> getSrcAttempts() {
+    return srcAttempts;
+  }
+
+  @VisibleForTesting
   Map<String, InputAttemptIdentifier> srcAttemptsRemaining;
+
   private String host;
+  @VisibleForTesting
+  public String getHost() {
+    return host;
+  }
+
   private int port;
   private int partition;
 
@@ -182,7 +193,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   }
 
   @Override
-  protected FetchResult callInternal() throws Exception {
+  public FetchResult callInternal() throws Exception {
     boolean multiplex = (this.sharedFetchEnabled && this.localDiskFetchEnabled);
 
     if (srcAttempts.size() == 0) {

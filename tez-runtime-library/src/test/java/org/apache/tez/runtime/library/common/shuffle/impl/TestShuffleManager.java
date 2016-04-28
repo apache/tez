@@ -1,0 +1,261 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.tez.runtime.library.common.shuffle.impl;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.security.token.Token;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.common.security.JobTokenIdentifier;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
+import org.apache.tez.runtime.library.common.shuffle.Fetcher;
+import org.apache.tez.runtime.library.common.shuffle.FetchResult;
+import org.apache.tez.runtime.library.common.shuffle.InputHost;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+
+public class TestShuffleManager {
+
+  private static final String FETCHER_HOST = "localhost";
+  private static final int PORT = 8080;
+  private static final String PATH_COMPONENT = "attempttmp";
+  private final Configuration conf = new Configuration();
+
+  /**
+   * One reducer fetches multiple partitions from each mapper.
+   * For a given mapper, the reducer sends DataMovementEvents for several
+   * partitions, wait for some time and then send DataMovementEvents for the
+   * rest of the partitions. Then do the same thing for the next mapper.
+   * Verify ShuffleManager is able to get all the events.
+  */
+  @Test(timeout = 50000)
+  public void testMultiplePartitions() throws Exception {
+    final int numOfMappers = 3;
+    final int numOfPartitions = 5;
+    final int firstPart = 2;
+    InputContext inputContext = createInputContext();
+    ShuffleManagerForTest shuffleManager = createShuffleManager(inputContext,
+        numOfMappers * numOfPartitions);
+    FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
+
+    ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(
+        inputContext, shuffleManager, inputAllocator, null, false, 0);
+    shuffleManager.run();
+
+    List<Event> eventList = new LinkedList<Event>();
+
+    int targetIndex = 0; // The physical input index within the reduce task
+
+    for (int i = 0; i < numOfMappers; i++) {
+      String mapperHost = "host" + i;
+      int srcIndex = 20; // The physical output index within the map task
+      // Send the first batch of DataMovementEvents
+      eventList.clear();
+      for (int j = 0; j < firstPart; j++) {
+        Event dme = createDataMovementEvent(mapperHost, srcIndex++,
+            targetIndex++);
+        eventList.add(dme);
+      }
+      handler.handleEvents(eventList);
+
+      Thread.sleep(500);
+
+
+      // Send the second batch of DataMovementEvents
+      eventList.clear();
+      for (int j = 0; j < numOfPartitions - firstPart; j++) {
+        Event dme = createDataMovementEvent(mapperHost, srcIndex++,
+            targetIndex++);
+        eventList.add(dme);
+      }
+      handler.handleEvents(eventList);
+    }
+
+    int waitCount = 100;
+    while (waitCount-- > 0 &&
+        !(shuffleManager.isFetcherExecutorShutdown() &&
+            numOfMappers * numOfPartitions ==
+                shuffleManager.getNumOfCompletedInputs())) {
+      Thread.sleep(100);
+    }
+    assertTrue(shuffleManager.isFetcherExecutorShutdown());
+    assertEquals(numOfMappers * numOfPartitions,
+        shuffleManager.getNumOfCompletedInputs());
+  }
+
+  private InputContext createInputContext() throws IOException {
+    DataOutputBuffer port_dob = new DataOutputBuffer();
+    port_dob.writeInt(PORT);
+    final ByteBuffer shuffleMetaData = ByteBuffer.wrap(port_dob.getData(), 0,
+        port_dob.getLength());
+
+    ExecutionContext executionContext = mock(ExecutionContext.class);
+    doReturn(FETCHER_HOST).when(executionContext).getHostName();
+
+    InputContext inputContext = mock(InputContext.class);
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    doReturn(shuffleMetaData).when(inputContext)
+        .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+    doReturn(executionContext).when(inputContext).getExecutionContext();
+    return inputContext;
+  }
+
+  @SuppressWarnings("unchecked")
+  private ShuffleManagerForTest createShuffleManager(
+      InputContext inputContext, int expectedNumOfPhysicalInputs)
+          throws IOException {
+    Path outDirBase = new Path(".", "outDir");
+    String[] outDirs = new String[] { outDirBase.toString() };
+    doReturn(outDirs).when(inputContext).getWorkDirs();
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS,
+        inputContext.getWorkDirs());
+
+    DataOutputBuffer out = new DataOutputBuffer();
+    Token<JobTokenIdentifier> token = new Token(new JobTokenIdentifier(),
+        new JobTokenSecretManager(null));
+    token.write(out);
+    doReturn(ByteBuffer.wrap(out.getData())).when(inputContext).
+        getServiceConsumerMetaData(
+            TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID);
+
+    FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
+    return new ShuffleManagerForTest(inputContext, conf,
+        expectedNumOfPhysicalInputs, 1024, false, -1, null, inputAllocator);
+  }
+
+  private Event createDataMovementEvent(String host, int srcIndex, int targetIndex) {
+    DataMovementEventPayloadProto.Builder builder =
+        DataMovementEventPayloadProto.newBuilder();
+    builder.setHost(host);
+    builder.setPort(PORT);
+    builder.setPathComponent(PATH_COMPONENT);
+    Event dme = DataMovementEvent
+        .create(srcIndex, targetIndex, 0,
+            builder.build().toByteString().asReadOnlyByteBuffer());
+    return dme;
+  }
+
+  private static class ShuffleManagerForTest extends ShuffleManager {
+    public ShuffleManagerForTest(InputContext inputContext, Configuration conf,
+        int numInputs, int bufferSize, boolean ifileReadAheadEnabled,
+        int ifileReadAheadLength, CompressionCodec codec,
+        FetchedInputAllocator inputAllocator) throws IOException {
+      super(inputContext, conf, numInputs, bufferSize, ifileReadAheadEnabled,
+          ifileReadAheadLength, codec, inputAllocator);
+    }
+
+    @Override
+    Fetcher constructFetcherForHost(InputHost inputHost, Configuration conf) {
+      final Fetcher fetcher = spy(super.constructFetcherForHost(inputHost,
+          conf));
+      final FetchResult mockFetcherResult = mock(FetchResult.class);
+      try {
+        doAnswer(new Answer() {
+          @Override
+          public Object answer(InvocationOnMock invocation) throws Throwable {
+            for(InputAttemptIdentifier input : fetcher.getSrcAttempts()) {
+              ShuffleManagerForTest.this.fetchSucceeded(
+                  fetcher.getHost(), input, new TestFetchedInput(input), 0, 0,
+                      0);
+            }
+            return mockFetcherResult;
+          }
+        }).when(fetcher).callInternal();
+      } catch (Exception e) {
+        //ignore
+      }
+      return fetcher;
+    }
+
+    public int getNumOfCompletedInputs() {
+      return completedInputSet.size();
+    }
+
+    boolean isFetcherExecutorShutdown() {
+      return fetcherExecutor.isShutdown();
+    }
+  }
+
+  /**
+   * Fake input that is added to the completed input list in case an input does not have any data.
+   *
+   */
+  @VisibleForTesting
+  static class TestFetchedInput extends FetchedInput {
+
+    public TestFetchedInput(InputAttemptIdentifier inputAttemptIdentifier) {
+      super(Type.MEMORY, -1, -1, inputAttemptIdentifier, null);
+    }
+
+    @Override
+    public OutputStream getOutputStream() throws IOException {
+      return null;
+    }
+
+    @Override
+    public InputStream getInputStream() throws IOException {
+      return null;
+    }
+
+    @Override
+    public void commit() throws IOException {
+    }
+
+    @Override
+    public void abort() throws IOException {
+    }
+
+    @Override
+    public void free() {
+    }
+  }
+}
