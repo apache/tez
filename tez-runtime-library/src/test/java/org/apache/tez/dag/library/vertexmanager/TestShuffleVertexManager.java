@@ -1281,6 +1281,58 @@ public class TestShuffleVertexManager {
     Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
     Assert.assertTrue(scheduledTasks.size() == 3);
   }
+
+  @Test
+  public void testZeroTasksSendsConfigured() throws IOException {
+    Configuration conf = new Configuration();
+    conf.setBoolean(
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
+        true);
+    conf.setLong(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE, 1000L);
+    ShuffleVertexManager manager = null;
+
+    HashMap<String, EdgeProperty> mockInputVertices = new HashMap<String, EdgeProperty>();
+    String r1 = "R1";
+    EdgeProperty eProp1 = EdgeProperty.create(
+        EdgeProperty.DataMovementType.SCATTER_GATHER,
+        EdgeProperty.DataSourceType.PERSISTED,
+        SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
+
+    final String mockManagedVertexId = "R2";
+    mockInputVertices.put(r1, eProp1);
+
+    final VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
+    when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
+    when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(0);
+
+    VertexManagerEvent vmEvent = getVertexManagerEvent(null, 50L, r1);
+    // check initialization
+    manager = createManager(conf, mockContext, 0.001f, 0.001f);
+
+    final HashSet<Integer> scheduledTasks = new HashSet<Integer>();
+    doAnswer(new Answer() {
+      public Object answer(InvocationOnMock invocation) {
+        Object[] args = invocation.getArguments();
+        scheduledTasks.clear();
+        List<ScheduleTaskRequest> tasks = (List<ScheduleTaskRequest>)args[0];
+        for (ScheduleTaskRequest task : tasks) {
+          scheduledTasks.add(task.getTaskIndex());
+        }
+        return null;
+      }}).when(mockContext).scheduleTasks(anyList());
+
+    manager.onVertexStarted(emptyCompletions);
+    manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
+    Assert.assertEquals(1, manager.bipartiteSources);
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+    Assert.assertEquals(0, manager.totalNumBipartiteSourceTasks);
+    Assert.assertEquals(0, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(0, scheduledTasks.size());
+    verify(mockContext).doneReconfiguringVertex();
+  }
   
   public static TaskAttemptIdentifier createTaskAttemptIdentifier(String vName, int tId) {
     VertexIdentifier mockVertex = mock(VertexIdentifier.class);
