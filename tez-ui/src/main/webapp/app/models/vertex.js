@@ -143,4 +143,6 @@ export default AMTimelineModel.extend({
 
   dagID: DS.attr('string'),
   dag: DS.attr('object'), // Auto-loaded by need
+
+  servicePlugin: DS.attr('object'),
 });

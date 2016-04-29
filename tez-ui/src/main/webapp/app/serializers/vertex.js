@@ -55,5 +55,7 @@ export default TimelineSerializer.extend({
     processorClassName: getProcessorClass,
 
     dagID: 'primaryfilters.TEZ_DAG_ID.0',
+
+    servicePlugin: 'otherinfo.servicePlugin',
   }
 });

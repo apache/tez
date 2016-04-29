@@ -43,6 +43,8 @@ test('Basic creation test', function(assert) {
   assert.ok(model.lastTaskFinishTime);
 
   assert.ok(model.finalStatus);
+
+  assert.ok(model.servicePlugin);
 });
 
 test('runningTasks test', function(assert) {

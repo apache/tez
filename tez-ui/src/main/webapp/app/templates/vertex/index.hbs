@@ -127,6 +127,31 @@
     </tbody>
   </table>
 
+  <!-- Service plugin specific details -->
+  {{#if model.servicePlugin.taskSchedulerName}}
+    <table class='detail-list'>
+      <thead>
+      <tr>
+        <th colspan=2>Service Plugin Details</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>Task Scheduler Plugin</td>
+        <td>{{txt model.servicePlugin.taskSchedulerName}} [ {{txt model.servicePlugin.taskSchedulerClassName}} ]</td>
+      </tr>
+      <tr>
+        <td>Task Communicator Plugin</td>
+        <td>{{txt model.servicePlugin.taskCommunicatorName}} [ {{txt model.servicePlugin.taskCommunicatorClassName}} ]</td>
+      </tr>
+      <tr>
+        <td>Container Launcher Plugin</td>
+        <td>{{txt model.servicePlugin.containerLauncherName}} [ {{txt model.servicePlugin.containerLauncherClassName}} ]</td>
+      </tr>
+      </tbody>
+    </table>
+  {{/if}}
+
   {{#if model.diagnostics}}
     <div class="panel panel-danger">
       <div class="panel-heading">

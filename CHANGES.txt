@@ -20,6 +20,7 @@ ALL CHANGES:
   TEZ-3087. Tez UI 2: Add log links in task & attempt details page
   TEZ-3146. Tez UI 2: CSS & JS assets in the UI must be minified
   TEZ-3227. Tez UI: Replace UI1 with UI2
+  TEZ-3233. Tez UI: Have LLAP information reflect in Tez UI
 
 Release 0.8.4: Unreleased
 
