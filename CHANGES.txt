@@ -6,6 +6,7 @@ Release 0.8.4: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3193. Deadlock in AM during task commit request.
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
   TEZ-3219. Allow service plugins to define log locations link for remotely run task attempts.
   TEZ-3224. User payload is not initialized before creating vertex manager plugin.
@@ -444,6 +445,7 @@ INCOMPATIBLE CHANGES
   TEZ-2949. Allow duplicate dag names within session for Tez.
 
 ALL CHANGES:
+  TEZ-3193. Deadlock in AM during task commit request.
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
   TEZ-3224. User payload is not initialized before creating vertex manager plugin.
   TEZ-3165. Allow Inputs/Outputs to be initialized serially, control processor initialization relative to Inputs/Outputs

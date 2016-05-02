@@ -78,7 +78,6 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskCommunicatorWrapper;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -112,10 +111,10 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
-import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.junit.Assert;
@@ -139,7 +138,6 @@ public class TestTaskAttempt {
   }
   
   AppContext appCtx;
-  Task mockTask;
   TaskLocationHint locationHint;
   Vertex mockVertex;
   ServicePluginInfo servicePluginInfo = new ServicePluginInfo()
@@ -156,9 +154,7 @@ public class TestTaskAttempt {
     when(appCtx.getContainerLauncherName(anyInt())).thenReturn(
         TezConstants.getTezYarnServicePluginName());
 
-    mockTask = mock(Task.class);
     mockVertex = mock(Vertex.class);
-    when(mockTask.getVertex()).thenReturn(mockVertex);
     when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
 
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
@@ -196,7 +192,6 @@ public class TestTaskAttempt {
           + AMSchedulerEventTALaunchRequest.class.getName());
     }
     
-    verify(mockTask, times(1)).getTaskLocationHint();
     // TODO Move the Rack request check to the client after TEZ-125 is fixed.
     Set<String> requestedRacks = taImpl.taskRacks;
     assertEquals(1, requestedRacks.size());
@@ -1742,24 +1737,18 @@ public class TestTaskAttempt {
         TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
         boolean isRescheduled,
         Resource resource, ContainerContext containerContext, boolean leafVertex) {
-      super(taskId, attemptNumber, eventHandler, tal, conf,
+      super(TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber),
+          eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          isRescheduled, resource, containerContext, leafVertex, mockTask, null);
-      when(mockTask.getTaskLocationHint()).thenReturn(locationHint);
+          isRescheduled, resource, containerContext, leafVertex, mockVertex,
+          locationHint, null, null);
     }
-
     
     boolean inputFailedReported = false;
     
     @Override
     protected Vertex getVertex() {
       return mockVertex;
-    }
-
-    @Override
-    protected TaskSpec createRemoteTaskSpec() {
-      // FIXME
-      return null;
     }
 
     @Override

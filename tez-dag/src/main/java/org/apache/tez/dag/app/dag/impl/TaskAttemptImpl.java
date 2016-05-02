@@ -30,7 +30,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
@@ -71,7 +70,6 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.RecoveryParser.TaskAttemptRecoveryData;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -107,7 +105,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DataEventDependencyInfoProto;
-import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -190,8 +187,9 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeHttpAddress;
   private String nodeRackName;
   
-  private final Task task;
   private final Vertex vertex;
+  private final TaskLocationHint locationHint;
+  private final TaskSpec taskSpec;
 
   @VisibleForTesting
   boolean appendNextDataEvent = true;
@@ -465,22 +463,25 @@ public class TaskAttemptImpl implements TaskAttempt,
         .installTopology();
 
   @SuppressWarnings("rawtypes")
-  public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
+  public TaskAttemptImpl(TezTaskAttemptID attemptId, EventHandler eventHandler,
       TaskCommunicatorManagerInterface taskCommunicatorManagerInterface, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Task task) {
-    this(taskId, attemptNumber, eventHandler, taskCommunicatorManagerInterface, conf, clock,
+      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec) {
+    this(attemptId, eventHandler, taskCommunicatorManagerInterface, conf, clock,
         taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
-        task, null);
+        vertex, locationHint, taskSpec, null);
   }
-  public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
+
+  @SuppressWarnings("rawtypes")
+  public TaskAttemptImpl(TezTaskAttemptID attemptId, EventHandler eventHandler,
       TaskCommunicatorManagerInterface taskCommunicatorManagerInterface, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Task task, TezTaskAttemptID schedulingCausalTA) {
+      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
+      TezTaskAttemptID schedulingCausalTA) {
 
     MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
@@ -496,15 +497,16 @@ public class TaskAttemptImpl implements TaskAttempt,
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
-    this.attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
+    this.attemptId = attemptId;
     this.eventHandler = eventHandler;
     //Reported status
     this.conf = conf;
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.task = task;
-    this.vertex = this.task.getVertex();
+    this.vertex = vertex;
+    this.locationHint = locationHint;
+    this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
     this.creationTime = clock.getTime();
 
@@ -546,14 +548,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   
   public TezTaskAttemptID getSchedulingCausalTA() {
     return creationCausalTA;
-  }
-
-  TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
-    TaskSpec baseTaskSpec = task.getBaseTaskSpec();
-    return new TaskSpec(getID(),
-        baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
-        baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
-        baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs());
   }
 
   @Override
@@ -1036,7 +1030,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
   
   private TaskLocationHint getTaskLocationHint() {
-    return task.getTaskLocationHint();
+    return locationHint;
   }
 
   protected String[] resolveHosts(String[] src) {
@@ -1226,22 +1220,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
       ta.scheduledTime = ta.clock.getTime();
 
-      // Create the remote task.
-      TaskSpec remoteTaskSpec;
-      try {
-        remoteTaskSpec = ta.createRemoteTaskSpec();
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("remoteTaskSpec:" + remoteTaskSpec);
-        }
-      } catch (AMUserCodeException e) {
-        String msg = "Exception in " + e.getSource() + ", taskAttempt=" + ta;
-        LOG.error(msg, e);
-        String diag = msg + ", " + e.getMessage() + ", " + ExceptionUtils.getStackTrace(e.getCause());
-        new TerminateTransition(FAILED_HELPER).transition(ta,
-            new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED, TaskFailureType.NON_FATAL, diag,
-                TaskAttemptTerminationCause.APPLICATION_ERROR));
-        return TaskAttemptStateInternal.FAILED;
-      }
       // Create startTaskRequest
 
       String[] requestHosts = new String[0];
@@ -1271,10 +1249,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         locationHint = null;
       }
 
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Asking for container launch with taskAttemptContext: "
-            + remoteTaskSpec);
-      }
+      LOG.debug("Asking for container launch with taskAttemptContext: {}", ta.taskSpec);
       
       // Send out a launch request to the scheduler.
       int priority;
@@ -1288,7 +1263,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // TODO Jira post TEZ-2003 getVertex implementation is very inefficient. This should be via references, instead of locked table lookups.
       Vertex vertex = ta.getVertex();
       AMSchedulerEventTALaunchRequest launchRequestEvent = new AMSchedulerEventTALaunchRequest(
-          ta.attemptId, ta.taskResource, remoteTaskSpec, ta, locationHint,
+          ta.attemptId, ta.taskResource, ta.taskSpec, ta, locationHint,
           priority, ta.containerContext,
           vertex.getTaskSchedulerIdentifier(),
           vertex.getContainerLauncherIdentifier(),
