@@ -62,7 +62,6 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -99,7 +98,6 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DataEventDependencyInfoProto;
-import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
@@ -180,8 +178,9 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeHttpAddress;
   private String nodeRackName;
   
-  private final Task task;
   private final Vertex vertex;
+  private final TaskLocationHint locationHint;
+  private TaskSpec taskSpec;
 
   @VisibleForTesting
   boolean appendNextDataEvent = true;
@@ -451,22 +450,25 @@ public class TaskAttemptImpl implements TaskAttempt,
   private boolean recoveryStartEventSeen = false;
 
   @SuppressWarnings("rawtypes")
-  public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
+  public TaskAttemptImpl(TezTaskAttemptID attemptId, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Task task) {
-    this(taskId, attemptNumber, eventHandler, taskAttemptListener, conf, clock,
+      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec) {
+    this(attemptId, eventHandler, taskAttemptListener, conf, clock,
         taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
-        task, null);
+        vertex, locationHint, taskSpec, null);
   }
-  public TaskAttemptImpl(TezTaskID taskId, int attemptNumber, EventHandler eventHandler,
+
+  @SuppressWarnings("rawtypes")
+  public TaskAttemptImpl(TezTaskAttemptID attemptId, EventHandler eventHandler,
       TaskAttemptListener taskAttemptListener, Configuration conf, Clock clock,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Task task, TezTaskAttemptID schedulingCausalTA) {
+      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
+      TezTaskAttemptID schedulingCausalTA) {
 
     MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
@@ -482,15 +484,16 @@ public class TaskAttemptImpl implements TaskAttempt,
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
-    this.attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
+    this.attemptId = attemptId;
     this.eventHandler = eventHandler;
     //Reported status
     this.conf = conf;
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.task = task;
-    this.vertex = this.task.getVertex();
+    this.vertex = vertex;
+    this.locationHint = locationHint;
+    this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
     this.creationTime = clock.getTime();
 
@@ -533,20 +536,20 @@ public class TaskAttemptImpl implements TaskAttempt,
     return creationCausalTA;
   }
 
-  TaskSpec createRemoteTaskSpec() throws AMUserCodeException {
-    TaskSpec baseTaskSpec = task.getBaseTaskSpec();
-    if (baseTaskSpec == null) {
+  TaskSpec getTaskSpec() throws AMUserCodeException {
+    if (taskSpec == null) {
       // since recovery does not follow normal transitions, TaskEventScheduleTask
       // is not being honored by the recovery code path. Using this to workaround 
       // until recovery is fixed. Calling the non-locking internal method of the vertex
       // to get the taskSpec directly. Since everything happens on the central dispatcher 
       // during recovery this is deadlock free for now. TEZ-1019 should remove the need for this.
-      baseTaskSpec = ((VertexImpl) vertex).createRemoteTaskSpec(getID().getTaskID().getId());
-    }
-    return new TaskSpec(getID(),
+      TaskSpec baseTaskSpec = ((VertexImpl) vertex).createRemoteTaskSpec(getID().getTaskID().getId());
+      taskSpec = new TaskSpec(getID(),
         baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
         baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
         baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs());
+    }
+    return taskSpec;
   }
 
   @Override
@@ -1065,7 +1068,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
   
   private TaskLocationHint getTaskLocationHint() {
-    return task.getTaskLocationHint();
+    return locationHint;
   }
 
   protected String[] resolveHosts(String[] src) {
@@ -1170,7 +1173,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Create the remote task.
       TaskSpec remoteTaskSpec;
       try {
-        remoteTaskSpec = ta.createRemoteTaskSpec();
+        remoteTaskSpec = ta.getTaskSpec();
         if (LOG.isDebugEnabled()) {
           LOG.debug("remoteTaskSpec:" + remoteTaskSpec);
         }
@@ -1183,6 +1186,7 @@ public class TaskAttemptImpl implements TaskAttempt,
                 TaskAttemptTerminationCause.APPLICATION_ERROR));
         return TaskAttemptStateInternal.FAILED;
       }
+
       // Create startTaskRequest
 
       String[] requestHosts = new String[0];

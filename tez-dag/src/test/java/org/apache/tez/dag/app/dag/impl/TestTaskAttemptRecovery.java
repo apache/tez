@@ -62,6 +62,7 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -148,11 +149,11 @@ public class TestTaskAttemptRecovery {
     TezTaskID taskId =
         TezTaskID.fromString("task_1407371892933_0001_1_00_000000");
     ta =
-        new TaskAttemptImpl(taskId, 0, mockEventHandler,
+        new TaskAttemptImpl(TezBuilderUtils.newTaskAttemptId(taskId, 0), mockEventHandler,
             mock(TaskAttemptListener.class), new Configuration(),
             new SystemClock(), mock(TaskHeartbeatHandler.class),
             mockAppContext, false, Resource.newInstance(1, 1),
-            mock(ContainerContext.class), false, mockTask);
+            mock(ContainerContext.class), false, mockVertex, null, null);
     taId = ta.getID();
   }
 
