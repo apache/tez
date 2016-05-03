@@ -9,6 +9,7 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
+  TEZ-3193. Deadlock in AM during task commit request. 
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
   TEZ-3213. Uncaught exception during vertex recovery leads to invalid state transition loop.
   TEZ-3224. User payload is not initialized before creating vertex manager plugin. 

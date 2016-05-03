@@ -95,6 +95,7 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
@@ -826,9 +827,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   TaskAttemptImpl createAttempt(int attemptNumber, TezTaskAttemptID schedulingCausalTA) {
-    return new TaskAttemptImpl(getTaskId(), attemptNumber, eventHandler,
+    TezTaskAttemptID attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
+    TaskSpec taskSpec = null;
+    if (baseTaskSpec != null) {
+      taskSpec = new TaskSpec(attemptId, baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
+          baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
+          baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs());
+    }
+    return new TaskAttemptImpl(attemptId, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
-        (failedAttempts > 0), taskResource, containerContext, leafVertex, this, schedulingCausalTA);
+        (failedAttempts > 0), taskResource, containerContext, leafVertex, getVertex(),
+        locationHint, taskSpec, schedulingCausalTA);
   }
 
   @Override

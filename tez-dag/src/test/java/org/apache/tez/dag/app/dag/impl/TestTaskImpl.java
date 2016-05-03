@@ -72,6 +72,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -888,8 +889,9 @@ public class TestTaskImpl {
 
     @Override
     protected TaskAttemptImpl createAttempt(int attemptNumber, TezTaskAttemptID schedCausalTA) {
-      MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(getTaskId(),
-          attemptNumber, eventHandler, taskAttemptListener,
+      MockTaskAttemptImpl attempt = new MockTaskAttemptImpl(
+          TezBuilderUtils.newTaskAttemptId(getTaskId(), attemptNumber),
+          eventHandler, taskAttemptListener,
           conf, clock, taskHeartbeatHandler, appContext,
           true, taskResource, containerContext, schedCausalTA);
       taskAttempts.add(attempt);
@@ -934,14 +936,14 @@ public class TestTaskImpl {
     private float progress = 0;
     private TaskAttemptState state = TaskAttemptState.NEW;
 
-    public MockTaskAttemptImpl(TezTaskID taskId, int attemptNumber,
+    public MockTaskAttemptImpl(TezTaskAttemptID attemptId,
         EventHandler eventHandler, TaskAttemptListener tal, Configuration conf,
         Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
         boolean isRescheduled,
         Resource resource, ContainerContext containerContext, TezTaskAttemptID schedCausalTA) {
-      super(taskId, attemptNumber, eventHandler, tal, conf, clock, thh,
-          appContext, isRescheduled, resource, containerContext, false, mock(TaskImpl.class),
-          schedCausalTA);
+      super(attemptId, eventHandler, tal, conf, clock, thh,
+          appContext, isRescheduled, resource, containerContext, false,
+          mock(Vertex.class), locationHint, mockTaskSpec, schedCausalTA);
     }
     
     @Override
