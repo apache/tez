@@ -370,6 +370,7 @@ App.DagViewComponent.graphView = (function (){
     nodes.forEach(function (node) {
       if(node.type == App.DagViewComponent.dataProcessor.types.OUTPUT &&
           node.get('vertex.outputs.length') == 1 &&
+          !node.get('vertex.outEdgeIds.length') &&
           node.get('treeParent.x') != node.get('x')
       ) {
         node.x = node.get('vertex.x');
