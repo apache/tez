@@ -1,6 +1,13 @@
 Apache Tez Change Log
 =====================
 
+Release 0.7.2 Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+  TEZ-3243. Output vertices are hidden for UI graph view
+
 Release 0.7.1: Unreleased
 
 INCOMPATIBLE CHANGES
@@ -9,7 +16,6 @@ INCOMPATIBLE CHANGES
   TEZ-2972. Avoid task rescheduling when a node turns unhealthy
 
 ALL CHANGES:
-  TEZ-3243. Output vertices are hidden for UI graph view
   TEZ-3241. Exclude LICENSE files from rat check.
   TEZ-3193. Deadlock in AM during task commit request. 
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
