@@ -57,7 +57,7 @@ public class InputHost extends HostPort {
     return partitionToInputs.size();
   }
 
-  public void addKnownInput(Integer partition,
+  public synchronized void addKnownInput(Integer partition,
       InputAttemptIdentifier srcAttempt) {
     BlockingQueue<InputAttemptIdentifier> inputs =
         partitionToInputs.get(partition);
@@ -68,7 +68,7 @@ public class InputHost extends HostPort {
     inputs.add(srcAttempt);
   }
 
-  public PartitionToInputs clearAndGetOnePartition() {
+  public synchronized PartitionToInputs clearAndGetOnePartition() {
     for (Map.Entry<Integer, BlockingQueue<InputAttemptIdentifier>> entry :
         partitionToInputs.entrySet()) {
       List<InputAttemptIdentifier> inputs =
