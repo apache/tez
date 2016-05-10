@@ -129,11 +129,14 @@ export default TimelineSerializer.extend({
     callerID: 'primaryfilters.callerId.0',
     callerType: 'callerType',
     callerInfo: 'callerInfo',
+
+    amWsVersion: 'otherinfo.amWebServiceVersion',
   },
 
   extractAttributes: function (modelClass, resourceHash) {
     var data = resourceHash.data,
-        dagInfo = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagInfo");
+        dagInfo = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagInfo"), // New style, from TEZ-2851
+        dagContext = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagContext"); // Old style
 
     if(dagInfo) {
       let infoObj = {};
@@ -143,6 +146,10 @@ export default TimelineSerializer.extend({
 
       data.callerType = Ember.get(infoObj, "context");
       data.callerInfo = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
+    }
+    else if(dagContext) {
+      data.callerType = Ember.String.classify((Ember.get(dagContext, "context")||"").toLowerCase());
+      data.callerInfo = Ember.get(dagContext, "description");
     }
 
     return this._super(modelClass, resourceHash);

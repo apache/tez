@@ -58,6 +58,6 @@
   "dependencies": {
     "em-helpers": "0.5.8",
     "em-table": "0.3.12",
-    "em-tgraph": "0.0.4"
+    "em-tgraph": "0.0.5"
   }
 }

@@ -16,16 +16,14 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { moduleForModel, test } from 'ember-qunit';
 
-moduleFor('adapter:dag-am', 'Unit | Adapter | dag am', {
+moduleForModel('hive-query', 'Unit | Model | hive query', {
   // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
+  needs: []
 });
 
 test('Basic creation test', function(assert) {
-  let adapter = this.subject();
-
-  assert.ok(adapter);
-  assert.ok(adapter.buildURL);
+  let model = this.subject();
+  assert.ok(model);
 });

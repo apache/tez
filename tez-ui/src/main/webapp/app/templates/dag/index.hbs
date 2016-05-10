@@ -78,6 +78,8 @@
     </tbody>
   </table>
 
+  {{outlet}}
+
   {{#if model.callerInfo}}
     {{caller-info type=model.callerType info=model.callerInfo}}
   {{/if}}
@@ -92,8 +94,6 @@
       </div>
     </div>
   {{/if}}
-
-  {{outlet}}
 
 {{else}}
   {{partial "loading"}}

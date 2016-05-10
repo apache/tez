@@ -24,8 +24,8 @@ moduleFor('entitie:vertex-am', 'Unit | Entity | vertex am', {
 });
 
 test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+  let entity = this.subject();
 
-  assert.ok(adapter);
-  assert.ok(adapter.queryPropertyToJoin);
+  assert.ok(entity);
+  assert.ok(entity.queryPropertyToJoin);
 });

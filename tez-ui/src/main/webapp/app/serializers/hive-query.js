@@ -16,16 +16,29 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import Ember from 'ember';
 
-moduleFor('adapter:dag-am', 'Unit | Adapter | dag am', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+import TimelineSerializer from './timeline';
 
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+export default TimelineSerializer.extend({
+  maps: {
+    queryText: 'queryText',
+  },
 
-  assert.ok(adapter);
-  assert.ok(adapter.buildURL);
+  extractAttributes: function (modelClass, resourceHash) {
+    var data = resourceHash.data,
+        query = Ember.get(resourceHash, "data.otherinfo.QUERY");
+
+    if(query) {
+      let queryObj = {};
+      try{
+        queryObj = JSON.parse(query);
+      }catch(e){}
+
+      data.queryText = Ember.get(queryObj, "queryText");
+    }
+
+    return this._super(modelClass, resourceHash);
+  },
+
 });

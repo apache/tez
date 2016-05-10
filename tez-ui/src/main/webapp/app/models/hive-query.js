@@ -16,16 +16,10 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import DS from 'ember-data';
 
-moduleFor('adapter:dag-am', 'Unit | Adapter | dag am', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+import AbstractModel from './abstract';
 
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
-
-  assert.ok(adapter);
-  assert.ok(adapter.buildURL);
+export default AbstractModel.extend({
+  queryText: DS.attr("string"),
 });

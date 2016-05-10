@@ -19,8 +19,6 @@
 import AMSerializer from './am';
 
 export default AMSerializer.extend({
-  payloadNamespace: "vertices",
-
   maps: {
     succeededTasks: "succeededTasks",
     runningTasks: "runningTasks",
@@ -32,5 +30,14 @@ export default AMSerializer.extend({
     endTime: "finishTime",
     firstTaskStartTime: "firstTaskStartTime",
     lastTaskFinishTime: "lastTaskFinishTime",
-  }
+  },
+
+  extractSinglePayload: function(rawPayload) {
+    return (rawPayload.vertices || rawPayload.vertexProgresses)[0];
+  },
+
+  extractArrayPayload: function(rawPayload) {
+    return rawPayload.vertices || rawPayload.vertexProgresses;
+  },
+
 });

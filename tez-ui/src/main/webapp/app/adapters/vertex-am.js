@@ -1,3 +1,4 @@
+/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,7 +17,18 @@
  * limitations under the License.
  */
 
+var MoreString = more.String;
+
 import AMAdapter from './am';
 
 export default AMAdapter.extend({
+
+  buildURL: function(modelName, id, snapshot, requestType, query, params) {
+    var url = this._super(modelName, id, snapshot, requestType, query);
+    if(params.version === "1") {
+      url = url.replace("verticesInfo", "vertexProgresses");
+    }
+    return params ? MoreString.fmt(url, params) : url;
+  },
+
 });

@@ -20,7 +20,7 @@ import AMSerializer from './am';
 
 export default AMSerializer.extend({
   extractSinglePayload: function (rawPayload) {
-    return rawPayload.dag;
+    return rawPayload.dag || rawPayload.dagProgress;
   },
   extractArrayPayload: function(rawPayload) {
     return rawPayload.dag;

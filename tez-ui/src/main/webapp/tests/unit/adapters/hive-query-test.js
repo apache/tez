@@ -18,14 +18,12 @@
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('adapter:dag-am', 'Unit | Adapter | dag am', {
+moduleFor('adapter:hive-query', 'Unit | Adapter | hive query', {
   // Specify the other units that are required for this test.
   // needs: ['serializer:foo']
 });
 
 test('Basic creation test', function(assert) {
   let adapter = this.subject();
-
   assert.ok(adapter);
-  assert.ok(adapter.buildURL);
 });

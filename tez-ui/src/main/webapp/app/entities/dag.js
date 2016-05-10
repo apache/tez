@@ -16,16 +16,24 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import Entity from './entity';
 
-moduleFor('adapter:dag-am', 'Unit | Adapter | dag am', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
-
-  assert.ok(adapter);
-  assert.ok(adapter.buildURL);
+export default Entity.extend({
+  queryRecord: function (loader, id, options, query, urlParams) {
+    return this._super(loader, id, options, query, urlParams).then(function (dag) {
+      if(!dag.get("callerInfo")) {
+        var dagName = dag.get("name") || "",
+            hiveQueryID = dagName.substr(0, dagName.indexOf(":"));
+        if(hiveQueryID && dagName !== hiveQueryID) {
+          loader.queryRecord("hive-query", hiveQueryID, options, query, urlParams).then(function (hive) {
+            dag.setProperties({
+              callerType: "Hive",
+              callerInfo: hive.get("queryText")
+            });
+          });
+        }
+      }
+      return dag;
+    });
+  }
 });

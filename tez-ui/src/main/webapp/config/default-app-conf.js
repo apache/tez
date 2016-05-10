@@ -33,7 +33,7 @@ module.exports = { // Tez App configurations
       timeline: 'ws/v1/timeline',
       appHistory: 'ws/v1/applicationhistory',
       rm: 'ws/v1/cluster',
-      am: 'proxy/{app_id}/ws/v2/tez',
+      am: 'proxy/{app_id}/ws/v{version:2}/tez',
     },
     web: {
       rm: 'cluster'
@@ -46,7 +46,7 @@ module.exports = { // Tez App configurations
       task: 'TEZ_TASK_ID',
       attempt: 'TEZ_TASK_ATTEMPT_ID',
 
-      hiveQuery: 'HIVE_QUERY_ID',
+      "hive-query": 'HIVE_QUERY_ID',
 
       app: 'TEZ_APPLICATION'
     },

@@ -26,47 +26,47 @@ moduleFor('entitie:entity', 'Unit | Entity | entity', {
 });
 
 test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+  let entity = this.subject();
 
-  assert.ok(adapter);
+  assert.ok(entity);
 
-  assert.ok(adapter.queryRecord);
-  assert.ok(adapter.query);
+  assert.ok(entity.queryRecord);
+  assert.ok(entity.query);
 
-  assert.ok(adapter.normalizeNeed);
-  assert.ok(adapter._loadNeed);
-  assert.ok(adapter.loadNeed);
+  assert.ok(entity.normalizeNeed);
+  assert.ok(entity._loadNeed);
+  assert.ok(entity.loadNeed);
 
-  assert.ok(adapter._loadAllNeeds);
-  assert.ok(adapter.loadAllNeeds);
+  assert.ok(entity._loadAllNeeds);
+  assert.ok(entity.loadAllNeeds);
 });
 
 test('normalizeNeed test', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       expectedProperties = ["name", "type", "idKey", "silent"];
 
-  assert.deepEqual(adapter.normalizeNeed("app", "appKey").getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed("app", "appKey").getProperties(expectedProperties), {
     name: "app",
     type: "app",
     idKey: "appKey",
     silent: false
   }, "Test 1");
 
-  assert.deepEqual(adapter.normalizeNeed( "app", { idKey: "appKey" }).getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed( "app", { idKey: "appKey" }).getProperties(expectedProperties), {
     name: "app",
     type: "app",
     idKey: "appKey",
     silent: false
   }, "Test 2");
 
-  assert.deepEqual(adapter.normalizeNeed( "app", { type: "application", idKey: "appKey" }).getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed( "app", { type: "application", idKey: "appKey" }).getProperties(expectedProperties), {
     name: "app",
     type: "application",
     idKey: "appKey",
     silent: false
   }, "Test 3");
 
-  assert.deepEqual(adapter.normalizeNeed( "app", { silent: true, idKey: "appKey" }).getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed( "app", { silent: true, idKey: "appKey" }).getProperties(expectedProperties), {
     name: "app",
     type: "app",
     idKey: "appKey",
@@ -75,7 +75,7 @@ test('normalizeNeed test', function(assert) {
 });
 
 test('loadAllNeeds basic test', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       loader,
       testModel = Ember.Object.create({
         refreshLoadTime: Ember.K,
@@ -89,7 +89,7 @@ test('loadAllNeeds basic test', function(assert) {
 
   assert.expect(1 + 2 + 1);
 
-  assert.equal(adapter.loadAllNeeds(loader, Ember.Object.create()), undefined, "Model without needs");
+  assert.equal(entity.loadAllNeeds(loader, Ember.Object.create()), undefined, "Model without needs");
 
   loader = {
     queryRecord: function (type, id) {
@@ -107,13 +107,13 @@ test('loadAllNeeds basic test', function(assert) {
       return Ember.RSVP.resolve();
     }
   };
-  adapter.loadAllNeeds(loader, testModel).then(function () {
+  entity.loadAllNeeds(loader, testModel).then(function () {
     assert.ok(true);
   });
 });
 
 test('loadAllNeeds silent=false test', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       loader,
       testModel = Ember.Object.create({
         refreshLoadTime: Ember.K,
@@ -135,13 +135,13 @@ test('loadAllNeeds silent=false test', function(assert) {
       return Ember.RSVP.reject(testErr);
     }
   };
-  adapter.loadAllNeeds(loader, testModel).catch(function (err) {
+  entity.loadAllNeeds(loader, testModel).catch(function (err) {
     assert.equal(err, testErr);
   });
 });
 
 test('loadAllNeeds silent=true test', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       loader,
       testModel = Ember.Object.create({
         refreshLoadTime: Ember.K,
@@ -162,13 +162,13 @@ test('loadAllNeeds silent=true test', function(assert) {
       return Ember.RSVP.resolve();
     }
   };
-  adapter.loadAllNeeds(loader, testModel).then(function (val) {
+  entity.loadAllNeeds(loader, testModel).then(function (val) {
     assert.ok(val);
   });
 });
 
 test('_loadNeed single string type test', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       loader,
       testModel = Ember.Object.create({
         refreshLoadTime: Ember.K,
@@ -191,13 +191,13 @@ test('_loadNeed single string type test', function(assert) {
       return Ember.RSVP.resolve();
     }
   };
-  adapter.loadAllNeeds(loader, testModel).then(function (val) {
+  entity.loadAllNeeds(loader, testModel).then(function (val) {
     assert.ok(val);
   });
 });
 
 test('_loadNeed multiple type test', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       loader,
       testModel = Ember.Object.create({
         refreshLoadTime: Ember.K,
@@ -227,13 +227,13 @@ test('_loadNeed multiple type test', function(assert) {
       }
     }
   };
-  adapter.loadAllNeeds(loader, testModel).then(function (val) {
+  entity.loadAllNeeds(loader, testModel).then(function (val) {
     assert.ok(val);
   });
 });
 
 test('_loadNeed test with silent false', function(assert) {
-  let adapter = this.subject(),
+  let entity = this.subject(),
       loader,
       testModel = Ember.Object.create({
         refreshLoadTime: Ember.K,
@@ -257,7 +257,7 @@ test('_loadNeed test with silent false', function(assert) {
       return Ember.RSVP.reject(testErr);
     }
   };
-  adapter.loadAllNeeds(loader, testModel).catch(function (err) {
+  entity.loadAllNeeds(loader, testModel).catch(function (err) {
     assert.equal(err, testErr);
   });
 });

@@ -51,7 +51,8 @@ export default AMTimelineModel.extend({
       },
       urlParams: function (model) {
         return {
-          app_id: model.get("appID")
+          app_id: model.get("appID"),
+          version: model.get("dag.amWsVersion") || "1"
         };
       }
     }

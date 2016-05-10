@@ -24,10 +24,10 @@ moduleFor('entitie:am', 'Unit | Entity | am', {
 });
 
 test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+  let entity = this.subject();
 
-  assert.ok(adapter);
-  assert.ok(adapter.resetJoiner);
-  assert.ok(adapter.queryRecord);
-  assert.ok(adapter.queryJoinedRecords);
+  assert.ok(entity);
+  assert.ok(entity.resetJoiner);
+  assert.ok(entity.queryRecord);
+  assert.ok(entity.queryJoinedRecords);
 });

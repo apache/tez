@@ -27,5 +27,5 @@ test('Basic creation test', function(assert) {
   let serializer = this.subject();
 
   assert.ok(serializer);
-  assert.ok(serializer.payloadNamespace);
+  assert.ok(serializer.extractArrayPayload);
 });

@@ -35,7 +35,8 @@ export default AMTimelineModel.extend({
       },
       urlParams: function (model) {
         return {
-          app_id: model.get("appID")
+          app_id: model.get("appID"),
+          version: model.get("amWsVersion") || "1"
         };
       }
     },
@@ -67,4 +68,5 @@ export default AMTimelineModel.extend({
   callerType: DS.attr("string"),
   callerInfo: DS.attr("string"),
 
+  amWsVersion: DS.attr("string"),
 });
