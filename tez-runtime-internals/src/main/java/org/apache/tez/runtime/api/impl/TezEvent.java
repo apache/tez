@@ -21,7 +21,9 @@ package org.apache.tez.runtime.api.impl;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.OutputStream;
 
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.common.ProtoConverters;
 import org.apache.tez.common.TezConverterUtils;
@@ -36,10 +38,10 @@ import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
-import org.apache.tez.runtime.api.events.InputFailedEvent;
-import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
@@ -48,6 +50,10 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptKilledEventProto;
+
+import com.google.protobuf.AbstractMessage;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 
 public class TezEvent implements Writable {
 
@@ -58,7 +64,7 @@ public class TezEvent implements Writable {
   private EventMetaData sourceInfo;
 
   private EventMetaData destinationInfo;
-  
+
   private long eventReceivedTime;
 
   public TezEvent() {
@@ -67,7 +73,7 @@ public class TezEvent implements Writable {
   public TezEvent(Event event, EventMetaData sourceInfo) {
     this(event, sourceInfo, System.currentTimeMillis());
   }
-  
+
   public TezEvent(Event event, EventMetaData sourceInfo, long time) {
     this.event = event;
     this.eventReceivedTime = time;
@@ -103,11 +109,11 @@ public class TezEvent implements Writable {
   public Event getEvent() {
     return event;
   }
-  
+
   public void setEventReceivedTime(long eventReceivedTime) { // TODO save
     this.eventReceivedTime = eventReceivedTime;
   }
-  
+
   public long getEventReceivedTime() {
     return eventReceivedTime;
   }
@@ -145,67 +151,78 @@ public class TezEvent implements Writable {
       TaskStatusUpdateEvent sEvt = (TaskStatusUpdateEvent) event;
       sEvt.write(out);
     } else {
-      byte[] eventBytes = null;
+      AbstractMessage message;
       switch (eventType) {
       case DATA_MOVEMENT_EVENT:
-        eventBytes =
+        message =
             ProtoConverters.convertDataMovementEventToProto(
-                (DataMovementEvent) event).toByteArray();
+                (DataMovementEvent) event);
         break;
       case COMPOSITE_DATA_MOVEMENT_EVENT:
-        eventBytes =
+        message =
             ProtoConverters.convertCompositeDataMovementEventToProto(
-                (CompositeDataMovementEvent) event).toByteArray();
+                (CompositeDataMovementEvent) event);
         break;
       case VERTEX_MANAGER_EVENT:
-        eventBytes = ProtoConverters.convertVertexManagerEventToProto((VertexManagerEvent) event)
-            .toByteArray();
+        message = ProtoConverters.convertVertexManagerEventToProto((VertexManagerEvent) event);
         break;
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEvent ideEvt = (InputReadErrorEvent) event;
-        eventBytes = InputReadErrorEventProto.newBuilder()
+        message = InputReadErrorEventProto.newBuilder()
             .setIndex(ideEvt.getIndex())
             .setDiagnostics(ideEvt.getDiagnostics())
             .setVersion(ideEvt.getVersion())
-            .build().toByteArray();
+            .build();
         break;
       case TASK_ATTEMPT_FAILED_EVENT:
         TaskAttemptFailedEvent tfEvt = (TaskAttemptFailedEvent) event;
-        eventBytes = TaskAttemptFailedEventProto.newBuilder()
+        message = TaskAttemptFailedEventProto.newBuilder()
             .setDiagnostics(tfEvt.getDiagnostics())
             .setTaskFailureType(TezConverterUtils.failureTypeToProto(tfEvt.getTaskFailureType()))
-            .build().toByteArray();
+            .build();
         break;
         case TASK_ATTEMPT_KILLED_EVENT:
           TaskAttemptKilledEvent tkEvent = (TaskAttemptKilledEvent) event;
-          eventBytes = TaskAttemptKilledEventProto.newBuilder()
-              .setDiagnostics(tkEvent.getDiagnostics()).build().toByteArray();
+          message = TaskAttemptKilledEventProto.newBuilder()
+              .setDiagnostics(tkEvent.getDiagnostics()).build();
           break;
       case TASK_ATTEMPT_COMPLETED_EVENT:
-        eventBytes = TaskAttemptCompletedEventProto.newBuilder()
-            .build().toByteArray();
+        message = TaskAttemptCompletedEventProto.newBuilder()
+            .build();
         break;
       case INPUT_FAILED_EVENT:
         InputFailedEvent ifEvt = (InputFailedEvent) event;
-        eventBytes = InputFailedEventProto.newBuilder()
+        message = InputFailedEventProto.newBuilder()
             .setTargetIndex(ifEvt.getTargetIndex())
-            .setVersion(ifEvt.getVersion()).build().toByteArray();
+            .setVersion(ifEvt.getVersion()).build();
         break;
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
-        eventBytes = ProtoConverters.convertRootInputDataInformationEventToProto(
-            (InputDataInformationEvent) event).toByteArray();
+        message = ProtoConverters.convertRootInputDataInformationEventToProto(
+            (InputDataInformationEvent) event);
         break;
       case ROOT_INPUT_INITIALIZER_EVENT:
-        eventBytes = ProtoConverters
-            .convertRootInputInitializerEventToProto((InputInitializerEvent) event)
-            .toByteArray();
+        message = ProtoConverters
+            .convertRootInputInitializerEventToProto((InputInitializerEvent) event);
         break;
       default:
         throw new TezUncheckedException("Unknown TezEvent"
            + ", type=" + eventType);
       }
-      out.writeInt(eventBytes.length);
-      out.write(eventBytes);
+      if (out instanceof OutputStream) { //DataOutputBuffer extends DataOutputStream
+        int serializedSize = message.getSerializedSize();
+        out.writeInt(serializedSize);
+        int buffersize = serializedSize < CodedOutputStream.DEFAULT_BUFFER_SIZE ? serializedSize
+            : CodedOutputStream.DEFAULT_BUFFER_SIZE;
+        CodedOutputStream codedOut = CodedOutputStream.newInstance(
+            (OutputStream) out, buffersize);
+        message.writeTo(codedOut);
+        codedOut.flush();
+      } else {
+        byte[] eventBytes = message.toByteArray();
+        out.writeInt(eventBytes.length);
+        out.write(eventBytes);
+      }
+
     }
   }
 
@@ -222,36 +239,45 @@ public class TezEvent implements Writable {
       ((TaskStatusUpdateEvent)event).readFields(in);
     } else {
       int eventBytesLen = in.readInt();
-      byte[] eventBytes = new byte[eventBytesLen];
-      in.readFully(eventBytes);
+      byte[] eventBytes;
+      CodedInputStream input;
+      int startOffset = 0;
+      if (in instanceof DataInputBuffer) {
+        eventBytes = ((DataInputBuffer)in).getData();
+        startOffset = ((DataInputBuffer) in).getPosition();
+      } else {
+        eventBytes = new byte[eventBytesLen];
+        in.readFully(eventBytes);
+      }
+      input = CodedInputStream.newInstance(eventBytes, startOffset, eventBytesLen);
       switch (eventType) {
       case DATA_MOVEMENT_EVENT:
         DataMovementEventProto dmProto =
-            DataMovementEventProto.parseFrom(eventBytes);
+            DataMovementEventProto.parseFrom(input);
         event = ProtoConverters.convertDataMovementEventFromProto(dmProto);
         break;
       case COMPOSITE_DATA_MOVEMENT_EVENT:
-        CompositeEventProto cProto = CompositeEventProto.parseFrom(eventBytes);
+        CompositeEventProto cProto = CompositeEventProto.parseFrom(input);
         event = ProtoConverters.convertCompositeDataMovementEventFromProto(cProto);
         break;
       case VERTEX_MANAGER_EVENT:
-        VertexManagerEventProto vmProto = VertexManagerEventProto.parseFrom(eventBytes);
+        VertexManagerEventProto vmProto = VertexManagerEventProto.parseFrom(input);
         event = ProtoConverters.convertVertexManagerEventFromProto(vmProto);
         break;
       case INPUT_READ_ERROR_EVENT:
         InputReadErrorEventProto ideProto =
-            InputReadErrorEventProto.parseFrom(eventBytes);
+            InputReadErrorEventProto.parseFrom(input);
         event = InputReadErrorEvent.create(ideProto.getDiagnostics(),
             ideProto.getIndex(), ideProto.getVersion());
         break;
       case TASK_ATTEMPT_FAILED_EVENT:
         TaskAttemptFailedEventProto tfProto =
-            TaskAttemptFailedEventProto.parseFrom(eventBytes);
+            TaskAttemptFailedEventProto.parseFrom(input);
         event = new TaskAttemptFailedEvent(tfProto.getDiagnostics(),
             TezConverterUtils.failureTypeFromProto(tfProto.getTaskFailureType()));
         break;
       case TASK_ATTEMPT_KILLED_EVENT:
-        TaskAttemptKilledEventProto tkProto = TaskAttemptKilledEventProto.parseFrom(eventBytes);
+        TaskAttemptKilledEventProto tkProto = TaskAttemptKilledEventProto.parseFrom(input);
         event = new TaskAttemptKilledEvent(tkProto.getDiagnostics());
         break;
       case TASK_ATTEMPT_COMPLETED_EVENT:
@@ -259,22 +285,29 @@ public class TezEvent implements Writable {
         break;
       case INPUT_FAILED_EVENT:
         InputFailedEventProto ifProto =
-            InputFailedEventProto.parseFrom(eventBytes);
+            InputFailedEventProto.parseFrom(input);
         event = InputFailedEvent.create(ifProto.getTargetIndex(), ifProto.getVersion());
         break;
       case ROOT_INPUT_DATA_INFORMATION_EVENT:
         RootInputDataInformationEventProto difProto = RootInputDataInformationEventProto
-            .parseFrom(eventBytes);
+            .parseFrom(input);
         event = ProtoConverters.convertRootInputDataInformationEventFromProto(difProto);
         break;
       case ROOT_INPUT_INITIALIZER_EVENT:
-        EventProtos.RootInputInitializerEventProto riiProto = EventProtos.RootInputInitializerEventProto.parseFrom(eventBytes);
+        EventProtos.RootInputInitializerEventProto riiProto = EventProtos.RootInputInitializerEventProto.parseFrom(input);
         event = ProtoConverters.convertRootInputInitializerEventFromProto(riiProto);
         break;
       default:
         // RootInputUpdatePayload event not wrapped in a TezEvent.
         throw new TezUncheckedException("Unexpected TezEvent"
            + ", type=" + eventType);
+      }
+      if (in instanceof DataInputBuffer) {
+        // Skip so that position is updated
+        int skipped = in.skipBytes(eventBytesLen);
+        if (skipped != eventBytesLen) {
+          throw new TezUncheckedException("Expected to skip " + eventBytesLen + " bytes. Actually skipped = " + skipped);
+        }
       }
     }
   }
@@ -294,7 +327,7 @@ public class TezEvent implements Writable {
     } else {
       out.writeBoolean(false);
     }
-  } 
+  }
 
   @Override
   public void readFields(DataInput in) throws IOException {
