@@ -20,7 +20,7 @@
 Apache Tez&trade; 0.8.2
 ----------------------
 
-- [Download Release Artifacts](http://www.apache.org/dyn/closer.lua/tez/0.8.2/)
+- [Download Release Artifacts](http://archive.apache.org/dist/tez/0.8.2/)
 - [Release Notes](0.8.2/release-notes.txt)
 - Documentation
     - [API Javadocs](0.8.2/tez-api-javadocs/index.html) : Documentation for the Tez APIs
