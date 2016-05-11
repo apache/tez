@@ -6,6 +6,7 @@ Release 0.8.4: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3250. TezTaskRunner2 should accept ExecutorService.
   TEZ-3193. Deadlock in AM during task commit request.
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
   TEZ-3219. Allow service plugins to define log locations link for remotely run task attempts.

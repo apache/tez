@@ -19,6 +19,8 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -27,8 +29,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
@@ -62,7 +62,7 @@ public class TezTaskRunner2 {
   private final UserGroupInformation ugi;
 
   private final TaskReporterInterface taskReporter;
-  private final ListeningExecutorService executor;
+  private final ExecutorService executor;
   private final UmbilicalAndErrorHandler umbilicalAndErrorHandler;
 
   // TODO It may be easier to model this as a state machine.
@@ -104,7 +104,7 @@ public class TezTaskRunner2 {
                         Map<String, ByteBuffer> serviceConsumerMetadata,
                         Map<String, String> serviceProviderEnvMap,
                         Multimap<String, String> startedInputsMap,
-                        TaskReporterInterface taskReporter, ListeningExecutorService executor,
+                        TaskReporterInterface taskReporter, ExecutorService executor,
                         ObjectRegistry objectRegistry, String pid,
                         ExecutionContext executionContext, long memAvailable,
                         boolean updateSysCounters, HadoopShim hadoopShim) throws
@@ -134,7 +134,7 @@ public class TezTaskRunner2 {
    */
   public TaskRunner2Result run() {
     try {
-      ListenableFuture<TaskRunner2CallableResult> future = null;
+      Future<TaskRunner2CallableResult> future = null;
       synchronized (this) {
         // All running state changes must be made within a synchronized block to ensure
         // kills are issued or the task is not setup.
