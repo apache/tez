@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,4 +142,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
     }
   }
 
+  public TezCounters addAndGetTezCounter(final String name) {
+    return task.addAndGetTezCounter(name);
+  }
 }

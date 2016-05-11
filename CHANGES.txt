@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3251. Allow ability to add custom counters to TaskRunner2Callable.
   TEZ-3250. TezTaskRunner2 should accept ExecutorService.
   TEZ-3245. Data race between addKnowInput and clearAndGetOnepartition of InputHost.
   TEZ-3193. Deadlock in AM during task commit request.
@@ -32,6 +33,8 @@ Release 0.8.4: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+
+  TEZ-3251. Allow ability to add custom counters to TaskRunner2Callable.
   TEZ-3250. TezTaskRunner2 should accept ExecutorService.
   TEZ-3193. Deadlock in AM during task commit request.
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
