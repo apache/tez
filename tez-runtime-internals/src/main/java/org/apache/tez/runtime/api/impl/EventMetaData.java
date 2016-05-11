@@ -19,11 +19,13 @@
 package org.apache.tez.runtime.api.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
 import javax.annotation.Nullable;
+
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -137,4 +139,50 @@ public class EventMetaData implements Writable {
         + ", taskAttemptId=" + (taskAttemptID == null? "null" : taskAttemptID)
         + " }";
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result
+        + ((edgeVertexName == null) ? 0 : edgeVertexName.hashCode());
+    result = prime
+        * result
+        + ((producerConsumerType == null) ? 0 : producerConsumerType.hashCode());
+    result = prime * result
+        + ((taskAttemptID == null) ? 0 : taskAttemptID.hashCode());
+    result = prime * result
+        + ((taskVertexName == null) ? 0 : taskVertexName.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    EventMetaData other = (EventMetaData) obj;
+    if (edgeVertexName == null) {
+      if (other.edgeVertexName != null)
+        return false;
+    } else if (!edgeVertexName.equals(other.edgeVertexName))
+      return false;
+    if (producerConsumerType != other.producerConsumerType)
+      return false;
+    if (taskAttemptID == null) {
+      if (other.taskAttemptID != null)
+        return false;
+    } else if (!taskAttemptID.equals(other.taskAttemptID))
+      return false;
+    if (taskVertexName == null) {
+      if (other.taskVertexName != null)
+        return false;
+    } else if (!taskVertexName.equals(other.taskVertexName))
+      return false;
+    return true;
+  }
+
 }
