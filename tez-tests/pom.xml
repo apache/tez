@@ -32,7 +32,6 @@
     <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-common</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>

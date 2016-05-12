@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.common;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +42,8 @@ import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
+import org.apache.tez.util.StopWatch;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
 /**
@@ -69,13 +70,13 @@ public class MRInputSplitDistributor extends InputInitializer {
 
   @Override
   public List<Event> initialize() throws IOException {
-    Stopwatch sw = new Stopwatch().start();
+    StopWatch sw = new StopWatch().start();
     MRInputUserPayloadProto userPayloadProto = MRInputHelpers
         .parseMRInputPayload(getContext().getInputUserPayload());
     sw.stop();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time to parse MRInput payload into prot: "
-          + sw.elapsedMillis());  
+          + sw.now(TimeUnit.MILLISECONDS));
     }
     Configuration conf = TezUtils.createConfFromByteString(userPayloadProto
         .getConfigurationBytes());

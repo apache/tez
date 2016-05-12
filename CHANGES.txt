@@ -6,6 +6,7 @@ Release 0.7.2 Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3256. [Backport HADOOP-11032] Remove Guava Stopwatch dependency
   TEZ-2342. Reduce bytearray copy with TezEvent Serialization and deserialization
   TEZ-3243. Output vertices are hidden for UI graph view
 

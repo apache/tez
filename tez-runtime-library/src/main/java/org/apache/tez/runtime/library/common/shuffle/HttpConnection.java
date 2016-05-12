@@ -39,8 +39,7 @@ import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
-
-import com.google.common.base.Stopwatch;
+import org.apache.tez.util.StopWatch;
 
 /**
  * HttpConnection which can be used for Unordered / Ordered shuffle.
@@ -70,7 +69,7 @@ public class HttpConnection {
   private String msgToEncode;
 
   private final HttpConnectionParams httpConnParams;
-  private final Stopwatch stopWatch;
+  private final StopWatch stopWatch;
 
   /**
    * HttpConnection
@@ -87,7 +86,7 @@ public class HttpConnection {
     this.jobTokenSecretMgr = jobTokenSecretManager;
     this.httpConnParams = connParams;
     this.url = url;
-    this.stopWatch = new Stopwatch();
+    this.stopWatch = new StopWatch();
     if (LOG.isDebugEnabled()) {
       LOG.debug("MapOutput URL :" + url.toString());
     }
@@ -205,7 +204,7 @@ public class HttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to connect to " + url.toString() +
-        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms; connectionFailures="+ connectionFailures);
+        " " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms; connectionFailures="+ connectionFailures);
     }
     return true;
   }
@@ -239,7 +238,7 @@ public class HttpConnection {
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecretMgr);
     //Following log statement will be used by tez-tool perf-analyzer for mapping attempt to NM host
     LOG.info("for url=" + url +
-      " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+      " sent hash and receievd reply " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
   }
 
   /**
@@ -257,7 +256,7 @@ public class HttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to getInputStream (connect) " + url +
-        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+        " " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
     }
     return input;
   }
@@ -300,7 +299,7 @@ public class HttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to cleanup connection to " + url +
-        " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+        " " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
     }
   }
 
