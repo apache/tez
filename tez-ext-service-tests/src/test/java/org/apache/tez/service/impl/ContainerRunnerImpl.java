@@ -26,11 +26,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.FutureCallback;
@@ -74,6 +74,7 @@ import org.apache.tez.shufflehandler.ShuffleHandler;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRequestProto;
 import org.apache.tez.util.ProtoConverters;
+import org.apache.tez.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -300,7 +301,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
 
     @Override
     public ContainerExecutionResult call() throws Exception {
-      Stopwatch sw = new Stopwatch().start();
+      StopWatch sw = new StopWatch().start();
       tezChild =
           new TezChild(conf, request.getAmHost(), request.getAmPort(),
               request.getContainerIdString(),
@@ -310,7 +311,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
               new DefaultHadoopShim());
       ContainerExecutionResult result = tezChild.run();
       LOG.info("ExecutionTime for Container: " + request.getContainerIdString() + "=" +
-          sw.stop().elapsedMillis());
+          sw.stop().now(TimeUnit.MILLISECONDS));
       return result;
     }
 
@@ -410,7 +411,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     public ContainerExecutionResult call() throws Exception {
 
       // TODO Consolidate this code with TezChild.
-      Stopwatch sw = new Stopwatch().start();
+      StopWatch sw = new StopWatch().start();
       UserGroupInformation taskUgi = UserGroupInformation.createRemoteUser(request.getUser());
       taskUgi.addCredentials(credentials);
 
@@ -473,7 +474,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
         FileSystem.closeAllForUGI(taskUgi);
       }
       LOG.info("ExecutionTime for Container: " + request.getContainerIdString() + "=" +
-          sw.stop().elapsedMillis());
+          sw.stop().now(TimeUnit.MILLISECONDS));
       return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
           null);
     }

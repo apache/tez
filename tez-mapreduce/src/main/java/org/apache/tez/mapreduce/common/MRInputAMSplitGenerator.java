@@ -19,8 +19,8 @@
 package org.apache.tez.mapreduce.common;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
 import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
@@ -47,6 +47,7 @@ import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.util.StopWatch;
 
 /**
  * Implements an {@link InputInitializer} that generates Map Reduce 
@@ -70,13 +71,13 @@ public class MRInputAMSplitGenerator extends InputInitializer {
 
   @Override
   public List<Event> initialize() throws Exception {
-    Stopwatch sw = new Stopwatch().start();
+    StopWatch sw = new StopWatch().start();
     MRInputUserPayloadProto userPayloadProto = MRInputHelpers
         .parseMRInputPayload(getContext().getInputUserPayload());
     sw.stop();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time to parse MRInput payload into prot: "
-          + sw.elapsedMillis());
+          + sw.now(TimeUnit.MILLISECONDS));
     }
     sw.reset().start();
     Configuration conf = TezUtils.createConfFromByteString(userPayloadProto
@@ -90,7 +91,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Emitting serialized splits: " + sendSerializedEvents + " for input " +
           getContext().getInputName());
-      LOG.debug("Time converting ByteString to configuration: " + sw.elapsedMillis());
+      LOG.debug("Time converting ByteString to configuration: " + sw.now(TimeUnit.MILLISECONDS));
     }
 
     sw.reset().start();
@@ -123,7 +124,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     }
     sw.stop();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Time to create splits to mem: " + sw.elapsedMillis());
+      LOG.debug("Time to create splits to mem: " + sw.now(TimeUnit.MILLISECONDS));
     }
 
     List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo

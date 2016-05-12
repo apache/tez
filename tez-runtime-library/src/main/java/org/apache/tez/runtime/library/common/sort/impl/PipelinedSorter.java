@@ -31,10 +31,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
 import org.apache.tez.runtime.library.api.IOInterruptedException;
@@ -60,6 +60,7 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.DiskSegment;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 import org.apache.tez.runtime.library.utils.LocalProgress;
+import org.apache.tez.util.StopWatch;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -302,14 +303,14 @@ public class PipelinedSorter extends ExternalSorter {
 
     if(newSpan == null) {
       //avoid sort/spill of empty span
-      Stopwatch stopWatch = new Stopwatch();
+      StopWatch stopWatch = new StopWatch();
       stopWatch.start();
       // sort in the same thread, do not wait for the thread pool
       merger.add(span.sort(sorter));
       boolean ret = spill(true);
       stopWatch.stop();
       if (LOG.isDebugEnabled()) {
-        LOG.debug(outputContext.getDestinationVertexName() + ": Time taken for spill " + (stopWatch.elapsedMillis()) + " ms");
+        LOG.debug(outputContext.getDestinationVertexName() + ": Time taken for spill " + (stopWatch.now(TimeUnit.MILLISECONDS)) + " ms");
       }
       if (pipelinedShuffle && ret) {
         sendPipelinedShuffleEvents();
