@@ -26,6 +26,7 @@ import java.nio.charset.Charset;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.DataFormatException;
@@ -50,10 +51,10 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
+import org.apache.tez.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 @Private
@@ -114,23 +115,23 @@ public class TezUtilsInternal {
 
 
   public static byte[] compressBytes(byte[] inBytes) throws IOException {
-    Stopwatch sw = new Stopwatch().start();
+    StopWatch sw = new StopWatch().start();
     byte[] compressed = compressBytesInflateDeflate(inBytes);
     sw.stop();
     if (LOG.isDebugEnabled()) {
       LOG.debug("UncompressedSize: " + inBytes.length + ", CompressedSize: " + compressed.length
-          + ", CompressTime: " + sw.elapsedMillis());
+          + ", CompressTime: " + sw.now(TimeUnit.MILLISECONDS));
     }
     return compressed;
   }
 
   public static byte[] uncompressBytes(byte[] inBytes) throws IOException {
-    Stopwatch sw = new Stopwatch().start();
+    StopWatch sw = new StopWatch().start();
     byte[] uncompressed = uncompressBytesInflateDeflate(inBytes);
     sw.stop();
     if (LOG.isDebugEnabled()) {
       LOG.debug("CompressedSize: " + inBytes.length + ", UncompressedSize: " + uncompressed.length
-          + ", UncompressTimeTaken: " + sw.elapsedMillis());
+          + ", UncompressTimeTaken: " + sw.now(TimeUnit.MILLISECONDS));
     }
     return uncompressed;
   }

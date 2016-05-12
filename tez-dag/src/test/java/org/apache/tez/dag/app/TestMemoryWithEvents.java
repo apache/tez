@@ -19,9 +19,9 @@
 package org.apache.tez.dag.app;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 
-import com.google.common.base.Stopwatch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,6 +48,7 @@ import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.util.StopWatch;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -117,7 +118,7 @@ public class TestMemoryWithEvents {
   }
   
   private void testMemory(DAG dag, boolean sendDMEvents) throws Exception {
-    Stopwatch stopwatch = new Stopwatch();
+    StopWatch stopwatch = new StopWatch();
     stopwatch.start();
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
 
@@ -137,7 +138,7 @@ public class TestMemoryWithEvents {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     checkMemory(dag.getName(), mockApp);
     stopwatch.stop();
-    System.out.println("Time taken(ms): " + stopwatch.elapsedMillis());
+    System.out.println("Time taken(ms): " + stopwatch.now(TimeUnit.MILLISECONDS));
     tezClient.stop();
   }
   

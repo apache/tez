@@ -20,12 +20,12 @@ package org.apache.tez.http;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
+import org.apache.tez.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +55,7 @@ public class HttpConnection extends BaseHttpConnection {
   private String msgToEncode;
 
   private final HttpConnectionParams httpConnParams;
-  private final Stopwatch stopWatch;
+  private final StopWatch stopWatch;
 
   /**
    * HttpConnection
@@ -72,7 +72,7 @@ public class HttpConnection extends BaseHttpConnection {
     this.jobTokenSecretMgr = jobTokenSecretManager;
     this.httpConnParams = connParams;
     this.url = url;
-    this.stopWatch = new Stopwatch();
+    this.stopWatch = new StopWatch();
     if (LOG.isDebugEnabled()) {
       LOG.debug("MapOutput URL :" + url.toString());
     }
@@ -191,7 +191,7 @@ public class HttpConnection extends BaseHttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to connect to " + url.toString() +
-          " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms; connectionFailures="
+          " " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms; connectionFailures="
           + connectionFailures);
     }
     return true;
@@ -231,7 +231,7 @@ public class HttpConnection extends BaseHttpConnection {
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecretMgr);
     //Following log statement will be used by tez-tool perf-analyzer for mapping attempt to NM host
     LOG.info("for url=" + url +
-        " sent hash and receievd reply " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+        " sent hash and receievd reply " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
   }
 
   /**
@@ -249,7 +249,7 @@ public class HttpConnection extends BaseHttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to getInputStream (connect) " + url +
-          " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+          " " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
     }
     return input;
   }
@@ -294,7 +294,7 @@ public class HttpConnection extends BaseHttpConnection {
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to cleanup connection to " + url +
-          " " + stopWatch.elapsedTime(TimeUnit.MILLISECONDS) + " ms");
+          " " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
     }
   }
 

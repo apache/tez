@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3256. [Backport HADOOP-11032] Remove Guava Stopwatch dependency
   TEZ-2342. Reduce bytearray copy with TezEvent Serialization and deserialization
   TEZ-3251. Allow ability to add custom counters to TaskRunner2Callable.
   TEZ-3250. TezTaskRunner2 should accept ExecutorService.
@@ -446,6 +447,7 @@ Release 0.7.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3256. [Backport HADOOP-11032] Remove Guava Stopwatch dependency
   TEZ-2342. Reduce bytearray copy with TezEvent Serialization and deserialization
 
 Release 0.7.1: Unreleased
