@@ -93,6 +93,9 @@ public class TestJavaOptsChecker {
     String opts = " -XX:+UseParNewGC -XX:+UseConcMarkSweepGC ";
     javaOptsChecker.checkOpts(opts);
 
+    opts += " -XX:+DisableExplicitGC ";
+    javaOptsChecker.checkOpts(opts);
+
     opts += " -XX:-UseG1GC ";
     javaOptsChecker.checkOpts(opts);
 

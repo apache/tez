@@ -48,7 +48,7 @@ public class JavaOptsChecker {
       }
 
       String opt = matcher.group(3);
-      if (!opt.endsWith("GC")) {
+      if (!opt.matches("Use.+GC")) {
         continue;
       }
 
