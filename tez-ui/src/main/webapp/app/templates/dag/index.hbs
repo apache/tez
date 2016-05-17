@@ -80,8 +80,8 @@
 
   {{outlet}}
 
-  {{#if model.callerInfo}}
-    {{caller-info type=model.callerType info=model.callerInfo}}
+  {{#if model.callerDescription}}
+    {{caller-info type=model.callerContext info=model.callerDescription}}
   {{/if}}
 
   {{#if model.diagnostics}}

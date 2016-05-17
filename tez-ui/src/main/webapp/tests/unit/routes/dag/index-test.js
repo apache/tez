@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:dag/index', 'Unit | Route | dag/index', {
@@ -31,6 +32,7 @@ test('Basic creation test', function(assert) {
   assert.ok(route.loaderNamespace);
   assert.ok(route.setupController);
   assert.ok(route.load);
+  assert.ok(route.getCallerInfo);
 });
 
 test('setupController test', function(assert) {
@@ -45,3 +47,33 @@ test('setupController test', function(assert) {
   route.setupController({}, {});
 });
 
+test('getCallerInfo test', function(assert) {
+  let route = this.subject({
+      startCrumbBubble: Ember.K
+      }),
+
+      testID = "id",
+      testType = "entity",
+
+      dag = Ember.Object.create({
+        name: "hive_query_id:1",
+      }),
+      callerInfo;
+
+  // callerID computed - No callerType
+  callerInfo = route.getCallerInfo(dag);
+  assert.equal(callerInfo.id, "hive_query_id");
+  assert.equal(callerInfo.type, "HIVE_QUERY_ID");
+
+  // callerID computed - No callerID
+  dag.set("callerType", testType);
+  callerInfo = route.getCallerInfo(dag);
+  assert.equal(callerInfo.id, "hive_query_id");
+  assert.equal(callerInfo.type, "HIVE_QUERY_ID");
+
+  // callerID & callerType available
+  dag.set("callerID", testID);
+  callerInfo = route.getCallerInfo(dag);
+  assert.equal(callerInfo.id, testID);
+  assert.equal(callerInfo.type, testType);
+});

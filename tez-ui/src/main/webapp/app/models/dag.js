@@ -65,8 +65,9 @@ export default AMTimelineModel.extend({
   vertexIdNameMap: DS.attr("object"),
 
   callerID: DS.attr("string"),
+  callerContext: DS.attr("string"),
+  callerDescription: DS.attr("string"),
   callerType: DS.attr("string"),
-  callerInfo: DS.attr("string"),
 
   amWsVersion: DS.attr("string"),
 });

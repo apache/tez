@@ -21,14 +21,14 @@ import Entity from './entity';
 export default Entity.extend({
   queryRecord: function (loader, id, options, query, urlParams) {
     return this._super(loader, id, options, query, urlParams).then(function (dag) {
-      if(!dag.get("callerInfo")) {
+      if(dag.get("callerDescription") === undefined) {
         var dagName = dag.get("name") || "",
             hiveQueryID = dagName.substr(0, dagName.indexOf(":"));
         if(hiveQueryID && dagName !== hiveQueryID) {
           loader.queryRecord("hive-query", hiveQueryID, options, query, urlParams).then(function (hive) {
             dag.setProperties({
-              callerType: "Hive",
-              callerInfo: hive.get("queryText")
+              callerContext: "Hive",
+              callerDescription: hive.get("queryText")
             });
           });
         }

@@ -137,9 +137,9 @@ export default TableController.extend({
     headerTitle: 'Caller ID',
     contentPath: 'callerID'
   },{
-    id: 'callerType',
-    headerTitle: 'Caller Type',
-    contentPath: 'callerType'
+    id: 'callerContext',
+    headerTitle: 'Caller Context',
+    contentPath: 'callerContext'
   },{
     id: 'logs',
     headerTitle: 'Logs',

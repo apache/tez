@@ -161,6 +161,9 @@ export default AbstractRoute.extend({
       var loader = this.get("loader");
       loader.unloadAll("dag");
       loader.unloadAll("ahs-app");
+
+      this.set("controller.pageNum", 1);
+
       this._super();
     },
   }

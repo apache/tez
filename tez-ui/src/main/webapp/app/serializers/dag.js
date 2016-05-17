@@ -127,32 +127,40 @@ export default TimelineSerializer.extend({
     vertexIdNameMap: getIdNameMap,
 
     callerID: 'primaryfilters.callerId.0',
+    callerContext: 'callerContext',
+    callerDescription: 'callerDescription',
     callerType: 'callerType',
-    callerInfo: 'callerInfo',
 
     amWsVersion: 'otherinfo.amWebServiceVersion',
   },
 
-  extractAttributes: function (modelClass, resourceHash) {
+  normalizeResourceHash: function (resourceHash) {
     var data = resourceHash.data,
         dagInfo = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagInfo"), // New style, from TEZ-2851
         dagContext = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagContext"); // Old style
 
-    if(dagInfo) {
+    if(dagContext) {
+      data.callerContext = Ember.String.classify((Ember.get(dagContext, "context")||"").toLowerCase());
+      data.callerDescription = Ember.get(dagContext, "description");
+      data.callerType = Ember.get(dagContext, "callerType");
+    }
+    else if(dagInfo) {
       let infoObj = {};
       try{
         infoObj = JSON.parse(dagInfo);
-      }catch(e){}
+      }catch(e){
+        infoObj = dagInfo;
+      }
 
-      data.callerType = Ember.get(infoObj, "context");
-      data.callerInfo = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
-    }
-    else if(dagContext) {
-      data.callerType = Ember.String.classify((Ember.get(dagContext, "context")||"").toLowerCase());
-      data.callerInfo = Ember.get(dagContext, "description");
+      data.callerContext = Ember.get(infoObj, "context");
+      data.callerDescription = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
     }
 
-    return this._super(modelClass, resourceHash);
+    return resourceHash;
+  },
+
+  extractAttributes: function (modelClass, resourceHash) {
+    return this._super(modelClass, this.normalizeResourceHash(resourceHash));
   },
 
 });

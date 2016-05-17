@@ -130,3 +130,25 @@ test('loadNewPage test', function(assert) {
 
   route.loadNewPage();
 });
+
+test('actions.willTransition test', function(assert) {
+  let testPageNum = 5,
+      controller = Ember.Object.create({
+        pageNum: testPageNum
+      }),
+      route = this.subject({
+        controller: controller,
+      });
+
+  route.set("loader", {
+    unloadAll: function () {
+      assert.ok(true);
+    }
+  });
+
+  assert.expect(2 + 1 + 1);
+
+  assert.equal(controller.get("pageNum"), testPageNum);
+  route.send("willTransition");
+  assert.equal(controller.get("pageNum"), 1); // PageNum must be reset
+});

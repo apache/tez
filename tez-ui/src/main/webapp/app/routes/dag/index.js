@@ -35,13 +35,33 @@ export default SingleAmPollsterRoute.extend({
     return this.get("loader").queryRecord('dag', this.modelFor("dag").get("id"), options);
   },
 
+  getCallerInfo: function (dag) {
+    var dagName = dag.get("name") || "",
+        callerType = dag.get("callerType"),
+        callerID = dag.get("callerID");
+
+    if(!callerID || !callerType) {
+      let hiveQueryID = dagName.substr(0, dagName.indexOf(":"));
+      if(hiveQueryID && dagName !== hiveQueryID) {
+        callerType = "HIVE_QUERY_ID";
+        callerID = hiveQueryID;
+      }
+    }
+
+    return {
+      type: callerType,
+      id: callerID
+    };
+  },
+
   actions: {
     downloadDagJson: function () {
       var dag = this.get("loadedValue"),
           downloader = downloadDAGZip(dag, {
             batchSize: 500,
             timelineHost: this.get("hosts.timeline"),
-            timelineNamespace: this.get("env.app.namespaces.webService.timeline")
+            timelineNamespace: this.get("env.app.namespaces.webService.timeline"),
+            callerInfo: this.getCallerInfo(dag)
           }),
           modalContent = Ember.Object.create({
             dag: dag,

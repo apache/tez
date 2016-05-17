@@ -37,4 +37,23 @@ test('Basic creation test', function(assert) {
     assert.ok(!!model.needs.am);
     assert.equal(model.get("queue"), testQueue);
   });
+
+  assert.ok(model.name);
+  assert.ok(model.submitter);
+
+  assert.ok(model.vertices);
+  assert.ok(model.edges);
+  assert.ok(model.vertexGroups);
+
+  assert.ok(model.domain);
+  assert.ok(model.containerLogs);
+
+  assert.ok(model.vertexIdNameMap);
+
+  assert.ok(model.callerID);
+  assert.ok(model.callerContext);
+  assert.ok(model.callerDescription);
+  assert.ok(model.callerType);
+
+  assert.ok(model.amWsVersion);
 });

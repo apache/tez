@@ -128,9 +128,15 @@ var IO = {
         processNext();
       }).fail(function(xhr, statusText/*, errorObject*/) {
         delete pendingRequests[reqID];
-        markFailed(statusText);
         inProgress--;
-        checkForCompletion();
+        if(item.onItemFail) {
+          item.onItemFail();
+          processNext();
+        }
+        else {
+          markFailed(statusText);
+          checkForCompletion();
+        }
       });
     }
 
@@ -288,22 +294,34 @@ export default function downloadDagZip(dag, options) {
           onItemFetched: processSingleItem
         },
         {
-          url: getUrl('TEZ_VERTEX_ID', dagID),
+          url: getUrl('TEZ_VERTEX_ID', null, dagID),
           context: { name: 'vertices', type: 'TEZ_VERTEX_ID', part: 0 },
           onItemFetched: processMultipleItems
         },
         {
-          url: getUrl('TEZ_TASK_ID', dagID),
+          url: getUrl('TEZ_TASK_ID', null, dagID),
           context: { name: 'tasks', type: 'TEZ_TASK_ID', part: 0 },
           onItemFetched: processMultipleItems
         },
         {
-          url: getUrl('TEZ_TASK_ATTEMPT_ID', dagID),
+          url: getUrl('TEZ_TASK_ATTEMPT_ID', null, dagID),
           context: { name: 'task_attempts', type: 'TEZ_TASK_ATTEMPT_ID', part: 0 },
           onItemFetched: processMultipleItems
         }
-      ],
-      totalItemsToDownload = itemsToDownload.length,
+      ];
+
+      let callerID = options.callerInfo.id,
+          entityType = options.callerInfo.type;
+      if(callerID && entityType) {
+        itemsToDownload.push({
+          url: getUrl(entityType, callerID),
+          context: { name: entityType.toLocaleLowerCase(), type: entityType },
+          onItemFetched: processSingleItem,
+          onItemFail: checkIfAllDownloaded
+        });
+      }
+
+  var totalItemsToDownload = itemsToDownload.length,
       numItemTypesToDownload = totalItemsToDownload,
       downloader = IO.fileDownloader(),
       zipHelper = IO.zipHelper({
@@ -323,12 +341,12 @@ export default function downloadDagZip(dag, options) {
         }
       });
 
-  function getUrl(type, dagID, fromID) {
+  function getUrl(type, id, dagID, fromID) {
     var url,
         queryBatchSize = batchSize + 1;
 
-    if (type === 'TEZ_DAG_ID' || type === 'TEZ_APPLICATION') {
-      url = `${baseurl}/${type}/${dagID}`;
+    if (id) {
+      url = `${baseurl}/${type}/${id}`;
     } else {
       url = `${baseurl}/${type}?primaryFilter=TEZ_DAG_ID:${dagID}&limit=${queryBatchSize}`;
       if (!!fromID) {
@@ -376,7 +394,7 @@ export default function downloadDagZip(dag, options) {
     if (!!nextBatchStart) {
       context.part++;
       downloader.queueItem({
-        url: getUrl(context.type, dagID, nextBatchStart),
+        url: getUrl(context.type, null, dagID, nextBatchStart),
         context: context,
         onItemFetched: processMultipleItems
       });

@@ -29,6 +29,7 @@ ALL CHANGES:
   TEZ-3227. Tez UI: Replace UI1 with UI2
   TEZ-3233. Tez UI: Have LLAP information reflect in Tez UI
   TEZ-3086. Tez UI: Backward compatibility changes
+  TEZ-3254. Tez UI: Consider downloading Hive/Pig explain plans
 
 Release 0.8.4: Unreleased
 

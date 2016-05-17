@@ -27,6 +27,9 @@ test('Basic creation test', function(assert) {
   let serializer = this.subject();
 
   assert.ok(serializer);
+
+  assert.ok(serializer.normalizeResourceHash);
+
   assert.ok(serializer.maps.atsStatus);
   assert.ok(serializer.maps.startTime);
   assert.ok(serializer.maps.endTime);
@@ -128,4 +131,81 @@ test('vertexIdNameMap test', function(assert) {
     ID2: "name2",
     ID3: "name3",
   });
+});
+
+test('normalizeResourceHash test', function(assert) {
+  let serializer = this.subject(),
+
+      callerInfo = {
+        callerId: "id_1",
+        callerType: "HIVE_QUERY_ID",
+        context: "Hive",
+        description: "hive query"
+      },
+
+      data;
+
+  // dagContext test
+  data = serializer.normalizeResourceHash({
+    data: {
+      otherinfo: {
+        dagPlan: {
+          dagContext: callerInfo
+        }
+      }
+    }
+  }).data;
+
+  assert.equal(data.callerContext, callerInfo.context);
+  assert.equal(data.callerDescription, callerInfo.description);
+  assert.equal(data.callerType, callerInfo.callerType);
+
+  // dagInfo test
+  data = serializer.normalizeResourceHash({
+    data: {
+      otherinfo: {
+        dagPlan: {
+          dagInfo: `{"context": "${callerInfo.context}", "description": "${callerInfo.description}"}`
+        }
+      }
+    }
+  }).data;
+
+  assert.equal(data.callerContext, callerInfo.context);
+  assert.equal(data.callerDescription, callerInfo.description);
+  assert.notOk(data.callerType);
+
+  // dagInfo.blob test
+  data = serializer.normalizeResourceHash({
+    data: {
+      otherinfo: {
+        dagPlan: {
+          dagInfo: {
+            context: callerInfo.context,
+            blob: callerInfo.description
+          }
+        }
+      }
+    }
+  }).data;
+
+  assert.equal(data.callerContext, callerInfo.context);
+  assert.equal(data.callerDescription, callerInfo.description);
+  assert.notOk(data.callerType);
+
+  // dagContext have presidence over dagInfo
+  data = serializer.normalizeResourceHash({
+    data: {
+      otherinfo: {
+        dagPlan: {
+          dagContext: callerInfo,
+          dagInfo: `{"context": "RandomContext", "description": "RandomDesc"}`
+        }
+      }
+    }
+  }).data;
+
+  assert.equal(data.callerContext, callerInfo.context);
+  assert.equal(data.callerDescription, callerInfo.description);
+  assert.equal(data.callerType, callerInfo.callerType);
 });
