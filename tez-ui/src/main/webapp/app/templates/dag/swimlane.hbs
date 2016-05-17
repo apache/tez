@@ -17,26 +17,31 @@
 }}
 
 {{#if loaded}}
-  <div class="swimlane-page">
-    <div class="button-panel">
-      <div class="zoom-range">
-        {{zoom}}%
-        {{input type="range" value=zoom min=100 max=1000}}
+  {{#if dataAvailable}}
+    <div class="swimlane-page">
+      <div class="button-panel">
+        <div class="zoom-range">
+          {{zoom}}%
+          {{input type="range" value=zoom min=100 max=1000}}
+        </div>
+        <i class='fa fa-cog fa-border' {{action 'openColumnSelector'}} title="Customize vertex tooltip"></i>
+        <i class='fa fa-expand fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
+        <i class='fa fa-compress fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
       </div>
-      <i class='fa fa-cog fa-border' {{action 'openColumnSelector'}} title="Customize vertex tooltip"></i>
-      <i class='fa fa-expand fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
-      <i class='fa fa-compress fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
-    </div>
 
-    {{em-swimlane
-      columns=visibleColumns
-      processes=processes
-      nameComponent="em-swimlane-vertex-name"
-      zoom=zoom
-      click="click"
-      consolidate=true
-    }}
-  </div>
+      {{em-swimlane
+        columns=visibleColumns
+        processes=processes
+        nameComponent="em-swimlane-vertex-name"
+        zoom=zoom
+        click="click"
+        consolidate=true
+      }}
+    </div>
+  {{else}}
+    <h2>Data not available to display swimlane for a running DAG!</h2>
+    <h4>You might be using an older version of Tez. Please get back after DAG completion.</h4>
+  {{/if}}
 {{else}}
   {{partial "loading"}}
 {{/if}}

@@ -101,6 +101,28 @@ export default MultiTableController.extend({
     contentPath: 'processorClassName',
   }]),
 
+  dataAvailable: Ember.computed("model.firstObject.dag.amWsVersion",
+      "model.firstObject.dag.isComplete",
+      "model.firstObject.am.initTime", function () {
+    var vertex = this.get("model.firstObject"),
+        dag = this.get("model.firstObject.dag"),
+        dataAvailable = true;
+
+    if(vertex && dag && !dag.get("isComplete")) {
+      let amWsVersion = dag.get("amWsVersion");
+      // amWsVersion = undefined or 1
+      if(!amWsVersion || amWsVersion === 1) {
+        dataAvailable = false;
+      }
+      // amWsVersion >= 2, but without event/time data
+      if(vertex.get("am") && !vertex.get("am.initTime")) {
+        dataAvailable = false;
+      }
+    }
+
+    return dataAvailable;
+  }),
+
   processes: Ember.computed("model", function () {
     var processes = [],
         processHash = {},
