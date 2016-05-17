@@ -20,8 +20,8 @@
     "numeral": "1.5.3",
     "snippet-ss": "1.11.0",
     "jquery-mousewheel": "3.1.13",
-    "FileSaver": "https://github.com/eligrey/FileSaver.js.git#24b303f49213b905ec9062b708f7cd43d56a5dde",
     "zip": "https://github.com/gildas-lormeau/zip.js.git#bfd76c66293305faaf9fcbb65b5ff7fe2dbe621a",
-    "codemirror": "5.11.0"
+    "codemirror": "5.11.0",
+    "file-saver.js": "1.20150507.2"
   }
 }
