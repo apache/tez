@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.api.client;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.hadoop.ipc.Server;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.DAGNotRunningException;
@@ -109,10 +112,27 @@ public class DAGClientHandler {
     return currentDAG;
   }
 
+  private String getClientInfo() throws TezException {
+    UserGroupInformation callerUGI;
+    try {
+      callerUGI = UserGroupInformation.getCurrentUser();
+    } catch (IOException ie) {
+      LOG.info("Error getting UGI ", ie);
+      throw new TezException(ie);
+    }
+    String message = callerUGI.toString();
+    if(null != Server.getRemoteAddress()) {
+      message += " at " + Server.getRemoteAddress();
+    }
+    return message;
+  }
+
   public void tryKillDAG(String dagIdStr) throws TezException {
     DAG dag = getDAG(dagIdStr);
-    LOG.info("Sending client kill to dag: " + dagIdStr);
-    dagAppMaster.tryKillDAG(dag, "Kill Dag request received from client");
+    String message = "Sending client kill from " + getClientInfo() +
+        " to dag " + dagIdStr;
+    LOG.info(message);
+    dagAppMaster.tryKillDAG(dag, message);
   }
 
   public synchronized String submitDAG(DAGPlan dagPlan,
@@ -122,9 +142,10 @@ public class DAGClientHandler {
 
   // Only to be invoked by the DAGClient.
   public synchronized void shutdownAM() throws TezException {
-    LOG.info("Received message to shutdown AM");
+    String message = "Received message to shutdown AM from " + getClientInfo();
+    LOG.info(message);
     if (dagAppMaster != null) {
-      dagAppMaster.shutdownTezAM("AM Shutdown request received from client");
+      dagAppMaster.shutdownTezAM(message);
     }
   }
 
