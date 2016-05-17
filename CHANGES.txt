@@ -31,6 +31,7 @@ ALL CHANGES:
   TEZ-3086. Tez UI: Backward compatibility changes
   TEZ-3254. Tez UI: Consider downloading Hive/Pig explain plans
   TEZ-3255. Tez UI: Hide swimlane while displaying running DAGs from old versions of Tez
+  TEZ-3259. Tez UI: Build issue - File saver package is not working well with bower
 
 Release 0.8.4: Unreleased
 

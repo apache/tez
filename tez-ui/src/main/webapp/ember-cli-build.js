@@ -64,7 +64,7 @@ module.exports = function(defaults) {
 
   app.import('bower_components/more-js/dist/more.js');
 
-  app.import('bower_components/FileSaver/FileSaver.js');
+  app.import('bower_components/file-saver.js/FileSaver.js');
   app.import('bower_components/zip/WebContent/zip.js');
 
   app.import('bower_components/codemirror/lib/codemirror.js');
