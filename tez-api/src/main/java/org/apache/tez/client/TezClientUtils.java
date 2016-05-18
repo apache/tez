@@ -73,6 +73,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
@@ -132,7 +133,8 @@ public class TezClientUtils {
 
     Path p = new Path(uri);
     FileSystem fs = p.getFileSystem(conf);
-    p = fs.resolvePath(p);
+    p = fs.resolvePath(p.makeQualified(fs.getUri(),
+        fs.getWorkingDirectory()));
     FileSystem targetFS = p.getFileSystem(conf); 
     if (targetFS.isDirectory(p)) {
       return targetFS.listStatus(p);
@@ -175,37 +177,12 @@ public class TezClientUtils {
 
       LOG.info("Using tez.lib.uris value from configuration: "
           + conf.get(TezConfiguration.TEZ_LIB_URIS));
+      LOG.info("Using tez.lib.uris.classpath value from configuration: "
+          + conf.get(TezConfiguration.TEZ_LIB_URIS_CLASSPATH));
 
-      if (tezJarUris.length == 1 && (
-              tezJarUris[0].endsWith(".tar.gz") ||
-              tezJarUris[0].endsWith(".tgz") ||
-              tezJarUris[0].endsWith(".zip") ||
-              tezJarUris[0].endsWith(".tar"))) {
-        String fileName = tezJarUris[0];
+      usingTezArchive = addLocalResources(conf, tezJarUris,
+                         tezJarResources, credentials);
 
-        FileStatus fStatus = getLRFileStatus(fileName, conf)[0];
-        LocalResourceVisibility lrVisibility;
-        if (checkAncestorPermissionsForAllUsers(conf, fileName, FsAction.EXECUTE) &&
-            fStatus.getPermission().getOtherAction().implies(FsAction.READ)) {
-          lrVisibility = LocalResourceVisibility.PUBLIC;
-        } else {
-          lrVisibility = LocalResourceVisibility.PRIVATE;
-        }
-        tezJarResources.put(TezConstants.TEZ_TAR_LR_NAME,
-            LocalResource.newInstance(
-                ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
-                LocalResourceType.ARCHIVE,
-                lrVisibility,
-                fStatus.getLen(),
-                fStatus.getModificationTime()));
-        Path[] tezJarPaths = { fStatus.getPath() };
-        // obtain credentials
-        TokenCache.obtainTokensForFileSystems(credentials, tezJarPaths, conf);
-        usingTezArchive = true;
-      } else { // Treat as non-archives
-        addLocalResources(conf, tezJarUris, tezJarResources, credentials);
-      }
-      
       if (tezJarResources.isEmpty()) {
         throw new TezUncheckedException(
             "No files found in locations specified in "
@@ -221,41 +198,101 @@ public class TezClientUtils {
     return usingTezArchive;
   }
 
-  private static void addLocalResources(Configuration conf, String[] configUris,
-      Map<String, LocalResource> tezJarResources, Credentials credentials) throws IOException {
+  private static boolean addLocalResources(Configuration conf,
+      String[] configUris, Map<String, LocalResource> tezJarResources,
+      Credentials credentials) throws IOException {
+    boolean usingTezArchive = false;
     if (configUris == null || configUris.length == 0) {
-      return;
+      return usingTezArchive;
     }
     List<Path> configuredPaths = Lists.newArrayListWithCapacity(configUris.length);
     for (String configUri : configUris) {
-      boolean ancestorsHavePermission = checkAncestorPermissionsForAllUsers(conf, configUri,
-          FsAction.EXECUTE);
+      URI u = null;
+      try {
+        u = new URI(configUri);
+      } catch (URISyntaxException e) {
+        throw new IOException("Unable to convert " + configUri + "to URI", e);
+      }
+      Path p = new Path(u);
+      FileSystem remoteFS = p.getFileSystem(conf);
+      p = remoteFS.resolvePath(p.makeQualified(remoteFS.getUri(),
+          remoteFS.getWorkingDirectory()));
+
+      LocalResourceType type = null;
+
+      //Check if path is an archive
+      if(p.getName().endsWith(".tar.gz") ||
+           p.getName().endsWith(".tgz") ||
+           p.getName().endsWith(".zip") ||
+           p.getName().endsWith(".tar")) {
+          type = LocalResourceType.ARCHIVE;
+        } else {
+          type = LocalResourceType.FILE;
+        }
+
       FileStatus [] fileStatuses = getLRFileStatus(configUri, conf);
+
       for (FileStatus fStatus : fileStatuses) {
+        String linkName;
         if (fStatus.isDirectory()) {
           // Skip directories - no recursive search support.
           continue;
         }
+        // If the resource is an archive, we've already done this work
+        if(type != LocalResourceType.ARCHIVE) {
+          u = fStatus.getPath().toUri();
+          p = new Path(u);
+          remoteFS = p.getFileSystem(conf);
+          p = remoteFS.resolvePath(p.makeQualified(remoteFS.getUri(),
+              remoteFS.getWorkingDirectory()));
+          if(null != u.getFragment()) {
+            LOG.warn("Fragment set for link being interpreted as a file," +
+                "URI: " + u.toString());
+          }
+        }
+
+        // Add URI fragment or just the filename
+        Path name = new Path((null == u.getFragment())
+          ? p.getName()
+          : u.getFragment());
+        if (name.isAbsolute()) {
+          throw new IllegalArgumentException("Resource name must be "
+              + "relative, not absolute: " + name
+              + " in URI: " + u.toString());
+        }
+
+        URL url = ConverterUtils.getYarnUrlFromURI(p.toUri());
+        linkName = name.toUri().getPath();
+        // For legacy reasons, set archive to tezlib if there is
+        // only a single archive and no fragment
+        if(type == LocalResourceType.ARCHIVE &&
+            configUris.length == 1 && null == u.getFragment()) {
+          linkName = TezConstants.TEZ_TAR_LR_NAME;
+          usingTezArchive = true;
+        }
+
         LocalResourceVisibility lrVisibility;
-        if (ancestorsHavePermission &&
+        if (checkAncestorPermissionsForAllUsers(conf, url.getFile(),
+            FsAction.EXECUTE) &&
             fStatus.getPermission().getOtherAction().implies(FsAction.READ)) {
           lrVisibility = LocalResourceVisibility.PUBLIC;
         } else {
           lrVisibility = LocalResourceVisibility.PRIVATE;
         }
-        String rsrcName = fStatus.getPath().getName();
-        if (tezJarResources.containsKey(rsrcName)) {
+
+        if (tezJarResources.containsKey(linkName)) {
           String message = "Duplicate resource found"
-              + ", resourceName=" + rsrcName
+              + ", resourceName=" + linkName
               + ", existingPath=" +
-              tezJarResources.get(rsrcName).getResource().toString()
+              tezJarResources.get(linkName).getResource().toString()
               + ", newPath=" + fStatus.getPath();
           LOG.warn(message);
         }
-        tezJarResources.put(rsrcName,
+
+        tezJarResources.put(linkName,
             LocalResource.newInstance(
-                ConverterUtils.getYarnUrlFromPath(fStatus.getPath()),
-                LocalResourceType.FILE,
+                url,
+                type,
                 lrVisibility,
                 fStatus.getLen(),
                 fStatus.getModificationTime()));
@@ -267,6 +304,7 @@ public class TezClientUtils {
       TokenCache.obtainTokensForFileSystems(credentials,
           configuredPaths.toArray(new Path[configuredPaths.size()]), conf);
     }
+    return usingTezArchive;
   }
 
   static void processTezLocalCredentialsFile(Credentials credentials, Configuration conf)
