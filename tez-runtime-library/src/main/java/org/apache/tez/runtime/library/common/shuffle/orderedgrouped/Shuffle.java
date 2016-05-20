@@ -95,6 +95,7 @@ public class Shuffle implements ExceptionReporter {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private final int numFetchers;
+  private final boolean verifyDiskChecksum;
   private final boolean localDiskFetchEnabled;
   private final String localHostname;
   private final int shufflePort;
@@ -157,6 +158,10 @@ public class Shuffle implements ExceptionReporter {
       this.ifileReadAheadLength = 0;
     }
     
+    this.verifyDiskChecksum = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM_DEFAULT);
+
     Combiner combiner = TezRuntimeUtils.instantiateCombiner(conf, inputContext);
     
     FileSystem localFS = FileSystem.getLocal(this.conf);
@@ -344,7 +349,8 @@ public class Shuffle implements ExceptionReporter {
               FetcherOrderedGrouped
                 fetcher = new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger,
                 metrics, Shuffle.this, jobTokenSecretMgr, ifileReadAhead, ifileReadAheadLength,
-                codec, inputContext, conf, localDiskFetchEnabled, localHostname, shufflePort);
+                codec, inputContext, conf, localDiskFetchEnabled, localHostname, shufflePort,
+                verifyDiskChecksum);
               fetchers.add(fetcher);
               fetcher.start();
             }

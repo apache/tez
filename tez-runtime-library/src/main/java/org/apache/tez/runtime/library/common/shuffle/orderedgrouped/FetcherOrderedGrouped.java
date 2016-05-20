@@ -56,6 +56,7 @@ class FetcherOrderedGrouped extends Thread {
   private static final Logger LOG = LoggerFactory.getLogger(FetcherOrderedGrouped.class);
   private final Configuration conf;
   private final boolean localDiskFetchEnabled;
+  private final boolean verifyDiskChecksum;
 
   private enum ShuffleErrors{IO_ERROR, WRONG_LENGTH, BAD_ID, WRONG_MAP,
                                     CONNECTION, WRONG_REDUCE}
@@ -111,7 +112,8 @@ class FetcherOrderedGrouped extends Thread {
                                InputContext inputContext, Configuration conf,
                                boolean localDiskFetchEnabled,
                                String localHostname,
-                               int shufflePort) throws IOException {
+                               int shufflePort,
+                               boolean verifyDiskChecksum) throws IOException {
     setDaemon(true);
     this.scheduler = scheduler;
     this.merger = merger;
@@ -148,6 +150,7 @@ class FetcherOrderedGrouped extends Thread {
     this.localDiskFetchEnabled = localDiskFetchEnabled;
     this.sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
+    this.verifyDiskChecksum = verifyDiskChecksum;
 
     this.logIdentifier = "fetcher {" + TezUtilsInternal
         .cleanVertexName(inputContext.getSourceVertexName()) + "} #" + id;
@@ -512,7 +515,9 @@ class FetcherOrderedGrouped extends Thread {
           ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier().toString());
       } else if (mapOutput.getType() == Type.DISK) {
         ShuffleUtils.shuffleToDisk(mapOutput.getDisk(), host.getHostIdentifier(),
-          input, compressedLength, decompressedLength, LOG, mapOutput.getAttemptIdentifier().toString());
+          input, compressedLength, decompressedLength, LOG,
+          mapOutput.getAttemptIdentifier().toString(),
+          ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
       } else {
         throw new IOException("Unknown mapOutput type while fetching shuffle data:" +
             mapOutput.getType());

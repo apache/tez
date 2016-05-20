@@ -175,6 +175,7 @@ class ShuffleScheduler {
   private final float minReqProgressFraction;
   private final float maxAllowedFailedFetchFraction;
   private final boolean checkFailedFetchSinceLastCompletion;
+  private final boolean verifyDiskChecksum;
 
   private long totalBytesShuffledTillNow = 0;
   private final DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
@@ -269,6 +270,10 @@ class ShuffleScheduler {
         conf.getBoolean(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, 
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR_DEFAULT);
+    this.verifyDiskChecksum = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM_DEFAULT);
+
     /**
      * Setting to very high val can lead to Http 400 error. Cap it to 75; every attempt id would
      * be approximately 48 bytes; 48 * 75 = 3600 which should give some room for other info in URL.

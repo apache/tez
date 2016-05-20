@@ -94,7 +94,7 @@ public class TestFetcher {
     MapHost mapHost = new MapHost(HOST, PORT, 0);
     FetcherOrderedGrouped
         fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
-        false, 0, null, inputContext, conf, ENABLE_LOCAL_FETCH, HOST, PORT);
+        false, 0, null, inputContext, conf, ENABLE_LOCAL_FETCH, HOST, PORT, true);
 
     // when local mode is enabled and host and port matches use local fetch
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
@@ -131,7 +131,7 @@ public class TestFetcher {
     //if local fetch is not enabled
     mapHost = new MapHost(HOST, PORT, 0);
     fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
-        false, 0, null, inputContext, conf, DISABLE_LOCAL_FETCH, HOST, PORT);
+        false, 0, null, inputContext, conf, DISABLE_LOCAL_FETCH, HOST, PORT, true);
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
     doReturn(mapHost).when(scheduler).getHost();
@@ -156,7 +156,7 @@ public class TestFetcher {
 
     FetcherOrderedGrouped
         fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null,
-        false, 0, null, inputContext, conf, true, HOST, PORT);
+        false, 0, null, inputContext, conf, true, HOST, PORT, true);
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
     MapHost host = new MapHost(HOST, PORT, 1);
@@ -299,7 +299,7 @@ public class TestFetcher {
         ShuffleUtils.constructHttpShuffleConnectionParams(conf);
     FetcherOrderedGrouped mockFetcher =
         new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger, metrics, shuffle, null,
-            false, 0, null, inputContext, conf, false, HOST, PORT);
+            false, 0, null, inputContext, conf, false, HOST, PORT, true);
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
     final MapHost host = new MapHost(HOST, PORT, 1);
