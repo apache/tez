@@ -80,4 +80,15 @@ public class TestTezYARNUtils {
     Assert.assertEquals("User env should append default env",
         Environment.PWD.$() + File.pathSeparator + "USER_PATH" + File.pathSeparator + "DEFAULT_PATH", value3);
     }
+
+  @Test(timeout = 5000)
+  public void testTezLibUrisClasspath() {
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_LIB_URIS_CLASSPATH, "foobar");
+    String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
+    Assert.assertTrue(classpath.contains("foobar"));
+    Assert.assertTrue(classpath.contains(Environment.PWD.$()));
+    Assert.assertTrue(classpath.indexOf("foobar") >
+        classpath.indexOf(Environment.PWD.$()));
+  }
 }

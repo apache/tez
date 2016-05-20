@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
@@ -35,6 +37,7 @@ import org.apache.tez.dag.api.TezConstants;
 
 @Private
 public class TezYARNUtils {
+  private static Logger LOG = LoggerFactory.getLogger(TezYARNUtils.class);
   
   private static Pattern ENV_VARIABLE_PATTERN = Pattern.compile(Shell.getEnvironmentVariableRegex());
 
@@ -54,27 +57,41 @@ public class TezYARNUtils {
         .append(Environment.PWD.$() + File.separator + "*")
         .append(File.pathSeparator);
 
-    // Next add the tez libs, if specified via an archive.
-    if (usingArchive) {
-      // Add PWD/tezlib/*
-      classpathBuilder.append(Environment.PWD.$())
-          .append(File.separator)
-          .append(TezConstants.TEZ_TAR_LR_NAME)
-          .append(File.separator)
-          .append("*")
-          .append(File.pathSeparator);
+    String [] tezLibUrisClassPath = conf.getStrings(TezConfiguration.TEZ_LIB_URIS_CLASSPATH);
 
-      // Add PWD/tezlib/lib/*
-      classpathBuilder.append(Environment.PWD.$())
-          .append(File.separator)
-          .append(TezConstants.TEZ_TAR_LR_NAME)
-          .append(File.separator)
-          .append("lib")
-          .append(File.separator)
-          .append("*")
-          .append(File.pathSeparator);
+    if(!conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false) &&
+       tezLibUrisClassPath != null && tezLibUrisClassPath.length != 0) {
+      for(String c : tezLibUrisClassPath) {
+        classpathBuilder.append(c.trim())
+        .append(File.pathSeparator);
+      }
+    } else {
+      if(conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false)) {
+        LOG.info("Ignoring '" + TezConfiguration.TEZ_LIB_URIS + "' since  '" +
+            TezConfiguration.TEZ_IGNORE_LIB_URIS + "' is set to true ");
+      }
+
+      // Legacy: Next add the tez libs, if specified via an archive.
+      if (usingArchive) {
+        // Add PWD/tezlib/*
+        classpathBuilder.append(Environment.PWD.$())
+            .append(File.separator)
+            .append(TezConstants.TEZ_TAR_LR_NAME)
+            .append(File.separator)
+            .append("*")
+            .append(File.pathSeparator);
+
+        // Legacy: Add PWD/tezlib/lib/*
+        classpathBuilder.append(Environment.PWD.$())
+            .append(File.separator)
+            .append(TezConstants.TEZ_TAR_LR_NAME)
+            .append(File.separator)
+            .append("lib")
+            .append(File.separator)
+            .append("*")
+            .append(File.pathSeparator);
+      }
     }
-
     // Last add HADOOP_CLASSPATH, if it's required.
     if (conf.getBoolean(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS,
         TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT)) {
