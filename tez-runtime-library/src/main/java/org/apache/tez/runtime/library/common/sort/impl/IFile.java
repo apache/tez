@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -645,6 +646,43 @@ public class IFile {
       }
     }
 
+    /**
+     * Read entire IFile content to disk.
+     *
+     * @param out the output stream that will receive the data
+     * @param in the input stream containing the IFile data
+     * @param length the amount of data to read from the input
+     * @return the number of bytes copied
+     * @throws IOException
+     */
+    public static long readToDisk(OutputStream out, InputStream in, long length,
+        boolean ifileReadAhead, int ifileReadAheadLength)
+        throws IOException {
+      final int BYTES_TO_READ = 64 * 1024;
+      byte[] buf = new byte[BYTES_TO_READ];
+
+      // copy the IFile header
+      if (length < HEADER.length) {
+        throw new IOException("Missing IFile header");
+      }
+      IOUtils.readFully(in, buf, 0, HEADER.length);
+      verifyHeaderMagic(buf);
+      out.write(buf, 0, HEADER.length);
+      long bytesLeft = length - HEADER.length;
+      @SuppressWarnings("resource")
+      IFileInputStream ifInput = new IFileInputStream(in, bytesLeft,
+          ifileReadAhead, ifileReadAheadLength);
+      while (bytesLeft > 0) {
+        int n = ifInput.readWithChecksum(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
+        if (n < 0) {
+          throw new IOException("read past end of stream");
+        }
+        out.write(buf, 0, n);
+        bytesLeft -= n;
+      }
+      return length - bytesLeft;
+    }
+
     public long getLength() {
       return fileLength - checksumIn.getSize();
     }
@@ -784,14 +822,17 @@ public class IFile {
       ++numRecordsRead;
     }
 
-    public static boolean isCompressedFlagEnabled(InputStream in) throws IOException {
-      byte[] header = new byte[HEADER.length];
-      IOUtils.readFully(in, header, 0, HEADER.length);
-
+    private static void verifyHeaderMagic(byte[] header) throws IOException {
       if (!(header[0] == 'T' && header[1] == 'I'
           && header[2] == 'F')) {
         throw new IOException("Not a valid ifile header");
       }
+    }
+
+    public static boolean isCompressedFlagEnabled(InputStream in) throws IOException {
+      byte[] header = new byte[HEADER.length];
+      IOUtils.readFully(in, header, 0, HEADER.length);
+      verifyHeaderMagic(header);
       return (header[3] == 1);
     }
 

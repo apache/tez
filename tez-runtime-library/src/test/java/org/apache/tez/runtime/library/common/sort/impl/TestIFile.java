@@ -19,8 +19,10 @@
 package org.apache.tez.runtime.library.common.sort.impl;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -28,6 +30,7 @@ import java.util.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -375,6 +378,43 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
 
+  @Test(timeout = 20000)
+  public void testReadToDisk() throws IOException {
+    // verify sending a stream of zeroes generates an error
+    byte[] zeroData = new byte[1000];
+    Arrays.fill(zeroData, (byte) 0);
+    ByteArrayInputStream in = new ByteArrayInputStream(zeroData);
+    try {
+      IFile.Reader.readToDisk(new ByteArrayOutputStream(), in, zeroData.length, false, 0);
+      fail("Exception should have been thrown");
+    } catch (IOException e) {
+    }
+
+    // verify sending same stream of zeroes with a valid IFile header still
+    // generates an error
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    baos.write(IFile.HEADER);
+    baos.write(zeroData);
+    try {
+      IFile.Reader.readToDisk(new ByteArrayOutputStream(),
+          new ByteArrayInputStream(baos.toByteArray()), zeroData.length, false, 0);
+      fail("Exception should have been thrown");
+    } catch (IOException e) {
+      assertTrue(e instanceof ChecksumException);
+    }
+
+    // verify valid data is copied properly
+    List<KVPair> data = KVDataGen.generateTestData(true, 0);
+    Writer writer = writeTestFile(false, false, data, codec);
+    baos.reset();
+    IFile.Reader.readToDisk(baos, localFs.open(outputPath), writer.getCompressedLength(),
+        false, 0);
+    byte[] diskData = baos.toByteArray();
+    Reader reader = new Reader(new ByteArrayInputStream(diskData), diskData.length,
+        codec, null, null, false, 0, 1024);
+    verifyData(reader, data);
+    reader.close();
+  }
 
   /**
    * Test different options (RLE, repeat keys, compression) on reader/writer

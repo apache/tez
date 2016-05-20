@@ -59,6 +59,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   private final Configuration conf;
   private final boolean localDiskFetchEnabled;
+  private final boolean verifyDiskChecksum;
 
   private final TezCounter connectionErrs;
   private final TezCounter ioErrs;
@@ -125,7 +126,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                String applicationId,
                                int dagId,
                                boolean asyncHttp,
-                               boolean sslShuffle) {
+                               boolean sslShuffle,
+                               boolean verifyDiskChecksum) {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.metrics = metrics;
@@ -159,6 +161,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
     this.localDiskFetchEnabled = localDiskFetchEnabled;
     this.sslShuffle = sslShuffle;
+    this.verifyDiskChecksum = verifyDiskChecksum;
 
     this.logIdentifier = "fetcher [" + srcNameTrimmed + "] #" + id;
   }
@@ -504,7 +507,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier().toString());
       } else if (mapOutput.getType() == Type.DISK) {
         ShuffleUtils.shuffleToDisk(mapOutput.getDisk(), host.getHostIdentifier(),
-          input, compressedLength, decompressedLength, LOG, mapOutput.getAttemptIdentifier().toString());
+          input, compressedLength, decompressedLength, LOG,
+          mapOutput.getAttemptIdentifier().toString(),
+          ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
       } else {
         throw new IOException("Unknown mapOutput type while fetching shuffle data:" +
             mapOutput.getType());

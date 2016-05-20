@@ -140,22 +140,27 @@ public class ShuffleUtils {
   }
   
   public static void shuffleToDisk(OutputStream output, String hostIdentifier,
-      InputStream input, long compressedLength, long decompressedLength, Logger LOG, String identifier)
-      throws IOException {
+      InputStream input, long compressedLength, long decompressedLength, Logger LOG, String identifier,
+      boolean ifileReadAhead, int ifileReadAheadLength, boolean verifyChecksum) throws IOException {
     // Copy data to local-disk
     long bytesLeft = compressedLength;
     try {
-      final int BYTES_TO_READ = 64 * 1024;
-      byte[] buf = new byte[BYTES_TO_READ];
-      while (bytesLeft > 0) {
-        int n = input.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
-        if (n < 0) {
-          throw new IOException("read past end of stream reading "
-              + identifier);
+      if (verifyChecksum) {
+        bytesLeft -= IFile.Reader.readToDisk(output, input, compressedLength,
+            ifileReadAhead, ifileReadAheadLength);
+      } else {
+        final int BYTES_TO_READ = 64 * 1024;
+        byte[] buf = new byte[BYTES_TO_READ];
+        while (bytesLeft > 0) {
+          int n = input.read(buf, 0, (int) Math.min(bytesLeft, BYTES_TO_READ));
+          if (n < 0) {
+            throw new IOException("read past end of stream reading "
+                + identifier);
+          }
+          output.write(buf, 0, n);
+          bytesLeft -= n;
+          // metrics.inputBytes(n);
         }
-        output.write(buf, 0, n);
-        bytesLeft -= n;
-        // metrics.inputBytes(n);
       }
 
       if (LOG.isDebugEnabled()) {

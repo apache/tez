@@ -125,7 +125,7 @@ public class IFileInputStream extends InputStream {
     if (curReadahead != null) {
       curReadahead.cancel();
     }
-    if (currentOffset < dataLength) {
+    if (currentOffset < dataLength && !disableChecksumValidation) {
       byte[] t = new byte[Math.min((int)
             (Integer.MAX_VALUE & (dataLength - currentOffset)), 32 * 1024)];
       while (currentOffset < dataLength) {
@@ -300,7 +300,10 @@ public class IFileInputStream extends InputStream {
     return result;
   }
 
-  void disableChecksumValidation() {
+  /**
+   * Disable checksum validation when reading the stream
+   */
+  public void disableChecksumValidation() {
     disableChecksumValidation = true;
   }
 }
