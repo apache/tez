@@ -207,6 +207,91 @@ public class TestTezClientUtils {
     assertFalse(localizedMap.isEmpty());
   }
 
+    /**
+   *
+   */
+  @Test (timeout=5000)
+  public void validateSetTezJarLocalResourcesMultipleTarballs() throws Exception {
+    FileSystem localFs = FileSystem.getLocal(new Configuration());
+    StringBuilder tezLibUris = new StringBuilder();
+
+    // Create 2 files
+    Path topDir = new Path(TEST_ROOT_DIR, "validatemultipletarballs");
+    if (localFs.exists(topDir)) {
+      localFs.delete(topDir, true);
+    }
+    localFs.mkdirs(topDir);
+
+    Path tarFile1 = new Path(topDir, "f1.tar.gz");
+    Path tarFile2 = new Path(topDir, "f2.tar.gz");
+
+    Assert.assertTrue(localFs.createNewFile(tarFile1));
+    Assert.assertTrue(localFs.createNewFile(tarFile2));
+    tezLibUris.append(localFs.makeQualified(tarFile1).toString()).append("#tar1").append(",");
+    tezLibUris.append(localFs.makeQualified(tarFile2).toString()).append("#tar2").append(",");
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.set(TezConfiguration.TEZ_LIB_URIS, tezLibUris.toString());
+    Credentials credentials = new Credentials();
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap);
+    Set<String> resourceNames = localizedMap.keySet();
+    Assert.assertEquals(2, resourceNames.size());
+    Assert.assertTrue(resourceNames.contains("tar1"));
+    Assert.assertTrue(resourceNames.contains("tar2"));
+    Assert.assertFalse(resourceNames.contains("f1.tar.gz"));
+    Assert.assertFalse(resourceNames.contains("f2.tar.gz"));
+
+
+    Assert.assertTrue(localFs.delete(tarFile1, true));
+    Assert.assertTrue(localFs.delete(tarFile2, true));
+    Assert.assertTrue(localFs.delete(topDir, true));
+  }
+
+    /**
+   *
+   */
+  @Test (timeout=5000)
+  public void validateSetTezJarLocalResourcesMixTarballAndJar() throws Exception {
+    FileSystem localFs = FileSystem.getLocal(new Configuration());
+    StringBuilder tezLibUris = new StringBuilder();
+
+    // Create 2 jars and 1 archive
+    Path topDir = new Path(TEST_ROOT_DIR, "validatetarballandjar");
+    if (localFs.exists(topDir)) {
+      localFs.delete(topDir, true);
+    }
+    localFs.mkdirs(topDir);
+
+    Path tarFile1 = new Path(topDir, "f1.tar.gz");
+    Path jarFile2 = new Path(topDir, "f2.jar");
+    Path jarFile3 = new Path(topDir, "f3.jar");
+
+    Assert.assertTrue(localFs.createNewFile(tarFile1));
+    Assert.assertTrue(localFs.createNewFile(jarFile2));
+    Assert.assertTrue(localFs.createNewFile(jarFile3));
+
+    tezLibUris.append(localFs.makeQualified(topDir).toString()).append(",");
+    tezLibUris.append(localFs.makeQualified(tarFile1).toString()).append("#tar1").append(",");
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.set(TezConfiguration.TEZ_LIB_URIS, tezLibUris.toString());
+    Credentials credentials = new Credentials();
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap);
+    Set<String> resourceNames = localizedMap.keySet();
+    Assert.assertEquals(4, resourceNames.size());
+    Assert.assertTrue(resourceNames.contains("tar1"));
+    Assert.assertTrue(resourceNames.contains("f1.tar.gz"));
+    Assert.assertTrue(resourceNames.contains("f2.jar"));
+    Assert.assertTrue(resourceNames.contains("f3.jar"));
+
+    Assert.assertTrue(localFs.delete(tarFile1, true));
+    Assert.assertTrue(localFs.delete(jarFile2, true));
+    Assert.assertTrue(localFs.delete(jarFile3, true));
+    Assert.assertTrue(localFs.delete(topDir, true));
+  }
+
   @Test(timeout = 2000)
   // this test checks if the priority field is set properly in the
   // ApplicationSubmissionContext
