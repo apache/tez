@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -23,6 +24,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.common.sort.impl.IFileOutputStream;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -33,9 +35,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Random;
@@ -281,6 +286,28 @@ public class TestShuffleUtils {
     } catch (IOException e) {
       Assert.assertTrue(e.getCause() instanceof InternalError);
       Assert.assertTrue(e.getMessage().contains(codecErrorMsg));
+    }
+  }
+
+  @Test
+  public void testShuffleToDiskChecksum() throws Exception {
+    // verify sending a stream of zeroes without checksum validation
+    // does not trigger an exception
+    byte[] bogusData = new byte[1000];
+    Arrays.fill(bogusData, (byte) 0);
+    ByteArrayInputStream in = new ByteArrayInputStream(bogusData);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ShuffleUtils.shuffleToDisk(baos, "somehost", in,
+        bogusData.length, 2000, mock(Logger.class), "identifier", false, 0, false);
+    Assert.assertArrayEquals(bogusData, baos.toByteArray());
+
+    // verify sending same stream of zeroes with validation generates an exception
+    in.reset();
+    try {
+      ShuffleUtils.shuffleToDisk(mock(OutputStream.class), "somehost", in,
+          bogusData.length, 2000, mock(Logger.class), "identifier", false, 0, true);
+      Assert.fail("shuffle was supposed to throw!");
+    } catch (IOException e) {
     }
   }
 }

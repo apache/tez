@@ -128,6 +128,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private final boolean asyncHttp;
 
+  private final boolean verifyDiskChecksum;
+
   private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
   private Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
@@ -139,8 +141,9 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       boolean localDiskFetchEnabled,
       boolean sharedFetchEnabled,
       String localHostname,
-      int shufflePort, boolean asyncHttp) {
+      int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum) {
     this.asyncHttp = asyncHttp;
+    this.verifyDiskChecksum = verifyDiskChecksum;
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.jobTokenSecretMgr = jobTokenSecretManager;
@@ -804,7 +807,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       } else if (fetchedInput.getType() == Type.DISK) {
         ShuffleUtils.shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
           (host +":" +port), input, compressedLength, decompressedLength, LOG,
-          fetchedInput.getInputAttemptIdentifier().toString());
+          fetchedInput.getInputAttemptIdentifier().toString(),
+          ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
       } else {
         throw new TezUncheckedException("Bad fetchedInput type while fetching shuffle data " +
             fetchedInput);
@@ -971,10 +975,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         HttpConnectionParams params, FetchedInputAllocator inputManager,
         ApplicationId appId, int dagIdentifier,  JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
         Configuration conf, boolean localDiskFetchEnabled, String localHostname, int shufflePort,
-        boolean asyncHttp) {
+        boolean asyncHttp, boolean verifyDiskChecksum) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
           jobTokenSecretMgr, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
-          false, localHostname, shufflePort, asyncHttp);
+          false, localHostname, shufflePort, asyncHttp, verifyDiskChecksum);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
@@ -983,10 +987,11 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
         boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
-        String localHostname, int shufflePort, boolean asyncHttp) {
+        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
           jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
-          lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp);
+          lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
+          verifyDiskChecksum);
     }
 
     public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {

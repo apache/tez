@@ -373,6 +373,17 @@ public class TezRuntimeConfiguration {
       "shuffle.ssl.enable";
   public static final boolean TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT = false;
 
+  /**
+   * Controls verification of data checksums when fetching data directly to
+   * disk. Enabling verification allows the fetcher to detect corrupted data
+   * and report the failure against the upstream task before the data reaches
+   * the Processor and causes the fetching task to fail.
+   */
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM =
+      TEZ_RUNTIME_PREFIX + "shuffle.fetch.verify-disk-checksum";
+  public static final boolean TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM_DEFAULT = true;
+
   @ConfigurationProperty(type = "float")
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT = TEZ_RUNTIME_PREFIX +
       "shuffle.fetch.buffer.percent";
@@ -541,6 +552,7 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);

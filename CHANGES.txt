@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
   TEZ-3246. Improve diagnostics when DAG killed by user
   TEZ-3258. Jvm Checker does not ignore DisableExplicitGC when checking JVM GC options.
   TEZ-3256. [Backport HADOOP-11032] Remove Guava Stopwatch dependency
@@ -450,6 +451,7 @@ Release 0.7.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
   TEZ-3258. Jvm Checker does not ignore DisableExplicitGC when checking JVM GC options.
   TEZ-3256. [Backport HADOOP-11032] Remove Guava Stopwatch dependency
   TEZ-2342. Reduce bytearray copy with TezEvent Serialization and deserialization
