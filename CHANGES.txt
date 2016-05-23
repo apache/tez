@@ -28,6 +28,7 @@ ALL CHANGES:
   TEZ-3087. Tez UI 2: Add log links in task & attempt details page
   TEZ-3146. Tez UI 2: CSS & JS assets in the UI must be minified
   TEZ-3259. Tez UI: Build issue - File saver package is not working well with bower
+  TEZ-3262. Tez UI : zip.js is not having a bower friendly versioning system
 
 Release 0.8.3: 2016-04-14 
 

@@ -275,7 +275,7 @@ The Apache Tez tez-ui bundles the following files under BSD licenses:
 
 (3-clause BSD license)
  - D3 v3.5.16 (http://d3js.org/) - Copyright (c) 2010-2014, Michael Bostock
- - zip.js master branch #bfd76c66293305faaf9fcbb65b5ff7fe2dbe621a (https://github.com/gildas-lormeau/zip.js) - Copyright (c) 2013 Gildas Lormeau
+ - zip-js v1.0.0 (https://github.com/sreenaths/zip.js) - Copyright (c) 2013 Gildas Lormeau
 
 All rights reserved.
 
