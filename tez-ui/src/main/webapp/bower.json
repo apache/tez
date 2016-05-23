@@ -20,8 +20,8 @@
     "numeral": "1.5.3",
     "snippet-ss": "1.11.0",
     "jquery-mousewheel": "3.1.13",
-    "zip": "https://github.com/gildas-lormeau/zip.js.git#bfd76c66293305faaf9fcbb65b5ff7fe2dbe621a",
     "codemirror": "5.11.0",
-    "file-saver.js": "1.20150507.2"
+    "file-saver.js": "1.20150507.2",
+    "zip-js": "1.0.0"
   }
 }
