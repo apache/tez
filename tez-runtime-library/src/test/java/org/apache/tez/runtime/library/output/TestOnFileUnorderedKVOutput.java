@@ -143,8 +143,8 @@ public class TestOnFileUnorderedKVOutput {
     events = kvOutput.close();
     assertEquals(45, task.getTaskStatistics().getIOStatistics().values().iterator().next().getDataSize());
     assertEquals(5, task.getTaskStatistics().getIOStatistics().values().iterator().next().getItemsProcessed());
-    assertTrue(events != null && events.size() == 1);
-    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(0);
+    assertTrue(events != null && events.size() == 2);
+    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(1);
 
     assertEquals("Invalid source index", 0, dmEvent.getSourceIndexStart());
 
@@ -191,7 +191,7 @@ public class TestOnFileUnorderedKVOutput {
     events = eventsCaptor.getValue();
 
 
-    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(0);
+    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(1);
     assertEquals("Invalid source index", 0, dmEvent.getSourceIndexStart());
 
     DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto

@@ -585,7 +585,7 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
 
   private void handleVertexManagerEvent(VertexManagerEvent vmEvent) {
     // currently events from multiple attempts of the same task can be ignored because
-    // their output will be the same. However, with pipelined events that may not hold.
+    // their output will be the same.
     TaskIdentifier producerTask = vmEvent.getProducerAttemptIdentifier().getTaskIdentifier();
     if (!taskWithVmEvents.add(producerTask)) {
       LOG.info("Ignoring vertex manager event from: " + producerTask);
