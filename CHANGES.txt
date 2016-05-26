@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3240. Improvements to tez.lib.uris to allow for multiple tarballs and mixing tarballs and jars.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
   TEZ-3246. Improve diagnostics when DAG killed by user
@@ -453,6 +454,7 @@ Release 0.7.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
   TEZ-3258. Jvm Checker does not ignore DisableExplicitGC when checking JVM GC options.
   TEZ-3256. [Backport HADOOP-11032] Remove Guava Stopwatch dependency

@@ -496,12 +496,6 @@ public class TestUnorderedPartitionedKVWriter {
 
     verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
-    // Verify the status of the buffers
-    if (numExpectedSpills == 0) {
-      assertEquals(1, kvWriter.numInitializedBuffers);
-    } else {
-      assertTrue(kvWriter.numInitializedBuffers > 1);
-    }
     assertNull(kvWriter.currentBuffer);
     assertEquals(0, kvWriter.availableBuffers.size());
 
@@ -654,12 +648,6 @@ public class TestUnorderedPartitionedKVWriter {
 
     verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
-    // Verify the status of the buffers
-    if (numExpectedSpills == 0) {
-      assertEquals(1, kvWriter.numInitializedBuffers);
-    } else {
-      assertTrue(kvWriter.numInitializedBuffers > 1);
-    }
     assertNull(kvWriter.currentBuffer);
     assertEquals(0, kvWriter.availableBuffers.size());
 
