@@ -1141,6 +1141,14 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_QUEUE_NAME = TEZ_PREFIX + "queue.name";
 
   /**
+   * String value. Tags for the job that will be passed to YARN at submission
+   * time. Queries to YARN for applications can filter on these tags.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_APPLICATION_TAGS = TEZ_PREFIX + "application.tags";
+
+  /**
    * String value. The job priority of submitted application.
    */
   @ConfigurationScope(Scope.AM)
