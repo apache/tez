@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3240. Improvements to tez.lib.uris to allow for multiple tarballs and mixing tarballs and jars.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
@@ -454,6 +455,7 @@ Release 0.7.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
   TEZ-3258. Jvm Checker does not ignore DisableExplicitGC when checking JVM GC options.
