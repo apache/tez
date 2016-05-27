@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-909.  Provide support for application tags
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3206. Have unordered partitioned KV output send partition stats via VertexManagerEvent.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer

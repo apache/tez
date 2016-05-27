@@ -704,7 +704,14 @@ public class TezClientUtils {
     ApplicationSubmissionContext appContext = Records
         .newRecord(ApplicationSubmissionContext.class);
 
+    Collection<String> tagsFromConf =
+        amConfig.getTezConfiguration().getTrimmedStringCollection(
+        TezConfiguration.TEZ_APPLICATION_TAGS);
+
     appContext.setApplicationType(TezConstants.TEZ_APPLICATION_TYPE);
+    if (tagsFromConf != null && !tagsFromConf.isEmpty()) {
+      appContext.setApplicationTags(new HashSet<String>(tagsFromConf));
+    }
     appContext.setApplicationId(appId);
     appContext.setResource(capability);
     if (amConfig.getQueueName() != null) {
