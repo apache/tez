@@ -53,7 +53,7 @@ App.CodeMirrorComponent = Em.Component.extend({
     this._bindProperty('value', this, '_valueDidChange');
     this._valueDidChange();
 
-    this.on('becameVisible', codeMirror, 'refresh');
+    codeMirror.refresh();
   }),
 
   _bindCodeMirrorOption: function(key) {
