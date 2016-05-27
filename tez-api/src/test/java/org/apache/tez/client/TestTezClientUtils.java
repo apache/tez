@@ -32,7 +32,9 @@ import java.net.URLClassLoader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +60,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -291,6 +294,21 @@ public class TestTezClientUtils {
     Assert.assertTrue(localFs.delete(topDir, true));
   }
 
+  @Test(timeout=1000)
+  public void testSetApplicationTags() {
+    TezConfiguration conf = new TezConfiguration(false);
+    conf.set(TezConfiguration.TEZ_APPLICATION_TAGS, "foo,bar");
+    AMConfiguration amconfig = new AMConfiguration(conf, null, null);
+    ApplicationSubmissionContext appContext = Records
+        .newRecord(ApplicationSubmissionContext.class);
+    Collection<String> tagsFromConf =
+        amconfig.getTezConfiguration().getTrimmedStringCollection(
+        TezConfiguration.TEZ_APPLICATION_TAGS);
+    appContext.setApplicationTags(new HashSet<String>(tagsFromConf));
+    assertTrue(appContext.getApplicationTags().contains("foo"));
+    assertTrue(appContext.getApplicationTags().contains("bar"));
+  }
+  
   @Test(timeout = 5000)
   public void testSessionTokenInAmClc() throws IOException, YarnException {
 
