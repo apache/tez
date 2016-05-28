@@ -16,24 +16,31 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:vertex', 'Unit | Controller | vertex', {
+moduleFor('route:vertex/configs', 'Unit | Route | vertex/configs', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  let route = this.subject();
+
+  assert.ok(route);
+  assert.ok(route.title);
+  assert.ok(route.loaderNamespace);
+  assert.ok(route.setupController);
+  assert.ok(route.load);
+});
+
+test('setupController test', function(assert) {
+  assert.expect(1);
+
+  let route = this.subject({
+    startCrumbBubble: function () {
+      assert.ok(true);
+    }
   });
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.tabs);
-
-  assert.equal(controller.tabs.length, 5);
+  route.setupController({}, {});
 });

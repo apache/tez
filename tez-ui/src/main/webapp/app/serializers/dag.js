@@ -125,6 +125,7 @@ export default TimelineSerializer.extend({
     containerLogs: getContainerLogs,
 
     vertexIdNameMap: getIdNameMap,
+    vertexNameIdMap: 'otherinfo.vertexNameIdMapping',
 
     callerID: 'primaryfilters.callerId.0',
     callerContext: 'callerContext',

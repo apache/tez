@@ -38,6 +38,7 @@ Router.map(function() {
     this.route('tasks');
     this.route('attempts');
     this.route('counters');
+    this.route('configs');
   });
   this.route('task', {path: '/task/:task_id'}, function() {
     this.route('attempts');

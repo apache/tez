@@ -1,0 +1,189 @@
+{{!
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+}}
+
+{{#if loaded}}
+
+  <!-- Vertex configuration visualization -->
+  <div class="vertex-configs-container">
+    <div class="row-container">
+      {{#if configsHash.sources.length}}
+        <div class="column-container top-column">
+          <div class="box">
+            <div class="header">Sources</div>
+            {{#each configsHash.sources as |source|}}
+              <div class="config-cell {{if (eq source configDetails) 'selected'}}"
+                {{action 'showConf' 'sources' source}}>
+                {{source.name}}
+                {{#if source.desc}}
+                  [ {{source.desc}} ]
+                {{/if}}
+                <div class="count-txt">
+                  {{#if source.configs.length}}
+                    Configurations: {{source.configs.length}}
+                  {{else}}
+                    Configuration not available!
+                  {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+          <div class="link"></div>
+        </div>
+      {{/if}}
+      {{#if configsHash.inputs.length}}
+        <div class="column-container top-column">
+          <div class="box">
+            <div class="header">Inputs</div>
+            {{#each configsHash.inputs as |input|}}
+              <div class="config-cell {{if (eq input configDetails) 'selected'}}"
+                {{action 'showConf' 'inputs' input}}>
+                {{input.desc}}
+                <div class="count-txt">
+                  {{#if input.configs.length}}
+                    Configurations: {{input.configs.length}}
+                  {{else}}
+                    Configuration not available!
+                  {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+          <div class="link"></div>
+        </div>
+      {{/if}}
+    </div>
+    <div class="processor">
+      <div class="box">
+        <div class="header">Processor</div>
+        <div class="config-cell {{if (eq configsHash.processor configDetails) 'selected'}}"
+          {{action 'showConf' 'processor' configsHash.processor}}>
+          {{configsHash.processor.desc}}
+          <div class="count-txt">
+            {{#if configsHash.processor.configs.length}}
+              Configurations: {{configsHash.processor.configs.length}}
+            {{else}}
+              Configuration not available!
+            {{/if}}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row-container">
+      {{#if configsHash.sinks.length}}
+        <div class="column-container">
+          <div class="link"></div>
+          <div class="box">
+            <div class="header">Sinks</div>
+            {{#each configsHash.sinks as |sink|}}
+              <div class="config-cell {{if (eq sink configDetails) 'selected'}}"
+                {{action 'showConf' 'sinks' sink}}>
+                {{sink.name}}
+                {{#if sink.desc}}
+                  [ {{sink.desc}} ]
+                {{/if}}
+                <div class="count-txt">
+                  {{#if sink.configs.length}}
+                    Configurations: {{sink.configs.length}}
+                  {{else}}
+                    Configuration not available!
+                  {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+      {{#if configsHash.outputs.length}}
+        <div class="column-container">
+          <div class="link"></div>
+          <div class="box">
+            <div class="header">Outputs</div>
+            {{#each configsHash.outputs as |output|}}
+              <div class="config-cell {{if (eq output configDetails) 'selected'}}"
+                {{action 'showConf' 'outputs' output}}>
+                {{output.desc}}
+                <div class="count-txt">
+                  {{#if output.configs.length}}
+                    Configurations: {{output.configs.length}}
+                  {{else}}
+                    Configuration not available!
+                  {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+    </div>
+  </div><div class="configuration-details">
+
+    {{#if configType}}
+      <!-- Configuration details display -->
+      <table class='detail-list'>
+        <thead>
+        <tr>
+          <th colspan=2>Details</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#if configDetails.name}}
+          <tr>
+            <td>Name</td>
+            <td>{{configDetails.name}}</td>
+          </tr>
+        {{/if}}
+        {{#if configDetails.desc}}
+          <tr>
+            <td>Description</td>
+            <td>{{configDetails.desc}}</td>
+          </tr>
+        {{/if}}
+        {{#if configDetails.class}}
+          <tr>
+            <td>Class</td>
+            <td>{{configDetails.class}}</td>
+          </tr>
+        {{/if}}
+        {{#if configDetails.initializer}}
+          <tr>
+            <td>Initializer</td>
+            <td>{{configDetails.initializer}}</td>
+          </tr>
+        {{/if}}
+        </tbody>
+      </table>
+
+      <!-- Configurations display -->
+      {{em-table
+        columns=columns
+        rows=configs
+
+        rowCount=configs.length
+        definition=definition
+
+        enablePagination=false
+
+        searchAction="searchChanged"
+        sortAction="sortChanged"
+      }}
+    {{/if}}
+  </div>
+
+{{else}}
+  {{partial "loading"}}
+{{/if}}

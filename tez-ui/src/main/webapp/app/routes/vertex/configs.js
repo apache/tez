@@ -17,39 +17,21 @@
  */
 
 import Ember from 'ember';
+import SingleAmPollsterRoute from '../single-am-pollster';
 
-import ParentController from './parent';
+export default SingleAmPollsterRoute.extend({
+  title: "Vertex Configurations",
 
-export default ParentController.extend({
-  breadcrumbs: Ember.computed("model.dag", function () {
-    var dagName = this.get("model.dag.name"),
-        vertexName = this.get("model.name") || this.get("model.index");
+  loaderNamespace: "vertex",
 
-    return [{
-      text: `DAG [ ${dagName} ]`,
-      routeName: "dag.index",
-      model: this.get("model.dagID")
-    },{
-      text: `Vertex [ ${vertexName} ]`,
-      routeName: "vertex.index",
-      model: this.get("model.vertexID")
-    }];
-  }),
+  canPoll: false,
 
-  tabs: [{
-    text: "Vertex Details",
-    routeName: "vertex.index"
-  }, {
-    text: "Vertex Counters",
-    routeName: "vertex.counters"
-  }, {
-    text: "Tasks",
-    routeName: "vertex.tasks"
-  }, {
-    text: "Task Attempts",
-    routeName: "vertex.attempts"
-  }, {
-    text: "Configurations",
-    routeName: "vertex.configs"
-  }]
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
+
+  load: function (value, query, options) {
+    return this.get("loader").queryRecord('vertex', this.modelFor("vertex").get("id"), options);
+  },
 });

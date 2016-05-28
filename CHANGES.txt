@@ -40,6 +40,7 @@ ALL CHANGES:
   TEZ-3255. Tez UI: Hide swimlane while displaying running DAGs from old versions of Tez
   TEZ-3259. Tez UI: Build issue - File saver package is not working well with bower
   TEZ-3262. Tez UI : zip.js is not having a bower friendly versioning system
+  TEZ-3063. Tez UI: Display Input, Output, Processor, Source and Sink configurations under a vertex
 
 Release 0.8.4: Unreleased
 

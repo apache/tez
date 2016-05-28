@@ -20,7 +20,7 @@ import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: "Application Details",
+  title: "Application Configurations",
 
   loaderNamespace: "app",
 

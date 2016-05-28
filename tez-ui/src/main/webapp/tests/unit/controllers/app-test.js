@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dag', 'Unit | Controller | dag', {
+moduleFor('controller:app', 'Unit | Controller | app', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
@@ -34,4 +34,6 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.tabs);
+
+  assert.equal(controller.tabs.length, 3);
 });

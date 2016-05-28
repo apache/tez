@@ -49,6 +49,7 @@ test('Basic creation test', function(assert) {
   assert.ok(model.containerLogs);
 
   assert.ok(model.vertexIdNameMap);
+  assert.ok(model.vertexNameIdMap);
 
   assert.ok(model.callerID);
   assert.ok(model.callerContext);
