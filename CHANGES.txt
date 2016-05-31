@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-909.  Provide support for application tags
   TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
@@ -457,6 +458,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
+  TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
   TEZ-3258. Jvm Checker does not ignore DisableExplicitGC when checking JVM GC options.
