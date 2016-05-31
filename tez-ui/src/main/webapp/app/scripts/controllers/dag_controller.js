@@ -141,7 +141,6 @@ App.DagController = App.PollingController.extend(App.Helpers.DisplayHelper, {
     Ember.Object.create({title: 'All Vertices', linkTo: 'dag.vertices'}),
     Ember.Object.create({title: 'All Tasks', linkTo: 'dag.tasks'}),
     Ember.Object.create({title: 'All TaskAttempts', linkTo: 'dag.taskAttempts'}),
-    Ember.Object.create({title: 'Swimlane', linkTo: 'dag.swimlane'})
   ],
 
 });
