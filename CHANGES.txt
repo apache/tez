@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3278. Hide Swimlane from Tez UI
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-909.  Provide support for application tags
   TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
@@ -457,6 +458,7 @@ Release 0.7.2: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3278. Hide Swimlane from Tez UI
   TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
