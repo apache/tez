@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
   TEZ-909.  Provide support for application tags 
   TEZ-2769. TEZ-UI Hive SQL is only displayed to line 11
+  TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3240. Improvements to tez.lib.uris to allow for multiple tarballs and mixing tarballs and jars.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
