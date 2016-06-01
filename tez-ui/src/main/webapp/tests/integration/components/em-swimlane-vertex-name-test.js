@@ -48,7 +48,8 @@ test('Name test', function(assert) {
 
   this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
   return wait().then(() => {
-    assert.equal(this.$(".name-text").text().trim(), 'TestName');
+    var content = this.$().text().trim();
+    assert.equal(content.substr(content.length - 8), 'TestName');
   });
 });
 
@@ -62,7 +63,7 @@ test('Progress test', function(assert) {
 
   this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
   return wait().then(() => {
-    assert.equal(this.$().text().trim().substr(0, 3), '50%');
+    assert.equal(this.$(".progress-text").text().trim(), '50%');
   });
 });
 

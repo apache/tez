@@ -57,8 +57,8 @@
     "phantomjs": "1.9.19"
   },
   "dependencies": {
-    "em-helpers": "0.5.9",
-    "em-table": "0.3.12",
+    "em-helpers": "0.5.10",
+    "em-table": "0.3.13",
     "em-tgraph": "0.0.5"
   }
 }

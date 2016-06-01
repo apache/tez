@@ -29,7 +29,7 @@ export default Ember.Component.extend({
         startPos = processor.timeToPositionPercent(this.get("process.startEvent.time")),
         endPos = processor.timeToPositionPercent(this.get("process.endEvent.time"));
 
-    Ember.run.later(this, function () {
+    Ember.run.scheduleOnce('afterRender', this, function() {
       this.$(".process-line").css({
         left: startPos + "%",
         right: (100 - endPos) + "%",

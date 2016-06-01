@@ -51,8 +51,8 @@ export default Ember.Component.extend({
         toEventPos = processor.timeToPositionPercent(this.get("toEvent.time")),
         color = this.get("bar.color") || this.get("process").getBarColor(this.get("barIndex"));
 
-    if(fromEventPos && toEventPos) {
-      Ember.run.later(this, function () {
+    Ember.run.scheduleOnce('afterRender', this, function() {
+      if(fromEventPos && toEventPos) {
         this.$().show();
         this.$(".event-bar").css({
           left: fromEventPos + "%",
@@ -60,11 +60,11 @@ export default Ember.Component.extend({
           "background-color": color,
           "border-color": this.get("process").getColor()
         });
-      });
-    }
-    else {
-      this.$().hide();
-    }
+      }
+      else {
+        this.$().hide();
+      }
+    });
   }),
 
   sendMouseAction: function (name, mouseEvent) {

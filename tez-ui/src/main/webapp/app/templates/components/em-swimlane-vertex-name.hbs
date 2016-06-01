@@ -16,8 +16,8 @@
  * limitations under the License.
 }}
 
-{{progressText}}
-{{em-table-status-cell content=process.vertex.finalStatus}}
-<span class="name-text {{if useEllipsis 'ellipsis'}}">
-  {{processName}}
+<span class="progress-text">
+  {{progressText}}
 </span>
+{{em-table-status-cell content=process.vertex.finalStatus}}
+{{process.name}}

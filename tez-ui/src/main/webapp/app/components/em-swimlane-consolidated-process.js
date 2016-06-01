@@ -46,22 +46,24 @@ export default Ember.Component.extend({
   }),
 
   didInsertElement: Ember.observer("fromPos", "toPos", function () {
-    var fromPos = this.get("fromPos"),
-        toPos = this.get("toPos"),
-        thisElement = this.$();
+    Ember.run.scheduleOnce('afterRender', this, function() {
+      var fromPos = this.get("fromPos"),
+          toPos = this.get("toPos"),
+          thisElement = this.$();
 
-    if(fromPos && toPos) {
-      thisElement.show();
-      thisElement.css({
-        left: fromPos + "%",
-        right: (100 - toPos) + "%",
-        "background-color": this.get("process").getConsolidateColor(),
-        "z-index": parseInt(toPos - fromPos)
-      });
-    }
-    else {
-      thisElement.hide();
-    }
+      if(fromPos && toPos) {
+        thisElement.show();
+        thisElement.css({
+          left: fromPos + "%",
+          right: (100 - toPos) + "%",
+          "background-color": this.get("process").getConsolidateColor(),
+          "z-index": parseInt(toPos - fromPos)
+        });
+      }
+      else {
+        thisElement.hide();
+      }
+    });
   }),
 
   sendMouseAction: function (name, mouseEvent) {

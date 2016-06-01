@@ -242,24 +242,10 @@ test('getTooltipContents-process test', function(assert) {
 
   var processTooltip = process.getTooltipContents("event-bar")[0];
   assert.equal(processTooltip.title, "TestName");
-
-  assert.equal(processTooltip.properties.length, 2);
-
-  assert.equal(processTooltip.properties[0].name, "Prop 1");
-  assert.equal(processTooltip.properties[0].value, "val1");
-
-  assert.equal(processTooltip.properties[1].name, "Prop 2");
-  assert.equal(processTooltip.properties[1].value, "val2");
+  assert.notOk(processTooltip.properties);
 
   processTooltip = process.getTooltipContents("process-line")[0];
   assert.equal(processTooltip.title, "TestName");
-
-  assert.equal(processTooltip.properties.length, 2);
-
-  assert.equal(processTooltip.properties[0].name, "Prop 1");
-  assert.equal(processTooltip.properties[0].value, "val1");
-
-  assert.equal(processTooltip.properties[1].name, "Prop 2");
-  assert.equal(processTooltip.properties[1].value, "val2");
+  assert.notOk(processTooltip.properties);
 
 });
