@@ -402,7 +402,7 @@ public class MRRSleepJob extends Configured implements Tool {
   
   private Credentials credentials = new Credentials();
 
-  public DAG createDAG(FileSystem remoteFs, Configuration conf, Path remoteStagingDir,
+  public DAG createDAG(Configuration conf, Path stagingDir,
       int numMapper, int numReducer, int iReduceStagesCount,
       int numIReducer, long mapSleepTime, int mapSleepCount,
       long reduceSleepTime, int reduceSleepCount,
@@ -488,7 +488,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
       LOG.info("Writing splits to DFS");
       dataSource = MRInputHelpers
-          .configureMRInputWithLegacySplitGeneration(mapStageConf, remoteStagingDir, true);
+          .configureMRInputWithLegacySplitGeneration(mapStageConf, stagingDir, true);
     } else {
       dataSource = MRInputLegacy.createConfigBuilder(mapStageConf, SleepInputFormat.class)
           .generateSplitsInAM(generateSplitsInAM).build();
@@ -500,11 +500,12 @@ public class MRRSleepJob extends Configured implements Tool {
         throw new TezUncheckedException("Could not find any jar containing"
             + " MRRSleepJob.class in the classpath");
     }
-    Path remoteJarPath = remoteFs.makeQualified(
-        new Path(remoteStagingDir, "dag_job.jar"));
-    remoteFs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
-    FileStatus jarFileStatus = remoteFs.getFileStatus(remoteJarPath);
-    
+
+    FileSystem stagingFs = stagingDir.getFileSystem(conf);
+    Path remoteJarPath = new Path(stagingDir, "dag_job.jar");
+    stagingFs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
+    FileStatus jarFileStatus = stagingFs.getFileStatus(remoteJarPath);
+
     TokenCache.obtainTokensForNamenodes(this.credentials, new Path[] { remoteJarPath },
         mapStageConf);
 
@@ -729,21 +730,18 @@ public class MRRSleepJob extends Configured implements Tool {
     iReduceSleepCount = (int)Math.ceil(iReduceSleepTime / ((double)recSleepTime));
 
     TezConfiguration conf = new TezConfiguration(getConf());
-    FileSystem remoteFs = FileSystem.get(conf);
 
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         conf.get(
             TezConfiguration.TEZ_AM_STAGING_DIR,
             TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT));
-    
-    Path remoteStagingDir =
-        remoteFs.makeQualified(new Path(conf.get(
-            TezConfiguration.TEZ_AM_STAGING_DIR,
-            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
-            Long.toString(System.currentTimeMillis())));
-    TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
-    DAG dag = createDAG(remoteFs, conf, remoteStagingDir,
+    String stagingBaseDir = conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+        TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
+    Path stagingDir = new Path(stagingBaseDir, Long.toString(System.currentTimeMillis()));
+    TezClientUtils.ensureStagingDirExists(conf, stagingDir);
+
+    DAG dag = createDAG(conf, stagingDir,
         numMapper, numReducer, iReduceStagesCount, numIReducer,
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount, writeSplitsToDfs, generateSplitsInAM);
