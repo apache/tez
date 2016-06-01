@@ -69,8 +69,10 @@ export default Ember.Component.extend({
   })),
 
   didInsertElement: function () {
-    this.onZoom();
-    this.listenScroll();
+    Ember.run.scheduleOnce('afterRender', this, function() {
+      this.onZoom();
+      this.listenScroll();
+    });
   },
 
   onZoom: Ember.observer("zoom", function () {

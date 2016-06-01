@@ -44,7 +44,7 @@ export default Ember.Component.extend({
     if(blockTime && this.get("blocking.endEvent.time") >= blockTime) {
       blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
 
-      Ember.run.later(this, function () {
+      Ember.run.scheduleOnce('afterRender', this, function() {
         this.$().css({
           "left": this.get("processor").timeToPositionPercent(blockTime) + "%"
         });

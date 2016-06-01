@@ -42,24 +42,26 @@ export default Ember.Component.extend({
   }),
 
   _init:  Ember.on('didInsertElement', function() {
-    var element  = Ember.$(this.get('element')).find('textarea')[0],
-        codeMirror = CodeMirror.fromTextArea(element, {
-          theme: 'default',
-          indentUnit: 2,
-          smartIndent: true,
-          tabSize: 4,
-          electricChars: true,
-          lineWrapping: true,
-          lineNumbers: true,
-          readOnly: true,
-          autofocus: false,
-          dragDrop: false,
-        });
+    Ember.run.scheduleOnce('afterRender', this, function() {
+      var element  = Ember.$(this.get('element')).find('textarea')[0],
+          codeMirror = CodeMirror.fromTextArea(element, {
+            theme: 'default',
+            indentUnit: 2,
+            smartIndent: true,
+            tabSize: 4,
+            electricChars: true,
+            lineWrapping: true,
+            lineNumbers: true,
+            readOnly: true,
+            autofocus: false,
+            dragDrop: false,
+          });
 
-    this.set('codeMirror', codeMirror);
+      this.set('codeMirror', codeMirror);
 
-    this._modeChanged();
-    this._infoChanged();
+      this._modeChanged();
+      this._infoChanged();
+    });
   }),
 
   _modeChanged: Ember.observer("mode", function() {

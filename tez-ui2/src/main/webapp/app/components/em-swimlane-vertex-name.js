@@ -18,8 +18,6 @@
 
 import Ember from 'ember';
 
-const MAX_TEXT_LENGTH = 10;
-
 export default Ember.Component.extend({
 
   process: null,
@@ -40,20 +38,6 @@ export default Ember.Component.extend({
         return `${percent}%`;
       }
     }
-  }),
-
-  useEllipsis: Ember.computed("process.name", "progressText", function () {
-    var name = this.get("process.name") || "",
-        progressLength = this.get("progressText.length");
-    progressLength = progressLength ? progressLength + 1 : 0;
-    return  name.length + progressLength - 1 > MAX_TEXT_LENGTH;
-  }),
-
-  processName: Ember.computed("process.name", "progressText", function () {
-    var name = this.get("process.name") || "",
-        progressLength = this.get("progressText.length");
-    progressLength = progressLength ? progressLength + 1 : 0;
-    return name.substr(Math.max(name.length - MAX_TEXT_LENGTH - progressLength, 0));
   }),
 
   mouseEnter: function (mouseEvent) {

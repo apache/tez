@@ -76,9 +76,11 @@ export default Ember.Component.extend({
   })),
 
   didInsertElement: function () {
-    this.setProperties({
-      window: Ember.$(window),
-      tip: this.$(),
+    Ember.run.scheduleOnce('afterRender', this, function() {
+      this.setProperties({
+        window: Ember.$(window),
+        tip: this.$(),
+      });
     });
     Ember.$(document).on("mousemove", this, this.onMouseMove);
   },
