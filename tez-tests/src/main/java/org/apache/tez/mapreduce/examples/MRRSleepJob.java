@@ -739,6 +739,7 @@ public class MRRSleepJob extends Configured implements Tool {
     String stagingBaseDir = conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
         TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
     Path stagingDir = new Path(stagingBaseDir, Long.toString(System.currentTimeMillis()));
+    stagingDir = stagingDir.getFileSystem(conf).makeQualified(stagingDir);
     TezClientUtils.ensureStagingDirExists(conf, stagingDir);
 
     DAG dag = createDAG(conf, stagingDir,
