@@ -24,6 +24,8 @@ export default Ember.Component.extend({
     this.setApplication();
   },
 
+  classNames: ["tab-n-refresh"],
+
   autoRefreshEnabled: false,
   autoRefreshVisible: true,
 

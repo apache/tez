@@ -17,15 +17,25 @@
  */
 
 .tab-n-refresh {
-  margin-bottom: 10px;
-  position: relative;
+  display: flex;
+  flex-wrap: wrap;
 
-  height: 42px;
+  margin-bottom: 10px;
+
+  .nav {
+    flex: 1 0 auto;
+    height: 42px;
+    margin-top: 5px;
+  }
 
   .refresh-ui {
-    position: absolute;
-    right: 0px;
-    top: -10px;
+    flex: 1 0 auto;
+
+    text-align: right;
+    margin-top: -5px;
+    padding-bottom: 5px;
+
+    border-bottom: 1px solid @border-color;
 
     .text-elements {
       display: inline-block;

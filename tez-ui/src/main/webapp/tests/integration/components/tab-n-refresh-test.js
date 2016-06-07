@@ -24,6 +24,25 @@ moduleForComponent('tab-n-refresh', 'Integration | Component | tab n refresh', {
 });
 
 test('Basic creation test', function(assert) {
+  this.render(hbs`{{tab-n-refresh}}`);
+
+  assert.equal(this.$(".refresh-ui button").text().trim(), 'Refresh');
+  assert.equal(
+    this.$(".refresh-ui .text-elements").text().trim().split(" ").slice(-4).join(" "),
+    "Load time not available!"
+  );
+  assert.equal(this.$(".refresh-ui input").val(), 'on');
+
+  this.render(hbs`
+    {{#tab-n-refresh}}
+      template block text
+    {{/tab-n-refresh}}
+  `);
+
+  assert.equal(this.$(".refresh-ui button").text().trim(), 'Refresh');
+});
+
+test('normalizedTabs test', function(assert) {
   var testTabs = [{
     text: "Tab 1",
     routeName: "route_1",
@@ -36,15 +55,18 @@ test('Basic creation test', function(assert) {
 
   this.render(hbs`{{tab-n-refresh tabs=tabs}}`);
 
-  assert.equal(this.$("button").text().trim(), 'Refresh');
   assert.equal($(this.$("li")[0]).text().trim(), testTabs[0].text);
   assert.equal($(this.$("li")[1]).text().trim(), testTabs[1].text);
+});
 
-  this.render(hbs`
-    {{#tab-n-refresh tabs=tabs}}
-      template block text
-    {{/tab-n-refresh}}
-  `);
+test('loadTime test', function(assert) {
+  var loadTime = 1465226174574;
 
-  assert.equal(this.$("button").text().trim(), 'Refresh');
+  this.set("loadTime", loadTime);
+
+  this.render(hbs`{{tab-n-refresh loadTime=loadTime}}`);
+  assert.equal(
+    this.$(".refresh-ui .text-elements").text().trim().split(" ").slice(-7).join(" ").replace("\n", ""),
+    "Last refreshed at 06 Jun 2016 20:46:14"
+  );
 });
