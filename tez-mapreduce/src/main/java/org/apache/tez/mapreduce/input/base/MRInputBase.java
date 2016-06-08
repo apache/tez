@@ -30,6 +30,10 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
@@ -108,6 +112,15 @@ public abstract class MRInputBase extends AbstractLogicalInput {
     jobConf.set(MRInput.TEZ_MAPREDUCE_APPLICATION_ID, getContext().getApplicationId().toString());
     jobConf.set(MRInput.TEZ_MAPREDUCE_UNIQUE_IDENTIFIER, getContext().getUniqueIdentifier());
     jobConf.setInt(MRInput.TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER, getContext().getDAGAttemptNumber());
+
+    TezDAGID tezDAGID = TezDAGID.getInstance(getContext().getApplicationId(), getContext().getDagIdentifier());
+    TezVertexID tezVertexID = TezVertexID.getInstance(tezDAGID, getContext().getTaskVertexIndex());
+    TezTaskID tezTaskID = TezTaskID.getInstance(tezVertexID, getContext().getTaskIndex());
+    TezTaskAttemptID tezTaskAttemptID = TezTaskAttemptID.getInstance(tezTaskID, getContext().getTaskAttemptNumber());
+    jobConf.set(MRInput.TEZ_MAPREDUCE_DAG_ID, tezDAGID.toString());
+    jobConf.set(MRInput.TEZ_MAPREDUCE_VERTEX_ID, tezVertexID.toString());
+    jobConf.set(MRInput.TEZ_MAPREDUCE_TASK_ID, tezTaskID.toString());
+    jobConf.set(MRInput.TEZ_MAPREDUCE_TASK_ATTEMPT_ID, tezTaskAttemptID.toString());
 
     this.inputRecordCounter = getContext().getCounters().findCounter(
         TaskCounter.INPUT_RECORDS_PROCESSED);

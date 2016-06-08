@@ -730,6 +730,16 @@ public class MRInputHelpers {
   }
 
   /**
+   * Returns string representation of full DAG identifier
+   * @param conf configuration instance
+   * @return dag identifier
+   */
+  @Public
+  public static String getDagIdString(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_DAG_ID);
+  }
+
+  /**
    * * @see {@link InputContext#getTaskVertexIndex}
    * @param conf configuration instance
    * @return vertex index
@@ -737,6 +747,16 @@ public class MRInputHelpers {
   @Public
   public static int getVertexIndex(Configuration conf) {
     return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_VERTEX_INDEX);
+  }
+
+  /**
+   * Returns string representation of full vertex identifier
+   * @param conf configuration instance
+   * @return vertex identifier
+   */
+  @Public
+  public static String getVertexIdString(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_VERTEX_ID);
   }
 
   /**
@@ -750,6 +770,16 @@ public class MRInputHelpers {
   }
 
   /**
+   * Returns string representation of full task identifier
+   * @param conf configuration instance
+   * @return task identifier
+   */
+  @Public
+  public static String getTaskIdString(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_TASK_ID);
+  }
+
+  /**
    * @see {@link InputContext#getTaskAttemptNumber}
    * @param conf configuration instance
    * @return task attempt index
@@ -757,6 +787,16 @@ public class MRInputHelpers {
   @Public
   public static int getTaskAttemptIndex(Configuration conf) {
     return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_TASK_ATTEMPT_INDEX);
+  }
+
+  /**
+   * Returns string representation of full task attempt identifier
+   * @param conf configuration instance
+   * @return task attempt identifier
+   */
+  @Public
+  public static String getTaskAttemptIdString(Configuration conf) {
+    return getStringProperty(conf, MRInput.TEZ_MAPREDUCE_TASK_ATTEMPT_ID);
   }
 
   /**

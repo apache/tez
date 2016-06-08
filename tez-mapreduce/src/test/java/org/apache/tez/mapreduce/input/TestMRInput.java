@@ -97,6 +97,11 @@ public class TestMRInput {
   private static final int TEST_ATTRIBUTES_TASK_ATTEMPT_INDEX = 4000;
   private static final int TEST_ATTRIBUTES_INPUT_INDEX = 5000;
   private static final int TEST_ATTRIBUTES_DAG_ATTEMPT_NUMBER = 6000;
+  private static final String TEST_ATTRIBUTES_APPLICATION_ID_STRING = "application_0_0000";
+  private static final String TEST_ATTRIBUTES_DAG_ID_STRING = "dag_0_0000_1000";
+  private static final String TEST_ATTRIBUTES_VERTEX_ID_STRING = "vertex_0_0000_1000_2000";
+  private static final String TEST_ATTRIBUTES_TASK_ID_STRING = "task_0_0000_1000_2000_003000";
+  private static final String TEST_ATTRIBUTES_TASK_ATTEMPT_ID_STRING = "attempt_0_0000_1000_2000_003000_4000";
 
   @Test(timeout = 5000)
   public void testAttributesInJobConf() throws Exception {
@@ -163,6 +168,11 @@ public class TestMRInput {
       assertEquals(TEST_ATTRIBUTES_TASK_ATTEMPT_INDEX, MRInputHelpers.getTaskAttemptIndex(job));
       assertEquals(TEST_ATTRIBUTES_INPUT_INDEX, MRInputHelpers.getInputIndex(job));
       assertEquals(TEST_ATTRIBUTES_DAG_ATTEMPT_NUMBER, MRInputHelpers.getDagAttemptNumber(job));
+      assertEquals(TEST_ATTRIBUTES_APPLICATION_ID_STRING, MRInputHelpers.getApplicationIdString(job));
+      assertEquals(TEST_ATTRIBUTES_DAG_ID_STRING, MRInputHelpers.getDagIdString(job));
+      assertEquals(TEST_ATTRIBUTES_VERTEX_ID_STRING, MRInputHelpers.getVertexIdString(job));
+      assertEquals(TEST_ATTRIBUTES_TASK_ID_STRING, MRInputHelpers.getTaskIdString(job));
+      assertEquals(TEST_ATTRIBUTES_TASK_ATTEMPT_ID_STRING, MRInputHelpers.getTaskAttemptIdString(job));
       invoked.set(true);
       return new RecordReader() {
         @Override

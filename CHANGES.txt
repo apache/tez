@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3290. Set full task attempt id string in MRInput configuration object.
   TEZ-3278. Hide Swimlane from Tez UI
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-909.  Provide support for application tags

@@ -94,6 +94,10 @@ public class MRInput extends MRInputBase {
   @Private public static final String TEZ_MAPREDUCE_APPLICATION_ID = "tez.mapreduce.application.id";
   @Private public static final String TEZ_MAPREDUCE_UNIQUE_IDENTIFIER = "tez.mapreduce.unique.identifier";
   @Private public static final String TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER = "tez.mapreduce.dag.attempt.number";
+  @Private public static final String TEZ_MAPREDUCE_DAG_ID= "tez.mapreduce.dag.id";
+  @Private public static final String TEZ_MAPREDUCE_VERTEX_ID = "tez.mapreduce.vertex.id";
+  @Private public static final String TEZ_MAPREDUCE_TASK_ID = "tez.mapreduce.task.id";
+  @Private public static final String TEZ_MAPREDUCE_TASK_ATTEMPT_ID = "tez.mapreduce.task.attempt.id";
 
 
 
