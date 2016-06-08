@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3290. Set full task attempt id string in MRInput configuration object.
   TEZ-2846. Flaky test: TestCommit.testVertexCommit_OnDAGSuccess.
   TEZ-3289. Tez Example MRRSleep job does not set Staging dir correctly on secure cluster.
   TEZ-3276. Tez Example MRRSleep job fails when tez.staging-dir fs is not same as default FS.
@@ -55,6 +56,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3290. Set full task attempt id string in MRInput configuration object.
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
   TEZ-3237. Corrupted shuffle transfers to disk are not detected during transfer
