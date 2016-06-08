@@ -230,7 +230,6 @@ public class TestCommit {
 
     @Override
     public void commitOutput() throws IOException {
-      ++commitCounter;
       while (blockCommit) {
         try {
           Thread.sleep(100);
@@ -239,6 +238,7 @@ public class TestCommit {
           throw new IOException(e);
         }
       }
+      ++commitCounter;
       if (throwError) {
         throw new RuntimeException("I can throwz exceptions in commit");
       }

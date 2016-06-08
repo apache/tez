@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-2846. Flaky test: TestCommit.testVertexCommit_OnDAGSuccess.
   TEZ-3289. Tez Example MRRSleep job does not set Staging dir correctly on secure cluster.
   TEZ-3276. Tez Example MRRSleep job fails when tez.staging-dir fs is not same as default FS.
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
