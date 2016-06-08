@@ -19,6 +19,8 @@
 import { moduleForComponent, test } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 
+import moment from 'moment';
+
 moduleForComponent('tab-n-refresh', 'Integration | Component | tab n refresh', {
   integration: true
 });
@@ -60,13 +62,14 @@ test('normalizedTabs test', function(assert) {
 });
 
 test('loadTime test', function(assert) {
-  var loadTime = 1465226174574;
+  var loadTime = 1465226174574,
+      timeInText = moment(loadTime).format("DD MMM YYYY HH:mm:ss");
 
   this.set("loadTime", loadTime);
 
   this.render(hbs`{{tab-n-refresh loadTime=loadTime}}`);
   assert.equal(
     this.$(".refresh-ui .text-elements").text().trim().split(" ").slice(-7).join(" ").replace("\n", ""),
-    "Last refreshed at 06 Jun 2016 20:46:14"
+    `Last refreshed at ${timeInText}`
   );
 });

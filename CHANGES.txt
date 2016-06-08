@@ -47,6 +47,7 @@ ALL CHANGES:
   TEZ-3063. Tez UI: Display Input, Output, Processor, Source and Sink configurations under a vertex
   TEZ-3281. Tez UI: Swimlane improvements
   TEZ-3264. Tez UI: UI discrepancies
+  TEZ-3292. Tez UI: UTs breaking with timezone change
 
 Release 0.8.4: Unreleased
 
