@@ -369,14 +369,16 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     List<String> inputPaths = new ArrayList<String>();
     List<String> outputPaths = new ArrayList<String>();
+    TezConfiguration tezConf = new TezConfiguration(conf);
 
     for (int i = 0; i < otherArgs.length; i+=2) {
-      inputPaths.add(otherArgs[i]);
-      outputPaths.add(otherArgs[i+1]);
+      FileSystem inputPathFs = new Path(otherArgs[i]).getFileSystem(tezConf);
+      inputPaths.add(inputPathFs.makeQualified(new Path(otherArgs[i])).toString());
+      FileSystem outputPathFs = new Path(otherArgs[i+1]).getFileSystem(tezConf);
+      outputPaths.add(outputPathFs.makeQualified(new Path(otherArgs[i+1])).toString());
     }
 
     UserGroupInformation.setConfiguration(conf);
-    TezConfiguration tezConf = new TezConfiguration(conf);
     HadoopShim hadoopShim = new HadoopShimsLoader(tezConf).getHadoopShim();
     TestOrderedWordCount instance = new TestOrderedWordCount();
 

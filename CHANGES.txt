@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3295. TestOrderedWordCount should handle relative input/output paths.
   TEZ-3290. Set full task attempt id string in MRInput configuration object.
   TEZ-2846. Flaky test: TestCommit.testVertexCommit_OnDAGSuccess.
   TEZ-3289. Tez Example MRRSleep job does not set Staging dir correctly on secure cluster.
