@@ -1593,18 +1593,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       } finally {
         writeLock.unlock();
       }
-      
-      readLock.lock();
-      try {
-        for (ScheduleTaskRequest task : tasksToSchedule) {
-          TezTaskID taskId = TezTaskID.getInstance(vertexId, task.getTaskIndex());
-          TaskSpec baseTaskSpec = createRemoteTaskSpec(taskId.getId());
-          boolean fromRecovery = recoveryData == null ? false : recoveryData.getTaskRecoveryData(taskId) != null;
-          eventHandler.handle(new TaskEventScheduleTask(taskId, baseTaskSpec,
-              getTaskLocationHint(taskId), fromRecovery));
-        }
-      } finally {
-        readLock.unlock();
+
+      /**
+       * read lock is not needed here. For e.g after starting task
+       * scheduling on the vertex, it would not change numTasks. Rest of
+       * the methods creating remote task specs have their
+       * own locking mechanisms. Ref: TEZ-3297
+       */
+      for (ScheduleTaskRequest task : tasksToSchedule) {
+        TezTaskID taskId = TezTaskID.getInstance(vertexId, task.getTaskIndex());
+        TaskSpec baseTaskSpec = createRemoteTaskSpec(taskId.getId());
+        boolean fromRecovery = recoveryData == null ? false : recoveryData.getTaskRecoveryData(taskId) != null;
+        eventHandler.handle(new TaskEventScheduleTask(taskId, baseTaskSpec,
+            getTaskLocationHint(taskId), fromRecovery));
       }
     } catch (AMUserCodeException e) {
       String msg = "Exception in " + e.getSource() + ", vertex=" + getLogIdentifier();
@@ -4040,17 +4041,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   @Override
   public void setInputVertices(Map<Vertex, Edge> inVertices) {
-    this.sourceVertices = inVertices;
-    for (Vertex vertex : sourceVertices.keySet()) {
-      addIO(vertex.getName());
+    writeLock.lock();
+    try {
+      this.sourceVertices = inVertices;
+      for (Vertex vertex : sourceVertices.keySet()) {
+        addIO(vertex.getName());
+      }
+    } finally {
+      writeLock.unlock();
     }
   }
 
   @Override
   public void setOutputVertices(Map<Vertex, Edge> outVertices) {
-    this.targetVertices = outVertices;
-    for (Vertex vertex : targetVertices.keySet()) {
-      addIO(vertex.getName());
+    writeLock.lock();
+    try {
+      this.targetVertices = outVertices;
+      for (Vertex vertex : targetVertices.keySet()) {
+        addIO(vertex.getName());
+      }
+    } finally {
+      writeLock.unlock();;
     }
   }
 
@@ -4250,9 +4261,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   @Override
   public List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException {
+    // For locking strategy, please refer to getOutputSpecList()
     readLock.lock();
+    List<InputSpec> inputSpecList = null;
     try {
-      List<InputSpec> inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
+      inputSpecList = new ArrayList<InputSpec>(this.getInputVerticesCount()
           + (rootInputDescriptors == null ? 0 : rootInputDescriptors.size()));
       if (rootInputDescriptors != null) {
         for (Entry<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
@@ -4262,44 +4275,65 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                   rootInputDescriptorEntry.getKey()).getNumPhysicalInputsForWorkUnit(taskIndex)));
         }
       }
-      for(Vertex vertex : getInputVertices().keySet()) {
-        /**
-         * It is possible that setParallelism is in the middle of processing in target vertex with
-         * its write lock. So we need to get inputspec by acquiring read lock in target vertex to
-         * get consistent view.
-         * Refer TEZ-2251
-         */
-        InputSpec inputSpec = ((VertexImpl) vertex).getDestinationSpecFor(this, taskIndex);
-        // TODO DAGAM This should be based on the edge type.
-        inputSpecList.add(inputSpec);
-      }
-      return inputSpecList;
     } finally {
       readLock.unlock();
     }
+
+    for(Vertex vertex : getInputVertices().keySet()) {
+      /**
+       * It is possible that setParallelism is in the middle of processing in target vertex with
+       * its write lock. So we need to get inputspec by acquiring read lock in target vertex to
+       * get consistent view.
+       * Refer TEZ-2251
+       */
+      InputSpec inputSpec = ((VertexImpl) vertex).getDestinationSpecFor(this, taskIndex);
+      // TODO DAGAM This should be based on the edge type.
+      inputSpecList.add(inputSpec);
+    }
+    return inputSpecList;
   }
 
   @Override
   public List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException {
+    /**
+     * Ref: TEZ-3297
+     * Locking entire method could introduce a nested lock and
+     * could lead to deadlock in corner cases. Example of deadlock with nested lock here:
+     * 1. In thread#1, Downstream vertex is in the middle of processing setParallelism and gets
+     * writeLock.
+     * 2. In thread#2, currentVertex acquires read lock
+     * 3. In thread#3, central dispatcher tries to process an event for current vertex,
+     * so tries to acquire write lock.
+     *
+     * In further processing,
+     * 4. In thread#1, it tries to acquire readLock on current vertex for setting edges. But
+     * this would be blocked as #3 already requested for write lock
+     * 5. In thread#2, getting readLock on downstream vertex would be blocked as writeLock
+     * is held by thread#1.
+     * 6. thread#3 is anyways blocked due to thread#2's read lock on current vertex.
+     */
+
+    List<OutputSpec> outputSpecList = null;
     readLock.lock();
     try {
-      List<OutputSpec> outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
+      outputSpecList = new ArrayList<OutputSpec>(this.getOutputVerticesCount()
           + this.additionalOutputSpecs.size());
       outputSpecList.addAll(additionalOutputSpecs);
-      for(Vertex vertex : targetVertices.keySet()) {
-        /**
-         * It is possible that setParallelism (which could change numTasks) is in the middle of
-         * processing in target vertex with its write lock. So we need to get outputspec by
-         * acquiring read lock in target vertex to get consistent view.
-         * Refer TEZ-2251
-         */
-        OutputSpec outputSpec = ((VertexImpl) vertex).getSourceSpecFor(this, taskIndex);
-        outputSpecList.add(outputSpec);
-      }
-      return outputSpecList;
     } finally {
       readLock.unlock();
     }
+
+    for(Vertex vertex : targetVertices.keySet()) {
+      /**
+       * It is possible that setParallelism (which could change numTasks) is in the middle of
+       * processing in target vertex with its write lock. So we need to get outputspec by
+       * acquiring read lock in target vertex to get consistent view.
+       * Refer TEZ-2251
+       */
+      OutputSpec outputSpec = ((VertexImpl) vertex).getSourceSpecFor(this, taskIndex);
+      outputSpecList.add(outputSpec);
+    }
+    return outputSpecList;
   }
 
   private OutputSpec getSourceSpecFor(VertexImpl vertex, int taskIndex) throws
