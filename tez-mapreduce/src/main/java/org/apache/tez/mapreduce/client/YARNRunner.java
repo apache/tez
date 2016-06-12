@@ -50,6 +50,7 @@ import org.apache.hadoop.mapreduce.ClusterMetrics;
 import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.JobPriority;
 import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.QueueAclsInfo;
 import org.apache.hadoop.mapreduce.QueueInfo;
@@ -665,6 +666,11 @@ public class YARNRunner implements ClientProtocol {
   public void setJobPriority(JobID arg0, String arg1) throws IOException,
       InterruptedException {
     resMgrDelegate.setJobPriority(arg0, arg1);
+  }
+
+  public JobPriority getJobPriority(JobID jobid) throws IOException,
+      InterruptedException {
+    throw new UnsupportedOperationException();
   }
 
   @Override
