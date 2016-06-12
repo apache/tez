@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
   TEZ-3295. TestOrderedWordCount should handle relative input/output paths.
   TEZ-3290. Set full task attempt id string in MRInput configuration object.
@@ -58,6 +59,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
   TEZ-3290. Set full task attempt id string in MRInput configuration object.
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
@@ -506,6 +508,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
   TEZ-3280. LOG MRInputHelpers split generation message as INFO
   TEZ-3257. Fix flaky test TestUnorderedPartitionedKVWriter.
