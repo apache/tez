@@ -6,6 +6,8 @@ Release 0.7.2 Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+
+  TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
   TEZ-3278. Hide Swimlane from Tez UI
   TEZ-909.  Provide support for application tags 
