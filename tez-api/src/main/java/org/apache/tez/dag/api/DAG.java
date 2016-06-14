@@ -21,9 +21,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -98,8 +100,6 @@ public class DAG {
   CallerContext callerContext;
   private Map<String,String> dagConf = new HashMap<String, String>();
   private VertexExecutionContext defaultExecutionContext;
-
-  private Stack<String> topologicalVertexStack = new Stack<String>();
 
   private DAG(String name) {
     this.name = name;
@@ -552,7 +552,7 @@ public class DAG {
   }
 
   @VisibleForTesting
-  void verify(boolean restricted) throws IllegalStateException {
+  Deque<String> verify(boolean restricted) throws IllegalStateException {
     if (vertices.isEmpty()) {
       throw new IllegalStateException("Invalid dag containing 0 vertices");
     }
@@ -655,8 +655,8 @@ public class DAG {
     // When additional inputs are supported, this can be chceked easily (and early)
     // within the addInput / addOutput call itself.
 
-    detectCycles(edgeMap, vertexMap);
-    
+    Deque<String> topologicalVertexStack = detectCycles(edgeMap, vertexMap);
+
     checkAndInferOneToOneParallelism();
 
     if (restricted) {
@@ -673,29 +673,36 @@ public class DAG {
         }
       }
     }
+
+    return topologicalVertexStack;
   }
 
   // Adaptation of Tarjan's algorithm for connected components.
   // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
-  private void detectCycles(Map<Vertex, List<Edge>> edgeMap, Map<String, AnnotatedVertex> vertexMap)
+  private Deque<String> detectCycles(Map<Vertex, List<Edge>> edgeMap,
+      Map<String, AnnotatedVertex> vertexMap)
     throws IllegalStateException {
+    Deque<String> topologicalVertexStack = new LinkedList<String>();
     Integer nextIndex = 0; // boxed integer so it is passed by reference.
     Stack<AnnotatedVertex> stack = new Stack<DAG.AnnotatedVertex>();
     for (AnnotatedVertex av : vertexMap.values()) {
       if (av.index == -1) {
         assert stack.empty();
-        strongConnect(av, vertexMap, edgeMap, stack, nextIndex);
+        strongConnect(av, vertexMap, edgeMap, stack, nextIndex, topologicalVertexStack);
       }
     }
+    return topologicalVertexStack;
   }
 
   // part of Tarjan's algorithm for connected components.
   // http://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
   private void strongConnect(
-    AnnotatedVertex av,
-    Map<String, AnnotatedVertex> vertexMap,
-    Map<Vertex, List<Edge>> edgeMap,
-    Stack<AnnotatedVertex> stack, Integer nextIndex) throws IllegalStateException {
+      AnnotatedVertex av,
+      Map<String, AnnotatedVertex> vertexMap,
+      Map<Vertex, List<Edge>> edgeMap,
+      Stack<AnnotatedVertex> stack,
+      Integer nextIndex,
+      Deque<String> topologicalVertexStack) throws IllegalStateException {
     av.index = nextIndex;
     av.lowlink = nextIndex;
     nextIndex++;
@@ -707,7 +714,7 @@ public class DAG {
       for (Edge e : edgeMap.get(av.v)) {
         AnnotatedVertex outVertex = vertexMap.get(e.getOutputVertex().getName());
         if (outVertex.index == -1) {
-          strongConnect(outVertex, vertexMap, edgeMap, stack, nextIndex);
+          strongConnect(outVertex, vertexMap, edgeMap, stack, nextIndex, topologicalVertexStack);
           av.lowlink = Math.min(av.lowlink, outVertex.lowlink);
         } else if (outVertex.onstack) {
           // strongly connected component detected, but we will wait till later so that the full cycle can be displayed.
@@ -760,7 +767,7 @@ public class DAG {
       Map<String, LocalResource> tezJarResources, LocalResource binaryConfig,
       boolean tezLrsAsArchive, Map<String, String> additionalConfigs,
       ServicePluginsDescriptor servicePluginsDescriptor, JavaOptsChecker javaOptsChecker) {
-    verify(true);
+    Deque<String> topologicalVertexStack = verify(true);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
     dagBuilder.setName(this.name);
