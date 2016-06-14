@@ -18,11 +18,19 @@
 
 package org.apache.tez.dag.api;
 
+import java.util.Collections;
+import java.util.Map;
+
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -333,4 +341,24 @@ public class TestDAG {
 
   }
 
+  @Test
+  public void testRecreateDAG() {
+    Map<String, LocalResource> lrDAG = Collections.singletonMap("LR1",
+        LocalResource.newInstance(
+            URL.newInstance("file", "localhost", 0, "/test1"),
+            LocalResourceType.FILE,
+            LocalResourceVisibility.PUBLIC, 1, 1));
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor1"), 1,
+        Resource.newInstance(1, 1));
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("dummyProcessor2"), 1,
+        Resource.newInstance(1, 1));
+    DAG dag = DAG.create("dag1").addVertex(v1).addVertex(v2).addTaskLocalFiles(lrDAG);
+
+    TezConfiguration tezConf = new TezConfiguration();
+    DAGPlan firstPlan = dag.createDag(tezConf, null, null, null, false);
+    for (int i = 0; i < 3; ++i) {
+        DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
+        Assert.assertEquals(dagPlan, firstPlan);
+    }
+  }
 }
