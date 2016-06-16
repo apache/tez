@@ -57,8 +57,15 @@ public class TestDAGScheduler {
     Vertex mockVertex = mock(Vertex.class);
     TaskAttempt mockAttempt = mock(TaskAttempt.class);
     when(mockDag.getVertex((TezVertexID) any())).thenReturn(mockVertex);
+    when(mockDag.getTotalVertices()).thenReturn(4);
     when(mockVertex.getDistanceFromRoot()).thenReturn(0).thenReturn(1)
         .thenReturn(2);
+    TezVertexID vId0 = TezVertexID.fromString("vertex_1436907267600_195589_1_00");
+    TezVertexID vId1 = TezVertexID.fromString("vertex_1436907267600_195589_1_01");
+    TezVertexID vId2 = TezVertexID.fromString("vertex_1436907267600_195589_1_02");
+    TezVertexID vId3 = TezVertexID.fromString("vertex_1436907267600_195589_1_03");
+    when(mockVertex.getVertexId()).thenReturn(vId0).thenReturn(vId1)
+        .thenReturn(vId2).thenReturn(vId3);
     
     DAGEventSchedulerUpdate event = new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt);    
@@ -66,20 +73,24 @@ public class TestDAGScheduler {
     DAGScheduler scheduler = new DAGSchedulerNaturalOrder(mockDag,
         mockEventHandler);
     scheduler.scheduleTaskEx(event);
-    Assert.assertEquals(1, mockEventHandler.event.getPriorityHighLimit());
-    Assert.assertEquals(3, mockEventHandler.event.getPriorityLowLimit());
+    Assert.assertEquals(10, mockEventHandler.event.getPriorityHighLimit());
+    Assert.assertEquals(12, mockEventHandler.event.getPriorityLowLimit());
     scheduler.scheduleTaskEx(event);
-    Assert.assertEquals(4, mockEventHandler.event.getPriorityHighLimit());
-    Assert.assertEquals(6, mockEventHandler.event.getPriorityLowLimit());
+    Assert.assertEquals(25, mockEventHandler.event.getPriorityHighLimit());
+    Assert.assertEquals(27, mockEventHandler.event.getPriorityLowLimit());
     scheduler.scheduleTaskEx(event);
-    Assert.assertEquals(7, mockEventHandler.event.getPriorityHighLimit());
-    Assert.assertEquals(9, mockEventHandler.event.getPriorityLowLimit());
+    Assert.assertEquals(40, mockEventHandler.event.getPriorityHighLimit());
+    Assert.assertEquals(42, mockEventHandler.event.getPriorityLowLimit());
+    scheduler.scheduleTaskEx(event);
+    Assert.assertEquals(43, mockEventHandler.event.getPriorityHighLimit());
+    Assert.assertEquals(45, mockEventHandler.event.getPriorityLowLimit());
   }
   
   @Test(timeout=5000)
   public void testConcurrencyLimit() {
     MockEventHandler mockEventHandler = new MockEventHandler();
     DAG mockDag = mock(DAG.class);
+    when(mockDag.getTotalVertices()).thenReturn(2);
     TezVertexID vId0 = TezVertexID.fromString("vertex_1436907267600_195589_1_00");
     TezVertexID vId1 = TezVertexID.fromString("vertex_1436907267600_195589_1_01");
     TezTaskID tId0 = TezTaskID.getInstance(vId0, 0);
@@ -90,6 +101,7 @@ public class TestDAGScheduler {
     Vertex mockVertex = mock(Vertex.class);
     when(mockDag.getVertex((TezVertexID) any())).thenReturn(mockVertex);
     when(mockVertex.getDistanceFromRoot()).thenReturn(0);
+    when(mockVertex.getVertexId()).thenReturn(vId0);
     
     DAGScheduler scheduler = new DAGSchedulerNaturalOrder(mockDag,
         mockEventHandler);
